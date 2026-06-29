@@ -239,43 +239,55 @@ router.delete('/:id/talent/:tId', requireAuth, requireRole('ADMIN','PRODUCER'), 
 // ─── Nested: Crew Assignments ────────────────────────────────────────────────
 
 const assignmentSchema = z.object({
-  crewMemberId: z.string().min(1),
+  positionId: z.string().min(1),
+  crewMemberId: z.string().optional().nullable(),
+  slotNumber: z.number().int().positive().optional(),
   callTime: z.string().optional(),
   daysActive: z.string().optional(),
   notes: z.string().optional(),
 });
 
+const assignmentInclude = { position: true, crewMember: true };
+
+// GET /api/projects/:id/crew  — returns all slots grouped by position
 router.get('/:id/crew', requireAuth, async (req, res, next) => {
   try {
     res.json(await prisma.crewAssignment.findMany({
       where: { projectId: req.params.id },
-      include: { crewMember: true },
+      orderBy: [{ position: { sortOrder: 'asc' } }, { slotNumber: 'asc' }],
+      include: assignmentInclude,
     }));
   } catch (err) { next(err); }
 });
 
+// POST /api/projects/:id/crew  — add a position slot (with or without a crew member)
 router.post('/:id/crew', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
     const data = assignmentSchema.parse(req.body);
     const assignment = await prisma.crewAssignment.create({
-      data: { ...data, projectId: req.params.id },
-      include: { crewMember: true },
+      data: { ...data, slotNumber: data.slotNumber ?? 1, projectId: req.params.id },
+      include: assignmentInclude,
     });
     res.status(201).json(assignment);
   } catch (err) {
     if (err.name === 'ZodError') return res.status(400).json({ error: err.errors });
-    if (err.code === 'P2002') return res.status(409).json({ error: 'Crew member already assigned' });
+    if (err.code === 'P2002') return res.status(409).json({ error: 'That position slot is already on this project' });
     next(err);
   }
 });
 
+// PATCH /api/projects/:id/crew/:aId  — assign/unassign crew member or update call time
 router.patch('/:id/crew/:aId', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const data = assignmentSchema.omit({ crewMemberId: true }).partial().parse(req.body);
-    res.json(await prisma.crewAssignment.update({ where: { id: req.params.aId }, data, include: { crewMember: true } }));
-  } catch (err) { next(err); }
+    const data = assignmentSchema.omit({ positionId: true, slotNumber: true }).partial().parse(req.body);
+    res.json(await prisma.crewAssignment.update({ where: { id: req.params.aId }, data, include: assignmentInclude }));
+  } catch (err) {
+    if (err.name === 'ZodError') return res.status(400).json({ error: err.errors });
+    next(err);
+  }
 });
 
+// DELETE /api/projects/:id/crew/:aId  — remove a position slot from the project
 router.delete('/:id/crew/:aId', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
     await prisma.crewAssignment.delete({ where: { id: req.params.aId } });

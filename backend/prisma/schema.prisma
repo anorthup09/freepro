@@ -141,15 +141,26 @@ model KeyTalent {
 
 // ─── Crew ─────────────────────────────────────────────────────────────────────
 
+model Position {
+  id          String   @id @default(cuid())
+  name        String   @unique   // "Director", "DP/Cam Op", "Audio Engineer" …
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+
+  assignments CrewAssignment[]
+
+  @@map("positions")
+}
+
 model CrewMember {
   id          String   @id @default(cuid())
   name        String
-  role        String
   email       String?
   phone       String?
   company     String?
   initials    String?
   avatarColor String?
+  isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -165,15 +176,18 @@ model CrewMember {
 model CrewAssignment {
   id           String   @id @default(cuid())
   projectId    String
-  crewMemberId String
-  callTime     String?  // "7:30 AM" — stored as string for flexibility
-  daysActive   String?  // "5/4 & 5/5 only" or null = all days
+  positionId   String
+  crewMemberId String?  // null = position exists on project but unassigned
+  slotNumber   Int      @default(1)  // 1 = only/first, 2 = second Audio Engineer, etc.
+  callTime     String?
+  daysActive   String?  // null = all days, otherwise e.g. "5/4 & 5/5 only"
   notes        String?
 
-  project      Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  crewMember   CrewMember @relation(fields: [crewMemberId], references: [id], onDelete: Cascade)
+  project      Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  position     Position    @relation(fields: [positionId], references: [id])
+  crewMember   CrewMember? @relation(fields: [crewMemberId], references: [id])
 
-  @@unique([projectId, crewMemberId])
+  @@unique([projectId, positionId, slotNumber])
   @@map("crew_assignments")
 }
 
