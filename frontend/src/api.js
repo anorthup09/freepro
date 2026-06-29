@@ -1,4 +1,4 @@
-const BASE = (import.meta.env.VITE_API_URL || '') + '/api';
+const BASE = (import.meta.env.VITE_API_URL || 'https://freepro-production.up.railway.app') + '/api';
 
 function token() {
   return localStorage.getItem('fp_token');
