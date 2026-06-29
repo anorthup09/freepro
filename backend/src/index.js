@@ -18,6 +18,15 @@ app.use(express.json());
 
 app.get('/health', (req, res) => res.json({ status: 'ok', ts: new Date() }));
 
+app.post('/admin/seed', async (req, res) => {
+  if (req.headers['x-seed-key'] !== process.env.SEED_KEY) return res.status(403).json({ error: 'Forbidden' });
+  try {
+    const seed = require('./seed');
+    await seed();
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/crew', crewRoutes);
 app.use('/api/projects', projectRoutes);
