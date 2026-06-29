@@ -26,7 +26,7 @@ const eventSchema = z.object({
   })).optional(),
 });
 
-// GET /api/projects/:id/schedule
+// GET /api/projects/:id/schedule  — all days with events + crew calls
 router.get('/:id/schedule', requireAuth, async (req, res, next) => {
   try {
     const days = await prisma.shootDay.findMany({
@@ -37,9 +37,38 @@ router.get('/:id/schedule', requireAuth, async (req, res, next) => {
           orderBy: { startTime: 'asc' },
           include: { tags: true, crewTags: { include: { crewMember: true } }, location: true },
         },
+        crewCalls: {
+          orderBy: { crewAssignment: { position: { sortOrder: 'asc' } } },
+          include: {
+            crewAssignment: {
+              include: { position: true, crewMember: true },
+            },
+          },
+        },
       },
     });
     res.json(days);
+  } catch (err) { next(err); }
+});
+
+// GET /api/projects/:id/schedule/days/:dayId  — single day detail
+router.get('/:id/schedule/days/:dayId', requireAuth, async (req, res, next) => {
+  try {
+    const day = await prisma.shootDay.findUnique({
+      where: { id: req.params.dayId },
+      include: {
+        events: {
+          orderBy: { startTime: 'asc' },
+          include: { tags: true, crewTags: { include: { crewMember: true } }, location: true },
+        },
+        crewCalls: {
+          orderBy: { crewAssignment: { position: { sortOrder: 'asc' } } },
+          include: { crewAssignment: { include: { position: true, crewMember: true } } },
+        },
+      },
+    });
+    if (!day) return res.status(404).json({ error: 'Day not found' });
+    res.json(day);
   } catch (err) { next(err); }
 });
 
@@ -129,6 +158,51 @@ router.post('/:id/schedule/events/:eventId/crew-tags', requireAuth, requireRole(
     });
     res.status(201).json(tag);
   } catch (err) { next(err); }
+});
+
+// ─── Crew Day Calls ──────────────────────────────────────────────────────────
+
+const crewDayCallSchema = z.object({
+  crewAssignmentId: z.string().min(1),
+  callTime: z.string().optional(),
+  wrapTime: z.string().optional(),
+  locationNote: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+// PUT /api/projects/:id/schedule/days/:dayId/calls  — upsert all crew calls for a day
+// Send array of { crewAssignmentId, callTime, wrapTime, locationNote, notes }
+router.put('/:id/schedule/days/:dayId/calls', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try {
+    const calls = z.array(crewDayCallSchema).parse(req.body);
+    const results = await Promise.all(calls.map(({ crewAssignmentId, ...data }) =>
+      prisma.crewDayCall.upsert({
+        where: { crewAssignmentId_shootDayId: { crewAssignmentId, shootDayId: req.params.dayId } },
+        update: data,
+        create: { crewAssignmentId, shootDayId: req.params.dayId, ...data },
+        include: { crewAssignment: { include: { position: true, crewMember: true } } },
+      })
+    ));
+    res.json(results);
+  } catch (err) {
+    if (err.name === 'ZodError') return res.status(400).json({ error: err.errors });
+    next(err);
+  }
+});
+
+// PATCH /api/projects/:id/schedule/calls/:callId  — update a single crew call
+router.patch('/:id/schedule/calls/:callId', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try {
+    const data = crewDayCallSchema.omit({ crewAssignmentId: true }).partial().parse(req.body);
+    res.json(await prisma.crewDayCall.update({
+      where: { id: req.params.callId },
+      data,
+      include: { crewAssignment: { include: { position: true, crewMember: true } } },
+    }));
+  } catch (err) {
+    if (err.name === 'ZodError') return res.status(400).json({ error: err.errors });
+    next(err);
+  }
 });
 
 module.exports = router;

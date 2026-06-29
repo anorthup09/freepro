@@ -179,16 +179,32 @@ model CrewAssignment {
   positionId   String
   crewMemberId String?  // null = position exists on project but unassigned
   slotNumber   Int      @default(1)  // 1 = only/first, 2 = second Audio Engineer, etc.
-  callTime     String?
-  daysActive   String?  // null = all days, otherwise e.g. "5/4 & 5/5 only"
   notes        String?
 
-  project      Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  position     Position    @relation(fields: [positionId], references: [id])
-  crewMember   CrewMember? @relation(fields: [crewMemberId], references: [id])
+  project      Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  position     Position       @relation(fields: [positionId], references: [id])
+  crewMember   CrewMember?    @relation(fields: [crewMemberId], references: [id])
+  dayCalls     CrewDayCall[]
 
   @@unique([projectId, positionId, slotNumber])
   @@map("crew_assignments")
+}
+
+// Per-day call time for each crew assignment
+model CrewDayCall {
+  id               String         @id @default(cuid())
+  crewAssignmentId String
+  shootDayId       String
+  callTime         String?        // "7:30 AM"
+  wrapTime         String?        // "10:00 PM"
+  locationNote     String?        // "KCCC Main Entrance" — freetext, not FK
+  notes            String?
+
+  crewAssignment   CrewAssignment @relation(fields: [crewAssignmentId], references: [id], onDelete: Cascade)
+  shootDay         ShootDay       @relation(fields: [shootDayId], references: [id], onDelete: Cascade)
+
+  @@unique([crewAssignmentId, shootDayId])
+  @@map("crew_day_calls")
 }
 
 // ─── Schedule ─────────────────────────────────────────────────────────────────
@@ -205,6 +221,7 @@ model ShootDay {
 
   project     Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
   events      ScheduleEvent[]
+  crewCalls   CrewDayCall[]
 
   @@unique([projectId, dayNumber])
   @@map("shoot_days")
