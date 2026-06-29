@@ -1,175 +1,111 @@
-const { PrismaClient } = require('@prisma/client');
+require('dotenv').config();
 const bcrypt = require('bcryptjs');
-
-const prisma = new PrismaClient();
+const sql = require('../src/lib/db');
+const migrate = require('../src/lib/migrate');
 
 const POSITIONS = [
-  'Director',
-  'Executive Producer',
-  'Field Producer',
-  'DP/Cam Op',
-  'Camera B',
-  'Camera C',
-  'Drone Operator',
-  'First AC',
-  'DIT',
-  'Onsite Editor',
-  'Audio Engineer',
-  'Key Grip',
-  'Grip',
-  'Gaffer',
-  'First AD',
-  'Production Coordinator',
-  'Production Assistant',
-  'Teleprompter Operator',
-  'Hair & Makeup',
-  'Location Scout',
-  'Casting Director',
-  'Art Director',
-  'Props & Wardrobe Lead',
-  'Craft Services',
-  'Talent',
+  'Director','Executive Producer','Field Producer','DP/Cam Op','Camera B','Camera C',
+  'Drone Operator','First AC','DIT','Onsite Editor','Audio Engineer','Key Grip','Grip',
+  'Gaffer','First AD','Production Coordinator','Production Assistant','Teleprompter Operator',
+  'Hair & Makeup','Location Scout','Casting Director','Art Director','Props & Wardrobe Lead',
+  'Craft Services','Talent',
 ];
 
-async function main() {
+async function seed() {
+  await migrate();
+
   // Admin user
   const hashed = await bcrypt.hash('freepro2026!', 12);
-  const admin = await prisma.user.upsert({
-    where: { email: 'admin@unbridledmedia.com' },
-    update: {},
-    create: { name: 'Admin', email: 'admin@unbridledmedia.com', password: hashed, role: 'ADMIN' },
-  });
-  console.log('Admin user:', admin.email);
+  await sql`INSERT INTO users (id, name, email, password, role) VALUES (gen_random_uuid()::text, 'Admin', 'admin@unbridledmedia.com', ${hashed}, 'ADMIN') ON CONFLICT (email) DO NOTHING`;
+  console.log('Admin user ready');
 
   // Positions
-  const positionMap = {};
   for (let i = 0; i < POSITIONS.length; i++) {
-    const p = await prisma.position.upsert({
-      where: { name: POSITIONS[i] },
-      update: { sortOrder: i },
-      create: { name: POSITIONS[i], sortOrder: i },
-    });
-    positionMap[p.name] = p;
+    await sql`INSERT INTO positions (id, name, sort_order) VALUES (gen_random_uuid()::text, ${POSITIONS[i]}, ${i}) ON CONFLICT (name) DO UPDATE SET sort_order = ${i}`;
   }
-  console.log('Positions seeded:', Object.keys(positionMap).length);
+  console.log('Positions ready:', POSITIONS.length);
 
-  // Crew members (global roster — no role field, role comes from position on project)
+  // Crew members
   const crewData = [
-    { name: 'Joey Goldman',   email: 'jgoldman@unbridledmedia.com', phone: '303-903-0543', company: 'Unbridled Media', initials: 'JG', avatarColor: '#E8A030' },
-    { name: 'Ben Lamb',       email: 'blamb@unbridledmedia.com',    phone: '818-400-6156', company: 'Unbridled Media', initials: 'BL', avatarColor: '#5ABF80' },
-    { name: 'Anna Parnigoni', email: 'aparnigoni@unbridledmedia.com', phone: '513-702-4833', company: 'Unbridled Media', initials: 'AP', avatarColor: '#8080E0' },
-    { name: 'Brandon Emery',  email: 'bemery@unbridled.com',         phone: '727-439-3833', company: 'Unbridled Media', initials: 'BE', avatarColor: '#8080E0' },
-    { name: 'Fred Munoz',     email: 'fredmunoz@gmail.com',          phone: '305-213-2769', company: 'Freelance',        initials: 'FM', avatarColor: '#E08080' },
-    { name: 'Daniel Neville', email: 'dneville@unbridledmedia.com',  phone: '314-629-4931', company: 'Unbridled Media', initials: 'DN', avatarColor: '#B080E0' },
-    { name: 'Brenden Brooks', email: 'brooksfilmmaking@gmail.com',   phone: '636-395-6895', company: 'Freelance',        initials: 'BB', avatarColor: '#40A0A0' },
-    { name: 'Joe Seebeck',    email: 'jseebeck@unbridledmedia.com',  phone: '314-368-2160', company: 'Unbridled Media', initials: 'JS', avatarColor: '#5ABF80' },
-    { name: 'Jon Arneson',    email: 'jarneson@unbridledmedia.com',  phone: '618-409-9916', company: 'Unbridled Media', initials: 'JA', avatarColor: '#E8A030' },
-    { name: 'Danny Bowersox', email: 'danielbowersox@gmail.com',     phone: '913-406-1704', company: 'Freelance',        initials: 'DB', avatarColor: '#8080E0' },
-    { name: 'Nathan Hoefert', email: 'nathanh@capture-co.com',       phone: '303-591-0325', company: 'Capture Co',       initials: 'NH', avatarColor: '#D0A030' },
-    { name: 'Max Sassaman',   email: 'maxs@capture-co.com',          phone: '303-941-4122', company: 'Capture Co',       initials: 'MS', avatarColor: '#D0A030' },
-    { name: 'Brannden Ard',   email: 'brannden@bardmedia.art',        phone: '314-403-5943', company: 'Freelance',        initials: 'BA', avatarColor: '#C08080' },
-    { name: 'Katie Baxter',   email: 'photographykatiedid@gmail.com', phone: '618-560-6519', company: 'Freelance',        initials: 'KB', avatarColor: '#C08080' },
-    { name: 'Antonio Harris', email: 'hello@antoniotharrisphotography.com', phone: '314-723-3037', company: 'Freelance', initials: 'AH', avatarColor: '#C08080' },
-    { name: 'Kevin Kersting', email: 'kevin@kevinkersting.com',       phone: '314-779-9070', company: 'Freelance',        initials: 'KK', avatarColor: '#C08080' },
+    { name:'Joey Goldman',   email:'jgoldman@unbridledmedia.com', phone:'303-903-0543', company:'Unbridled Media', initials:'JG', avatarColor:'#E8A030' },
+    { name:'Ben Lamb',       email:'blamb@unbridledmedia.com',    phone:'818-400-6156', company:'Unbridled Media', initials:'BL', avatarColor:'#5ABF80' },
+    { name:'Anna Parnigoni', email:'aparnigoni@unbridledmedia.com', phone:'513-702-4833', company:'Unbridled Media', initials:'AP', avatarColor:'#8080E0' },
+    { name:'Brandon Emery',  email:'bemery@unbridled.com',         phone:'727-439-3833', company:'Unbridled Media', initials:'BE', avatarColor:'#8080E0' },
+    { name:'Fred Munoz',     email:'fredmunoz@gmail.com',          phone:'305-213-2769', company:'Freelance',        initials:'FM', avatarColor:'#E08080' },
+    { name:'Daniel Neville', email:'dneville@unbridledmedia.com',  phone:'314-629-4931', company:'Unbridled Media', initials:'DN', avatarColor:'#B080E0' },
+    { name:'Brenden Brooks', email:'brooksfilmmaking@gmail.com',   phone:'636-395-6895', company:'Freelance',        initials:'BB', avatarColor:'#40A0A0' },
+    { name:'Joe Seebeck',    email:'jseebeck@unbridledmedia.com',  phone:'314-368-2160', company:'Unbridled Media', initials:'JS', avatarColor:'#5ABF80' },
+    { name:'Jon Arneson',    email:'jarneson@unbridledmedia.com',  phone:'618-409-9916', company:'Unbridled Media', initials:'JA', avatarColor:'#E8A030' },
+    { name:'Danny Bowersox', email:'danielbowersox@gmail.com',     phone:'913-406-1704', company:'Freelance',        initials:'DB', avatarColor:'#8080E0' },
   ];
-
-  const crew = {};
   for (const c of crewData) {
-    const existing = await prisma.crewMember.findFirst({ where: { name: c.name } });
-    const m = existing
-      ? await prisma.crewMember.update({ where: { id: existing.id }, data: c })
-      : await prisma.crewMember.create({ data: c });
-    crew[c.name] = m;
+    await sql`INSERT INTO crew_members (id, name, email, phone, company, initials, avatar_color) VALUES (gen_random_uuid()::text, ${c.name}, ${c.email}, ${c.phone}, ${c.company}, ${c.initials}, ${c.avatarColor}) ON CONFLICT DO NOTHING`;
   }
-  console.log('Crew seeded:', Object.keys(crew).length);
+  console.log('Crew ready');
 
   // Project
-  const project = await prisma.project.upsert({
-    where: { code: '02.CGS00626' },
-    update: {},
-    create: {
-      code: '02.CGS00626',
-      title: "Casey's C3 Convention",
-      subtitle: '2026',
-      client: "Casey's",
-      city: 'Kansas City',
-      state: 'MO',
-      startDate: new Date('2026-05-03'),
-      endDate: new Date('2026-05-06'),
-      status: 'ACTIVE',
-    },
-  });
-  console.log('Project:', project.code);
+  await sql`
+    INSERT INTO projects (id, code, title, subtitle, client, city, state, start_date, end_date, status)
+    VALUES (gen_random_uuid()::text, '02.CGS00626', 'Casey''s C3 Convention', '2026', 'Casey''s', 'Kansas City', 'MO', '2026-05-03', '2026-05-06', 'ACTIVE')
+    ON CONFLICT (code) DO NOTHING`;
+  const [project] = await sql`SELECT id FROM projects WHERE code = '02.CGS00626'`;
+  console.log('Project ready:', project.id);
 
   // Tech specs
-  await prisma.techSpec.upsert({
-    where: { projectId: project.id },
-    update: {},
-    create: { projectId: project.id, aspectRatio: '2.39:1', resolution: '3672 × 1536', quality: '4K', cameras: 'A, B, C + Drone', execProducer: 'Joey Goldman', onSiteEditor: 'Jon Arneson' },
-  });
+  await sql`
+    INSERT INTO tech_specs (id, project_id, aspect_ratio, resolution, quality, cameras, exec_producer, on_site_editor)
+    VALUES (gen_random_uuid()::text, ${project.id}, '2.39:1', '3672 × 1536', '4K', 'A, B, C + Drone', 'Joey Goldman', 'Jon Arneson')
+    ON CONFLICT (project_id) DO NOTHING`;
 
   // Locations
-  const locationData = [
-    { name: 'Kansas City Convention Center', address: '301 W 13th St #100, KC 64105', type: 'PRIMARY_VENUE', emoji: '🏛' },
-    { name: "Loew's Kansas City Hotel",       address: '1515 Wyandotte St, KC 64108', type: 'CREW_HOTEL',    emoji: '🏨' },
-    { name: 'Kansas City Marriott Downtown',  address: '200 W 12th St, KC 64105',     type: 'SECONDARY',      emoji: '🏩' },
-    { name: 'Hilton President Kansas City',   address: '1329 Baltimore Ave, KC 64105',type: 'SECONDARY',      emoji: '🏛' },
+  const locs = [
+    { name:'Kansas City Convention Center', address:'301 W 13th St #100, KC 64105', type:'PRIMARY_VENUE', emoji:'🏛' },
+    { name:"Loew's Kansas City Hotel",      address:'1515 Wyandotte St, KC 64108',  type:'CREW_HOTEL',   emoji:'🏨' },
+    { name:'Kansas City Marriott Downtown', address:'200 W 12th St, KC 64105',      type:'SECONDARY',     emoji:'🏩' },
+    { name:'Hilton President Kansas City',  address:'1329 Baltimore Ave, KC 64105', type:'SECONDARY',     emoji:'🏛' },
   ];
-  for (const l of locationData) {
-    await prisma.location.create({ data: { ...l, projectId: project.id } });
+  const existingLocs = await sql`SELECT id FROM locations WHERE project_id = ${project.id}`;
+  if (!existingLocs.length) {
+    for (const l of locs) {
+      await sql`INSERT INTO locations (id, project_id, name, address, type, emoji) VALUES (gen_random_uuid()::text, ${project.id}, ${l.name}, ${l.address}, ${l.type}::location_type, ${l.emoji})`;
+    }
   }
 
   // Client contacts
-  await prisma.clientContact.createMany({ data: [
-    { projectId: project.id, name: 'Katie Petru',     title: 'Dir. Communications',  email: 'katie.petru@caseys.com',     phone: '515-480-8503' },
-    { projectId: project.id, name: 'Anne Juelsgaard', title: 'Manager, PR & Events', email: 'anne.juelsgaard@caseys.com', phone: '319-610-2699' },
-    { projectId: project.id, name: 'Chase Russell',   title: 'Communications Mgr',   email: 'chase.russell@caseys.com',   phone: '602-694-8503' },
-  ]});
+  const existingContacts = await sql`SELECT id FROM client_contacts WHERE project_id = ${project.id}`;
+  if (!existingContacts.length) {
+    await sql`INSERT INTO client_contacts (id, project_id, name, title, email, phone) VALUES (gen_random_uuid()::text, ${project.id}, 'Katie Petru', 'Dir. Communications', 'katie.petru@caseys.com', '515-480-8503')`;
+    await sql`INSERT INTO client_contacts (id, project_id, name, title, email, phone) VALUES (gen_random_uuid()::text, ${project.id}, 'Anne Juelsgaard', 'Manager, PR & Events', 'anne.juelsgaard@caseys.com', '319-610-2699')`;
+    await sql`INSERT INTO client_contacts (id, project_id, name, title, email, phone) VALUES (gen_random_uuid()::text, ${project.id}, 'Chase Russell', 'Communications Mgr', 'chase.russell@caseys.com', '602-694-8503')`;
+  }
 
   // Key talent
-  await prisma.keyTalent.createMany({ data: [
-    { projectId: project.id, name: 'Darren Rebelez', role: "CEO, Casey's" },
-    { projectId: project.id, name: 'Chris Boling',   role: 'SVP, Store Operations' },
-    { projectId: project.id, name: 'Ena Williams',   role: 'SVP, Stores' },
-    { projectId: project.id, name: 'Sean Patrick',   role: 'Pizza Comp Host' },
-    { projectId: project.id, name: 'Andrew Zimmern', role: 'Celebrity Judge' },
-  ]});
-
-  // Crew assignments — position + slot + crew member
-  const assignments = [
-    { position: 'Executive Producer', slot: 1, name: 'Joey Goldman',   callTime: '7:30 AM' },
-    { position: 'Field Producer',     slot: 1, name: 'Ben Lamb',       callTime: '12:00 PM' },
-    { position: 'Field Producer',     slot: 2, name: 'Anna Parnigoni', callTime: '7:30 AM' },
-    { position: 'Director',           slot: 1, name: 'Brandon Emery',  callTime: '12:30 PM' },
-    { position: 'DP/Cam Op',          slot: 1, name: 'Fred Munoz',     callTime: '7:30 AM' },
-    { position: 'Camera B',           slot: 1, name: 'Daniel Neville', callTime: '7:30 AM' },
-    { position: 'Camera C',           slot: 1, name: 'Brenden Brooks', callTime: '7:30 AM' },
-    { position: 'Onsite Editor',      slot: 1, name: 'Joe Seebeck',    callTime: '7:30 AM' },
-    { position: 'DIT',                slot: 1, name: 'Jon Arneson',    callTime: '7:30 AM' },
-    { position: 'Audio Engineer',     slot: 1, name: 'Danny Bowersox', callTime: '12:30 PM', daysActive: '5/4 & 5/5 only' },
-  ];
-
-  for (const a of assignments) {
-    const pos = positionMap[a.position];
-    const member = crew[a.name];
-    if (!pos || !member) { console.warn('Missing position or crew for', a); continue; }
-    await prisma.crewAssignment.create({
-      data: { projectId: project.id, positionId: pos.id, crewMemberId: member.id, slotNumber: a.slot, callTime: a.callTime, daysActive: a.daysActive },
-    });
+  const existingTalent = await sql`SELECT id FROM key_talent WHERE project_id = ${project.id}`;
+  if (!existingTalent.length) {
+    for (const t of [{name:'Darren Rebelez',role:"CEO, Casey's"},{name:'Chris Boling',role:'SVP, Store Operations'},{name:'Ena Williams',role:'SVP, Stores'},{name:'Sean Patrick',role:'Pizza Comp Host'},{name:'Andrew Zimmern',role:'Celebrity Judge'}]) {
+      await sql`INSERT INTO key_talent (id, project_id, name, role) VALUES (gen_random_uuid()::text, ${project.id}, ${t.name}, ${t.role})`;
+    }
   }
 
   // Deliverables
-  await prisma.deliverable.createMany({ data: [
-    { projectId: project.id, title: 'Onsite Recap Video',              description: 'Plays Day 4 GS · 2 min · Asset #801_', editorName: 'Jon A.', aspectRatio: '2.39:1', resolution: '3672×1536', dueDate: '7 AM, 5/6', isUrgent: true, assetRef: 'Asset #801_' },
-    { projectId: project.id, title: 'General Session Recordings (3)',   description: 'Web sharing · TRT TBD',                 editorName: 'Joe S.', aspectRatio: '16:9', resolution: '1920×1080', dueDate: 'On site' },
-    { projectId: project.id, title: 'Pizza Certification Breakout',     description: 'Web sharing · TRT TBD',                 editorName: 'Joe S.', aspectRatio: '16:9', resolution: '1920×1080', dueDate: 'On site' },
-    { projectId: project.id, title: 'Darren + Chris Cascade Recording', description: 'Script attached · Web sharing',          editorName: 'Joe S.', aspectRatio: '16:9', resolution: '1920×1080', dueDate: 'By 5/8' },
-    { projectId: project.id, title: 'Pizza Competition Recap',          description: '2 min · Player intros + walkout graphics',editorName: 'Jon A.', aspectRatio: '16:9', resolution: '1920×1080', dueDate: 'V1 by 5/15', musicRef: 'Pizza Comp Recap Music' },
-    { projectId: project.id, title: 'Pizza Comp Recap — Social Clip',   description: '10–15 sec · No bumpers, sizzle only',    editorName: 'Jon A.', aspectRatio: '9:16 vertical', dueDate: 'Onsite or 5/8', musicRef: 'Pizza Comp Recap Music' },
-    { projectId: project.id, title: 'Expo Video',                       description: '2–3 min · Web sharing · Ref: MDV-2024-03',editorName: 'Daniel N.', aspectRatio: '16:9', resolution: '1920×1080', dueDate: 'V1 by 5/15' },
-  ]});
+  const existingDels = await sql`SELECT id FROM deliverables WHERE project_id = ${project.id}`;
+  if (!existingDels.length) {
+    const dels = [
+      { title:'Onsite Recap Video', description:'Plays Day 4 GS · 2 min', editor_name:'Jon A.', aspect_ratio:'2.39:1', resolution:'3672×1536', due_date:'7 AM, 5/6', is_urgent:true },
+      { title:'General Session Recordings (3)', description:'Web sharing · TRT TBD', editor_name:'Joe S.', aspect_ratio:'16:9', resolution:'1920×1080', due_date:'On site' },
+      { title:'Pizza Certification Breakout', description:'Web sharing', editor_name:'Joe S.', aspect_ratio:'16:9', resolution:'1920×1080', due_date:'On site' },
+      { title:'Darren + Chris Cascade Recording', description:'Script attached', editor_name:'Joe S.', aspect_ratio:'16:9', resolution:'1920×1080', due_date:'By 5/8' },
+      { title:'Pizza Competition Recap', description:'2 min · Player intros', editor_name:'Jon A.', aspect_ratio:'16:9', resolution:'1920×1080', due_date:'V1 by 5/15', music_ref:'Pizza Comp Recap Music' },
+      { title:'Pizza Comp Recap — Social Clip', description:'10–15 sec sizzle', editor_name:'Jon A.', aspect_ratio:'9:16 vertical', due_date:'Onsite or 5/8', music_ref:'Pizza Comp Recap Music' },
+      { title:'Expo Video', description:'2–3 min · Ref: MDV-2024-03', editor_name:'Daniel N.', aspect_ratio:'16:9', resolution:'1920×1080', due_date:'V1 by 5/15' },
+    ];
+    for (const d of dels) {
+      await sql`INSERT INTO deliverables (id, project_id, title, description, editor_name, aspect_ratio, resolution, due_date, music_ref, is_urgent) VALUES (gen_random_uuid()::text, ${project.id}, ${d.title}, ${d.description||null}, ${d.editor_name||null}, ${d.aspect_ratio||null}, ${d.resolution||null}, ${d.due_date||null}, ${d.music_ref||null}, ${d.is_urgent||false})`;
+    }
+  }
 
   console.log('Seed complete.');
+  await sql.end();
 }
 
-main().catch(console.error).finally(() => prisma.$disconnect());
+seed().catch(e => { console.error(e); process.exit(1); });

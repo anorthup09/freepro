@@ -1,192 +1,110 @@
 const router = require('express').Router();
-const { z } = require('zod');
-const prisma = require('../lib/prisma');
+const sql = require('../lib/db');
 const { requireAuth, requireRole } = require('../middleware/auth');
 
 // ─── Hotels ──────────────────────────────────────────────────────────────────
-
-const hotelBlockSchema = z.object({
-  name: z.string().min(1),
-  address: z.string().min(1),
-  phone: z.string().optional(),
-  notes: z.string().optional(),
-});
-
-const hotelGuestSchema = z.object({
-  crewMemberId: z.string().optional(),
-  guestName: z.string().min(1),
-  confirmation: z.string().optional(),
-  checkIn: z.string().datetime(),
-  checkOut: z.string().datetime(),
-});
-
-// GET /api/projects/:id/travel/hotels
 router.get('/:id/travel/hotels', requireAuth, async (req, res, next) => {
   try {
-    const hotels = await prisma.hotelBlock.findMany({
-      where: { projectId: req.params.id },
-      include: { guests: { include: { crewMember: true } } },
-    });
-    res.json(hotels);
-  } catch (err) { next(err); }
+    const hotels = await sql`SELECT * FROM hotel_blocks WHERE project_id = ${req.params.id}`;
+    const result = await Promise.all(hotels.map(async h => {
+      const guests = await sql`SELECT hg.*, cm.name as crew_name FROM hotel_guests hg LEFT JOIN crew_members cm ON cm.id=hg.crew_member_id WHERE hg.hotel_block_id=${h.id}`;
+      return { ...h, guests };
+    }));
+    res.json(result);
+  } catch(e){next(e);}
 });
 
 router.post('/:id/travel/hotels', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const data = hotelBlockSchema.parse(req.body);
-    const hotel = await prisma.hotelBlock.create({
-      data: { ...data, projectId: req.params.id },
-      include: { guests: true },
-    });
-    res.status(201).json(hotel);
-  } catch (err) {
-    if (err.name === 'ZodError') return res.status(400).json({ error: err.errors });
-    next(err);
-  }
+    const { name, address, phone, notes } = req.body;
+    const [h] = await sql`INSERT INTO hotel_blocks (id, project_id, name, address, phone, notes) VALUES (gen_random_uuid()::text, ${req.params.id}, ${name}, ${address}, ${phone||null}, ${notes||null}) RETURNING *`;
+    res.status(201).json({ ...h, guests: [] });
+  } catch(e){next(e);}
 });
 
-router.patch('/:id/travel/hotels/:hId', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+router.patch('/:id/travel/hotels/:hid', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const data = hotelBlockSchema.partial().parse(req.body);
-    res.json(await prisma.hotelBlock.update({ where: { id: req.params.hId }, data }));
-  } catch (err) { next(err); }
+    const d = req.body;
+    const [h] = await sql`UPDATE hotel_blocks SET name=COALESCE(${d.name??null},name), address=COALESCE(${d.address??null},address), phone=COALESCE(${d.phone??null},phone) WHERE id=${req.params.hid} RETURNING *`;
+    res.json(h);
+  } catch(e){next(e);}
 });
 
-router.delete('/:id/travel/hotels/:hId', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
-  try {
-    await prisma.hotelBlock.delete({ where: { id: req.params.hId } });
-    res.status(204).end();
-  } catch (err) { next(err); }
+router.delete('/:id/travel/hotels/:hid', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try { await sql`DELETE FROM hotel_blocks WHERE id = ${req.params.hid}`; res.status(204).end(); } catch(e){next(e);}
 });
 
-router.post('/:id/travel/hotels/:hId/guests', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+router.post('/:id/travel/hotels/:hid/guests', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const data = hotelGuestSchema.parse(req.body);
-    const guest = await prisma.hotelGuest.create({
-      data: { ...data, hotelBlockId: req.params.hId },
-      include: { crewMember: true },
-    });
-    res.status(201).json(guest);
-  } catch (err) {
-    if (err.name === 'ZodError') return res.status(400).json({ error: err.errors });
-    next(err);
-  }
+    const { crewMemberId, guestName, confirmation, checkIn, checkOut } = req.body;
+    const [g] = await sql`INSERT INTO hotel_guests (id, hotel_block_id, crew_member_id, guest_name, confirmation, check_in, check_out) VALUES (gen_random_uuid()::text, ${req.params.hid}, ${crewMemberId||null}, ${guestName}, ${confirmation||null}, ${checkIn}, ${checkOut}) RETURNING *`;
+    res.status(201).json(g);
+  } catch(e){next(e);}
 });
 
-router.patch('/:id/travel/guests/:gId', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+router.patch('/:id/travel/guests/:gid', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const data = hotelGuestSchema.partial().parse(req.body);
-    res.json(await prisma.hotelGuest.update({ where: { id: req.params.gId }, data }));
-  } catch (err) { next(err); }
+    const d = req.body;
+    const [g] = await sql`UPDATE hotel_guests SET guest_name=COALESCE(${d.guestName??null},guest_name), confirmation=COALESCE(${d.confirmation??null},confirmation), check_in=COALESCE(${d.checkIn??null},check_in), check_out=COALESCE(${d.checkOut??null},check_out) WHERE id=${req.params.gid} RETURNING *`;
+    res.json(g);
+  } catch(e){next(e);}
 });
 
-router.delete('/:id/travel/guests/:gId', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
-  try {
-    await prisma.hotelGuest.delete({ where: { id: req.params.gId } });
-    res.status(204).end();
-  } catch (err) { next(err); }
+router.delete('/:id/travel/guests/:gid', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try { await sql`DELETE FROM hotel_guests WHERE id = ${req.params.gid}`; res.status(204).end(); } catch(e){next(e);}
 });
 
 // ─── Flights ─────────────────────────────────────────────────────────────────
-
-const flightSchema = z.object({
-  crewMemberId: z.string().optional(),
-  passengerName: z.string().min(1),
-  origin: z.string().min(1),
-  destination: z.string().min(1),
-  departTime: z.string().datetime(),
-  arriveTime: z.string().datetime(),
-  airline: z.string().optional(),
-  confirmation: z.string().optional(),
-  isReturn: z.boolean().optional(),
-});
-
 router.get('/:id/travel/flights', requireAuth, async (req, res, next) => {
-  try {
-    const flights = await prisma.flight.findMany({
-      where: { projectId: req.params.id },
-      orderBy: { departTime: 'asc' },
-      include: { crewMember: true },
-    });
-    res.json(flights);
-  } catch (err) { next(err); }
+  try { res.json(await sql`SELECT f.*, cm.name as crew_name FROM flights f LEFT JOIN crew_members cm ON cm.id=f.crew_member_id WHERE f.project_id=${req.params.id} ORDER BY f.depart_time`); } catch(e){next(e);}
 });
 
 router.post('/:id/travel/flights', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const data = flightSchema.parse(req.body);
-    const flight = await prisma.flight.create({
-      data: { ...data, projectId: req.params.id },
-      include: { crewMember: true },
-    });
-    res.status(201).json(flight);
-  } catch (err) {
-    if (err.name === 'ZodError') return res.status(400).json({ error: err.errors });
-    next(err);
-  }
+    const d = req.body;
+    const [f] = await sql`
+      INSERT INTO flights (id, project_id, crew_member_id, passenger_name, origin, destination, depart_time, arrive_time, airline, confirmation, is_return)
+      VALUES (gen_random_uuid()::text, ${req.params.id}, ${d.crewMemberId||null}, ${d.passengerName}, ${d.origin}, ${d.destination}, ${d.departTime}, ${d.arriveTime}, ${d.airline||null}, ${d.confirmation||null}, ${d.isReturn||false})
+      RETURNING *`;
+    res.status(201).json(f);
+  } catch(e){next(e);}
 });
 
-router.patch('/:id/travel/flights/:fId', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+router.patch('/:id/travel/flights/:fid', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const data = flightSchema.partial().parse(req.body);
-    res.json(await prisma.flight.update({ where: { id: req.params.fId }, data }));
-  } catch (err) { next(err); }
+    const d = req.body;
+    const [f] = await sql`UPDATE flights SET passenger_name=COALESCE(${d.passengerName??null},passenger_name), airline=COALESCE(${d.airline??null},airline), confirmation=COALESCE(${d.confirmation??null},confirmation) WHERE id=${req.params.fid} RETURNING *`;
+    res.json(f);
+  } catch(e){next(e);}
 });
 
-router.delete('/:id/travel/flights/:fId', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
-  try {
-    await prisma.flight.delete({ where: { id: req.params.fId } });
-    res.status(204).end();
-  } catch (err) { next(err); }
+router.delete('/:id/travel/flights/:fid', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try { await sql`DELETE FROM flights WHERE id = ${req.params.fid}`; res.status(204).end(); } catch(e){next(e);}
 });
 
 // ─── Drive Groups ────────────────────────────────────────────────────────────
-
-const driveGroupSchema = z.object({
-  origin: z.string().min(1),
-  destination: z.string().min(1),
-  departTime: z.string().datetime().optional(),
-  arriveTime: z.string().datetime().optional(),
-  notes: z.string().optional(),
-  members: z.array(z.object({
-    crewMemberId: z.string().optional(),
-    name: z.string().min(1),
-  })).optional(),
-});
-
 router.get('/:id/travel/drives', requireAuth, async (req, res, next) => {
   try {
-    const drives = await prisma.driveGroup.findMany({
-      where: { projectId: req.params.id },
-      include: { members: { include: { crewMember: true } } },
-    });
-    res.json(drives);
-  } catch (err) { next(err); }
+    const drives = await sql`SELECT * FROM drive_groups WHERE project_id = ${req.params.id}`;
+    const result = await Promise.all(drives.map(async d => {
+      const members = await sql`SELECT * FROM drive_group_members WHERE drive_group_id = ${d.id}`;
+      return { ...d, members };
+    }));
+    res.json(result);
+  } catch(e){next(e);}
 });
 
 router.post('/:id/travel/drives', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const { members, ...rest } = driveGroupSchema.parse(req.body);
-    const drive = await prisma.driveGroup.create({
-      data: {
-        ...rest,
-        projectId: req.params.id,
-        members: members ? { create: members } : undefined,
-      },
-      include: { members: { include: { crewMember: true } } },
-    });
-    res.status(201).json(drive);
-  } catch (err) {
-    if (err.name === 'ZodError') return res.status(400).json({ error: err.errors });
-    next(err);
-  }
+    const { origin, destination, notes, members=[] } = req.body;
+    const [d] = await sql`INSERT INTO drive_groups (id, project_id, origin, destination, notes) VALUES (gen_random_uuid()::text, ${req.params.id}, ${origin}, ${destination}, ${notes||null}) RETURNING *`;
+    const mems = await Promise.all(members.map(m => sql`INSERT INTO drive_group_members (id, drive_group_id, name, crew_member_id) VALUES (gen_random_uuid()::text, ${d.id}, ${m.name}, ${m.crewMemberId||null}) RETURNING *`));
+    res.status(201).json({ ...d, members: mems.flat() });
+  } catch(e){next(e);}
 });
 
-router.delete('/:id/travel/drives/:dId', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
-  try {
-    await prisma.driveGroup.delete({ where: { id: req.params.dId } });
-    res.status(204).end();
-  } catch (err) { next(err); }
+router.delete('/:id/travel/drives/:did', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try { await sql`DELETE FROM drive_groups WHERE id = ${req.params.did}`; res.status(204).end(); } catch(e){next(e);}
 });
 
 module.exports = router;

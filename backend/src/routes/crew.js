@@ -1,43 +1,42 @@
 const router = require('express').Router();
 const { z } = require('zod');
-const prisma = require('../lib/prisma');
+const sql = require('../lib/db');
 const { requireAuth, requireRole } = require('../middleware/auth');
 
-// ─── Positions (master list) ─────────────────────────────────────────────────
+// ─── Positions ───────────────────────────────────────────────────────────────
 
-// GET /api/crew/positions
 router.get('/positions', requireAuth, async (req, res, next) => {
   try {
-    const positions = await prisma.position.findMany({
-      where: { isActive: true },
-      orderBy: { sortOrder: 'asc' },
-    });
-    res.json(positions);
+    res.json(await sql`SELECT * FROM positions WHERE is_active = TRUE ORDER BY sort_order`);
   } catch (err) { next(err); }
 });
 
-// POST /api/crew/positions
 router.post('/positions', requireAuth, requireRole('ADMIN'), async (req, res, next) => {
   try {
-    const { name, sortOrder } = z.object({ name: z.string().min(1), sortOrder: z.number().optional() }).parse(req.body);
-    const position = await prisma.position.create({ data: { name, sortOrder: sortOrder ?? 0 } });
-    res.status(201).json(position);
+    const { name, sortOrder = 0 } = z.object({ name: z.string().min(1), sortOrder: z.number().optional() }).parse(req.body);
+    const [p] = await sql`INSERT INTO positions (id, name, sort_order) VALUES (gen_random_uuid()::text, ${name}, ${sortOrder}) RETURNING *`;
+    res.status(201).json(p);
   } catch (err) {
     if (err.name === 'ZodError') return res.status(400).json({ error: err.errors });
-    if (err.code === 'P2002') return res.status(409).json({ error: 'Position already exists' });
+    if (err.code === '23505') return res.status(409).json({ error: 'Position already exists' });
     next(err);
   }
 });
 
-// PATCH /api/crew/positions/:id
 router.patch('/positions/:id', requireAuth, requireRole('ADMIN'), async (req, res, next) => {
   try {
-    const data = z.object({ name: z.string().optional(), sortOrder: z.number().optional(), isActive: z.boolean().optional() }).parse(req.body);
-    res.json(await prisma.position.update({ where: { id: req.params.id }, data }));
+    const { name, sortOrder, isActive } = req.body;
+    const [p] = await sql`
+      UPDATE positions SET
+        name = COALESCE(${name ?? null}, name),
+        sort_order = COALESCE(${sortOrder ?? null}, sort_order),
+        is_active = COALESCE(${isActive ?? null}, is_active)
+      WHERE id = ${req.params.id} RETURNING *`;
+    res.json(p);
   } catch (err) { next(err); }
 });
 
-// ─── Crew Members (global roster) ────────────────────────────────────────────
+// ─── Crew Members ─────────────────────────────────────────────────────────────
 
 const crewSchema = z.object({
   name: z.string().min(1),
@@ -49,70 +48,61 @@ const crewSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
-// GET /api/crew
 router.get('/', requireAuth, async (req, res, next) => {
   try {
-    const members = await prisma.crewMember.findMany({
-      where: { isActive: true },
-      orderBy: { name: 'asc' },
-      include: { _count: { select: { assignments: true } } },
-    });
-    res.json(members);
+    res.json(await sql`SELECT * FROM crew_members WHERE is_active = TRUE ORDER BY name`);
   } catch (err) { next(err); }
 });
 
-// GET /api/crew/:id
 router.get('/:id', requireAuth, async (req, res, next) => {
   try {
-    const member = await prisma.crewMember.findUnique({
-      where: { id: req.params.id },
-      include: {
-        assignments: {
-          include: {
-            position: true,
-            project: { select: { id: true, code: true, title: true, startDate: true, endDate: true } },
-          },
-        },
-      },
-    });
+    const [member] = await sql`SELECT * FROM crew_members WHERE id = ${req.params.id}`;
     if (!member) return res.status(404).json({ error: 'Crew member not found' });
-    res.json(member);
+    const assignments = await sql`
+      SELECT ca.*, p.name as position_name, pr.id as project_id, pr.code, pr.title, pr.start_date, pr.end_date
+      FROM crew_assignments ca
+      JOIN positions p ON p.id = ca.position_id
+      JOIN projects pr ON pr.id = ca.project_id
+      WHERE ca.crew_member_id = ${req.params.id}`;
+    res.json({ ...member, assignments });
   } catch (err) { next(err); }
 });
 
-// POST /api/crew
 router.post('/', requireAuth, requireRole('ADMIN', 'PRODUCER'), async (req, res, next) => {
   try {
     const data = crewSchema.parse(req.body);
-    const member = await prisma.crewMember.create({ data });
-    res.status(201).json(member);
+    const [m] = await sql`
+      INSERT INTO crew_members (id, name, email, phone, company, initials, avatar_color)
+      VALUES (gen_random_uuid()::text, ${data.name}, ${data.email||null}, ${data.phone||null}, ${data.company||null}, ${data.initials||null}, ${data.avatarColor||null})
+      RETURNING *`;
+    res.status(201).json(m);
   } catch (err) {
     if (err.name === 'ZodError') return res.status(400).json({ error: err.errors });
     next(err);
   }
 });
 
-// PATCH /api/crew/:id
 router.patch('/:id', requireAuth, requireRole('ADMIN', 'PRODUCER'), async (req, res, next) => {
   try {
     const data = crewSchema.partial().parse(req.body);
-    res.json(await prisma.crewMember.update({ where: { id: req.params.id }, data }));
-  } catch (err) {
-    if (err.name === 'ZodError') return res.status(400).json({ error: err.errors });
-    if (err.code === 'P2025') return res.status(404).json({ error: 'Crew member not found' });
-    next(err);
-  }
+    const [m] = await sql`
+      UPDATE crew_members SET
+        name = COALESCE(${data.name ?? null}, name),
+        email = COALESCE(${data.email ?? null}, email),
+        phone = COALESCE(${data.phone ?? null}, phone),
+        company = COALESCE(${data.company ?? null}, company),
+        is_active = COALESCE(${data.isActive ?? null}, is_active),
+        updated_at = NOW()
+      WHERE id = ${req.params.id} RETURNING *`;
+    res.json(m);
+  } catch (err) { next(err); }
 });
 
-// DELETE /api/crew/:id  (soft delete — sets isActive false)
 router.delete('/:id', requireAuth, requireRole('ADMIN'), async (req, res, next) => {
   try {
-    await prisma.crewMember.update({ where: { id: req.params.id }, data: { isActive: false } });
+    await sql`UPDATE crew_members SET is_active = FALSE WHERE id = ${req.params.id}`;
     res.status(204).end();
-  } catch (err) {
-    if (err.code === 'P2025') return res.status(404).json({ error: 'Crew member not found' });
-    next(err);
-  }
+  } catch (err) { next(err); }
 });
 
 module.exports = router;

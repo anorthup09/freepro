@@ -1,37 +1,44 @@
 const router = require('express').Router();
 const { z } = require('zod');
-const prisma = require('../lib/prisma');
+const sql = require('../lib/db');
 const { requireAuth, requireRole } = require('../middleware/auth');
 
-const projectSchema = z.object({
-  code: z.string().min(1),
-  title: z.string().min(1),
-  subtitle: z.string().optional(),
-  client: z.string().min(1),
-  city: z.string().min(1),
-  state: z.string().min(1),
-  startDate: z.string().datetime(),
-  endDate: z.string().datetime(),
-  status: z.enum(['PLANNING','ACTIVE','WRAPPED','DELIVERED','ARCHIVED']).optional(),
-  notes: z.string().optional(),
-});
-
-const include = {
-  locations: true,
-  techSpecs: true,
-  clientContacts: true,
-  keyTalent: true,
-  crewAssignments: { include: { crewMember: true } },
-  deliverables: true,
-};
+async function getFullProject(id) {
+  const [project] = await sql`SELECT * FROM projects WHERE id = ${id}`;
+  if (!project) return null;
+  const [locations, techSpecs, clientContacts, keyTalent, crewAssignments, deliverables] = await Promise.all([
+    sql`SELECT * FROM locations WHERE project_id = ${id}`,
+    sql`SELECT * FROM tech_specs WHERE project_id = ${id}`,
+    sql`SELECT * FROM client_contacts WHERE project_id = ${id}`,
+    sql`SELECT * FROM key_talent WHERE project_id = ${id}`,
+    sql`SELECT ca.*, p.name as position_name, p.sort_order,
+               cm.id as cm_id, cm.name as cm_name, cm.email as cm_email, cm.phone as cm_phone, cm.company as cm_company, cm.initials, cm.avatar_color
+        FROM crew_assignments ca
+        JOIN positions p ON p.id = ca.position_id
+        LEFT JOIN crew_members cm ON cm.id = ca.crew_member_id
+        WHERE ca.project_id = ${id}
+        ORDER BY p.sort_order, ca.slot_number`,
+    sql`SELECT * FROM deliverables WHERE project_id = ${id} ORDER BY created_at`,
+  ]);
+  return {
+    ...project,
+    locations,
+    techSpecs: techSpecs[0] || null,
+    clientContacts,
+    keyTalent,
+    crewAssignments: crewAssignments.map(a => ({
+      ...a,
+      position: { id: a.position_id, name: a.position_name, sortOrder: a.sort_order },
+      crewMember: a.cm_id ? { id: a.cm_id, name: a.cm_name, email: a.cm_email, phone: a.cm_phone, company: a.cm_company, initials: a.initials, avatarColor: a.avatar_color } : null,
+    })),
+    deliverables,
+  };
+}
 
 // GET /api/projects
 router.get('/', requireAuth, async (req, res, next) => {
   try {
-    const projects = await prisma.project.findMany({
-      orderBy: { startDate: 'desc' },
-      include: { _count: { select: { crewAssignments: true, deliverables: true, shootDays: true } } },
-    });
+    const projects = await sql`SELECT * FROM projects ORDER BY start_date DESC`;
     res.json(projects);
   } catch (err) { next(err); }
 });
@@ -39,260 +46,189 @@ router.get('/', requireAuth, async (req, res, next) => {
 // GET /api/projects/:id
 router.get('/:id', requireAuth, async (req, res, next) => {
   try {
-    const project = await prisma.project.findUnique({
-      where: { id: req.params.id },
-      include,
-    });
+    const project = await getFullProject(req.params.id);
     if (!project) return res.status(404).json({ error: 'Project not found' });
     res.json(project);
   } catch (err) { next(err); }
 });
 
 // POST /api/projects
-router.post('/', requireAuth, requireRole('ADMIN', 'PRODUCER'), async (req, res, next) => {
+router.post('/', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const data = projectSchema.parse(req.body);
-    const project = await prisma.project.create({ data, include });
-    res.status(201).json(project);
+    const d = z.object({ code:z.string(), title:z.string(), subtitle:z.string().optional(), client:z.string(), city:z.string(), state:z.string(), startDate:z.string(), endDate:z.string(), status:z.string().optional(), notes:z.string().optional() }).parse(req.body);
+    const [p] = await sql`
+      INSERT INTO projects (id, code, title, subtitle, client, city, state, start_date, end_date, status, notes)
+      VALUES (gen_random_uuid()::text, ${d.code}, ${d.title}, ${d.subtitle||null}, ${d.client}, ${d.city}, ${d.state}, ${d.startDate}, ${d.endDate}, ${d.status||'PLANNING'}, ${d.notes||null})
+      RETURNING *`;
+    res.status(201).json(p);
   } catch (err) {
     if (err.name === 'ZodError') return res.status(400).json({ error: err.errors });
-    if (err.code === 'P2002') return res.status(409).json({ error: 'Project code already exists' });
+    if (err.code === '23505') return res.status(409).json({ error: 'Project code already exists' });
     next(err);
   }
 });
 
 // PATCH /api/projects/:id
-router.patch('/:id', requireAuth, requireRole('ADMIN', 'PRODUCER'), async (req, res, next) => {
+router.patch('/:id', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const data = projectSchema.partial().parse(req.body);
-    const project = await prisma.project.update({ where: { id: req.params.id }, data, include });
-    res.json(project);
-  } catch (err) {
-    if (err.name === 'ZodError') return res.status(400).json({ error: err.errors });
-    if (err.code === 'P2025') return res.status(404).json({ error: 'Project not found' });
-    next(err);
-  }
+    const d = req.body;
+    await sql`
+      UPDATE projects SET
+        title = COALESCE(${d.title??null}, title),
+        client = COALESCE(${d.client??null}, client),
+        city = COALESCE(${d.city??null}, city),
+        state = COALESCE(${d.state??null}, state),
+        start_date = COALESCE(${d.startDate??null}, start_date),
+        end_date = COALESCE(${d.endDate??null}, end_date),
+        status = COALESCE(${d.status??null}::project_status, status),
+        notes = COALESCE(${d.notes??null}, notes),
+        updated_at = NOW()
+      WHERE id = ${req.params.id}`;
+    res.json(await getFullProject(req.params.id));
+  } catch (err) { next(err); }
 });
 
 // DELETE /api/projects/:id
 router.delete('/:id', requireAuth, requireRole('ADMIN'), async (req, res, next) => {
   try {
-    await prisma.project.delete({ where: { id: req.params.id } });
+    await sql`DELETE FROM projects WHERE id = ${req.params.id}`;
     res.status(204).end();
-  } catch (err) {
-    if (err.code === 'P2025') return res.status(404).json({ error: 'Project not found' });
-    next(err);
-  }
-});
-
-// ─── Nested: Locations ───────────────────────────────────────────────────────
-
-const locationSchema = z.object({
-  name: z.string().min(1),
-  address: z.string().min(1),
-  type: z.enum(['PRIMARY_VENUE','CREW_HOTEL','SECONDARY','AIRPORT','OTHER']),
-  emoji: z.string().optional(),
-  notes: z.string().optional(),
-});
-
-router.get('/:id/locations', requireAuth, async (req, res, next) => {
-  try {
-    const locations = await prisma.location.findMany({ where: { projectId: req.params.id } });
-    res.json(locations);
   } catch (err) { next(err); }
 });
 
+// ─── Locations ───────────────────────────────────────────────────────────────
+router.get('/:id/locations', requireAuth, async (req, res, next) => {
+  try { res.json(await sql`SELECT * FROM locations WHERE project_id = ${req.params.id}`); } catch(e){next(e);}
+});
 router.post('/:id/locations', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const data = locationSchema.parse(req.body);
-    const loc = await prisma.location.create({ data: { ...data, projectId: req.params.id } });
-    res.status(201).json(loc);
-  } catch (err) {
-    if (err.name === 'ZodError') return res.status(400).json({ error: err.errors });
-    next(err);
-  }
+    const { name, address, type, emoji, notes } = req.body;
+    const [l] = await sql`INSERT INTO locations (id, project_id, name, address, type, emoji, notes) VALUES (gen_random_uuid()::text, ${req.params.id}, ${name}, ${address}, ${type}::location_type, ${emoji||null}, ${notes||null}) RETURNING *`;
+    res.status(201).json(l);
+  } catch(e){next(e);}
 });
-
-router.patch('/:id/locations/:locId', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+router.patch('/:id/locations/:lid', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const data = locationSchema.partial().parse(req.body);
-    const loc = await prisma.location.update({ where: { id: req.params.locId }, data });
-    res.json(loc);
-  } catch (err) {
-    if (err.name === 'ZodError') return res.status(400).json({ error: err.errors });
-    next(err);
-  }
+    const d = req.body;
+    const [l] = await sql`UPDATE locations SET name=COALESCE(${d.name??null},name), address=COALESCE(${d.address??null},address), type=COALESCE(${d.type??null}::location_type,type), emoji=COALESCE(${d.emoji??null},emoji) WHERE id=${req.params.lid} RETURNING *`;
+    res.json(l);
+  } catch(e){next(e);}
+});
+router.delete('/:id/locations/:lid', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try { await sql`DELETE FROM locations WHERE id = ${req.params.lid}`; res.status(204).end(); } catch(e){next(e);}
 });
 
-router.delete('/:id/locations/:locId', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
-  try {
-    await prisma.location.delete({ where: { id: req.params.locId } });
-    res.status(204).end();
-  } catch (err) { next(err); }
-});
-
-// ─── Nested: Tech Specs ──────────────────────────────────────────────────────
-
-const techSpecSchema = z.object({
-  aspectRatio: z.string().optional(),
-  resolution: z.string().optional(),
-  quality: z.string().optional(),
-  cameras: z.string().optional(),
-  execProducer: z.string().optional(),
-  onSiteEditor: z.string().optional(),
-  notes: z.string().optional(),
-});
-
+// ─── Tech Specs ──────────────────────────────────────────────────────────────
 router.put('/:id/tech-specs', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const data = techSpecSchema.parse(req.body);
-    const spec = await prisma.techSpec.upsert({
-      where: { projectId: req.params.id },
-      update: data,
-      create: { ...data, projectId: req.params.id },
-    });
+    const d = req.body;
+    const [spec] = await sql`
+      INSERT INTO tech_specs (id, project_id, aspect_ratio, resolution, quality, cameras, exec_producer, on_site_editor, notes)
+      VALUES (gen_random_uuid()::text, ${req.params.id}, ${d.aspectRatio||null}, ${d.resolution||null}, ${d.quality||null}, ${d.cameras||null}, ${d.execProducer||null}, ${d.onSiteEditor||null}, ${d.notes||null})
+      ON CONFLICT (project_id) DO UPDATE SET
+        aspect_ratio = EXCLUDED.aspect_ratio, resolution = EXCLUDED.resolution, quality = EXCLUDED.quality,
+        cameras = EXCLUDED.cameras, exec_producer = EXCLUDED.exec_producer, on_site_editor = EXCLUDED.on_site_editor, notes = EXCLUDED.notes
+      RETURNING *`;
     res.json(spec);
-  } catch (err) {
-    if (err.name === 'ZodError') return res.status(400).json({ error: err.errors });
-    next(err);
-  }
+  } catch(e){next(e);}
 });
 
-// ─── Nested: Client Contacts ─────────────────────────────────────────────────
-
-const contactSchema = z.object({
-  name: z.string().min(1),
-  title: z.string().min(1),
-  email: z.string().email().optional(),
-  phone: z.string().optional(),
-});
-
+// ─── Client Contacts ─────────────────────────────────────────────────────────
 router.get('/:id/contacts', requireAuth, async (req, res, next) => {
-  try {
-    res.json(await prisma.clientContact.findMany({ where: { projectId: req.params.id } }));
-  } catch (err) { next(err); }
+  try { res.json(await sql`SELECT * FROM client_contacts WHERE project_id = ${req.params.id}`); } catch(e){next(e);}
 });
-
 router.post('/:id/contacts', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const data = contactSchema.parse(req.body);
-    const contact = await prisma.clientContact.create({ data: { ...data, projectId: req.params.id } });
-    res.status(201).json(contact);
-  } catch (err) {
-    if (err.name === 'ZodError') return res.status(400).json({ error: err.errors });
-    next(err);
-  }
+    const { name, title, email, phone } = req.body;
+    const [c] = await sql`INSERT INTO client_contacts (id, project_id, name, title, email, phone) VALUES (gen_random_uuid()::text, ${req.params.id}, ${name}, ${title}, ${email||null}, ${phone||null}) RETURNING *`;
+    res.status(201).json(c);
+  } catch(e){next(e);}
 });
-
-router.patch('/:id/contacts/:cId', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+router.patch('/:id/contacts/:cid', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const data = contactSchema.partial().parse(req.body);
-    res.json(await prisma.clientContact.update({ where: { id: req.params.cId }, data }));
-  } catch (err) { next(err); }
+    const d = req.body;
+    const [c] = await sql`UPDATE client_contacts SET name=COALESCE(${d.name??null},name), title=COALESCE(${d.title??null},title), email=COALESCE(${d.email??null},email), phone=COALESCE(${d.phone??null},phone) WHERE id=${req.params.cid} RETURNING *`;
+    res.json(c);
+  } catch(e){next(e);}
+});
+router.delete('/:id/contacts/:cid', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try { await sql`DELETE FROM client_contacts WHERE id = ${req.params.cid}`; res.status(204).end(); } catch(e){next(e);}
 });
 
-router.delete('/:id/contacts/:cId', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
-  try {
-    await prisma.clientContact.delete({ where: { id: req.params.cId } });
-    res.status(204).end();
-  } catch (err) { next(err); }
-});
-
-// ─── Nested: Key Talent ──────────────────────────────────────────────────────
-
-const talentSchema = z.object({
-  name: z.string().min(1),
-  role: z.string().min(1),
-  notes: z.string().optional(),
-});
-
+// ─── Key Talent ──────────────────────────────────────────────────────────────
 router.get('/:id/talent', requireAuth, async (req, res, next) => {
-  try {
-    res.json(await prisma.keyTalent.findMany({ where: { projectId: req.params.id } }));
-  } catch (err) { next(err); }
+  try { res.json(await sql`SELECT * FROM key_talent WHERE project_id = ${req.params.id}`); } catch(e){next(e);}
 });
-
 router.post('/:id/talent', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const data = talentSchema.parse(req.body);
-    res.status(201).json(await prisma.keyTalent.create({ data: { ...data, projectId: req.params.id } }));
-  } catch (err) {
-    if (err.name === 'ZodError') return res.status(400).json({ error: err.errors });
-    next(err);
-  }
+    const { name, role, notes } = req.body;
+    const [t] = await sql`INSERT INTO key_talent (id, project_id, name, role, notes) VALUES (gen_random_uuid()::text, ${req.params.id}, ${name}, ${role}, ${notes||null}) RETURNING *`;
+    res.status(201).json(t);
+  } catch(e){next(e);}
 });
-
-router.patch('/:id/talent/:tId', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+router.patch('/:id/talent/:tid', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const data = talentSchema.partial().parse(req.body);
-    res.json(await prisma.keyTalent.update({ where: { id: req.params.tId }, data }));
-  } catch (err) { next(err); }
+    const d = req.body;
+    const [t] = await sql`UPDATE key_talent SET name=COALESCE(${d.name??null},name), role=COALESCE(${d.role??null},role) WHERE id=${req.params.tid} RETURNING *`;
+    res.json(t);
+  } catch(e){next(e);}
+});
+router.delete('/:id/talent/:tid', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try { await sql`DELETE FROM key_talent WHERE id = ${req.params.tid}`; res.status(204).end(); } catch(e){next(e);}
 });
 
-router.delete('/:id/talent/:tId', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
-  try {
-    await prisma.keyTalent.delete({ where: { id: req.params.tId } });
-    res.status(204).end();
-  } catch (err) { next(err); }
-});
-
-// ─── Nested: Crew Assignments ────────────────────────────────────────────────
-
-const assignmentSchema = z.object({
-  positionId: z.string().min(1),
-  crewMemberId: z.string().optional().nullable(),
-  slotNumber: z.number().int().positive().optional(),
-  callTime: z.string().optional(),
-  daysActive: z.string().optional(),
-  notes: z.string().optional(),
-});
-
-const assignmentInclude = { position: true, crewMember: true };
-
-// GET /api/projects/:id/crew  — returns all slots grouped by position
+// ─── Crew Assignments ────────────────────────────────────────────────────────
 router.get('/:id/crew', requireAuth, async (req, res, next) => {
   try {
-    res.json(await prisma.crewAssignment.findMany({
-      where: { projectId: req.params.id },
-      orderBy: [{ position: { sortOrder: 'asc' } }, { slotNumber: 'asc' }],
-      include: assignmentInclude,
-    }));
-  } catch (err) { next(err); }
+    const rows = await sql`
+      SELECT ca.*, p.name as position_name, p.sort_order,
+             cm.id as cm_id, cm.name as cm_name, cm.email as cm_email, cm.phone as cm_phone, cm.company as cm_company, cm.initials, cm.avatar_color
+      FROM crew_assignments ca
+      JOIN positions p ON p.id = ca.position_id
+      LEFT JOIN crew_members cm ON cm.id = ca.crew_member_id
+      WHERE ca.project_id = ${req.params.id}
+      ORDER BY p.sort_order, ca.slot_number`;
+    res.json(rows.map(a => ({
+      ...a,
+      position: { id: a.position_id, name: a.position_name, sortOrder: a.sort_order },
+      crewMember: a.cm_id ? { id: a.cm_id, name: a.cm_name, email: a.cm_email, phone: a.cm_phone, company: a.cm_company, initials: a.initials, avatarColor: a.avatar_color } : null,
+    })));
+  } catch(e){next(e);}
 });
-
-// POST /api/projects/:id/crew  — add a position slot (with or without a crew member)
 router.post('/:id/crew', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const data = assignmentSchema.parse(req.body);
-    const assignment = await prisma.crewAssignment.create({
-      data: { ...data, slotNumber: data.slotNumber ?? 1, projectId: req.params.id },
-      include: assignmentInclude,
-    });
-    res.status(201).json(assignment);
-  } catch (err) {
-    if (err.name === 'ZodError') return res.status(400).json({ error: err.errors });
-    if (err.code === 'P2002') return res.status(409).json({ error: 'That position slot is already on this project' });
-    next(err);
+    const { positionId, crewMemberId, slotNumber=1, notes } = req.body;
+    const [a] = await sql`
+      INSERT INTO crew_assignments (id, project_id, position_id, crew_member_id, slot_number, notes)
+      VALUES (gen_random_uuid()::text, ${req.params.id}, ${positionId}, ${crewMemberId||null}, ${slotNumber}, ${notes||null})
+      RETURNING *`;
+    const [full] = await sql`
+      SELECT ca.*, p.name as position_name, cm.id as cm_id, cm.name as cm_name, cm.email as cm_email, cm.phone as cm_phone, cm.initials, cm.avatar_color
+      FROM crew_assignments ca JOIN positions p ON p.id=ca.position_id LEFT JOIN crew_members cm ON cm.id=ca.crew_member_id
+      WHERE ca.id = ${a.id}`;
+    res.status(201).json({ ...full, position:{id:full.position_id,name:full.position_name}, crewMember: full.cm_id?{id:full.cm_id,name:full.cm_name,email:full.cm_email,phone:full.cm_phone,initials:full.initials,avatarColor:full.avatar_color}:null });
+  } catch(e){
+    if(e.code==='23505') return res.status(409).json({error:'That position slot already exists on this project'});
+    next(e);
   }
 });
-
-// PATCH /api/projects/:id/crew/:aId  — assign/unassign crew member or update call time
-router.patch('/:id/crew/:aId', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+router.patch('/:id/crew/:aid', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const data = assignmentSchema.omit({ positionId: true, slotNumber: true }).partial().parse(req.body);
-    res.json(await prisma.crewAssignment.update({ where: { id: req.params.aId }, data, include: assignmentInclude }));
-  } catch (err) {
-    if (err.name === 'ZodError') return res.status(400).json({ error: err.errors });
-    next(err);
-  }
+    const { crewMemberId, callTime, daysActive, notes } = req.body;
+    await sql`
+      UPDATE crew_assignments SET
+        crew_member_id = CASE WHEN ${crewMemberId !== undefined} THEN ${crewMemberId||null} ELSE crew_member_id END,
+        notes = COALESCE(${notes??null}, notes)
+      WHERE id = ${req.params.aid}`;
+    const [full] = await sql`
+      SELECT ca.*, p.name as position_name, cm.id as cm_id, cm.name as cm_name, cm.email as cm_email, cm.phone as cm_phone, cm.initials, cm.avatar_color
+      FROM crew_assignments ca JOIN positions p ON p.id=ca.position_id LEFT JOIN crew_members cm ON cm.id=ca.crew_member_id
+      WHERE ca.id = ${req.params.aid}`;
+    res.json({ ...full, position:{id:full.position_id,name:full.position_name}, crewMember: full.cm_id?{id:full.cm_id,name:full.cm_name,email:full.cm_email,phone:full.cm_phone,initials:full.initials,avatarColor:full.avatar_color}:null });
+  } catch(e){next(e);}
 });
-
-// DELETE /api/projects/:id/crew/:aId  — remove a position slot from the project
-router.delete('/:id/crew/:aId', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
-  try {
-    await prisma.crewAssignment.delete({ where: { id: req.params.aId } });
-    res.status(204).end();
-  } catch (err) { next(err); }
+router.delete('/:id/crew/:aid', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try { await sql`DELETE FROM crew_assignments WHERE id = ${req.params.aid}`; res.status(204).end(); } catch(e){next(e);}
 });
 
 module.exports = router;
