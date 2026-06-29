@@ -1,0 +1,250 @@
+import React, { useEffect, useState } from 'react';
+import { api } from '../../api.js';
+
+const TAG_TYPES = ['VIDEO','PHOTO','AUDIO','ALL_CREW','TALENT','CUSTOM'];
+const TAG_CLASS = { VIDEO:'v', PHOTO:'p', AUDIO:'a', ALL_CREW:'a', TALENT:'t', CUSTOM:'v' };
+const TAG_LABEL = { VIDEO:'Video', PHOTO:'Photo', AUDIO:'Audio', ALL_CREW:'All Crew', TALENT:'Talent', CUSTOM:'Custom' };
+
+export default function Schedule({ project }) {
+  const [days, setDays] = useState([]);
+  const [activeDay, setActiveDay] = useState(null);
+  const [showAddDay, setShowAddDay] = useState(false);
+  const [dayForm, setDayForm] = useState({ date:'', callTime:'', wrapTime:'', weather:'', notes:'' });
+  const [showAddEvent, setShowAddEvent] = useState(false);
+  const [eventForm, setEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', isAlert:false, tags:[] });
+  const [editCallId, setEditCallId] = useState(null);
+  const [callTime, setCallTime] = useState('');
+
+  useEffect(() => {
+    api.getSchedule(project.id).then(d => {
+      setDays(d);
+      if (d.length > 0) setActiveDay(d[0].id);
+    });
+  }, [project.id]);
+
+  const currentDay = days.find(d => d.id === activeDay);
+
+  async function addDay(e) {
+    e.preventDefault();
+    try {
+      const day = await api.createDay(project.id, {
+        ...dayForm,
+        dayNumber: days.length + 1,
+        date: new Date(dayForm.date).toISOString(),
+      });
+      setDays(d => [...d, { ...day, events: [], crewCalls: [] }]);
+      setActiveDay(day.id);
+      setShowAddDay(false);
+      setDayForm({ date:'', callTime:'', wrapTime:'', weather:'', notes:'' });
+    } catch(e) { alert(e.message); }
+  }
+
+  async function deleteDay(dayId) {
+    if (!confirm('Delete this shoot day and all its events?')) return;
+    await api.deleteDay(project.id, dayId);
+    const remaining = days.filter(d => d.id !== dayId);
+    setDays(remaining);
+    setActiveDay(remaining[0]?.id || null);
+  }
+
+  async function addEvent(e) {
+    e.preventDefault();
+    try {
+      const ev = await api.createEvent(project.id, activeDay, eventForm);
+      setDays(ds => ds.map(d => d.id === activeDay ? { ...d, events: [...d.events, ev].sort((a,b) => a.startTime.localeCompare(b.startTime)) } : d));
+      setShowAddEvent(false);
+      setEventForm({ startTime:'', endTime:'', title:'', detail:'', isAlert:false, tags:[] });
+    } catch(e) { alert(e.message); }
+  }
+
+  async function deleteEvent(eventId) {
+    await api.deleteEvent(project.id, eventId);
+    setDays(ds => ds.map(d => d.id === activeDay ? { ...d, events: d.events.filter(e => e.id !== eventId) } : d));
+  }
+
+  async function saveCallTime(call) {
+    try {
+      const updated = await api.updateDayCall(project.id, call.id, { callTime });
+      setDays(ds => ds.map(d => d.id === activeDay ? {
+        ...d,
+        crewCalls: d.crewCalls.map(c => c.id === call.id ? updated : c)
+      } : d));
+      setEditCallId(null);
+    } catch(e) { alert(e.message); }
+  }
+
+  function toggleTag(type) {
+    setEventForm(f => ({
+      ...f,
+      tags: f.tags.some(t => t.type === type)
+        ? f.tags.filter(t => t.type !== type)
+        : [...f.tags, { type }]
+    }));
+  }
+
+  return (
+    <div>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
+        <div>
+          <div className="page-title">Schedule</div>
+          <div className="page-sub">{project.city}, {project.state} · {new Date(project.startDate).toLocaleDateString()} – {new Date(project.endDate).toLocaleDateString()}</div>
+        </div>
+        <button className="btn btn-primary" onClick={() => setShowAddDay(true)}>+ Add Day</button>
+      </div>
+
+      {days.length === 0 && <div className="empty">No shoot days yet — add a day to start building the schedule.</div>}
+
+      {/* Day tabs */}
+      {days.length > 0 && (
+        <div className="day-tabs">
+          {days.map((d, i) => (
+            <button key={d.id} className={`day-tab${d.id === activeDay ? ' on' : ''}`} onClick={() => setActiveDay(d.id)}>
+              Day {d.dayNumber} · {new Date(d.date).toLocaleDateString('en-US', { month:'short', day:'numeric' })}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Day detail */}
+      {currentDay && (
+        <div>
+          <div className="card" style={{ marginBottom:16 }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+              <div>
+                <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:15 }}>
+                  Day {currentDay.dayNumber} · {new Date(currentDay.date).toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' })}
+                </div>
+                <div style={{ fontSize:11, color:'var(--muted)', marginTop:3 }}>
+                  {currentDay.callTime && `Call ${currentDay.callTime}`}
+                  {currentDay.wrapTime && ` · Wrap ${currentDay.wrapTime}`}
+                  {currentDay.weather && ` · ${currentDay.weather}`}
+                </div>
+              </div>
+              <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text)' }} onClick={() => deleteDay(currentDay.id)}>Delete Day</button>
+            </div>
+          </div>
+
+          {/* Crew Calls */}
+          {currentDay.crewCalls?.length > 0 && (
+            <>
+              <div className="sec-lbl">Crew Calls</div>
+              <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden', marginBottom:16 }}>
+                <table className="pos-table" style={{ width:'100%' }}>
+                  <thead><tr>
+                    <th>Position</th><th>Crew Member</th><th>Call Time</th><th>Location</th>
+                  </tr></thead>
+                  <tbody>
+                    {currentDay.crewCalls.map(c => (
+                      <tr key={c.id}>
+                        <td className="pos-name">{c.crewAssignment.position.name}{c.crewAssignment.slotNumber > 1 ? ` ${c.crewAssignment.slotNumber}` : ''}</td>
+                        <td style={{ color:'var(--tan)', fontSize:12 }}>{c.crewAssignment.crewMember?.name || <span style={{ color:'var(--muted)' }}>Unassigned</span>}</td>
+                        <td>
+                          {editCallId === c.id ? (
+                            <div style={{ display:'flex', gap:6 }}>
+                              <input style={{ width:90 }} value={callTime} onChange={e => setCallTime(e.target.value)} placeholder="7:30 AM" autoFocus />
+                              <button className="btn btn-primary btn-sm" onClick={() => saveCallTime(c)}>Save</button>
+                              <button className="btn btn-ghost btn-sm" onClick={() => setEditCallId(null)}>✕</button>
+                            </div>
+                          ) : (
+                            <span style={{ cursor:'pointer', color: c.callTime ? 'var(--orange)' : 'var(--muted)', fontSize:11, fontWeight:500 }}
+                              onClick={() => { setEditCallId(c.id); setCallTime(c.callTime || ''); }}>
+                              {c.callTime || '—'}
+                            </span>
+                          )}
+                        </td>
+                        <td style={{ fontSize:11, color:'var(--muted)' }}>{c.locationNote || '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+
+          {/* Events timeline */}
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+            <div className="sec-lbl" style={{ margin:0 }}>Timeline</div>
+            <button className="btn btn-ghost btn-sm" onClick={() => setShowAddEvent(true)}>+ Add Event</button>
+          </div>
+          <div style={{ marginTop:10 }}>
+            {currentDay.events?.length === 0 && <div className="empty">No events yet for this day.</div>}
+            <div className="tl">
+              {currentDay.events?.map(ev => (
+                <div key={ev.id} className="ev">
+                  <div className="ev-time">{ev.startTime}{ev.endTime ? ` – ${ev.endTime}` : ''}</div>
+                  <div className={`ev-body${ev.isAlert ? ' warn' : ''}`}>
+                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
+                      <div className={`ev-title${ev.isAlert ? ' alert' : ''}`}>{ev.isAlert ? '⚠ ' : ''}{ev.title}</div>
+                      <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11, flexShrink:0, marginLeft:8 }} onClick={() => deleteEvent(ev.id)}>✕</button>
+                    </div>
+                    {ev.detail && <div className="ev-detail">{ev.detail}</div>}
+                    {ev.location && <div style={{ fontSize:10, color:'var(--tan)', marginTop:3 }}>📍 {ev.location.name}</div>}
+                    {ev.tags?.length > 0 && (
+                      <div className="ev-tags">
+                        {ev.tags.map(t => <span key={t.id} className={`etag ${TAG_CLASS[t.type]}`}>{TAG_LABEL[t.type]}</span>)}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Day Modal */}
+      {showAddDay && (
+        <div className="modal-bg" onClick={e => e.target === e.currentTarget && setShowAddDay(false)}>
+          <div className="modal">
+            <div className="modal-title">Add Shoot Day</div>
+            <form onSubmit={addDay}>
+              <div className="form-grid" style={{ marginBottom:12 }}>
+                <div className="field span2"><label>Date</label><input type="date" value={dayForm.date} onChange={e => setDayForm(f=>({...f,date:e.target.value}))} required /></div>
+                <div className="field"><label>General Call Time</label><input value={dayForm.callTime} onChange={e => setDayForm(f=>({...f,callTime:e.target.value}))} placeholder="7:30 AM" /></div>
+                <div className="field"><label>Wrap Time</label><input value={dayForm.wrapTime} onChange={e => setDayForm(f=>({...f,wrapTime:e.target.value}))} placeholder="10:00 PM" /></div>
+                <div className="field"><label>Weather</label><input value={dayForm.weather} onChange={e => setDayForm(f=>({...f,weather:e.target.value}))} placeholder="80° ☀️" /></div>
+                <div className="field"><label>Notes</label><input value={dayForm.notes} onChange={e => setDayForm(f=>({...f,notes:e.target.value}))} placeholder="Long day" /></div>
+              </div>
+              <div className="btn-row"><button className="btn btn-primary">Add Day</button><button type="button" className="btn btn-ghost" onClick={() => setShowAddDay(false)}>Cancel</button></div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Event Modal */}
+      {showAddEvent && (
+        <div className="modal-bg" onClick={e => e.target === e.currentTarget && setShowAddEvent(false)}>
+          <div className="modal">
+            <div className="modal-title">Add Event — Day {currentDay?.dayNumber}</div>
+            <form onSubmit={addEvent}>
+              <div className="form-grid" style={{ marginBottom:12 }}>
+                <div className="field"><label>Start Time</label><input value={eventForm.startTime} onChange={e => setEventForm(f=>({...f,startTime:e.target.value}))} placeholder="7:30 AM" required /></div>
+                <div className="field"><label>End Time</label><input value={eventForm.endTime} onChange={e => setEventForm(f=>({...f,endTime:e.target.value}))} placeholder="9:00 AM" /></div>
+                <div className="field span2"><label>Title</label><input value={eventForm.title} onChange={e => setEventForm(f=>({...f,title:e.target.value}))} required /></div>
+                <div className="field span2"><label>Detail / Notes</label><textarea value={eventForm.detail} onChange={e => setEventForm(f=>({...f,detail:e.target.value}))} /></div>
+                <div className="field span2">
+                  <label>Tags</label>
+                  <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:4 }}>
+                    {TAG_TYPES.map(type => (
+                      <button key={type} type="button"
+                        className={`etag ${TAG_CLASS[type]}`}
+                        style={{ cursor:'pointer', opacity: eventForm.tags.some(t=>t.type===type) ? 1 : 0.4, padding:'4px 10px' }}
+                        onClick={() => toggleTag(type)}>
+                        {TAG_LABEL[type]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="field span2" style={{ flexDirection:'row', alignItems:'center', gap:10 }}>
+                  <input type="checkbox" id="isAlert" checked={eventForm.isAlert} onChange={e => setEventForm(f=>({...f,isAlert:e.target.checked}))} style={{ width:'auto' }} />
+                  <label htmlFor="isAlert" style={{ textTransform:'none', letterSpacing:0, fontSize:12, color:'var(--text)' }}>Mark as urgent alert</label>
+                </div>
+              </div>
+              <div className="btn-row"><button className="btn btn-primary">Add Event</button><button type="button" className="btn btn-ghost" onClick={() => setShowAddEvent(false)}>Cancel</button></div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
