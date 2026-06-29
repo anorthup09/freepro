@@ -1,0 +1,360 @@
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0A0A08;--bg2:#111109;--bg3:#191916;--bg4:#1E1E18;
+  --border:#242420;--border2:#2E2E28;
+  --text:#F0EDE4;--muted:#7A7565;--tan:#B8AF98;
+  --orange:#E8500A;--orange2:#F28050;
+  --green-bg:#0E1F14;--green-border:#1A3A22;--green-text:#5ABF7A;
+  --amber-bg:#1E160A;--amber-border:#3A2A0E;--amber-text:#C89A3A;
+  --red-bg:#1F0E0E;--red-border:#3A1A1A;--red-text:#E08080;
+  --purple-bg:#16141F;--purple-border:#2A2440;--purple-text:#9A8AE0;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.5}
+.nav{background:var(--bg);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:10px 20px;gap:0;flex-wrap:wrap;gap:6px}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:17px;color:var(--text);margin-right:24px;letter-spacing:-0.3px}
+.logo em{color:var(--orange);font-style:normal}
+.tabs{display:flex;gap:2px;flex-wrap:wrap}
+.tab{padding:5px 12px;border-radius:5px;font-size:12px;color:var(--muted);cursor:pointer;border:none;background:transparent;font-family:'DM Sans',sans-serif;transition:all .12s}
+.tab:hover{color:var(--text);background:var(--bg3)}
+.tab.on{color:var(--text);background:var(--bg3);font-weight:500}
+.live{margin-left:auto;background:var(--green-bg);color:var(--green-text);font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px;border:1px solid var(--green-border)}
+.wrap{padding:20px}
+.page{display:none!important}.page.on{display:block!important}
+
+.proj-code{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px}
+.proj-title{font-family:'Syne',sans-serif;font-weight:800;font-size:24px;letter-spacing:-.5px;line-height:1.1}
+.proj-title em{color:var(--orange);font-style:normal}
+.proj-meta{display:flex;gap:14px;margin-top:8px;flex-wrap:wrap}
+.meta{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--tan)}
+.dot6{width:5px;height:5px;border-radius:50%;background:var(--orange);flex-shrink:0}
+.pill{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500}
+.pill.green{background:var(--green-bg);color:var(--green-text);border:1px solid var(--green-border)}
+
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:20px 0}
+.stat{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px}
+.stat-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+.stat-val{font-family:'Syne',sans-serif;font-size:20px;font-weight:700}
+.stat-sub{font-size:10px;color:var(--muted);margin-top:2px}
+
+.sec-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;font-weight:500;margin-top:18px}
+.loc-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.loc{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;display:flex;gap:10px}
+.loc-ico{width:28px;height:28px;background:var(--bg3);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.loc-name{font-weight:500;font-size:12px;margin-bottom:2px}
+.loc-addr{font-size:11px;color:var(--muted);line-height:1.4}
+.tag{display:inline-block;margin-top:4px;font-size:10px;padding:2px 7px;border-radius:4px;font-weight:500}
+.tag.main{background:var(--amber-bg);color:var(--amber-text)}
+.tag.crew{background:var(--green-bg);color:var(--green-text)}
+.tag.sec{background:var(--purple-bg);color:var(--purple-text)}
+.chips{display:flex;gap:7px;flex-wrap:wrap}
+.chip{background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:8px 11px;font-size:11px;color:var(--tan)}
+.chip strong{display:block;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px;font-weight:400}
+.divider{border-top:1px solid var(--border);margin:18px 0}
+
+/* SCHEDULE */
+.day{margin-bottom:22px}
+.day-hdr{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.day-num{font-family:'Syne',sans-serif;font-size:10px;font-weight:700;background:var(--orange);color:#fff;width:22px;height:22px;border-radius:5px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.day-name{font-family:'Syne',sans-serif;font-weight:700;font-size:14px}
+.day-info{font-size:11px;color:var(--muted);margin-left:auto}
+.tl{position:relative;padding-left:16px}
+.tl::before{content:'';position:absolute;left:4px;top:0;bottom:0;width:1px;background:var(--border)}
+.ev{display:flex;gap:8px;margin-bottom:6px;position:relative}
+.ev::before{content:'';position:absolute;left:-12px;top:7px;width:5px;height:5px;border-radius:50%;background:var(--bg3);border:1px solid var(--border2)}
+.ev-time{font-size:10px;color:var(--muted);min-width:80px;padding-top:3px;font-variant-numeric:tabular-nums;flex-shrink:0}
+.ev-body{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:7px 10px;flex:1}
+.ev-body.warn{border-color:var(--red-border)}
+.ev-title{font-size:12px;font-weight:500}
+.ev-title.alert{color:var(--orange)}
+.ev-detail{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.4}
+.ev-tags{display:flex;gap:3px;margin-top:5px;flex-wrap:wrap}
+.etag{font-size:10px;padding:1px 6px;border-radius:3px;font-weight:500}
+.etag.v{background:var(--purple-bg);color:var(--purple-text)}
+.etag.p{background:var(--amber-bg);color:var(--amber-text)}
+.etag.a{background:var(--green-bg);color:var(--green-text)}
+.etag.t{background:var(--red-bg);color:var(--red-text)}
+
+/* CREW */
+.crew-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin-bottom:18px}
+.cc{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:11px 13px;display:flex;gap:9px;align-items:flex-start}
+.av{width:32px;height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:700;font-size:11px;flex-shrink:0}
+.cc-name{font-weight:500;font-size:12px;margin-bottom:1px}
+.cc-role{font-size:11px;color:var(--muted);margin-bottom:3px}
+.cc-contact{font-size:10px;color:var(--tan);line-height:1.5}
+.call-t{margin-left:auto;font-size:11px;font-weight:500;color:var(--orange);white-space:nowrap;flex-shrink:0}
+
+/* DELIVERABLES */
+.dtable{width:100%;border-collapse:collapse}
+.dtable th{text-align:left;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;padding:0 8px 9px;font-weight:400;border-bottom:1px solid var(--border)}
+.dtable th:first-child{padding-left:13px}
+.dtable td{padding:10px 8px;border-bottom:1px solid #131310;vertical-align:middle;font-size:12px}
+.dtable td:first-child{padding-left:13px}
+.dtable tr:last-child td{border-bottom:none}
+.sdot{display:inline-flex;align-items:center;gap:5px;font-size:11px}
+.sd{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.sd.wait{background:var(--amber-text)}
+.epill{background:var(--bg3);border:1px solid var(--border2);color:var(--tan);font-size:10px;padding:2px 7px;border-radius:4px}
+
+/* TRAVEL */
+.h-card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:10px}
+.h-name{font-family:'Syne',sans-serif;font-weight:700;font-size:14px;margin-bottom:2px}
+.h-addr{font-size:11px;color:var(--muted);margin-bottom:12px}
+.guests{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.gc{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:7px 9px}
+.gn{font-weight:500;font-size:11px;margin-bottom:1px}
+.gconf{font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums}
+.gdates{font-size:10px;color:var(--orange2)}
+.frow{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:9px 11px;display:flex;align-items:center;gap:9px;margin-bottom:5px;flex-wrap:wrap}
+.fname{font-weight:500;font-size:12px;min-width:120px;flex-shrink:0}
+.froute{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--tan);flex:1;min-width:100px}
+.farrow{color:var(--orange)}
+.ftimes{font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums}
+.abadge{font-size:10px;background:var(--bg3);border:1px solid var(--border2);color:var(--tan);padding:2px 8px;border-radius:4px;flex-shrink:0}
+.fconf{font-size:10px;color:var(--muted);flex-shrink:0}
+</style>
+
+<div class="nav">
+  <div class="logo">Free<em>-Pro</em></div>
+  <div class="tabs">
+    <button class="tab on" onclick="go('overview',this)">Overview</button>
+    <button class="tab" onclick="go('schedule',this)">Schedule</button>
+    <button class="tab" onclick="go('crew',this)">Crew</button>
+    <button class="tab" onclick="go('deliverables',this)">Deliverables</button>
+    <button class="tab" onclick="go('travel',this)">Travel</button>
+  </div>
+  <div class="live">● Live</div>
+</div>
+
+<div class="wrap">
+
+<!-- OVERVIEW -->
+<div id="p-overview" class="page on">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:18px;border-bottom:1px solid var(--border);margin-bottom:4px">
+    <div>
+      <div class="proj-code">02.CGS00626</div>
+      <div class="proj-title">Casey's <em>C3</em> Convention 2026</div>
+      <div class="proj-meta">
+        <div class="meta"><span class="dot6"></span>Kansas City, MO</div>
+        <div class="meta"><span class="dot6"></span>May 3–6, 2026</div>
+        <div class="meta"><span class="dot6"></span>Unbridled Media</div>
+      </div>
+    </div>
+    <div class="pill green" style="white-space:nowrap">Production Active</div>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="stat-lbl">Shoot Days</div><div class="stat-val">4</div><div class="stat-sub">May 3–6</div></div>
+    <div class="stat"><div class="stat-lbl">Crew Members</div><div class="stat-val">16</div><div class="stat-sub">10 Media · 6 Photo</div></div>
+    <div class="stat"><div class="stat-lbl">Deliverables</div><div class="stat-val">7</div><div class="stat-sub">Video + Social</div></div>
+    <div class="stat"><div class="stat-lbl">Recap Due</div><div class="stat-val" style="color:var(--orange)">7 AM</div><div class="stat-sub">May 6 · plays 10:30</div></div>
+  </div>
+  <div class="sec-lbl">Shooting Locations</div>
+  <div class="loc-grid">
+    <div class="loc"><div class="loc-ico">🏛</div><div><div class="loc-name">Kansas City Convention Center</div><div class="loc-addr">301 W 13th St #100, KC 64105</div><span class="tag main">Primary Venue</span></div></div>
+    <div class="loc"><div class="loc-ico">🏨</div><div><div class="loc-name">Loew's Kansas City Hotel</div><div class="loc-addr">1515 Wyandotte St, KC 64108</div><span class="tag crew">Crew Hotel + Edit Office</span></div></div>
+    <div class="loc"><div class="loc-ico">🏩</div><div><div class="loc-name">Kansas City Marriott Downtown</div><div class="loc-addr">200 W 12th St, KC 64105</div><span class="tag sec">Division Dinners</span></div></div>
+    <div class="loc"><div class="loc-ico">🏛</div><div><div class="loc-name">Hilton President Kansas City</div><div class="loc-addr">1329 Baltimore Ave, KC 64105</div><span class="tag sec">Tenure Honoree Dinner</span></div></div>
+  </div>
+  <div class="sec-lbl">Tech Specs</div>
+  <div class="chips">
+    <div class="chip"><strong>Format</strong>2.39:1</div>
+    <div class="chip"><strong>Resolution</strong>3672 × 1536</div>
+    <div class="chip"><strong>Quality</strong>4K</div>
+    <div class="chip"><strong>Cameras</strong>A, B, C + Drone</div>
+    <div class="chip"><strong>Exec Producer</strong>Joey Goldman</div>
+    <div class="chip"><strong>On-Site Editor</strong>Jon Arneson</div>
+  </div>
+  <div class="sec-lbl">Client Contacts — Casey's</div>
+  <div class="chips">
+    <div class="chip"><strong>Dir. Communications</strong>Katie Petru · 515-480-8503<br><span style="color:var(--muted)">katie.petru@caseys.com</span></div>
+    <div class="chip"><strong>Manager, PR &amp; Events</strong>Anne Juelsgaard · 319-610-2699<br><span style="color:var(--muted)">anne.juelsgaard@caseys.com</span></div>
+    <div class="chip"><strong>Communications Mgr</strong>Chase Russell · 602-694-8503<br><span style="color:var(--muted)">chase.russell@caseys.com</span></div>
+  </div>
+  <div class="sec-lbl">Key Talent</div>
+  <div class="chips">
+    <div class="chip"><strong>CEO, Casey's</strong>Darren Rebelez</div>
+    <div class="chip"><strong>SVP, Store Operations</strong>Chris Boling</div>
+    <div class="chip"><strong>SVP, Stores</strong>Ena Williams</div>
+    <div class="chip"><strong>Pizza Comp Host</strong>Sean Patrick</div>
+    <div class="chip"><strong>Celebrity Judge</strong>Andrew Zimmern</div>
+  </div>
+</div>
+
+<!-- SCHEDULE -->
+<div id="p-schedule" class="page">
+  <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:18px;margin-bottom:3px">Shooting Schedule</div>
+  <div style="font-size:12px;color:var(--muted);margin-bottom:18px">May 3–6, 2026 · Kansas City, MO</div>
+
+  <div class="day">
+    <div class="day-hdr"><div class="day-num">1</div><div class="day-name">Sunday, May 3</div><div class="day-info">Call 7:30 AM · Wrap ~8:30 PM · 80° ☀️</div></div>
+    <div class="tl">
+      <div class="ev"><div class="ev-time">7:30 AM</div><div class="ev-body"><div class="ev-title">Joe &amp; Joey Tech Rehearsals</div><div class="ev-detail">Grand Ballroom ABC, KCCC</div><div class="ev-tags"><span class="etag v">Video</span></div></div></div>
+      <div class="ev"><div class="ev-time">8:30 AM</div><div class="ev-body"><div class="ev-title">Fred &amp; Joey Call Time</div><div class="ev-detail">Prep for Darren B-Roll</div></div></div>
+      <div class="ev"><div class="ev-time">9:00–9:30 AM</div><div class="ev-body"><div class="ev-title">Darren B-Roll — Ball Drop into Sculpture</div><div class="ev-detail">1501 Ballroom, off 14th St entrance</div><div class="ev-tags"><span class="etag v">Video</span><span class="etag t">Darren Rebelez</span><span class="etag a">Fred, Joey</span></div></div></div>
+      <div class="ev"><div class="ev-time">11:00 AM–1 PM</div><div class="ev-body"><div class="ev-title">Crew Lunch (CapCo)</div><div class="ev-detail">Room 2503A, KCCC</div><div class="ev-tags"><span class="etag a">All</span></div></div></div>
+      <div class="ev"><div class="ev-time">1:00 PM</div><div class="ev-body"><div class="ev-title">Photo Team Call Time</div><div class="ev-detail">Before photos of Registration setup</div><div class="ev-tags"><span class="etag p">Photo</span></div></div></div>
+      <div class="ev"><div class="ev-time">2:00–7:00 PM</div><div class="ev-body"><div class="ev-title">Casey's Country &amp; Registration</div><div class="ev-detail">1501 Ballroom &amp; Pre-Function, KCCC · All In Sculpture, Allin Mascot, Community Care Kits, Chalk Artist (2D &amp; 3D), Ice Cream Truck, Red Bull DJ Truck</div><div class="ev-tags"><span class="etag v">Video</span><span class="etag p">Photo</span></div></div></div>
+      <div class="ev"><div class="ev-time">3:30–5:00 PM</div><div class="ev-body"><div class="ev-title">Pizza Competition Rehearsal Scout</div><div class="ev-detail">Pizza Comp Stage, Expo Hall E · Tom, Judges, Competitors</div><div class="ev-tags"><span class="etag a">Joey, Fred</span></div></div></div>
+      <div class="ev"><div class="ev-time">4:00–5:00 PM</div><div class="ev-body"><div class="ev-title">First Timer's Reception</div><div class="ev-detail">City Beautiful ABC, Loews · Presentation 4:15–4:30 PM</div><div class="ev-tags"><span class="etag v">Video</span><span class="etag p">Photo</span></div></div></div>
+      <div class="ev"><div class="ev-time">4:30–5:30 PM</div><div class="ev-body"><div class="ev-title">Women in Leadership Reception</div><div class="ev-detail">Neptune DE, Loews · Panel 4:50–5:30 PM</div><div class="ev-tags"><span class="etag v">Video</span><span class="etag p">Photo</span></div></div></div>
+      <div class="ev"><div class="ev-time">5:15–5:45 PM</div><div class="ev-body"><div class="ev-title">All Crew Meeting</div><div class="ev-detail">Pomona, Loews · Game plan for Day 2</div><div class="ev-tags"><span class="etag a">All</span></div></div></div>
+      <div class="ev"><div class="ev-time">5:45–7:15 PM</div><div class="ev-body"><div class="ev-title">Crew Dinner</div><div class="ev-tags"><span class="etag a">All</span></div></div></div>
+      <div class="ev"><div class="ev-time">6:00–8:30 PM</div><div class="ev-body"><div class="ev-title">Tenure Honoree Dinner &amp; Awards</div><div class="ev-detail">Congress Ballroom, Hilton · Awards at 7:30 PM</div><div class="ev-tags"><span class="etag p">Photo Team</span></div></div></div>
+    </div>
+  </div>
+
+  <div class="day">
+    <div class="day-hdr"><div class="day-num">2</div><div class="day-name">Monday, May 4</div><div class="day-info">Call 7:30 AM · Wrap 11 PM · 77° ⛅ — LONG DAY</div></div>
+    <div class="tl">
+      <div class="ev"><div class="ev-time">6:00–7:30 AM</div><div class="ev-body"><div class="ev-title">Crew Breakfast</div><div class="ev-detail">Room 2503A, KCCC · Eat before 7:30 call</div><div class="ev-tags"><span class="etag a">All</span></div></div></div>
+      <div class="ev"><div class="ev-time">8:00–10:00 AM</div><div class="ev-body"><div class="ev-title">General Session</div><div class="ev-detail">Grand Ballroom ABC · Impact Opener → Darren Keynote → Year in Review → Ena Williams Panel → Chris Boling → Division Cheer-Offs → Tom Brennan → The Final Table</div><div class="ev-tags"><span class="etag v">Video</span><span class="etag p">Photo</span><span class="etag t">Darren · Ena · Chris · Tom</span></div></div></div>
+      <div class="ev"><div class="ev-time">10:15–11:30 AM</div><div class="ev-body"><div class="ev-title">Pizza Certification Educational Session</div><div class="ev-detail">Grand Ballroom ABC · PF&amp;DB Presentation, Fireside Chat (Nicole &amp; Andrew), Q&amp;A</div><div class="ev-tags"><span class="etag v">Video</span><span class="etag p">Photo</span></div></div></div>
+      <div class="ev"><div class="ev-time">11:30 AM–12:30 PM</div><div class="ev-body"><div class="ev-title">Crew Lunch (Nick the Greek Catering)</div><div class="ev-tags"><span class="etag a">All</span></div></div></div>
+      <div class="ev"><div class="ev-time">11:45 AM–3:30 PM</div><div class="ev-body"><div class="ev-title">Lunch &amp; Expo — Rotating Divisions</div><div class="ev-detail">Expo Hall C/D · D1→Z1, D2→Z2, D3→Z3, D4→Z4</div><div class="ev-tags"><span class="etag v">Video</span><span class="etag p">Photo</span></div></div></div>
+      <div class="ev"><div class="ev-time">12:30–3:30 PM</div><div class="ev-body"><div class="ev-title">Expo Sponsor Interviews</div><div class="ev-detail">1:30 PM Gabe Landry (Altria) · 2:00 PM Heather Potter (RJRT) · 2:30 PM Amy Thompson (Frito Lay)</div><div class="ev-tags"><span class="etag v">Expo Team</span></div></div></div>
+      <div class="ev"><div class="ev-time">5:00–6:00 PM</div><div class="ev-body"><div class="ev-title">Pizza Stage Rehearsal</div><div class="ev-detail">Expo Hall E · Tom, Andrew Z, Sean Patrick — crew must attend</div><div class="ev-tags"><span class="etag v">Video</span><span class="etag p">Photo</span></div></div></div>
+      <div class="ev"><div class="ev-time">5:30–7:00 PM</div><div class="ev-body"><div class="ev-title">Division Dinners — Split Teams (Awards ~6:20 PM)</div><div class="ev-detail">D1: Neptune DE, Loews · D2: Basie, Marriott · D3: Imperial, Marriott · D4: City Beautiful ABC, Loews · CEFCO: Mermaid, Loews · Supplier: City Beautiful DE, Loews</div><div class="ev-tags"><span class="etag v">Video</span><span class="etag p">Photo</span></div></div></div>
+      <div class="ev"><div class="ev-time">7:15–7:45 PM</div><div class="ev-body"><div class="ev-title">All Crew Meeting</div><div class="ev-detail">Pomona, Loews · Game plan for Day 3</div><div class="ev-tags"><span class="etag a">All</span></div></div></div>
+      <div class="ev"><div class="ev-time">8:15–9:45 PM</div><div class="ev-body"><div class="ev-title">Pizza Competition 🍕</div><div class="ev-detail">Host: Sean Patrick · Competitors: Jana McKay (D1), Craig Knapp (D4), Alex Larder (D2), Karen Smith (D3) · Judges incl. Andrew Zimmern · Round 1 → Cheer-Off → Round 2 → Spirit Award → Winner</div><div class="ev-tags"><span class="etag v">Video</span><span class="etag p">Photo</span></div></div></div>
+      <div class="ev"><div class="ev-time">9:45–11:00 PM</div><div class="ev-body"><div class="ev-title">Pizza Comp After Party + Backstage Photos</div><div class="ev-detail">Expo Hall · Live band · Judges with winner</div><div class="ev-tags"><span class="etag v">Video</span><span class="etag p">Photo</span></div></div></div>
+    </div>
+  </div>
+
+  <div class="day">
+    <div class="day-hdr"><div class="day-num">3</div><div class="day-name">Tuesday, May 5</div><div class="day-info">Call 7:45 AM · Wrap 11 PM · 79° ☁️ — LONG DAY</div></div>
+    <div class="tl">
+      <div class="ev"><div class="ev-time">8:15–9:45 AM</div><div class="ev-body"><div class="ev-title">Breakout Sessions — Round 1</div><div class="ev-detail">Maximizing Your Team (D2 &amp; D3): City Beautiful DE, Loews · Building Effective Teams (D1 &amp; D4): Neptune DE, Loews</div><div class="ev-tags"><span class="etag v">Video</span><span class="etag p">Photo</span></div></div></div>
+      <div class="ev"><div class="ev-time">10:00–11:15 AM</div><div class="ev-body"><div class="ev-title">Breakout Sessions — Round 2</div><div class="ev-detail">Building Effective Teams (D2 &amp; D3): City Beautiful DE · Maximizing Your Team (D1 &amp; D4): Neptune DE</div><div class="ev-tags"><span class="etag v">Video</span><span class="etag p">Photo</span></div></div></div>
+      <div class="ev"><div class="ev-time">11:45 AM–3:30 PM</div><div class="ev-body"><div class="ev-title">Lunch &amp; Expo (Continued)</div><div class="ev-detail">Expo Hall C/D</div><div class="ev-tags"><span class="etag v">Video</span><span class="etag p">Photo</span></div></div></div>
+      <div class="ev"><div class="ev-time">1:00–2:30 PM</div><div class="ev-body"><div class="ev-title">Attendee Soundbite Interviews</div><div class="ev-detail">KCCC · Daniel, Danny, Brandon, Anna</div><div class="ev-tags"><span class="etag v">Video</span></div></div></div>
+      <div class="ev"><div class="ev-time">1:00–3:00 PM</div><div class="ev-body"><div class="ev-title">Camera &amp; Lighting Setup — GS Stage</div><div class="ev-detail">Grand Ballroom ABC · Fred, Joey, Brannden</div></div></div>
+      <div class="ev"><div class="ev-time">1:30 PM</div><div class="ev-body"><div class="ev-title">Send Rough Cut of Recap Video</div><div class="ev-detail">Jon sends cut for review</div><div class="ev-tags"><span class="etag v">Jon</span></div></div></div>
+      <div class="ev"><div class="ev-time">3:00–3:30 PM</div><div class="ev-body"><div class="ev-title">Darren + Chris Cascade Recording</div><div class="ev-detail">Grand Ballroom ABC · Teleprompter — dress accordingly</div><div class="ev-tags"><span class="etag v">Video</span><span class="etag t">Darren Rebelez · Chris Boling</span></div></div></div>
+      <div class="ev"><div class="ev-time">5:00–6:00 PM</div><div class="ev-body"><div class="ev-title">All Crew Dinner</div><div class="ev-tags"><span class="etag a">All</span></div></div></div>
+      <div class="ev"><div class="ev-time">6:30–7:30 PM</div><div class="ev-body"><div class="ev-title">Awards Ball Reception</div><div class="ev-detail">Grand Ballroom Foyer, KCCC · Division Photos on South Lawn Steps 6:20–7:30 PM</div><div class="ev-tags"><span class="etag v">Video</span><span class="etag p">Photo</span></div></div></div>
+      <div class="ev"><div class="ev-time">8:15–9:30 PM</div><div class="ev-body"><div class="ev-title">Awards Ceremony</div><div class="ev-detail">Grand Ballroom ABC · 20+ award categories including Store of the Year, C.A.R.E.S Awards, Division of the Year, Heart of Community</div><div class="ev-tags"><span class="etag v">Video</span><span class="etag p">Photo</span><span class="etag t">Darren · Chris · Ena · Tom</span></div></div></div>
+      <div class="ev"><div class="ev-time">9:30–11:00 PM</div><div class="ev-body"><div class="ev-title">Awards After Party (Monster Brewing)</div><div class="ev-detail">City Beautiful DE, Loews · DJ</div><div class="ev-tags"><span class="etag v">Video</span><span class="etag p">Photo</span></div></div></div>
+    </div>
+  </div>
+
+  <div class="day">
+    <div class="day-hdr"><div class="day-num">4</div><div class="day-name">Wednesday, May 6</div><div class="day-info">Call 7:30 AM · Wrap 11 AM · 67° 🌧 · Travel Out</div></div>
+    <div class="tl">
+      <div class="ev"><div class="ev-time">By 7:00 AM</div><div class="ev-body warn"><div class="ev-title alert">⚠ Recap Video Due</div><div class="ev-detail">Jon delivers completed recap — plays at General Session 10:30 AM</div><div class="ev-tags"><span class="etag v">Jon Arneson</span></div></div></div>
+      <div class="ev"><div class="ev-time">7:30–9:00 AM</div><div class="ev-body"><div class="ev-title">Division Breakouts &amp; Breakfast</div><div class="ev-detail">D1: Neptune DE · D2: Basie, Marriott · D3: Imperial, Marriott · D4: City Beautiful ABC · CEFCO: Mermaid</div><div class="ev-tags"><span class="etag p">Photo Team</span></div></div></div>
+      <div class="ev"><div class="ev-time">9:30–10:50 AM</div><div class="ev-body"><div class="ev-title">Final General Session &amp; Keynote</div><div class="ev-detail">Grand Ballroom ABC · Keynote Intro → Eric Boles (Keynote) → Ball Moment → Closing (Chris Boling) → RECAP VIDEO PLAYS → Walk Out</div><div class="ev-tags"><span class="etag v">Video</span><span class="etag p">Photo</span><span class="etag t">Darren · Chris · Eric Boles</span></div></div></div>
+      <div class="ev"><div class="ev-time">11:00 AM</div><div class="ev-body"><div class="ev-title">Joey Collects Final GS IMAG · Wrap · All Travel Out</div><div class="ev-tags"><span class="etag a">All</span></div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- CREW -->
+<div id="p-crew" class="page">
+  <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:18px;margin-bottom:3px">Crew Roster</div>
+  <div style="font-size:12px;color:var(--muted);margin-bottom:16px">16 crew members · Media and Photography</div>
+  <div class="sec-lbl" style="margin-top:0">Media — Unbridled Media</div>
+  <div class="crew-grid">
+    <div class="cc"><div class="av" style="background:#2A1E08;color:#E8A030">JG</div><div style="flex:1"><div class="cc-name">Joey Goldman</div><div class="cc-role">Executive / Field Producer</div><div class="cc-contact">jgoldman@unbridledmedia.com · 303-903-0543</div></div><div class="call-t">7:30 AM</div></div>
+    <div class="cc"><div class="av" style="background:#1A2A1E;color:#5ABF80">BL</div><div style="flex:1"><div class="cc-name">Ben Lamb</div><div class="cc-role">Field Producer</div><div class="cc-contact">blamb@unbridledmedia.com · 818-400-6156</div></div><div class="call-t">12:00 PM</div></div>
+    <div class="cc"><div class="av" style="background:#1A1A2A;color:#8080E0">AP</div><div style="flex:1"><div class="cc-name">Anna Parnigoni</div><div class="cc-role">Field Producer</div><div class="cc-contact">aparnigoni@unbridledmedia.com · 513-702-4833</div></div><div class="call-t">7:30 AM</div></div>
+    <div class="cc"><div class="av" style="background:#1A1A2A;color:#8080E0">BE</div><div style="flex:1"><div class="cc-name">Brandon Emery</div><div class="cc-role">Creative Director</div><div class="cc-contact">bemery@unbridled.com · 727-439-3833</div></div><div class="call-t">12:30 PM</div></div>
+    <div class="cc"><div class="av" style="background:#2A1818;color:#E08080">FM</div><div style="flex:1"><div class="cc-name">Fred Munoz</div><div class="cc-role">Camera A Op / DP</div><div class="cc-contact">fredmunoz@gmail.com · 305-213-2769</div></div><div class="call-t">7:30 AM</div></div>
+    <div class="cc"><div class="av" style="background:#201A2A;color:#B080E0">DN</div><div style="flex:1"><div class="cc-name">Daniel Neville</div><div class="cc-role">Camera B Op / Drone</div><div class="cc-contact">dneville@unbridledmedia.com · 314-629-4931</div></div><div class="call-t">7:30 AM</div></div>
+    <div class="cc"><div class="av" style="background:#0E2020;color:#40A0A0">BB</div><div style="flex:1"><div class="cc-name">Brenden Brooks</div><div class="cc-role">Camera C Op</div><div class="cc-contact">brooksfilmmaking@gmail.com · 636-395-6895</div></div><div class="call-t">7:30 AM</div></div>
+    <div class="cc"><div class="av" style="background:#1A2A1E;color:#5ABF80">JS</div><div style="flex:1"><div class="cc-name">Joe Seebeck</div><div class="cc-role">Expo Cam / GS Cutdowns</div><div class="cc-contact">jseebeck@unbridledmedia.com · 314-368-2160</div></div><div class="call-t">7:30 AM</div></div>
+    <div class="cc"><div class="av" style="background:#2A1E08;color:#E8A030">JA</div><div style="flex:1"><div class="cc-name">Jon Arneson</div><div class="cc-role">On-Site Editor</div><div class="cc-contact">jarneson@unbridledmedia.com · 618-409-9916</div></div><div class="call-t">7:30 AM</div></div>
+    <div class="cc"><div class="av" style="background:#1A1A2A;color:#8080E0">DB</div><div style="flex:1"><div class="cc-name">Danny Bowersox</div><div class="cc-role">Audio (5/4 &amp; 5/5 only)</div><div class="cc-contact">danielbowersox@gmail.com · 913-406-1704</div></div><div class="call-t">12:30 PM</div></div>
+  </div>
+  <div class="sec-lbl">Photography — Capture Co &amp; Contractors</div>
+  <div class="crew-grid">
+    <div class="cc"><div class="av" style="background:#2A2008;color:#D0A030">NH</div><div style="flex:1"><div class="cc-name">Nathan Hoefert</div><div class="cc-role">Still Photographer — Capture Co</div><div class="cc-contact">nathanh@capture-co.com · 303-591-0325</div></div><div class="call-t">7:30 AM</div></div>
+    <div class="cc"><div class="av" style="background:#2A2008;color:#D0A030">MS</div><div style="flex:1"><div class="cc-name">Max Sassaman</div><div class="cc-role">Still Photographer — Capture Co</div><div class="cc-contact">maxs@capture-co.com · 303-941-4122</div></div><div class="call-t">7:30 AM</div></div>
+    <div class="cc"><div class="av" style="background:#201A1A;color:#C08080">BA</div><div style="flex:1"><div class="cc-name">Brannden Ard</div><div class="cc-role">Photo — 5/4 &amp; 5/5 only</div><div class="cc-contact">brannden@bardmedia.art · 314-403-5943</div></div><div class="call-t">4:30 PM</div></div>
+    <div class="cc"><div class="av" style="background:#201A1A;color:#C08080">KB</div><div style="flex:1"><div class="cc-name">Katie Baxter</div><div class="cc-role">Photo — 5/4 &amp; 5/5 only</div><div class="cc-contact">photographykatiedid@gmail.com · 618-560-6519</div></div><div class="call-t">4:30 PM</div></div>
+    <div class="cc"><div class="av" style="background:#201A1A;color:#C08080">AH</div><div style="flex:1"><div class="cc-name">Antonio Harris</div><div class="cc-role">Photo — 5/4 &amp; 5/5 only</div><div class="cc-contact">hello@antoniotharrisphotography.com · 314-723-3037</div></div><div class="call-t">4:30 PM</div></div>
+    <div class="cc"><div class="av" style="background:#201A1A;color:#C08080">KK</div><div style="flex:1"><div class="cc-name">Kevin Kersting</div><div class="cc-role">Photo — 5/4 &amp; 5/5 only</div><div class="cc-contact">kevin@kevinkersting.com · 314-779-9070</div></div><div class="call-t">4:30 PM</div></div>
+  </div>
+</div>
+
+<!-- DELIVERABLES -->
+<div id="p-deliverables" class="page">
+  <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:18px;margin-bottom:3px">Deliverables Tracker</div>
+  <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Casey's C3 2026 · Video deliverables</div>
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;overflow:hidden">
+    <table class="dtable">
+      <thead><tr>
+        <th>Deliverable</th>
+        <th>Status</th>
+        <th>Editor</th>
+        <th>Specs</th>
+        <th>Due</th>
+      </tr></thead>
+      <tbody>
+        <tr><td><div style="font-weight:500">Onsite Recap Video</div><div style="font-size:10px;color:var(--muted)">Plays Day 4 GS · 2 min · Asset #801_</div></td><td><div class="sdot"><div class="sd wait"></div>Waiting on Assets</div></td><td><span class="epill">Jon A.</span></td><td style="font-size:11px;color:var(--tan)">2.39:1 · 3672×1536</td><td style="color:var(--orange);font-size:11px;font-weight:500">⚠ 7 AM, 5/6</td></tr>
+        <tr><td><div style="font-weight:500">General Session Recordings (3)</div><div style="font-size:10px;color:var(--muted)">Web sharing · TRT TBD</div></td><td><div class="sdot"><div class="sd wait"></div>Waiting on Assets</div></td><td><span class="epill">Joe S.</span></td><td style="font-size:11px;color:var(--tan)">16:9 · 1920×1080</td><td style="font-size:11px;color:var(--muted)">On site</td></tr>
+        <tr><td><div style="font-weight:500">Pizza Certification Breakout</div><div style="font-size:10px;color:var(--muted)">Web sharing · TRT TBD</div></td><td><div class="sdot"><div class="sd wait"></div>Waiting on Assets</div></td><td><span class="epill">Joe S.</span></td><td style="font-size:11px;color:var(--tan)">16:9 · 1920×1080</td><td style="font-size:11px;color:var(--muted)">On site</td></tr>
+        <tr><td><div style="font-weight:500">Darren + Chris Cascade Recording</div><div style="font-size:10px;color:var(--muted)">Script attached · Web sharing</div></td><td><div class="sdot"><div class="sd wait"></div>Waiting on Assets</div></td><td><span class="epill">Joe S.</span></td><td style="font-size:11px;color:var(--tan)">16:9 · 1920×1080</td><td style="font-size:11px;color:var(--muted)">By 5/8</td></tr>
+        <tr><td><div style="font-weight:500">Pizza Competition Recap</div><div style="font-size:10px;color:var(--muted)">2 min · Player intros + walkout graphics</div></td><td><div class="sdot"><div class="sd wait"></div>Waiting on Assets</div></td><td><span class="epill">Jon A.</span></td><td style="font-size:11px;color:var(--tan)">16:9 · 1920×1080</td><td style="font-size:11px;color:var(--muted)">V1 by 5/15</td></tr>
+        <tr><td><div style="font-weight:500">Pizza Comp Recap — Social Clip</div><div style="font-size:10px;color:var(--muted)">10–15 sec · No bumpers, sizzle only</div></td><td><div class="sdot"><div class="sd wait"></div>Waiting on Assets</div></td><td><span class="epill">Jon A.</span></td><td style="font-size:11px;color:var(--tan)">9:16 vertical</td><td style="font-size:11px;color:var(--muted)">Onsite or 5/8</td></tr>
+        <tr><td><div style="font-weight:500">Expo Video</div><div style="font-size:10px;color:var(--muted)">2–3 min · Web sharing · Ref: MDV-2024-03</div></td><td><div class="sdot"><div class="sd wait"></div>Waiting on Assets</div></td><td><span class="epill">Daniel N.</span></td><td style="font-size:11px;color:var(--tan)">16:9 · 1920×1080</td><td style="font-size:11px;color:var(--muted)">V1 by 5/15</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="divider"></div>
+  <div class="sec-lbl" style="margin-top:0">Music Assignments</div>
+  <div class="chips">
+    <div class="chip"><strong>Onsite Recap</strong>C3 Recap Music</div>
+    <div class="chip"><strong>Pizza Comp Recap</strong>Pizza Comp Recap Music</div>
+    <div class="chip"><strong>Pizza Comp Social</strong>Pizza Comp Recap Music</div>
+  </div>
+</div>
+
+<!-- TRAVEL -->
+<div id="p-travel" class="page">
+  <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:18px;margin-bottom:3px">Travel &amp; Logistics</div>
+  <div style="font-size:12px;color:var(--muted);margin-bottom:16px">02.CGS00626 · Kansas City, MO · May 3–6, 2026</div>
+  <div class="sec-lbl" style="margin-top:0">Crew Hotel</div>
+  <div class="h-card">
+    <div class="h-name">Loew's Kansas City Hotel</div>
+    <div class="h-addr">1515 Wyandotte St, Kansas City, MO 64108 · 816-897-7070 · Valet parking available</div>
+    <div class="guests">
+      <div class="gc"><div class="gn">Joey Goldman</div><div class="gconf"># 138215420</div><div class="gdates">May 2–6</div></div>
+      <div class="gc"><div class="gn">Joe Seebeck</div><div class="gconf"># 138214567</div><div class="gdates">May 2–6</div></div>
+      <div class="gc"><div class="gn">Fred Munoz</div><div class="gconf"># 138215426</div><div class="gdates">May 2–6</div></div>
+      <div class="gc"><div class="gn">Anna Parnigoni</div><div class="gconf"># 138214579</div><div class="gdates">May 3–6</div></div>
+      <div class="gc"><div class="gn">Daniel Neville</div><div class="gconf"># 138214577</div><div class="gdates">May 3–6</div></div>
+      <div class="gc"><div class="gn">Jon Arneson</div><div class="gconf"># 138214575</div><div class="gdates">May 3–6</div></div>
+      <div class="gc"><div class="gn">Brenden Brooks</div><div class="gconf"># 138214928</div><div class="gdates">May 3–6</div></div>
+      <div class="gc"><div class="gn">Ben Lamb</div><div class="gconf"># 138214720</div><div class="gdates">May 4–6</div></div>
+    </div>
+  </div>
+  <div class="sec-lbl">Flights</div>
+  <div class="frow"><div class="fname">Fred Munoz</div><div class="froute"><span>BUR/PHX</span><span class="farrow">→</span><span>MCI</span></div><div class="ftimes">May 2 · 8:55 AM → 4:50 PM</div><div class="abadge">Southwest</div><div class="fconf">APMKP8</div></div>
+  <div class="frow"><div class="fname">Anna Parnigoni</div><div class="froute"><span>CVG/ATL</span><span class="farrow">→</span><span>MCI</span></div><div class="ftimes">May 3 · 10:00 AM → 1:58 PM</div><div class="abadge">Delta</div><div class="fconf">GGJC5T</div></div>
+  <div class="frow"><div class="fname">Fred Munoz</div><div class="froute"><span>MCI</span><span class="farrow">→</span><span>BUR/PHX</span></div><div class="ftimes">May 6 · 8:45 AM → 12:10 PM</div><div class="abadge">Southwest</div><div class="fconf">APMKP8</div></div>
+  <div class="frow"><div class="fname">Anna Parnigoni</div><div class="froute"><span>MCI/DTW</span><span class="farrow">→</span><span>CVG</span></div><div class="ftimes">May 6 · 2:10 PM → 8:13 PM</div><div class="abadge">Delta</div><div class="fconf">GGJC5T</div></div>
+  <div class="divider"></div>
+  <div class="sec-lbl" style="margin-top:0">Drive Crew</div>
+  <div class="chips" style="margin-bottom:16px">
+    <div class="chip"><strong>Joe + Joey</strong>STL → KC · Leave ~4 PM May 2 · Arrive 7:30–8 PM</div>
+    <div class="chip"><strong>Daniel, Jon, Brenden</strong>STL office → KC · Leave 8 AM May 3 · Arrive noon–1 PM</div>
+  </div>
+  <div class="divider"></div>
+  <div class="sec-lbl" style="margin-top:0">Emergency</div>
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:11px 13px;display:flex;gap:8px;align-items:center">
+    <span style="font-size:15px">🏥</span>
+    <div><div style="font-size:12px;font-weight:500">Nearest Hospital — All Venues</div><div style="font-size:11px;color:var(--muted)">4401 Wornall Rd, Kansas City, MO 64111</div></div>
+  </div>
+</div>
+
+</div>
+
+<script>
+function go(id, btn) {
+  document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('on'); });
+  document.querySelectorAll('.tab').forEach(function(b){ b.classList.remove('on'); });
+  document.getElementById('p-' + id).classList.add('on');
+  btn.classList.add('on');
+}
+</script>
