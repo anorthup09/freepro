@@ -97,6 +97,7 @@ export const api = {
   deleteGuest: (projectId, guestId) => req('DELETE', `/projects/${projectId}/travel/guests/${guestId}`),
   getFlights: (projectId) => req('GET', `/projects/${projectId}/travel/flights`),
   createFlight: (projectId, data) => req('POST', `/projects/${projectId}/travel/flights`, data),
+  updateFlight: (projectId, id, data) => req('PATCH', `/projects/${projectId}/travel/flights/${id}`, data),
   deleteFlight: (projectId, id) => req('DELETE', `/projects/${projectId}/travel/flights/${id}`),
   getDrives: (projectId) => req('GET', `/projects/${projectId}/travel/drives`),
   createDrive: (projectId, data) => req('POST', `/projects/${projectId}/travel/drives`, data),
@@ -106,5 +107,6 @@ export const api = {
   flightStatus: (flight, date) => req('GET', `/util/flight-status?flight=${encodeURIComponent(flight)}&date=${date}`),
   getRentalCars: (projectId) => req('GET', `/projects/${projectId}/travel/rental-cars`),
   createRentalCar: (projectId, data) => req('POST', `/projects/${projectId}/travel/rental-cars`, data),
+  updateRentalCar: (projectId, id, data) => req('PATCH', `/projects/${projectId}/travel/rental-cars/${id}`, data),
   deleteRentalCar: (projectId, id) => req('DELETE', `/projects/${projectId}/travel/rental-cars/${id}`),
 };

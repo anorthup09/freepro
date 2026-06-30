@@ -59,6 +59,14 @@ export default function Travel({ project }) {
   const [flightLookupError, setFlightLookupError] = useState('');
   const [flightForm, setFlightForm] = useState({ crewMemberId:null, passengerName:'', flightNumber:'', airline:'', origin:'', destination:'', departTime:'', arriveTime:'', departDisplay:'', arriveDisplay:'', confirmation:'', isReturn:false, cost:'', status:'' });
 
+  // Edit modals
+  const [editFlight, setEditFlight] = useState(null); // flight object being edited
+  const [editFlightForm, setEditFlightForm] = useState({ crewMemberId:'', confirmation:'', cost:'' });
+  const [editGuest, setEditGuest] = useState(null); // { guest, hotelId }
+  const [editGuestForm, setEditGuestForm] = useState({ confirmation:'', cost:'', checkIn:'', checkOut:'' });
+  const [editCar, setEditCar] = useState(null); // car object being edited
+  const [editCarForm, setEditCarForm] = useState({ vendor:'', pickupLocation:'', dropoffLocation:'', confirmation:'', cost:'', notes:'' });
+
   // Drive / car modals
   const [showDrive, setShowDrive] = useState(false);
   const [driveForm, setDriveForm] = useState({ origin:'', destination:'', notes:'', members:[] });
@@ -233,6 +241,76 @@ export default function Travel({ project }) {
     setCars(prev => prev.filter(c => c.id !== id));
   }
 
+  // ── Edit handlers ─────────────────────────────────────────────────────────
+  function openEditFlight(f) {
+    setEditFlight(f);
+    setEditFlightForm({ crewMemberId: f.crew_member_id || '', confirmation: f.confirmation || '', cost: f.cost || '' });
+  }
+  async function saveEditFlight(e) {
+    e.preventDefault();
+    try {
+      const updated = await api.updateFlight(project.id, editFlight.id, {
+        crewMemberId: editFlightForm.crewMemberId || null,
+        confirmation: editFlightForm.confirmation || null,
+        cost: editFlightForm.cost || null,
+      });
+      setFlights(prev => prev.map(f => f.id === editFlight.id ? { ...f, ...updated } : f));
+      setEditFlight(null);
+    } catch(err) { alert(err.message); }
+  }
+
+  function openEditGuest(g, hotelId) {
+    setEditGuest({ guest: g, hotelId });
+    setEditGuestForm({
+      confirmation: g.confirmation || '',
+      cost: g.cost || '',
+      checkIn: g.check_in ? g.check_in.slice(0,10) : '',
+      checkOut: g.check_out ? g.check_out.slice(0,10) : '',
+    });
+  }
+  async function saveEditGuest(e) {
+    e.preventDefault();
+    try {
+      const updated = await api.updateGuest(project.id, editGuest.guest.id, {
+        confirmation: editGuestForm.confirmation || null,
+        cost: editGuestForm.cost || null,
+        checkIn: editGuestForm.checkIn ? new Date(editGuestForm.checkIn).toISOString() : null,
+        checkOut: editGuestForm.checkOut ? new Date(editGuestForm.checkOut).toISOString() : null,
+      });
+      setHotels(prev => prev.map(h => h.id === editGuest.hotelId
+        ? { ...h, guests: h.guests.map(g => g.id === editGuest.guest.id ? { ...g, ...updated } : g) }
+        : h));
+      setEditGuest(null);
+    } catch(err) { alert(err.message); }
+  }
+
+  function openEditCar(c) {
+    setEditCar(c);
+    setEditCarForm({
+      vendor: c.vendor || '',
+      pickupLocation: c.pickup_location || '',
+      dropoffLocation: c.dropoff_location || '',
+      confirmation: c.confirmation || '',
+      cost: c.cost || '',
+      notes: c.notes || '',
+    });
+  }
+  async function saveEditCar(e) {
+    e.preventDefault();
+    try {
+      const updated = await api.updateRentalCar(project.id, editCar.id, {
+        vendor: editCarForm.vendor || null,
+        pickupLocation: editCarForm.pickupLocation || null,
+        dropoffLocation: editCarForm.dropoffLocation || null,
+        confirmation: editCarForm.confirmation || null,
+        cost: editCarForm.cost || null,
+        notes: editCarForm.notes || null,
+      });
+      setCars(prev => prev.map(c => c.id === editCar.id ? { ...c, ...updated } : c));
+      setEditCar(null);
+    } catch(err) { alert(err.message); }
+  }
+
   const hotelTotal = totalCost(hotels.flatMap(h => h.guests));
   const flightTotal = totalCost(flights);
   const carTotal = totalCost(cars);
@@ -269,11 +347,14 @@ export default function Travel({ project }) {
           <div className="guests">
             {h.guests.map(g => (
               <div key={g.id} className="gc" style={{ position:'relative' }}>
-                <div className="gn">{g.guestName}</div>
+                <div className="gn">{g.crew_name || g.guest_name}</div>
                 <div className="gconf">{g.confirmation ? `# ${g.confirmation}` : 'No confirmation'}</div>
-                <div className="gdates">{fmt(g.checkIn)} – {fmt(g.checkOut)}</div>
+                <div className="gdates">{fmt(g.check_in)} – {fmt(g.check_out)}</div>
                 {g.cost && <div style={{ fontSize:10, color:'var(--green)', fontWeight:600 }}>{fmtCost(g.cost)}</div>}
-                <button style={{ position:'absolute', top:4, right:6, background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:10 }} onClick={() => removeGuest(h.id, g.id)}>✕</button>
+                <div style={{ position:'absolute', top:4, right:6, display:'flex', gap:6 }}>
+                  <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:10 }} onClick={() => openEditGuest(g, h.id)}>Edit</button>
+                  <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:10 }} onClick={() => removeGuest(h.id, g.id)}>✕</button>
+                </div>
               </div>
             ))}
           </div>
@@ -311,7 +392,8 @@ export default function Travel({ project }) {
               <span style={{ fontSize:10, color:'var(--muted)' }}>Live status available within 24 hrs</span>
             )}
             {f.is_return && <span className="badge">Return</span>}
-            <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11, marginLeft:'auto' }} onClick={() => removeFlight(f.id)}>✕</button>
+            <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11, marginLeft:'auto' }} onClick={() => openEditFlight(f)}>Edit</button>
+            <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => removeFlight(f.id)}>✕</button>
           </div>
         );
       })}
@@ -333,7 +415,8 @@ export default function Travel({ project }) {
           {c.confirmation && <span style={{ fontSize:10, color:'var(--muted)' }}>{c.confirmation}</span>}
           {c.cost && <span style={{ fontSize:10, color:'var(--green)', fontWeight:600 }}>{fmtCost(c.cost)}</span>}
           {c.notes && <span style={{ fontSize:10, color:'var(--muted)' }}>{c.notes}</span>}
-          <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11, marginLeft:'auto' }} onClick={() => removeCar(c.id)}>✕</button>
+          <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11, marginLeft:'auto' }} onClick={() => openEditCar(c)}>Edit</button>
+          <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => removeCar(c.id)}>✕</button>
         </div>
       ))}
       {cars.length === 0 && <div className="empty">No rental cars added yet.</div>}
@@ -551,6 +634,78 @@ export default function Travel({ project }) {
               <div className="btn-row">
                 <button className="btn btn-primary">Add Rental Car</button>
                 <button type="button" className="btn btn-ghost" onClick={() => setShowCar(false)}>Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Edit Flight Modal ── */}
+      {editFlight && (
+        <div className="modal-bg" onClick={e => e.target === e.currentTarget && setEditFlight(null)}>
+          <div className="modal">
+            <div className="modal-title">Edit Flight — {editFlight.flight_number || editFlight.origin + ' → ' + editFlight.destination}</div>
+            <form onSubmit={saveEditFlight}>
+              <div className="form-grid" style={{ marginBottom:12 }}>
+                <div className="field span2">
+                  <label>Crew Member</label>
+                  <select value={editFlightForm.crewMemberId} onChange={e => setEditFlightForm(f=>({...f, crewMemberId: e.target.value}))}>
+                    <option value="">— None —</option>
+                    {projectCrew.filter(a => a.crewMember).map(a => (
+                      <option key={a.crewMember.id} value={a.crewMember.id}>{a.crewMember.name} — {a.position.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="field"><label>Confirmation #</label><input value={editFlightForm.confirmation} onChange={e => setEditFlightForm(f=>({...f,confirmation:e.target.value}))} placeholder="APMKP8" /></div>
+                <div className="field"><label>Cost ($)</label><input type="number" step="0.01" min="0" value={editFlightForm.cost} onChange={e => setEditFlightForm(f=>({...f,cost:e.target.value}))} placeholder="0.00" /></div>
+              </div>
+              <div className="btn-row">
+                <button className="btn btn-primary">Save</button>
+                <button type="button" className="btn btn-ghost" onClick={() => setEditFlight(null)}>Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Edit Guest Modal ── */}
+      {editGuest && (
+        <div className="modal-bg" onClick={e => e.target === e.currentTarget && setEditGuest(null)}>
+          <div className="modal">
+            <div className="modal-title">Edit Confirmation — {editGuest.guest.crew_name || editGuest.guest.guest_name}</div>
+            <form onSubmit={saveEditGuest}>
+              <div className="form-grid" style={{ marginBottom:12 }}>
+                <div className="field span2"><label>Confirmation #</label><input value={editGuestForm.confirmation} onChange={e => setEditGuestForm(f=>({...f,confirmation:e.target.value}))} placeholder="138215420" /></div>
+                <div className="field"><label>Check In</label><input type="date" value={editGuestForm.checkIn} onChange={e => setEditGuestForm(f=>({...f,checkIn:e.target.value}))} /></div>
+                <div className="field"><label>Check Out</label><input type="date" value={editGuestForm.checkOut} onChange={e => setEditGuestForm(f=>({...f,checkOut:e.target.value}))} /></div>
+                <div className="field span2"><label>Cost ($)</label><input type="number" step="0.01" min="0" value={editGuestForm.cost} onChange={e => setEditGuestForm(f=>({...f,cost:e.target.value}))} placeholder="0.00" /></div>
+              </div>
+              <div className="btn-row">
+                <button className="btn btn-primary">Save</button>
+                <button type="button" className="btn btn-ghost" onClick={() => setEditGuest(null)}>Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Edit Car Modal ── */}
+      {editCar && (
+        <div className="modal-bg" onClick={e => e.target === e.currentTarget && setEditCar(null)}>
+          <div className="modal">
+            <div className="modal-title">Edit Rental Car — {editCar.vendor}</div>
+            <form onSubmit={saveEditCar}>
+              <div className="form-grid" style={{ marginBottom:12 }}>
+                <div className="field span2"><label>Vendor</label><input value={editCarForm.vendor} onChange={e => setEditCarForm(f=>({...f,vendor:e.target.value}))} placeholder="Enterprise" required /></div>
+                <div className="field"><label>Pickup Location</label><input value={editCarForm.pickupLocation} onChange={e => setEditCarForm(f=>({...f,pickupLocation:e.target.value}))} /></div>
+                <div className="field"><label>Dropoff Location</label><input value={editCarForm.dropoffLocation} onChange={e => setEditCarForm(f=>({...f,dropoffLocation:e.target.value}))} /></div>
+                <div className="field"><label>Confirmation #</label><input value={editCarForm.confirmation} onChange={e => setEditCarForm(f=>({...f,confirmation:e.target.value}))} /></div>
+                <div className="field"><label>Cost ($)</label><input type="number" step="0.01" min="0" value={editCarForm.cost} onChange={e => setEditCarForm(f=>({...f,cost:e.target.value}))} placeholder="0.00" /></div>
+                <div className="field span2"><label>Notes</label><input value={editCarForm.notes} onChange={e => setEditCarForm(f=>({...f,notes:e.target.value}))} /></div>
+              </div>
+              <div className="btn-row">
+                <button className="btn btn-primary">Save</button>
+                <button type="button" className="btn btn-ghost" onClick={() => setEditCar(null)}>Cancel</button>
               </div>
             </form>
           </div>

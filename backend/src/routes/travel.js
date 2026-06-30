@@ -45,7 +45,15 @@ router.post('/:id/travel/hotels/:hid/guests', requireAuth, requireRole('ADMIN','
 router.patch('/:id/travel/guests/:gid', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
     const d = req.body;
-    const [g] = await sql`UPDATE hotel_guests SET guest_name=COALESCE(${d.guestName??null},guest_name), confirmation=COALESCE(${d.confirmation??null},confirmation), check_in=COALESCE(${d.checkIn??null},check_in), check_out=COALESCE(${d.checkOut??null},check_out) WHERE id=${req.params.gid} RETURNING *`;
+    const [g] = await sql`
+      UPDATE hotel_guests SET
+        guest_name = COALESCE(${d.guestName??null}, guest_name),
+        confirmation = COALESCE(${d.confirmation??null}, confirmation),
+        check_in = COALESCE(${d.checkIn??null}, check_in),
+        check_out = COALESCE(${d.checkOut??null}, check_out),
+        cost = ${d.cost != null ? d.cost : sql`cost`}
+      WHERE id = ${req.params.gid}
+      RETURNING *`;
     res.json(g);
   } catch(e){next(e);}
 });
@@ -73,7 +81,15 @@ router.post('/:id/travel/flights', requireAuth, requireRole('ADMIN','PRODUCER'),
 router.patch('/:id/travel/flights/:fid', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
     const d = req.body;
-    const [f] = await sql`UPDATE flights SET passenger_name=COALESCE(${d.passengerName??null},passenger_name), airline=COALESCE(${d.airline??null},airline), confirmation=COALESCE(${d.confirmation??null},confirmation) WHERE id=${req.params.fid} RETURNING *`;
+    const [f] = await sql`
+      UPDATE flights SET
+        passenger_name = COALESCE(${d.passengerName??null}, passenger_name),
+        airline = COALESCE(${d.airline??null}, airline),
+        confirmation = COALESCE(${d.confirmation??null}, confirmation),
+        cost = ${d.cost != null ? d.cost : sql`cost`},
+        crew_member_id = ${d.crewMemberId !== undefined ? (d.crewMemberId||null) : sql`crew_member_id`}
+      WHERE id = ${req.params.fid}
+      RETURNING *, (SELECT name FROM crew_members WHERE id = crew_member_id) as crew_name`;
     res.json(f);
   } catch(e){next(e);}
 });
@@ -120,6 +136,23 @@ router.post('/:id/travel/rental-cars', requireAuth, requireRole('ADMIN','PRODUCE
       VALUES (gen_random_uuid()::text, ${req.params.id}, ${vendor}, ${pickupLocation||null}, ${dropoffLocation||null}, ${pickupDate||null}, ${dropoffDate||null}, ${confirmation||null}, ${cost||null}, ${notes||null})
       RETURNING *`;
     res.status(201).json(c);
+  } catch(e){next(e);}
+});
+
+router.patch('/:id/travel/rental-cars/:cid', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try {
+    const d = req.body;
+    const [c] = await sql`
+      UPDATE rental_cars SET
+        vendor = COALESCE(${d.vendor??null}, vendor),
+        pickup_location = COALESCE(${d.pickupLocation??null}, pickup_location),
+        dropoff_location = COALESCE(${d.dropoffLocation??null}, dropoff_location),
+        confirmation = COALESCE(${d.confirmation??null}, confirmation),
+        cost = ${d.cost != null ? d.cost : sql`cost`},
+        notes = COALESCE(${d.notes??null}, notes)
+      WHERE id = ${req.params.cid}
+      RETURNING *`;
+    res.json(c);
   } catch(e){next(e);}
 });
 
