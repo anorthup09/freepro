@@ -75,6 +75,18 @@ router.get('/:token', async (req, res, next) => {
     let responseData = { view_type: viewType, talent_name: talentName, project };
 
     if (viewType === 'producer') {
+      const [flights, hotelBlocks, rentalCars, deliverables, gear] = await Promise.all([
+        sql`SELECT id, passenger_name, origin, destination, depart_time, arrive_time, depart_display, arrive_display, airline, flight_number, confirmation, is_return,
+                   cm.name as crew_name
+            FROM flights f LEFT JOIN crew_members cm ON cm.id = f.crew_member_id
+            WHERE f.project_id = ${projectId} ORDER BY f.depart_time`,
+        sql`SELECT hb.*, json_agg(json_build_object('id',hg.id,'guest_name',hg.guest_name,'check_in',hg.check_in,'check_out',hg.check_out,'confirmation',hg.confirmation) ORDER BY hg.check_in) FILTER (WHERE hg.id IS NOT NULL) as guests
+            FROM hotel_blocks hb LEFT JOIN hotel_guests hg ON hg.hotel_block_id = hb.id
+            WHERE hb.project_id = ${projectId} GROUP BY hb.id`,
+        sql`SELECT id, vendor, pickup_location, dropoff_location, pickup_date, dropoff_date, confirmation, notes FROM rental_cars WHERE project_id = ${projectId}`,
+        sql`SELECT id, title, description, status, editor_name, aspect_ratio, resolution, due_date, is_urgent FROM deliverables WHERE project_id = ${projectId} ORDER BY created_at`,
+        sql`SELECT pg.*, cm.name as gear_person_name, cm.phone as gear_person_phone FROM project_gear pg LEFT JOIN crew_members cm ON cm.id = pg.gear_person_id WHERE pg.project_id = ${projectId}`,
+      ]);
       responseData = {
         ...responseData,
         locations,
@@ -83,6 +95,11 @@ router.get('/:token', async (req, res, next) => {
         keyTalent,
         crewAssignments: mappedCrew,
         schedule: daysWithData,
+        flights,
+        hotelBlocks,
+        rentalCars,
+        deliverables,
+        gear: gear[0] || null,
       };
     } else if (viewType === 'crew') {
       const filteredDays = daysWithData.map(day => ({
