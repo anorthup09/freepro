@@ -172,7 +172,7 @@ export default function Gear({ project }) {
           <div className="field"><label>Electric</label><textarea {...field('electricGear')} placeholder="2x Aputure 600D, 4x Aputure 300X…" style={{ minHeight:64 }} /></div>
           <div className="field"><label>Audio</label><textarea {...field('audioGear')} placeholder="Sound Devices 833, 2x Lectrosonics…" style={{ minHeight:64 }} /></div>
           <div className="field"><label>Media Management</label><textarea {...field('mediaManagementGear')} placeholder="OWC Thunderbay 4, Archivist…" style={{ minHeight:64 }} /></div>
-          <div className="field"><label>Editing</label><textarea {...field('editingGear')} placeholder="MacBook Pro 16\", Dell 4K monitor…" style={{ minHeight:64 }} /></div>
+          <div className="field"><label>Editing</label><textarea {...field('editingGear')} placeholder="MacBook Pro 16-inch, Dell 4K monitor…" style={{ minHeight:64 }} /></div>
         </div>
       </div>
 
