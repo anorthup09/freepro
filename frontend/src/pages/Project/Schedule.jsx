@@ -75,6 +75,8 @@ export default function Schedule({ project }) {
   const [dayForm, setDayForm] = useState({ date:'', callTime:'', wrapTime:'', weather:'', notes:'' });
   const [showAddEvent, setShowAddEvent] = useState(false);
   const [eventForm, setEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', isAlert:false, tags:[] });
+  const [editEventId, setEditEventId] = useState(null);
+  const [editEventForm, setEditEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', isAlert:false, tags:[] });
   const [editCallId, setEditCallId] = useState(null);
   const [callTime, setCallTime] = useState('');
   const [dayMeta, setDayMeta] = useState({});
@@ -134,6 +136,33 @@ export default function Schedule({ project }) {
   async function deleteEvent(eventId) {
     await api.deleteEvent(project.id, eventId);
     setDays(ds => ds.map(d => d.id === activeDay ? { ...d, events: d.events.filter(e => e.id !== eventId) } : d));
+  }
+
+  async function saveEditEvent(e) {
+    e.preventDefault();
+    try {
+      const updated = await api.updateEvent(project.id, editEventId, editEventForm);
+      setDays(ds => ds.map(d => d.id === activeDay ? {
+        ...d,
+        events: d.events.map(ev => ev.id === editEventId ? { ...ev, ...updated } : ev)
+          .sort((a, b) => a.startTime.localeCompare(b.startTime))
+      } : d));
+      setEditEventId(null);
+    } catch(e) { alert(e.message); }
+  }
+
+  function openEditEvent(ev) {
+    setEditEventId(ev.id);
+    setEditEventForm({ startTime: ev.startTime || '', endTime: ev.endTime || '', title: ev.title || '', detail: ev.detail || '', isAlert: ev.isAlert || false, tags: ev.tags || [] });
+  }
+
+  function toggleEditTag(type) {
+    setEditEventForm(f => ({
+      ...f,
+      tags: f.tags.some(t => t.type === type)
+        ? f.tags.filter(t => t.type !== type)
+        : [...f.tags, { type }]
+    }));
   }
 
   async function saveCallTime(call) {
@@ -312,7 +341,10 @@ export default function Schedule({ project }) {
                         <div className={`ev-body${item.isAlert ? ' warn' : ''}`}>
                           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
                             <div className={`ev-title${item.isAlert ? ' alert' : ''}`}>{item.isAlert ? '⚠ ' : ''}{item.title}</div>
-                            <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11, flexShrink:0, marginLeft:8 }} onClick={() => deleteEvent(item.id)}>✕</button>
+                            <div style={{ display:'flex', gap:4, flexShrink:0, marginLeft:8 }}>
+                              <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => openEditEvent(item)}>✎</button>
+                              <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => deleteEvent(item.id)}>✕</button>
+                            </div>
                           </div>
                           {item.detail && <div className="ev-detail">{item.detail}</div>}
                           {item.location && <div style={{ fontSize:10, color:'var(--tan)', marginTop:3 }}>📍 {item.location.name}</div>}
@@ -381,6 +413,41 @@ export default function Schedule({ project }) {
                 </div>
               </div>
               <div className="btn-row"><button className="btn btn-primary">Add Event</button><button type="button" className="btn btn-ghost" onClick={() => setShowAddEvent(false)}>Cancel</button></div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Event Modal */}
+      {editEventId && (
+        <div className="modal-bg" onClick={e => e.target === e.currentTarget && setEditEventId(null)}>
+          <div className="modal">
+            <div className="modal-title">Edit Event</div>
+            <form onSubmit={saveEditEvent}>
+              <div className="form-grid" style={{ marginBottom:12 }}>
+                <div className="field"><label>Start Time</label><input type="time" value={editEventForm.startTime} onChange={e => setEditEventForm(f=>({...f,startTime:e.target.value}))} required /></div>
+                <div className="field"><label>End Time</label><input type="time" value={editEventForm.endTime} onChange={e => setEditEventForm(f=>({...f,endTime:e.target.value}))} /></div>
+                <div className="field span2"><label>Title</label><input value={editEventForm.title} onChange={e => setEditEventForm(f=>({...f,title:e.target.value}))} required /></div>
+                <div className="field span2"><label>Detail / Notes</label><textarea value={editEventForm.detail} onChange={e => setEditEventForm(f=>({...f,detail:e.target.value}))} /></div>
+                <div className="field span2">
+                  <label>Tags</label>
+                  <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:4 }}>
+                    {TAG_TYPES.map(type => (
+                      <button key={type} type="button"
+                        className={`etag ${TAG_CLASS[type]}`}
+                        style={{ cursor:'pointer', opacity: editEventForm.tags.some(t=>t.type===type) ? 1 : 0.4, padding:'4px 10px' }}
+                        onClick={() => toggleEditTag(type)}>
+                        {TAG_LABEL[type]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="field span2" style={{ flexDirection:'row', alignItems:'center', gap:10 }}>
+                  <input type="checkbox" id="editIsAlert" checked={editEventForm.isAlert} onChange={e => setEditEventForm(f=>({...f,isAlert:e.target.checked}))} style={{ width:'auto' }} />
+                  <label htmlFor="editIsAlert" style={{ textTransform:'none', letterSpacing:0, fontSize:12, color:'var(--text)' }}>Mark as urgent alert</label>
+                </div>
+              </div>
+              <div className="btn-row"><button className="btn btn-primary">Save</button><button type="button" className="btn btn-ghost" onClick={() => setEditEventId(null)}>Cancel</button></div>
             </form>
           </div>
         </div>

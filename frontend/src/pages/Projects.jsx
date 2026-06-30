@@ -18,8 +18,22 @@ export default function Projects() {
   const [showNew, setShowNew] = useState(false);
   const [form, setForm] = useState({ code:'', title:'', client:'', city:'', state:'', startDate:'', endDate:'' });
   const [saving, setSaving] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
 
   useEffect(() => { api.getProjects().then(setProjects).catch(console.error); }, []);
+
+  async function archiveProject(e, id) {
+    e.preventDefault(); e.stopPropagation();
+    if (!confirm('Archive this project?')) return;
+    await api.updateProject(id, { status: 'ARCHIVED' });
+    setProjects(ps => ps.map(p => p.id === id ? { ...p, status: 'ARCHIVED' } : p));
+  }
+
+  async function unarchiveProject(e, id) {
+    e.preventDefault(); e.stopPropagation();
+    await api.updateProject(id, { status: 'PLANNING' });
+    setProjects(ps => ps.map(p => p.id === id ? { ...p, status: 'PLANNING' } : p));
+  }
 
   function logout() {
     localStorage.removeItem('fp_token');
@@ -61,18 +75,51 @@ export default function Projects() {
         {projects.length === 0 && <div className="empty">No projects yet — create one to get started.</div>}
 
         <div className="proj-list">
-          {projects.map(p => (
+          {projects.filter(p => p.status !== 'ARCHIVED').map(p => (
             <Link key={p.id} to={`/projects/${p.id}`} className="proj-card">
               <div className="proj-card-info">
                 <div className="proj-card-code">{p.code}</div>
                 <div className="proj-card-title">{p.title}</div>
-                <div className="proj-card-meta">{p.client} · {p.city}, {p.state} · {new Date(p.start_date).toLocaleDateString()} – {new Date(p.end_date).toLocaleDateString()}</div>
+                <div className="proj-card-meta">{p.client} · {p.city}, {p.state} · {new Date(p.start_date?.slice(0,10)+'T12:00:00').toLocaleDateString()} – {new Date(p.end_date?.slice(0,10)+'T12:00:00').toLocaleDateString()}</div>
               </div>
               <span className={`pill ${STATUS_PILL[p.status] || ''}`}>{p.status.replace(/_/g,' ')}</span>
+              <button
+                onClick={e => archiveProject(e, p.id)}
+                style={{ background:'none', border:'1px solid var(--border)', borderRadius:5, color:'var(--muted)', fontSize:11, padding:'3px 9px', cursor:'pointer', whiteSpace:'nowrap', flexShrink:0 }}
+              >Archive</button>
               <span className="proj-card-arrow">›</span>
             </Link>
           ))}
         </div>
+
+        {projects.some(p => p.status === 'ARCHIVED') && (
+          <div style={{ marginTop:24 }}>
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={() => setShowArchived(s => !s)}
+              style={{ marginBottom:10, color:'var(--muted)' }}
+            >{showArchived ? '▾' : '▸'} Archived ({projects.filter(p => p.status === 'ARCHIVED').length})</button>
+            {showArchived && (
+              <div className="proj-list" style={{ opacity:0.6 }}>
+                {projects.filter(p => p.status === 'ARCHIVED').map(p => (
+                  <Link key={p.id} to={`/projects/${p.id}`} className="proj-card">
+                    <div className="proj-card-info">
+                      <div className="proj-card-code">{p.code}</div>
+                      <div className="proj-card-title">{p.title}</div>
+                      <div className="proj-card-meta">{p.client} · {p.city}, {p.state}</div>
+                    </div>
+                    <span className="pill">ARCHIVED</span>
+                    <button
+                      onClick={e => unarchiveProject(e, p.id)}
+                      style={{ background:'none', border:'1px solid var(--border)', borderRadius:5, color:'var(--muted)', fontSize:11, padding:'3px 9px', cursor:'pointer', whiteSpace:'nowrap', flexShrink:0 }}
+                    >Unarchive</button>
+                    <span className="proj-card-arrow">›</span>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {showNew && (
