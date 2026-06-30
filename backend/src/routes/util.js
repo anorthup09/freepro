@@ -69,12 +69,13 @@ router.get('/flight-lookup', requireAuth, async (req, res, next) => {
     const start = date ? new Date(date + 'T00:00:00Z').toISOString() : new Date().toISOString();
     const end = date ? new Date(date + 'T23:59:59Z').toISOString() : new Date(Date.now() + 86400000).toISOString();
 
-    const url = `https://aeroapi.flightaware.com/aeroapi/flights/${encodeURIComponent(flight.toUpperCase())}?start=${start}&end=${end}&max_pages=1`;
+    const url = `https://aeroapi.flightaware.com/aeroapi/flights/${encodeURIComponent(flight.toUpperCase())}?start=${start}&end=${end}`;
     const r = await fetch(url, { headers: { 'x-apikey': key } });
 
     if (!r.ok) {
       const err = await r.json().catch(() => ({}));
-      return res.status(r.status).json({ error: err.title || err.detail || 'FlightAware error' });
+      const msg = [err.title, err.reason, err.detail].filter(Boolean).join(' — ') || 'FlightAware error';
+      return res.status(r.status).json({ error: msg });
     }
 
     const data = await r.json();
@@ -107,7 +108,7 @@ router.get('/flight-status', requireAuth, async (req, res, next) => {
     const start = date ? new Date(date + 'T00:00:00Z').toISOString() : new Date().toISOString();
     const end = date ? new Date(date + 'T23:59:59Z').toISOString() : new Date(Date.now() + 86400000).toISOString();
 
-    const url = `https://aeroapi.flightaware.com/aeroapi/flights/${encodeURIComponent(flight.toUpperCase())}?start=${start}&end=${end}&max_pages=1`;
+    const url = `https://aeroapi.flightaware.com/aeroapi/flights/${encodeURIComponent(flight.toUpperCase())}?start=${start}&end=${end}`;
     const r = await fetch(url, { headers: { 'x-apikey': key } });
     if (!r.ok) return res.status(r.status).json({ error: 'lookup failed' });
 
