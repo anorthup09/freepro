@@ -285,6 +285,7 @@ async function migrate() {
   `;
 
   await sql`ALTER TABLE tech_specs ADD COLUMN IF NOT EXISTS dit_crew_member_id TEXT REFERENCES crew_members(id)`;
+  await sql`ALTER TABLE tech_specs ADD COLUMN IF NOT EXISTS frame_rate TEXT`;
 
   await sql`ALTER TABLE crew_members ADD COLUMN IF NOT EXISTS home_airport TEXT`;
   await sql`ALTER TABLE crew_members ADD COLUMN IF NOT EXISTS notes TEXT`;

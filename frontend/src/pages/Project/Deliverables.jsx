@@ -14,30 +14,49 @@ export default function Deliverables({ project }) {
   const [editItemId, setEditItemId] = useState(null);
   const [editForm, setEditForm] = useState({ title:'', description:'', editorName:'', aspectRatio:'', resolution:'', dueDate:'', assetRef:'', musicRef:'', isUrgent:false, status:'' });
 
-  const [ditId, setDitId] = useState(project.techSpecs?.dit_crew_member_id || '');
+  const existingSpecs = project.techSpecs || {};
+  const [ditId, setDitId] = useState(existingSpecs.dit_crew_member_id || '');
   const [ditSaving, setDitSaving] = useState(false);
+  const [specs, setSpecs] = useState({
+    aspectRatio: existingSpecs.aspect_ratio || '',
+    resolution: existingSpecs.resolution || '',
+    frameRate: existingSpecs.frame_rate || '',
+  });
+  const [specSaving, setSpecSaving] = useState(false);
 
   useEffect(() => {
     api.getDeliverables(project.id).then(setItems);
   }, [project.id]);
 
+  // Persist the full tech_specs row, merging the editable fields here with the
+  // untouched ones so nothing gets wiped (the API replaces the whole row).
+  async function persistSpecs(nextSpecs, nextDitId) {
+    setSpecSaving(true);
+    try {
+      await api.saveTechSpecs(project.id, {
+        aspectRatio: nextSpecs.aspectRatio || null,
+        resolution: nextSpecs.resolution || null,
+        frameRate: nextSpecs.frameRate || null,
+        quality: existingSpecs.quality || null,
+        cameras: existingSpecs.cameras || null,
+        execProducer: existingSpecs.exec_producer || null,
+        onSiteEditor: existingSpecs.on_site_editor || null,
+        notes: existingSpecs.notes || null,
+        ditCrewMemberId: nextDitId || null,
+      });
+    } catch(err) { alert(err.message); }
+    setSpecSaving(false);
+  }
+
   async function saveDit(crewMemberId) {
     setDitId(crewMemberId);
     setDitSaving(true);
-    try {
-      const existing = project.techSpecs || {};
-      await api.saveTechSpecs(project.id, {
-        aspectRatio: existing.aspect_ratio || null,
-        resolution: existing.resolution || null,
-        quality: existing.quality || null,
-        cameras: existing.cameras || null,
-        execProducer: existing.exec_producer || null,
-        onSiteEditor: existing.on_site_editor || null,
-        notes: existing.notes || null,
-        ditCrewMemberId: crewMemberId || null,
-      });
-    } catch(err) { alert(err.message); }
+    await persistSpecs(specs, crewMemberId);
     setDitSaving(false);
+  }
+
+  function commitSpec() {
+    persistSpecs(specs, ditId);
   }
 
   async function add(e) {
@@ -102,6 +121,31 @@ export default function Deliverables({ project }) {
             Managing data for this project
           </span>
         )}
+      </div>
+
+      {/* ── Technical Specs ── */}
+      <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10 }}>
+        <span style={{ fontSize:13, fontWeight:600, color:'var(--text)' }}>Technical Specs</span>
+        {specSaving && <span style={{ fontSize:11, color:'var(--muted)' }}>Saving…</span>}
+      </div>
+      <div className="glass-grid" style={{ marginBottom:24 }}>
+        {[
+          { key:'aspectRatio', label:'Aspect Ratio', placeholder:'16:9' },
+          { key:'resolution',  label:'Resolution',   placeholder:'3840×2160' },
+          { key:'frameRate',   label:'Frame Rate',   placeholder:'23.976 fps' },
+        ].map(f => (
+          <div key={f.key} className="glass-tile">
+            <div className="glass-tile-label">{f.label}</div>
+            <input
+              className="glass-tile-input"
+              value={specs[f.key]}
+              placeholder={f.placeholder}
+              onChange={e => setSpecs(s => ({ ...s, [f.key]: e.target.value }))}
+              onBlur={commitSpec}
+              onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+            />
+          </div>
+        ))}
       </div>
 
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16 }}>

@@ -32,9 +32,27 @@ function fmtDT(dt) {
   return new Date(dt).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
 }
 
+function mapsUrl(...parts) {
+  const q = parts.filter(Boolean).join(' ').trim();
+  if (!q) return null;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
+}
+
+// Renders an address as a link to Google Maps (falls back to plain text)
+function MapLink({ query, children, className, style }) {
+  const url = mapsUrl(query);
+  if (!url) return <span className={className} style={style}>{children}</span>;
+  return (
+    <a className={className} style={{ color:'inherit', textDecoration:'underline', textDecorationColor:'var(--orange)', textUnderlineOffset:2, ...style }}
+       href={url} target="_blank" rel="noopener noreferrer">
+      {children}
+    </a>
+  );
+}
+
 // ── Producer View ────────────────────────────────────────────────────────────
 function ProducerView({ data }) {
-  const { project, locations, techSpecs, clientContacts, keyTalent, crewAssignments, schedule, flights, hotelBlocks, rentalCars, deliverables, gear } = data;
+  const { project, locations, clientContacts, keyTalent, crewAssignments, schedule, flights, hotelBlocks, rentalCars, deliverables, gear } = data;
   return (
     <div className="share-view">
       <div className="share-header">
@@ -47,14 +65,36 @@ function ProducerView({ data }) {
         </div>
       </div>
 
-      {techSpecs && (
+      {/* ── Key Contacts (top) ── */}
+      {(project.poc_name || gear?.gear_person_name) && (
         <section className="share-section">
-          <div className="sec-lbl">Tech Specs</div>
+          <div className="sec-lbl">Key Contacts</div>
           <div className="chips">
-            {techSpecs.aspect_ratio && <div className="chip"><strong>Ratio</strong>{techSpecs.aspect_ratio}</div>}
-            {techSpecs.resolution && <div className="chip"><strong>Resolution</strong>{techSpecs.resolution}</div>}
-            {techSpecs.cameras && <div className="chip"><strong>Cameras</strong>{techSpecs.cameras}</div>}
+            {project.poc_name && (
+              <div className="chip"><strong>Main POC</strong>{project.poc_name}{project.poc_phone ? ` · ${project.poc_phone}` : ''}{project.poc_email ? ` · ${project.poc_email}` : ''}</div>
+            )}
+            {gear?.gear_person_name && (
+              <div className="chip"><strong>Gear Contact</strong>{gear.gear_person_name}{gear.gear_person_phone ? ` · ${gear.gear_person_phone}` : ''}</div>
+            )}
           </div>
+        </section>
+      )}
+
+      {/* ── Hotel (top) ── */}
+      {hotelBlocks?.length > 0 && (
+        <section className="share-section">
+          <div className="sec-lbl">Hotel Accommodations</div>
+          {hotelBlocks.map(hb => (
+            <div key={hb.id} style={{ marginBottom:12 }}>
+              <div style={{ fontWeight:600, fontSize:13, marginBottom:4 }}>🏨 <MapLink query={`${hb.name} ${hb.address || ''}`}>{hb.name} — {hb.address}</MapLink>{hb.phone ? ` · ${hb.phone}` : ''}</div>
+              {hb.guests?.length > 0 && (
+                <ShareTable
+                  cols={['Guest','Check-in','Check-out','Confirmation']}
+                  rows={hb.guests.map(g => [g.guest_name, fmtDT(g.check_in), fmtDT(g.check_out), g.confirmation || '—'])}
+                />
+              )}
+            </div>
+          ))}
         </section>
       )}
 
@@ -65,7 +105,7 @@ function ProducerView({ data }) {
             {locations.map(l => (
               <div key={l.id} className="loc">
                 <div className="loc-ico">{l.emoji || '📍'}</div>
-                <div><div className="loc-name">{l.name}</div><div className="loc-addr">{l.address}</div></div>
+                <div><div className="loc-name">{l.name}</div><MapLink className="loc-addr" query={l.address || l.name}>{l.address}</MapLink></div>
               </div>
             ))}
           </div>
@@ -90,24 +130,6 @@ function ProducerView({ data }) {
         <section className="share-section">
           <div className="sec-lbl">Crew</div>
           <ShareTable cols={['Position','Name','Email','Phone']} rows={crewAssignments.map(a => [a.position.name, a.crewMember?.name||'TBD', a.crewMember?.email||'—', a.crewMember?.phone||'—'])} />
-        </section>
-      )}
-
-      {/* ── Travel ── */}
-      {hotelBlocks?.length > 0 && (
-        <section className="share-section">
-          <div className="sec-lbl">Hotel Accommodations</div>
-          {hotelBlocks.map(hb => (
-            <div key={hb.id} style={{ marginBottom:12 }}>
-              <div style={{ fontWeight:600, fontSize:13, marginBottom:4 }}>🏨 {hb.name} — {hb.address}{hb.phone ? ` · ${hb.phone}` : ''}</div>
-              {hb.guests?.length > 0 && (
-                <ShareTable
-                  cols={['Guest','Check-in','Check-out','Confirmation']}
-                  rows={hb.guests.map(g => [g.guest_name, fmtDT(g.check_in), fmtDT(g.check_out), g.confirmation || '—'])}
-                />
-              )}
-            </div>
-          ))}
         </section>
       )}
 
@@ -144,9 +166,10 @@ function ProducerView({ data }) {
         </section>
       )}
 
-      {/* ── Schedule (with integrated flights) at bottom ── */}
+      {/* ── Schedule (full timeline from the Schedule tab) at bottom ── */}
+      <div className="sec-lbl" style={{ marginTop:8 }}>Schedule</div>
       {[...(schedule||[])].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map((day, i) => (
-        <DaySection key={day.id} day={day} showCalls flights={flights} dayIndex={i} />
+        <DaySection key={day.id} day={day} showCalls flights={flights} dayIndex={i} defaultOpen />
       ))}
     </div>
   );
@@ -183,7 +206,7 @@ function CrewView({ data }) {
           <div className="sec-lbl">Hotel Accommodations</div>
           {hotelBlocks.map(hb => (
             <div key={hb.id} style={{ marginBottom:12 }}>
-              <div style={{ fontWeight:600, fontSize:13, marginBottom:4 }}>🏨 {hb.name} — {hb.address}{hb.phone ? ` · ${hb.phone}` : ''}</div>
+              <div style={{ fontWeight:600, fontSize:13, marginBottom:4 }}>🏨 <MapLink query={`${hb.name} ${hb.address || ''}`}>{hb.name} — {hb.address}</MapLink>{hb.phone ? ` · ${hb.phone}` : ''}</div>
               {hb.guests?.length > 0 && (
                 <ShareTable
                   cols={['Guest','Check-in','Check-out','Confirmation']}
@@ -212,7 +235,7 @@ function CrewView({ data }) {
             {locations.map(l => (
               <div key={l.id} className="loc">
                 <div className="loc-ico">{l.emoji || '📍'}</div>
-                <div><div className="loc-name">{l.name}</div><div className="loc-addr">{l.address}</div></div>
+                <div><div className="loc-name">{l.name}</div><MapLink className="loc-addr" query={l.address || l.name}>{l.address}</MapLink></div>
               </div>
             ))}
           </div>
@@ -443,8 +466,8 @@ function flightTime(f, leg) {
   return f.arrive_display || (f.arrive_time ? new Date(f.arrive_time).toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' }) : '');
 }
 
-function DaySection({ day, showCalls, flights, dayIndex }) {
-  const [open, setOpen] = useState(false);
+function DaySection({ day, showCalls, flights, dayIndex, defaultOpen = false }) {
+  const [open, setOpen] = useState(defaultOpen);
 
   const dayStr = day.date ? isoDate(new Date(day.date)) : null;
   const dayMD = dayStr ? dayStr.slice(5) : null; // "MM-DD"
