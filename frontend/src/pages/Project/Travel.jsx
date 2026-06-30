@@ -164,17 +164,21 @@ export default function Travel({ project }) {
 
   async function addFlight(e) {
     e.preventDefault();
-    const f = await api.createFlight(project.id, {
-      ...flightForm,
-      departTime: flightForm.departTime ? new Date(flightForm.departTime).toISOString() : null,
-      arriveTime: flightForm.arriveTime ? new Date(flightForm.arriveTime).toISOString() : null,
-      crewMemberId: flightForm.crewMemberId || null,
-      cost: flightForm.cost || null,
-    });
-    setFlights(prev => [...prev, f]);
-    setShowFlight(false);
-    setFlightLookupQuery(''); setFlightLookupDate(''); setFlightLookupError('');
-    setFlightForm({ crewMemberId:'', passengerName:'', flightNumber:'', airline:'', origin:'', destination:'', departTime:'', arriveTime:'', confirmation:'', isReturn:false, cost:'', status:'' });
+    try {
+      const crewMember = projectCrew.find(a => a.crewMemberId === flightForm.crewMemberId)?.crewMember;
+      const f = await api.createFlight(project.id, {
+        ...flightForm,
+        passengerName: flightForm.passengerName || crewMember?.name || 'Unknown',
+        departTime: flightForm.departTime ? new Date(flightForm.departTime).toISOString() : null,
+        arriveTime: flightForm.arriveTime ? new Date(flightForm.arriveTime).toISOString() : null,
+        crewMemberId: flightForm.crewMemberId || null,
+        cost: flightForm.cost || null,
+      });
+      setFlights(prev => [...prev, f]);
+      setShowFlight(false);
+      setFlightLookupQuery(''); setFlightLookupDate(''); setFlightLookupError('');
+      setFlightForm({ crewMemberId:'', passengerName:'', flightNumber:'', airline:'', origin:'', destination:'', departTime:'', arriveTime:'', confirmation:'', isReturn:false, cost:'', status:'' });
+    } catch(err) { alert(err.message); }
   }
 
   async function refreshFlightStatus(f) {
