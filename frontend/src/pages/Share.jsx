@@ -533,7 +533,20 @@ function DaySection({ day, showCalls, flights, dayIndex }) {
     <section className="share-section">
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
         <div className="sec-lbl" style={{ margin:0 }}>Day {dayIndex != null ? dayIndex + 1 : day.day_number} — {new Date(day.date.slice ? day.date.slice(0,10) + 'T12:00:00' : day.date).toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' })}</div>
+        {allItems.length > 0 && (
+          <button onClick={() => setOpen(o => !o)} style={{ background:'none', border:'none', color:'var(--muted)', fontSize:11, cursor:'pointer', padding:0 }}>
+            {open ? 'Collapse' : `Show (${allItems.length})`}
+          </button>
+        )}
       </div>
+
+      {(day.call_time || day.wrap_time) && (
+        <div style={{ fontSize:11, color:'var(--tan)', marginTop:4 }}>
+          {day.call_time && <span>Call: <strong>{day.call_time}</strong></span>}
+          {day.call_time && day.wrap_time && <span style={{ margin:'0 8px', color:'var(--muted)' }}>·</span>}
+          {day.wrap_time && <span>Wrap: <strong>{day.wrap_time}</strong></span>}
+        </div>
+      )}
 
       {showCalls && day.crewCalls?.length > 0 && (
         <div style={{ marginTop:8 }}>
@@ -544,16 +557,12 @@ function DaySection({ day, showCalls, flights, dayIndex }) {
         </div>
       )}
 
-      {allItems.length > 0 && (
-        <div style={{ marginTop:10 }}>
-          <button
-            onClick={() => setOpen(o => !o)}
-            style={{ background:'none', border:'none', color:'var(--muted)', fontSize:11, cursor:'pointer', padding:0, display:'flex', alignItems:'center', gap:4 }}
-          >
-            {open ? '▾' : '▸'} Timeline ({allItems.length} event{allItems.length !== 1 ? 's' : ''})
-          </button>
-          {open && (
-            <div className="tl" style={{ marginTop:8 }}>
+      {allItems.length === 0 && (
+        <div style={{ fontSize:11, color:'var(--muted)', marginTop:6, fontStyle:'italic' }}>No events added for this day.</div>
+      )}
+
+      {allItems.length > 0 && open && (
+        <div className="tl" style={{ marginTop:8 }}>
               {allItems.map((item, i) => item._type === 'flight' ? (
                 <div key={`f-${item.id}-${item._leg}`} className="ev">
                   <div className="ev-time">✈ {item._time}</div>
@@ -577,8 +586,6 @@ function DaySection({ day, showCalls, flights, dayIndex }) {
               ))}
             </div>
           )}
-        </div>
-      )}
     </section>
   );
 }
