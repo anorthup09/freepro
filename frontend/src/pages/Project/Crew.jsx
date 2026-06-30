@@ -18,6 +18,7 @@ export default function Crew({ project, onProjectUpdate }) {
   const [rosterQuery, setRosterQuery] = useState('');
   const [selectedMember, setSelectedMember] = useState(null);
   const [memberDetail, setMemberDetail] = useState(null);
+  const [memberEditing, setMemberEditing] = useState(false);
   const [memberForm, setMemberForm] = useState({});
   const [memberSaving, setMemberSaving] = useState(false);
   const [editId, setEditId] = useState(null);
@@ -58,22 +59,30 @@ export default function Crew({ project, onProjectUpdate }) {
   }
 
   async function openMember(m) {
+    setMemberEditing(false);
     setSelectedMember(m);
     const detail = await api.getCrewMember(m.id).catch(() => m);
     setMemberDetail(detail);
+    setRosterQuery('');
+  }
+
+  function startEditMember() {
     setMemberForm({
-      name: detail.name || '',
-      email: detail.email || '',
-      phone: detail.phone || '',
-      company: detail.company || '',
-      dateOfBirth: detail.date_of_birth?.slice(0,10) || '',
-      passportNumber: detail.passport_number || '',
-      passportExpiry: detail.passport_expiry?.slice(0,10) || '',
-      knownTravelerNumber: detail.known_traveler_number || '',
-      seatPreference: detail.seat_preference || '',
-      emergencyContact: detail.emergency_contact || '',
-      emergencyPhone: detail.emergency_phone || '',
+      name: memberDetail.name || '',
+      email: memberDetail.email || '',
+      phone: memberDetail.phone || '',
+      company: memberDetail.company || '',
+      homeAirport: memberDetail.home_airport || '',
+      notes: memberDetail.notes || '',
+      dateOfBirth: memberDetail.date_of_birth?.slice(0,10) || '',
+      passportNumber: memberDetail.passport_number || '',
+      passportExpiry: memberDetail.passport_expiry?.slice(0,10) || '',
+      knownTravelerNumber: memberDetail.known_traveler_number || '',
+      seatPreference: memberDetail.seat_preference || '',
+      emergencyContact: memberDetail.emergency_contact || '',
+      emergencyPhone: memberDetail.emergency_phone || '',
     });
+    setMemberEditing(true);
   }
 
   async function saveMember(e) {
@@ -83,6 +92,7 @@ export default function Crew({ project, onProjectUpdate }) {
       const updated = await api.updateCrewMember(memberDetail.id, memberForm);
       setRoster(r => r.map(m => m.id === updated.id ? { ...m, ...updated } : m));
       setMemberDetail(d => ({ ...d, ...updated }));
+      setMemberEditing(false);
     } catch(err) { alert(err.message); }
     setMemberSaving(false);
   }
@@ -255,28 +265,36 @@ export default function Crew({ project, onProjectUpdate }) {
         </div>
       )}
 
-      {/* Crew Member Detail Modal */}
+      {/* Crew Member Detail Panel */}
       {selectedMember && memberDetail && (
-        <div className="modal-bg" onClick={e => e.target === e.currentTarget && setSelectedMember(null)}>
-          <div className="modal" style={{ maxWidth:560 }}>
-            <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:16 }}>
-              <div className="av" style={{ width:40, height:40, fontSize:14, flexShrink:0, background: colorFor(memberDetail.name)+'22', color: colorFor(memberDetail.name) }}>{initials(memberDetail.name)}</div>
+        <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'16px 18px', marginBottom:12 }}>
+          {/* Header */}
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+              <div className="av" style={{ width:36, height:36, fontSize:12, flexShrink:0, background: colorFor(memberDetail.name)+'22', color: colorFor(memberDetail.name) }}>{initials(memberDetail.name)}</div>
               <div>
-                <div className="modal-title" style={{ marginBottom:0 }}>{memberDetail.name}</div>
-                {memberDetail.company && <div style={{ fontSize:11, color:'var(--muted)' }}>{memberDetail.company}</div>}
+                <div style={{ fontWeight:600, fontSize:14 }}>{memberDetail.name}</div>
+                <div style={{ fontSize:11, color:'var(--muted)' }}>{[memberDetail.company, memberDetail.home_airport].filter(Boolean).join(' · ')}</div>
               </div>
             </div>
+            <div style={{ display:'flex', gap:6 }}>
+              {!memberEditing && <button className="btn btn-ghost btn-sm" onClick={startEditMember}>Edit</button>}
+              <button className="btn btn-ghost btn-sm" onClick={() => { setSelectedMember(null); setMemberEditing(false); }}>✕</button>
+            </div>
+          </div>
+
+          {memberEditing ? (
             <form onSubmit={saveMember}>
-              <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)', marginBottom:8 }}>Contact</div>
-              <div className="form-grid" style={{ marginBottom:16 }}>
+              <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)', marginBottom:6 }}>Contact</div>
+              <div className="form-grid" style={{ marginBottom:14 }}>
                 <div className="field span2"><label>Full Name</label><input value={memberForm.name} onChange={e => setMemberForm(f=>({...f,name:e.target.value}))} required /></div>
                 <div className="field"><label>Email</label><input type="email" value={memberForm.email} onChange={e => setMemberForm(f=>({...f,email:e.target.value}))} /></div>
                 <div className="field"><label>Phone</label><input value={memberForm.phone} onChange={e => setMemberForm(f=>({...f,phone:e.target.value}))} /></div>
-                <div className="field span2"><label>Company</label><input value={memberForm.company} onChange={e => setMemberForm(f=>({...f,company:e.target.value}))} /></div>
+                <div className="field"><label>Company / Role</label><input value={memberForm.company} onChange={e => setMemberForm(f=>({...f,company:e.target.value}))} /></div>
+                <div className="field"><label>Home Airport</label><input value={memberForm.homeAirport} onChange={e => setMemberForm(f=>({...f,homeAirport:e.target.value}))} placeholder="STL" /></div>
               </div>
-
-              <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)', marginBottom:8 }}>Travel Info</div>
-              <div className="form-grid" style={{ marginBottom:16 }}>
+              <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)', marginBottom:6 }}>Travel Info</div>
+              <div className="form-grid" style={{ marginBottom:14 }}>
                 <div className="field"><label>Date of Birth</label><input type="date" value={memberForm.dateOfBirth} onChange={e => setMemberForm(f=>({...f,dateOfBirth:e.target.value}))} /></div>
                 <div className="field"><label>Seat Preference</label>
                   <select value={memberForm.seatPreference} onChange={e => setMemberForm(f=>({...f,seatPreference:e.target.value}))}>
@@ -286,36 +304,43 @@ export default function Crew({ project, onProjectUpdate }) {
                     <option value="Middle">Middle</option>
                   </select>
                 </div>
-                <div className="field"><label>Passport Number</label><input value={memberForm.passportNumber} onChange={e => setMemberForm(f=>({...f,passportNumber:e.target.value}))} placeholder="US123456789" /></div>
+                <div className="field"><label>Passport Number</label><input value={memberForm.passportNumber} onChange={e => setMemberForm(f=>({...f,passportNumber:e.target.value}))} /></div>
                 <div className="field"><label>Passport Expiry</label><input type="date" value={memberForm.passportExpiry} onChange={e => setMemberForm(f=>({...f,passportExpiry:e.target.value}))} /></div>
-                <div className="field span2"><label>Known Traveler # <span style={{ color:'var(--muted)', fontWeight:400 }}>(TSA PreCheck / Global Entry)</span></label><input value={memberForm.knownTravelerNumber} onChange={e => setMemberForm(f=>({...f,knownTravelerNumber:e.target.value}))} placeholder="12345678" /></div>
+                <div className="field span2"><label>Known Traveler # (TSA PreCheck / Global Entry)</label><input value={memberForm.knownTravelerNumber} onChange={e => setMemberForm(f=>({...f,knownTravelerNumber:e.target.value}))} /></div>
+                <div className="field span2"><label>FF Numbers &amp; Notes</label><textarea value={memberForm.notes} onChange={e => setMemberForm(f=>({...f,notes:e.target.value}))} rows={4} /></div>
               </div>
-
-              <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)', marginBottom:8 }}>Emergency Contact</div>
-              <div className="form-grid" style={{ marginBottom:16 }}>
-                <div className="field"><label>Name</label><input value={memberForm.emergencyContact} onChange={e => setMemberForm(f=>({...f,emergencyContact:e.target.value}))} placeholder="Jane Smith" /></div>
-                <div className="field"><label>Phone</label><input value={memberForm.emergencyPhone} onChange={e => setMemberForm(f=>({...f,emergencyPhone:e.target.value}))} placeholder="+1 555-555-5555" /></div>
+              <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)', marginBottom:6 }}>Emergency Contact</div>
+              <div className="form-grid" style={{ marginBottom:14 }}>
+                <div className="field"><label>Name</label><input value={memberForm.emergencyContact} onChange={e => setMemberForm(f=>({...f,emergencyContact:e.target.value}))} /></div>
+                <div className="field"><label>Phone</label><input value={memberForm.emergencyPhone} onChange={e => setMemberForm(f=>({...f,emergencyPhone:e.target.value}))} /></div>
               </div>
-
-              {memberDetail.assignments?.length > 0 && (
-                <>
-                  <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)', marginBottom:8 }}>Project History</div>
-                  <div style={{ marginBottom:16 }}>
-                    {memberDetail.assignments.map(a => (
-                      <div key={a.id} style={{ fontSize:11, color:'var(--muted)', padding:'3px 0', borderBottom:'1px solid var(--border)' }}>
-                        <span style={{ color:'var(--text)', fontWeight:500 }}>{a.code}</span> · {a.title} · {a.position_name}
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
-
               <div className="btn-row">
                 <button className="btn btn-primary" disabled={memberSaving}>{memberSaving ? 'Saving…' : 'Save'}</button>
-                <button type="button" className="btn btn-ghost" onClick={() => setSelectedMember(null)}>Close</button>
+                <button type="button" className="btn btn-ghost" onClick={() => setMemberEditing(false)}>Cancel</button>
               </div>
             </form>
-          </div>
+          ) : (
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'6px 24px', fontSize:12 }}>
+              {memberDetail.email && <div><span style={{ color:'var(--muted)' }}>Email </span>{memberDetail.email}</div>}
+              {memberDetail.phone && <div><span style={{ color:'var(--muted)' }}>Phone </span>{memberDetail.phone}</div>}
+              {memberDetail.date_of_birth && <div><span style={{ color:'var(--muted)' }}>DOB </span>{new Date(memberDetail.date_of_birth + 'T12:00:00').toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' })}</div>}
+              {memberDetail.seat_preference && <div><span style={{ color:'var(--muted)' }}>Seat </span>{memberDetail.seat_preference}</div>}
+              {memberDetail.passport_number && <div><span style={{ color:'var(--muted)' }}>Passport </span>{memberDetail.passport_number}{memberDetail.passport_expiry ? ` (exp ${new Date(memberDetail.passport_expiry + 'T12:00:00').toLocaleDateString('en-US', { month:'short', year:'numeric' })})` : ''}</div>}
+              {memberDetail.known_traveler_number && <div><span style={{ color:'var(--muted)' }}>KTN </span>{memberDetail.known_traveler_number}</div>}
+              {memberDetail.emergency_contact && <div><span style={{ color:'var(--muted)' }}>Emergency </span>{memberDetail.emergency_contact}{memberDetail.emergency_phone ? ` · ${memberDetail.emergency_phone}` : ''}</div>}
+              {memberDetail.notes && <div style={{ gridColumn:'1/-1', marginTop:4, whiteSpace:'pre-wrap', color:'var(--muted)', fontSize:11, borderTop:'1px solid var(--border)', paddingTop:6 }}>{memberDetail.notes}</div>}
+              {memberDetail.assignments?.length > 0 && (
+                <div style={{ gridColumn:'1/-1', marginTop:6, borderTop:'1px solid var(--border)', paddingTop:6 }}>
+                  <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)', marginBottom:4 }}>Project History</div>
+                  {memberDetail.assignments.map(a => (
+                    <div key={a.id} style={{ fontSize:11, color:'var(--muted)', padding:'2px 0' }}>
+                      <span style={{ color:'var(--text)', fontWeight:500 }}>{a.code}</span> · {a.title} · {a.position_name}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 

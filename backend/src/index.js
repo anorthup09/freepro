@@ -29,6 +29,15 @@ app.post('/admin/seed', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+app.post('/admin/seed-crew', async (req, res) => {
+  if (req.headers['x-seed-key'] !== process.env.SEED_KEY) return res.status(403).json({ error: 'Forbidden' });
+  try {
+    const seedCrew = require('./seedCrew');
+    await seedCrew();
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 app.use('/share', shareRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/crew', crewRoutes);
