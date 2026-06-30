@@ -252,11 +252,13 @@ router.post('/:id/crew', requireAuth, requireRole('ADMIN','PRODUCER'), async (re
 });
 router.patch('/:id/crew/:aid', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const { crewMemberId, callTime, daysActive, notes } = req.body;
+    const { crewMemberId, notes, startDate, endDate } = req.body;
     await sql`
       UPDATE crew_assignments SET
         crew_member_id = CASE WHEN ${crewMemberId !== undefined} THEN ${crewMemberId||null} ELSE crew_member_id END,
-        notes = COALESCE(${notes??null}, notes)
+        notes = COALESCE(${notes??null}, notes),
+        start_date = ${startDate !== undefined ? (startDate||null) : sql`start_date`},
+        end_date = ${endDate !== undefined ? (endDate||null) : sql`end_date`}
       WHERE id = ${req.params.aid}`;
     const [full] = await sql`
       SELECT ca.*, p.name as position_name, cm.id as cm_id, cm.name as cm_name, cm.email as cm_email, cm.phone as cm_phone, cm.initials, cm.avatar_color

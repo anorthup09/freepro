@@ -300,6 +300,8 @@ async function migrate() {
   await sql`ALTER TABLE crew_day_calls ADD COLUMN IF NOT EXISTS audience TEXT[] DEFAULT '{}'`;
 
   await sql`ALTER TABLE projects ADD COLUMN IF NOT EXISTS poc_crew_member_id TEXT REFERENCES crew_members(id)`;
+  await sql`ALTER TABLE crew_assignments ADD COLUMN IF NOT EXISTS start_date TEXT`;
+  await sql`ALTER TABLE crew_assignments ADD COLUMN IF NOT EXISTS end_date TEXT`;
 
   await sql`ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS crew_lunch TEXT`;
   await sql`ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS gear_storage TEXT`;

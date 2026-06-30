@@ -11,8 +11,9 @@ export default function Crew({ project, onProjectUpdate }) {
   const [assignments, setAssignments] = useState([]);
   const [positions, setPositions] = useState([]);
   const [roster, setRoster] = useState([]);
+  const [flights, setFlights] = useState([]);
   const [showAddSlot, setShowAddSlot] = useState(false);
-  const [slotForm, setSlotForm] = useState({ positionId:'', crewMemberId:'', slotNumber:1, callTime:'', daysActive:'' });
+  const [slotForm, setSlotForm] = useState({ positionId:'', crewMemberId:'', slotNumber:1, startDate:'', endDate:'' });
   const [showAddCrew, setShowAddCrew] = useState(false);
   const [crewForm, setCrewForm] = useState({ name:'', email:'', phone:'', company:'' });
   const [rosterQuery, setRosterQuery] = useState('');
@@ -31,20 +32,34 @@ export default function Crew({ project, onProjectUpdate }) {
       api.getProjectCrew(project.id),
       api.getPositions(),
       api.getCrew(),
-    ]).then(([a, p, r]) => { setAssignments(a); setPositions(p); setRoster(r); });
+      api.getFlights(project.id),
+    ]).then(([a, p, r, f]) => { setAssignments(a); setPositions(p); setRoster(r); setFlights(f); });
   }, [project.id]);
+
+  function flightDatesFor(crewMemberId) {
+    if (!crewMemberId) return { startDate: '', endDate: '' };
+    const memberFlights = flights.filter(f => f.crew_member_id === crewMemberId && f.depart_time);
+    if (!memberFlights.length) return { startDate: '', endDate: '' };
+    const sorted = [...memberFlights].sort((a, b) => a.depart_time.localeCompare(b.depart_time));
+    return {
+      startDate: sorted[0].depart_time.slice(0, 10),
+      endDate: sorted[sorted.length - 1].depart_time.slice(0, 10),
+    };
+  }
 
   async function addSlot(e) {
     e.preventDefault();
     try {
       const a = await api.addCrewSlot(project.id, {
-        ...slotForm,
-        slotNumber: parseInt(slotForm.slotNumber) || 1,
+        positionId: slotForm.positionId,
         crewMemberId: slotForm.crewMemberId || null,
+        slotNumber: parseInt(slotForm.slotNumber) || 1,
+        startDate: slotForm.startDate || null,
+        endDate: slotForm.endDate || null,
       });
       setAssignments(prev => [...prev, a]);
       setShowAddSlot(false);
-      setSlotForm({ positionId:'', crewMemberId:'', slotNumber:1, callTime:'', daysActive:'' });
+      setSlotForm({ positionId:'', crewMemberId:'', slotNumber:1, startDate:'', endDate:'' });
     } catch(e) { alert(e.message); }
   }
 
@@ -105,6 +120,11 @@ export default function Crew({ project, onProjectUpdate }) {
     } catch(e) { alert(e.message); }
   }
 
+  function fmtDate(d) {
+    if (!d) return '—';
+    return new Date(d.slice(0,10) + 'T12:00:00').toLocaleDateString('en-US', { month:'short', day:'numeric' });
+  }
+
   async function removeSlot(id) {
     if (!confirm('Remove this position from the project?')) return;
     await api.removeCrewSlot(project.id, id);
@@ -151,8 +171,10 @@ export default function Crew({ project, onProjectUpdate }) {
               <tr>
                 <th>Position</th>
                 <th>Crew Member</th>
-                <th>Call Time</th>
-                <th>Days Active</th>
+                <th>Phone</th>
+                <th>Email</th>
+                <th>Start Date</th>
+                <th>End Date</th>
                 <th></th>
               </tr>
             </thead>
@@ -165,7 +187,11 @@ export default function Crew({ project, onProjectUpdate }) {
                   </td>
                   <td>
                     {editId === a.id ? (
-                      <select value={editForm.crewMemberId || ''} onChange={e => setEditForm(f=>({...f,crewMemberId:e.target.value||null}))} style={{ width:'100%' }}>
+                      <select value={editForm.crewMemberId || ''} onChange={e => {
+                        const id = e.target.value;
+                        const dates = flightDatesFor(id);
+                        setEditForm(f => ({ ...f, crewMemberId: id||null, startDate: f.startDate || dates.startDate, endDate: f.endDate || dates.endDate }));
+                      }} style={{ width:'100%' }}>
                         <option value="">— Unassigned —</option>
                         {roster.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                       </select>
@@ -175,24 +201,23 @@ export default function Crew({ project, onProjectUpdate }) {
                           <div className="av" style={{ width:26, height:26, fontSize:9, background: colorFor(a.crewMember.name)+'22', color: colorFor(a.crewMember.name) }}>
                             {initials(a.crewMember.name)}
                           </div>
-                          <div>
-                            <div style={{ fontSize:12, fontWeight:500 }}>{a.crewMember.name}</div>
-                            {a.crewMember.phone && <div style={{ fontSize:10, color:'var(--muted)' }}>{a.crewMember.phone}</div>}
-                          </div>
+                          <div style={{ fontSize:12, fontWeight:500 }}>{a.crewMember.name}</div>
                         </div>
                       ) : <span style={{ color:'var(--muted)', fontSize:11 }}>— Unassigned —</span>
                     )}
                   </td>
+                  <td style={{ fontSize:11, color:'var(--tan)' }}>{a.crewMember?.phone || '—'}</td>
+                  <td style={{ fontSize:11, color:'var(--muted)' }}>{a.crewMember?.email || '—'}</td>
                   <td>
                     {editId === a.id
-                      ? <input style={{ width:90 }} value={editForm.callTime||''} onChange={e => setEditForm(f=>({...f,callTime:e.target.value}))} placeholder="7:30 AM" />
-                      : <span style={{ color:'var(--orange)', fontSize:11, fontWeight:500 }}>{a.callTime || '—'}</span>
+                      ? <input type="date" style={{ width:130 }} value={editForm.startDate||''} onChange={e => setEditForm(f=>({...f,startDate:e.target.value}))} />
+                      : <span style={{ fontSize:11, color:'var(--orange)' }}>{fmtDate(a.start_date)}</span>
                     }
                   </td>
                   <td>
                     {editId === a.id
-                      ? <input value={editForm.daysActive||''} onChange={e => setEditForm(f=>({...f,daysActive:e.target.value}))} placeholder="All days" />
-                      : <span style={{ fontSize:11, color:'var(--muted)' }}>{a.daysActive || 'All days'}</span>
+                      ? <input type="date" style={{ width:130 }} value={editForm.endDate||''} onChange={e => setEditForm(f=>({...f,endDate:e.target.value}))} />
+                      : <span style={{ fontSize:11, color:'var(--orange)' }}>{fmtDate(a.end_date)}</span>
                     }
                   </td>
                   <td style={{ textAlign:'right' }}>
@@ -203,7 +228,7 @@ export default function Crew({ project, onProjectUpdate }) {
                       </div>
                     ) : (
                       <div style={{ display:'flex', gap:6, justifyContent:'flex-end' }}>
-                        <button className="btn btn-ghost btn-sm" onClick={() => { setEditId(a.id); setEditForm({ crewMemberId: a.crewMemberId||'', callTime: a.callTime||'', daysActive: a.daysActive||'' }); }}>Edit</button>
+                        <button className="btn btn-ghost btn-sm" onClick={() => { setEditId(a.id); const dates = flightDatesFor(a.crewMemberId); setEditForm({ crewMemberId: a.crewMemberId||'', startDate: a.start_date || dates.startDate, endDate: a.end_date || dates.endDate }); }}>Edit</button>
                         <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text)' }} onClick={() => removeSlot(a.id)}>✕</button>
                       </div>
                     )}
@@ -216,19 +241,50 @@ export default function Crew({ project, onProjectUpdate }) {
       )}
 
       {/* Talent */}
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:24 }}>
-        <div className="sec-lbl">Talent</div>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:24, marginBottom:6 }}>
+        <div className="sec-lbl" style={{ marginTop:0 }}>Talent</div>
         <button className="btn btn-ghost btn-sm" onClick={() => setShowTalentModal(true)}>+ Add</button>
       </div>
-      <div className="chips">
-        {(project.keyTalent||[]).map(t => (
-          <div key={t.id} className="chip" style={{ position:'relative' }}>
-            <strong>{t.role}</strong> {t.name}
-            <button style={{ position:'absolute', top:4, right:6, background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => deleteTalent(t.id)}>✕</button>
+      {(project.keyTalent||[]).length === 0
+        ? <div className="empty" style={{ marginBottom:16 }}>No talent added yet.</div>
+        : (
+          <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden', marginBottom:16 }}>
+            <table className="pos-table" style={{ width:'100%' }}>
+              <thead>
+                <tr>
+                  <th>Role</th>
+                  <th>Name</th>
+                  <th>Phone</th>
+                  <th>Email</th>
+                  <th>Start Date</th>
+                  <th>End Date</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {(project.keyTalent||[]).map(t => (
+                  <tr key={t.id}>
+                    <td><div className="pos-name">{t.role}</div></td>
+                    <td>
+                      <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                        <div className="av" style={{ width:26, height:26, fontSize:9, background: colorFor(t.name)+'22', color: colorFor(t.name) }}>{initials(t.name)}</div>
+                        <div style={{ fontSize:12, fontWeight:500 }}>{t.name}</div>
+                      </div>
+                    </td>
+                    <td style={{ fontSize:11, color:'var(--muted)' }}>—</td>
+                    <td style={{ fontSize:11, color:'var(--muted)' }}>—</td>
+                    <td style={{ fontSize:11, color:'var(--muted)' }}>—</td>
+                    <td style={{ fontSize:11, color:'var(--muted)' }}>—</td>
+                    <td style={{ textAlign:'right' }}>
+                      <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text)' }} onClick={() => deleteTalent(t.id)}>✕</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        ))}
-        {(project.keyTalent||[]).length === 0 && <span style={{ color:'var(--muted)', fontSize:12 }}>No talent added yet.</span>}
-      </div>
+        )
+      }
 
       {/* Roster Look-Up */}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:24 }}>
@@ -363,19 +419,23 @@ export default function Crew({ project, onProjectUpdate }) {
                 </div>
                 <div className="field span2">
                   <label>Crew Member</label>
-                  <select value={slotForm.crewMemberId} onChange={e => setSlotForm(f=>({...f,crewMemberId:e.target.value}))}>
+                  <select value={slotForm.crewMemberId} onChange={e => {
+                    const id = e.target.value;
+                    const dates = flightDatesFor(id);
+                    setSlotForm(f => ({ ...f, crewMemberId: id, startDate: dates.startDate || f.startDate, endDate: dates.endDate || f.endDate }));
+                  }}>
                     <option value="">— Unassigned —</option>
                     {roster.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                   </select>
                   <span style={{ fontSize:10, color:'var(--muted)', marginTop:2 }}>Can't find them? Add via "New Person" first.</span>
                 </div>
                 <div className="field">
-                  <label>Call Time</label>
-                  <input value={slotForm.callTime} onChange={e => setSlotForm(f=>({...f,callTime:e.target.value}))} placeholder="7:30 AM" />
+                  <label>Start Date</label>
+                  <input type="date" value={slotForm.startDate} onChange={e => setSlotForm(f=>({...f,startDate:e.target.value}))} />
                 </div>
                 <div className="field">
-                  <label>Days Active</label>
-                  <input value={slotForm.daysActive} onChange={e => setSlotForm(f=>({...f,daysActive:e.target.value}))} placeholder="All days / 5/4 & 5/5 only" />
+                  <label>End Date</label>
+                  <input type="date" value={slotForm.endDate} onChange={e => setSlotForm(f=>({...f,endDate:e.target.value}))} />
                 </div>
                 {slotForm.positionId && nextSlot(slotForm.positionId) > 1 && (
                   <div className="field span2" style={{ background:'var(--amber-bg)', border:'1px solid var(--amber-border)', borderRadius:6, padding:'8px 10px', color:'var(--amber-text)', fontSize:11 }}>
