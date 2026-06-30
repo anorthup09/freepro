@@ -117,7 +117,7 @@ export default function Project() {
   return (
     <>
       <nav className="nav">
-        <Link to="/" className="logo">Free<em>-Pro</em></Link>
+        <Link to="/" className="logo">Free<em>Pro</em></Link>
         <div className="tabs">
           {TABS.map(t => (
             <button key={t.id} className={`tab${tab === t.id ? ' on' : ''}`} onClick={() => setTab(t.id)}>

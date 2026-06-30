@@ -522,7 +522,7 @@ export default function Share() {
   return (
     <>
       <nav className="nav" style={{ justifyContent:'space-between' }}>
-        <div className="logo">Free<em>-Pro</em></div>
+        <div className="logo">Free<em>Pro</em></div>
         <div style={{ fontSize:11, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em' }}>
           {view_type === 'talent' ? `${data.talent_name} — Talent` : `${view_type.charAt(0).toUpperCase() + view_type.slice(1)} View`}
         </div>

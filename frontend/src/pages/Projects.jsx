@@ -59,7 +59,7 @@ export default function Projects() {
   return (
     <>
       <nav className="nav">
-        <Link to="/" className="logo">Free<em>-Pro</em></Link>
+        <Link to="/" className="logo">Free<em>Pro</em></Link>
         <span style={{ color: 'var(--muted)', fontSize: 12 }}>{user?.name}</span>
         <button className="btn btn-ghost btn-sm" style={{ marginLeft: 'auto' }} onClick={logout}>Sign out</button>
       </nav>

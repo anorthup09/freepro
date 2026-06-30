@@ -29,7 +29,7 @@ export default function Login() {
   return (
     <div className="login-wrap">
       <div className="login-box">
-        <div className="login-logo">Free<em>-Pro</em></div>
+        <div className="login-logo">Free<em>Pro</em></div>
         {err && <div className="login-err">{err}</div>}
         <form onSubmit={submit}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
