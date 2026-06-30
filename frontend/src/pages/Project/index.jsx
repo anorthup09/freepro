@@ -8,11 +8,11 @@ import Deliverables from './Deliverables.jsx';
 import Travel from './Travel.jsx';
 
 const TABS = [
-  { id: 'overview',      label: 'Overview' },
-  { id: 'schedule',      label: 'Schedule' },
-  { id: 'crew',          label: 'Crew' },
-  { id: 'deliverables',  label: 'Deliverables' },
-  { id: 'travel',        label: 'Travel' },
+  { id: 'overview',         label: 'Overview' },
+  { id: 'schedule',         label: 'Schedule' },
+  { id: 'crew',             label: 'Crew' },
+  { id: 'travel',           label: 'Travel' },
+  { id: 'post-production',  label: 'Post-Production' },
 ];
 
 const FRONTEND_BASE = window.location.origin;
@@ -116,8 +116,8 @@ export default function Project() {
         {tab === 'overview'     && <Overview     project={project} setProject={setProject} />}
         {tab === 'schedule'     && <Schedule     project={project} />}
         {tab === 'crew'         && <Crew         project={project} onProjectUpdate={setProject} />}
-        {tab === 'deliverables' && <Deliverables project={project} />}
-        {tab === 'travel'       && <Travel       project={project} />}
+        {tab === 'travel'          && <Travel       project={project} />}
+        {tab === 'post-production' && <Deliverables project={project} />}
       </div>
     </>
   );

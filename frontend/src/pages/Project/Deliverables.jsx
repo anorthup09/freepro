@@ -12,7 +12,31 @@ export default function Deliverables({ project }) {
   const [editId, setEditId] = useState(null);
   const [editStatus, setEditStatus] = useState('');
 
-  useEffect(() => { api.getDeliverables(project.id).then(setItems); }, [project.id]);
+  const [drives, setDrives] = useState([]);
+  const [showDrive, setShowDrive] = useState(false);
+  const [driveForm, setDriveForm] = useState({ origin:'', destination:'', notes:'', members:[] });
+  const [driveMember, setDriveMember] = useState('');
+
+  useEffect(() => {
+    api.getDeliverables(project.id).then(setItems);
+    api.getDrives(project.id).then(setDrives).catch(() => {});
+  }, [project.id]);
+
+  async function addDrive(e) {
+    e.preventDefault();
+    const d = await api.createDrive(project.id, driveForm);
+    setDrives(prev => [...prev, d]);
+    setShowDrive(false); setDriveForm({ origin:'', destination:'', notes:'', members:[] });
+  }
+  async function removeDrive(id) {
+    await api.deleteDrive(project.id, id);
+    setDrives(prev => prev.filter(d => d.id !== id));
+  }
+  function addDriveMember() {
+    if (!driveMember.trim()) return;
+    setDriveForm(f => ({ ...f, members: [...f.members, { name: driveMember }] }));
+    setDriveMember('');
+  }
 
   async function add(e) {
     e.preventDefault();
@@ -40,7 +64,7 @@ export default function Deliverables({ project }) {
     <div>
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16 }}>
         <div>
-          <div className="page-title">Deliverables</div>
+          <div className="page-title">Post-Production</div>
           <div className="page-sub">{project.client} · {items.length} video output{items.length !== 1 ? 's' : ''}</div>
         </div>
         <button className="btn btn-primary" onClick={() => setShowAdd(true)}>+ Add Deliverable</button>
@@ -94,6 +118,56 @@ export default function Deliverables({ project }) {
           </tbody>
         </table>
       </div>
+
+      {/* ── Drive Groups ── */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:24 }}>
+        <div className="sec-lbl" style={{ marginTop:0 }}>Drive Groups</div>
+        <button className="btn btn-ghost btn-sm" onClick={() => setShowDrive(true)}>+ Add Group</button>
+      </div>
+      <div className="chips" style={{ marginBottom:16 }}>
+        {drives.map(d => (
+          <div key={d.id} className="chip" style={{ position:'relative' }}>
+            <strong>{d.origin} → {d.destination}</strong>
+            {d.members?.length > 0 && <><br/>{d.members.map(m => m.name).join(', ')}</>}
+            {d.notes && <><br/><span style={{ color:'var(--muted)' }}>{d.notes}</span></>}
+            <button style={{ position:'absolute', top:4, right:6, background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:10 }} onClick={() => removeDrive(d.id)}>✕</button>
+          </div>
+        ))}
+        {drives.length === 0 && <span className="empty" style={{ padding:0 }}>No drive groups yet.</span>}
+      </div>
+
+      {showDrive && (
+        <div className="modal-bg" onClick={e => e.target === e.currentTarget && setShowDrive(false)}>
+          <div className="modal">
+            <div className="modal-title">Add Drive Group</div>
+            <form onSubmit={addDrive}>
+              <div className="form-grid" style={{ marginBottom:12 }}>
+                <div className="field"><label>From</label><input value={driveForm.origin} onChange={e => setDriveForm(f=>({...f,origin:e.target.value}))} placeholder="STL Office" required /></div>
+                <div className="field"><label>To</label><input value={driveForm.destination} onChange={e => setDriveForm(f=>({...f,destination:e.target.value}))} placeholder="Kansas City" required /></div>
+                <div className="field span2"><label>Notes</label><input value={driveForm.notes} onChange={e => setDriveForm(f=>({...f,notes:e.target.value}))} placeholder="Leave 8 AM · Arrive noon" /></div>
+                <div className="field span2">
+                  <label>Passengers</label>
+                  <div style={{ display:'flex', gap:6, marginBottom:6 }}>
+                    <input value={driveMember} onChange={e => setDriveMember(e.target.value)} placeholder="Name" onKeyDown={e => e.key==='Enter' && (e.preventDefault(), addDriveMember())} />
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={addDriveMember}>Add</button>
+                  </div>
+                  <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+                    {driveForm.members.map((m,i) => (
+                      <span key={i} className="badge" style={{ cursor:'pointer' }} onClick={() => setDriveForm(f=>({ ...f, members: f.members.filter((_,j)=>j!==i) }))}>
+                        {m.name} ✕
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div className="btn-row">
+                <button className="btn btn-primary">Add Drive Group</button>
+                <button type="button" className="btn btn-ghost" onClick={() => setShowDrive(false)}>Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {showAdd && (
         <div className="modal-bg" onClick={e => e.target === e.currentTarget && setShowAdd(false)}>

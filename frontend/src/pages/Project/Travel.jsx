@@ -37,7 +37,6 @@ function useDebounce(fn, delay) {
 export default function Travel({ project }) {
   const [hotels, setHotels] = useState([]);
   const [flights, setFlights] = useState([]);
-  const [drives, setDrives] = useState([]);
   const [cars, setCars] = useState([]);
 
   // Hotel add modal
@@ -68,9 +67,6 @@ export default function Travel({ project }) {
   const [editCarForm, setEditCarForm] = useState({ vendor:'', pickupLocation:'', dropoffLocation:'', confirmation:'', cost:'', notes:'' });
 
   // Drive / car modals
-  const [showDrive, setShowDrive] = useState(false);
-  const [driveForm, setDriveForm] = useState({ origin:'', destination:'', notes:'', members:[] });
-  const [driveMember, setDriveMember] = useState('');
   const [showCar, setShowCar] = useState(false);
   const [carForm, setCarForm] = useState({ crewMemberId:'', vendor:'', pickupLocation:'', dropoffLocation:'', pickupDate:'', dropoffDate:'', confirmation:'', cost:'', notes:'' });
 
@@ -80,9 +76,8 @@ export default function Travel({ project }) {
     Promise.all([
       api.getHotels(project.id),
       api.getFlights(project.id),
-      api.getDrives(project.id),
       api.getRentalCars(project.id),
-    ]).then(([h,f,d,c]) => { setHotels(h); setFlights(f); setDrives(d); setCars(c); });
+    ]).then(([h,f,c]) => { setHotels(h); setFlights(f); setCars(c); });
   }, [project.id]);
 
   // ── Hotel search ──────────────────────────────────────────────────────────
@@ -204,23 +199,6 @@ export default function Travel({ project }) {
   async function removeFlight(id) {
     await api.deleteFlight(project.id, id);
     setFlights(prev => prev.filter(f => f.id !== id));
-  }
-
-  // ── Drive groups ──────────────────────────────────────────────────────────
-  async function addDrive(e) {
-    e.preventDefault();
-    const d = await api.createDrive(project.id, driveForm);
-    setDrives(prev => [...prev, d]);
-    setShowDrive(false); setDriveForm({ origin:'', destination:'', notes:'', members:[] });
-  }
-  async function removeDrive(id) {
-    await api.deleteDrive(project.id, id);
-    setDrives(prev => prev.filter(d => d.id !== id));
-  }
-  function addDriveMember() {
-    if (!driveMember.trim()) return;
-    setDriveForm(f => ({ ...f, members: [...f.members, { name: driveMember }] }));
-    setDriveMember('');
   }
 
   // ── Rental cars ───────────────────────────────────────────────────────────
@@ -421,22 +399,6 @@ export default function Travel({ project }) {
       ))}
       {cars.length === 0 && <div className="empty">No rental cars added yet.</div>}
 
-      {/* ── Drive Groups ── */}
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-        <div className="sec-lbl">Drive Groups</div>
-        <button className="btn btn-ghost btn-sm" onClick={() => setShowDrive(true)}>+ Add Group</button>
-      </div>
-      <div className="chips" style={{ marginBottom:16 }}>
-        {drives.map(d => (
-          <div key={d.id} className="chip" style={{ position:'relative' }}>
-            <strong>{d.origin} → {d.destination}</strong>
-            {d.members.map(m => m.name).join(', ')}
-            {d.notes && <><br/><span style={{ color:'var(--muted)' }}>{d.notes}</span></>}
-            <button style={{ position:'absolute', top:4, right:6, background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:10 }} onClick={() => removeDrive(d.id)}>✕</button>
-          </div>
-        ))}
-        {drives.length === 0 && <span className="empty" style={{ padding:0 }}>No drive groups yet.</span>}
-      </div>
 
       {/* ── Add Hotel Modal ── */}
       {showHotel && (
@@ -712,39 +674,6 @@ export default function Travel({ project }) {
         </div>
       )}
 
-      {/* ── Drive Group Modal ── */}
-      {showDrive && (
-        <div className="modal-bg" onClick={e => e.target === e.currentTarget && setShowDrive(false)}>
-          <div className="modal">
-            <div className="modal-title">Add Drive Group</div>
-            <form onSubmit={addDrive}>
-              <div className="form-grid" style={{ marginBottom:12 }}>
-                <div className="field"><label>From</label><input value={driveForm.origin} onChange={e => setDriveForm(f=>({...f,origin:e.target.value}))} placeholder="STL Office" required /></div>
-                <div className="field"><label>To</label><input value={driveForm.destination} onChange={e => setDriveForm(f=>({...f,destination:e.target.value}))} placeholder="Kansas City" required /></div>
-                <div className="field span2"><label>Notes</label><input value={driveForm.notes} onChange={e => setDriveForm(f=>({...f,notes:e.target.value}))} placeholder="Leave 8 AM · Arrive noon" /></div>
-                <div className="field span2">
-                  <label>Passengers</label>
-                  <div style={{ display:'flex', gap:6, marginBottom:6 }}>
-                    <input value={driveMember} onChange={e => setDriveMember(e.target.value)} placeholder="Name" onKeyDown={e => e.key==='Enter' && (e.preventDefault(), addDriveMember())} />
-                    <button type="button" className="btn btn-ghost btn-sm" onClick={addDriveMember}>Add</button>
-                  </div>
-                  <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
-                    {driveForm.members.map((m,i) => (
-                      <span key={i} className="badge" style={{ cursor:'pointer' }} onClick={() => setDriveForm(f=>({ ...f, members: f.members.filter((_,j)=>j!==i) }))}>
-                        {m.name} ✕
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <div className="btn-row">
-                <button className="btn btn-primary">Add Drive Group</button>
-                <button type="button" className="btn btn-ghost" onClick={() => setShowDrive(false)}>Cancel</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
