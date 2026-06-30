@@ -66,7 +66,7 @@ export default function Projects() {
               <div className="proj-card-info">
                 <div className="proj-card-code">{p.code}</div>
                 <div className="proj-card-title">{p.title}</div>
-                <div className="proj-card-meta">{p.client} · {p.city}, {p.state} · {new Date(p.startDate).toLocaleDateString()} – {new Date(p.endDate).toLocaleDateString()}</div>
+                <div className="proj-card-meta">{p.client} · {p.city}, {p.state} · {new Date(p.start_date).toLocaleDateString()} – {new Date(p.end_date).toLocaleDateString()}</div>
               </div>
               <span className={`pill ${STATUS_PILL[p.status] || ''}`}>{p.status.replace(/_/g,' ')}</span>
               <span className="proj-card-arrow">›</span>
