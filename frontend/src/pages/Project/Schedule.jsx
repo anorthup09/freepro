@@ -96,8 +96,12 @@ export default function Schedule({ project }) {
   const [flights, setFlights] = useState([]);
   const [weatherByDate, setWeatherByDate] = useState({});
 
-  useEffect(() => {
+  function refreshFlights() {
     api.getFlights(project.id).then(setFlights).catch(() => {});
+  }
+
+  useEffect(() => {
+    refreshFlights();
     api.getSchedule(project.id).then(d => {
       setDays(d);
       if (d.length > 0) setActiveDay(d[0].id);
@@ -145,15 +149,18 @@ export default function Schedule({ project }) {
   async function addDay(e) {
     e.preventDefault();
     try {
+      const sorted = [...days].sort((a, b) => (a.date||'').localeCompare(b.date||''));
       const day = await api.createDay(project.id, {
         ...dayForm,
-        dayNumber: days.length + 1,
+        dayNumber: sorted.length + 1,
         date: new Date(dayForm.date + 'T12:00:00').toISOString(),
       });
-      setDays(d => [...d, { ...day, events: [], crewCalls: [] }]);
+      const newDays = [...days, { ...day, events: [], crewCalls: [] }].sort((a, b) => (a.date||'').localeCompare(b.date||''));
+      setDays(newDays);
       setActiveDay(day.id);
       setShowAddDay(false);
       setDayForm({ date:'', callTime:'', wrapTime:'', weather:'', notes:'' });
+      refreshFlights();
     } catch(e) { alert(e.message); }
   }
 
@@ -239,12 +246,12 @@ export default function Schedule({ project }) {
 
       {days.length === 0 && <div className="empty">No shoot days yet — add a day to start building the schedule.</div>}
 
-      {/* Day tabs */}
+      {/* Day tabs — sorted by date, day number = index */}
       {days.length > 0 && (
         <div className="day-tabs">
-          {days.map((d, i) => (
+          {[...days].sort((a,b) => (a.date||'').localeCompare(b.date||'')).map((d, i) => (
             <button key={d.id} className={`day-tab${d.id === activeDay ? ' on' : ''}`} onClick={() => setActiveDay(d.id)}>
-              Day {d.dayNumber} · {parseDay(d.date).toLocaleDateString('en-US', { month:'short', day:'numeric' })}
+              Day {i + 1} · {parseDay(d.date).toLocaleDateString('en-US', { month:'short', day:'numeric' })}
             </button>
           ))}
         </div>
@@ -257,7 +264,7 @@ export default function Schedule({ project }) {
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
               <div>
                 <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:15, display:'flex', alignItems:'center', gap:10 }}>
-                  Day {currentDay.dayNumber} · {parseDay(currentDay.date).toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' })}
+                  Day {[...days].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).findIndex(d=>d.id===currentDay.id)+1} · {parseDay(currentDay.date).toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' })}
                   {(() => {
                     const w = weatherByDate[currentDay.date?.slice(0,10)];
                     if (!w) return null;
