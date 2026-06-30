@@ -323,9 +323,9 @@ export default function Crew({ project, onProjectUpdate }) {
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'6px 24px', fontSize:12 }}>
               {memberDetail.email && <div><span style={{ color:'var(--muted)' }}>Email </span>{memberDetail.email}</div>}
               {memberDetail.phone && <div><span style={{ color:'var(--muted)' }}>Phone </span>{memberDetail.phone}</div>}
-              {memberDetail.date_of_birth && <div><span style={{ color:'var(--muted)' }}>DOB </span>{new Date(memberDetail.date_of_birth + 'T12:00:00').toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' })}</div>}
+              {memberDetail.date_of_birth && <div><span style={{ color:'var(--muted)' }}>DOB </span>{new Date(memberDetail.date_of_birth.slice(0,10) + 'T12:00:00').toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' })}</div>}
               {memberDetail.seat_preference && <div><span style={{ color:'var(--muted)' }}>Seat </span>{memberDetail.seat_preference}</div>}
-              {memberDetail.passport_number && <div><span style={{ color:'var(--muted)' }}>Passport </span>{memberDetail.passport_number}{memberDetail.passport_expiry ? ` (exp ${new Date(memberDetail.passport_expiry + 'T12:00:00').toLocaleDateString('en-US', { month:'short', year:'numeric' })})` : ''}</div>}
+              {memberDetail.passport_number && <div><span style={{ color:'var(--muted)' }}>Passport </span>{memberDetail.passport_number}{memberDetail.passport_expiry ? ` (exp ${new Date(memberDetail.passport_expiry.slice(0,10) + 'T12:00:00').toLocaleDateString('en-US', { month:'short', year:'numeric' })})` : ''}</div>}
               {memberDetail.known_traveler_number && <div><span style={{ color:'var(--muted)' }}>KTN </span>{memberDetail.known_traveler_number}</div>}
               {memberDetail.emergency_contact && <div><span style={{ color:'var(--muted)' }}>Emergency </span>{memberDetail.emergency_contact}{memberDetail.emergency_phone ? ` · ${memberDetail.emergency_phone}` : ''}</div>}
               {memberDetail.notes && <div style={{ gridColumn:'1/-1', marginTop:4, whiteSpace:'pre-wrap', color:'var(--muted)', fontSize:11, borderTop:'1px solid var(--border)', paddingTop:6 }}>{memberDetail.notes}</div>}
