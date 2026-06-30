@@ -127,7 +127,7 @@ export default function Schedule({ project }) {
     e.preventDefault();
     try {
       const ev = await api.createEvent(project.id, activeDay, eventForm);
-      setDays(ds => ds.map(d => d.id === activeDay ? { ...d, events: [...d.events, ev].sort((a,b) => a.startTime.localeCompare(b.startTime)) } : d));
+      setDays(ds => ds.map(d => d.id === activeDay ? { ...d, events: [...d.events, ev].sort((a,b) => (a.start_time||'').localeCompare(b.start_time||'')) } : d));
       setShowAddEvent(false);
       setEventForm({ startTime:'', endTime:'', title:'', detail:'', isAlert:false, tags:[] });
     } catch(e) { alert(e.message); }
@@ -145,7 +145,7 @@ export default function Schedule({ project }) {
       setDays(ds => ds.map(d => d.id === activeDay ? {
         ...d,
         events: d.events.map(ev => ev.id === editEventId ? { ...ev, ...updated } : ev)
-          .sort((a, b) => a.startTime.localeCompare(b.startTime))
+          .sort((a, b) => (a.start_time||'').localeCompare(b.start_time||''))
       } : d));
       setEditEventId(null);
     } catch(e) { alert(e.message); }
@@ -153,7 +153,7 @@ export default function Schedule({ project }) {
 
   function openEditEvent(ev) {
     setEditEventId(ev.id);
-    setEditEventForm({ startTime: ev.startTime || '', endTime: ev.endTime || '', title: ev.title || '', detail: ev.detail || '', isAlert: ev.isAlert || false, tags: ev.tags || [] });
+    setEditEventForm({ startTime: ev.start_time || ev.startTime || '', endTime: ev.end_time || ev.endTime || '', title: ev.title || '', detail: ev.detail || '', isAlert: ev.is_alert || ev.isAlert || false, tags: ev.tags || [] });
   }
 
   function toggleEditTag(type) {
@@ -284,7 +284,7 @@ export default function Schedule({ project }) {
           {/* Merged timeline: events + flight legs sorted by time */}
           {(() => {
             const legs = flightLegsForDay(flights, currentDay.date);
-            const eventItems = (currentDay.events || []).map(ev => ({ _type:'event', _sort: timeToMinutes(ev.startTime), ...ev }));
+            const eventItems = (currentDay.events || []).map(ev => ({ _type:'event', _sort: timeToMinutes(ev.start_time || ev.startTime), ...ev }));
             const flightItems = legs.map((leg, i) => ({ _type:'flight', _sort: timeToMinutes(legDisplayTime(leg)), _key: leg.id + leg._leg, ...leg }));
             const previewItems = (showAddEvent && (eventForm.title || eventForm.startTime))
               ? [{ _type:'preview', _sort: timeToMinutes(eventForm.startTime) || 9998, _key:'preview', ...eventForm }]
@@ -334,10 +334,10 @@ export default function Schedule({ project }) {
                       </div>
                     ) : (
                       <div key={item.id} className="ev">
-                        <div className="ev-time">{fmtTime(item.startTime)}{item.endTime ? ` – ${fmtTime(item.endTime)}` : ''}</div>
-                        <div className={`ev-body${item.isAlert ? ' warn' : ''}`} style={!item.isAlert ? { borderLeft:'2px solid var(--orange)' } : {}}>
+                        <div className="ev-time">{fmtTime(item.start_time || item.startTime)}{(item.end_time || item.endTime) ? ` – ${fmtTime(item.end_time || item.endTime)}` : ''}</div>
+                        <div className={`ev-body${(item.is_alert||item.isAlert) ? ' warn' : ''}`} style={!(item.is_alert||item.isAlert) ? { borderLeft:'2px solid var(--orange)' } : {}}>
                           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
-                            <div className={`ev-title${item.isAlert ? ' alert' : ''}`}>{item.isAlert ? '⚠ ' : ''}{item.title}</div>
+                            <div className={`ev-title${(item.is_alert||item.isAlert) ? ' alert' : ''}`}>{(item.is_alert||item.isAlert) ? '⚠ ' : ''}{item.title}</div>
                             <div style={{ display:'flex', gap:4, flexShrink:0, marginLeft:8 }}>
                               <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => openEditEvent(item)}>✎</button>
                               <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => deleteEvent(item.id)}>✕</button>
