@@ -57,7 +57,7 @@ export default function Travel({ project }) {
   const [flightLookupDate, setFlightLookupDate] = useState('');
   const [flightLooking, setFlightLooking] = useState(false);
   const [flightLookupError, setFlightLookupError] = useState('');
-  const [flightForm, setFlightForm] = useState({ crewMemberId:null, passengerName:'', flightNumber:'', airline:'', origin:'', destination:'', departTime:'', arriveTime:'', confirmation:'', isReturn:false, cost:'', status:'' });
+  const [flightForm, setFlightForm] = useState({ crewMemberId:null, passengerName:'', flightNumber:'', airline:'', origin:'', destination:'', departTime:'', arriveTime:'', departDisplay:'', arriveDisplay:'', confirmation:'', isReturn:false, cost:'', status:'' });
 
   // Drive / car modals
   const [showDrive, setShowDrive] = useState(false);
@@ -154,6 +154,8 @@ export default function Travel({ project }) {
         destination: data.destination || f.destination,
         departTime: data.departTime ? new Date(data.departTime).toISOString().slice(0,16) : f.departTime,
         arriveTime: data.arriveTime ? new Date(data.arriveTime).toISOString().slice(0,16) : f.arriveTime,
+        departDisplay: data.departDisplay || '',
+        arriveDisplay: data.arriveDisplay || '',
         status: data.status || '',
       }));
     } catch(err) {
@@ -170,13 +172,15 @@ export default function Travel({ project }) {
         passengerName: flightForm.passengerName || 'Unknown',
         departTime: flightForm.departTime ? new Date(flightForm.departTime).toISOString() : null,
         arriveTime: flightForm.arriveTime ? new Date(flightForm.arriveTime).toISOString() : null,
-        crewMemberId: null,
+        crewMemberId: flightForm.crewMemberId || null,
+        departDisplay: flightForm.departDisplay || null,
+        arriveDisplay: flightForm.arriveDisplay || null,
         cost: flightForm.cost || null,
       });
       setFlights(prev => [...prev, f]);
       setShowFlight(false);
       setFlightLookupQuery(''); setFlightLookupDate(''); setFlightLookupError('');
-      setFlightForm({ crewMemberId:null, passengerName:'', flightNumber:'', airline:'', origin:'', destination:'', departTime:'', arriveTime:'', confirmation:'', isReturn:false, cost:'', status:'' });
+      setFlightForm({ crewMemberId:null, passengerName:'', flightNumber:'', airline:'', origin:'', destination:'', departTime:'', arriveTime:'', departDisplay:'', arriveDisplay:'', confirmation:'', isReturn:false, cost:'', status:'' });
     } catch(err) { alert(err.message); }
   }
 
@@ -290,10 +294,10 @@ export default function Travel({ project }) {
         const showLive = hoursUntil <= 24;
         return (
           <div key={f.id} className="frow" style={{ flexWrap:'wrap', gap:6 }}>
-            <div className="fname">{f.passenger_name}</div>
+            <div className="fname">{f.crew_name || f.passenger_name}</div>
             {f.flight_number && <span className="abadge">{f.flight_number}</span>}
             <div className="froute"><span>{f.origin}</span><span className="farrow">→</span><span>{f.destination}</span></div>
-            {f.depart_time && <div className="ftimes">{fmtDT(f.depart_time)} → {f.arrive_time ? fmtDT(f.arrive_time) : '?'}</div>}
+            {(f.depart_display || f.depart_time) && <div className="ftimes">{f.depart_display || fmtDT(f.depart_time)} → {f.arrive_display || (f.arrive_time ? fmtDT(f.arrive_time) : '?')}</div>}
             {f.airline && <span className="abadge">{f.airline}</span>}
             {f.confirmation && <span style={{ fontSize:10, color:'var(--muted)' }}># {f.confirmation}</span>}
             {f.cost && <span style={{ fontSize:10, color:'var(--green)', fontWeight:600 }}>{fmtCost(f.cost)}</span>}

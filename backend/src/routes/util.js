@@ -61,6 +61,20 @@ function aeroHeaders(key) {
   return { 'X-RapidAPI-Key': key, 'X-RapidAPI-Host': 'aerodatabox.p.rapidapi.com' };
 }
 
+// "2026-08-06 08:35-05:00" → "Aug 6, 8:35 AM"
+function fmtLocalTime(localStr) {
+  if (!localStr) return null;
+  const [datePart, timeWithTz] = localStr.split(' ');
+  if (!datePart || !timeWithTz) return null;
+  const [, month, day] = datePart.split('-').map(Number);
+  const timePart = timeWithTz.replace(/[+-]\d{2}:\d{2}$/, '');
+  const [hour, min] = timePart.split(':').map(Number);
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  const h12 = hour % 12 || 12;
+  return `${months[month-1]} ${day}, ${h12}:${String(min).padStart(2,'0')} ${ampm}`;
+}
+
 router.get('/flight-lookup', requireAuth, async (req, res, next) => {
   try {
     const { flight, date } = req.query;
@@ -83,13 +97,18 @@ router.get('/flight-lookup', requireAuth, async (req, res, next) => {
     const f = Array.isArray(data) ? data[0] : data;
     if (!f) return res.status(404).json({ error: `No data found for ${flight.toUpperCase()} on ${targetDate}.` });
 
+    const departLocal = f.departure?.scheduledTime?.local || null;
+    const arriveLocal = f.arrival?.scheduledTime?.local || null;
+
     res.json({
       flightNumber: f.number || flight.toUpperCase(),
       airline: f.airline?.name || f.airline?.iata || '',
       origin: f.departure?.airport?.iata || '',
       destination: f.arrival?.airport?.iata || '',
-      departTime: f.departure?.scheduledTime?.utc || f.departure?.scheduledTime?.local || null,
-      arriveTime: f.arrival?.scheduledTime?.utc || f.arrival?.scheduledTime?.local || null,
+      departTime: f.departure?.scheduledTime?.utc || departLocal || null,
+      arriveTime: f.arrival?.scheduledTime?.utc || arriveLocal || null,
+      departDisplay: fmtLocalTime(departLocal),
+      arriveDisplay: fmtLocalTime(arriveLocal),
       status: f.status || '',
     });
   } catch(e) { next(e); }

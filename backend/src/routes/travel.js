@@ -63,8 +63,8 @@ router.post('/:id/travel/flights', requireAuth, requireRole('ADMIN','PRODUCER'),
   try {
     const d = req.body;
     const [f] = await sql`
-      INSERT INTO flights (id, project_id, crew_member_id, passenger_name, origin, destination, depart_time, arrive_time, airline, confirmation, is_return, cost, flight_number, status)
-      VALUES (gen_random_uuid()::text, ${req.params.id}, ${d.crewMemberId||null}, ${d.passengerName}, ${d.origin}, ${d.destination}, ${d.departTime||null}, ${d.arriveTime||null}, ${d.airline||null}, ${d.confirmation||null}, ${d.isReturn||false}, ${d.cost||null}, ${d.flightNumber||null}, ${d.status||null})
+      INSERT INTO flights (id, project_id, crew_member_id, passenger_name, origin, destination, depart_time, arrive_time, airline, confirmation, is_return, cost, flight_number, status, depart_display, arrive_display)
+      VALUES (gen_random_uuid()::text, ${req.params.id}, ${d.crewMemberId||null}, ${d.passengerName}, ${d.origin}, ${d.destination}, ${d.departTime||null}, ${d.arriveTime||null}, ${d.airline||null}, ${d.confirmation||null}, ${d.isReturn||false}, ${d.cost||null}, ${d.flightNumber||null}, ${d.status||null}, ${d.departDisplay||null}, ${d.arriveDisplay||null})
       RETURNING *`;
     res.status(201).json(f);
   } catch(e){next(e);}
