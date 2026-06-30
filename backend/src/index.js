@@ -18,7 +18,7 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
-app.get('/health', (req, res) => res.json({ status: 'ok', ts: new Date(), flightaware: !!process.env.FLIGHTAWARE_API_KEY }));
+app.get('/health', (req, res) => res.json({ status: 'ok', ts: new Date(), aerodatabox: !!process.env.AERODATABOX_API_KEY }));
 
 app.post('/admin/seed', async (req, res) => {
   if (req.headers['x-seed-key'] !== process.env.SEED_KEY) return res.status(403).json({ error: 'Forbidden' });

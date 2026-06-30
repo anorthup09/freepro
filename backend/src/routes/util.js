@@ -56,74 +56,40 @@ router.get('/hotel-search', requireAuth, async (req, res, next) => {
   } catch(e) { next(e); }
 });
 
-// ─── Flight Lookup (FlightAware AeroAPI) ─────────────────────────────────────
+// ─── Flight Lookup (AeroDataBox via RapidAPI) ────────────────────────────────
+function aeroHeaders(key) {
+  return { 'X-RapidAPI-Key': key, 'X-RapidAPI-Host': 'aerodatabox.p.rapidapi.com' };
+}
+
 router.get('/flight-lookup', requireAuth, async (req, res, next) => {
   try {
     const { flight, date } = req.query;
     if (!flight) return res.status(400).json({ error: 'flight number required' });
 
-    const key = process.env.FLIGHTAWARE_API_KEY;
-    if (!key) return res.status(503).json({ error: 'FLIGHTAWARE_API_KEY not configured' });
+    const key = process.env.AERODATABOX_API_KEY;
+    if (!key) return res.status(503).json({ error: 'AERODATABOX_API_KEY not configured' });
 
     const targetDate = date || new Date().toISOString().slice(0, 10);
-    const daysOut = (new Date(targetDate) - Date.now()) / 86400000;
+    const url = `https://aerodatabox.p.rapidapi.com/flights/number/${encodeURIComponent(flight.toUpperCase())}/${targetDate}`;
+    const r = await fetch(url, { headers: aeroHeaders(key) });
 
-    // Flights endpoint only supports up to 2 days in future; use schedules beyond that
-    if (daysOut > 2) {
-      const airlineCode = flight.match(/^[A-Za-z]+/)?.[0]?.toUpperCase() || '';
-      const numericFlight = flight.replace(/^[A-Za-z]+/, '');
-      const dateEnd = targetDate;
-      const params = new URLSearchParams({ flight_number: numericFlight });
-      if (airlineCode) params.set('airline', airlineCode);
-      const url = `https://aeroapi.flightaware.com/aeroapi/schedules/${targetDate}/${dateEnd}?${params}`;
-      const r = await fetch(url, { headers: { 'x-apikey': key } });
-
-      if (!r.ok) {
-        const err = await r.json().catch(() => ({}));
-        const msg = [err.title, err.reason, err.detail].filter(Boolean).join(' — ') || 'FlightAware error';
-        return res.status(r.status).json({ error: msg });
-      }
-
-      const data = await r.json();
-      const keys = Object.keys(data);
-      const counts = keys.map(k => `${k}:${Array.isArray(data[k]) ? data[k].length : typeof data[k]}`).join(', ');
-      const f = (data.scheduled || data.flights || [])[0];
-      if (!f) return res.status(404).json({ error: `FlightAware doesn't have ${flight.toUpperCase()} on ${targetDate} in their schedule yet — this is common for Southwest flights. Enter the details manually below.` });
-
-      return res.json({
-        flightNumber: f.ident_iata || f.ident || flight.toUpperCase(),
-        airline: f.operator_iata || f.operator || '',
-        origin: f.origin?.code_iata || f.origin?.code || f.origin || '',
-        destination: f.destination?.code_iata || f.destination?.code || f.destination || '',
-        departTime: f.scheduled_out || f.departure_time?.scheduled || f.depart_time || null,
-        arriveTime: f.scheduled_in || f.arrival_time?.scheduled || f.arrive_time || null,
-        status: '',
-      });
-    }
-
-    // Within 2 days — use live flights endpoint
-    const start = new Date(targetDate + 'T00:00:00Z').toISOString();
-    const end = new Date(targetDate + 'T23:59:59Z').toISOString();
-    const url = `https://aeroapi.flightaware.com/aeroapi/flights/${encodeURIComponent(flight.toUpperCase())}?start=${start}&end=${end}`;
-    const r = await fetch(url, { headers: { 'x-apikey': key } });
-
+    if (r.status === 404) return res.status(404).json({ error: `Flight ${flight.toUpperCase()} not found on ${targetDate}. Try entering details manually.` });
     if (!r.ok) {
       const err = await r.json().catch(() => ({}));
-      const msg = [err.title, err.reason, err.detail].filter(Boolean).join(' — ') || 'FlightAware error';
-      return res.status(r.status).json({ error: msg });
+      return res.status(r.status).json({ error: err.message || 'AeroDataBox error' });
     }
 
     const data = await r.json();
-    const f = (data.flights || [])[0];
-    if (!f) return res.status(404).json({ error: 'Flight not found for that date' });
+    const f = Array.isArray(data) ? data[0] : data;
+    if (!f) return res.status(404).json({ error: `No data found for ${flight.toUpperCase()} on ${targetDate}.` });
 
     res.json({
-      flightNumber: f.ident_iata || f.ident,
-      airline: f.operator || f.operator_iata || '',
-      origin: f.origin?.code_iata || f.origin?.code || '',
-      destination: f.destination?.code_iata || f.destination?.code || '',
-      departTime: f.scheduled_out || f.estimated_out || f.actual_out || null,
-      arriveTime: f.scheduled_in || f.estimated_in || f.actual_in || null,
+      flightNumber: f.number || flight.toUpperCase(),
+      airline: f.airline?.name || f.airline?.iata || '',
+      origin: f.departure?.airport?.iata || '',
+      destination: f.arrival?.airport?.iata || '',
+      departTime: f.departure?.scheduledTime?.utc || f.departure?.scheduledTime?.local || null,
+      arriveTime: f.arrival?.scheduledTime?.utc || f.arrival?.scheduledTime?.local || null,
       status: f.status || '',
     });
   } catch(e) { next(e); }
@@ -135,24 +101,22 @@ router.get('/flight-status', requireAuth, async (req, res, next) => {
     const { flight, date } = req.query;
     if (!flight) return res.status(400).json({ error: 'flight number required' });
 
-    const key = process.env.FLIGHTAWARE_API_KEY;
-    if (!key) return res.status(503).json({ error: 'FLIGHTAWARE_API_KEY not configured' });
+    const key = process.env.AERODATABOX_API_KEY;
+    if (!key) return res.status(503).json({ error: 'AERODATABOX_API_KEY not configured' });
 
-    const start = date ? new Date(date + 'T00:00:00Z').toISOString() : new Date().toISOString();
-    const end = date ? new Date(date + 'T23:59:59Z').toISOString() : new Date(Date.now() + 86400000).toISOString();
-
-    const url = `https://aeroapi.flightaware.com/aeroapi/flights/${encodeURIComponent(flight.toUpperCase())}?start=${start}&end=${end}`;
-    const r = await fetch(url, { headers: { 'x-apikey': key } });
+    const targetDate = date || new Date().toISOString().slice(0, 10);
+    const url = `https://aerodatabox.p.rapidapi.com/flights/number/${encodeURIComponent(flight.toUpperCase())}/${targetDate}`;
+    const r = await fetch(url, { headers: aeroHeaders(key) });
     if (!r.ok) return res.status(r.status).json({ error: 'lookup failed' });
 
     const data = await r.json();
-    const f = (data.flights || [])[0];
+    const f = Array.isArray(data) ? data[0] : data;
     if (!f) return res.json({ status: 'Unknown' });
 
     res.json({
       status: f.status || 'Unknown',
-      departTime: f.actual_out || f.estimated_out || f.scheduled_out || null,
-      arriveTime: f.actual_in || f.estimated_in || f.scheduled_in || null,
+      departTime: f.departure?.actualTime?.utc || f.departure?.estimatedTime?.utc || f.departure?.scheduledTime?.utc || null,
+      arriveTime: f.arrival?.actualTime?.utc || f.arrival?.estimatedTime?.utc || f.arrival?.scheduledTime?.utc || null,
     });
   } catch(e) { next(e); }
 });
