@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../api.js';
 
 function fmt(dt) {
@@ -488,6 +488,8 @@ function DaySection({ day, showCalls }) {
 // ── Main Share Page ──────────────────────────────────────────────────────────
 export default function Share() {
   const { token } = useParams();
+  const [searchParams] = useSearchParams();
+  const isPdf = searchParams.get('pdf') === '1';
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
 
@@ -497,6 +499,12 @@ export default function Share() {
       else setData(d);
     }).catch(() => setError('Failed to load share'));
   }, [token]);
+
+  useEffect(() => {
+    if (isPdf && data) {
+      setTimeout(() => window.print(), 400);
+    }
+  }, [isPdf, data]);
 
   if (error) return (
     <div style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:'100vh', color:'#7A7565' }}>
@@ -518,6 +526,10 @@ export default function Share() {
         <div style={{ fontSize:11, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em' }}>
           {view_type === 'talent' ? `${data.talent_name} — Talent` : `${view_type.charAt(0).toUpperCase() + view_type.slice(1)} View`}
         </div>
+        <button
+          onClick={() => window.print()}
+          style={{ background:'var(--bg3)', border:'1px solid var(--border2)', color:'var(--tan)', borderRadius:6, padding:'5px 12px', fontSize:12, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}
+        >Download PDF</button>
       </nav>
       <div className="wrap">
         {view_type === 'producer' && <ProducerView data={data} />}
