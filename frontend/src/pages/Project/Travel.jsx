@@ -64,7 +64,7 @@ export default function Travel({ project }) {
   const [driveForm, setDriveForm] = useState({ origin:'', destination:'', notes:'', members:[] });
   const [driveMember, setDriveMember] = useState('');
   const [showCar, setShowCar] = useState(false);
-  const [carForm, setCarForm] = useState({ vendor:'', pickupLocation:'', dropoffLocation:'', pickupDate:'', dropoffDate:'', confirmation:'', cost:'', notes:'' });
+  const [carForm, setCarForm] = useState({ crewMemberId:'', vendor:'', pickupLocation:'', dropoffLocation:'', pickupDate:'', dropoffDate:'', confirmation:'', cost:'', notes:'' });
 
   const projectCrew = project.crewAssignments || [];
 
@@ -219,7 +219,7 @@ export default function Travel({ project }) {
     });
     setCars(prev => [...prev, c]);
     setShowCar(false);
-    setCarForm({ vendor:'', pickupLocation:'', dropoffLocation:'', pickupDate:'', dropoffDate:'', confirmation:'', cost:'', notes:'' });
+    setCarForm({ crewMemberId:'', vendor:'', pickupLocation:'', dropoffLocation:'', pickupDate:'', dropoffDate:'', confirmation:'', cost:'', notes:'' });
   }
   async function removeCar(id) {
     await api.deleteRentalCar(project.id, id);
@@ -424,7 +424,6 @@ export default function Travel({ project }) {
                     ))}
                   </select>
                 </div>
-                <div className="field span2"><label>Guest Name</label><input value={guestForm.guestName} onChange={e => setGuestForm(f=>({...f,guestName:e.target.value}))} required /></div>
                 <div className="field span2"><label>Confirmation #</label><input value={guestForm.confirmation} onChange={e => setGuestForm(f=>({...f,confirmation:e.target.value}))} placeholder="138215420" /></div>
                 <div className="field"><label>Check In</label><input type="date" value={guestForm.checkIn} onChange={e => setGuestForm(f=>({...f,checkIn:e.target.value}))} required /></div>
                 <div className="field"><label>Check Out</label><input type="date" value={guestForm.checkOut} onChange={e => setGuestForm(f=>({...f,checkOut:e.target.value}))} required /></div>
@@ -524,6 +523,15 @@ export default function Travel({ project }) {
             <div className="modal-title">Add Rental Car</div>
             <form onSubmit={addCar}>
               <div className="form-grid" style={{ marginBottom:12 }}>
+                <div className="field span2">
+                  <label>Crew Member</label>
+                  <select value={carForm.crewMemberId} onChange={e => setCarForm(f=>({...f, crewMemberId: e.target.value}))}>
+                    <option value="">— Select crew member —</option>
+                    {projectCrew.filter(a => a.crewMember).map(a => (
+                      <option key={a.crewMemberId} value={a.crewMemberId}>{a.crewMember.name} — {a.position.name}</option>
+                    ))}
+                  </select>
+                </div>
                 <div className="field span2"><label>Vendor</label><input value={carForm.vendor} onChange={e => setCarForm(f=>({...f,vendor:e.target.value}))} placeholder="Enterprise" required /></div>
                 <div className="field"><label>Pickup Location</label><input value={carForm.pickupLocation} onChange={e => setCarForm(f=>({...f,pickupLocation:e.target.value}))} placeholder="MCI Airport" /></div>
                 <div className="field"><label>Dropoff Location</label><input value={carForm.dropoffLocation} onChange={e => setCarForm(f=>({...f,dropoffLocation:e.target.value}))} placeholder="MCI Airport" /></div>
