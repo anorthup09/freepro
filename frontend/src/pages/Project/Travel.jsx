@@ -290,7 +290,7 @@ export default function Travel({ project }) {
         const showLive = hoursUntil <= 24;
         return (
           <div key={f.id} className="frow" style={{ flexWrap:'wrap', gap:6 }}>
-            <div className="fname">{f.passengerName}</div>
+            <div className="fname">{f.passenger_name}</div>
             {f.flight_number && <span className="abadge">{f.flight_number}</span>}
             <div className="froute"><span>{f.origin}</span><span className="farrow">→</span><span>{f.destination}</span></div>
             {f.depart_time && <div className="ftimes">{fmtDT(f.depart_time)} → {f.arrive_time ? fmtDT(f.arrive_time) : '?'}</div>}
