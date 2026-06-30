@@ -451,9 +451,9 @@ function DaySection({ day, showCalls, flights, dayIndex }) {
   const flightLegs = (flights || []).flatMap(f => {
     const legs = [];
     const departMatch = (f.depart_time && isoDate(new Date(f.depart_time)) === dayStr) ||
-                        (!f.depart_time && dayMD && displayMD(f.depart_display) === dayMD);
+                        (dayMD && f.depart_display && displayMD(f.depart_display) === dayMD);
     const arriveMatch = (f.arrive_time && isoDate(new Date(f.arrive_time)) === dayStr) ||
-                        (!f.arrive_time && dayMD && displayMD(f.arrive_display) === dayMD);
+                        (dayMD && f.arrive_display && displayMD(f.arrive_display) === dayMD);
     if (departMatch) legs.push({ ...f, _leg:'depart', _time: flightTime(f,'depart') });
     if (arriveMatch) legs.push({ ...f, _leg:'arrive', _time: flightTime(f,'arrive') });
     return legs;

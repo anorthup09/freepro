@@ -25,9 +25,9 @@ function flightLegsForDay(flights, dayDateStr) {
   const seen = new Set();
   for (const f of flights) {
     const departMatch = (f.depart_time && isoDateOf(f.depart_time) === dayDate) ||
-                        (!f.depart_time && displayMD(f.depart_display) === dayMD);
+                        (f.depart_display && displayMD(f.depart_display) === dayMD);
     const arriveMatch = (f.arrive_time && isoDateOf(f.arrive_time) === dayDate) ||
-                        (!f.arrive_time && displayMD(f.arrive_display) === dayMD);
+                        (f.arrive_display && displayMD(f.arrive_display) === dayMD);
     if (departMatch && !seen.has(f.id + 'd')) { legs.push({ ...f, _leg:'depart' }); seen.add(f.id + 'd'); }
     if (arriveMatch && !seen.has(f.id + 'a')) { legs.push({ ...f, _leg:'arrive' }); seen.add(f.id + 'a'); }
   }
