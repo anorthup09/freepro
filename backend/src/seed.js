@@ -6,7 +6,7 @@ const POSITIONS = [
   'Drone Operator','First AC','DIT','Onsite Editor','Audio Engineer','Key Grip','Grip',
   'Gaffer','First AD','Production Coordinator','Production Assistant','Teleprompter Operator',
   'Hair & Makeup','Location Scout','Casting Director','Art Director','Props & Wardrobe Lead',
-  'Craft Services','Talent',
+  'Craft Services','Talent','Post-Production Supervisor',
 ];
 
 async function seed() {

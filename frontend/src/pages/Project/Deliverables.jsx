@@ -11,6 +11,8 @@ export default function Deliverables({ project }) {
   const [form, setForm] = useState({ title:'', description:'', editorName:'', aspectRatio:'', resolution:'', dueDate:'', assetRef:'', musicRef:'', isUrgent:false });
   const [editId, setEditId] = useState(null);
   const [editStatus, setEditStatus] = useState('');
+  const [editItemId, setEditItemId] = useState(null);
+  const [editForm, setEditForm] = useState({ title:'', description:'', editorName:'', aspectRatio:'', resolution:'', dueDate:'', assetRef:'', musicRef:'', isUrgent:false, status:'' });
 
   const [ditId, setDitId] = useState(project.techSpecs?.dit_crew_member_id || '');
   const [ditSaving, setDitSaving] = useState(false);
@@ -52,6 +54,20 @@ export default function Deliverables({ project }) {
     const updated = await api.updateDeliverable(project.id, id, { status });
     setItems(d => d.map(i => i.id === id ? updated : i));
     setEditId(null);
+  }
+
+  function openEdit(item) {
+    setEditItemId(item.id);
+    setEditForm({ title: item.title||'', description: item.description||'', editorName: item.editorName||'', aspectRatio: item.aspectRatio||'', resolution: item.resolution||'', dueDate: item.dueDate||'', assetRef: item.assetRef||'', musicRef: item.musicRef||'', isUrgent: item.isUrgent||false, status: item.status||'' });
+  }
+
+  async function saveEdit(e) {
+    e.preventDefault();
+    try {
+      const updated = await api.updateDeliverable(project.id, editItemId, editForm);
+      setItems(d => d.map(i => i.id === editItemId ? updated : i));
+      setEditItemId(null);
+    } catch(e) { alert(e.message); }
   }
 
   async function remove(id) {
@@ -135,7 +151,8 @@ export default function Deliverables({ project }) {
                 <td style={{ fontSize:11, color: item.isUrgent ? 'var(--orange)' : 'var(--muted)', fontWeight: item.isUrgent ? 500 : 400 }}>
                   {item.dueDate || '—'}
                 </td>
-                <td>
+                <td style={{ display:'flex', gap:4 }}>
+                  <button className="btn btn-ghost btn-sm" onClick={() => openEdit(item)}>✎</button>
                   <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text)' }} onClick={() => remove(item.id)}>✕</button>
                 </td>
               </tr>
@@ -143,6 +160,36 @@ export default function Deliverables({ project }) {
           </tbody>
         </table>
       </div>
+
+      {editItemId && (
+        <div className="modal-bg" onClick={e => e.target === e.currentTarget && setEditItemId(null)}>
+          <div className="modal">
+            <div className="modal-title">Edit Deliverable</div>
+            <form onSubmit={saveEdit}>
+              <div className="form-grid" style={{ marginBottom:12 }}>
+                <div className="field span2"><label>Title</label><input value={editForm.title} onChange={e => setEditForm(f=>({...f,title:e.target.value}))} required /></div>
+                <div className="field span2"><label>Description</label><input value={editForm.description} onChange={e => setEditForm(f=>({...f,description:e.target.value}))} /></div>
+                <div className="field"><label>Editor</label><input value={editForm.editorName} onChange={e => setEditForm(f=>({...f,editorName:e.target.value}))} /></div>
+                <div className="field"><label>Due Date</label><input value={editForm.dueDate} onChange={e => setEditForm(f=>({...f,dueDate:e.target.value}))} /></div>
+                <div className="field"><label>Aspect Ratio</label><input value={editForm.aspectRatio} onChange={e => setEditForm(f=>({...f,aspectRatio:e.target.value}))} /></div>
+                <div className="field"><label>Resolution</label><input value={editForm.resolution} onChange={e => setEditForm(f=>({...f,resolution:e.target.value}))} /></div>
+                <div className="field"><label>Asset Ref</label><input value={editForm.assetRef} onChange={e => setEditForm(f=>({...f,assetRef:e.target.value}))} /></div>
+                <div className="field"><label>Music Ref</label><input value={editForm.musicRef} onChange={e => setEditForm(f=>({...f,musicRef:e.target.value}))} /></div>
+                <div className="field span2"><label>Status</label>
+                  <select value={editForm.status} onChange={e => setEditForm(f=>({...f,status:e.target.value}))}>
+                    {STATUSES.map(s => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
+                  </select>
+                </div>
+                <div className="field span2" style={{ flexDirection:'row', alignItems:'center', gap:10 }}>
+                  <input type="checkbox" id="editUrgent" checked={editForm.isUrgent} onChange={e => setEditForm(f=>({...f,isUrgent:e.target.checked}))} style={{ width:'auto' }} />
+                  <label htmlFor="editUrgent" style={{ textTransform:'none', letterSpacing:0, fontSize:12, color:'var(--text)' }}>Mark as urgent</label>
+                </div>
+              </div>
+              <div className="btn-row"><button className="btn btn-primary">Save</button><button type="button" className="btn btn-ghost" onClick={() => setEditItemId(null)}>Cancel</button></div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {showAdd && (
         <div className="modal-bg" onClick={e => e.target === e.currentTarget && setShowAdd(false)}>

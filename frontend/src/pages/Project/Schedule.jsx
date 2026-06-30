@@ -318,16 +318,13 @@ export default function Schedule({ project }) {
                     ) : item._type === 'flight' ? (
                       <div key={item._key} className="ev">
                         <div className="ev-time">✈ {legDisplayTime(item)}</div>
-                        <div className="ev-body" style={{ borderLeft:'2px solid var(--tan)' }}>
-                          <div className="ev-title" style={{ color:'var(--tan)' }}>
+                        <div className="ev-body" style={{ borderLeft:'2px solid var(--orange)' }}>
+                          <div className="ev-title">
                             {item._leg === 'depart' ? 'Departure' : 'Arrival'} — {item.crew_name || item.passenger_name}
                             {item.is_return && <span style={{ fontSize:10, marginLeft:6, color:'var(--muted)' }}>↩ return</span>}
                           </div>
                           <div className="ev-detail">
-                            {item._leg === 'depart'
-                              ? <>{item.origin} → {item.destination}</>
-                              : <>{item.origin} → {item.destination}</>
-                            }
+                            {item.origin} → {item.destination}
                             {(item.airline || item.flight_number) && (
                               <span style={{ color:'var(--muted)', marginLeft:8 }}>{[item.airline, item.flight_number].filter(Boolean).join(' ')}</span>
                             )}
