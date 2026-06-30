@@ -1,6 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../../api.js';
 
+// Parse a stored date string as local noon to avoid UTC-to-local day shift
+function parseDay(dateStr) {
+  if (!dateStr) return new Date();
+  return new Date(dateStr.slice(0, 10) + 'T12:00:00');
+}
+
 const TAG_TYPES = ['VIDEO','PHOTO','AUDIO','ALL_CREW','TALENT','CUSTOM'];
 const TAG_CLASS = { VIDEO:'v', PHOTO:'p', AUDIO:'a', ALL_CREW:'a', TALENT:'t', CUSTOM:'v' };
 const TAG_LABEL = { VIDEO:'Video', PHOTO:'Photo', AUDIO:'Audio', ALL_CREW:'All Crew', TALENT:'Talent', CUSTOM:'Custom' };
@@ -30,7 +36,7 @@ export default function Schedule({ project }) {
       const day = await api.createDay(project.id, {
         ...dayForm,
         dayNumber: days.length + 1,
-        date: new Date(dayForm.date).toISOString(),
+        date: new Date(dayForm.date + 'T12:00:00').toISOString(),
       });
       setDays(d => [...d, { ...day, events: [], crewCalls: [] }]);
       setActiveDay(day.id);
@@ -87,7 +93,7 @@ export default function Schedule({ project }) {
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
         <div>
           <div className="page-title">Schedule</div>
-          <div className="page-sub">{project.city}, {project.state} · {new Date(project.startDate).toLocaleDateString()} – {new Date(project.endDate).toLocaleDateString()}</div>
+          <div className="page-sub">{project.city}, {project.state} · {parseDay(project.start_date||project.startDate).toLocaleDateString()} – {parseDay(project.end_date||project.endDate).toLocaleDateString()}</div>
         </div>
         <button className="btn btn-primary" onClick={() => setShowAddDay(true)}>+ Add Day</button>
       </div>
@@ -99,7 +105,7 @@ export default function Schedule({ project }) {
         <div className="day-tabs">
           {days.map((d, i) => (
             <button key={d.id} className={`day-tab${d.id === activeDay ? ' on' : ''}`} onClick={() => setActiveDay(d.id)}>
-              Day {d.dayNumber} · {new Date(d.date).toLocaleDateString('en-US', { month:'short', day:'numeric' })}
+              Day {d.dayNumber} · {parseDay(d.date).toLocaleDateString('en-US', { month:'short', day:'numeric' })}
             </button>
           ))}
         </div>
@@ -112,7 +118,7 @@ export default function Schedule({ project }) {
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
               <div>
                 <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:15 }}>
-                  Day {currentDay.dayNumber} · {new Date(currentDay.date).toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' })}
+                  Day {currentDay.dayNumber} · {parseDay(currentDay.date).toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' })}
                 </div>
                 <div style={{ fontSize:11, color:'var(--muted)', marginTop:3 }}>
                   {currentDay.callTime && `Call ${currentDay.callTime}`}
