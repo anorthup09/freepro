@@ -88,7 +88,7 @@ router.get('/flight-lookup', requireAuth, async (req, res, next) => {
       const keys = Object.keys(data);
       const counts = keys.map(k => `${k}:${Array.isArray(data[k]) ? data[k].length : typeof data[k]}`).join(', ');
       const f = (data.scheduled || data.flights || [])[0];
-      if (!f) return res.status(404).json({ error: `Flight not found (searched airline=${airlineCode} flight=${numericFlight} date=${targetDate}). API returned: ${counts || JSON.stringify(data).slice(0,200)}` });
+      if (!f) return res.status(404).json({ error: `FlightAware doesn't have ${flight.toUpperCase()} on ${targetDate} in their schedule yet — this is common for Southwest flights. Enter the details manually below.` });
 
       return res.json({
         flightNumber: f.ident_iata || f.ident || flight.toUpperCase(),
