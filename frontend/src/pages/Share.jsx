@@ -40,7 +40,7 @@ function ProducerView({ data }) {
         </section>
       )}
 
-      {locations.length > 0 && (
+      {locations?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Locations</div>
           <div className="loc-grid">
@@ -54,28 +54,28 @@ function ProducerView({ data }) {
         </section>
       )}
 
-      {clientContacts.length > 0 && (
+      {clientContacts?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Client Contacts</div>
           <ShareTable cols={['Name','Title','Email','Phone']} rows={clientContacts.map(c => [c.name, c.title, c.email||'—', c.phone||'—'])} />
         </section>
       )}
 
-      {keyTalent.length > 0 && (
+      {keyTalent?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Key Talent</div>
           <ShareTable cols={['Name','Role','Notes']} rows={keyTalent.map(t => [t.name, t.role, t.notes||''])} />
         </section>
       )}
 
-      {crewAssignments.length > 0 && (
+      {crewAssignments?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Crew</div>
           <ShareTable cols={['Position','Name','Email','Phone']} rows={crewAssignments.map(a => [a.position.name, a.crewMember?.name||'TBD', a.crewMember?.email||'—', a.crewMember?.phone||'—'])} />
         </section>
       )}
 
-      {schedule.map(day => (
+      {schedule?.map(day => (
         <DaySection key={day.id} day={day} showCalls />
       ))}
 
@@ -152,7 +152,7 @@ function ProducerView({ data }) {
 
 // ── Crew View ────────────────────────────────────────────────────────────────
 function CrewView({ data }) {
-  const { project, locations, techSpecs, crewAssignments, schedule } = data;
+  const { project, locations, techSpecs, crewAssignments, schedule, flights, hotelBlocks, rentalCars, deliverables, gear } = data;
   return (
     <div className="share-view">
       <div className="share-header">
@@ -173,7 +173,7 @@ function CrewView({ data }) {
           </div>
         </section>
       )}
-      {locations.length > 0 && (
+      {locations?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Locations</div>
           <div className="loc-grid">
@@ -192,9 +192,77 @@ function CrewView({ data }) {
           <ShareTable cols={['Position','Name','Phone']} rows={crewAssignments.map(a => [a.position.name, a.crewMember?.name||'TBD', a.crewMember?.phone||'—'])} />
         </section>
       )}
-      {schedule.map(day => (
+      {schedule?.map(day => (
         <DaySection key={day.id} day={day} showCalls />
       ))}
+
+      {/* ── Travel ── */}
+      {flights?.length > 0 && (
+        <section className="share-section">
+          <div className="sec-lbl">Flights</div>
+          <ShareTable
+            cols={['Passenger','Route','Departs','Arrives','Airline','Confirmation']}
+            rows={flights.map(f => [
+              f.crew_name || f.passenger_name,
+              `${f.origin} → ${f.destination}${f.is_return ? ' ↩' : ''}`,
+              f.depart_display || fmtDT(f.depart_time),
+              f.arrive_display || fmtDT(f.arrive_time),
+              [f.airline, f.flight_number].filter(Boolean).join(' ') || '—',
+              f.confirmation || '—',
+            ])}
+          />
+        </section>
+      )}
+
+      {hotelBlocks?.length > 0 && (
+        <section className="share-section">
+          <div className="sec-lbl">Hotel Accommodations</div>
+          {hotelBlocks.map(hb => (
+            <div key={hb.id} style={{ marginBottom:12 }}>
+              <div style={{ fontWeight:600, fontSize:13, marginBottom:4 }}>🏨 {hb.name} — {hb.address}{hb.phone ? ` · ${hb.phone}` : ''}</div>
+              {hb.guests?.length > 0 && (
+                <ShareTable
+                  cols={['Guest','Check-in','Check-out','Confirmation']}
+                  rows={hb.guests.map(g => [g.guest_name, fmtDT(g.check_in), fmtDT(g.check_out), g.confirmation || '—'])}
+                />
+              )}
+            </div>
+          ))}
+        </section>
+      )}
+
+      {rentalCars?.length > 0 && (
+        <section className="share-section">
+          <div className="sec-lbl">Rental Cars</div>
+          <ShareTable
+            cols={['Vendor','Pick-up','Drop-off','Pick-up Date','Drop-off Date','Confirmation']}
+            rows={rentalCars.map(r => [r.vendor, r.pickup_location||'—', r.dropoff_location||'—', fmtDT(r.pickup_date), fmtDT(r.dropoff_date), r.confirmation||'—'])}
+          />
+        </section>
+      )}
+
+      {/* ── Post-Production ── */}
+      {deliverables?.length > 0 && (
+        <section className="share-section">
+          <div className="sec-lbl">Post-Production — Deliverables</div>
+          {gear?.gear_person_name && (
+            <div style={{ fontSize:12, color:'var(--muted)', marginBottom:8 }}>
+              DIT: <span style={{ color:'var(--text)', fontWeight:500 }}>{gear.gear_person_name}</span>
+              {gear.gear_person_phone && <span style={{ marginLeft:8 }}>{gear.gear_person_phone}</span>}
+            </div>
+          )}
+          <ShareTable
+            cols={['Deliverable','Status','Editor','Specs','Due']}
+            rows={deliverables.map(d => [
+              d.title + (d.is_urgent ? ' ⚠' : ''),
+              STATUS_LABEL[d.status] || d.status,
+              d.editor_name || '—',
+              [d.aspect_ratio, d.resolution].filter(Boolean).join(' · ') || '—',
+              d.due_date || '—',
+            ])}
+          />
+        </section>
+      )}
     </div>
   );
 }
@@ -213,7 +281,7 @@ function ClientView({ data }) {
           <span className="meta">{fmt(project.start_date)} – {fmt(project.end_date)}</span>
         </div>
       </div>
-      {locations.length > 0 && (
+      {locations?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Locations</div>
           <div className="loc-grid">
@@ -226,19 +294,19 @@ function ClientView({ data }) {
           </div>
         </section>
       )}
-      {clientContacts.length > 0 && (
+      {clientContacts?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Client Contacts</div>
           <ShareTable cols={['Name','Title','Email','Phone']} rows={clientContacts.map(c => [c.name, c.title, c.email||'—', c.phone||'—'])} />
         </section>
       )}
-      {keyTalent.length > 0 && (
+      {keyTalent?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Key Talent</div>
           <ShareTable cols={['Name','Role']} rows={keyTalent.map(t => [t.name, t.role])} />
         </section>
       )}
-      {schedule.map(day => (
+      {schedule?.map(day => (
         <DaySection key={day.id} day={day} showCalls={false} />
       ))}
     </div>

@@ -338,7 +338,7 @@ export default function Schedule({ project }) {
                     ) : (
                       <div key={item.id} className="ev">
                         <div className="ev-time">{fmtTime(item.startTime)}{item.endTime ? ` – ${fmtTime(item.endTime)}` : ''}</div>
-                        <div className={`ev-body${item.isAlert ? ' warn' : ''}`}>
+                        <div className={`ev-body${item.isAlert ? ' warn' : ''}`} style={!item.isAlert ? { borderLeft:'2px solid var(--orange)' } : {}}>
                           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
                             <div className={`ev-title${item.isAlert ? ' alert' : ''}`}>{item.isAlert ? '⚠ ' : ''}{item.title}</div>
                             <div style={{ display:'flex', gap:4, flexShrink:0, marginLeft:8 }}>
