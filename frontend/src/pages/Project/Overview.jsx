@@ -12,8 +12,8 @@ export default function Overview({ project, setProject }) {
   const [locForm, setLocForm] = useState({ name:'', address:'', type:'PRIMARY_VENUE', emoji:'' });
   const [showContactModal, setShowContactModal] = useState(false);
   const [contactForm, setContactForm] = useState({ name:'', title:'', email:'', phone:'' });
-  const [showTalentModal, setShowTalentModal] = useState(false);
-  const [talentForm, setTalentForm] = useState({ name:'', role:'' });
+  const [showAgencyModal, setShowAgencyModal] = useState(false);
+  const [agencyForm, setAgencyForm] = useState({ name:'', title:'', email:'', phone:'' });
   const [pocSaving, setPocSaving] = useState(false);
 
   async function saveInfo(e) {
@@ -68,22 +68,23 @@ export default function Overview({ project, setProject }) {
     setProject(p => ({ ...p, clientContacts: p.clientContacts.filter(c => c.id !== id) }));
   }
 
-  async function addTalent(e) {
+  async function addAgencyContact(e) {
     e.preventDefault();
     try {
-      const t = await api.createTalent(project.id, talentForm);
-      setProject(p => ({ ...p, keyTalent: [...p.keyTalent, t] }));
-      setShowTalentModal(false); setTalentForm({ name:'', role:'' });
+      const c = await api.createAgencyContact(project.id, agencyForm);
+      setProject(p => ({ ...p, agencyContacts: [...(p.agencyContacts||[]), c] }));
+      setShowAgencyModal(false); setAgencyForm({ name:'', title:'', email:'', phone:'' });
     } catch(e) { alert(e.message); }
   }
 
-  async function deleteTalent(id) {
-    await api.deleteTalent(project.id, id);
-    setProject(p => ({ ...p, keyTalent: p.keyTalent.filter(t => t.id !== id) }));
+  async function deleteAgencyContact(id) {
+    await api.deleteAgencyContact(project.id, id);
+    setProject(p => ({ ...p, agencyContacts: (p.agencyContacts||[]).filter(c => c.id !== id) }));
   }
 
   const assignedCrew = (project.crewAssignments || []).filter(a => a.crewMember);
   const pocId = project.poc_crew_member_id || '';
+  const pocMember = assignedCrew.find(a => a.crewMember.id === pocId)?.crewMember || null;
 
   return (
     <div>
@@ -121,6 +122,12 @@ export default function Overview({ project, setProject }) {
           ))}
         </select>
         {pocSaving && <span style={{ fontSize:11, color:'var(--muted)' }}>Saving…</span>}
+        {pocMember && !pocSaving && (
+          <div style={{ fontSize:12, color:'var(--muted)', display:'flex', gap:16 }}>
+            {pocMember.phone && <span style={{ color:'var(--tan)' }}>{pocMember.phone}</span>}
+            {pocMember.email && <span>{pocMember.email}</span>}
+          </div>
+        )}
       </div>
 
       {/* Locations */}
@@ -187,29 +194,22 @@ export default function Overview({ project, setProject }) {
         ))}
       </div>
 
-      {/* Key Talent */}
-      {project.keyTalent?.length > 0 && (
-        <>
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-            <div className="sec-lbl">Key Talent</div>
-            <button className="btn btn-ghost btn-sm" onClick={() => setShowTalentModal(true)}>+ Add</button>
+      {/* Agency Contacts */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+        <div className="sec-lbl">Agency Contacts</div>
+        <button className="btn btn-ghost btn-sm" onClick={() => setShowAgencyModal(true)}>+ Add</button>
+      </div>
+      <div className="chips">
+        {(project.agencyContacts||[]).map(c => (
+          <div key={c.id} className="chip" style={{ position:'relative' }}>
+            <strong>{c.title}</strong>
+            {c.name} {c.phone && `· ${c.phone}`}
+            {c.email && <><br /><span style={{ color:'var(--muted)' }}>{c.email}</span></>}
+            <button style={{ position:'absolute', top:4, right:6, background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => deleteAgencyContact(c.id)}>✕</button>
           </div>
-          <div className="chips">
-            {project.keyTalent.map(t => (
-              <div key={t.id} className="chip" style={{ position:'relative' }}>
-                <strong>{t.role}</strong>{t.name}
-                <button style={{ position:'absolute', top:4, right:6, background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => deleteTalent(t.id)}>✕</button>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-      {project.keyTalent?.length === 0 && (
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-          <div className="sec-lbl">Key Talent</div>
-          <button className="btn btn-ghost btn-sm" onClick={() => setShowTalentModal(true)}>+ Add</button>
-        </div>
-      )}
+        ))}
+        {!(project.agencyContacts?.length) && <span className="empty" style={{ padding:0, fontSize:12 }}>No agency contacts yet.</span>}
+      </div>
 
       {/* Edit Info Modal */}
       {editInfo && (
@@ -260,6 +260,24 @@ export default function Overview({ project, setProject }) {
         </div>
       )}
 
+      {/* Add Agency Contact Modal */}
+      {showAgencyModal && (
+        <div className="modal-bg" onClick={e => e.target === e.currentTarget && setShowAgencyModal(false)}>
+          <div className="modal">
+            <div className="modal-title">Add Agency Contact</div>
+            <form onSubmit={addAgencyContact}>
+              <div className="form-grid" style={{ marginBottom:12 }}>
+                <div className="field"><label>Name</label><input value={agencyForm.name} onChange={e => setAgencyForm(f=>({...f,name:e.target.value}))} required /></div>
+                <div className="field"><label>Title</label><input value={agencyForm.title} onChange={e => setAgencyForm(f=>({...f,title:e.target.value}))} required /></div>
+                <div className="field"><label>Email</label><input type="email" value={agencyForm.email} onChange={e => setAgencyForm(f=>({...f,email:e.target.value}))} /></div>
+                <div className="field"><label>Phone</label><input value={agencyForm.phone} onChange={e => setAgencyForm(f=>({...f,phone:e.target.value}))} /></div>
+              </div>
+              <div className="btn-row"><button className="btn btn-primary">Add Contact</button><button type="button" className="btn btn-ghost" onClick={() => setShowAgencyModal(false)}>Cancel</button></div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Add Contact Modal */}
       {showContactModal && (
         <div className="modal-bg" onClick={e => e.target === e.currentTarget && setShowContactModal(false)}>
@@ -278,21 +296,6 @@ export default function Overview({ project, setProject }) {
         </div>
       )}
 
-      {/* Add Talent Modal */}
-      {showTalentModal && (
-        <div className="modal-bg" onClick={e => e.target === e.currentTarget && setShowTalentModal(false)}>
-          <div className="modal">
-            <div className="modal-title">Add Key Talent</div>
-            <form onSubmit={addTalent}>
-              <div className="form-grid" style={{ marginBottom:12 }}>
-                <div className="field"><label>Name</label><input value={talentForm.name} onChange={e => setTalentForm(f=>({...f,name:e.target.value}))} required /></div>
-                <div className="field"><label>Role / Title</label><input value={talentForm.role} onChange={e => setTalentForm(f=>({...f,role:e.target.value}))} required /></div>
-              </div>
-              <div className="btn-row"><button className="btn btn-primary">Add Talent</button><button type="button" className="btn btn-ghost" onClick={() => setShowTalentModal(false)}>Cancel</button></div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

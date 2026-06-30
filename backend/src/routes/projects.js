@@ -6,10 +6,11 @@ const { requireAuth, requireRole } = require('../middleware/auth');
 async function getFullProject(id) {
   const [project] = await sql`SELECT * FROM projects WHERE id = ${id}`;
   if (!project) return null;
-  const [locations, techSpecs, clientContacts, keyTalent, crewAssignments, deliverables, hotelBlocks, gear] = await Promise.all([
+  const [locations, techSpecs, clientContacts, agencyContacts, keyTalent, crewAssignments, deliverables, hotelBlocks, gear] = await Promise.all([
     sql`SELECT * FROM locations WHERE project_id = ${id}`,
     sql`SELECT * FROM tech_specs WHERE project_id = ${id}`,
     sql`SELECT * FROM client_contacts WHERE project_id = ${id}`,
+    sql`SELECT * FROM agency_contacts WHERE project_id = ${id}`,
     sql`SELECT * FROM key_talent WHERE project_id = ${id}`,
     sql`SELECT ca.*, p.name as position_name, p.sort_order,
                cm.id as cm_id, cm.name as cm_name, cm.email as cm_email, cm.phone as cm_phone, cm.company as cm_company, cm.initials, cm.avatar_color
@@ -34,6 +35,7 @@ async function getFullProject(id) {
     locations,
     techSpecs: techSpecs[0] || null,
     clientContacts,
+    agencyContacts,
     keyTalent,
     hotelBlocks,
     gear: gear[0] || null,
@@ -265,6 +267,18 @@ router.patch('/:id/crew/:aid', requireAuth, requireRole('ADMIN','PRODUCER'), asy
 });
 router.delete('/:id/crew/:aid', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try { await sql`DELETE FROM crew_assignments WHERE id = ${req.params.aid}`; res.status(204).end(); } catch(e){next(e);}
+});
+
+// ─── Agency Contacts ─────────────────────────────────────────────────────────
+router.post('/:id/agency-contacts', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try {
+    const { name, title, email, phone } = req.body;
+    const [c] = await sql`INSERT INTO agency_contacts (id, project_id, name, title, email, phone) VALUES (gen_random_uuid()::text, ${req.params.id}, ${name}, ${title}, ${email||null}, ${phone||null}) RETURNING *`;
+    res.status(201).json(c);
+  } catch(e){next(e);}
+});
+router.delete('/:id/agency-contacts/:cid', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try { await sql`DELETE FROM agency_contacts WHERE id = ${req.params.cid}`; res.status(204).end(); } catch(e){next(e);}
 });
 
 // ─── Gear ────────────────────────────────────────────────────────────────────

@@ -1,6 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../../api.js';
 
+function flightsForDay(flights, dayDateStr) {
+  if (!flights?.length || !dayDateStr) return [];
+  const dayDate = dayDateStr.slice(0, 10);
+  return flights.filter(f => {
+    if (!f.depart_time) return false;
+    return new Date(f.depart_time).toISOString().slice(0, 10) === dayDate;
+  });
+}
+
 // Parse a stored date string as local noon to avoid UTC-to-local day shift
 function parseDay(dateStr) {
   if (!dateStr) return new Date();
@@ -21,8 +30,10 @@ export default function Schedule({ project }) {
   const [editCallId, setEditCallId] = useState(null);
   const [callTime, setCallTime] = useState('');
   const [dayMeta, setDayMeta] = useState({});
+  const [flights, setFlights] = useState([]);
 
   useEffect(() => {
+    api.getFlights(project.id).then(setFlights).catch(() => {});
     api.getSchedule(project.id).then(d => {
       setDays(d);
       if (d.length > 0) setActiveDay(d[0].id);
@@ -192,6 +203,34 @@ export default function Schedule({ project }) {
               </div>
             </>
           )}
+
+          {/* Flights on this day */}
+          {(() => {
+            const dayFlights = flightsForDay(flights, currentDay.date);
+            if (!dayFlights.length) return null;
+            return (
+              <>
+                <div className="sec-lbl">Flights</div>
+                <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden', marginBottom:16 }}>
+                  <table className="pos-table" style={{ width:'100%' }}>
+                    <thead><tr><th>Passenger</th><th>Route</th><th>Departs</th><th>Arrives</th><th>Airline</th><th>Confirmation</th></tr></thead>
+                    <tbody>
+                      {dayFlights.map(f => (
+                        <tr key={f.id}>
+                          <td style={{ fontWeight:500 }}>{f.crew_name || f.passenger_name}</td>
+                          <td style={{ fontSize:11, color:'var(--tan)' }}>{f.origin} → {f.destination}{f.is_return ? ' ↩' : ''}</td>
+                          <td style={{ fontSize:11 }}>{f.depart_display || f.depart_time?.slice(0,16)}</td>
+                          <td style={{ fontSize:11 }}>{f.arrive_display || f.arrive_time?.slice(0,16)}</td>
+                          <td style={{ fontSize:11, color:'var(--muted)' }}>{[f.airline, f.flight_number].filter(Boolean).join(' ') || '—'}</td>
+                          <td style={{ fontSize:11, color:'var(--muted)' }}>{f.confirmation || '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            );
+          })()}
 
           {/* Events timeline */}
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>

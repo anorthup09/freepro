@@ -116,6 +116,14 @@ export default function Gear({ project }) {
         {saved && !saving && <span style={{ fontSize:11, color:'var(--green-text,#4ade80)' }}>Saved</span>}
       </div>
 
+      {/* ── Storage Location ── */}
+      <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'16px', marginBottom:20 }}>
+        <div className="sec-lbl" style={{ marginTop:0 }}>Storage Location</div>
+        <div className="field" style={{ margin:0 }}>
+          <input {...field('storageLocation')} placeholder="Room 104B — locked cage near freight elevator" />
+        </div>
+      </div>
+
       {/* ── Person Responsible ── */}
       <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'16px', marginBottom:20 }}>
         <div className="sec-lbl" style={{ marginTop:0 }}>Person Responsible for Gear</div>
@@ -130,8 +138,9 @@ export default function Gear({ project }) {
             </select>
           </div>
           {gearPerson && (
-            <div style={{ fontSize:12, color:'var(--muted)', paddingTop:22 }}>
+            <div style={{ fontSize:12, display:'flex', flexDirection:'column', gap:4, paddingTop:22 }}>
               {gearPerson.phone && <span style={{ color:'var(--tan)' }}>{gearPerson.phone}</span>}
+              {gearPerson.email && <span style={{ color:'var(--muted)' }}>{gearPerson.email}</span>}
             </div>
           )}
         </div>
@@ -150,7 +159,7 @@ export default function Gear({ project }) {
           <div className="field"><label>Email Address</label><input type="email" {...field('rentalEmail')} placeholder="jane@keslow.com" /></div>
         </div>
         <div style={{ marginTop:8 }}>
-          <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)', marginBottom:4 }}>Documents Received</div>
+          <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)', marginBottom:4 }}>Documents Submitted</div>
           <Check id="coi" label="COI" {...check('coiReceived')} />
           <Check id="rentalAgreement" label="Rental Agreement" {...check('rentalAgreementReceived')} />
           <Check id="ccAuth" label="CC Auth Form" {...check('ccAuthReceived')} />
@@ -176,13 +185,6 @@ export default function Gear({ project }) {
         </div>
       </div>
 
-      {/* ── Storage Location ── */}
-      <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'16px', marginBottom:20 }}>
-        <div className="sec-lbl" style={{ marginTop:0 }}>Storage Location</div>
-        <div className="field" style={{ margin:0 }}>
-          <input {...field('storageLocation')} placeholder="Room 104B — locked cage near freight elevator" />
-        </div>
-      </div>
     </div>
   );
 }

@@ -111,6 +111,10 @@ export const api = {
   updateRentalCar: (projectId, id, data) => req('PATCH', `/projects/${projectId}/travel/rental-cars/${id}`, data),
   deleteRentalCar: (projectId, id) => req('DELETE', `/projects/${projectId}/travel/rental-cars/${id}`),
 
+  // Agency contacts
+  createAgencyContact: (projectId, data) => req('POST', `/projects/${projectId}/agency-contacts`, data),
+  deleteAgencyContact: (projectId, id) => req('DELETE', `/projects/${projectId}/agency-contacts/${id}`),
+
   // Gear
   saveGear: (projectId, data) => req('PUT', `/projects/${projectId}/gear`, data),
 };

@@ -355,6 +355,17 @@ async function migrate() {
     )
   `;
 
+  await sql`
+    CREATE TABLE IF NOT EXISTS agency_contacts (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      title TEXT NOT NULL,
+      email TEXT,
+      phone TEXT
+    )
+  `;
+
   console.log('Migration complete.');
 }
 
