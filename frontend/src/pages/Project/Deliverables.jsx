@@ -12,6 +12,9 @@ export default function Deliverables({ project }) {
   const [editId, setEditId] = useState(null);
   const [editStatus, setEditStatus] = useState('');
 
+  const [ditId, setDitId] = useState(project.techSpecs?.dit_crew_member_id || '');
+  const [ditSaving, setDitSaving] = useState(false);
+
   const [drives, setDrives] = useState([]);
   const [showDrive, setShowDrive] = useState(false);
   const [driveForm, setDriveForm] = useState({ origin:'', destination:'', notes:'', members:[] });
@@ -21,6 +24,25 @@ export default function Deliverables({ project }) {
     api.getDeliverables(project.id).then(setItems);
     api.getDrives(project.id).then(setDrives).catch(() => {});
   }, [project.id]);
+
+  async function saveDit(crewMemberId) {
+    setDitId(crewMemberId);
+    setDitSaving(true);
+    try {
+      const existing = project.techSpecs || {};
+      await api.saveTechSpecs(project.id, {
+        aspectRatio: existing.aspect_ratio || null,
+        resolution: existing.resolution || null,
+        quality: existing.quality || null,
+        cameras: existing.cameras || null,
+        execProducer: existing.exec_producer || null,
+        onSiteEditor: existing.on_site_editor || null,
+        notes: existing.notes || null,
+        ditCrewMemberId: crewMemberId || null,
+      });
+    } catch(err) { alert(err.message); }
+    setDitSaving(false);
+  }
 
   async function addDrive(e) {
     e.preventDefault();
@@ -62,10 +84,35 @@ export default function Deliverables({ project }) {
 
   return (
     <div>
+      <div className="page-title" style={{ marginBottom:3 }}>Post-Production</div>
+      <div className="page-sub">{project.client} · {project.code}</div>
+
+      {/* ── DIT ── */}
+      <div style={{ display:'flex', alignItems:'center', gap:12, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'12px 16px', marginBottom:20 }}>
+        <span style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)', whiteSpace:'nowrap' }}>DIT</span>
+        <select
+          value={ditId}
+          onChange={e => saveDit(e.target.value)}
+          style={{ flex:1, maxWidth:320 }}
+        >
+          <option value="">— Unassigned —</option>
+          {(project.crewAssignments || []).filter(a => a.crewMember).map(a => (
+            <option key={a.crewMember.id} value={a.crewMember.id}>
+              {a.crewMember.name} — {a.position.name}
+            </option>
+          ))}
+        </select>
+        {ditSaving && <span style={{ fontSize:11, color:'var(--muted)' }}>Saving…</span>}
+        {ditId && !ditSaving && (
+          <span style={{ fontSize:11, color:'var(--muted)' }}>
+            Managing data for this project
+          </span>
+        )}
+      </div>
+
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16 }}>
         <div>
-          <div className="page-title">Post-Production</div>
-          <div className="page-sub">{project.client} · {items.length} video output{items.length !== 1 ? 's' : ''}</div>
+          <div style={{ fontSize:13, fontWeight:600, color:'var(--text)' }}>Deliverables <span style={{ fontWeight:400, color:'var(--muted)' }}>· {items.length} output{items.length !== 1 ? 's' : ''}</span></div>
         </div>
         <button className="btn btn-primary" onClick={() => setShowAdd(true)}>+ Add Deliverable</button>
       </div>

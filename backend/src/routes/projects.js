@@ -123,11 +123,12 @@ router.put('/:id/tech-specs', requireAuth, requireRole('ADMIN','PRODUCER'), asyn
   try {
     const d = req.body;
     const [spec] = await sql`
-      INSERT INTO tech_specs (id, project_id, aspect_ratio, resolution, quality, cameras, exec_producer, on_site_editor, notes)
-      VALUES (gen_random_uuid()::text, ${req.params.id}, ${d.aspectRatio||null}, ${d.resolution||null}, ${d.quality||null}, ${d.cameras||null}, ${d.execProducer||null}, ${d.onSiteEditor||null}, ${d.notes||null})
+      INSERT INTO tech_specs (id, project_id, aspect_ratio, resolution, quality, cameras, exec_producer, on_site_editor, notes, dit_crew_member_id)
+      VALUES (gen_random_uuid()::text, ${req.params.id}, ${d.aspectRatio||null}, ${d.resolution||null}, ${d.quality||null}, ${d.cameras||null}, ${d.execProducer||null}, ${d.onSiteEditor||null}, ${d.notes||null}, ${d.ditCrewMemberId||null})
       ON CONFLICT (project_id) DO UPDATE SET
         aspect_ratio = EXCLUDED.aspect_ratio, resolution = EXCLUDED.resolution, quality = EXCLUDED.quality,
-        cameras = EXCLUDED.cameras, exec_producer = EXCLUDED.exec_producer, on_site_editor = EXCLUDED.on_site_editor, notes = EXCLUDED.notes
+        cameras = EXCLUDED.cameras, exec_producer = EXCLUDED.exec_producer, on_site_editor = EXCLUDED.on_site_editor, notes = EXCLUDED.notes,
+        dit_crew_member_id = EXCLUDED.dit_crew_member_id
       RETURNING *`;
     res.json(spec);
   } catch(e){next(e);}
