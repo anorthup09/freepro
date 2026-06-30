@@ -289,6 +289,8 @@ async function migrate() {
 
   await sql`ALTER TABLE hotel_guests ADD COLUMN IF NOT EXISTS cost NUMERIC(10,2)`;
   await sql`ALTER TABLE flights ADD COLUMN IF NOT EXISTS cost NUMERIC(10,2)`;
+  await sql`ALTER TABLE flights ADD COLUMN IF NOT EXISTS flight_number TEXT`;
+  await sql`ALTER TABLE flights ADD COLUMN IF NOT EXISTS status TEXT`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS rental_cars (
