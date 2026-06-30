@@ -282,27 +282,32 @@ export default function Travel({ project }) {
         </div>
         <button className="btn btn-ghost btn-sm" onClick={() => setShowFlight(true)}>+ Add Flight</button>
       </div>
-      {flights.map(f => (
-        <div key={f.id} className="frow" style={{ flexWrap:'wrap', gap:6 }}>
-          <div className="fname">{f.passengerName}</div>
-          {f.flight_number && <span className="abadge">{f.flight_number}</span>}
-          <div className="froute"><span>{f.origin}</span><span className="farrow">→</span><span>{f.destination}</span></div>
-          {f.depart_time && <div className="ftimes">{fmtDT(f.depart_time)} → {f.arrive_time ? fmtDT(f.arrive_time) : '?'}</div>}
-          {f.airline && <span className="abadge">{f.airline}</span>}
-          {f.confirmation && <span style={{ fontSize:10, color:'var(--muted)' }}># {f.confirmation}</span>}
-          {f.cost && <span style={{ fontSize:10, color:'var(--green)', fontWeight:600 }}>{fmtCost(f.cost)}</span>}
-          {f.status && (
-            <span style={{ fontSize:10, fontWeight:600, color: statusColor(f.status) }}>
-              {f.status}
-            </span>
-          )}
-          {f.flight_number && (
-            <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:10 }} onClick={() => refreshFlightStatus(f)} title="Refresh status">↻</button>
-          )}
-          {f.is_return && <span className="badge">Return</span>}
-          <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11, marginLeft:'auto' }} onClick={() => removeFlight(f.id)}>✕</button>
-        </div>
-      ))}
+      {flights.map(f => {
+        const hoursUntil = f.depart_time ? (new Date(f.depart_time) - Date.now()) / 3600000 : Infinity;
+        const showLive = hoursUntil <= 24;
+        return (
+          <div key={f.id} className="frow" style={{ flexWrap:'wrap', gap:6 }}>
+            <div className="fname">{f.passengerName}</div>
+            {f.flight_number && <span className="abadge">{f.flight_number}</span>}
+            <div className="froute"><span>{f.origin}</span><span className="farrow">→</span><span>{f.destination}</span></div>
+            {f.depart_time && <div className="ftimes">{fmtDT(f.depart_time)} → {f.arrive_time ? fmtDT(f.arrive_time) : '?'}</div>}
+            {f.airline && <span className="abadge">{f.airline}</span>}
+            {f.confirmation && <span style={{ fontSize:10, color:'var(--muted)' }}># {f.confirmation}</span>}
+            {f.cost && <span style={{ fontSize:10, color:'var(--green)', fontWeight:600 }}>{fmtCost(f.cost)}</span>}
+            {showLive && f.status && (
+              <span style={{ fontSize:10, fontWeight:600, color: statusColor(f.status) }}>{f.status}</span>
+            )}
+            {showLive && f.flight_number && (
+              <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:10 }} onClick={() => refreshFlightStatus(f)} title="Refresh live status">↻</button>
+            )}
+            {!showLive && f.depart_time && (
+              <span style={{ fontSize:10, color:'var(--muted)' }}>Live status available within 24 hrs</span>
+            )}
+            {f.is_return && <span className="badge">Return</span>}
+            <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11, marginLeft:'auto' }} onClick={() => removeFlight(f.id)}>✕</button>
+          </div>
+        );
+      })}
       {flights.length === 0 && <div className="empty">No flights added yet.</div>}
 
       {/* ── Rental Cars ── */}
