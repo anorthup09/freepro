@@ -132,6 +132,8 @@ router.get('/:token', async (req, res, next) => {
         ...responseData,
         locations,
         techSpecs: techSpecs[0] || null,
+        clientContacts,
+        keyTalent,
         crewAssignments: mappedCrew,
         schedule: filteredDays,
         flights: crewFlights,
