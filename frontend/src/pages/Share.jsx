@@ -206,7 +206,7 @@ function ProducerView({ data }) {
 
 // ── Crew View ────────────────────────────────────────────────────────────────
 function CrewView({ data }) {
-  const { project, locations, techSpecs, crewAssignments, schedule, flights, hotelBlocks, rentalCars } = data;
+  const { project, locations, techSpecs, clientContacts, keyTalent, crewAssignments, schedule, flights, hotelBlocks, rentalCars, deliverables, gear } = data;
   const sortedSchedule = [...(schedule || [])].sort((a,b) => (a.date||'').localeCompare(b.date||''));
   return (
     <div className="share-view">
@@ -214,18 +214,31 @@ function CrewView({ data }) {
         <div className="proj-code">{project.code}</div>
         <div className="proj-title">{project.title}</div>
         <div className="proj-meta" style={{ marginTop: 6 }}>
+          <span className="meta">{project.client}</span>
           <span className="meta">{project.city}, {project.state}</span>
           <span className="meta">{fmt(project.start_date)} – {fmt(project.end_date)}</span>
         </div>
       </div>
 
-      {project.poc_name && (
+      {(project.poc_name || gear?.gear_person_name) && (
         <section className="share-section">
-          <div className="sec-lbl">Main Point of Contact</div>
-          <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 14px', display:'inline-flex', flexDirection:'column', gap:3 }}>
-            <div style={{ fontWeight:600, fontSize:13 }}>{shortName(project.poc_name)}</div>
-            {project.poc_phone && <div style={{ fontSize:12, color:'var(--tan)' }}>{project.poc_phone}</div>}
-            {project.poc_email && <div style={{ fontSize:11, color:'var(--muted)' }}>{project.poc_email}</div>}
+          <div className="sec-lbl">Key Contacts</div>
+          <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
+            {project.poc_name && (
+              <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 14px', flex:1, minWidth:180 }}>
+                <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:4 }}>Main POC</div>
+                <div style={{ fontWeight:600, fontSize:13 }}>{shortName(project.poc_name)}</div>
+                {project.poc_phone && <div style={{ fontSize:12, color:'var(--tan)', marginTop:2 }}>{project.poc_phone}</div>}
+                {project.poc_email && <div style={{ fontSize:11, color:'var(--muted)' }}>{project.poc_email}</div>}
+              </div>
+            )}
+            {gear?.gear_person_name && (
+              <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 14px', flex:1, minWidth:180 }}>
+                <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:4 }}>Gear Contact</div>
+                <div style={{ fontWeight:600, fontSize:13 }}>{shortName(gear.gear_person_name)}</div>
+                {gear.gear_person_phone && <div style={{ fontSize:12, color:'var(--tan)', marginTop:2 }}>{gear.gear_person_phone}</div>}
+              </div>
+            )}
           </div>
         </section>
       )}
@@ -253,16 +266,6 @@ function CrewView({ data }) {
         </section>
       )}
 
-      {rentalCars?.length > 0 && (
-        <section className="share-section">
-          <div className="sec-lbl">Rental Cars</div>
-          <ShareTable
-            cols={['Vendor','Pick-up','Drop-off','Pick-up Date','Drop-off Date','Confirmation']}
-            rows={rentalCars.map(r => [r.vendor, r.pickup_location||'—', r.dropoff_location||'—', fmtDT(r.pickup_date), fmtDT(r.dropoff_date), r.confirmation||'—'])}
-          />
-        </section>
-      )}
-
       {locations?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Locations</div>
@@ -282,10 +285,56 @@ function CrewView({ data }) {
         </section>
       )}
 
+      {clientContacts?.length > 0 && (
+        <section className="share-section">
+          <div className="sec-lbl">Client Contacts</div>
+          <ShareTable cols={['Name','Title','Email','Phone']} rows={clientContacts.map(c => [c.name, c.title, c.email||'—', c.phone||'—'])} />
+        </section>
+      )}
+
+      {keyTalent?.length > 0 && (
+        <section className="share-section">
+          <div className="sec-lbl">Key Talent</div>
+          <ShareTable cols={['Name','Role','Notes']} rows={keyTalent.map(t => [t.name, t.role, t.notes||''])} />
+        </section>
+      )}
+
       {crewAssignments?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Crew</div>
-          <ShareTable cols={['Position','Name','Phone']} rows={crewAssignments.map(a => [a.position.name, shortName(a.crewMember?.name)||'TBD', a.crewMember?.phone||'—'])} />
+          <ShareTable cols={['Position','Name','Email','Phone']} rows={crewAssignments.map(a => [a.position.name, shortName(a.crewMember?.name)||'TBD', a.crewMember?.email||'—', a.crewMember?.phone||'—'])} />
+        </section>
+      )}
+
+      {rentalCars?.length > 0 && (
+        <section className="share-section">
+          <div className="sec-lbl">Rental Cars</div>
+          <ShareTable
+            cols={['Vendor','Pick-up','Drop-off','Pick-up Date','Drop-off Date','Confirmation']}
+            rows={rentalCars.map(r => [r.vendor, r.pickup_location||'—', r.dropoff_location||'—', fmtDT(r.pickup_date), fmtDT(r.dropoff_date), r.confirmation||'—'])}
+          />
+        </section>
+      )}
+
+      {deliverables?.length > 0 && (
+        <section className="share-section">
+          <div className="sec-lbl">Post-Production — Deliverables</div>
+          {gear?.gear_person_name && (
+            <div style={{ fontSize:12, color:'var(--muted)', marginBottom:8 }}>
+              DIT: <span style={{ color:'var(--text)', fontWeight:500 }}>{gear.gear_person_name}</span>
+              {gear.gear_person_phone && <span style={{ marginLeft:8 }}>{gear.gear_person_phone}</span>}
+            </div>
+          )}
+          <ShareTable
+            cols={['Deliverable','Status','Editor','Specs','Due']}
+            rows={deliverables.map(d => [
+              d.title + (d.is_urgent ? ' ⚠' : ''),
+              STATUS_LABEL[d.status] || d.status,
+              d.editor_name || '—',
+              [d.aspect_ratio, d.resolution].filter(Boolean).join(' · ') || '—',
+              d.due_date || '—',
+            ])}
+          />
         </section>
       )}
 
