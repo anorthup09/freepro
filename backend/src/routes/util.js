@@ -85,9 +85,10 @@ router.get('/flight-lookup', requireAuth, async (req, res, next) => {
       }
 
       const data = await r.json();
-      console.log('FlightAware schedules response:', JSON.stringify(data).slice(0, 1000));
+      const keys = Object.keys(data);
+      const counts = keys.map(k => `${k}:${Array.isArray(data[k]) ? data[k].length : typeof data[k]}`).join(', ');
       const f = (data.scheduled || data.flights || [])[0];
-      if (!f) return res.status(404).json({ error: `Flight not found for that date (searched: ${numericFlight} on ${targetDate})` });
+      if (!f) return res.status(404).json({ error: `Flight not found (searched airline=${airlineCode} flight=${numericFlight} date=${targetDate}). API returned: ${counts || JSON.stringify(data).slice(0,200)}` });
 
       return res.json({
         flightNumber: f.ident_iata || f.ident || flight.toUpperCase(),
