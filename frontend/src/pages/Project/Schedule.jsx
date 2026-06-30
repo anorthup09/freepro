@@ -1,13 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../../api.js';
 
-function flightsForDay(flights, dayDateStr) {
+function isoDateOf(ts) {
+  if (!ts) return null;
+  return new Date(ts).toISOString().slice(0, 10);
+}
+
+// Returns [{...flight, _leg:'depart'|'arrive'}] for items that fall on dayDateStr
+function flightLegsForDay(flights, dayDateStr) {
   if (!flights?.length || !dayDateStr) return [];
   const dayDate = dayDateStr.slice(0, 10);
-  return flights.filter(f => {
-    if (!f.depart_time) return false;
-    return new Date(f.depart_time).toISOString().slice(0, 10) === dayDate;
-  });
+  const legs = [];
+  for (const f of flights) {
+    if (f.depart_time && isoDateOf(f.depart_time) === dayDate) legs.push({ ...f, _leg:'depart' });
+    if (f.arrive_time && isoDateOf(f.arrive_time) === dayDate) legs.push({ ...f, _leg:'arrive' });
+  }
+  return legs;
 }
 
 // Convert a display time string like "7:30 AM" or "08:35" to minutes since midnight for sorting
@@ -27,10 +35,13 @@ function timeToMinutes(str) {
   return 9999;
 }
 
-function flightDisplayTime(f) {
-  if (f.depart_display) return f.depart_display;
-  if (f.depart_time) {
-    return new Date(f.depart_time).toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' });
+function legDisplayTime(leg) {
+  if (leg._leg === 'arrive') {
+    if (leg.arrive_display) return leg.arrive_display;
+    if (leg.arrive_time) return new Date(leg.arrive_time).toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' });
+  } else {
+    if (leg.depart_display) return leg.depart_display;
+    if (leg.depart_time) return new Date(leg.depart_time).toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' });
   }
   return '';
 }
@@ -229,11 +240,11 @@ export default function Schedule({ project }) {
             </>
           )}
 
-          {/* Merged timeline: events + flights sorted by time */}
+          {/* Merged timeline: events + flight legs sorted by time */}
           {(() => {
-            const dayFlights = flightsForDay(flights, currentDay.date);
+            const legs = flightLegsForDay(flights, currentDay.date);
             const eventItems = (currentDay.events || []).map(ev => ({ _type:'event', _sort: timeToMinutes(ev.startTime), ...ev }));
-            const flightItems = dayFlights.map(f => ({ _type:'flight', _sort: timeToMinutes(flightDisplayTime(f)), ...f }));
+            const flightItems = legs.map((leg, i) => ({ _type:'flight', _sort: timeToMinutes(legDisplayTime(leg)), _key: leg.id + leg._leg, ...leg }));
             const items = [...eventItems, ...flightItems].sort((a, b) => a._sort - b._sort);
 
             return (
@@ -246,16 +257,18 @@ export default function Schedule({ project }) {
                   {items.length === 0 && <div className="empty">No events yet for this day.</div>}
                   <div className="tl">
                     {items.map(item => item._type === 'flight' ? (
-                      <div key={item.id} className="ev">
-                        <div className="ev-time">✈ {flightDisplayTime(item)}</div>
+                      <div key={item._key} className="ev">
+                        <div className="ev-time">✈ {legDisplayTime(item)}</div>
                         <div className="ev-body" style={{ borderLeft:'2px solid var(--tan)' }}>
                           <div className="ev-title" style={{ color:'var(--tan)' }}>
-                            {item.crew_name || item.passenger_name}
+                            {item._leg === 'depart' ? 'Departure' : 'Arrival'} — {item.crew_name || item.passenger_name}
                             {item.is_return && <span style={{ fontSize:10, marginLeft:6, color:'var(--muted)' }}>↩ return</span>}
                           </div>
                           <div className="ev-detail">
-                            {item.origin} → {item.destination}
-                            {item.arrive_display && <span style={{ color:'var(--muted)', marginLeft:8 }}>arrives {item.arrive_display}</span>}
+                            {item._leg === 'depart'
+                              ? <>{item.origin} → {item.destination}</>
+                              : <>{item.origin} → {item.destination}</>
+                            }
                             {(item.airline || item.flight_number) && (
                               <span style={{ color:'var(--muted)', marginLeft:8 }}>{[item.airline, item.flight_number].filter(Boolean).join(' ')}</span>
                             )}
