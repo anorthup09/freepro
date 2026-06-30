@@ -75,28 +75,7 @@ function ProducerView({ data }) {
         </section>
       )}
 
-      {schedule?.map(day => (
-        <DaySection key={day.id} day={day} showCalls />
-      ))}
-
       {/* ── Travel ── */}
-      {flights?.length > 0 && (
-        <section className="share-section">
-          <div className="sec-lbl">Flights</div>
-          <ShareTable
-            cols={['Passenger','Route','Departs','Arrives','Airline','Confirmation']}
-            rows={flights.map(f => [
-              f.crew_name || f.passenger_name,
-              `${f.origin} → ${f.destination}${f.is_return ? ' ↩' : ''}`,
-              f.depart_display || fmtDT(f.depart_time),
-              f.arrive_display || fmtDT(f.arrive_time),
-              [f.airline, f.flight_number].filter(Boolean).join(' ') || '—',
-              f.confirmation || '—',
-            ])}
-          />
-        </section>
-      )}
-
       {hotelBlocks?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Hotel Accommodations</div>
@@ -146,6 +125,11 @@ function ProducerView({ data }) {
           />
         </section>
       )}
+
+      {/* ── Schedule (with integrated flights) at bottom ── */}
+      {schedule?.map(day => (
+        <DaySection key={day.id} day={day} showCalls flights={flights} />
+      ))}
     </div>
   );
 }
@@ -192,28 +176,8 @@ function CrewView({ data }) {
           <ShareTable cols={['Position','Name','Phone']} rows={crewAssignments.map(a => [a.position.name, a.crewMember?.name||'TBD', a.crewMember?.phone||'—'])} />
         </section>
       )}
-      {schedule?.map(day => (
-        <DaySection key={day.id} day={day} showCalls />
-      ))}
 
       {/* ── Travel ── */}
-      {flights?.length > 0 && (
-        <section className="share-section">
-          <div className="sec-lbl">Flights</div>
-          <ShareTable
-            cols={['Passenger','Route','Departs','Arrives','Airline','Confirmation']}
-            rows={flights.map(f => [
-              f.crew_name || f.passenger_name,
-              `${f.origin} → ${f.destination}${f.is_return ? ' ↩' : ''}`,
-              f.depart_display || fmtDT(f.depart_time),
-              f.arrive_display || fmtDT(f.arrive_time),
-              [f.airline, f.flight_number].filter(Boolean).join(' ') || '—',
-              f.confirmation || '—',
-            ])}
-          />
-        </section>
-      )}
-
       {hotelBlocks?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Hotel Accommodations</div>
@@ -263,6 +227,11 @@ function CrewView({ data }) {
           />
         </section>
       )}
+
+      {/* ── Schedule (with integrated flights) at bottom ── */}
+      {schedule?.map(day => (
+        <DaySection key={day.id} day={day} showCalls flights={flights} />
+      ))}
     </div>
   );
 }
@@ -458,28 +427,90 @@ function ShareTable({ cols, rows }) {
   );
 }
 
-function DaySection({ day, showCalls }) {
+function timeToMins(str) {
+  if (!str) return 9999;
+  const ampm = /([0-9]{1,2}):([0-9]{2})\s*(AM|PM)/i.exec(str);
+  if (ampm) {
+    let h = parseInt(ampm[1], 10); const m = parseInt(ampm[2], 10); const pm = ampm[3].toUpperCase() === 'PM';
+    if (pm && h !== 12) h += 12; if (!pm && h === 12) h = 0; return h * 60 + m;
+  }
+  const hm = /([0-9]{1,2}):([0-9]{2})/.exec(str);
+  if (hm) return parseInt(hm[1], 10) * 60 + parseInt(hm[2], 10);
+  return 9999;
+}
+
+function isoDate(ts) { if (!ts) return null; return new Date(ts).toISOString().slice(0, 10); }
+
+function flightTime(f, leg) {
+  if (leg === 'depart') return f.depart_display || (f.depart_time ? new Date(f.depart_time).toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' }) : '');
+  return f.arrive_display || (f.arrive_time ? new Date(f.arrive_time).toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' }) : '');
+}
+
+function DaySection({ day, showCalls, flights }) {
+  const [open, setOpen] = useState(false);
+
+  const dayStr = day.date ? isoDate(new Date(day.date)) : null;
+  const flightLegs = (flights || []).flatMap(f => {
+    const legs = [];
+    if (dayStr && f.depart_time && isoDate(new Date(f.depart_time)) === dayStr) legs.push({ ...f, _leg:'depart', _time: flightTime(f,'depart') });
+    if (dayStr && f.arrive_time && isoDate(new Date(f.arrive_time)) === dayStr) legs.push({ ...f, _leg:'arrive', _time: flightTime(f,'arrive') });
+    return legs;
+  });
+
+  const allItems = [
+    ...day.events.map(e => ({ _type:'event', _sort: timeToMins(e.start_time), ...e })),
+    ...flightLegs.map(f => ({ _type:'flight', _sort: timeToMins(f._time), ...f })),
+  ].sort((a, b) => a._sort - b._sort);
+
   return (
     <section className="share-section">
-      <div className="sec-lbl">Day {day.day_number} — {new Date(day.date).toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' })}</div>
-      {day.events.length > 0 && (
-        <div className="tl" style={{ marginBottom: 10 }}>
-          {day.events.map(e => (
-            <div key={e.id} className="ev">
-              <div className="ev-time">{e.start_time}{e.end_time ? ` – ${e.end_time}` : ''}</div>
-              <div className={`ev-body${e.is_alert ? ' warn' : ''}`}>
-                <div className={`ev-title${e.is_alert ? ' alert' : ''}`}>{e.title}</div>
-                {e.detail && <div className="ev-detail">{e.detail}</div>}
-              </div>
-            </div>
-          ))}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+        <div className="sec-lbl" style={{ margin:0 }}>Day {day.day_number} — {new Date(day.date).toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' })}</div>
+      </div>
+
+      {showCalls && day.crewCalls?.length > 0 && (
+        <div style={{ marginTop:8 }}>
+          <ShareTable
+            cols={['Position','Name','Call','Wrap']}
+            rows={day.crewCalls.map(c => [c.crewAssignment.position.name, c.crewAssignment.crewMember?.name||'TBD', c.call_time||'—', c.wrap_time||'—'])}
+          />
         </div>
       )}
-      {showCalls && day.crewCalls.length > 0 && (
-        <ShareTable
-          cols={['Position','Name','Call','Wrap']}
-          rows={day.crewCalls.map(c => [c.crewAssignment.position.name, c.crewAssignment.crewMember?.name||'TBD', c.call_time||'—', c.wrap_time||'—'])}
-        />
+
+      {allItems.length > 0 && (
+        <div style={{ marginTop:10 }}>
+          <button
+            onClick={() => setOpen(o => !o)}
+            style={{ background:'none', border:'none', color:'var(--muted)', fontSize:11, cursor:'pointer', padding:0, display:'flex', alignItems:'center', gap:4 }}
+          >
+            {open ? '▾' : '▸'} Timeline ({allItems.length} event{allItems.length !== 1 ? 's' : ''})
+          </button>
+          {open && (
+            <div className="tl" style={{ marginTop:8 }}>
+              {allItems.map((item, i) => item._type === 'flight' ? (
+                <div key={`f-${item.id}-${item._leg}`} className="ev">
+                  <div className="ev-time">✈ {item._time}</div>
+                  <div className="ev-body" style={{ borderLeft:'2px solid var(--orange)' }}>
+                    <div className="ev-title">{item._leg === 'depart' ? 'Departure' : 'Arrival'} — {item.crew_name || item.passenger_name}</div>
+                    <div className="ev-detail">
+                      {item.origin} → {item.destination}
+                      {(item.airline || item.flight_number) && <span style={{ color:'var(--muted)', marginLeft:8 }}>{[item.airline, item.flight_number].filter(Boolean).join(' ')}</span>}
+                      {item.confirmation && <span style={{ color:'var(--muted)', marginLeft:8 }}>#{item.confirmation}</span>}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div key={item.id || i} className="ev">
+                  <div className="ev-time">{item.start_time}{item.end_time ? ` – ${item.end_time}` : ''}</div>
+                  <div className={`ev-body${item.is_alert ? ' warn' : ''}`} style={!item.is_alert ? { borderLeft:'2px solid var(--orange)' } : {}}>
+                    <div className={`ev-title${item.is_alert ? ' alert' : ''}`}>{item.title}</div>
+                    {item.detail && <div className="ev-detail">{item.detail}</div>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       )}
     </section>
   );

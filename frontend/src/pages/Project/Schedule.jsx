@@ -227,9 +227,9 @@ export default function Schedule({ project }) {
             </div>
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:10 }}>
               {[
-                { label:'Crew Lunch', field:'crewLunch' },
+                { label:'Crew Meal Location', field:'crewLunch' },
                 { label:'Gear Storage', field:'gearStorage' },
-                { label:'GS Audio', field:'gsAudio' },
+                { label:'GS Audio Contact', field:'gsAudio' },
               ].map(({ label, field }) => (
                 <div key={field} className="field" style={{ margin:0 }}>
                   <label style={{ fontSize:10 }}>{label}</label>
