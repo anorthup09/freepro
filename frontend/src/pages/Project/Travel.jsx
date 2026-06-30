@@ -119,17 +119,19 @@ export default function Travel({ project }) {
   async function addGuest(e) {
     e.preventDefault();
     const targetHotelId = guestHotelId === '__pick__' ? guestForm.selectedHotelId : guestHotelId;
-    const g = await api.addGuest(project.id, targetHotelId, {
-      crewMemberId: guestForm.crewMemberId || null,
-      guestName: guestForm.guestName,
-      confirmation: guestForm.confirmation,
-      checkIn: new Date(guestForm.checkIn).toISOString(),
-      checkOut: new Date(guestForm.checkOut).toISOString(),
-      cost: guestForm.cost || null,
-    });
-    setHotels(prev => prev.map(h => h.id === targetHotelId ? { ...h, guests: [...h.guests, g] } : h));
-    setGuestHotelId(null);
-    setGuestForm({ selectedHotelId:'', crewMemberId:'', guestName:'', confirmation:'', checkIn:'', checkOut:'', cost:'' });
+    try {
+      const g = await api.addGuest(project.id, targetHotelId, {
+        crewMemberId: guestForm.crewMemberId || null,
+        guestName: guestForm.guestName,
+        confirmation: guestForm.confirmation,
+        checkIn: new Date(guestForm.checkIn + 'T12:00:00').toISOString(),
+        checkOut: new Date(guestForm.checkOut + 'T12:00:00').toISOString(),
+        cost: guestForm.cost || null,
+      });
+      setHotels(prev => prev.map(h => h.id === targetHotelId ? { ...h, guests: [...h.guests, g] } : h));
+      setGuestHotelId(null);
+      setGuestForm({ selectedHotelId:'', crewMemberId:'', guestName:'', confirmation:'', checkIn:'', checkOut:'', cost:'' });
+    } catch(err) { alert(err.message); }
   }
 
   async function removeHotel(id) {
@@ -466,7 +468,7 @@ export default function Travel({ project }) {
                   </div>
                 )}
                 <div className="field span2">
-                  <label>Crew Member</label>
+                  <label>Crew Member <span style={{ color:'var(--muted)', fontSize:10 }}>(optional — auto-fills name)</span></label>
                   <select value={guestForm.crewMemberId} onChange={e => {
                     const id = e.target.value;
                     const a = projectCrew.find(a => a.crewMemberId === id);
@@ -478,6 +480,7 @@ export default function Travel({ project }) {
                     ))}
                   </select>
                 </div>
+                <div className="field span2"><label>Guest Name</label><input value={guestForm.guestName} onChange={e => setGuestForm(f=>({...f,guestName:e.target.value}))} placeholder="Alexander Northup" required /></div>
                 <div className="field span2"><label>Confirmation #</label><input value={guestForm.confirmation} onChange={e => setGuestForm(f=>({...f,confirmation:e.target.value}))} placeholder="138215420" /></div>
                 <div className="field"><label>Check In</label><input type="date" value={guestForm.checkIn} onChange={e => setGuestForm(f=>({...f,checkIn:e.target.value}))} required /></div>
                 <div className="field"><label>Check Out</label><input type="date" value={guestForm.checkOut} onChange={e => setGuestForm(f=>({...f,checkOut:e.target.value}))} required /></div>

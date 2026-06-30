@@ -17,6 +17,8 @@ export default function Deliverables({ project }) {
   const [ditId, setDitId] = useState(project.techSpecs?.dit_crew_member_id || '');
   const [ditSaving, setDitSaving] = useState(false);
   const [frameRate, setFrameRate] = useState(project.techSpecs?.frame_rate || '');
+  const [aspectRatio, setAspectRatio] = useState(project.techSpecs?.aspect_ratio || '');
+  const [resolution, setResolution] = useState(project.techSpecs?.resolution || '');
 
   useEffect(() => {
     api.getDeliverables(project.id).then(setItems);
@@ -25,8 +27,8 @@ export default function Deliverables({ project }) {
   async function saveTechSpecsField(fields) {
     const existing = project.techSpecs || {};
     await api.saveTechSpecs(project.id, {
-      aspectRatio: existing.aspect_ratio || null,
-      resolution: existing.resolution || null,
+      aspectRatio: aspectRatio || existing.aspect_ratio || null,
+      resolution: resolution || existing.resolution || null,
       quality: existing.quality || null,
       cameras: existing.cameras || null,
       execProducer: existing.exec_producer || null,
@@ -49,6 +51,18 @@ export default function Deliverables({ project }) {
   async function saveFrameRate(value) {
     setFrameRate(value);
     try { await saveTechSpecsField({ frameRate: value || null }); }
+    catch(err) { alert(err.message); }
+  }
+
+  async function saveAspectRatio(value) {
+    setAspectRatio(value);
+    try { await saveTechSpecsField({ aspectRatio: value || null }); }
+    catch(err) { alert(err.message); }
+  }
+
+  async function saveResolution(value) {
+    setResolution(value);
+    try { await saveTechSpecsField({ resolution: value || null }); }
     catch(err) { alert(err.message); }
   }
 
@@ -95,26 +109,19 @@ export default function Deliverables({ project }) {
 
       {/* ── Tech Specs ── */}
       <div className="spec-tiles" style={{ marginBottom:20 }}>
-        {[
-          { label:'Aspect Ratio', value: project.techSpecs?.aspect_ratio },
-          { label:'Resolution',   value: project.techSpecs?.resolution },
-          { label:'Frame Rate',   value: frameRate, editable: true },
-        ].map(spec => (
-          <div key={spec.label} className="spec-tile">
-            <div className="spec-tile-label">{spec.label}</div>
-            {spec.editable ? (
-              <input
-                className="spec-tile-input"
-                value={frameRate}
-                onChange={e => setFrameRate(e.target.value)}
-                onBlur={e => saveFrameRate(e.target.value)}
-                placeholder="23.976fps"
-              />
-            ) : (
-              <div className="spec-tile-val">{spec.value || '—'}</div>
-            )}
-          </div>
-        ))}
+        <div className="spec-tile">
+          <div className="spec-tile-label">Aspect Ratio</div>
+          <input className="spec-tile-input" value={aspectRatio} onChange={e => setAspectRatio(e.target.value)} onBlur={e => saveAspectRatio(e.target.value)} placeholder="16:9" />
+        </div>
+        <div className="spec-tile">
+          <div className="spec-tile-label">Resolution</div>
+          <input className="spec-tile-input" value={resolution} onChange={e => setResolution(e.target.value)} onBlur={e => saveResolution(e.target.value)} placeholder="1920×1080" />
+        </div>
+        <div className="spec-tile">
+          <div className="spec-tile-label">Frame Rate</div>
+          <input className="spec-tile-input" value={frameRate} onChange={e => setFrameRate(e.target.value)} onBlur={e => saveFrameRate(e.target.value)} placeholder="23.976fps" />
+        </div>
+
       </div>
 
       {/* ── DIT ── */}
