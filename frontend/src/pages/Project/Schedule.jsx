@@ -35,6 +35,18 @@ function timeToMinutes(str) {
   return 9999;
 }
 
+function fmtTime(str) {
+  if (!str) return '';
+  // Already 12-hour format (legacy text entries)
+  if (/AM|PM/i.test(str)) return str;
+  // HH:MM from time input → 12-hour display
+  const [h, m] = str.split(':').map(Number);
+  if (isNaN(h)) return str;
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 || 12;
+  return `${h12}:${String(m).padStart(2,'0')} ${ampm}`;
+}
+
 function legDisplayTime(leg) {
   if (leg._leg === 'arrive') {
     if (leg.arrive_display) return leg.arrive_display;
@@ -261,7 +273,7 @@ export default function Schedule({ project }) {
                   <div className="tl">
                     {items.map(item => item._type === 'preview' ? (
                       <div key="preview" className="ev" style={{ opacity:0.55 }}>
-                        <div className="ev-time" style={{ fontStyle:'italic' }}>{item.startTime || '—'}{item.endTime ? ` – ${item.endTime}` : ''}</div>
+                        <div className="ev-time" style={{ fontStyle:'italic' }}>{fmtTime(item.startTime) || '—'}{item.endTime ? ` – ${fmtTime(item.endTime)}` : ''}</div>
                         <div className={`ev-body${item.isAlert ? ' warn' : ''}`} style={{ border:'1px dashed var(--border2)' }}>
                           <div className={`ev-title${item.isAlert ? ' alert' : ''}`} style={{ fontStyle:'italic' }}>
                             {item.isAlert ? '⚠ ' : ''}{item.title || 'New event…'}
@@ -296,7 +308,7 @@ export default function Schedule({ project }) {
                       </div>
                     ) : (
                       <div key={item.id} className="ev">
-                        <div className="ev-time">{item.startTime}{item.endTime ? ` – ${item.endTime}` : ''}</div>
+                        <div className="ev-time">{fmtTime(item.startTime)}{item.endTime ? ` – ${fmtTime(item.endTime)}` : ''}</div>
                         <div className={`ev-body${item.isAlert ? ' warn' : ''}`}>
                           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
                             <div className={`ev-title${item.isAlert ? ' alert' : ''}`}>{item.isAlert ? '⚠ ' : ''}{item.title}</div>
@@ -346,8 +358,8 @@ export default function Schedule({ project }) {
             <div className="modal-title">Add Event — Day {currentDay?.dayNumber}</div>
             <form onSubmit={addEvent}>
               <div className="form-grid" style={{ marginBottom:12 }}>
-                <div className="field"><label>Start Time</label><input value={eventForm.startTime} onChange={e => setEventForm(f=>({...f,startTime:e.target.value}))} placeholder="7:30 AM" required /></div>
-                <div className="field"><label>End Time</label><input value={eventForm.endTime} onChange={e => setEventForm(f=>({...f,endTime:e.target.value}))} placeholder="9:00 AM" /></div>
+                <div className="field"><label>Start Time</label><input type="time" value={eventForm.startTime} onChange={e => setEventForm(f=>({...f,startTime:e.target.value}))} required /></div>
+                <div className="field"><label>End Time</label><input type="time" value={eventForm.endTime} onChange={e => setEventForm(f=>({...f,endTime:e.target.value}))} /></div>
                 <div className="field span2"><label>Title</label><input value={eventForm.title} onChange={e => setEventForm(f=>({...f,title:e.target.value}))} required /></div>
                 <div className="field span2"><label>Detail / Notes</label><textarea value={eventForm.detail} onChange={e => setEventForm(f=>({...f,detail:e.target.value}))} /></div>
                 <div className="field span2">
