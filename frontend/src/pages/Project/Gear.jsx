@@ -19,7 +19,7 @@ function Check({ id, label, checked, onChange }) {
   );
 }
 
-export default function Gear({ project }) {
+export default function Gear({ project, setProject }) {
   const [gear, setGear] = useState({
     gearPersonId: '',
     internalRequestSubmitted: false,
@@ -76,12 +76,13 @@ export default function Gear({ project }) {
   const save = useCallback(async (patch) => {
     setSaving(true);
     try {
-      await api.saveGear(project.id, { ...gear, ...patch });
+      const updated = await api.saveGear(project.id, { ...gear, ...patch });
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
+      if (setProject && updated) setProject(p => ({ ...p, gear: updated }));
     } catch(e) { alert(e.message); }
     setSaving(false);
-  }, [gear, project.id]);
+  }, [gear, project.id, setProject]);
 
   function field(key) {
     return {

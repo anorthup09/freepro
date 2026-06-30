@@ -141,7 +141,7 @@ export default function Overview({ project, setProject, onTabChange }) {
       </div>
 
       {/* Stats */}
-      <div className="stats">
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8, margin:'20px 0' }}>
         <div className="stat" style={{ cursor:'pointer' }} onClick={() => onTabChange?.('schedule')}>
           <div className="stat-lbl">Shoot Days</div>
           <div className="stat-val">{shootDays}</div>

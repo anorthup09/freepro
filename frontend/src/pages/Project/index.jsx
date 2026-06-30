@@ -112,7 +112,6 @@ export default function Project() {
           {project.status.replace(/_/g,' ')}
         </span>
         <ShareDropdown projectId={id} />
-        <img src="/unbridled-logo.svg" alt="Unbridled Media" style={{ height:28, opacity:0.55, marginLeft:8 }} />
       </nav>
 
       <div className="wrap">
@@ -120,7 +119,7 @@ export default function Project() {
         {tab === 'schedule'     && <Schedule     project={project} />}
         {tab === 'crew'         && <Crew         project={project} onProjectUpdate={setProject} />}
         {tab === 'travel'          && <Travel       project={project} />}
-        {tab === 'gear'            && <Gear         project={project} />}
+        {tab === 'gear'            && <Gear         project={project} setProject={setProject} />}
         {tab === 'post-production' && <Deliverables project={project} />}
       </div>
     </>

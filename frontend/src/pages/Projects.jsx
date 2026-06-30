@@ -48,7 +48,6 @@ export default function Projects() {
         <Link to="/" className="logo">Free<em>-Pro</em></Link>
         <span style={{ color: 'var(--muted)', fontSize: 12 }}>{user?.name}</span>
         <button className="btn btn-ghost btn-sm" style={{ marginLeft: 'auto' }} onClick={logout}>Sign out</button>
-        <img src="/unbridled-logo.svg" alt="Unbridled Media" style={{ height:28, opacity:0.55, marginLeft:8 }} />
       </nav>
       <div className="wrap">
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:18 }}>
