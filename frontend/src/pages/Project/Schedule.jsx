@@ -245,7 +245,10 @@ export default function Schedule({ project }) {
             const legs = flightLegsForDay(flights, currentDay.date);
             const eventItems = (currentDay.events || []).map(ev => ({ _type:'event', _sort: timeToMinutes(ev.startTime), ...ev }));
             const flightItems = legs.map((leg, i) => ({ _type:'flight', _sort: timeToMinutes(legDisplayTime(leg)), _key: leg.id + leg._leg, ...leg }));
-            const items = [...eventItems, ...flightItems].sort((a, b) => a._sort - b._sort);
+            const previewItems = (showAddEvent && (eventForm.title || eventForm.startTime))
+              ? [{ _type:'preview', _sort: timeToMinutes(eventForm.startTime) || 9998, _key:'preview', ...eventForm }]
+              : [];
+            const items = [...eventItems, ...flightItems, ...previewItems].sort((a, b) => a._sort - b._sort);
 
             return (
               <>
@@ -256,7 +259,22 @@ export default function Schedule({ project }) {
                 <div style={{ marginTop:10 }}>
                   {items.length === 0 && <div className="empty">No events yet for this day.</div>}
                   <div className="tl">
-                    {items.map(item => item._type === 'flight' ? (
+                    {items.map(item => item._type === 'preview' ? (
+                      <div key="preview" className="ev" style={{ opacity:0.55 }}>
+                        <div className="ev-time" style={{ fontStyle:'italic' }}>{item.startTime || '—'}{item.endTime ? ` – ${item.endTime}` : ''}</div>
+                        <div className={`ev-body${item.isAlert ? ' warn' : ''}`} style={{ border:'1px dashed var(--border2)' }}>
+                          <div className={`ev-title${item.isAlert ? ' alert' : ''}`} style={{ fontStyle:'italic' }}>
+                            {item.isAlert ? '⚠ ' : ''}{item.title || 'New event…'}
+                          </div>
+                          {item.detail && <div className="ev-detail">{item.detail}</div>}
+                          {item.tags?.length > 0 && (
+                            <div className="ev-tags">
+                              {item.tags.map(t => <span key={t.type} className={`etag ${TAG_CLASS[t.type]}`}>{TAG_LABEL[t.type]}</span>)}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ) : item._type === 'flight' ? (
                       <div key={item._key} className="ev">
                         <div className="ev-time">✈ {legDisplayTime(item)}</div>
                         <div className="ev-body" style={{ borderLeft:'2px solid var(--tan)' }}>
