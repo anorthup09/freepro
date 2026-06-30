@@ -10,6 +10,31 @@ function flightsForDay(flights, dayDateStr) {
   });
 }
 
+// Convert a display time string like "7:30 AM" or "08:35" to minutes since midnight for sorting
+function timeToMinutes(str) {
+  if (!str) return 9999;
+  const ampm = /([0-9]{1,2}):([0-9]{2})\s*(AM|PM)/i.exec(str);
+  if (ampm) {
+    let h = parseInt(ampm[1], 10);
+    const m = parseInt(ampm[2], 10);
+    const pm = ampm[3].toUpperCase() === 'PM';
+    if (pm && h !== 12) h += 12;
+    if (!pm && h === 12) h = 0;
+    return h * 60 + m;
+  }
+  const hm = /([0-9]{1,2}):([0-9]{2})/.exec(str);
+  if (hm) return parseInt(hm[1], 10) * 60 + parseInt(hm[2], 10);
+  return 9999;
+}
+
+function flightDisplayTime(f) {
+  if (f.depart_display) return f.depart_display;
+  if (f.depart_time) {
+    return new Date(f.depart_time).toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' });
+  }
+  return '';
+}
+
 // Parse a stored date string as local noon to avoid UTC-to-local day shift
 function parseDay(dateStr) {
   if (!dateStr) return new Date();
@@ -204,62 +229,63 @@ export default function Schedule({ project }) {
             </>
           )}
 
-          {/* Flights on this day */}
+          {/* Merged timeline: events + flights sorted by time */}
           {(() => {
             const dayFlights = flightsForDay(flights, currentDay.date);
-            if (!dayFlights.length) return null;
+            const eventItems = (currentDay.events || []).map(ev => ({ _type:'event', _sort: timeToMinutes(ev.startTime), ...ev }));
+            const flightItems = dayFlights.map(f => ({ _type:'flight', _sort: timeToMinutes(flightDisplayTime(f)), ...f }));
+            const items = [...eventItems, ...flightItems].sort((a, b) => a._sort - b._sort);
+
             return (
               <>
-                <div className="sec-lbl">Flights</div>
-                <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden', marginBottom:16 }}>
-                  <table className="pos-table" style={{ width:'100%' }}>
-                    <thead><tr><th>Passenger</th><th>Route</th><th>Departs</th><th>Arrives</th><th>Airline</th><th>Confirmation</th></tr></thead>
-                    <tbody>
-                      {dayFlights.map(f => (
-                        <tr key={f.id}>
-                          <td style={{ fontWeight:500 }}>{f.crew_name || f.passenger_name}</td>
-                          <td style={{ fontSize:11, color:'var(--tan)' }}>{f.origin} → {f.destination}{f.is_return ? ' ↩' : ''}</td>
-                          <td style={{ fontSize:11 }}>{f.depart_display || f.depart_time?.slice(0,16)}</td>
-                          <td style={{ fontSize:11 }}>{f.arrive_display || f.arrive_time?.slice(0,16)}</td>
-                          <td style={{ fontSize:11, color:'var(--muted)' }}>{[f.airline, f.flight_number].filter(Boolean).join(' ') || '—'}</td>
-                          <td style={{ fontSize:11, color:'var(--muted)' }}>{f.confirmation || '—'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                  <div className="sec-lbl" style={{ margin:0 }}>Timeline</div>
+                  <button className="btn btn-ghost btn-sm" onClick={() => setShowAddEvent(true)}>+ Add Event</button>
+                </div>
+                <div style={{ marginTop:10 }}>
+                  {items.length === 0 && <div className="empty">No events yet for this day.</div>}
+                  <div className="tl">
+                    {items.map(item => item._type === 'flight' ? (
+                      <div key={item.id} className="ev">
+                        <div className="ev-time">✈ {flightDisplayTime(item)}</div>
+                        <div className="ev-body" style={{ borderLeft:'2px solid var(--tan)' }}>
+                          <div className="ev-title" style={{ color:'var(--tan)' }}>
+                            {item.crew_name || item.passenger_name}
+                            {item.is_return && <span style={{ fontSize:10, marginLeft:6, color:'var(--muted)' }}>↩ return</span>}
+                          </div>
+                          <div className="ev-detail">
+                            {item.origin} → {item.destination}
+                            {item.arrive_display && <span style={{ color:'var(--muted)', marginLeft:8 }}>arrives {item.arrive_display}</span>}
+                            {(item.airline || item.flight_number) && (
+                              <span style={{ color:'var(--muted)', marginLeft:8 }}>{[item.airline, item.flight_number].filter(Boolean).join(' ')}</span>
+                            )}
+                            {item.confirmation && <span style={{ color:'var(--muted)', marginLeft:8 }}>#{item.confirmation}</span>}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div key={item.id} className="ev">
+                        <div className="ev-time">{item.startTime}{item.endTime ? ` – ${item.endTime}` : ''}</div>
+                        <div className={`ev-body${item.isAlert ? ' warn' : ''}`}>
+                          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
+                            <div className={`ev-title${item.isAlert ? ' alert' : ''}`}>{item.isAlert ? '⚠ ' : ''}{item.title}</div>
+                            <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11, flexShrink:0, marginLeft:8 }} onClick={() => deleteEvent(item.id)}>✕</button>
+                          </div>
+                          {item.detail && <div className="ev-detail">{item.detail}</div>}
+                          {item.location && <div style={{ fontSize:10, color:'var(--tan)', marginTop:3 }}>📍 {item.location.name}</div>}
+                          {item.tags?.length > 0 && (
+                            <div className="ev-tags">
+                              {item.tags.map(t => <span key={t.id} className={`etag ${TAG_CLASS[t.type]}`}>{TAG_LABEL[t.type]}</span>)}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </>
             );
           })()}
-
-          {/* Events timeline */}
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-            <div className="sec-lbl" style={{ margin:0 }}>Timeline</div>
-            <button className="btn btn-ghost btn-sm" onClick={() => setShowAddEvent(true)}>+ Add Event</button>
-          </div>
-          <div style={{ marginTop:10 }}>
-            {currentDay.events?.length === 0 && <div className="empty">No events yet for this day.</div>}
-            <div className="tl">
-              {currentDay.events?.map(ev => (
-                <div key={ev.id} className="ev">
-                  <div className="ev-time">{ev.startTime}{ev.endTime ? ` – ${ev.endTime}` : ''}</div>
-                  <div className={`ev-body${ev.isAlert ? ' warn' : ''}`}>
-                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
-                      <div className={`ev-title${ev.isAlert ? ' alert' : ''}`}>{ev.isAlert ? '⚠ ' : ''}{ev.title}</div>
-                      <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11, flexShrink:0, marginLeft:8 }} onClick={() => deleteEvent(ev.id)}>✕</button>
-                    </div>
-                    {ev.detail && <div className="ev-detail">{ev.detail}</div>}
-                    {ev.location && <div style={{ fontSize:10, color:'var(--tan)', marginTop:3 }}>📍 {ev.location.name}</div>}
-                    {ev.tags?.length > 0 && (
-                      <div className="ev-tags">
-                        {ev.tags.map(t => <span key={t.id} className={`etag ${TAG_CLASS[t.type]}`}>{TAG_LABEL[t.type]}</span>)}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
       )}
 
