@@ -57,7 +57,7 @@ export default function Travel({ project }) {
   const [flightLookupDate, setFlightLookupDate] = useState('');
   const [flightLooking, setFlightLooking] = useState(false);
   const [flightLookupError, setFlightLookupError] = useState('');
-  const [flightForm, setFlightForm] = useState({ crewMemberId:'', passengerName:'', flightNumber:'', airline:'', origin:'', destination:'', departTime:'', arriveTime:'', confirmation:'', isReturn:false, cost:'', status:'' });
+  const [flightForm, setFlightForm] = useState({ passengerName:'', flightNumber:'', airline:'', origin:'', destination:'', departTime:'', arriveTime:'', confirmation:'', isReturn:false, cost:'', status:'' });
 
   // Drive / car modals
   const [showDrive, setShowDrive] = useState(false);
@@ -165,19 +165,18 @@ export default function Travel({ project }) {
   async function addFlight(e) {
     e.preventDefault();
     try {
-      const crewMember = projectCrew.find(a => a.crewMemberId === flightForm.crewMemberId)?.crewMember;
       const f = await api.createFlight(project.id, {
         ...flightForm,
-        passengerName: flightForm.passengerName || crewMember?.name || 'Unknown',
+        passengerName: flightForm.passengerName || 'Unknown',
         departTime: flightForm.departTime ? new Date(flightForm.departTime).toISOString() : null,
         arriveTime: flightForm.arriveTime ? new Date(flightForm.arriveTime).toISOString() : null,
-        crewMemberId: flightForm.crewMemberId || null,
+        crewMemberId: null,
         cost: flightForm.cost || null,
       });
       setFlights(prev => [...prev, f]);
       setShowFlight(false);
       setFlightLookupQuery(''); setFlightLookupDate(''); setFlightLookupError('');
-      setFlightForm({ crewMemberId:'', passengerName:'', flightNumber:'', airline:'', origin:'', destination:'', departTime:'', arriveTime:'', confirmation:'', isReturn:false, cost:'', status:'' });
+      setFlightForm({ passengerName:'', flightNumber:'', airline:'', origin:'', destination:'', departTime:'', arriveTime:'', confirmation:'', isReturn:false, cost:'', status:'' });
     } catch(err) { alert(err.message); }
   }
 
@@ -478,21 +477,6 @@ export default function Travel({ project }) {
                   </div>
                   {flightLookupError && <div style={{ fontSize:11, color:'var(--red-text, #e08080)', marginTop:3 }}>{flightLookupError}</div>}
                   {flightForm.status && <div style={{ fontSize:11, fontWeight:600, color: statusColor(flightForm.status), marginTop:3 }}>{flightForm.status}</div>}
-                </div>
-
-                {/* Crew member */}
-                <div className="field span2">
-                  <label>Crew Member</label>
-                  <select value={flightForm.crewMemberId} onChange={e => {
-                    const id = e.target.value;
-                    const a = projectCrew.find(a => a.crewMemberId === id);
-                    setFlightForm(f=>({ ...f, crewMemberId: id, passengerName: a?.crewMember?.name || f.passengerName }));
-                  }}>
-                    <option value="">— Select crew member —</option>
-                    {projectCrew.filter(a => a.crewMember).map(a => (
-                      <option key={a.crewMemberId} value={a.crewMemberId}>{a.crewMember.name} — {a.position.name}</option>
-                    ))}
-                  </select>
                 </div>
 
                 <div className="field"><label>Confirmation #</label><input value={flightForm.confirmation} onChange={e => setFlightForm(f=>({...f,confirmation:e.target.value}))} placeholder="APMKP8" /></div>
