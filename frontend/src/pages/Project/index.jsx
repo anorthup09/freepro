@@ -19,6 +19,63 @@ const TABS = [
 
 const FRONTEND_BASE = window.location.origin;
 
+const STATUSES = ['PLANNING','ACTIVE','WRAPPED','DELIVERED','ARCHIVED'];
+const STATUS_PILL = { PLANNING:'amber', ACTIVE:'green', WRAPPED:'purple', DELIVERED:'green', ARCHIVED:'' };
+
+function StageDropdown({ project, setProject }) {
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    function handleClick(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  async function pick(status) {
+    setOpen(false);
+    if (status === project.status) return;
+    setSaving(true);
+    try {
+      const updated = await api.updateProject(project.id, { status });
+      setProject(updated);
+    } catch (err) { alert(err.message); }
+    setSaving(false);
+  }
+
+  return (
+    <div className="stage-wrap" ref={ref} style={{ position:'relative', marginLeft:'auto' }}>
+      <button
+        className={`live pill ${STATUS_PILL[project.status] || ''}`}
+        onClick={() => setOpen(o => !o)}
+        style={{ cursor:'pointer', display:'inline-flex', alignItems:'center', gap:5, fontFamily:"'DM Sans',sans-serif" }}
+        disabled={saving}
+      >
+        {project.status.replace(/_/g,' ')} <span style={{ fontSize:9, opacity:.7 }}>▾</span>
+      </button>
+      {open && (
+        <div className="share-menu" style={{ minWidth:160 }}>
+          <div style={{ padding:'6px 14px 3px', fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em' }}>Set Stage</div>
+          {STATUSES.map(s => (
+            <div
+              key={s}
+              className="share-menu-item"
+              onClick={() => pick(s)}
+              style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}
+            >
+              {s.replace(/_/g,' ')}
+              {s === project.status && <span style={{ color:'var(--orange)' }}>✓</span>}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ShareDropdown({ projectId }) {
   const [shares, setShares] = useState([]);
   const [open, setOpen] = useState(false);
@@ -112,8 +169,6 @@ export default function Project() {
 
   if (!project) return null;
 
-  const STATUS_PILL = { PLANNING:'amber', ACTIVE:'green', WRAPPED:'purple', DELIVERED:'green', ARCHIVED:'' };
-
   return (
     <>
       <nav className="nav">
@@ -125,9 +180,7 @@ export default function Project() {
             </button>
           ))}
         </div>
-        <span className={`live pill ${STATUS_PILL[project.status] || ''}`} style={{ marginLeft:'auto' }}>
-          {project.status.replace(/_/g,' ')}
-        </span>
+        <StageDropdown project={project} setProject={setProject} />
         <ShareDropdown projectId={id} />
       </nav>
 
