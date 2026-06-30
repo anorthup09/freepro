@@ -91,6 +91,7 @@ export const api = {
   // Travel
   getHotels: (projectId) => req('GET', `/projects/${projectId}/travel/hotels`),
   createHotel: (projectId, data) => req('POST', `/projects/${projectId}/travel/hotels`, data),
+  deleteHotel: (projectId, hotelId) => req('DELETE', `/projects/${projectId}/travel/hotels/${hotelId}`),
   addGuest: (projectId, hotelId, data) => req('POST', `/projects/${projectId}/travel/hotels/${hotelId}/guests`, data),
   updateGuest: (projectId, guestId, data) => req('PATCH', `/projects/${projectId}/travel/guests/${guestId}`, data),
   deleteGuest: (projectId, guestId) => req('DELETE', `/projects/${projectId}/travel/guests/${guestId}`),

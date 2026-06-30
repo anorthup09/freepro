@@ -129,6 +129,12 @@ export default function Travel({ project }) {
     setGuestForm({ selectedHotelId:'', crewMemberId:'', guestName:'', confirmation:'', checkIn:'', checkOut:'', cost:'' });
   }
 
+  async function removeHotel(id) {
+    if (!confirm('Remove this hotel and all its confirmations?')) return;
+    await api.deleteHotel(project.id, id);
+    setHotels(prev => prev.filter(h => h.id !== id));
+  }
+
   async function removeGuest(hotelId, guestId) {
     await api.deleteGuest(project.id, guestId);
     setHotels(prev => prev.map(h => h.id === hotelId ? { ...h, guests: h.guests.filter(g => g.id !== guestId) } : h));
@@ -242,8 +248,16 @@ export default function Travel({ project }) {
       </div>
       {hotels.map(h => (
         <div key={h.id} className="h-card">
-          <div className="h-name">{h.name}</div>
-          <div className="h-addr">{h.address}{h.phone && ` · ${h.phone}`}</div>
+          <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between' }}>
+            <div className="h-name">{h.name}</div>
+            <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11, marginLeft:8, flexShrink:0 }} onClick={() => removeHotel(h.id)}>✕</button>
+          </div>
+          <div className="h-addr">
+            {h.address
+              ? <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(h.address)}`} target="_blank" rel="noreferrer" style={{ color:'var(--muted)', textDecoration:'underline' }}>{h.address}</a>
+              : null}
+            {h.phone && ` · ${h.phone}`}
+          </div>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
             <span style={{ fontSize:11, color:'var(--muted)' }}>{h.guests.length} confirmation{h.guests.length !== 1 ? 's' : ''}</span>
             <button className="btn btn-ghost btn-sm" onClick={() => { setGuestHotelId(h.id); setGuestForm({ selectedHotelId:'', crewMemberId:'', guestName:'', confirmation:'', checkIn:'', checkOut:'', cost:'' }); }}>+ Add Confirmation</button>
