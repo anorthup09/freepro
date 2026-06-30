@@ -507,7 +507,7 @@ function flightTime(f, leg) {
 }
 
 function DaySection({ day, showCalls, flights, dayIndex }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
 
   const dayStr = day.date ? isoDate(new Date(day.date)) : null;
   const dayMD = dayStr ? dayStr.slice(5) : null; // "MM-DD"
