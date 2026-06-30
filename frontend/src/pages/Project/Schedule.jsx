@@ -64,6 +64,19 @@ function parseDay(dateStr) {
   return new Date(dateStr.slice(0, 10) + 'T12:00:00');
 }
 
+function wmoIcon(code) {
+  if (code === 0) return '☀️';
+  if (code <= 2) return '⛅';
+  if (code === 3) return '☁️';
+  if (code <= 48) return '🌫️';
+  if (code <= 55) return '🌦️';
+  if (code <= 67) return '🌧️';
+  if (code <= 77) return '🌨️';
+  if (code <= 82) return '🌦️';
+  if (code <= 86) return '❄️';
+  return '⛈️';
+}
+
 const TAG_TYPES = ['VIDEO','PHOTO','AUDIO','ALL_CREW','TALENT','CUSTOM'];
 const TAG_CLASS = { VIDEO:'v', PHOTO:'p', AUDIO:'a', ALL_CREW:'a', TALENT:'t', CUSTOM:'v' };
 const TAG_LABEL = { VIDEO:'Video', PHOTO:'Photo', AUDIO:'Audio', ALL_CREW:'All Crew', TALENT:'Talent', CUSTOM:'Custom' };
@@ -81,6 +94,7 @@ export default function Schedule({ project }) {
   const [callTime, setCallTime] = useState('');
   const [dayMeta, setDayMeta] = useState({});
   const [flights, setFlights] = useState([]);
+  const [weatherByDate, setWeatherByDate] = useState({});
 
   useEffect(() => {
     api.getFlights(project.id).then(setFlights).catch(() => {});
@@ -92,6 +106,34 @@ export default function Schedule({ project }) {
       setDayMeta(meta);
     });
   }, [project.id]);
+
+  useEffect(() => {
+    if (!project.city) return;
+    async function fetchWeather() {
+      try {
+        const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(project.city)}&count=1&language=en&format=json`);
+        const geo = await geoRes.json();
+        if (!geo.results?.length) return;
+        const { latitude, longitude } = geo.results[0];
+        const dates = days.map(d => d.date?.slice(0,10)).filter(Boolean).sort();
+        if (!dates.length) return;
+        const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weathercode&temperature_unit=fahrenheit&timezone=auto&start_date=${dates[0]}&end_date=${dates[dates.length-1]}&forecast_days=16`);
+        const w = await wRes.json();
+        if (!w.daily?.time) return;
+        const byDate = {};
+        w.daily.time.forEach((date, i) => {
+          byDate[date] = {
+            high: Math.round(w.daily.temperature_2m_max[i]),
+            low: Math.round(w.daily.temperature_2m_min[i]),
+            precip: w.daily.precipitation_probability_max[i],
+            code: w.daily.weathercode[i],
+          };
+        });
+        setWeatherByDate(byDate);
+      } catch(e) {}
+    }
+    if (days.length) fetchWeather();
+  }, [days, project.city]);
 
   async function saveDayMeta(dayId, field, value) {
     setDayMeta(m => ({ ...m, [dayId]: { ...m[dayId], [field]: value } }));
@@ -214,8 +256,18 @@ export default function Schedule({ project }) {
           <div className="card" style={{ marginBottom:16 }}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
               <div>
-                <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:15 }}>
+                <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:15, display:'flex', alignItems:'center', gap:10 }}>
                   Day {currentDay.dayNumber} · {parseDay(currentDay.date).toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' })}
+                  {(() => {
+                    const w = weatherByDate[currentDay.date?.slice(0,10)];
+                    if (!w) return null;
+                    return (
+                      <span style={{ fontSize:12, fontWeight:400, color:'var(--tan)', display:'flex', alignItems:'center', gap:5 }}>
+                        {wmoIcon(w.code)} {w.high}° / {w.low}°
+                        {w.precip > 0 && <span style={{ color:'var(--muted)', fontSize:11 }}>· {w.precip}% precip</span>}
+                      </span>
+                    );
+                  })()}
                 </div>
                 <div style={{ fontSize:11, color:'var(--muted)', marginTop:3 }}>
                   {currentDay.callTime && `Call ${currentDay.callTime}`}
