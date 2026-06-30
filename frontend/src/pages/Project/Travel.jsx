@@ -173,7 +173,9 @@ export default function Travel({ project }) {
       const f = await api.createFlight(project.id, {
         ...flightForm,
         passengerName: flightForm.passengerName || 'Unknown',
-        departTime: flightForm.departTime ? new Date(flightForm.departTime).toISOString() : null,
+        departTime: flightForm.departTime
+          ? new Date(flightForm.departTime).toISOString()
+          : (flightLookupDate ? new Date(flightLookupDate + 'T12:00:00').toISOString() : null),
         arriveTime: flightForm.arriveTime ? new Date(flightForm.arriveTime).toISOString() : null,
         crewMemberId: flightForm.crewMemberId || null,
         departDisplay: flightForm.departDisplay || null,

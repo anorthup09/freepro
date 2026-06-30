@@ -6,14 +6,30 @@ function isoDateOf(ts) {
   return new Date(ts).toISOString().slice(0, 10);
 }
 
+// Parse month/day from display strings like "Aug 9, 10:00 AM"
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function displayMD(str) {
+  if (!str) return null;
+  const m = str.match(/^(\w{3})\s+(\d+)/);
+  if (!m) return null;
+  const mi = MONTHS.indexOf(m[1]);
+  return mi >= 0 ? `${String(mi + 1).padStart(2,'0')}-${String(parseInt(m[2])).padStart(2,'0')}` : null;
+}
+
 // Returns [{...flight, _leg:'depart'|'arrive'}] for items that fall on dayDateStr
 function flightLegsForDay(flights, dayDateStr) {
   if (!flights?.length || !dayDateStr) return [];
-  const dayDate = dayDateStr.slice(0, 10);
+  const dayDate = dayDateStr.slice(0, 10); // "YYYY-MM-DD"
+  const dayMD = dayDate.slice(5);           // "MM-DD"
   const legs = [];
+  const seen = new Set();
   for (const f of flights) {
-    if (f.depart_time && isoDateOf(f.depart_time) === dayDate) legs.push({ ...f, _leg:'depart' });
-    if (f.arrive_time && isoDateOf(f.arrive_time) === dayDate) legs.push({ ...f, _leg:'arrive' });
+    const departMatch = (f.depart_time && isoDateOf(f.depart_time) === dayDate) ||
+                        (!f.depart_time && displayMD(f.depart_display) === dayMD);
+    const arriveMatch = (f.arrive_time && isoDateOf(f.arrive_time) === dayDate) ||
+                        (!f.arrive_time && displayMD(f.arrive_display) === dayMD);
+    if (departMatch && !seen.has(f.id + 'd')) { legs.push({ ...f, _leg:'depart' }); seen.add(f.id + 'd'); }
+    if (arriveMatch && !seen.has(f.id + 'a')) { legs.push({ ...f, _leg:'arrive' }); seen.add(f.id + 'a'); }
   }
   return legs;
 }
