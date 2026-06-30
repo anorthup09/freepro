@@ -241,10 +241,7 @@ export default function Travel({ project }) {
           <div className="sec-lbl" style={{ marginTop:0 }}>Hotels</div>
           {hotelTotal && <span style={{ fontSize:11, color:'var(--green)', fontWeight:600 }}>{hotelTotal} total</span>}
         </div>
-        <div style={{ display:'flex', gap:8 }}>
-          <button className="btn btn-ghost btn-sm" onClick={() => { setGuestHotelId('__pick__'); setGuestForm({ selectedHotelId:'', crewMemberId:'', guestName:'', confirmation:'', checkIn:'', checkOut:'', cost:'' }); }}>+ Add Confirmation</button>
-          <button className="btn btn-ghost btn-sm" onClick={() => setShowHotel(true)}>+ Add Hotel</button>
-        </div>
+        <button className="btn btn-ghost btn-sm" onClick={() => setShowHotel(true)}>+ Add Hotel</button>
       </div>
       {hotels.map(h => (
         <div key={h.id} className="h-card">
