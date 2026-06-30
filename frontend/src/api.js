@@ -52,6 +52,7 @@ export const api = {
 
   // Crew roster
   getCrew: () => req('GET', '/crew'),
+  getCrewMember: (id) => req('GET', `/crew/${id}`),
   createCrewMember: (data) => req('POST', '/crew', data),
   updateCrewMember: (id, data) => req('PATCH', `/crew/${id}`, data),
 

@@ -286,6 +286,14 @@ async function migrate() {
 
   await sql`ALTER TABLE tech_specs ADD COLUMN IF NOT EXISTS dit_crew_member_id TEXT REFERENCES crew_members(id)`;
 
+  await sql`ALTER TABLE crew_members ADD COLUMN IF NOT EXISTS date_of_birth DATE`;
+  await sql`ALTER TABLE crew_members ADD COLUMN IF NOT EXISTS passport_number TEXT`;
+  await sql`ALTER TABLE crew_members ADD COLUMN IF NOT EXISTS passport_expiry DATE`;
+  await sql`ALTER TABLE crew_members ADD COLUMN IF NOT EXISTS known_traveler_number TEXT`;
+  await sql`ALTER TABLE crew_members ADD COLUMN IF NOT EXISTS seat_preference TEXT`;
+  await sql`ALTER TABLE crew_members ADD COLUMN IF NOT EXISTS emergency_contact TEXT`;
+  await sql`ALTER TABLE crew_members ADD COLUMN IF NOT EXISTS emergency_phone TEXT`;
+
   await sql`ALTER TABLE schedule_events ADD COLUMN IF NOT EXISTS audience TEXT[] DEFAULT '{}'`;
   await sql`ALTER TABLE crew_day_calls ADD COLUMN IF NOT EXISTS audience TEXT[] DEFAULT '{}'`;
 

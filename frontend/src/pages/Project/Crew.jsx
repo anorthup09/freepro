@@ -15,6 +15,11 @@ export default function Crew({ project, onProjectUpdate }) {
   const [slotForm, setSlotForm] = useState({ positionId:'', crewMemberId:'', slotNumber:1, callTime:'', daysActive:'' });
   const [showAddCrew, setShowAddCrew] = useState(false);
   const [crewForm, setCrewForm] = useState({ name:'', email:'', phone:'', company:'' });
+  const [rosterQuery, setRosterQuery] = useState('');
+  const [selectedMember, setSelectedMember] = useState(null);
+  const [memberDetail, setMemberDetail] = useState(null);
+  const [memberForm, setMemberForm] = useState({});
+  const [memberSaving, setMemberSaving] = useState(false);
   const [editId, setEditId] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [showTalentModal, setShowTalentModal] = useState(false);
@@ -50,6 +55,36 @@ export default function Crew({ project, onProjectUpdate }) {
       setShowAddCrew(false);
       setCrewForm({ name:'', email:'', phone:'', company:'' });
     } catch(e) { alert(e.message); }
+  }
+
+  async function openMember(m) {
+    setSelectedMember(m);
+    const detail = await api.getCrewMember(m.id).catch(() => m);
+    setMemberDetail(detail);
+    setMemberForm({
+      name: detail.name || '',
+      email: detail.email || '',
+      phone: detail.phone || '',
+      company: detail.company || '',
+      dateOfBirth: detail.date_of_birth?.slice(0,10) || '',
+      passportNumber: detail.passport_number || '',
+      passportExpiry: detail.passport_expiry?.slice(0,10) || '',
+      knownTravelerNumber: detail.known_traveler_number || '',
+      seatPreference: detail.seat_preference || '',
+      emergencyContact: detail.emergency_contact || '',
+      emergencyPhone: detail.emergency_phone || '',
+    });
+  }
+
+  async function saveMember(e) {
+    e.preventDefault();
+    setMemberSaving(true);
+    try {
+      const updated = await api.updateCrewMember(memberDetail.id, memberForm);
+      setRoster(r => r.map(m => m.id === updated.id ? { ...m, ...updated } : m));
+      setMemberDetail(d => ({ ...d, ...updated }));
+    } catch(err) { alert(err.message); }
+    setMemberSaving(false);
   }
 
   async function saveEdit(id) {
@@ -94,10 +129,7 @@ export default function Crew({ project, onProjectUpdate }) {
           <div className="page-title">Crew</div>
           <div className="page-sub">{assignments.length} position{assignments.length !== 1 ? 's' : ''} assigned</div>
         </div>
-        <div style={{ display:'flex', gap:8 }}>
-          <button className="btn btn-ghost btn-sm" onClick={() => setShowAddCrew(true)}>+ New Person</button>
-          <button className="btn btn-primary" onClick={() => setShowAddSlot(true)}>+ Add Position</button>
-        </div>
+        <button className="btn btn-primary" onClick={() => setShowAddSlot(true)}>+ Add Position</button>
       </div>
 
       {assignments.length === 0 && <div className="empty">No crew assigned yet. Add a position to get started.</div>}
@@ -188,23 +220,104 @@ export default function Crew({ project, onProjectUpdate }) {
         {(project.keyTalent||[]).length === 0 && <span style={{ color:'var(--muted)', fontSize:12 }}>No talent added yet.</span>}
       </div>
 
-      {/* Roster reference */}
-      <div className="sec-lbl" style={{ marginTop:24 }}>Full Roster</div>
-      <div className="crew-grid">
-        {roster.map(m => (
-          <div key={m.id} className="cc">
-            <div className="av" style={{ background: colorFor(m.name)+'22', color: colorFor(m.name) }}>{initials(m.name)}</div>
-            <div style={{ flex:1 }}>
-              <div className="cc-name">{m.name}</div>
-              <div className="cc-contact">
-                {m.email && <>{m.email}<br/></>}
-                {m.phone}
-                {m.company && <> · {m.company}</>}
+      {/* Roster Look-Up */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:24 }}>
+        <div className="sec-lbl" style={{ marginTop:0 }}>Roster Look-Up</div>
+        <button className="btn btn-ghost btn-sm" onClick={() => setShowAddCrew(true)}>+ New Person</button>
+      </div>
+      <input
+        value={rosterQuery}
+        onChange={e => setRosterQuery(e.target.value)}
+        placeholder="Search by name, email, or company…"
+        style={{ marginBottom:8 }}
+      />
+      {rosterQuery.trim().length > 0 && (
+        <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden', marginBottom:12 }}>
+          {roster.filter(m => {
+            const q = rosterQuery.toLowerCase();
+            return m.name?.toLowerCase().includes(q) || m.email?.toLowerCase().includes(q) || m.company?.toLowerCase().includes(q);
+          }).slice(0,10).map(m => (
+            <div key={m.id}
+              style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 14px', cursor:'pointer', borderBottom:'1px solid var(--border)' }}
+              onClick={() => openMember(m)}
+            >
+              <div className="av" style={{ width:28, height:28, fontSize:10, flexShrink:0, background: colorFor(m.name)+'22', color: colorFor(m.name) }}>{initials(m.name)}</div>
+              <div>
+                <div style={{ fontSize:12, fontWeight:500 }}>{m.name}</div>
+                <div style={{ fontSize:10, color:'var(--muted)' }}>{[m.company, m.email].filter(Boolean).join(' · ')}</div>
               </div>
             </div>
+          ))}
+          {roster.filter(m => {
+            const q = rosterQuery.toLowerCase();
+            return m.name?.toLowerCase().includes(q) || m.email?.toLowerCase().includes(q) || m.company?.toLowerCase().includes(q);
+          }).length === 0 && <div className="empty" style={{ padding:'10px 14px' }}>No match found.</div>}
+        </div>
+      )}
+
+      {/* Crew Member Detail Modal */}
+      {selectedMember && memberDetail && (
+        <div className="modal-bg" onClick={e => e.target === e.currentTarget && setSelectedMember(null)}>
+          <div className="modal" style={{ maxWidth:560 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:16 }}>
+              <div className="av" style={{ width:40, height:40, fontSize:14, flexShrink:0, background: colorFor(memberDetail.name)+'22', color: colorFor(memberDetail.name) }}>{initials(memberDetail.name)}</div>
+              <div>
+                <div className="modal-title" style={{ marginBottom:0 }}>{memberDetail.name}</div>
+                {memberDetail.company && <div style={{ fontSize:11, color:'var(--muted)' }}>{memberDetail.company}</div>}
+              </div>
+            </div>
+            <form onSubmit={saveMember}>
+              <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)', marginBottom:8 }}>Contact</div>
+              <div className="form-grid" style={{ marginBottom:16 }}>
+                <div className="field span2"><label>Full Name</label><input value={memberForm.name} onChange={e => setMemberForm(f=>({...f,name:e.target.value}))} required /></div>
+                <div className="field"><label>Email</label><input type="email" value={memberForm.email} onChange={e => setMemberForm(f=>({...f,email:e.target.value}))} /></div>
+                <div className="field"><label>Phone</label><input value={memberForm.phone} onChange={e => setMemberForm(f=>({...f,phone:e.target.value}))} /></div>
+                <div className="field span2"><label>Company</label><input value={memberForm.company} onChange={e => setMemberForm(f=>({...f,company:e.target.value}))} /></div>
+              </div>
+
+              <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)', marginBottom:8 }}>Travel Info</div>
+              <div className="form-grid" style={{ marginBottom:16 }}>
+                <div className="field"><label>Date of Birth</label><input type="date" value={memberForm.dateOfBirth} onChange={e => setMemberForm(f=>({...f,dateOfBirth:e.target.value}))} /></div>
+                <div className="field"><label>Seat Preference</label>
+                  <select value={memberForm.seatPreference} onChange={e => setMemberForm(f=>({...f,seatPreference:e.target.value}))}>
+                    <option value="">— No preference —</option>
+                    <option value="Window">Window</option>
+                    <option value="Aisle">Aisle</option>
+                    <option value="Middle">Middle</option>
+                  </select>
+                </div>
+                <div className="field"><label>Passport Number</label><input value={memberForm.passportNumber} onChange={e => setMemberForm(f=>({...f,passportNumber:e.target.value}))} placeholder="US123456789" /></div>
+                <div className="field"><label>Passport Expiry</label><input type="date" value={memberForm.passportExpiry} onChange={e => setMemberForm(f=>({...f,passportExpiry:e.target.value}))} /></div>
+                <div className="field span2"><label>Known Traveler # <span style={{ color:'var(--muted)', fontWeight:400 }}>(TSA PreCheck / Global Entry)</span></label><input value={memberForm.knownTravelerNumber} onChange={e => setMemberForm(f=>({...f,knownTravelerNumber:e.target.value}))} placeholder="12345678" /></div>
+              </div>
+
+              <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)', marginBottom:8 }}>Emergency Contact</div>
+              <div className="form-grid" style={{ marginBottom:16 }}>
+                <div className="field"><label>Name</label><input value={memberForm.emergencyContact} onChange={e => setMemberForm(f=>({...f,emergencyContact:e.target.value}))} placeholder="Jane Smith" /></div>
+                <div className="field"><label>Phone</label><input value={memberForm.emergencyPhone} onChange={e => setMemberForm(f=>({...f,emergencyPhone:e.target.value}))} placeholder="+1 555-555-5555" /></div>
+              </div>
+
+              {memberDetail.assignments?.length > 0 && (
+                <>
+                  <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)', marginBottom:8 }}>Project History</div>
+                  <div style={{ marginBottom:16 }}>
+                    {memberDetail.assignments.map(a => (
+                      <div key={a.id} style={{ fontSize:11, color:'var(--muted)', padding:'3px 0', borderBottom:'1px solid var(--border)' }}>
+                        <span style={{ color:'var(--text)', fontWeight:500 }}>{a.code}</span> · {a.title} · {a.position_name}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              <div className="btn-row">
+                <button className="btn btn-primary" disabled={memberSaving}>{memberSaving ? 'Saving…' : 'Save'}</button>
+                <button type="button" className="btn btn-ghost" onClick={() => setSelectedMember(null)}>Close</button>
+              </div>
+            </form>
           </div>
-        ))}
-      </div>
+        </div>
+      )}
 
       {/* Add Position Slot Modal */}
       {showAddSlot && (

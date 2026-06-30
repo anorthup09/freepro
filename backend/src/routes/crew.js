@@ -46,6 +46,13 @@ const crewSchema = z.object({
   initials: z.string().max(3).optional(),
   avatarColor: z.string().optional(),
   isActive: z.boolean().optional(),
+  dateOfBirth: z.string().optional().nullable(),
+  passportNumber: z.string().optional().nullable(),
+  passportExpiry: z.string().optional().nullable(),
+  knownTravelerNumber: z.string().optional().nullable(),
+  seatPreference: z.string().optional().nullable(),
+  emergencyContact: z.string().optional().nullable(),
+  emergencyPhone: z.string().optional().nullable(),
 });
 
 router.get('/', requireAuth, async (req, res, next) => {
@@ -92,6 +99,13 @@ router.patch('/:id', requireAuth, requireRole('ADMIN', 'PRODUCER'), async (req, 
         phone = COALESCE(${data.phone ?? null}, phone),
         company = COALESCE(${data.company ?? null}, company),
         is_active = COALESCE(${data.isActive ?? null}, is_active),
+        date_of_birth = ${data.dateOfBirth !== undefined ? (data.dateOfBirth||null) : sql`date_of_birth`},
+        passport_number = ${data.passportNumber !== undefined ? (data.passportNumber||null) : sql`passport_number`},
+        passport_expiry = ${data.passportExpiry !== undefined ? (data.passportExpiry||null) : sql`passport_expiry`},
+        known_traveler_number = ${data.knownTravelerNumber !== undefined ? (data.knownTravelerNumber||null) : sql`known_traveler_number`},
+        seat_preference = ${data.seatPreference !== undefined ? (data.seatPreference||null) : sql`seat_preference`},
+        emergency_contact = ${data.emergencyContact !== undefined ? (data.emergencyContact||null) : sql`emergency_contact`},
+        emergency_phone = ${data.emergencyPhone !== undefined ? (data.emergencyPhone||null) : sql`emergency_phone`},
         updated_at = NOW()
       WHERE id = ${req.params.id} RETURNING *`;
     res.json(m);
