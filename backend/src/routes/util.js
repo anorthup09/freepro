@@ -82,16 +82,17 @@ router.get('/flight-lookup', requireAuth, async (req, res, next) => {
       }
 
       const data = await r.json();
-      const f = (data.scheduled || [])[0];
-      if (!f) return res.status(404).json({ error: 'Flight not found for that date' });
+      console.log('FlightAware schedules response:', JSON.stringify(data).slice(0, 1000));
+      const f = (data.scheduled || data.flights || [])[0];
+      if (!f) return res.status(404).json({ error: `Flight not found for that date (searched: ${numericFlight} on ${targetDate})` });
 
       return res.json({
         flightNumber: f.ident_iata || f.ident || flight.toUpperCase(),
         airline: f.operator_iata || f.operator || '',
-        origin: f.origin || '',
-        destination: f.destination || '',
-        departTime: f.departure_time?.scheduled || null,
-        arriveTime: f.arrival_time?.scheduled || null,
+        origin: f.origin?.code_iata || f.origin?.code || f.origin || '',
+        destination: f.destination?.code_iata || f.destination?.code || f.destination || '',
+        departTime: f.scheduled_out || f.departure_time?.scheduled || f.depart_time || null,
+        arriveTime: f.scheduled_in || f.arrival_time?.scheduled || f.arrive_time || null,
         status: '',
       });
     }
