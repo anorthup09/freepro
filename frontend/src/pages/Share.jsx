@@ -4,7 +4,8 @@ import { api } from '../api.js';
 
 function fmt(dt) {
   if (!dt) return '';
-  return new Date(dt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  // Slice to date-only and use local noon to prevent UTC day-shift
+  return new Date(String(dt).slice(0, 10) + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 const STATUS_LABEL = { WAITING_ON_ASSETS:'Waiting on Assets', IN_PROGRESS:'In Progress', ROUGH_CUT:'Rough Cut', IN_REVIEW:'In Review', APPROVED:'Approved', DELIVERED:'Delivered' };
@@ -32,6 +33,33 @@ function fmtDT(dt) {
   return new Date(dt).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
 }
 
+function mapsUrl(address) {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+}
+
+function SpecTiles({ techSpecs }) {
+  if (!techSpecs) return null;
+  const specs = [
+    { label: 'Aspect Ratio', value: techSpecs.aspect_ratio },
+    { label: 'Resolution',   value: techSpecs.resolution },
+    { label: 'Frame Rate',   value: techSpecs.frame_rate },
+  ].filter(s => s.value);
+  if (!specs.length) return null;
+  return (
+    <section className="share-section">
+      <div className="sec-lbl">Tech Specs</div>
+      <div className="spec-tiles">
+        {specs.map(s => (
+          <div key={s.label} className="spec-tile">
+            <div className="spec-tile-label">{s.label}</div>
+            <div className="spec-tile-val">{s.value}</div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 // ── Producer View ────────────────────────────────────────────────────────────
 function ProducerView({ data }) {
   const { project, locations, techSpecs, clientContacts, keyTalent, crewAssignments, schedule, flights, hotelBlocks, rentalCars, deliverables, gear } = data;
@@ -47,14 +75,51 @@ function ProducerView({ data }) {
         </div>
       </div>
 
-      {techSpecs && (
+      {/* ── Key Contacts at top ── */}
+      {(project.poc_name || gear?.gear_person_name) && (
         <section className="share-section">
-          <div className="sec-lbl">Tech Specs</div>
-          <div className="chips">
-            {techSpecs.aspect_ratio && <div className="chip"><strong>Ratio</strong>{techSpecs.aspect_ratio}</div>}
-            {techSpecs.resolution && <div className="chip"><strong>Resolution</strong>{techSpecs.resolution}</div>}
-            {techSpecs.cameras && <div className="chip"><strong>Cameras</strong>{techSpecs.cameras}</div>}
+          <div className="sec-lbl">Key Contacts</div>
+          <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
+            {project.poc_name && (
+              <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 14px', flex:1, minWidth:180 }}>
+                <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:4 }}>Main POC</div>
+                <div style={{ fontWeight:600, fontSize:13 }}>{shortName(project.poc_name)}</div>
+                {project.poc_phone && <div style={{ fontSize:12, color:'var(--tan)', marginTop:2 }}>{project.poc_phone}</div>}
+                {project.poc_email && <div style={{ fontSize:11, color:'var(--muted)' }}>{project.poc_email}</div>}
+              </div>
+            )}
+            {gear?.gear_person_name && (
+              <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 14px', flex:1, minWidth:180 }}>
+                <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:4 }}>Gear Contact</div>
+                <div style={{ fontWeight:600, fontSize:13 }}>{shortName(gear.gear_person_name)}</div>
+                {gear.gear_person_phone && <div style={{ fontSize:12, color:'var(--tan)', marginTop:2 }}>{gear.gear_person_phone}</div>}
+              </div>
+            )}
           </div>
+        </section>
+      )}
+
+      <SpecTiles techSpecs={techSpecs} />
+
+      {/* ── Hotels at top ── */}
+      {hotelBlocks?.length > 0 && (
+        <section className="share-section">
+          <div className="sec-lbl">Hotel Accommodations</div>
+          {hotelBlocks.map(hb => (
+            <div key={hb.id} style={{ marginBottom:12 }}>
+              <div style={{ fontWeight:600, fontSize:13, marginBottom:4 }}>
+                🏨 {hb.name}
+                {hb.address && <> — <a href={mapsUrl(hb.address)} target="_blank" rel="noreferrer" style={{ color:'var(--tan)', textDecoration:'underline', fontWeight:400, fontSize:12 }}>{hb.address}</a></>}
+                {hb.phone ? <span style={{ color:'var(--muted)', fontWeight:400, fontSize:12 }}> · {hb.phone}</span> : ''}
+              </div>
+              {hb.guests?.length > 0 && (
+                <ShareTable
+                  cols={['Guest','Check-in','Check-out','Confirmation']}
+                  rows={hb.guests.map(g => [g.guest_name, fmtDT(g.check_in), fmtDT(g.check_out), g.confirmation || '—'])}
+                />
+              )}
+            </div>
+          ))}
         </section>
       )}
 
@@ -65,7 +130,12 @@ function ProducerView({ data }) {
             {locations.map(l => (
               <div key={l.id} className="loc">
                 <div className="loc-ico">{l.emoji || '📍'}</div>
-                <div><div className="loc-name">{l.name}</div><div className="loc-addr">{l.address}</div></div>
+                <div>
+                  <div className="loc-name">{l.name}</div>
+                  {l.address
+                    ? <a href={mapsUrl(l.address)} target="_blank" rel="noreferrer" className="loc-addr" style={{ color:'var(--tan)', textDecoration:'underline' }}>{l.address}</a>
+                    : null}
+                </div>
               </div>
             ))}
           </div>
@@ -90,24 +160,6 @@ function ProducerView({ data }) {
         <section className="share-section">
           <div className="sec-lbl">Crew</div>
           <ShareTable cols={['Position','Name','Email','Phone']} rows={crewAssignments.map(a => [a.position.name, a.crewMember?.name||'TBD', a.crewMember?.email||'—', a.crewMember?.phone||'—'])} />
-        </section>
-      )}
-
-      {/* ── Travel ── */}
-      {hotelBlocks?.length > 0 && (
-        <section className="share-section">
-          <div className="sec-lbl">Hotel Accommodations</div>
-          {hotelBlocks.map(hb => (
-            <div key={hb.id} style={{ marginBottom:12 }}>
-              <div style={{ fontWeight:600, fontSize:13, marginBottom:4 }}>🏨 {hb.name} — {hb.address}{hb.phone ? ` · ${hb.phone}` : ''}</div>
-              {hb.guests?.length > 0 && (
-                <ShareTable
-                  cols={['Guest','Check-in','Check-out','Confirmation']}
-                  rows={hb.guests.map(g => [g.guest_name, fmtDT(g.check_in), fmtDT(g.check_out), g.confirmation || '—'])}
-                />
-              )}
-            </div>
-          ))}
         </section>
       )}
 
@@ -154,7 +206,7 @@ function ProducerView({ data }) {
 
 // ── Crew View ────────────────────────────────────────────────────────────────
 function CrewView({ data }) {
-  const { project, locations, crewAssignments, schedule, flights, hotelBlocks, rentalCars } = data;
+  const { project, locations, techSpecs, crewAssignments, schedule, flights, hotelBlocks, rentalCars } = data;
   const sortedSchedule = [...(schedule || [])].sort((a,b) => (a.date||'').localeCompare(b.date||''));
   return (
     <div className="share-view">
@@ -170,20 +222,26 @@ function CrewView({ data }) {
       {project.poc_name && (
         <section className="share-section">
           <div className="sec-lbl">Main Point of Contact</div>
-          <div style={{ fontSize:13 }}>
-            <strong>{shortName(project.poc_name)}</strong>
-            {project.poc_phone && <span style={{ color:'var(--muted)', marginLeft:12 }}>{project.poc_phone}</span>}
-            {project.poc_email && <span style={{ color:'var(--muted)', marginLeft:12 }}>{project.poc_email}</span>}
+          <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 14px', display:'inline-flex', flexDirection:'column', gap:3 }}>
+            <div style={{ fontWeight:600, fontSize:13 }}>{shortName(project.poc_name)}</div>
+            {project.poc_phone && <div style={{ fontSize:12, color:'var(--tan)' }}>{project.poc_phone}</div>}
+            {project.poc_email && <div style={{ fontSize:11, color:'var(--muted)' }}>{project.poc_email}</div>}
           </div>
         </section>
       )}
+
+      <SpecTiles techSpecs={techSpecs} />
 
       {hotelBlocks?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Hotel Accommodations</div>
           {hotelBlocks.map(hb => (
             <div key={hb.id} style={{ marginBottom:12 }}>
-              <div style={{ fontWeight:600, fontSize:13, marginBottom:4 }}>🏨 {hb.name} — {hb.address}{hb.phone ? ` · ${hb.phone}` : ''}</div>
+              <div style={{ fontWeight:600, fontSize:13, marginBottom:4 }}>
+                🏨 {hb.name}
+                {hb.address && <> — <a href={mapsUrl(hb.address)} target="_blank" rel="noreferrer" style={{ color:'var(--tan)', textDecoration:'underline', fontWeight:400, fontSize:12 }}>{hb.address}</a></>}
+                {hb.phone ? <span style={{ color:'var(--muted)', fontWeight:400, fontSize:12 }}> · {hb.phone}</span> : ''}
+              </div>
               {hb.guests?.length > 0 && (
                 <ShareTable
                   cols={['Guest','Check-in','Check-out','Confirmation']}
@@ -212,7 +270,12 @@ function CrewView({ data }) {
             {locations.map(l => (
               <div key={l.id} className="loc">
                 <div className="loc-ico">{l.emoji || '📍'}</div>
-                <div><div className="loc-name">{l.name}</div><div className="loc-addr">{l.address}</div></div>
+                <div>
+                  <div className="loc-name">{l.name}</div>
+                  {l.address
+                    ? <a href={mapsUrl(l.address)} target="_blank" rel="noreferrer" className="loc-addr" style={{ color:'var(--tan)', textDecoration:'underline' }}>{l.address}</a>
+                    : null}
+                </div>
               </div>
             ))}
           </div>

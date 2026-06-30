@@ -16,28 +16,40 @@ export default function Deliverables({ project }) {
 
   const [ditId, setDitId] = useState(project.techSpecs?.dit_crew_member_id || '');
   const [ditSaving, setDitSaving] = useState(false);
+  const [frameRate, setFrameRate] = useState(project.techSpecs?.frame_rate || '');
 
   useEffect(() => {
     api.getDeliverables(project.id).then(setItems);
   }, [project.id]);
 
+  async function saveTechSpecsField(fields) {
+    const existing = project.techSpecs || {};
+    await api.saveTechSpecs(project.id, {
+      aspectRatio: existing.aspect_ratio || null,
+      resolution: existing.resolution || null,
+      quality: existing.quality || null,
+      cameras: existing.cameras || null,
+      execProducer: existing.exec_producer || null,
+      onSiteEditor: existing.on_site_editor || null,
+      notes: existing.notes || null,
+      ditCrewMemberId: ditId || null,
+      frameRate: frameRate || null,
+      ...fields,
+    });
+  }
+
   async function saveDit(crewMemberId) {
     setDitId(crewMemberId);
     setDitSaving(true);
-    try {
-      const existing = project.techSpecs || {};
-      await api.saveTechSpecs(project.id, {
-        aspectRatio: existing.aspect_ratio || null,
-        resolution: existing.resolution || null,
-        quality: existing.quality || null,
-        cameras: existing.cameras || null,
-        execProducer: existing.exec_producer || null,
-        onSiteEditor: existing.on_site_editor || null,
-        notes: existing.notes || null,
-        ditCrewMemberId: crewMemberId || null,
-      });
-    } catch(err) { alert(err.message); }
+    try { await saveTechSpecsField({ ditCrewMemberId: crewMemberId || null }); }
+    catch(err) { alert(err.message); }
     setDitSaving(false);
+  }
+
+  async function saveFrameRate(value) {
+    setFrameRate(value);
+    try { await saveTechSpecsField({ frameRate: value || null }); }
+    catch(err) { alert(err.message); }
   }
 
   async function add(e) {
@@ -80,6 +92,30 @@ export default function Deliverables({ project }) {
     <div>
       <div className="page-title" style={{ marginBottom:3 }}>Post-Production</div>
       <div className="page-sub">{project.client} · {project.code}</div>
+
+      {/* ── Tech Specs ── */}
+      <div className="spec-tiles" style={{ marginBottom:20 }}>
+        {[
+          { label:'Aspect Ratio', value: project.techSpecs?.aspect_ratio },
+          { label:'Resolution',   value: project.techSpecs?.resolution },
+          { label:'Frame Rate',   value: frameRate, editable: true },
+        ].map(spec => (
+          <div key={spec.label} className="spec-tile">
+            <div className="spec-tile-label">{spec.label}</div>
+            {spec.editable ? (
+              <input
+                className="spec-tile-input"
+                value={frameRate}
+                onChange={e => setFrameRate(e.target.value)}
+                onBlur={e => saveFrameRate(e.target.value)}
+                placeholder="23.976fps"
+              />
+            ) : (
+              <div className="spec-tile-val">{spec.value || '—'}</div>
+            )}
+          </div>
+        ))}
+      </div>
 
       {/* ── DIT ── */}
       <div style={{ display:'flex', alignItems:'center', gap:12, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'12px 16px', marginBottom:20 }}>

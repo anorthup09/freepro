@@ -113,6 +113,14 @@ export default function Project() {
   if (!project) return null;
 
   const STATUS_PILL = { PLANNING:'amber', ACTIVE:'green', WRAPPED:'purple', DELIVERED:'green', ARCHIVED:'' };
+  const ALL_STATUSES = ['PLANNING','ACTIVE','WRAPPED','DELIVERED','ARCHIVED'];
+
+  async function changeStatus(newStatus) {
+    try {
+      await api.updateProject(project.id, { status: newStatus });
+      setProject(p => ({ ...p, status: newStatus }));
+    } catch(e) { alert(e.message); }
+  }
 
   return (
     <>
@@ -125,9 +133,17 @@ export default function Project() {
             </button>
           ))}
         </div>
-        <span className={`live pill ${STATUS_PILL[project.status] || ''}`} style={{ marginLeft:'auto' }}>
-          {project.status.replace(/_/g,' ')}
-        </span>
+        <div style={{ marginLeft:'auto', position:'relative' }}>
+          <select
+            value={project.status}
+            onChange={e => changeStatus(e.target.value)}
+            className={`pill ${STATUS_PILL[project.status] || ''}`}
+            style={{ cursor:'pointer', appearance:'none', WebkitAppearance:'none', paddingRight:22, fontWeight:500, fontSize:11, border:'1px solid', background:'var(--bg2)' }}
+          >
+            {ALL_STATUSES.map(s => <option key={s} value={s}>{s.replace(/_/g,' ')}</option>)}
+          </select>
+          <span style={{ position:'absolute', right:7, top:'50%', transform:'translateY(-50%)', pointerEvents:'none', fontSize:9, color:'inherit' }}>▾</span>
+        </div>
         <ShareDropdown projectId={id} />
       </nav>
 

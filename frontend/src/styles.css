@@ -194,6 +194,20 @@ textarea { resize: vertical; min-height: 70px; }
 .modal { background: var(--bg2); border: 1px solid var(--border2); border-radius: 10px; padding: 24px; width: 100%; max-width: 540px; max-height: 90vh; overflow-y: auto; }
 .modal-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; margin-bottom: 18px; }
 
+/* ── Spec Tiles (liquid glass) ── */
+.spec-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.spec-tile {
+  background: linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 12px; padding: 14px 16px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08);
+}
+.spec-tile-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; font-weight: 500; margin-bottom: 6px; }
+.spec-tile-val { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; color: var(--text); letter-spacing: -.3px; }
+.spec-tile-input { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; color: var(--text); letter-spacing: -.3px; background: transparent; border: none; border-bottom: 1px solid var(--border2); border-radius: 0; padding: 0; width: 100%; outline: none; }
+.spec-tile-input:focus { border-bottom-color: var(--orange); }
+
 /* ── Misc ── */
 .empty { color: var(--muted); font-size: 12px; text-align: center; padding: 32px 0; }
 .add-row { display: flex; justify-content: flex-end; margin-bottom: 12px; }
@@ -260,4 +274,7 @@ textarea { resize: vertical; min-height: 70px; }
   .ev-detail { color: #555 !important; }
   .chip { background: #f0f0f0 !important; color: #333 !important; border: 1px solid #ddd !important; }
   .share-toast, .share-btn { display: none !important; }
+  .spec-tile { background: #f5f5f5 !important; border: 1px solid #ddd !important; box-shadow: none !important; }
+  .spec-tile-val { color: #1a1a1a !important; }
+  .spec-tile-label { color: #555 !important; }
 }

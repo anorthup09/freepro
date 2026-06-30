@@ -368,6 +368,8 @@ async function migrate() {
     )
   `;
 
+  await sql`ALTER TABLE tech_specs ADD COLUMN IF NOT EXISTS frame_rate TEXT`;
+
   await sql`INSERT INTO positions (id, name, sort_order) VALUES (gen_random_uuid()::text, 'Post-Production Supervisor', 999) ON CONFLICT (name) DO NOTHING`;
 
   console.log('Migration complete.');
