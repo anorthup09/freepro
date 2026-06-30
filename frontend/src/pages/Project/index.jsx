@@ -112,6 +112,7 @@ export default function Project() {
           {project.status.replace(/_/g,' ')}
         </span>
         <ShareDropdown projectId={id} />
+        <img src="/unbridled-logo.svg" alt="Unbridled Media" style={{ height:28, opacity:0.55, marginLeft:8 }} />
       </nav>
 
       <div className="wrap">
