@@ -7,7 +7,7 @@ const LOC_TAG = { PRIMARY_VENUE:'main', CREW_HOTEL:'crew', SECONDARY:'sec', AIRP
 
 export default function Overview({ project, setProject }) {
   const [editInfo, setEditInfo] = useState(false);
-  const [info, setInfo] = useState({ title: project.title, client: project.client, city: project.city, state: project.state, startDate: project.startDate?.slice(0,10), endDate: project.endDate?.slice(0,10), status: project.status, notes: project.notes || '' });
+  const [info, setInfo] = useState({ code: project.code, title: project.title, client: project.client, city: project.city, state: project.state, startDate: (project.start_date||project.startDate)?.slice(0,10), endDate: (project.end_date||project.endDate)?.slice(0,10), status: project.status, notes: project.notes || '' });
   const [showLocModal, setShowLocModal] = useState(false);
   const [locForm, setLocForm] = useState({ name:'', address:'', type:'PRIMARY_VENUE', emoji:'' });
   const [showContactModal, setShowContactModal] = useState(false);
@@ -20,8 +20,13 @@ export default function Overview({ project, setProject }) {
   async function saveInfo(e) {
     e.preventDefault();
     try {
-      const updated = await api.updateProject(project.id, { ...info, startDate: new Date(info.startDate).toISOString(), endDate: new Date(info.endDate).toISOString() });
+      const updated = await api.updateProject(project.id, {
+        ...info,
+        startDate: info.startDate ? new Date(info.startDate).toISOString() : undefined,
+        endDate: info.endDate ? new Date(info.endDate).toISOString() : undefined,
+      });
       setProject(p => ({ ...p, ...updated }));
+      setInfo({ code: updated.code, title: updated.title, client: updated.client, city: updated.city, state: updated.state, startDate: (updated.start_date||updated.startDate)?.slice(0,10), endDate: (updated.end_date||updated.endDate)?.slice(0,10), status: updated.status, notes: updated.notes || '' });
       setEditInfo(false);
     } catch(e) { alert(e.message); }
   }
@@ -87,7 +92,7 @@ export default function Overview({ project, setProject }) {
           <div className="proj-title">{project.title}</div>
           <div className="proj-meta">
             <div className="meta"><span className="dot6" />{project.city}, {project.state}</div>
-            <div className="meta"><span className="dot6" />{new Date(project.startDate).toLocaleDateString()} – {new Date(project.endDate).toLocaleDateString()}</div>
+            <div className="meta"><span className="dot6" />{new Date(project.start_date||project.startDate).toLocaleDateString()} – {new Date(project.end_date||project.endDate).toLocaleDateString()}</div>
             <div className="meta"><span className="dot6" />{project.client}</div>
           </div>
         </div>
@@ -96,7 +101,7 @@ export default function Overview({ project, setProject }) {
 
       {/* Stats */}
       <div className="stats">
-        <div className="stat"><div className="stat-lbl">Shoot Days</div><div className="stat-val">{Math.round((new Date(project.endDate) - new Date(project.startDate)) / 86400000) + 1}</div><div className="stat-sub">{new Date(project.startDate).toLocaleDateString()} – {new Date(project.endDate).toLocaleDateString()}</div></div>
+        <div className="stat"><div className="stat-lbl">Shoot Days</div><div className="stat-val">{Math.round((new Date(project.end_date||project.endDate) - new Date(project.start_date||project.startDate)) / 86400000) + 1}</div><div className="stat-sub">{new Date(project.start_date||project.startDate).toLocaleDateString()} – {new Date(project.end_date||project.endDate).toLocaleDateString()}</div></div>
         <div className="stat"><div className="stat-lbl">Crew</div><div className="stat-val">{project.crewAssignments?.length || 0}</div><div className="stat-sub">positions assigned</div></div>
         <div className="stat"><div className="stat-lbl">Deliverables</div><div className="stat-val">{project.deliverables?.length || 0}</div><div className="stat-sub">video outputs</div></div>
         <div className="stat"><div className="stat-lbl">Locations</div><div className="stat-val">{project.locations?.length || 0}</div><div className="stat-sub">venues</div></div>
@@ -160,7 +165,8 @@ export default function Overview({ project, setProject }) {
             <div className="modal-title">Edit Project Info</div>
             <form onSubmit={saveInfo}>
               <div className="form-grid" style={{ marginBottom:12 }}>
-                <div className="field span2"><label>Title</label><input value={info.title} onChange={e => setInfo(i=>({...i,title:e.target.value}))} required /></div>
+                <div className="field"><label>Project Code</label><input value={info.code} onChange={e => setInfo(i=>({...i,code:e.target.value}))} required /></div>
+                <div className="field"><label>Title</label><input value={info.title} onChange={e => setInfo(i=>({...i,title:e.target.value}))} required /></div>
                 <div className="field"><label>Client</label><input value={info.client} onChange={e => setInfo(i=>({...i,client:e.target.value}))} required /></div>
                 <div className="field"><label>Status</label>
                   <select value={info.status} onChange={e => setInfo(i=>({...i,status:e.target.value}))}>

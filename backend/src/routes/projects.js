@@ -74,6 +74,7 @@ router.patch('/:id', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, r
     const d = req.body;
     await sql`
       UPDATE projects SET
+        code = COALESCE(${d.code??null}, code),
         title = COALESCE(${d.title??null}, title),
         client = COALESCE(${d.client??null}, client),
         city = COALESCE(${d.city??null}, city),
