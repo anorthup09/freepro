@@ -198,3 +198,45 @@ textarea { resize: vertical; min-height: 70px; }
 .empty { color: var(--muted); font-size: 12px; text-align: center; padding: 32px 0; }
 .add-row { display: flex; justify-content: flex-end; margin-bottom: 12px; }
 .badge { font-size: 10px; background: var(--bg3); border: 1px solid var(--border2); color: var(--tan); padding: 2px 8px; border-radius: 4px; }
+
+/* ── Share dropdown ── */
+.share-btn { background: var(--bg3); border: 1px solid var(--border2); color: var(--tan); border-radius: 6px; padding: 5px 12px; font-size: 12px; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all .12s; margin-left: 8px; }
+.share-btn:hover { color: var(--text); border-color: var(--orange); }
+.share-menu { position: absolute; top: calc(100% + 6px); right: 0; background: var(--bg2); border: 1px solid var(--border2); border-radius: 8px; min-width: 180px; z-index: 300; box-shadow: 0 8px 24px rgba(0,0,0,.5); overflow: hidden; }
+.share-menu-item { padding: 9px 14px; font-size: 12px; color: var(--tan); cursor: pointer; transition: background .1s; }
+.share-menu-item:hover { background: var(--bg3); color: var(--text); }
+.share-toast { position: absolute; top: calc(100% + 6px); right: 0; background: var(--green-bg); border: 1px solid var(--green-border); color: var(--green-text); border-radius: 6px; padding: 6px 14px; font-size: 12px; white-space: nowrap; z-index: 300; }
+
+/* ── Share view (producer/crew/client) ── */
+.share-view { padding-bottom: 40px; }
+.share-header { margin-bottom: 24px; }
+.share-section { margin-bottom: 24px; }
+.share-table { width: 100%; border-collapse: collapse; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+.share-table th { text-align: left; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; padding: 8px 12px; font-weight: 400; background: var(--bg3); border-bottom: 1px solid var(--border); }
+.share-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 12px; }
+.share-table tr:last-child td { border-bottom: none; }
+
+/* ── Call Sheet (talent view) ── */
+.callsheet { max-width: 860px; margin: 0 auto; font-family: 'DM Sans', sans-serif; color: #1a1a1a; }
+.callsheet-day { margin-bottom: 40px; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+.cs-header { background: #0d1b2a; color: #fff; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+.cs-header-main { display: flex; flex-direction: column; gap: 2px; }
+.cs-day-label { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: #a0b4c8; font-weight: 600; }
+.cs-project-name { font-size: 16px; font-weight: 700; color: #fff; letter-spacing: -.2px; }
+.cs-header-times { display: flex; gap: 16px; font-size: 12px; color: #c8d8e4; flex-wrap: wrap; }
+.cs-header-times strong { color: #fff; }
+.cs-weather { background: rgba(255,255,255,.1); border-radius: 4px; padding: 2px 8px; }
+.cs-specs-line { background: #1c2e3f; color: #8fafc6; font-size: 11px; padding: 6px 18px; letter-spacing: .04em; }
+.cs-table-block { border-bottom: 1px solid #e8edf2; }
+.cs-table-header { background: #0d1b2a; color: #fff; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; font-weight: 700; padding: 7px 14px; }
+.cs-table { width: 100%; border-collapse: collapse; }
+.cs-table th { text-align: left; font-size: 10px; color: #5a7080; text-transform: uppercase; letter-spacing: .08em; padding: 7px 14px; background: #f0f4f7; border-bottom: 1px solid #dde4ea; font-weight: 600; }
+.cs-table td { padding: 8px 14px; border-bottom: 1px solid #edf1f4; font-size: 12px; color: #1a2a35; vertical-align: top; }
+.cs-table tr:nth-child(even) td { background: #f8fafc; }
+.cs-table tr:last-child td { border-bottom: none; }
+
+@media print {
+  .callsheet { max-width: 100%; }
+  .callsheet-day { box-shadow: none; border: 1px solid #ccc; page-break-after: always; }
+  .nav { display: none; }
+}

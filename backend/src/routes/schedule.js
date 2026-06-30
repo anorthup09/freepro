@@ -88,10 +88,10 @@ router.delete('/:id/schedule/days/:dayId', requireAuth, requireRole('ADMIN','PRO
 // POST event
 router.post('/:id/schedule/days/:dayId/events', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const { startTime, endTime, title, detail, locationId, isAlert, alertMessage, tags=[] } = req.body;
+    const { startTime, endTime, title, detail, locationId, isAlert, alertMessage, tags=[], audience=[] } = req.body;
     const [ev] = await sql`
-      INSERT INTO schedule_events (id, shoot_day_id, start_time, end_time, title, detail, location_id, is_alert, alert_message)
-      VALUES (gen_random_uuid()::text, ${req.params.dayId}, ${startTime}, ${endTime||null}, ${title}, ${detail||null}, ${locationId||null}, ${isAlert||false}, ${alertMessage||null})
+      INSERT INTO schedule_events (id, shoot_day_id, start_time, end_time, title, detail, location_id, is_alert, alert_message, audience)
+      VALUES (gen_random_uuid()::text, ${req.params.dayId}, ${startTime}, ${endTime||null}, ${title}, ${detail||null}, ${locationId||null}, ${isAlert||false}, ${alertMessage||null}, ${sql.array(audience)})
       RETURNING *`;
     if (tags.length) {
       await Promise.all(tags.map(t => sql`INSERT INTO event_tags (id, event_id, type, label) VALUES (gen_random_uuid()::text, ${ev.id}, ${t.type}::event_tag_type, ${t.label||null})`));
@@ -108,7 +108,8 @@ router.patch('/:id/schedule/events/:eventId', requireAuth, requireRole('ADMIN','
       UPDATE schedule_events SET
         title=COALESCE(${d.title??null},title), detail=COALESCE(${d.detail??null},detail),
         start_time=COALESCE(${d.startTime??null},start_time), end_time=COALESCE(${d.endTime??null},end_time),
-        is_alert=COALESCE(${d.isAlert??null},is_alert)
+        is_alert=COALESCE(${d.isAlert??null},is_alert),
+        audience=COALESCE(${d.audience!=null?sql.array(d.audience):null},audience)
       WHERE id=${req.params.eventId} RETURNING *`;
     res.json(ev);
   } catch(e){next(e);}
@@ -123,11 +124,11 @@ router.delete('/:id/schedule/events/:eventId', requireAuth, requireRole('ADMIN',
 router.put('/:id/schedule/days/:dayId/calls', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
     const calls = req.body;
-    const results = await Promise.all(calls.map(({ crewAssignmentId, callTime, wrapTime, locationNote, notes }) =>
-      sql`INSERT INTO crew_day_calls (id, crew_assignment_id, shoot_day_id, call_time, wrap_time, location_note, notes)
-          VALUES (gen_random_uuid()::text, ${crewAssignmentId}, ${req.params.dayId}, ${callTime||null}, ${wrapTime||null}, ${locationNote||null}, ${notes||null})
+    const results = await Promise.all(calls.map(({ crewAssignmentId, callTime, wrapTime, locationNote, notes, audience=[] }) =>
+      sql`INSERT INTO crew_day_calls (id, crew_assignment_id, shoot_day_id, call_time, wrap_time, location_note, notes, audience)
+          VALUES (gen_random_uuid()::text, ${crewAssignmentId}, ${req.params.dayId}, ${callTime||null}, ${wrapTime||null}, ${locationNote||null}, ${notes||null}, ${sql.array(audience)})
           ON CONFLICT (crew_assignment_id, shoot_day_id) DO UPDATE SET
-            call_time=EXCLUDED.call_time, wrap_time=EXCLUDED.wrap_time, location_note=EXCLUDED.location_note, notes=EXCLUDED.notes
+            call_time=EXCLUDED.call_time, wrap_time=EXCLUDED.wrap_time, location_note=EXCLUDED.location_note, notes=EXCLUDED.notes, audience=EXCLUDED.audience
           RETURNING *`
     ));
     res.json(results.flat());
@@ -141,7 +142,8 @@ router.patch('/:id/schedule/calls/:callId', requireAuth, requireRole('ADMIN','PR
     const [call] = await sql`
       UPDATE crew_day_calls SET
         call_time=COALESCE(${d.callTime??null},call_time), wrap_time=COALESCE(${d.wrapTime??null},wrap_time),
-        location_note=COALESCE(${d.locationNote??null},location_note), notes=COALESCE(${d.notes??null},notes)
+        location_note=COALESCE(${d.locationNote??null},location_note), notes=COALESCE(${d.notes??null},notes),
+        audience=COALESCE(${d.audience!=null?sql.array(d.audience):null},audience)
       WHERE id=${req.params.callId}`;
 
     // Return with crew info

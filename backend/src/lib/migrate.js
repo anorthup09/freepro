@@ -273,6 +273,20 @@ async function migrate() {
     )
   `;
 
+  await sql`
+    CREATE TABLE IF NOT EXISTS project_shares (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      token TEXT UNIQUE NOT NULL DEFAULT gen_random_uuid()::text,
+      view_type TEXT NOT NULL,
+      talent_name TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+
+  await sql`ALTER TABLE schedule_events ADD COLUMN IF NOT EXISTS audience TEXT[] DEFAULT '{}'`;
+  await sql`ALTER TABLE crew_day_calls ADD COLUMN IF NOT EXISTS audience TEXT[] DEFAULT '{}'`;
+
   console.log('Migration complete.');
 }
 

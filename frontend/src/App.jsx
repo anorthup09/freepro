@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login.jsx';
 import Projects from './pages/Projects.jsx';
 import Project from './pages/Project/index.jsx';
+import Share from './pages/Share.jsx';
 import { api } from './api.js';
 
 export const AuthContext = createContext(null);
@@ -25,6 +26,7 @@ export default function App() {
         <Route path="/login" element={user ? <Navigate to="/" /> : <Login />} />
         <Route path="/" element={user ? <Projects /> : <Navigate to="/login" />} />
         <Route path="/projects/:id" element={user ? <Project /> : <Navigate to="/login" />} />
+        <Route path="/share/:token" element={<Share />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </AuthContext.Provider>

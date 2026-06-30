@@ -1,4 +1,5 @@
-const BASE = (import.meta.env.VITE_API_URL || 'https://freepro-production.up.railway.app') + '/api';
+const BACKEND = import.meta.env.VITE_API_URL || 'https://freepro-production.up.railway.app';
+const BASE = BACKEND + '/api';
 
 function token() {
   return localStorage.getItem('fp_token');
@@ -80,6 +81,12 @@ export const api = {
   createDeliverable: (projectId, data) => req('POST', `/projects/${projectId}/deliverables`, data),
   updateDeliverable: (projectId, id, data) => req('PATCH', `/projects/${projectId}/deliverables/${id}`, data),
   deleteDeliverable: (projectId, id) => req('DELETE', `/projects/${projectId}/deliverables/${id}`),
+
+  // Shares
+  getShares: (id) => req('GET', `/projects/${id}/shares`),
+  createShare: (id, data) => req('POST', `/projects/${id}/shares`, data),
+  deleteShare: (id, sid) => req('DELETE', `/projects/${id}/shares/${sid}`),
+  getPublicShare: (token) => fetch(`${BACKEND}/share/${token}`).then(r => r.json()),
 
   // Travel
   getHotels: (projectId) => req('GET', `/projects/${projectId}/travel/hotels`),

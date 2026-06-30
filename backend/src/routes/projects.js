@@ -163,6 +163,8 @@ router.post('/:id/talent', requireAuth, requireRole('ADMIN','PRODUCER'), async (
   try {
     const { name, role, notes } = req.body;
     const [t] = await sql`INSERT INTO key_talent (id, project_id, name, role, notes) VALUES (gen_random_uuid()::text, ${req.params.id}, ${name}, ${role}, ${notes||null}) RETURNING *`;
+    // Auto-create a share token for this talent
+    await sql`INSERT INTO project_shares (id, project_id, token, view_type, talent_name) VALUES (gen_random_uuid()::text, ${req.params.id}, gen_random_uuid()::text, 'talent', ${name})`;
     res.status(201).json(t);
   } catch(e){next(e);}
 });
@@ -174,7 +176,27 @@ router.patch('/:id/talent/:tid', requireAuth, requireRole('ADMIN','PRODUCER'), a
   } catch(e){next(e);}
 });
 router.delete('/:id/talent/:tid', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
-  try { await sql`DELETE FROM key_talent WHERE id = ${req.params.tid}`; res.status(204).end(); } catch(e){next(e);}
+  try {
+    const [t] = await sql`SELECT name FROM key_talent WHERE id = ${req.params.tid}`;
+    if (t) await sql`DELETE FROM project_shares WHERE project_id = ${req.params.id} AND view_type = 'talent' AND talent_name = ${t.name}`;
+    await sql`DELETE FROM key_talent WHERE id = ${req.params.tid}`;
+    res.status(204).end();
+  } catch(e){next(e);}
+});
+
+// ─── Shares ──────────────────────────────────────────────────────────────────
+router.get('/:id/shares', requireAuth, async (req, res, next) => {
+  try { res.json(await sql`SELECT * FROM project_shares WHERE project_id = ${req.params.id} ORDER BY created_at`); } catch(e){next(e);}
+});
+router.post('/:id/shares', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try {
+    const { viewType, talentName } = req.body;
+    const [s] = await sql`INSERT INTO project_shares (id, project_id, token, view_type, talent_name) VALUES (gen_random_uuid()::text, ${req.params.id}, gen_random_uuid()::text, ${viewType}, ${talentName||null}) RETURNING *`;
+    res.status(201).json(s);
+  } catch(e){next(e);}
+});
+router.delete('/:id/shares/:sid', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try { await sql`DELETE FROM project_shares WHERE id = ${req.params.sid}`; res.status(204).end(); } catch(e){next(e);}
 });
 
 // ─── Crew Assignments ────────────────────────────────────────────────────────

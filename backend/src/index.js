@@ -9,6 +9,7 @@ const crewRoutes = require('./routes/crew');
 const scheduleRoutes = require('./routes/schedule');
 const deliverableRoutes = require('./routes/deliverables');
 const travelRoutes = require('./routes/travel');
+const shareRoutes = require('./routes/share');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -27,6 +28,7 @@ app.post('/admin/seed', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+app.use('/share', shareRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/crew', crewRoutes);
 app.use('/api/projects', projectRoutes);
