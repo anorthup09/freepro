@@ -20,13 +20,22 @@ export default function Schedule({ project }) {
   const [eventForm, setEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', isAlert:false, tags:[] });
   const [editCallId, setEditCallId] = useState(null);
   const [callTime, setCallTime] = useState('');
+  const [dayMeta, setDayMeta] = useState({});
 
   useEffect(() => {
     api.getSchedule(project.id).then(d => {
       setDays(d);
       if (d.length > 0) setActiveDay(d[0].id);
+      const meta = {};
+      d.forEach(day => { meta[day.id] = { crewLunch: day.crew_lunch||'', gearStorage: day.gear_storage||'', gsAudio: day.gs_audio||'' }; });
+      setDayMeta(meta);
     });
   }, [project.id]);
+
+  async function saveDayMeta(dayId, field, value) {
+    setDayMeta(m => ({ ...m, [dayId]: { ...m[dayId], [field]: value } }));
+    try { await api.updateDay(project.id, dayId, { [field]: value }); } catch(e) { alert(e.message); }
+  }
 
   const currentDay = days.find(d => d.id === activeDay);
 
@@ -115,7 +124,7 @@ export default function Schedule({ project }) {
       {currentDay && (
         <div>
           <div className="card" style={{ marginBottom:16 }}>
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
               <div>
                 <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:15 }}>
                   Day {currentDay.dayNumber} · {parseDay(currentDay.date).toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' })}
@@ -127,6 +136,23 @@ export default function Schedule({ project }) {
                 </div>
               </div>
               <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text)' }} onClick={() => deleteDay(currentDay.id)}>Delete Day</button>
+            </div>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:10 }}>
+              {[
+                { label:'Crew Lunch', field:'crewLunch' },
+                { label:'Gear Storage', field:'gearStorage' },
+                { label:'GS Audio', field:'gsAudio' },
+              ].map(({ label, field }) => (
+                <div key={field} className="field" style={{ margin:0 }}>
+                  <label style={{ fontSize:10 }}>{label}</label>
+                  <input
+                    value={dayMeta[currentDay.id]?.[field] || ''}
+                    onChange={e => setDayMeta(m => ({ ...m, [currentDay.id]: { ...m[currentDay.id], [field]: e.target.value } }))}
+                    onBlur={e => saveDayMeta(currentDay.id, field, e.target.value)}
+                    placeholder={label === 'Crew Lunch' ? 'Chipotle · 12:30 PM' : label === 'Gear Storage' ? 'Room 104B' : 'Main stage L/R'}
+                  />
+                </div>
+              ))}
             </div>
           </div>
 

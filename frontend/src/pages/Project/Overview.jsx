@@ -14,21 +14,29 @@ export default function Overview({ project, setProject }) {
   const [contactForm, setContactForm] = useState({ name:'', title:'', email:'', phone:'' });
   const [showTalentModal, setShowTalentModal] = useState(false);
   const [talentForm, setTalentForm] = useState({ name:'', role:'' });
-  const [showSpecsModal, setShowSpecsModal] = useState(false);
-  const [specsForm, setSpecsForm] = useState({ aspectRatio: project.techSpecs?.aspectRatio||'', resolution: project.techSpecs?.resolution||'', quality: project.techSpecs?.quality||'', cameras: project.techSpecs?.cameras||'', execProducer: project.techSpecs?.execProducer||'', onSiteEditor: project.techSpecs?.onSiteEditor||'' });
+  const [pocSaving, setPocSaving] = useState(false);
 
   async function saveInfo(e) {
     e.preventDefault();
     try {
       const updated = await api.updateProject(project.id, {
         ...info,
-        startDate: info.startDate ? new Date(info.startDate).toISOString() : undefined,
-        endDate: info.endDate ? new Date(info.endDate).toISOString() : undefined,
+        startDate: info.startDate ? new Date(info.startDate + 'T12:00:00').toISOString() : undefined,
+        endDate: info.endDate ? new Date(info.endDate + 'T12:00:00').toISOString() : undefined,
       });
       setProject(p => ({ ...p, ...updated }));
       setInfo({ code: updated.code, title: updated.title, client: updated.client, city: updated.city, state: updated.state, startDate: (updated.start_date||updated.startDate)?.slice(0,10), endDate: (updated.end_date||updated.endDate)?.slice(0,10), status: updated.status, notes: updated.notes || '' });
       setEditInfo(false);
     } catch(e) { alert(e.message); }
+  }
+
+  async function savePoc(crewMemberId) {
+    setPocSaving(true);
+    try {
+      await api.updateProject(project.id, { pocCrewMemberId: crewMemberId || null });
+      setProject(p => ({ ...p, poc_crew_member_id: crewMemberId || null }));
+    } catch(e) { alert(e.message); }
+    setPocSaving(false);
   }
 
   async function addLocation(e) {
@@ -74,14 +82,8 @@ export default function Overview({ project, setProject }) {
     setProject(p => ({ ...p, keyTalent: p.keyTalent.filter(t => t.id !== id) }));
   }
 
-  async function saveSpecs(e) {
-    e.preventDefault();
-    try {
-      const specs = await api.saveTechSpecs(project.id, specsForm);
-      setProject(p => ({ ...p, techSpecs: specs }));
-      setShowSpecsModal(false);
-    } catch(e) { alert(e.message); }
-  }
+  const assignedCrew = (project.crewAssignments || []).filter(a => a.crewMember);
+  const pocId = project.poc_crew_member_id || '';
 
   return (
     <div>
@@ -107,6 +109,20 @@ export default function Overview({ project, setProject }) {
         <div className="stat"><div className="stat-lbl">Locations</div><div className="stat-val">{project.locations?.length || 0}</div><div className="stat-sub">venues</div></div>
       </div>
 
+      {/* Main POC */}
+      <div style={{ display:'flex', alignItems:'center', gap:12, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'12px 16px', marginBottom:20 }}>
+        <span style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)', whiteSpace:'nowrap' }}>Main POC</span>
+        <select value={pocId} onChange={e => savePoc(e.target.value)} style={{ flex:1, maxWidth:320 }}>
+          <option value="">— Unassigned —</option>
+          {assignedCrew.map(a => (
+            <option key={a.crewMember.id} value={a.crewMember.id}>
+              {a.crewMember.name} — {a.position.name}
+            </option>
+          ))}
+        </select>
+        {pocSaving && <span style={{ fontSize:11, color:'var(--muted)' }}>Saving…</span>}
+      </div>
+
       {/* Locations */}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
         <div className="sec-lbl">Shooting Locations</div>
@@ -126,21 +142,34 @@ export default function Overview({ project, setProject }) {
         ))}
       </div>
 
-      {/* Tech Specs */}
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-        <div className="sec-lbl">Tech Specs</div>
-        <button className="btn btn-ghost btn-sm" onClick={() => setShowSpecsModal(true)}>Edit</button>
-      </div>
-      {project.techSpecs ? (
-        <div className="chips">
-          {project.techSpecs.aspectRatio && <div className="chip"><strong>Format</strong>{project.techSpecs.aspectRatio}</div>}
-          {project.techSpecs.resolution && <div className="chip"><strong>Resolution</strong>{project.techSpecs.resolution}</div>}
-          {project.techSpecs.quality && <div className="chip"><strong>Quality</strong>{project.techSpecs.quality}</div>}
-          {project.techSpecs.cameras && <div className="chip"><strong>Cameras</strong>{project.techSpecs.cameras}</div>}
-          {project.techSpecs.execProducer && <div className="chip"><strong>Exec Producer</strong>{project.techSpecs.execProducer}</div>}
-          {project.techSpecs.onSiteEditor && <div className="chip"><strong>On-Site Editor</strong>{project.techSpecs.onSiteEditor}</div>}
-        </div>
-      ) : <div className="empty" style={{ padding:'12px 0', textAlign:'left' }}>No tech specs yet.</div>}
+      {/* Hotel Blocks */}
+      {project.hotelBlocks?.length > 0 && (
+        <>
+          <div className="sec-lbl">Hotel Accommodations</div>
+          <div style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:16 }}>
+            {project.hotelBlocks.map(hb => (
+              <div key={hb.id} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'12px 16px' }}>
+                <div style={{ fontWeight:600, fontSize:13, marginBottom:2 }}>🏨 {hb.name}</div>
+                <div style={{ fontSize:11, color:'var(--muted)', marginBottom:hb.guests?.length ? 8 : 0 }}>{hb.address}{hb.phone ? ` · ${hb.phone}` : ''}</div>
+                {hb.guests?.length > 0 && (
+                  <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+                    {hb.guests.map(g => (
+                      <div key={g.id} style={{ fontSize:11, background:'var(--bg)', border:'1px solid var(--border)', borderRadius:6, padding:'3px 8px' }}>
+                        <span style={{ fontWeight:500 }}>{g.guest_name}</span>
+                        <span style={{ color:'var(--muted)', marginLeft:6 }}>
+                          {g.check_in ? new Date(g.check_in).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : ''}
+                          {g.check_out ? ` – ${new Date(g.check_out).toLocaleDateString('en-US',{month:'short',day:'numeric'})}` : ''}
+                        </span>
+                        {g.confirmation && <span style={{ color:'var(--tan)', marginLeft:6 }}>#{g.confirmation}</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
 
       {/* Client Contacts */}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
@@ -157,6 +186,30 @@ export default function Overview({ project, setProject }) {
           </div>
         ))}
       </div>
+
+      {/* Key Talent */}
+      {project.keyTalent?.length > 0 && (
+        <>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+            <div className="sec-lbl">Key Talent</div>
+            <button className="btn btn-ghost btn-sm" onClick={() => setShowTalentModal(true)}>+ Add</button>
+          </div>
+          <div className="chips">
+            {project.keyTalent.map(t => (
+              <div key={t.id} className="chip" style={{ position:'relative' }}>
+                <strong>{t.role}</strong>{t.name}
+                <button style={{ position:'absolute', top:4, right:6, background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => deleteTalent(t.id)}>✕</button>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+      {project.keyTalent?.length === 0 && (
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+          <div className="sec-lbl">Key Talent</div>
+          <button className="btn btn-ghost btn-sm" onClick={() => setShowTalentModal(true)}>+ Add</button>
+        </div>
+      )}
 
       {/* Edit Info Modal */}
       {editInfo && (
@@ -236,26 +289,6 @@ export default function Overview({ project, setProject }) {
                 <div className="field"><label>Role / Title</label><input value={talentForm.role} onChange={e => setTalentForm(f=>({...f,role:e.target.value}))} required /></div>
               </div>
               <div className="btn-row"><button className="btn btn-primary">Add Talent</button><button type="button" className="btn btn-ghost" onClick={() => setShowTalentModal(false)}>Cancel</button></div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Tech Specs Modal */}
-      {showSpecsModal && (
-        <div className="modal-bg" onClick={e => e.target === e.currentTarget && setShowSpecsModal(false)}>
-          <div className="modal">
-            <div className="modal-title">Tech Specs</div>
-            <form onSubmit={saveSpecs}>
-              <div className="form-grid" style={{ marginBottom:12 }}>
-                <div className="field"><label>Aspect Ratio</label><input value={specsForm.aspectRatio} onChange={e => setSpecsForm(f=>({...f,aspectRatio:e.target.value}))} placeholder="2.39:1" /></div>
-                <div className="field"><label>Quality</label><input value={specsForm.quality} onChange={e => setSpecsForm(f=>({...f,quality:e.target.value}))} placeholder="4K" /></div>
-                <div className="field span2"><label>Resolution</label><input value={specsForm.resolution} onChange={e => setSpecsForm(f=>({...f,resolution:e.target.value}))} placeholder="3672 × 1536" /></div>
-                <div className="field span2"><label>Cameras</label><input value={specsForm.cameras} onChange={e => setSpecsForm(f=>({...f,cameras:e.target.value}))} placeholder="A, B, C + Drone" /></div>
-                <div className="field"><label>Exec Producer</label><input value={specsForm.execProducer} onChange={e => setSpecsForm(f=>({...f,execProducer:e.target.value}))} /></div>
-                <div className="field"><label>On-Site Editor</label><input value={specsForm.onSiteEditor} onChange={e => setSpecsForm(f=>({...f,onSiteEditor:e.target.value}))} /></div>
-              </div>
-              <div className="btn-row"><button className="btn btn-primary">Save Specs</button><button type="button" className="btn btn-ghost" onClick={() => setShowSpecsModal(false)}>Cancel</button></div>
             </form>
           </div>
         </div>

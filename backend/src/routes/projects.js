@@ -6,7 +6,7 @@ const { requireAuth, requireRole } = require('../middleware/auth');
 async function getFullProject(id) {
   const [project] = await sql`SELECT * FROM projects WHERE id = ${id}`;
   if (!project) return null;
-  const [locations, techSpecs, clientContacts, keyTalent, crewAssignments, deliverables] = await Promise.all([
+  const [locations, techSpecs, clientContacts, keyTalent, crewAssignments, deliverables, hotelBlocks, gear] = await Promise.all([
     sql`SELECT * FROM locations WHERE project_id = ${id}`,
     sql`SELECT * FROM tech_specs WHERE project_id = ${id}`,
     sql`SELECT * FROM client_contacts WHERE project_id = ${id}`,
@@ -19,6 +19,15 @@ async function getFullProject(id) {
         WHERE ca.project_id = ${id}
         ORDER BY p.sort_order, ca.slot_number`,
     sql`SELECT * FROM deliverables WHERE project_id = ${id} ORDER BY created_at`,
+    sql`SELECT hb.*, json_agg(hg.* ORDER BY hg.check_in) FILTER (WHERE hg.id IS NOT NULL) as guests
+        FROM hotel_blocks hb
+        LEFT JOIN hotel_guests hg ON hg.hotel_block_id = hb.id
+        WHERE hb.project_id = ${id}
+        GROUP BY hb.id`,
+    sql`SELECT pg.*, cm.name as gear_person_name, cm.phone as gear_person_phone
+        FROM project_gear pg
+        LEFT JOIN crew_members cm ON cm.id = pg.gear_person_id
+        WHERE pg.project_id = ${id}`,
   ]);
   return {
     ...project,
@@ -26,6 +35,8 @@ async function getFullProject(id) {
     techSpecs: techSpecs[0] || null,
     clientContacts,
     keyTalent,
+    hotelBlocks,
+    gear: gear[0] || null,
     crewAssignments: crewAssignments.map(a => ({
       ...a,
       position: { id: a.position_id, name: a.position_name, sortOrder: a.sort_order },
@@ -83,6 +94,7 @@ router.patch('/:id', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, r
         end_date = COALESCE(${d.endDate??null}, end_date),
         status = COALESCE(${d.status??null}::project_status, status),
         notes = COALESCE(${d.notes??null}, notes),
+        poc_crew_member_id = CASE WHEN ${d.pocCrewMemberId !== undefined} THEN ${d.pocCrewMemberId||null} ELSE poc_crew_member_id END,
         updated_at = NOW()
       WHERE id = ${req.params.id}`;
     res.json(await getFullProject(req.params.id));
@@ -253,6 +265,39 @@ router.patch('/:id/crew/:aid', requireAuth, requireRole('ADMIN','PRODUCER'), asy
 });
 router.delete('/:id/crew/:aid', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try { await sql`DELETE FROM crew_assignments WHERE id = ${req.params.aid}`; res.status(204).end(); } catch(e){next(e);}
+});
+
+// ─── Gear ────────────────────────────────────────────────────────────────────
+router.put('/:id/gear', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try {
+    const d = req.body;
+    const [g] = await sql`
+      INSERT INTO project_gear (id, project_id, gear_person_id, internal_request_submitted,
+        rental_company, rental_contact, rental_phone, rental_email,
+        coi_received, rental_agreement_received, cc_auth_received,
+        delivery_datetime, pickup_datetime, delivery_driver, delivery_driver_phone,
+        camera_gear, grip_gear, electric_gear, audio_gear, media_management_gear, editing_gear, storage_location)
+      VALUES (gen_random_uuid()::text, ${req.params.id}, ${d.gearPersonId||null}, ${d.internalRequestSubmitted||false},
+        ${d.rentalCompany||null}, ${d.rentalContact||null}, ${d.rentalPhone||null}, ${d.rentalEmail||null},
+        ${d.coiReceived||false}, ${d.rentalAgreementReceived||false}, ${d.ccAuthReceived||false},
+        ${d.deliveryDatetime||null}, ${d.pickupDatetime||null}, ${d.deliveryDriver||null}, ${d.deliveryDriverPhone||null},
+        ${d.cameraGear||null}, ${d.gripGear||null}, ${d.electricGear||null}, ${d.audioGear||null}, ${d.mediaManagementGear||null}, ${d.editingGear||null}, ${d.storageLocation||null})
+      ON CONFLICT (project_id) DO UPDATE SET
+        gear_person_id = EXCLUDED.gear_person_id,
+        internal_request_submitted = EXCLUDED.internal_request_submitted,
+        rental_company = EXCLUDED.rental_company, rental_contact = EXCLUDED.rental_contact,
+        rental_phone = EXCLUDED.rental_phone, rental_email = EXCLUDED.rental_email,
+        coi_received = EXCLUDED.coi_received, rental_agreement_received = EXCLUDED.rental_agreement_received,
+        cc_auth_received = EXCLUDED.cc_auth_received, delivery_datetime = EXCLUDED.delivery_datetime,
+        pickup_datetime = EXCLUDED.pickup_datetime, delivery_driver = EXCLUDED.delivery_driver,
+        delivery_driver_phone = EXCLUDED.delivery_driver_phone,
+        camera_gear = EXCLUDED.camera_gear, grip_gear = EXCLUDED.grip_gear, electric_gear = EXCLUDED.electric_gear,
+        audio_gear = EXCLUDED.audio_gear, media_management_gear = EXCLUDED.media_management_gear,
+        editing_gear = EXCLUDED.editing_gear, storage_location = EXCLUDED.storage_location
+      RETURNING *`;
+    const [cm] = g.gear_person_id ? await sql`SELECT name, phone FROM crew_members WHERE id = ${g.gear_person_id}` : [null];
+    res.json({ ...g, gear_person_name: cm?.name || null, gear_person_phone: cm?.phone || null });
+  } catch(e){next(e);}
 });
 
 module.exports = router;

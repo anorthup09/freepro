@@ -299,6 +299,39 @@ async function migrate() {
   await sql`ALTER TABLE schedule_events ADD COLUMN IF NOT EXISTS audience TEXT[] DEFAULT '{}'`;
   await sql`ALTER TABLE crew_day_calls ADD COLUMN IF NOT EXISTS audience TEXT[] DEFAULT '{}'`;
 
+  await sql`ALTER TABLE projects ADD COLUMN IF NOT EXISTS poc_crew_member_id TEXT REFERENCES crew_members(id)`;
+
+  await sql`ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS crew_lunch TEXT`;
+  await sql`ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS gear_storage TEXT`;
+  await sql`ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS gs_audio TEXT`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS project_gear (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      project_id TEXT UNIQUE NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      gear_person_id TEXT REFERENCES crew_members(id),
+      internal_request_submitted BOOLEAN DEFAULT FALSE,
+      rental_company TEXT,
+      rental_contact TEXT,
+      rental_phone TEXT,
+      rental_email TEXT,
+      coi_received BOOLEAN DEFAULT FALSE,
+      rental_agreement_received BOOLEAN DEFAULT FALSE,
+      cc_auth_received BOOLEAN DEFAULT FALSE,
+      delivery_datetime TEXT,
+      pickup_datetime TEXT,
+      delivery_driver TEXT,
+      delivery_driver_phone TEXT,
+      camera_gear TEXT,
+      grip_gear TEXT,
+      electric_gear TEXT,
+      audio_gear TEXT,
+      media_management_gear TEXT,
+      editing_gear TEXT,
+      storage_location TEXT
+    )
+  `;
+
   await sql`ALTER TABLE hotel_guests ADD COLUMN IF NOT EXISTS cost NUMERIC(10,2)`;
   await sql`ALTER TABLE flights ADD COLUMN IF NOT EXISTS cost NUMERIC(10,2)`;
   await sql`ALTER TABLE flights ADD COLUMN IF NOT EXISTS flight_number TEXT`;
