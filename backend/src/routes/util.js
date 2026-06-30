@@ -65,10 +65,39 @@ router.get('/flight-lookup', requireAuth, async (req, res, next) => {
     const key = process.env.FLIGHTAWARE_API_KEY;
     if (!key) return res.status(503).json({ error: 'FLIGHTAWARE_API_KEY not configured' });
 
-    // Search a 24-hour window around the requested date
-    const start = date ? new Date(date + 'T00:00:00Z').toISOString() : new Date().toISOString();
-    const end = date ? new Date(date + 'T23:59:59Z').toISOString() : new Date(Date.now() + 86400000).toISOString();
+    const targetDate = date || new Date().toISOString().slice(0, 10);
+    const daysOut = (new Date(targetDate) - Date.now()) / 86400000;
 
+    // Flights endpoint only supports up to 2 days in future; use schedules beyond that
+    if (daysOut > 2) {
+      const dateEnd = targetDate; // same day range
+      const url = `https://aeroapi.flightaware.com/aeroapi/schedules/${targetDate}/${dateEnd}?flight_number=${encodeURIComponent(flight.toUpperCase())}`;
+      const r = await fetch(url, { headers: { 'x-apikey': key } });
+
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({}));
+        const msg = [err.title, err.reason, err.detail].filter(Boolean).join(' — ') || 'FlightAware error';
+        return res.status(r.status).json({ error: msg });
+      }
+
+      const data = await r.json();
+      const f = (data.scheduled || [])[0];
+      if (!f) return res.status(404).json({ error: 'Flight not found for that date' });
+
+      return res.json({
+        flightNumber: f.ident_iata || f.ident || flight.toUpperCase(),
+        airline: f.operator_iata || f.operator || '',
+        origin: f.origin || '',
+        destination: f.destination || '',
+        departTime: f.departure_time?.scheduled || null,
+        arriveTime: f.arrival_time?.scheduled || null,
+        status: '',
+      });
+    }
+
+    // Within 2 days — use live flights endpoint
+    const start = new Date(targetDate + 'T00:00:00Z').toISOString();
+    const end = new Date(targetDate + 'T23:59:59Z').toISOString();
     const url = `https://aeroapi.flightaware.com/aeroapi/flights/${encodeURIComponent(flight.toUpperCase())}?start=${start}&end=${end}`;
     const r = await fetch(url, { headers: { 'x-apikey': key } });
 
@@ -90,8 +119,6 @@ router.get('/flight-lookup', requireAuth, async (req, res, next) => {
       departTime: f.scheduled_out || f.estimated_out || f.actual_out || null,
       arriveTime: f.scheduled_in || f.estimated_in || f.actual_in || null,
       status: f.status || '',
-      gate_origin: f.gate_origin || '',
-      gate_destination: f.gate_destination || '',
     });
   } catch(e) { next(e); }
 });
