@@ -70,8 +70,9 @@ router.get('/flight-lookup', requireAuth, async (req, res, next) => {
 
     // Flights endpoint only supports up to 2 days in future; use schedules beyond that
     if (daysOut > 2) {
-      const dateEnd = targetDate; // same day range
-      const url = `https://aeroapi.flightaware.com/aeroapi/schedules/${targetDate}/${dateEnd}?flight_number=${encodeURIComponent(flight.toUpperCase())}`;
+      const numericFlight = flight.replace(/^[A-Za-z]+/, ''); // strip airline prefix e.g. WN3886 → 3886
+      const dateEnd = targetDate;
+      const url = `https://aeroapi.flightaware.com/aeroapi/schedules/${targetDate}/${dateEnd}?flight_number=${encodeURIComponent(numericFlight)}`;
       const r = await fetch(url, { headers: { 'x-apikey': key } });
 
       if (!r.ok) {
