@@ -5,15 +5,24 @@ const LOC_TYPES = ['PRIMARY_VENUE','CREW_HOTEL','SECONDARY','AIRPORT','OTHER'];
 const LOC_LABELS = { PRIMARY_VENUE:'Primary Venue', CREW_HOTEL:'Crew Hotel', SECONDARY:'Secondary', AIRPORT:'Airport', OTHER:'Other' };
 const LOC_TAG = { PRIMARY_VENUE:'main', CREW_HOTEL:'crew', SECONDARY:'sec', AIRPORT:'sec', OTHER:'sec' };
 
-export default function Overview({ project, setProject }) {
+function fmtDate(d) {
+  if (!d) return '';
+  return new Date(d.slice(0,10) + 'T12:00:00').toLocaleDateString();
+}
+
+export default function Overview({ project, setProject, onTabChange }) {
   const [editInfo, setEditInfo] = useState(false);
   const [info, setInfo] = useState({ code: project.code, title: project.title, client: project.client, city: project.city, state: project.state, startDate: (project.start_date||project.startDate)?.slice(0,10), endDate: (project.end_date||project.endDate)?.slice(0,10), status: project.status, notes: project.notes || '' });
   const [showLocModal, setShowLocModal] = useState(false);
   const [locForm, setLocForm] = useState({ name:'', address:'', type:'PRIMARY_VENUE', emoji:'' });
   const [showContactModal, setShowContactModal] = useState(false);
   const [contactForm, setContactForm] = useState({ name:'', title:'', email:'', phone:'' });
+  const [editContactId, setEditContactId] = useState(null);
+  const [editContactForm, setEditContactForm] = useState({ name:'', title:'', email:'', phone:'' });
   const [showAgencyModal, setShowAgencyModal] = useState(false);
   const [agencyForm, setAgencyForm] = useState({ name:'', title:'', email:'', phone:'' });
+  const [editAgencyId, setEditAgencyId] = useState(null);
+  const [editAgencyForm, setEditAgencyForm] = useState({ name:'', title:'', email:'', phone:'' });
   const [pocSaving, setPocSaving] = useState(false);
 
   async function saveInfo(e) {
@@ -63,6 +72,15 @@ export default function Overview({ project, setProject }) {
     } catch(e) { alert(e.message); }
   }
 
+  async function saveEditContact(e) {
+    e.preventDefault();
+    try {
+      const c = await api.updateContact(project.id, editContactId, editContactForm);
+      setProject(p => ({ ...p, clientContacts: p.clientContacts.map(x => x.id === editContactId ? c : x) }));
+      setEditContactId(null);
+    } catch(e) { alert(e.message); }
+  }
+
   async function deleteContact(id) {
     await api.deleteContact(project.id, id);
     setProject(p => ({ ...p, clientContacts: p.clientContacts.filter(c => c.id !== id) }));
@@ -77,6 +95,15 @@ export default function Overview({ project, setProject }) {
     } catch(e) { alert(e.message); }
   }
 
+  async function saveEditAgency(e) {
+    e.preventDefault();
+    try {
+      const c = await api.updateAgencyContact(project.id, editAgencyId, editAgencyForm);
+      setProject(p => ({ ...p, agencyContacts: (p.agencyContacts||[]).map(x => x.id === editAgencyId ? c : x) }));
+      setEditAgencyId(null);
+    } catch(e) { alert(e.message); }
+  }
+
   async function deleteAgencyContact(id) {
     await api.deleteAgencyContact(project.id, id);
     setProject(p => ({ ...p, agencyContacts: (p.agencyContacts||[]).filter(c => c.id !== id) }));
@@ -85,6 +112,17 @@ export default function Overview({ project, setProject }) {
   const assignedCrew = (project.crewAssignments || []).filter(a => a.crewMember);
   const pocId = project.poc_crew_member_id || '';
   const pocMember = assignedCrew.find(a => a.crewMember.id === pocId)?.crewMember || null;
+  const gearPerson = project.gear?.gear_person_name ? {
+    name: project.gear.gear_person_name,
+    phone: project.gear.gear_person_phone,
+    email: project.gear.gear_person_email,
+  } : null;
+
+  const startDate = project.start_date || project.startDate;
+  const endDate = project.end_date || project.endDate;
+  const shootDays = startDate && endDate
+    ? Math.round((new Date(endDate.slice(0,10)+'T12:00:00') - new Date(startDate.slice(0,10)+'T12:00:00')) / 86400000) + 1
+    : 0;
 
   return (
     <div>
@@ -95,7 +133,7 @@ export default function Overview({ project, setProject }) {
           <div className="proj-title">{project.title}</div>
           <div className="proj-meta">
             <div className="meta"><span className="dot6" />{project.city}, {project.state}</div>
-            <div className="meta"><span className="dot6" />{new Date(project.start_date||project.startDate).toLocaleDateString()} – {new Date(project.end_date||project.endDate).toLocaleDateString()}</div>
+            <div className="meta"><span className="dot6" />{fmtDate(startDate)} – {fmtDate(endDate)}</div>
             <div className="meta"><span className="dot6" />{project.client}</div>
           </div>
         </div>
@@ -104,14 +142,25 @@ export default function Overview({ project, setProject }) {
 
       {/* Stats */}
       <div className="stats">
-        <div className="stat"><div className="stat-lbl">Shoot Days</div><div className="stat-val">{Math.round((new Date(project.end_date||project.endDate) - new Date(project.start_date||project.startDate)) / 86400000) + 1}</div><div className="stat-sub">{new Date(project.start_date||project.startDate).toLocaleDateString()} – {new Date(project.end_date||project.endDate).toLocaleDateString()}</div></div>
-        <div className="stat"><div className="stat-lbl">Crew</div><div className="stat-val">{project.crewAssignments?.length || 0}</div><div className="stat-sub">positions assigned</div></div>
-        <div className="stat"><div className="stat-lbl">Deliverables</div><div className="stat-val">{project.deliverables?.length || 0}</div><div className="stat-sub">video outputs</div></div>
-        <div className="stat"><div className="stat-lbl">Locations</div><div className="stat-val">{project.locations?.length || 0}</div><div className="stat-sub">venues</div></div>
+        <div className="stat" style={{ cursor:'pointer' }} onClick={() => onTabChange?.('schedule')}>
+          <div className="stat-lbl">Shoot Days</div>
+          <div className="stat-val">{shootDays}</div>
+          <div className="stat-sub">{fmtDate(startDate)} – {fmtDate(endDate)}</div>
+        </div>
+        <div className="stat" style={{ cursor:'pointer' }} onClick={() => onTabChange?.('crew')}>
+          <div className="stat-lbl">Crew</div>
+          <div className="stat-val">{project.crewAssignments?.length || 0}</div>
+          <div className="stat-sub">positions assigned</div>
+        </div>
+        <div className="stat" style={{ cursor:'pointer' }} onClick={() => onTabChange?.('post-production')}>
+          <div className="stat-lbl">Deliverables</div>
+          <div className="stat-val">{project.deliverables?.length || 0}</div>
+          <div className="stat-sub">video outputs</div>
+        </div>
       </div>
 
-      {/* Main POC */}
-      <div style={{ display:'flex', alignItems:'center', gap:12, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'12px 16px', marginBottom:20 }}>
+      {/* Main POC + Gear Person */}
+      <div style={{ display:'flex', alignItems:'center', gap:12, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'12px 16px', marginBottom:12 }}>
         <span style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)', whiteSpace:'nowrap' }}>Main POC</span>
         <select value={pocId} onChange={e => savePoc(e.target.value)} style={{ flex:1, maxWidth:320 }}>
           <option value="">— Unassigned —</option>
@@ -130,6 +179,66 @@ export default function Overview({ project, setProject }) {
         )}
       </div>
 
+      {/* Gear Person tile */}
+      {gearPerson && (
+        <div
+          onClick={() => onTabChange?.('gear')}
+          style={{ display:'flex', alignItems:'center', gap:12, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 16px', marginBottom:20, cursor:'pointer' }}
+        >
+          <span style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)', whiteSpace:'nowrap' }}>Gear Contact</span>
+          <span style={{ fontWeight:500, fontSize:13 }}>{gearPerson.name}</span>
+          {gearPerson.phone && <span style={{ fontSize:12, color:'var(--tan)' }}>{gearPerson.phone}</span>}
+          {gearPerson.email && <span style={{ fontSize:12, color:'var(--muted)' }}>{gearPerson.email}</span>}
+        </div>
+      )}
+
+      {/* Contacts row: Client | Agency side by side */}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20, marginBottom:20 }}>
+        {/* Client Contacts */}
+        <div>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+            <div className="sec-lbl">Client Contacts</div>
+            <button className="btn btn-ghost btn-sm" onClick={() => setShowContactModal(true)}>+ Add</button>
+          </div>
+          <div className="chips">
+            {project.clientContacts?.map(c => (
+              <div key={c.id} className="chip" style={{ position:'relative', paddingRight:50 }}>
+                <strong>{c.title}</strong>
+                {c.name} {c.phone && `· ${c.phone}`}
+                {c.email && <><br /><span style={{ color:'var(--muted)' }}>{c.email}</span></>}
+                <div style={{ position:'absolute', top:4, right:6, display:'flex', gap:4 }}>
+                  <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => { setEditContactId(c.id); setEditContactForm({ name:c.name, title:c.title, email:c.email||'', phone:c.phone||'' }); }}>✎</button>
+                  <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => deleteContact(c.id)}>✕</button>
+                </div>
+              </div>
+            ))}
+            {!project.clientContacts?.length && <span className="empty" style={{ padding:0, fontSize:12 }}>No client contacts yet.</span>}
+          </div>
+        </div>
+
+        {/* Agency Contacts */}
+        <div>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+            <div className="sec-lbl">Agency Contacts</div>
+            <button className="btn btn-ghost btn-sm" onClick={() => setShowAgencyModal(true)}>+ Add</button>
+          </div>
+          <div className="chips">
+            {(project.agencyContacts||[]).map(c => (
+              <div key={c.id} className="chip" style={{ position:'relative', paddingRight:50 }}>
+                <strong>{c.title}</strong>
+                {c.name} {c.phone && `· ${c.phone}`}
+                {c.email && <><br /><span style={{ color:'var(--muted)' }}>{c.email}</span></>}
+                <div style={{ position:'absolute', top:4, right:6, display:'flex', gap:4 }}>
+                  <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => { setEditAgencyId(c.id); setEditAgencyForm({ name:c.name, title:c.title, email:c.email||'', phone:c.phone||'' }); }}>✎</button>
+                  <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => deleteAgencyContact(c.id)}>✕</button>
+                </div>
+              </div>
+            ))}
+            {!(project.agencyContacts?.length) && <span className="empty" style={{ padding:0, fontSize:12 }}>No agency contacts yet.</span>}
+          </div>
+        </div>
+      </div>
+
       {/* Locations */}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
         <div className="sec-lbl">Shooting Locations</div>
@@ -141,7 +250,13 @@ export default function Overview({ project, setProject }) {
             <div className="loc-ico">{l.emoji || '📍'}</div>
             <div style={{ flex:1 }}>
               <div className="loc-name">{l.name}</div>
-              <div className="loc-addr">{l.address}</div>
+              <a
+                href={`https://maps.google.com/?q=${encodeURIComponent(l.address)}`}
+                target="_blank"
+                rel="noreferrer"
+                className="loc-addr"
+                style={{ color:'var(--tan)', textDecoration:'none' }}
+              >{l.address}</a>
               <span className={`tag ${LOC_TAG[l.type]}`}>{LOC_LABELS[l.type]}</span>
             </div>
             <button className="btn btn-ghost btn-sm" style={{ padding:'2px 6px', color:'var(--muted)' }} onClick={() => deleteLocation(l.id)}>✕</button>
@@ -157,15 +272,18 @@ export default function Overview({ project, setProject }) {
             {project.hotelBlocks.map(hb => (
               <div key={hb.id} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'12px 16px' }}>
                 <div style={{ fontWeight:600, fontSize:13, marginBottom:2 }}>🏨 {hb.name}</div>
-                <div style={{ fontSize:11, color:'var(--muted)', marginBottom:hb.guests?.length ? 8 : 0 }}>{hb.address}{hb.phone ? ` · ${hb.phone}` : ''}</div>
+                <div style={{ fontSize:11, color:'var(--muted)', marginBottom:hb.guests?.length ? 8 : 0 }}>
+                  <a href={`https://maps.google.com/?q=${encodeURIComponent(hb.address)}`} target="_blank" rel="noreferrer" style={{ color:'var(--tan)', textDecoration:'none' }}>{hb.address}</a>
+                  {hb.phone ? ` · ${hb.phone}` : ''}
+                </div>
                 {hb.guests?.length > 0 && (
                   <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
                     {hb.guests.map(g => (
                       <div key={g.id} style={{ fontSize:11, background:'var(--bg)', border:'1px solid var(--border)', borderRadius:6, padding:'3px 8px' }}>
                         <span style={{ fontWeight:500 }}>{g.guest_name}</span>
                         <span style={{ color:'var(--muted)', marginLeft:6 }}>
-                          {g.check_in ? new Date(g.check_in).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : ''}
-                          {g.check_out ? ` – ${new Date(g.check_out).toLocaleDateString('en-US',{month:'short',day:'numeric'})}` : ''}
+                          {g.check_in ? new Date(g.check_in.slice(0,10)+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}) : ''}
+                          {g.check_out ? ` – ${new Date(g.check_out.slice(0,10)+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})}` : ''}
                         </span>
                         {g.confirmation && <span style={{ color:'var(--tan)', marginLeft:6 }}>#{g.confirmation}</span>}
                       </div>
@@ -177,39 +295,6 @@ export default function Overview({ project, setProject }) {
           </div>
         </>
       )}
-
-      {/* Client Contacts */}
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-        <div className="sec-lbl">Client Contacts</div>
-        <button className="btn btn-ghost btn-sm" onClick={() => setShowContactModal(true)}>+ Add</button>
-      </div>
-      <div className="chips">
-        {project.clientContacts?.map(c => (
-          <div key={c.id} className="chip" style={{ position:'relative' }}>
-            <strong>{c.title}</strong>
-            {c.name} {c.phone && `· ${c.phone}`}
-            {c.email && <><br /><span style={{ color:'var(--muted)' }}>{c.email}</span></>}
-            <button style={{ position:'absolute', top:4, right:6, background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => deleteContact(c.id)}>✕</button>
-          </div>
-        ))}
-      </div>
-
-      {/* Agency Contacts */}
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-        <div className="sec-lbl">Agency Contacts</div>
-        <button className="btn btn-ghost btn-sm" onClick={() => setShowAgencyModal(true)}>+ Add</button>
-      </div>
-      <div className="chips">
-        {(project.agencyContacts||[]).map(c => (
-          <div key={c.id} className="chip" style={{ position:'relative' }}>
-            <strong>{c.title}</strong>
-            {c.name} {c.phone && `· ${c.phone}`}
-            {c.email && <><br /><span style={{ color:'var(--muted)' }}>{c.email}</span></>}
-            <button style={{ position:'absolute', top:4, right:6, background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => deleteAgencyContact(c.id)}>✕</button>
-          </div>
-        ))}
-        {!(project.agencyContacts?.length) && <span className="empty" style={{ padding:0, fontSize:12 }}>No agency contacts yet.</span>}
-      </div>
 
       {/* Edit Info Modal */}
       {editInfo && (
@@ -278,7 +363,25 @@ export default function Overview({ project, setProject }) {
         </div>
       )}
 
-      {/* Add Contact Modal */}
+      {/* Edit Agency Contact Modal */}
+      {editAgencyId && (
+        <div className="modal-bg" onClick={e => e.target === e.currentTarget && setEditAgencyId(null)}>
+          <div className="modal">
+            <div className="modal-title">Edit Agency Contact</div>
+            <form onSubmit={saveEditAgency}>
+              <div className="form-grid" style={{ marginBottom:12 }}>
+                <div className="field"><label>Name</label><input value={editAgencyForm.name} onChange={e => setEditAgencyForm(f=>({...f,name:e.target.value}))} required /></div>
+                <div className="field"><label>Title</label><input value={editAgencyForm.title} onChange={e => setEditAgencyForm(f=>({...f,title:e.target.value}))} required /></div>
+                <div className="field"><label>Email</label><input type="email" value={editAgencyForm.email} onChange={e => setEditAgencyForm(f=>({...f,email:e.target.value}))} /></div>
+                <div className="field"><label>Phone</label><input value={editAgencyForm.phone} onChange={e => setEditAgencyForm(f=>({...f,phone:e.target.value}))} /></div>
+              </div>
+              <div className="btn-row"><button className="btn btn-primary">Save</button><button type="button" className="btn btn-ghost" onClick={() => setEditAgencyId(null)}>Cancel</button></div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Client Contact Modal */}
       {showContactModal && (
         <div className="modal-bg" onClick={e => e.target === e.currentTarget && setShowContactModal(false)}>
           <div className="modal">
@@ -291,6 +394,24 @@ export default function Overview({ project, setProject }) {
                 <div className="field"><label>Phone</label><input value={contactForm.phone} onChange={e => setContactForm(f=>({...f,phone:e.target.value}))} /></div>
               </div>
               <div className="btn-row"><button className="btn btn-primary">Add Contact</button><button type="button" className="btn btn-ghost" onClick={() => setShowContactModal(false)}>Cancel</button></div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Client Contact Modal */}
+      {editContactId && (
+        <div className="modal-bg" onClick={e => e.target === e.currentTarget && setEditContactId(null)}>
+          <div className="modal">
+            <div className="modal-title">Edit Client Contact</div>
+            <form onSubmit={saveEditContact}>
+              <div className="form-grid" style={{ marginBottom:12 }}>
+                <div className="field"><label>Name</label><input value={editContactForm.name} onChange={e => setEditContactForm(f=>({...f,name:e.target.value}))} required /></div>
+                <div className="field"><label>Title</label><input value={editContactForm.title} onChange={e => setEditContactForm(f=>({...f,title:e.target.value}))} required /></div>
+                <div className="field"><label>Email</label><input type="email" value={editContactForm.email} onChange={e => setEditContactForm(f=>({...f,email:e.target.value}))} /></div>
+                <div className="field"><label>Phone</label><input value={editContactForm.phone} onChange={e => setEditContactForm(f=>({...f,phone:e.target.value}))} /></div>
+              </div>
+              <div className="btn-row"><button className="btn btn-primary">Save</button><button type="button" className="btn btn-ghost" onClick={() => setEditContactId(null)}>Cancel</button></div>
             </form>
           </div>
         </div>

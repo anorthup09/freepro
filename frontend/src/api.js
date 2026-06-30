@@ -113,6 +113,7 @@ export const api = {
 
   // Agency contacts
   createAgencyContact: (projectId, data) => req('POST', `/projects/${projectId}/agency-contacts`, data),
+  updateAgencyContact: (projectId, id, data) => req('PATCH', `/projects/${projectId}/agency-contacts/${id}`, data),
   deleteAgencyContact: (projectId, id) => req('DELETE', `/projects/${projectId}/agency-contacts/${id}`),
 
   // Gear

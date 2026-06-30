@@ -25,7 +25,7 @@ async function getFullProject(id) {
         LEFT JOIN hotel_guests hg ON hg.hotel_block_id = hb.id
         WHERE hb.project_id = ${id}
         GROUP BY hb.id`,
-    sql`SELECT pg.*, cm.name as gear_person_name, cm.phone as gear_person_phone
+    sql`SELECT pg.*, cm.name as gear_person_name, cm.phone as gear_person_phone, cm.email as gear_person_email
         FROM project_gear pg
         LEFT JOIN crew_members cm ON cm.id = pg.gear_person_id
         WHERE pg.project_id = ${id}`,
@@ -279,6 +279,13 @@ router.post('/:id/agency-contacts', requireAuth, requireRole('ADMIN','PRODUCER')
     res.status(201).json(c);
   } catch(e){next(e);}
 });
+router.patch('/:id/agency-contacts/:cid', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try {
+    const d = req.body;
+    const [c] = await sql`UPDATE agency_contacts SET name=${d.name}, title=${d.title}, email=${d.email||null}, phone=${d.phone||null} WHERE id=${req.params.cid} RETURNING *`;
+    res.json(c);
+  } catch(e){next(e);}
+});
 router.delete('/:id/agency-contacts/:cid', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try { await sql`DELETE FROM agency_contacts WHERE id = ${req.params.cid}`; res.status(204).end(); } catch(e){next(e);}
 });
@@ -311,8 +318,8 @@ router.put('/:id/gear', requireAuth, requireRole('ADMIN','PRODUCER'), async (req
         audio_gear = EXCLUDED.audio_gear, media_management_gear = EXCLUDED.media_management_gear,
         editing_gear = EXCLUDED.editing_gear, storage_location = EXCLUDED.storage_location
       RETURNING *`;
-    const [cm] = g.gear_person_id ? await sql`SELECT name, phone FROM crew_members WHERE id = ${g.gear_person_id}` : [null];
-    res.json({ ...g, gear_person_name: cm?.name || null, gear_person_phone: cm?.phone || null });
+    const [cm] = g.gear_person_id ? await sql`SELECT name, phone, email FROM crew_members WHERE id = ${g.gear_person_id}` : [null];
+    res.json({ ...g, gear_person_name: cm?.name || null, gear_person_phone: cm?.phone || null, gear_person_email: cm?.email || null });
   } catch(e){next(e);}
 });
 
