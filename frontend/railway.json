@@ -5,7 +5,7 @@
     "buildCommand": "npm run build"
   },
   "deploy": {
-    "startCommand": "caddy file-server --root dist --listen :${PORT:-3000}",
+    "startCommand": "caddy run --config /app/Caddyfile",
     "healthcheckPath": "/"
   }
 }
