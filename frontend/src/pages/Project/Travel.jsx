@@ -492,7 +492,6 @@ export default function Travel({ project }) {
                   </select>
                 </div>
 
-                <div className="field span2"><label>Passenger Name</label><input value={flightForm.passengerName} onChange={e => setFlightForm(f=>({...f,passengerName:e.target.value}))} required /></div>
                 <div className="field"><label>Confirmation #</label><input value={flightForm.confirmation} onChange={e => setFlightForm(f=>({...f,confirmation:e.target.value}))} placeholder="APMKP8" /></div>
                 <div className="field"><label>Cost ($)</label><input type="number" step="0.01" min="0" value={flightForm.cost} onChange={e => setFlightForm(f=>({...f,cost:e.target.value}))} placeholder="0.00" /></div>
 
