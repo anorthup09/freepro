@@ -58,14 +58,16 @@ export default function Travel({ project }) {
 
   async function addGuest(e) {
     e.preventDefault();
-    const g = await api.addGuest(project.id, guestHotelId, {
-      ...guestForm,
+    const targetHotelId = guestForm.selectedHotelId || guestHotelId;
+    const g = await api.addGuest(project.id, targetHotelId, {
+      crewMemberId: guestForm.crewMemberId || null,
+      guestName: guestForm.guestName,
+      confirmation: guestForm.confirmation,
       checkIn: new Date(guestForm.checkIn).toISOString(),
       checkOut: new Date(guestForm.checkOut).toISOString(),
-      crewMemberId: guestForm.crewMemberId || null,
       cost: guestForm.cost || null,
     });
-    setHotels(prev => prev.map(h => h.id === guestHotelId ? { ...h, guests: [...h.guests, g] } : h));
+    setHotels(prev => prev.map(h => h.id === targetHotelId ? { ...h, guests: [...h.guests, g] } : h));
     setGuestHotelId(null); setGuestForm({ crewMemberId:'', guestName:'', confirmation:'', checkIn:'', checkOut:'', cost:'' });
   }
 
@@ -134,7 +136,7 @@ export default function Travel({ project }) {
   return (
     <div>
       <div className="page-title" style={{ marginBottom:3 }}>Travel & Logistics</div>
-      <div className="page-sub">{project.code} · {project.city}, {project.state} · {fmt(project.startDate)} – {fmt(project.endDate)}</div>
+      <div className="page-sub">{project.code} · {project.city}, {project.state} · {fmt(project.start_date || project.startDate)} – {fmt(project.end_date || project.endDate)}</div>
 
       {/* Hotels */}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
@@ -142,7 +144,10 @@ export default function Travel({ project }) {
           <div className="sec-lbl" style={{ marginTop:0 }}>Hotels</div>
           {hotelTotal && <span style={{ fontSize:11, color:'var(--green)', fontWeight:600 }}>{hotelTotal} total</span>}
         </div>
-        <button className="btn btn-ghost btn-sm" onClick={() => setShowHotel(true)}>+ Add Hotel</button>
+        <div style={{ display:'flex', gap:8 }}>
+          <button className="btn btn-ghost btn-sm" onClick={() => { setGuestHotelId('__pick__'); setGuestForm({ crewMemberId:'', guestName:'', confirmation:'', checkIn:'', checkOut:'', cost:'' }); }}>+ Add Confirmation</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => setShowHotel(true)}>+ Add Hotel</button>
+        </div>
       </div>
       {hotels.map(h => (
         <div key={h.id} className="h-card">
@@ -251,6 +256,15 @@ export default function Travel({ project }) {
             <div className="modal-title">Add Confirmation</div>
             <form onSubmit={addGuest}>
               <div className="form-grid" style={{ marginBottom:12 }}>
+                {guestHotelId === '__pick__' && (
+                  <div className="field span2">
+                    <label>Hotel</label>
+                    <select value={guestForm.selectedHotelId || ''} onChange={e => setGuestForm(f=>({...f, selectedHotelId: e.target.value}))} required>
+                      <option value="">— Select hotel —</option>
+                      {hotels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
+                    </select>
+                  </div>
+                )}
                 <div className="field span2">
                   <label>Crew Member</label>
                   <select value={guestForm.crewMemberId} onChange={e => {
