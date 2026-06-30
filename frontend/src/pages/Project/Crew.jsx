@@ -7,7 +7,7 @@ function initials(name) {
 const COLORS = ['#E8A030','#5ABF80','#8080E0','#E08080','#B080E0','#40A0A0','#D0A030','#C08080'];
 function colorFor(str) { let h = 0; for (let c of str||'') h = (h*31+c.charCodeAt(0))&0xffffffff; return COLORS[Math.abs(h)%COLORS.length]; }
 
-export default function Crew({ project }) {
+export default function Crew({ project, onProjectUpdate }) {
   const [assignments, setAssignments] = useState([]);
   const [positions, setPositions] = useState([]);
   const [roster, setRoster] = useState([]);
@@ -17,6 +17,8 @@ export default function Crew({ project }) {
   const [crewForm, setCrewForm] = useState({ name:'', email:'', phone:'', company:'' });
   const [editId, setEditId] = useState(null);
   const [editForm, setEditForm] = useState({});
+  const [showTalentModal, setShowTalentModal] = useState(false);
+  const [talentForm, setTalentForm] = useState({ name:'', role:'' });
 
   useEffect(() => {
     Promise.all([
@@ -62,6 +64,22 @@ export default function Crew({ project }) {
     if (!confirm('Remove this position from the project?')) return;
     await api.removeCrewSlot(project.id, id);
     setAssignments(prev => prev.filter(a => a.id !== id));
+  }
+
+  async function addTalent(e) {
+    e.preventDefault();
+    try {
+      const t = await api.createTalent(project.id, talentForm);
+      if (onProjectUpdate) onProjectUpdate(p => ({ ...p, keyTalent: [...(p.keyTalent||[]), t] }));
+      setShowTalentModal(false);
+      setTalentForm({ name:'', role:'' });
+    } catch(e) { alert(e.message); }
+  }
+
+  async function deleteTalent(id) {
+    if (!confirm('Remove this talent?')) return;
+    await api.deleteTalent(project.id, id);
+    if (onProjectUpdate) onProjectUpdate(p => ({ ...p, keyTalent: p.keyTalent.filter(t => t.id !== id) }));
   }
 
   // Count existing slots per position so we can suggest next slot number
@@ -155,8 +173,23 @@ export default function Crew({ project }) {
         </div>
       )}
 
+      {/* Talent */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:24 }}>
+        <div className="sec-lbl">Talent</div>
+        <button className="btn btn-ghost btn-sm" onClick={() => setShowTalentModal(true)}>+ Add</button>
+      </div>
+      <div className="chips">
+        {(project.keyTalent||[]).map(t => (
+          <div key={t.id} className="chip" style={{ position:'relative' }}>
+            <strong>{t.role}</strong> {t.name}
+            <button style={{ position:'absolute', top:4, right:6, background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => deleteTalent(t.id)}>✕</button>
+          </div>
+        ))}
+        {(project.keyTalent||[]).length === 0 && <span style={{ color:'var(--muted)', fontSize:12 }}>No talent added yet.</span>}
+      </div>
+
       {/* Roster reference */}
-      <div className="sec-lbl">Full Roster</div>
+      <div className="sec-lbl" style={{ marginTop:24 }}>Full Roster</div>
       <div className="crew-grid">
         {roster.map(m => (
           <div key={m.id} className="cc">
@@ -213,6 +246,22 @@ export default function Crew({ project }) {
                 )}
               </div>
               <div className="btn-row"><button className="btn btn-primary">Add to Project</button><button type="button" className="btn btn-ghost" onClick={() => setShowAddSlot(false)}>Cancel</button></div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Talent Modal */}
+      {showTalentModal && (
+        <div className="modal-bg" onClick={e => e.target === e.currentTarget && setShowTalentModal(false)}>
+          <div className="modal">
+            <div className="modal-title">Add Talent</div>
+            <form onSubmit={addTalent}>
+              <div className="form-grid" style={{ marginBottom:12 }}>
+                <div className="field"><label>Name</label><input value={talentForm.name} onChange={e => setTalentForm(f=>({...f,name:e.target.value}))} required /></div>
+                <div className="field"><label>Role / Title</label><input value={talentForm.role} onChange={e => setTalentForm(f=>({...f,role:e.target.value}))} required /></div>
+              </div>
+              <div className="btn-row"><button className="btn btn-primary">Add Talent</button><button type="button" className="btn btn-ghost" onClick={() => setShowTalentModal(false)}>Cancel</button></div>
             </form>
           </div>
         </div>

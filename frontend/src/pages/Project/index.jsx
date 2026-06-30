@@ -115,7 +115,7 @@ export default function Project() {
       <div className="wrap">
         {tab === 'overview'     && <Overview     project={project} setProject={setProject} />}
         {tab === 'schedule'     && <Schedule     project={project} />}
-        {tab === 'crew'         && <Crew         project={project} />}
+        {tab === 'crew'         && <Crew         project={project} onProjectUpdate={setProject} />}
         {tab === 'deliverables' && <Deliverables project={project} />}
         {tab === 'travel'       && <Travel       project={project} />}
       </div>

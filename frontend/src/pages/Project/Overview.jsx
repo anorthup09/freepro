@@ -153,20 +153,6 @@ export default function Overview({ project, setProject }) {
         ))}
       </div>
 
-      {/* Key Talent */}
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-        <div className="sec-lbl">Key Talent</div>
-        <button className="btn btn-ghost btn-sm" onClick={() => setShowTalentModal(true)}>+ Add</button>
-      </div>
-      <div className="chips">
-        {project.keyTalent?.map(t => (
-          <div key={t.id} className="chip" style={{ position:'relative' }}>
-            <strong>{t.role}</strong>{t.name}
-            <button style={{ position:'absolute', top:4, right:6, background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => deleteTalent(t.id)}>✕</button>
-          </div>
-        ))}
-      </div>
-
       {/* Edit Info Modal */}
       {editInfo && (
         <div className="modal-bg" onClick={e => e.target === e.currentTarget && setEditInfo(false)}>
