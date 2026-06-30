@@ -36,8 +36,8 @@ router.delete('/:id/travel/hotels/:hid', requireAuth, requireRole('ADMIN','PRODU
 
 router.post('/:id/travel/hotels/:hid/guests', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const { crewMemberId, guestName, confirmation, checkIn, checkOut } = req.body;
-    const [g] = await sql`INSERT INTO hotel_guests (id, hotel_block_id, crew_member_id, guest_name, confirmation, check_in, check_out) VALUES (gen_random_uuid()::text, ${req.params.hid}, ${crewMemberId||null}, ${guestName}, ${confirmation||null}, ${checkIn}, ${checkOut}) RETURNING *`;
+    const { crewMemberId, guestName, confirmation, checkIn, checkOut, cost } = req.body;
+    const [g] = await sql`INSERT INTO hotel_guests (id, hotel_block_id, crew_member_id, guest_name, confirmation, check_in, check_out, cost) VALUES (gen_random_uuid()::text, ${req.params.hid}, ${crewMemberId||null}, ${guestName}, ${confirmation||null}, ${checkIn}, ${checkOut}, ${cost||null}) RETURNING *`;
     res.status(201).json(g);
   } catch(e){next(e);}
 });
@@ -63,8 +63,8 @@ router.post('/:id/travel/flights', requireAuth, requireRole('ADMIN','PRODUCER'),
   try {
     const d = req.body;
     const [f] = await sql`
-      INSERT INTO flights (id, project_id, crew_member_id, passenger_name, origin, destination, depart_time, arrive_time, airline, confirmation, is_return)
-      VALUES (gen_random_uuid()::text, ${req.params.id}, ${d.crewMemberId||null}, ${d.passengerName}, ${d.origin}, ${d.destination}, ${d.departTime}, ${d.arriveTime}, ${d.airline||null}, ${d.confirmation||null}, ${d.isReturn||false})
+      INSERT INTO flights (id, project_id, crew_member_id, passenger_name, origin, destination, depart_time, arrive_time, airline, confirmation, is_return, cost)
+      VALUES (gen_random_uuid()::text, ${req.params.id}, ${d.crewMemberId||null}, ${d.passengerName}, ${d.origin}, ${d.destination}, ${d.departTime}, ${d.arriveTime}, ${d.airline||null}, ${d.confirmation||null}, ${d.isReturn||false}, ${d.cost||null})
       RETURNING *`;
     res.status(201).json(f);
   } catch(e){next(e);}
@@ -105,6 +105,26 @@ router.post('/:id/travel/drives', requireAuth, requireRole('ADMIN','PRODUCER'), 
 
 router.delete('/:id/travel/drives/:did', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try { await sql`DELETE FROM drive_groups WHERE id = ${req.params.did}`; res.status(204).end(); } catch(e){next(e);}
+});
+
+// ─── Rental Cars ─────────────────────────────────────────────────────────────
+router.get('/:id/travel/rental-cars', requireAuth, async (req, res, next) => {
+  try { res.json(await sql`SELECT * FROM rental_cars WHERE project_id = ${req.params.id} ORDER BY created_at`); } catch(e){next(e);}
+});
+
+router.post('/:id/travel/rental-cars', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try {
+    const { vendor, pickupLocation, dropoffLocation, pickupDate, dropoffDate, confirmation, cost, notes } = req.body;
+    const [c] = await sql`
+      INSERT INTO rental_cars (id, project_id, vendor, pickup_location, dropoff_location, pickup_date, dropoff_date, confirmation, cost, notes)
+      VALUES (gen_random_uuid()::text, ${req.params.id}, ${vendor}, ${pickupLocation||null}, ${dropoffLocation||null}, ${pickupDate||null}, ${dropoffDate||null}, ${confirmation||null}, ${cost||null}, ${notes||null})
+      RETURNING *`;
+    res.status(201).json(c);
+  } catch(e){next(e);}
+});
+
+router.delete('/:id/travel/rental-cars/:cid', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try { await sql`DELETE FROM rental_cars WHERE id = ${req.params.cid}`; res.status(204).end(); } catch(e){next(e);}
 });
 
 module.exports = router;

@@ -287,6 +287,25 @@ async function migrate() {
   await sql`ALTER TABLE schedule_events ADD COLUMN IF NOT EXISTS audience TEXT[] DEFAULT '{}'`;
   await sql`ALTER TABLE crew_day_calls ADD COLUMN IF NOT EXISTS audience TEXT[] DEFAULT '{}'`;
 
+  await sql`ALTER TABLE hotel_guests ADD COLUMN IF NOT EXISTS cost NUMERIC(10,2)`;
+  await sql`ALTER TABLE flights ADD COLUMN IF NOT EXISTS cost NUMERIC(10,2)`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS rental_cars (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      vendor TEXT NOT NULL,
+      pickup_location TEXT,
+      dropoff_location TEXT,
+      pickup_date TIMESTAMPTZ,
+      dropoff_date TIMESTAMPTZ,
+      confirmation TEXT,
+      cost NUMERIC(10,2),
+      notes TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+
   console.log('Migration complete.');
 }
 

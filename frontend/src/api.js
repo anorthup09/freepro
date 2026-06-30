@@ -100,4 +100,7 @@ export const api = {
   getDrives: (projectId) => req('GET', `/projects/${projectId}/travel/drives`),
   createDrive: (projectId, data) => req('POST', `/projects/${projectId}/travel/drives`, data),
   deleteDrive: (projectId, id) => req('DELETE', `/projects/${projectId}/travel/drives/${id}`),
+  getRentalCars: (projectId) => req('GET', `/projects/${projectId}/travel/rental-cars`),
+  createRentalCar: (projectId, data) => req('POST', `/projects/${projectId}/travel/rental-cars`, data),
+  deleteRentalCar: (projectId, id) => req('DELETE', `/projects/${projectId}/travel/rental-cars/${id}`),
 };
