@@ -14,7 +14,12 @@ router.get('/:token', async (req, res, next) => {
     const talentName = share.talent_name;
 
     // Load project base info
-    const [project] = await sql`SELECT id, code, title, subtitle, client, city, state, start_date, end_date, status, notes FROM projects WHERE id = ${projectId}`;
+    const [project] = await sql`
+      SELECT p.id, p.code, p.title, p.subtitle, p.client, p.city, p.state, p.start_date, p.end_date, p.status, p.notes,
+             cm.name as poc_name, cm.phone as poc_phone, cm.email as poc_email
+      FROM projects p
+      LEFT JOIN crew_members cm ON cm.id = p.poc_crew_member_id
+      WHERE p.id = ${projectId}`;
     if (!project) return res.status(404).json({ error: 'Project not found' });
 
     const [locations, techSpecs, clientContacts, keyTalent] = await Promise.all([

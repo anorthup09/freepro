@@ -9,6 +9,24 @@ function fmt(dt) {
 
 const STATUS_LABEL = { WAITING_ON_ASSETS:'Waiting on Assets', IN_PROGRESS:'In Progress', ROUGH_CUT:'Rough Cut', IN_REVIEW:'In Review', APPROVED:'Approved', DELIVERED:'Delivered' };
 
+function shortName(name) {
+  if (!name) return name;
+  const parts = name.trim().split(/\s+/);
+  if (parts.length <= 2) return name;
+  // Remove middle initials (single letter with optional period)
+  const filtered = parts.filter((p, i) => i === 0 || i === parts.length - 1 || !/^[A-Za-z]\.?$/.test(p));
+  return filtered.join(' ');
+}
+
+const SHARE_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function displayMD(str) {
+  if (!str) return null;
+  const m = str.match(/^(\w{3})\s+(\d+)/);
+  if (!m) return null;
+  const mi = SHARE_MONTHS.indexOf(m[1]);
+  return mi >= 0 ? `${String(mi + 1).padStart(2,'0')}-${String(parseInt(m[2])).padStart(2,'0')}` : null;
+}
+
 function fmtDT(dt) {
   if (!dt) return '—';
   return new Date(dt).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
@@ -127,8 +145,8 @@ function ProducerView({ data }) {
       )}
 
       {/* ── Schedule (with integrated flights) at bottom ── */}
-      {schedule?.map(day => (
-        <DaySection key={day.id} day={day} showCalls flights={flights} />
+      {[...(schedule||[])].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map((day, i) => (
+        <DaySection key={day.id} day={day} showCalls flights={flights} dayIndex={i} />
       ))}
     </div>
   );
@@ -136,7 +154,8 @@ function ProducerView({ data }) {
 
 // ── Crew View ────────────────────────────────────────────────────────────────
 function CrewView({ data }) {
-  const { project, locations, techSpecs, crewAssignments, schedule, flights, hotelBlocks, rentalCars, deliverables, gear } = data;
+  const { project, locations, crewAssignments, schedule, flights, hotelBlocks, rentalCars } = data;
+  const sortedSchedule = [...(schedule || [])].sort((a,b) => (a.date||'').localeCompare(b.date||''));
   return (
     <div className="share-view">
       <div className="share-header">
@@ -147,37 +166,18 @@ function CrewView({ data }) {
           <span className="meta">{fmt(project.start_date)} – {fmt(project.end_date)}</span>
         </div>
       </div>
-      {techSpecs && (
+
+      {project.poc_name && (
         <section className="share-section">
-          <div className="sec-lbl">Tech Specs</div>
-          <div className="chips">
-            {techSpecs.aspect_ratio && <div className="chip"><strong>Ratio</strong>{techSpecs.aspect_ratio}</div>}
-            {techSpecs.resolution && <div className="chip"><strong>Resolution</strong>{techSpecs.resolution}</div>}
-            {techSpecs.cameras && <div className="chip"><strong>Cameras</strong>{techSpecs.cameras}</div>}
+          <div className="sec-lbl">Main Point of Contact</div>
+          <div style={{ fontSize:13 }}>
+            <strong>{shortName(project.poc_name)}</strong>
+            {project.poc_phone && <span style={{ color:'var(--muted)', marginLeft:12 }}>{project.poc_phone}</span>}
+            {project.poc_email && <span style={{ color:'var(--muted)', marginLeft:12 }}>{project.poc_email}</span>}
           </div>
-        </section>
-      )}
-      {locations?.length > 0 && (
-        <section className="share-section">
-          <div className="sec-lbl">Locations</div>
-          <div className="loc-grid">
-            {locations.map(l => (
-              <div key={l.id} className="loc">
-                <div className="loc-ico">{l.emoji || '📍'}</div>
-                <div><div className="loc-name">{l.name}</div><div className="loc-addr">{l.address}</div></div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-      {crewAssignments?.length > 0 && (
-        <section className="share-section">
-          <div className="sec-lbl">Crew</div>
-          <ShareTable cols={['Position','Name','Phone']} rows={crewAssignments.map(a => [a.position.name, a.crewMember?.name||'TBD', a.crewMember?.phone||'—'])} />
         </section>
       )}
 
-      {/* ── Travel ── */}
       {hotelBlocks?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Hotel Accommodations</div>
@@ -187,7 +187,7 @@ function CrewView({ data }) {
               {hb.guests?.length > 0 && (
                 <ShareTable
                   cols={['Guest','Check-in','Check-out','Confirmation']}
-                  rows={hb.guests.map(g => [g.guest_name, fmtDT(g.check_in), fmtDT(g.check_out), g.confirmation || '—'])}
+                  rows={hb.guests.map(g => [shortName(g.guest_name), fmtDT(g.check_in), fmtDT(g.check_out), g.confirmation || '—'])}
                 />
               )}
             </div>
@@ -205,32 +205,29 @@ function CrewView({ data }) {
         </section>
       )}
 
-      {/* ── Post-Production ── */}
-      {deliverables?.length > 0 && (
+      {locations?.length > 0 && (
         <section className="share-section">
-          <div className="sec-lbl">Post-Production — Deliverables</div>
-          {gear?.gear_person_name && (
-            <div style={{ fontSize:12, color:'var(--muted)', marginBottom:8 }}>
-              DIT: <span style={{ color:'var(--text)', fontWeight:500 }}>{gear.gear_person_name}</span>
-              {gear.gear_person_phone && <span style={{ marginLeft:8 }}>{gear.gear_person_phone}</span>}
-            </div>
-          )}
-          <ShareTable
-            cols={['Deliverable','Status','Editor','Specs','Due']}
-            rows={deliverables.map(d => [
-              d.title + (d.is_urgent ? ' ⚠' : ''),
-              STATUS_LABEL[d.status] || d.status,
-              d.editor_name || '—',
-              [d.aspect_ratio, d.resolution].filter(Boolean).join(' · ') || '—',
-              d.due_date || '—',
-            ])}
-          />
+          <div className="sec-lbl">Locations</div>
+          <div className="loc-grid">
+            {locations.map(l => (
+              <div key={l.id} className="loc">
+                <div className="loc-ico">{l.emoji || '📍'}</div>
+                <div><div className="loc-name">{l.name}</div><div className="loc-addr">{l.address}</div></div>
+              </div>
+            ))}
+          </div>
         </section>
       )}
 
-      {/* ── Schedule (with integrated flights) at bottom ── */}
-      {schedule?.map(day => (
-        <DaySection key={day.id} day={day} showCalls flights={flights} />
+      {crewAssignments?.length > 0 && (
+        <section className="share-section">
+          <div className="sec-lbl">Crew</div>
+          <ShareTable cols={['Position','Name','Phone']} rows={crewAssignments.map(a => [a.position.name, shortName(a.crewMember?.name)||'TBD', a.crewMember?.phone||'—'])} />
+        </section>
+      )}
+
+      {sortedSchedule.map((day, i) => (
+        <DaySection key={day.id} day={day} showCalls flights={flights} dayIndex={i} />
       ))}
     </div>
   );
@@ -275,8 +272,8 @@ function ClientView({ data }) {
           <ShareTable cols={['Name','Role']} rows={keyTalent.map(t => [t.name, t.role])} />
         </section>
       )}
-      {schedule?.map(day => (
-        <DaySection key={day.id} day={day} showCalls={false} />
+      {[...(schedule||[])].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map((day, i) => (
+        <DaySection key={day.id} day={day} showCalls={false} dayIndex={i} />
       ))}
     </div>
   );
@@ -446,14 +443,19 @@ function flightTime(f, leg) {
   return f.arrive_display || (f.arrive_time ? new Date(f.arrive_time).toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' }) : '');
 }
 
-function DaySection({ day, showCalls, flights }) {
+function DaySection({ day, showCalls, flights, dayIndex }) {
   const [open, setOpen] = useState(false);
 
   const dayStr = day.date ? isoDate(new Date(day.date)) : null;
+  const dayMD = dayStr ? dayStr.slice(5) : null; // "MM-DD"
   const flightLegs = (flights || []).flatMap(f => {
     const legs = [];
-    if (dayStr && f.depart_time && isoDate(new Date(f.depart_time)) === dayStr) legs.push({ ...f, _leg:'depart', _time: flightTime(f,'depart') });
-    if (dayStr && f.arrive_time && isoDate(new Date(f.arrive_time)) === dayStr) legs.push({ ...f, _leg:'arrive', _time: flightTime(f,'arrive') });
+    const departMatch = (f.depart_time && isoDate(new Date(f.depart_time)) === dayStr) ||
+                        (!f.depart_time && dayMD && displayMD(f.depart_display) === dayMD);
+    const arriveMatch = (f.arrive_time && isoDate(new Date(f.arrive_time)) === dayStr) ||
+                        (!f.arrive_time && dayMD && displayMD(f.arrive_display) === dayMD);
+    if (departMatch) legs.push({ ...f, _leg:'depart', _time: flightTime(f,'depart') });
+    if (arriveMatch) legs.push({ ...f, _leg:'arrive', _time: flightTime(f,'arrive') });
     return legs;
   });
 
@@ -465,7 +467,7 @@ function DaySection({ day, showCalls, flights }) {
   return (
     <section className="share-section">
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-        <div className="sec-lbl" style={{ margin:0 }}>Day {day.day_number} — {new Date(day.date).toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' })}</div>
+        <div className="sec-lbl" style={{ margin:0 }}>Day {dayIndex != null ? dayIndex + 1 : day.day_number} — {new Date(day.date.slice ? day.date.slice(0,10) + 'T12:00:00' : day.date).toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' })}</div>
       </div>
 
       {showCalls && day.crewCalls?.length > 0 && (
