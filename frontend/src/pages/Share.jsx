@@ -606,23 +606,6 @@ function CrewView({ data, shareToken }) {
         </section>
       )}
 
-      {flights?.length > 0 && (
-        <section className="share-section">
-          <div className="sec-lbl">Flights</div>
-          <ShareTable
-            cols={['Passenger','Route','Departure','Arrival','Flight','Confirmation']}
-            rows={flights.map(f => [
-              f.crew_name || f.passenger_name || '—',
-              `${f.origin} → ${f.destination}`,
-              f.depart_display || fmtDT(f.depart_time),
-              f.arrive_display || fmtDT(f.arrive_time),
-              [f.airline, f.flight_number].filter(Boolean).join(' ') || '—',
-              f.confirmation || '—',
-            ])}
-          />
-        </section>
-      )}
-
       {rentalCars?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Rental Cars</div>
