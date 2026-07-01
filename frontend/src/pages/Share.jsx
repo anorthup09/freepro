@@ -751,6 +751,18 @@ function TalentView({ data }) {
               <span className="meta">{project.city}, {project.state}</span>
               <span className="meta">{fmt(project.start_date)} – {fmt(project.end_date)}</span>
             </div>
+            {locations?.length > 0 && (
+              <div style={{ marginTop:6, fontSize:12, color:'var(--muted)' }}>
+                <span style={{ textTransform:'uppercase', letterSpacing:'.08em', fontSize:10, marginRight:6 }}>Shoot Location</span>
+                {locations.map((l, i) => (
+                  <span key={l.id}>
+                    {i > 0 && <span style={{ margin:'0 6px', opacity:.4 }}>·</span>}
+                    <span style={{ color:'var(--text)', fontWeight:500 }}>{l.name}</span>
+                    {l.address && <span style={{ color:'var(--muted)', marginLeft:4 }}>— {l.address}</span>}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
           {filteredSchedule.length > 0 && (
             <button onClick={() => scheduleRef.current?.scrollIntoView({ behavior:'smooth' })} style={{ flexShrink:0, marginTop:4, padding:'6px 14px', fontSize:12, fontWeight:600, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:6, color:'var(--text)', cursor:'pointer', whiteSpace:'nowrap' }}>
@@ -794,38 +806,34 @@ function TalentView({ data }) {
         );
       })()}
 
-      <SpecTiles techSpecs={techSpecs} />
-
-      {locations?.length > 0 && (
+      {clientContacts?.length > 0 && (
         <section className="share-section">
-          <div className="sec-lbl">Locations</div>
-          <div className="loc-grid">
-            {locations.map(l => (
-              <div key={l.id} className="loc">
-                <div className="loc-ico">{l.emoji || '📍'}</div>
-                <div>
-                  <div className="loc-name">{l.name}</div>
-                  {l.address
-                    ? <a href={mapsUrl(l.address)} target="_blank" rel="noreferrer" className="loc-addr" style={{ color:'var(--tan)', textDecoration:'underline' }}>{l.address}</a>
-                    : null}
-                </div>
+          <div className="sec-lbl">Client Contacts</div>
+          <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+            {clientContacts.map(c => (
+              <div key={c.id} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'8px 12px', minWidth:150 }}>
+                <div style={{ fontWeight:600, fontSize:12 }}>{c.name}</div>
+                <div style={{ fontSize:11, color:'var(--muted)', marginTop:1 }}>{c.title}</div>
+                {c.phone && <div style={{ fontSize:11, color:'var(--tan)', marginTop:2 }}>{c.phone}</div>}
+                {c.email && <div style={{ fontSize:11, color:'var(--muted)' }}>{c.email}</div>}
               </div>
             ))}
           </div>
         </section>
       )}
 
-      {clientContacts?.length > 0 && (
-        <section className="share-section">
-          <div className="sec-lbl">Client Contacts</div>
-          <ShareTable cols={['Name','Title','Email','Phone']} colClasses={['','','','nowrap']} rows={clientContacts.map(c => [c.name, c.title, c.email||'—', c.phone||'—'])} />
-        </section>
-      )}
-
       {productionCrew?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Production Team</div>
-          <ShareTable cols={['Role','Name','Phone']} colClasses={['','','nowrap']} rows={productionCrew.map(a => [a.position.name, a.crewMember ? shortName(displayName(a.crewMember)) || 'TBD' : 'TBD', a.crewMember?.phone||'—'])} />
+          <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+            {productionCrew.map(a => (
+              <div key={a.id} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'8px 12px', minWidth:150 }}>
+                <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:2 }}>{a.position.name}</div>
+                <div style={{ fontWeight:600, fontSize:12 }}>{a.crewMember ? shortName(displayName(a.crewMember)) || 'TBD' : 'TBD'}</div>
+                {a.crewMember?.phone && <div style={{ fontSize:11, color:'var(--tan)', marginTop:2 }}>{a.crewMember.phone}</div>}
+              </div>
+            ))}
+          </div>
         </section>
       )}
 
