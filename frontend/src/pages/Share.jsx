@@ -261,9 +261,19 @@ function HotelRoster({ hotelBlocks, crewAssignments }) {
 
   const crew = (crewAssignments || []).filter(a => a.crewMember);
 
+  const allRows = [
+    ...crew.map(a => {
+      const bookings = bookingMap[a.crewMember.id] || [];
+      return { key: a.id, name: displayName(a.crewMember), sub: a.position.name, bookings };
+    }),
+    ...unlinkedGuests.map((b, i) => ({
+      key: `unlinked-${i}`, name: b.guest.guest_name, sub: hotelBlocks.length > 1 ? b.hotel.name : null,
+      bookings: [{ guest: b.guest, hotel: b.hotel }],
+    })),
+  ];
+
   return (
     <div>
-      {/* Hotel block headers */}
       {(hotelBlocks || []).map(hb => (
         <div key={hb.id} style={{ fontSize:12, color:'var(--tan)', marginBottom:6 }}>
           🏨 <span style={{ fontWeight:600, color:'var(--text)' }}>{hb.name}</span>
@@ -272,54 +282,43 @@ function HotelRoster({ hotelBlocks, crewAssignments }) {
         </div>
       ))}
 
-      <div className="tl" style={{ marginTop:10 }}>
-        {crew.map(a => {
-          const bookings = bookingMap[a.crewMember.id] || [];
-          const hasBooking = bookings.length > 0;
-          const confirmed = bookings.some(b => b.guest.confirmation);
-          const dim = !hasBooking || !confirmed;
-
+      <div style={{ marginTop:10, border:'1px solid var(--border)', borderRadius:8, overflow:'hidden' }}>
+        {allRows.map((row, ri) => {
+          const hasBooking = row.bookings.length > 0;
+          const confirmed = row.bookings.some(b => b.guest.confirmation);
           return (
-            <div key={a.id} className="ev" style={{ opacity: dim ? 0.4 : 1 }}>
-              <div className="ev-time" style={{ fontSize:18, lineHeight:1, paddingTop:2 }}>
+            <div key={row.key} style={{
+              display:'flex', alignItems:'center', gap:12, padding:'8px 12px',
+              borderBottom: ri < allRows.length - 1 ? '1px solid var(--border)' : 'none',
+              flexWrap:'wrap', opacity: !hasBooking ? 0.45 : 1,
+            }}>
+              {/* Status dot */}
+              <div style={{ fontSize:13, lineHeight:1, color: confirmed ? 'var(--green,#4ade80)' : 'var(--muted)', flexShrink:0 }}>
                 {confirmed ? '✓' : hasBooking ? '○' : '—'}
               </div>
-              <div className="ev-body" style={{ borderLeft: `2px solid ${confirmed ? 'var(--green, #4ade80)' : 'var(--border)'}` }}>
-                <div className="ev-title">{displayName(a.crewMember)}</div>
-                <div className="ev-detail" style={{ color:'var(--muted)' }}>{a.position.name}</div>
-                {bookings.map((b, i) => (
-                  <div key={i} style={{ marginTop:3, fontSize:11, color: b.guest.confirmation ? 'var(--tan)' : 'var(--muted)' }}>
-                    {bookings.length > 1 && <span style={{ color:'var(--muted)' }}>{b.hotel.name} · </span>}
+              {/* Name + position */}
+              <div style={{ minWidth:140, flexShrink:0 }}>
+                <span style={{ fontSize:13, fontWeight:600, color:'var(--text)' }}>{row.name}</span>
+                {row.sub && <span style={{ fontSize:11, color:'var(--muted)', marginLeft:6 }}>{row.sub}</span>}
+              </div>
+              {/* Bookings inline */}
+              <div style={{ flex:1, display:'flex', gap:16, flexWrap:'wrap' }}>
+                {row.bookings.length === 0 && (
+                  <span style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>No booking</span>
+                )}
+                {row.bookings.map((b, i) => (
+                  <span key={i} style={{ fontSize:11, color:'var(--tan)', whiteSpace:'nowrap', display:'flex', gap:6, alignItems:'center' }}>
+                    {row.bookings.length > 1 && <span style={{ color:'var(--muted)' }}>{b.hotel.name} · </span>}
                     {fmtDT(b.guest.check_in)} → {fmtDT(b.guest.check_out)}
                     {b.guest.confirmation
-                      ? <span style={{ marginLeft:8, color:'var(--text)', fontWeight:500 }}>#{b.guest.confirmation}</span>
-                      : <span style={{ marginLeft:8, color:'var(--muted)', fontStyle:'italic' }}>No confirmation</span>}
-                  </div>
+                      ? <span style={{ color:'var(--text)', fontWeight:600 }}>#{b.guest.confirmation}</span>
+                      : <span style={{ color:'var(--muted)', fontStyle:'italic' }}>No confirmation</span>}
+                  </span>
                 ))}
-                {!hasBooking && <div style={{ fontSize:11, color:'var(--muted)', marginTop:2, fontStyle:'italic' }}>No booking</div>}
               </div>
             </div>
           );
         })}
-
-        {/* Unlinked guests (manually entered, no crew_member_id) */}
-        {unlinkedGuests.map((b, i) => (
-          <div key={`unlinked-${i}`} className="ev">
-            <div className="ev-time" style={{ fontSize:18, lineHeight:1, paddingTop:2 }}>
-              {b.guest.confirmation ? '✓' : '○'}
-            </div>
-            <div className="ev-body" style={{ borderLeft: `2px solid ${b.guest.confirmation ? 'var(--green, #4ade80)' : 'var(--border)'}` }}>
-              <div className="ev-title">{b.guest.guest_name}</div>
-              {unlinkedGuests.length > 1 && <div className="ev-detail" style={{ color:'var(--muted)' }}>{b.hotel.name}</div>}
-              <div style={{ marginTop:3, fontSize:11, color: b.guest.confirmation ? 'var(--tan)' : 'var(--muted)' }}>
-                {fmtDT(b.guest.check_in)} → {fmtDT(b.guest.check_out)}
-                {b.guest.confirmation
-                  ? <span style={{ marginLeft:8, color:'var(--text)', fontWeight:500 }}>#{b.guest.confirmation}</span>
-                  : <span style={{ marginLeft:8, color:'var(--muted)', fontStyle:'italic' }}>No confirmation</span>}
-              </div>
-            </div>
-          </div>
-        ))}
       </div>
     </div>
   );
