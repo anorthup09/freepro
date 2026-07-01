@@ -196,30 +196,6 @@ export default function Gear({ project, setProject }) {
         </div>
       </div>
 
-      {/* ── Rental House ── */}
-      <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'16px', marginBottom:20 }}>
-        <div className="sec-lbl" style={{ marginTop:0 }}>Rental House Information</div>
-        <div className="form-grid">
-          <div className="field"><label>Rental Company</label><input {...field('rentalCompany')} placeholder="Keslow Camera" /></div>
-          <div className="field"><label>Contact Name</label><input {...field('rentalContact')} placeholder="Jane Smith" /></div>
-          <div className="field"><label>Phone Number</label><input {...field('rentalPhone')} placeholder="(314) 555-0100" /></div>
-          <div className="field"><label>Email Address</label><input type="email" {...field('rentalEmail')} placeholder="jane@keslow.com" /></div>
-        </div>
-        <div style={{ marginTop:8 }}>
-          <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)', marginBottom:4 }}>Documents Submitted</div>
-          <Check id="coi" label="COI" {...check('coiReceived')} />
-          <Check id="rentalAgreement" label="Rental Agreement" {...check('rentalAgreementReceived')} />
-          <Check id="ccAuth" label="CC Auth Form" {...check('ccAuthReceived')} />
-        </div>
-        <div className="form-grid" style={{ marginTop:12 }}>
-          <div className="field"><label>Delivery Date / Time</label><input {...field('deliveryDatetime')} placeholder="Aug 5 · 2:00 PM" /></div>
-          <div className="field"><label>Pick-up Date / Time</label><input {...field('pickupDatetime')} placeholder="Aug 9 · 10:00 AM" /></div>
-          <div className="field"><label>Delivery Driver Name</label><input {...field('deliveryDriver')} placeholder="John Doe" /></div>
-          <div className="field"><label>Delivery Driver Phone</label><input {...field('deliveryDriverPhone')} placeholder="(314) 555-0199" /></div>
-          <div className="field"><label>Cost Estimate ($)</label><input type="number" step="0.01" min="0" {...field('rentalCost')} placeholder="0.00" /></div>
-        </div>
-      </div>
-
       {/* ── Online Rentals ── */}
       <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'16px', marginBottom:20 }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
@@ -280,6 +256,30 @@ export default function Gear({ project, setProject }) {
             </div>
           </form>
         )}
+      </div>
+
+      {/* ── Rental House ── */}
+      <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'16px', marginBottom:20 }}>
+        <div className="sec-lbl" style={{ marginTop:0 }}>Rental House Information</div>
+        <div className="form-grid">
+          <div className="field"><label>Rental Company</label><input {...field('rentalCompany')} placeholder="Keslow Camera" /></div>
+          <div className="field"><label>Contact Name</label><input {...field('rentalContact')} placeholder="Jane Smith" /></div>
+          <div className="field"><label>Phone Number</label><input {...field('rentalPhone')} placeholder="(314) 555-0100" /></div>
+          <div className="field"><label>Email Address</label><input type="email" {...field('rentalEmail')} placeholder="jane@keslow.com" /></div>
+        </div>
+        <div style={{ marginTop:8 }}>
+          <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)', marginBottom:4 }}>Documents Submitted</div>
+          <Check id="coi" label="COI" {...check('coiReceived')} />
+          <Check id="rentalAgreement" label="Rental Agreement" {...check('rentalAgreementReceived')} />
+          <Check id="ccAuth" label="CC Auth Form" {...check('ccAuthReceived')} />
+        </div>
+        <div className="form-grid" style={{ marginTop:12 }}>
+          <div className="field"><label>Delivery Date / Time</label><input {...field('deliveryDatetime')} placeholder="Aug 5 · 2:00 PM" /></div>
+          <div className="field"><label>Pick-up Date / Time</label><input {...field('pickupDatetime')} placeholder="Aug 9 · 10:00 AM" /></div>
+          <div className="field"><label>Delivery Driver Name</label><input {...field('deliveryDriver')} placeholder="John Doe" /></div>
+          <div className="field"><label>Delivery Driver Phone</label><input {...field('deliveryDriverPhone')} placeholder="(314) 555-0199" /></div>
+          <div className="field"><label>Cost Estimate ($)</label><input type="number" step="0.01" min="0" {...field('rentalCost')} placeholder="0.00" /></div>
+        </div>
       </div>
 
       {editRental && (
