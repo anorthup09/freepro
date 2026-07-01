@@ -3,6 +3,24 @@ import { useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../api.js';
 import { displayName } from '../utils/displayName.js';
 
+function useNow() {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60000);
+    return () => clearInterval(id);
+  }, []);
+  return now;
+}
+
+function flightStatus(f, now) {
+  const depart = f.depart_time ? new Date(f.depart_time) : null;
+  const arrive = f.arrive_time ? new Date(f.arrive_time) : null;
+  if (!depart) return null;
+  if (now < depart) return { label: 'Pre-flight', color: '#6b7280', dot: '#6b7280' };
+  if (arrive && now < arrive) return { label: 'In-flight', color: '#f59e0b', dot: '#f59e0b' };
+  return { label: 'Arrived', color: '#22c55e', dot: '#22c55e' };
+}
+
 function fmt(dt) {
   if (!dt) return '';
   // Slice to date-only and use local noon to prevent UTC day-shift
@@ -874,6 +892,7 @@ function flightTime(f, leg) {
 
 function DaySection({ day, showCalls, flights, dayIndex }) {
   const [open, setOpen] = useState(true);
+  const now = useNow();
 
   const dayStr = day.date ? isoDate(new Date(day.date)) : null;
   const dayMD = dayStr ? dayStr.slice(5) : null; // "MM-DD"
@@ -953,7 +972,15 @@ function DaySection({ day, showCalls, flights, dayIndex }) {
                 <div key={`f-${item.id}-${item._leg}`} className="ev">
                   <div className="ev-time"><span style={{ fontSize:18, lineHeight:1 }}>✈</span><br/><span style={{ fontSize:10 }}>{item._time}</span></div>
                   <div className="ev-body" style={{ borderLeft:'3px solid var(--orange)', background:'linear-gradient(90deg, rgba(255,140,0,0.12) 0%, transparent 100%)', borderRadius:'0 6px 6px 0' }}>
-                    <div className="ev-title" style={{ color:'var(--orange)' }}>{item._leg === 'depart' ? 'Departure' : 'Arrival'} — {item.crew_name || item.passenger_name}</div>
+                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
+                      <div className="ev-title" style={{ color:'var(--orange)' }}>{item._leg === 'depart' ? 'Departure' : 'Arrival'} — {item.crew_name || item.passenger_name}</div>
+                      {(() => { const s = flightStatus(item, now); return s ? (
+                        <div style={{ display:'flex', alignItems:'center', gap:5, flexShrink:0, background:'rgba(0,0,0,0.25)', borderRadius:20, padding:'3px 10px' }}>
+                          <div style={{ width:6, height:6, borderRadius:'50%', background:s.dot }} />
+                          <span style={{ fontSize:10, fontWeight:600, color:s.color, textTransform:'uppercase', letterSpacing:'0.06em' }}>{s.label}</span>
+                        </div>
+                      ) : null; })()}
+                    </div>
                     <div className="ev-detail">
                       {item.origin} → {item.destination}
                       {(item.airline || item.flight_number) && <span style={{ color:'var(--muted)', marginLeft:8 }}>{[item.airline, item.flight_number].filter(Boolean).join(' ')}</span>}
