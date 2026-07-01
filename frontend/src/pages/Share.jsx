@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../api.js';
 
@@ -154,15 +154,25 @@ function SpecTiles({ techSpecs }) {
 // ── Producer View ────────────────────────────────────────────────────────────
 function ProducerView({ data }) {
   const { project, locations, techSpecs, clientContacts, keyTalent, crewAssignments, schedule, flights, hotelBlocks, rentalCars, deliverables, gear } = data;
+  const scheduleRef = useRef(null);
   return (
     <div className="share-view">
       <div className="share-header">
-        <div className="proj-code">{project.code}</div>
-        <div className="proj-title">{project.title}</div>
-        <div className="proj-meta" style={{ marginTop: 6 }}>
-          <span className="meta">{project.client}</span>
-          <span className="meta">{project.city}, {project.state}</span>
-          <span className="meta">{fmt(project.start_date)} – {fmt(project.end_date)}</span>
+        <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12 }}>
+          <div>
+            <div className="proj-code">{project.code}</div>
+            <div className="proj-title">{project.title}</div>
+            <div className="proj-meta" style={{ marginTop: 6 }}>
+              <span className="meta">{project.client}</span>
+              <span className="meta">{project.city}, {project.state}</span>
+              <span className="meta">{fmt(project.start_date)} – {fmt(project.end_date)}</span>
+            </div>
+          </div>
+          {schedule?.length > 0 && (
+            <button onClick={() => scheduleRef.current?.scrollIntoView({ behavior:'smooth' })} style={{ flexShrink:0, marginTop:4, padding:'6px 14px', fontSize:12, fontWeight:600, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:6, color:'var(--text)', cursor:'pointer', whiteSpace:'nowrap' }}>
+              Jump to Schedule ↓
+            </button>
+          )}
         </div>
       </div>
 
@@ -307,9 +317,11 @@ function ProducerView({ data }) {
       )}
 
       {/* ── Schedule (with integrated flights) at bottom ── */}
-      {[...(schedule||[])].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map((day, i) => (
-        <DaySection key={day.id} day={day} showCalls flights={flights} dayIndex={i} />
-      ))}
+      <div ref={scheduleRef}>
+        {[...(schedule||[])].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map((day, i) => (
+          <DaySection key={day.id} day={day} showCalls flights={flights} dayIndex={i} />
+        ))}
+      </div>
     </div>
   );
 }
@@ -318,15 +330,25 @@ function ProducerView({ data }) {
 function CrewView({ data }) {
   const { project, locations, techSpecs, clientContacts, keyTalent, crewAssignments, schedule, flights, hotelBlocks, rentalCars, deliverables, gear } = data;
   const sortedSchedule = [...(schedule || [])].sort((a,b) => (a.date||'').localeCompare(b.date||''));
+  const scheduleRef = useRef(null);
   return (
     <div className="share-view">
       <div className="share-header">
-        <div className="proj-code">{project.code}</div>
-        <div className="proj-title">{project.title}</div>
-        <div className="proj-meta" style={{ marginTop: 6 }}>
-          <span className="meta">{project.client}</span>
-          <span className="meta">{project.city}, {project.state}</span>
-          <span className="meta">{fmt(project.start_date)} – {fmt(project.end_date)}</span>
+        <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12 }}>
+          <div>
+            <div className="proj-code">{project.code}</div>
+            <div className="proj-title">{project.title}</div>
+            <div className="proj-meta" style={{ marginTop: 6 }}>
+              <span className="meta">{project.client}</span>
+              <span className="meta">{project.city}, {project.state}</span>
+              <span className="meta">{fmt(project.start_date)} – {fmt(project.end_date)}</span>
+            </div>
+          </div>
+          {schedule?.length > 0 && (
+            <button onClick={() => scheduleRef.current?.scrollIntoView({ behavior:'smooth' })} style={{ flexShrink:0, marginTop:4, padding:'6px 14px', fontSize:12, fontWeight:600, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:6, color:'var(--text)', cursor:'pointer', whiteSpace:'nowrap' }}>
+              Jump to Schedule ↓
+            </button>
+          )}
         </div>
       </div>
 
@@ -467,9 +489,11 @@ function CrewView({ data }) {
         </section>
       )}
 
-      {sortedSchedule.map((day, i) => (
-        <DaySection key={day.id} day={day} showCalls flights={flights} dayIndex={i} />
-      ))}
+      <div ref={scheduleRef}>
+        {sortedSchedule.map((day, i) => (
+          <DaySection key={day.id} day={day} showCalls flights={flights} dayIndex={i} />
+        ))}
+      </div>
     </div>
   );
 }
