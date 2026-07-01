@@ -388,6 +388,7 @@ function FlightsTable({ flights }) {
 function ProducerView({ data }) {
   const { project, locations, techSpecs, clientContacts, keyTalent, crewAssignments, schedule, flights, hotelBlocks, rentalCars, deliverables, gear, onlineRentals = [] } = data;
   const scheduleRef = useRef(null);
+  const [tagFilter, setTagFilter] = useState(null);
   return (
     <div className="share-view">
       <div className="share-header">
@@ -528,10 +529,18 @@ function ProducerView({ data }) {
       {/* ── Schedule (with integrated flights) at bottom ── */}
       <div ref={scheduleRef}>
         {(schedule||[]).length > 0 && (
-          <div style={{ fontSize:16, fontWeight:700, color:'var(--text)', margin:'24px 0 8px', letterSpacing:'-0.01em' }}>Schedule</div>
+          <div style={{ display:'flex', alignItems:'center', gap:8, margin:'24px 0 8px' }}>
+            <div style={{ fontSize:16, fontWeight:700, color:'var(--text)', letterSpacing:'-0.01em', flex:1 }}>Schedule</div>
+            {['VIDEO','PHOTO'].map(tag => (
+              <button key={tag} onClick={() => setTagFilter(f => f === tag ? null : tag)}
+                style={{ fontSize:11, fontWeight:600, padding:'4px 12px', borderRadius:20, border:'1px solid var(--border)', background: tagFilter === tag ? 'var(--orange)' : 'var(--bg2)', color: tagFilter === tag ? '#fff' : 'var(--muted)', cursor:'pointer', letterSpacing:'.04em' }}>
+                {tag}
+              </button>
+            ))}
+          </div>
         )}
         {[...(schedule||[])].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map((day, i) => (
-          <DaySection key={day.id} day={day} showCalls flights={flights} dayIndex={i} />
+          <DaySection key={day.id} day={day} showCalls flights={flights} dayIndex={i} tagFilter={tagFilter} />
         ))}
       </div>
     </div>
@@ -543,6 +552,7 @@ function CrewView({ data, shareToken }) {
   const { project, locations, techSpecs, clientContacts, keyTalent, crewAssignments, schedule, flights, hotelBlocks, rentalCars, deliverables, gear, onlineRentals = [] } = data;
   const sortedSchedule = [...(schedule || [])].sort((a,b) => (a.date||'').localeCompare(b.date||''));
   const scheduleRef = useRef(null);
+  const [tagFilter, setTagFilter] = useState(null);
   return (
     <div className="share-view">
       <div className="share-header">
@@ -672,10 +682,18 @@ function CrewView({ data, shareToken }) {
 
       <div ref={scheduleRef}>
         {sortedSchedule.length > 0 && (
-          <div style={{ fontSize:16, fontWeight:700, color:'var(--text)', margin:'24px 0 8px', letterSpacing:'-0.01em' }}>Schedule</div>
+          <div style={{ display:'flex', alignItems:'center', gap:8, margin:'24px 0 8px' }}>
+            <div style={{ fontSize:16, fontWeight:700, color:'var(--text)', letterSpacing:'-0.01em', flex:1 }}>Schedule</div>
+            {['VIDEO','PHOTO'].map(tag => (
+              <button key={tag} onClick={() => setTagFilter(f => f === tag ? null : tag)}
+                style={{ fontSize:11, fontWeight:600, padding:'4px 12px', borderRadius:20, border:'1px solid var(--border)', background: tagFilter === tag ? 'var(--orange)' : 'var(--bg2)', color: tagFilter === tag ? '#fff' : 'var(--muted)', cursor:'pointer', letterSpacing:'.04em' }}>
+                {tag}
+              </button>
+            ))}
+          </div>
         )}
         {sortedSchedule.map((day, i) => (
-          <DaySection key={day.id} day={day} showCalls flights={flights} dayIndex={i} />
+          <DaySection key={day.id} day={day} showCalls flights={flights} dayIndex={i} tagFilter={tagFilter} />
         ))}
       </div>
     </div>
@@ -908,11 +926,15 @@ function DietaryCell({ value }) {
   );
 }
 
-function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCallWrap }) {
+function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCallWrap, tagFilter }) {
   const [open, setOpen] = useState(true);
   const now = useNow();
 
-  const dayStr = day.date ? isoDate(new Date(day.date)) : null;
+  const filteredDay = tagFilter
+    ? { ...day, events: day.events.filter(e => (e.tags || []).some(t => t.type === tagFilter)) }
+    : day;
+
+  const dayStr = filteredDay.date ? isoDate(new Date(filteredDay.date)) : null;
   const dayMD = dayStr ? dayStr.slice(5) : null; // "MM-DD"
   const flightLegs = (flights || []).flatMap(f => {
     const legs = [];
@@ -932,7 +954,7 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
   });
 
   const allItems = [
-    ...day.events.map(e => ({ _type:'event', _sort: timeToMins(e.start_time), ...e })),
+    ...filteredDay.events.map(e => ({ _type:'event', _sort: timeToMins(e.start_time), ...e })),
     ...flightLegs.map(f => ({ _type:'flight', _sort: timeToMins(f._time), ...f })),
   ].sort((a, b) => a._sort - b._sort);
 

@@ -85,10 +85,13 @@ router.get('/:token', async (req, res, next) => {
 
     const daysWithData = await Promise.all(shootDays.map(async day => {
       const events = await sql`
-        SELECT se.*, l.name as location_name, l.address as location_address
+        SELECT se.*, l.name as location_name, l.address as location_address,
+               json_agg(DISTINCT jsonb_build_object('id',et.id,'type',et.type,'label',et.label)) FILTER (WHERE et.id IS NOT NULL) as tags
         FROM schedule_events se
+        LEFT JOIN event_tags et ON et.event_id = se.id
         LEFT JOIN locations l ON l.id = se.location_id
         WHERE se.shoot_day_id = ${day.id}
+        GROUP BY se.id, l.name, l.address
         ORDER BY se.start_time`;
 
       const crewCalls = await sql`
