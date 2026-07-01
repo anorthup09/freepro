@@ -987,7 +987,7 @@ function DaySection({ day, showCalls, flights, dayIndex }) {
                   <div className="ev-body" style={{ borderLeft:'2px solid var(--orange)' }}>
                     <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
                       <div className="ev-title">{item._leg === 'depart' ? 'Departure' : 'Arrival'} — {item.crew_name || item.passenger_name}</div>
-                      {(() => { const s = flightStatus(item, now); return s ? (
+                      {item._leg === 'depart' && (() => { const s = flightStatus(item, now); return s ? (
                         <div style={{ display:'flex', alignItems:'center', gap:5, flexShrink:0, background:'rgba(0,0,0,0.25)', borderRadius:20, padding:'3px 10px' }}>
                           <div style={{ width:6, height:6, borderRadius:'50%', background: s.dot || 'transparent', border: s.dot ? 'none' : '1.5px solid var(--orange)', flexShrink:0 }} />
                           <span style={{ fontSize: s.dot ? 10 : 9, fontWeight: s.dot ? 600 : 400, color:s.color, textTransform:'uppercase', letterSpacing: s.dot ? '0.06em' : '0.03em', fontStyle: s.dot ? 'normal' : 'italic' }}>{s.label}</span>
