@@ -386,7 +386,7 @@ function FlightsTable({ flights }) {
 
 // ── Producer View ────────────────────────────────────────────────────────────
 function ProducerView({ data }) {
-  const { project, locations, techSpecs, clientContacts, keyTalent, crewAssignments, schedule, flights, hotelBlocks, rentalCars, deliverables, gear, onlineRentals = [] } = data;
+  const { project, locations, techSpecs, clientContacts, agencyContacts = [], keyTalent, crewAssignments, schedule, flights, hotelBlocks, rentalCars, deliverables, gear, onlineRentals = [] } = data;
   const scheduleRef = useRef(null);
   const [tagFilter, setTagFilter] = useState(null);
   return (
@@ -477,6 +477,13 @@ function ProducerView({ data }) {
         </section>
       )}
 
+      {agencyContacts?.length > 0 && (
+        <section className="share-section">
+          <div className="sec-lbl">Agency Contacts</div>
+          <ShareTable cols={['Name','Title','Email','Phone']} colClasses={['','','','nowrap']} rows={agencyContacts.map(c => [c.name, c.title, c.email||'—', c.phone||'—'])} />
+        </section>
+      )}
+
       {keyTalent?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Key Talent</div>
@@ -551,7 +558,7 @@ function ProducerView({ data }) {
 
 // ── Crew View ────────────────────────────────────────────────────────────────
 function CrewView({ data, shareToken }) {
-  const { project, locations, techSpecs, clientContacts, keyTalent, crewAssignments, schedule, flights, hotelBlocks, rentalCars, deliverables, gear, onlineRentals = [] } = data;
+  const { project, locations, techSpecs, clientContacts, agencyContacts = [], keyTalent, crewAssignments, schedule, flights, hotelBlocks, rentalCars, deliverables, gear, onlineRentals = [] } = data;
   const sortedSchedule = [...(schedule || [])].sort((a,b) => (a.date||'').localeCompare(b.date||''));
   const scheduleRef = useRef(null);
   const [tagFilter, setTagFilter] = useState(null);
@@ -631,6 +638,13 @@ function CrewView({ data, shareToken }) {
         <section className="share-section">
           <div className="sec-lbl">Client Contacts</div>
           <ShareTable cols={['Name','Title','Email','Phone']} colClasses={['','','','nowrap']} rows={clientContacts.map(c => [c.name, c.title, c.email||'—', c.phone||'—'])} />
+        </section>
+      )}
+
+      {agencyContacts?.length > 0 && (
+        <section className="share-section">
+          <div className="sec-lbl">Agency Contacts</div>
+          <ShareTable cols={['Name','Title','Email','Phone']} colClasses={['','','','nowrap']} rows={agencyContacts.map(c => [c.name, c.title, c.email||'—', c.phone||'—'])} />
         </section>
       )}
 

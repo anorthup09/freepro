@@ -54,11 +54,12 @@ router.get('/:token', async (req, res, next) => {
       WHERE p.id = ${projectId}`;
     if (!project) return res.status(404).json({ error: 'Project not found' });
 
-    const [locations, techSpecs, clientContacts, keyTalent] = await Promise.all([
+    const [locations, techSpecs, clientContacts, keyTalent, agencyContacts] = await Promise.all([
       sql`SELECT * FROM locations WHERE project_id = ${projectId}`,
       sql`SELECT * FROM tech_specs WHERE project_id = ${projectId}`,
       sql`SELECT * FROM client_contacts WHERE project_id = ${projectId}`,
       sql`SELECT * FROM key_talent WHERE project_id = ${projectId}`,
+      sql`SELECT * FROM agency_contacts WHERE project_id = ${projectId}`,
     ]);
 
     const crewAssignments = await sql`
@@ -138,6 +139,7 @@ router.get('/:token', async (req, res, next) => {
         locations,
         techSpecs: techSpecs[0] || null,
         clientContacts,
+        agencyContacts,
         keyTalent,
         crewAssignments: mappedCrew,
         schedule: daysWithData,
@@ -174,6 +176,7 @@ router.get('/:token', async (req, res, next) => {
         locations,
         techSpecs: techSpecs[0] || null,
         clientContacts,
+        agencyContacts,
         keyTalent,
         crewAssignments: mappedCrew,
         schedule: filteredDays,
