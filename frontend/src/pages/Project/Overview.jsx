@@ -148,6 +148,9 @@ export default function Overview({ project, setProject, onTabChange }) {
             <div className="meta"><span className="dot6" />{fmtDate(startDate)} – {fmtDate(endDate)}</div>
             <div className="meta"><span className="dot6" />{project.client}</div>
           </div>
+          {project.notes && (
+            <div style={{ marginTop:10, fontSize:13, color:'var(--muted)', maxWidth:480, lineHeight:1.6, whiteSpace:'pre-wrap' }}>{project.notes}</div>
+          )}
         </div>
         <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:8 }}>
           {daysUntil != null && daysUntil > 0 && (
