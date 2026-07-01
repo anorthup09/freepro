@@ -951,9 +951,9 @@ function DaySection({ day, showCalls, flights, dayIndex }) {
         <div className="tl" style={{ marginTop:8 }}>
               {allItems.map((item, i) => item._type === 'flight' ? (
                 <div key={`f-${item.id}-${item._leg}`} className="ev">
-                  <div className="ev-time">✈ {item._time}</div>
-                  <div className="ev-body" style={{ borderLeft:'2px solid var(--orange)' }}>
-                    <div className="ev-title">{item._leg === 'depart' ? 'Departure' : 'Arrival'} — {item.crew_name || item.passenger_name}</div>
+                  <div className="ev-time"><span style={{ fontSize:18, lineHeight:1 }}>✈</span><br/><span style={{ fontSize:10 }}>{item._time}</span></div>
+                  <div className="ev-body" style={{ borderLeft:'3px solid var(--orange)', background:'linear-gradient(90deg, rgba(255,140,0,0.12) 0%, transparent 100%)', borderRadius:'0 6px 6px 0' }}>
+                    <div className="ev-title" style={{ color:'var(--orange)' }}>{item._leg === 'depart' ? 'Departure' : 'Arrival'} — {item.crew_name || item.passenger_name}</div>
                     <div className="ev-detail">
                       {item.origin} → {item.destination}
                       {(item.airline || item.flight_number) && <span style={{ color:'var(--muted)', marginLeft:8 }}>{[item.airline, item.flight_number].filter(Boolean).join(' ')}</span>}
