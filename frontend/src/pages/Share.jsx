@@ -47,7 +47,7 @@ function mapsUrl(address) {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
 }
 
-function GearSection({ gear, onlineRentals = [], producerView }) {
+function GearSection({ gear, onlineRentals = [], producerView, shareToken }) {
   if (!gear && onlineRentals.length === 0) return null;
   const hasRental = gear && (gear.rental_company || gear.rental_contact || gear.rental_phone || gear.rental_email);
   const gearList = gear ? [
@@ -67,11 +67,43 @@ function GearSection({ gear, onlineRentals = [], producerView }) {
   ] : [];
   const hasDocInfo = producerView && docs.some(d => d.done != null);
 
+  const [editingGear, setEditingGear] = useState({});
+  const [gearDraft, setGearDraft] = useState({});
+
+  function startEdit(label, value) {
+    if (!shareToken) return;
+    setEditingGear(e => ({ ...e, [label]: true }));
+    setGearDraft(d => ({ ...d, [label]: value || '' }));
+  }
+
+  async function saveGearField(label) {
+    setEditingGear(e => ({ ...e, [label]: false }));
+    const keyMap = { Camera:'camera_gear', Grip:'grip_gear', Electric:'electric_gear', Audio:'audio_gear', 'Media Management':'media_management_gear', Editing:'editing_gear' };
+    const dbKey = keyMap[label];
+    if (!dbKey || !shareToken) return;
+    const body = {};
+    const allKeys = Object.values(keyMap);
+    allKeys.forEach(k => { body[k] = gear?.[k] || null; });
+    body[dbKey] = gearDraft[label] || null;
+    try {
+      const BACKEND = import.meta.env.VITE_API_URL || 'https://freepro-production.up.railway.app';
+      await fetch(`${BACKEND}/share/${shareToken}/gear`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (gear) gear[dbKey] = gearDraft[label] || null;
+    } catch(e) { /* silent */ }
+  }
+
   if (!gear?.storage_location && !hasRental && !gearList.length && !hasDelivery && !hasDocInfo && onlineRentals.length === 0) return null;
 
   return (
     <section className="share-section">
-      <div style={{ fontSize:16, fontWeight:700, color:'var(--text)', marginBottom:12, letterSpacing:'-0.01em' }}>Gear</div>
+      <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:16, paddingBottom:10, borderBottom:'1px solid var(--border)' }}>
+        <div style={{ fontSize:16, fontWeight:700, color:'var(--text)', letterSpacing:'-0.01em', whiteSpace:'nowrap' }}>Gear</div>
+        <div style={{ flex:1, height:1, background:'var(--border)' }} />
+      </div>
 
       {gear?.storage_location && (
         <div style={{ marginBottom:10 }}>
@@ -117,19 +149,41 @@ function GearSection({ gear, onlineRentals = [], producerView }) {
         </div>
       )}
 
-      {gearList.length > 0 && (
-        <div style={{ marginBottom:12 }}>
-          <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:8, fontWeight:600 }}>Gear List</div>
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
-            {gearList.map(g => (
-              <div key={g.label} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 12px' }}>
-                <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:6, fontWeight:600 }}>{g.label}</div>
-                <div style={{ fontSize:13, color:'var(--text)', lineHeight:1.5, whiteSpace:'pre-wrap' }}>{g.value}</div>
-              </div>
-            ))}
+      {(gearList.length > 0 || shareToken) && (() => {
+        const ALL_CATS = ['Camera','Grip','Electric','Audio','Media Management','Editing'];
+        const tiles = shareToken
+          ? ALL_CATS.map(label => ({ label, value: gear?.[{ Camera:'camera_gear', Grip:'grip_gear', Electric:'electric_gear', Audio:'audio_gear', 'Media Management':'media_management_gear', Editing:'editing_gear' }[label]] || '' }))
+          : gearList;
+        if (!tiles.some(t => t.value) && !shareToken) return null;
+        return (
+          <div style={{ marginBottom:12 }}>
+            <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:8, fontWeight:600 }}>
+              Gear List{shareToken && <span style={{ fontSize:9, color:'var(--muted)', fontStyle:'italic', marginLeft:6, textTransform:'none', letterSpacing:0 }}>click to edit</span>}
+            </div>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+              {tiles.map(g => (
+                <div key={g.label} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 12px', cursor: shareToken ? 'text' : 'default' }}
+                  onClick={() => !editingGear[g.label] && startEdit(g.label, g.value)}>
+                  <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:6, fontWeight:600 }}>{g.label}</div>
+                  {editingGear[g.label] ? (
+                    <textarea
+                      autoFocus
+                      value={gearDraft[g.label]}
+                      onChange={e => setGearDraft(d => ({ ...d, [g.label]: e.target.value }))}
+                      onBlur={() => saveGearField(g.label)}
+                      style={{ width:'100%', background:'transparent', border:'none', outline:'none', color:'var(--text)', fontSize:13, lineHeight:1.5, resize:'vertical', minHeight:48, fontFamily:'inherit' }}
+                    />
+                  ) : (
+                    <div style={{ fontSize:13, color: g.value ? 'var(--text)' : 'var(--muted)', lineHeight:1.5, whiteSpace:'pre-wrap', fontStyle: g.value ? 'normal' : 'italic' }}>
+                      {g.value || (shareToken ? 'Click to add…' : '')}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {hasDelivery && (
         <div style={{ marginBottom:10 }}>
@@ -377,7 +431,7 @@ function ProducerView({ data }) {
       {keyTalent?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Key Talent</div>
-          <ShareTable cols={['Name','Role','Notes']} rows={keyTalent.map(t => [t.name, t.role, t.notes||''])} />
+          <ShareTable cols={['Name','Role','Phone','Email','Dietary','Notes']} rows={keyTalent.map(t => [t.name, t.role, t.phone||'—', t.email||'—', t.dietary_restrictions||'—', t.notes||'—'])} />
         </section>
       )}
 
@@ -437,7 +491,7 @@ function ProducerView({ data }) {
 }
 
 // ── Crew View ────────────────────────────────────────────────────────────────
-function CrewView({ data }) {
+function CrewView({ data, shareToken }) {
   const { project, locations, techSpecs, clientContacts, keyTalent, crewAssignments, schedule, flights, hotelBlocks, rentalCars, deliverables, gear, onlineRentals = [] } = data;
   const sortedSchedule = [...(schedule || [])].sort((a,b) => (a.date||'').localeCompare(b.date||''));
   const scheduleRef = useRef(null);
@@ -523,7 +577,7 @@ function CrewView({ data }) {
       {keyTalent?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Key Talent</div>
-          <ShareTable cols={['Name','Role','Notes']} rows={keyTalent.map(t => [t.name, t.role, t.notes||''])} />
+          <ShareTable cols={['Name','Role','Phone','Email','Dietary','Notes']} rows={keyTalent.map(t => [t.name, t.role, t.phone||'—', t.email||'—', t.dietary_restrictions||'—', t.notes||'—'])} />
         </section>
       )}
 
@@ -561,7 +615,7 @@ function CrewView({ data }) {
         </section>
       )}
 
-      <GearSection gear={gear} onlineRentals={onlineRentals} />
+      <GearSection gear={gear} onlineRentals={onlineRentals} shareToken={token} />
 
       {deliverables?.length > 0 && (
         <section className="share-section">
@@ -955,7 +1009,7 @@ export default function Share() {
       </nav>
       <div className="wrap">
         {view_type === 'producer' && <ProducerView data={data} />}
-        {view_type === 'crew'     && <CrewView     data={data} />}
+        {view_type === 'crew'     && <CrewView     data={data} shareToken={token} />}
         {view_type === 'client'   && <ClientView   data={data} />}
         {view_type === 'talent'   && <TalentView   data={data} />}
       </div>

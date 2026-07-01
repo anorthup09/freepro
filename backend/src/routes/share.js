@@ -216,4 +216,27 @@ router.get('/:token', async (req, res, next) => {
   } catch(e){ next(e); }
 });
 
+// PATCH /share/:token/gear — crew-safe gear list update (no auth, token scoped)
+router.patch('/:token/gear', async (req, res, next) => {
+  try {
+    const [share] = await sql`SELECT * FROM project_shares WHERE token = ${req.params.token}`;
+    if (!share) return res.status(404).json({ error: 'Share not found' });
+    if (share.view_type !== 'crew' && share.view_type !== 'producer') return res.status(403).json({ error: 'Not allowed' });
+
+    const { camera_gear, grip_gear, electric_gear, audio_gear, media_management_gear, editing_gear } = req.body;
+    const [gear] = await sql`
+      INSERT INTO project_gear (project_id, camera_gear, grip_gear, electric_gear, audio_gear, media_management_gear, editing_gear)
+      VALUES (${share.project_id}, ${camera_gear||null}, ${grip_gear||null}, ${electric_gear||null}, ${audio_gear||null}, ${media_management_gear||null}, ${editing_gear||null})
+      ON CONFLICT (project_id) DO UPDATE SET
+        camera_gear = EXCLUDED.camera_gear,
+        grip_gear = EXCLUDED.grip_gear,
+        electric_gear = EXCLUDED.electric_gear,
+        audio_gear = EXCLUDED.audio_gear,
+        media_management_gear = EXCLUDED.media_management_gear,
+        editing_gear = EXCLUDED.editing_gear
+      RETURNING *`;
+    res.json(gear);
+  } catch(e){ next(e); }
+});
+
 module.exports = router;

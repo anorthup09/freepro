@@ -387,6 +387,7 @@ async function migrate() {
   await sql`ALTER TABLE key_talent ADD COLUMN IF NOT EXISTS phone TEXT`;
   await sql`ALTER TABLE key_talent ADD COLUMN IF NOT EXISTS email TEXT`;
   await sql`ALTER TABLE key_talent ADD COLUMN IF NOT EXISTS notes TEXT`;
+  await sql`ALTER TABLE key_talent ADD COLUMN IF NOT EXISTS dietary_restrictions TEXT`;
 
   // Backfill preferred name from legal name for existing crew members
   await sql`
