@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { api } from '../../api.js';
+import { displayName } from '../../utils/displayName.js';
 
 function fmt(dt) {
   return new Date(dt).toLocaleDateString('en-US', { month:'short', day:'numeric' });
@@ -347,7 +348,7 @@ export default function Travel({ project }) {
                       {confirmed ? '✓' : g ? '○' : '—'}
                     </div>
                     <div style={{ flex:1, minWidth:0 }}>
-                      <div style={{ fontSize:12, fontWeight:600, color:'var(--text)' }}>{a.crewMember.name}</div>
+                      <div style={{ fontSize:12, fontWeight:600, color:'var(--text)' }}>{displayName(a.crewMember)}</div>
                       <div style={{ fontSize:11, color:'var(--muted)' }}>{a.position.name}</div>
                       {g && (
                         <div style={{ fontSize:11, marginTop:2, color: confirmed ? 'var(--tan)' : 'var(--muted)' }}>
@@ -529,11 +530,11 @@ export default function Travel({ project }) {
                   <select value={guestForm.crewMemberId} onChange={e => {
                     const id = e.target.value;
                     const a = projectCrew.find(a => a.crewMember?.id === id);
-                    setGuestForm(f=>({ ...f, crewMemberId: id, guestName: a?.crewMember?.name || f.guestName }));
+                    setGuestForm(f=>({ ...f, crewMemberId: id, guestName: displayName(a?.crewMember) || f.guestName }));
                   }}>
                     <option value="">— Select crew member —</option>
                     {projectCrew.filter(a => a.crewMember).map(a => (
-                      <option key={a.crewMember.id} value={a.crewMember.id}>{a.crewMember.name} — {a.position.name}</option>
+                      <option key={a.crewMember.id} value={a.crewMember.id}>{displayName(a.crewMember)} — {a.position.name}</option>
                     ))}
                   </select>
                 </div>
@@ -599,11 +600,11 @@ export default function Travel({ project }) {
                   <select value={flightForm.crewMemberId || ''} onChange={e => {
                     const id = e.target.value || null;
                     const a = projectCrew.find(a => a.crewMember?.id === id);
-                    setFlightForm(f=>({ ...f, crewMemberId: id, passengerName: a?.crewMember?.name || f.passengerName }));
+                    setFlightForm(f=>({ ...f, crewMemberId: id, passengerName: displayName(a?.crewMember) || f.passengerName }));
                   }}>
                     <option value="">— Select crew member —</option>
                     {projectCrew.filter(a => a.crewMember).map(a => (
-                      <option key={a.crewMember.id} value={a.crewMember.id}>{a.crewMember.name} — {a.position.name}</option>
+                      <option key={a.crewMember.id} value={a.crewMember.id}>{displayName(a.crewMember)} — {a.position.name}</option>
                     ))}
                   </select>
                 </div>
@@ -645,7 +646,7 @@ export default function Travel({ project }) {
                   <select value={carForm.crewMemberId} onChange={e => setCarForm(f=>({...f, crewMemberId: e.target.value}))}>
                     <option value="">— Select crew member —</option>
                     {projectCrew.filter(a => a.crewMember).map(a => (
-                      <option key={a.crewMember.id} value={a.crewMember.id}>{a.crewMember.name} — {a.position.name}</option>
+                      <option key={a.crewMember.id} value={a.crewMember.id}>{displayName(a.crewMember)} — {a.position.name}</option>
                     ))}
                   </select>
                 </div>
@@ -679,7 +680,7 @@ export default function Travel({ project }) {
                   <select value={editFlightForm.crewMemberId} onChange={e => setEditFlightForm(f=>({...f, crewMemberId: e.target.value}))}>
                     <option value="">— None —</option>
                     {projectCrew.filter(a => a.crewMember).map(a => (
-                      <option key={a.crewMember.id} value={a.crewMember.id}>{a.crewMember.name} — {a.position.name}</option>
+                      <option key={a.crewMember.id} value={a.crewMember.id}>{displayName(a.crewMember)} — {a.position.name}</option>
                     ))}
                   </select>
                 </div>

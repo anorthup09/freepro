@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../../api.js';
+import { displayName } from '../../utils/displayName.js';
 
 const STATUSES = ['WAITING_ON_ASSETS','IN_PROGRESS','ROUGH_CUT','IN_REVIEW','APPROVED','DELIVERED'];
 const STATUS_LABEL = { WAITING_ON_ASSETS:'Waiting on Assets', IN_PROGRESS:'In Progress', ROUGH_CUT:'Rough Cut', IN_REVIEW:'In Review', APPROVED:'Approved', DELIVERED:'Delivered' };
@@ -135,7 +136,7 @@ export default function Deliverables({ project }) {
           <option value="">— Unassigned —</option>
           {(project.crewAssignments || []).filter(a => a.crewMember).map(a => (
             <option key={a.crewMember.id} value={a.crewMember.id}>
-              {a.crewMember.name} — {a.position.name}
+              {displayName(a.crewMember)} — {a.position.name}
             </option>
           ))}
         </select>

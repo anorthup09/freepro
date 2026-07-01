@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { api } from '../../api.js';
+import { displayName } from '../../utils/displayName.js';
 
 function Field({ label, value, onChange, onBlur, placeholder, type='text' }) {
   return (
@@ -134,7 +135,7 @@ export default function Gear({ project, setProject }) {
             <select value={gear.gearPersonId} onChange={e => { setGear(g => ({ ...g, gearPersonId: e.target.value })); save({ gearPersonId: e.target.value }); }}>
               <option value="">— Unassigned —</option>
               {assignedCrew.map(a => (
-                <option key={a.crewMember.id} value={a.crewMember.id}>{a.crewMember.name} — {a.position.name}</option>
+                <option key={a.crewMember.id} value={a.crewMember.id}>{displayName(a.crewMember)} — {a.position.name}</option>
               ))}
             </select>
           </div>

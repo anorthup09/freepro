@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../../api.js';
+import { displayName } from '../../utils/displayName.js';
 
 function isoDateOf(ts) {
   if (!ts) return null;
@@ -334,7 +335,7 @@ export default function Schedule({ project }) {
                     {currentDay.crewCalls.map(c => (
                       <tr key={c.id}>
                         <td className="pos-name">{c.crewAssignment.position.name}{c.crewAssignment.slotNumber > 1 ? ` ${c.crewAssignment.slotNumber}` : ''}</td>
-                        <td style={{ color:'var(--tan)', fontSize:12 }}>{c.crewAssignment.crewMember?.name || <span style={{ color:'var(--muted)' }}>Unassigned</span>}</td>
+                        <td style={{ color:'var(--tan)', fontSize:12 }}>{c.crewAssignment.crewMember ? displayName(c.crewAssignment.crewMember) : <span style={{ color:'var(--muted)' }}>Unassigned</span>}</td>
                         <td>
                           {editCallId === c.id ? (
                             <div style={{ display:'flex', gap:6 }}>

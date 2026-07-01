@@ -1,15 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../../api.js';
+import { displayName } from '../../utils/displayName.js';
 
 function initials(name) {
   return name?.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase() || '??';
-}
-function displayName(m) {
-  if (!m) return '';
-  const first = m.preferred_first_name || m.name?.split(' ')[0] || '';
-  const last = m.preferred_last_name || m.name?.split(' ').slice(1).join(' ') || '';
-  if (m.preferred_first_name || m.preferred_last_name) return [first, last].filter(Boolean).join(' ');
-  return m.name || '';
 }
 const COLORS = ['#E8A030','#5ABF80','#8080E0','#E08080','#B080E0','#40A0A0','#D0A030','#C08080'];
 function colorFor(str) { let h = 0; for (let c of str||'') h = (h*31+c.charCodeAt(0))&0xffffffff; return COLORS[Math.abs(h)%COLORS.length]; }

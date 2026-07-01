@@ -63,7 +63,7 @@ router.get('/:token', async (req, res, next) => {
 
     const crewAssignments = await sql`
       SELECT ca.*, p.name as position_name, p.sort_order,
-             cm.id as cm_id, cm.name as cm_name, cm.email as cm_email, cm.phone as cm_phone, cm.company as cm_company, cm.initials, cm.avatar_color
+             cm.id as cm_id, cm.name as cm_name, cm.email as cm_email, cm.phone as cm_phone, cm.company as cm_company, cm.initials, cm.avatar_color, cm.preferred_first_name as cm_pref_first, cm.preferred_last_name as cm_pref_last
       FROM crew_assignments ca
       JOIN positions p ON p.id = ca.position_id
       LEFT JOIN crew_members cm ON cm.id = ca.crew_member_id
@@ -73,7 +73,7 @@ router.get('/:token', async (req, res, next) => {
     const mappedCrew = crewAssignments.map(a => ({
       ...a,
       position: { id: a.position_id, name: a.position_name, sortOrder: a.sort_order },
-      crewMember: a.cm_id ? { id: a.cm_id, name: a.cm_name, email: a.cm_email, phone: a.cm_phone, company: a.cm_company, initials: a.initials, avatarColor: a.avatar_color } : null,
+      crewMember: a.cm_id ? { id: a.cm_id, name: a.cm_name, preferredFirstName: a.cm_pref_first, preferredLastName: a.cm_pref_last, email: a.cm_email, phone: a.cm_phone, company: a.cm_company, initials: a.initials, avatarColor: a.avatar_color } : null,
     }));
 
     // Load schedule
@@ -93,7 +93,7 @@ router.get('/:token', async (req, res, next) => {
 
       const crewCalls = await sql`
         SELECT cdc.*, ca.slot_number, ca.position_id, p.name as position_name,
-               cm.id as cm_id, cm.name as cm_name, cm.phone as cm_phone
+               cm.id as cm_id, cm.name as cm_name, cm.phone as cm_phone, cm.preferred_first_name as cm_pref_first, cm.preferred_last_name as cm_pref_last
         FROM crew_day_calls cdc
         JOIN crew_assignments ca ON ca.id = cdc.crew_assignment_id
         JOIN positions p ON p.id = ca.position_id
@@ -107,7 +107,7 @@ router.get('/:token', async (req, res, next) => {
         events: events.map(e => ({ ...e, location: e.location_name ? { name: e.location_name, address: e.location_address } : null })),
         crewCalls: crewCalls.map(c => ({
           ...c,
-          crewAssignment: { id: c.crew_assignment_id, positionId: c.position_id, slotNumber: c.slot_number, position: { name: c.position_name }, crewMember: c.cm_id ? { id: c.cm_id, name: c.cm_name, phone: c.cm_phone } : null }
+          crewAssignment: { id: c.crew_assignment_id, positionId: c.position_id, slotNumber: c.slot_number, position: { name: c.position_name }, crewMember: c.cm_id ? { id: c.cm_id, name: c.cm_name, preferredFirstName: c.cm_pref_first, preferredLastName: c.cm_pref_last, phone: c.cm_phone } : null }
         })),
       };
     }));
@@ -118,7 +118,7 @@ router.get('/:token', async (req, res, next) => {
       const safe = async (q) => { try { return await q; } catch(e) { console.error('share query failed:', e.message); return []; } };
       const [flights, hotelBlocks, rentalCars, deliverables, gear] = await Promise.all([
         safe(sql`SELECT id, passenger_name, origin, destination, depart_time, arrive_time, depart_display, arrive_display, airline, flight_number, confirmation, is_return,
-                   cm.name as crew_name
+                   COALESCE(NULLIF(TRIM(COALESCE(cm.preferred_first_name,'') || ' ' || COALESCE(cm.preferred_last_name,'')), ''), cm.name) as crew_name
             FROM flights f LEFT JOIN crew_members cm ON cm.id = f.crew_member_id
             WHERE f.project_id = ${projectId} ORDER BY f.depart_time`),
         safe(sql`SELECT hb.id, hb.name, hb.address, hb.phone,
@@ -152,7 +152,7 @@ router.get('/:token', async (req, res, next) => {
       const safe2 = async (q) => { try { return await q; } catch(e) { console.error('share query failed:', e.message); return []; } };
       const [crewFlights, crewHotels, crewCars, crewDeliverables, crewGear] = await Promise.all([
         safe2(sql`SELECT id, passenger_name, origin, destination, depart_time, arrive_time, depart_display, arrive_display, airline, flight_number, confirmation, is_return,
-                   cm.name as crew_name
+                   COALESCE(NULLIF(TRIM(COALESCE(cm.preferred_first_name,'') || ' ' || COALESCE(cm.preferred_last_name,'')), ''), cm.name) as crew_name
             FROM flights f LEFT JOIN crew_members cm ON cm.id = f.crew_member_id
             WHERE f.project_id = ${projectId} ORDER BY f.depart_time`),
         safe2(sql`SELECT hb.id, hb.name, hb.address, hb.phone,

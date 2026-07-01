@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../api.js';
+import { displayName } from '../utils/displayName.js';
 
 function fmt(dt) {
   if (!dt) return '';
@@ -174,7 +175,7 @@ function HotelRoster({ hotelBlocks, crewAssignments }) {
                 {confirmed ? '✓' : hasBooking ? '○' : '—'}
               </div>
               <div className="ev-body" style={{ borderLeft: `2px solid ${confirmed ? 'var(--green, #4ade80)' : 'var(--border)'}` }}>
-                <div className="ev-title">{a.crewMember.name}</div>
+                <div className="ev-title">{displayName(a.crewMember)}</div>
                 <div className="ev-detail" style={{ color:'var(--muted)' }}>{a.position.name}</div>
                 {bookings.map((b, i) => (
                   <div key={i} style={{ marginTop:3, fontSize:11, color: b.guest.confirmation ? 'var(--tan)' : 'var(--muted)' }}>
@@ -349,7 +350,7 @@ function ProducerView({ data }) {
       {crewAssignments?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Crew</div>
-          <ShareTable cols={['Position','Name','Email','Phone']} rows={crewAssignments.map(a => [a.position.name, a.crewMember?.name||'TBD', a.crewMember?.email||'—', a.crewMember?.phone||'—'])} />
+          <ShareTable cols={['Position','Name','Email','Phone']} rows={crewAssignments.map(a => [a.position.name, a.crewMember ? displayName(a.crewMember)||'TBD' : 'TBD', a.crewMember?.email||'—', a.crewMember?.phone||'—'])} />
         </section>
       )}
 
@@ -492,7 +493,7 @@ function CrewView({ data }) {
       {crewAssignments?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Crew</div>
-          <ShareTable cols={['Position','Name','Email','Phone']} rows={crewAssignments.map(a => [a.position.name, shortName(a.crewMember?.name)||'TBD', a.crewMember?.email||'—', a.crewMember?.phone||'—'])} />
+          <ShareTable cols={['Position','Name','Email','Phone']} rows={crewAssignments.map(a => [a.position.name, a.crewMember ? shortName(displayName(a.crewMember))||'TBD' : 'TBD', a.crewMember?.email||'—', a.crewMember?.phone||'—'])} />
         </section>
       )}
 
@@ -698,7 +699,7 @@ function TalentView({ data }) {
                     return (
                       <tr key={a.id}>
                         <td>{a.position.name}</td>
-                        <td>{a.crewMember?.name || 'TBD'}</td>
+                        <td>{a.crewMember ? displayName(a.crewMember) : 'TBD'}</td>
                         <td>{a.crewMember?.phone || '—'}</td>
                         <td>{call?.call_time || '—'}</td>
                       </tr>
@@ -828,7 +829,7 @@ function DaySection({ day, showCalls, flights, dayIndex }) {
         <div style={{ marginTop:8 }}>
           <ShareTable
             cols={['Position','Name','Call','Wrap']}
-            rows={day.crewCalls.map(c => [c.crewAssignment.position.name, c.crewAssignment.crewMember?.name||'TBD', c.call_time||'—', c.wrap_time||'—'])}
+            rows={day.crewCalls.map(c => [c.crewAssignment.position.name, c.crewAssignment.crewMember ? displayName(c.crewAssignment.crewMember)||'TBD' : 'TBD', c.call_time||'—', c.wrap_time||'—'])}
           />
         </div>
       )}

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { api } from '../../api.js';
+import { displayName } from '../../utils/displayName.js';
 
 const LOC_TYPES = ['PRIMARY_VENUE','CREW_HOTEL','SECONDARY','AIRPORT','OTHER'];
 const LOC_LABELS = { PRIMARY_VENUE:'Primary Venue', CREW_HOTEL:'Crew Hotel', SECONDARY:'Secondary', AIRPORT:'Airport', OTHER:'Other' };
@@ -166,7 +167,7 @@ export default function Overview({ project, setProject, onTabChange }) {
           <option value="">— Unassigned —</option>
           {assignedCrew.map(a => (
             <option key={a.crewMember.id} value={a.crewMember.id}>
-              {a.crewMember.name} — {a.position.name}
+              {displayName(a.crewMember)} — {a.position.name}
             </option>
           ))}
         </select>
