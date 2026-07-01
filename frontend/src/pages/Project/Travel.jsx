@@ -468,19 +468,22 @@ export default function Travel({ project }) {
                   </div>
                 )}
                 <div className="field span2">
-                  <label>Crew Member <span style={{ color:'var(--muted)', fontSize:10 }}>(optional — auto-fills name)</span></label>
+                  <label>Crew Member <span style={{ color:'var(--muted)', fontSize:10 }}>(optional)</span></label>
                   <select value={guestForm.crewMemberId} onChange={e => {
                     const id = e.target.value;
-                    const a = projectCrew.find(a => a.crewMemberId === id);
+                    const a = projectCrew.find(a => a.crewMember?.id === id);
                     setGuestForm(f=>({ ...f, crewMemberId: id, guestName: a?.crewMember?.name || f.guestName }));
                   }}>
                     <option value="">— Select crew member —</option>
                     {projectCrew.filter(a => a.crewMember).map(a => (
-                      <option key={a.crewMemberId} value={a.crewMemberId}>{a.crewMember.name} — {a.position.name}</option>
+                      <option key={a.crewMember.id} value={a.crewMember.id}>{a.crewMember.name} — {a.position.name}</option>
                     ))}
                   </select>
                 </div>
-                <div className="field span2"><label>Guest Name</label><input value={guestForm.guestName} onChange={e => setGuestForm(f=>({...f,guestName:e.target.value}))} placeholder="Alexander Northup" required /></div>
+                <div className="field span2">
+                  <label>Guest Name{!guestForm.crewMemberId && <span style={{ color:'var(--red-text)', marginLeft:3 }}>*</span>}</label>
+                  <input value={guestForm.guestName} onChange={e => setGuestForm(f=>({...f,guestName:e.target.value}))} placeholder="Alexander Northup" required={!guestForm.crewMemberId} />
+                </div>
                 <div className="field span2"><label>Confirmation #</label><input value={guestForm.confirmation} onChange={e => setGuestForm(f=>({...f,confirmation:e.target.value}))} placeholder="138215420" /></div>
                 <div className="field"><label>Check In</label><input type="date" value={guestForm.checkIn} onChange={e => setGuestForm(f=>({...f,checkIn:e.target.value}))} required /></div>
                 <div className="field"><label>Check Out</label><input type="date" value={guestForm.checkOut} onChange={e => setGuestForm(f=>({...f,checkOut:e.target.value}))} required /></div>
@@ -585,7 +588,7 @@ export default function Travel({ project }) {
                   <select value={carForm.crewMemberId} onChange={e => setCarForm(f=>({...f, crewMemberId: e.target.value}))}>
                     <option value="">— Select crew member —</option>
                     {projectCrew.filter(a => a.crewMember).map(a => (
-                      <option key={a.crewMemberId} value={a.crewMemberId}>{a.crewMember.name} — {a.position.name}</option>
+                      <option key={a.crewMember.id} value={a.crewMember.id}>{a.crewMember.name} — {a.position.name}</option>
                     ))}
                   </select>
                 </div>
