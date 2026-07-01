@@ -117,8 +117,8 @@ router.get('/:token', async (req, res, next) => {
     if (viewType === 'producer') {
       const safe = async (q) => { try { return await q; } catch(e) { console.error('share query failed:', e.message); return []; } };
       const [flights, hotelBlocks, rentalCars, deliverables, gear, onlineRentals] = await Promise.all([
-        safe(sql`SELECT id, passenger_name, origin, destination, depart_time, arrive_time, depart_display, arrive_display, airline, flight_number, confirmation, is_return,
-                   COALESCE(NULLIF(TRIM(COALESCE(cm.preferred_first_name,'') || ' ' || COALESCE(cm.preferred_last_name,'')), ''), cm.name) as crew_name
+        safe(sql`SELECT f.id, f.passenger_name, f.origin, f.destination, f.depart_time, f.arrive_time, f.depart_display, f.arrive_display, f.airline, f.flight_number, f.confirmation, f.is_return,
+                   COALESCE(cm.name, f.passenger_name) as crew_name
             FROM flights f LEFT JOIN crew_members cm ON cm.id = f.crew_member_id
             WHERE f.project_id = ${projectId} ORDER BY f.depart_time`),
         safe(sql`SELECT hb.id, hb.name, hb.address, hb.phone,
@@ -153,8 +153,8 @@ router.get('/:token', async (req, res, next) => {
       }));
       const safe2 = async (q) => { try { return await q; } catch(e) { console.error('share query failed:', e.message); return []; } };
       const [crewFlights, crewHotels, crewCars, crewDeliverables, crewGear, crewOnlineRentals] = await Promise.all([
-        safe2(sql`SELECT id, passenger_name, origin, destination, depart_time, arrive_time, depart_display, arrive_display, airline, flight_number, confirmation, is_return,
-                   COALESCE(NULLIF(TRIM(COALESCE(cm.preferred_first_name,'') || ' ' || COALESCE(cm.preferred_last_name,'')), ''), cm.name) as crew_name
+        safe2(sql`SELECT f.id, f.passenger_name, f.origin, f.destination, f.depart_time, f.arrive_time, f.depart_display, f.arrive_display, f.airline, f.flight_number, f.confirmation, f.is_return,
+                   COALESCE(cm.name, f.passenger_name) as crew_name
             FROM flights f LEFT JOIN crew_members cm ON cm.id = f.crew_member_id
             WHERE f.project_id = ${projectId} ORDER BY f.depart_time`),
         safe2(sql`SELECT hb.id, hb.name, hb.address, hb.phone,
