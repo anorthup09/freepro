@@ -33,6 +33,15 @@ function fmtDT(dt) {
   if (!dt) return '—';
   return new Date(dt).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
 }
+function fmtTime(str) {
+  if (!str) return '';
+  if (/AM|PM/i.test(str)) return str;
+  const [h, m] = str.split(':').map(Number);
+  if (isNaN(h)) return str;
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 || 12;
+  return `${h12}:${String(m).padStart(2,'0')} ${ampm}`;
+}
 
 function mapsUrl(address) {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
@@ -618,8 +627,8 @@ function TalentView({ data }) {
               <span className="cs-project-name">{project.title}</span>
             </div>
             <div className="cs-header-times">
-              {day.call_time && <span><strong>Call:</strong> {day.call_time}</span>}
-              {day.wrap_time && <span><strong>Wrap:</strong> {day.wrap_time}</span>}
+              {day.call_time && <span><strong>Call:</strong> {fmtTime(day.call_time)}</span>}
+              {day.wrap_time && <span><strong>Wrap:</strong> {fmtTime(day.wrap_time)}</span>}
               {day.weather && <span className="cs-weather">{day.weather}</span>}
             </div>
           </div>
@@ -660,7 +669,7 @@ function TalentView({ data }) {
                   {keyTalent.map(t => {
                     const callEntry = day.crewCalls.find(c => c.crewAssignment?.crewMember?.name === t.name);
                     return (
-                      <tr key={t.id}><td>{t.name}</td><td>{t.role}</td><td>{callEntry?.call_time || day.call_time || '—'}</td></tr>
+                      <tr key={t.id}><td>{t.name}</td><td>{t.role}</td><td>{fmtTime(callEntry?.call_time || day.call_time) || '—'}</td></tr>
                     );
                   })}
                 </tbody>
@@ -701,7 +710,7 @@ function TalentView({ data }) {
                         <td>{a.position.name}</td>
                         <td>{a.crewMember ? displayName(a.crewMember) : 'TBD'}</td>
                         <td>{a.crewMember?.phone || '—'}</td>
-                        <td>{call?.call_time || '—'}</td>
+                        <td>{call?.call_time ? fmtTime(call.call_time) : '—'}</td>
                       </tr>
                     );
                   })}
@@ -720,7 +729,7 @@ function TalentView({ data }) {
                 </thead>
                 <tbody>
                   {day.events.map(e => (
-                    <tr key={e.id}><td>{e.start_time}{e.end_time ? ` – ${e.end_time}` : ''}</td><td>{e.title}</td><td>{e.detail||''}</td></tr>
+                    <tr key={e.id}><td>{fmtTime(e.start_time)}{e.end_time ? ` – ${fmtTime(e.end_time)}` : ''}</td><td>{e.title}</td><td>{e.detail||''}</td></tr>
                   ))}
                 </tbody>
               </table>
@@ -819,9 +828,9 @@ function DaySection({ day, showCalls, flights, dayIndex }) {
 
       {(day.call_time || day.wrap_time) && (
         <div style={{ fontSize:11, color:'var(--tan)', marginTop:4 }}>
-          {day.call_time && <span>Call: <strong>{day.call_time}</strong></span>}
+          {day.call_time && <span>Call: <strong>{fmtTime(day.call_time)}</strong></span>}
           {day.call_time && day.wrap_time && <span style={{ margin:'0 8px', color:'var(--muted)' }}>·</span>}
-          {day.wrap_time && <span>Wrap: <strong>{day.wrap_time}</strong></span>}
+          {day.wrap_time && <span>Wrap: <strong>{fmtTime(day.wrap_time)}</strong></span>}
         </div>
       )}
 
@@ -829,7 +838,7 @@ function DaySection({ day, showCalls, flights, dayIndex }) {
         <div style={{ marginTop:8 }}>
           <ShareTable
             cols={['Position','Name','Call','Wrap']}
-            rows={day.crewCalls.map(c => [c.crewAssignment.position.name, c.crewAssignment.crewMember ? displayName(c.crewAssignment.crewMember)||'TBD' : 'TBD', c.call_time||'—', c.wrap_time||'—'])}
+            rows={day.crewCalls.map(c => [c.crewAssignment.position.name, c.crewAssignment.crewMember ? displayName(c.crewAssignment.crewMember)||'TBD' : 'TBD', c.call_time ? fmtTime(c.call_time) : '—', c.wrap_time ? fmtTime(c.wrap_time) : '—'])}
           />
         </div>
       )}
@@ -854,7 +863,7 @@ function DaySection({ day, showCalls, flights, dayIndex }) {
                 </div>
               ) : (
                 <div key={item.id || i} className="ev">
-                  <div className="ev-time">{item.start_time}{item.end_time ? ` – ${item.end_time}` : ''}</div>
+                  <div className="ev-time">{fmtTime(item.start_time)}{item.end_time ? ` – ${fmtTime(item.end_time)}` : ''}</div>
                   <div className={`ev-body${item.is_alert ? ' warn' : ''}`} style={!item.is_alert ? { borderLeft:'2px solid var(--orange)' } : {}}>
                     <div className={`ev-title${item.is_alert ? ' alert' : ''}`}>{item.title}</div>
                     {item.detail && <div className="ev-detail">{item.detail}</div>}

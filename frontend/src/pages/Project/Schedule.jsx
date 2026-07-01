@@ -296,8 +296,8 @@ export default function Schedule({ project }) {
                   })()}
                 </div>
                 <div style={{ fontSize:11, color:'var(--muted)', marginTop:3 }}>
-                  {currentDay.callTime && `Call ${currentDay.callTime}`}
-                  {currentDay.wrapTime && ` · Wrap ${currentDay.wrapTime}`}
+                  {currentDay.callTime && `Call ${fmtTime(currentDay.callTime)}`}
+                  {currentDay.wrapTime && ` · Wrap ${fmtTime(currentDay.wrapTime)}`}
                   {currentDay.weather && ` · ${currentDay.weather}`}
                 </div>
               </div>
@@ -346,7 +346,7 @@ export default function Schedule({ project }) {
                           ) : (
                             <span style={{ cursor:'pointer', color: c.callTime ? 'var(--orange)' : 'var(--muted)', fontSize:11, fontWeight:500 }}
                               onClick={() => { setEditCallId(c.id); setCallTime(c.callTime || ''); }}>
-                              {c.callTime || '—'}
+                              {c.callTime ? fmtTime(c.callTime) : '—'}
                             </span>
                           )}
                         </td>
