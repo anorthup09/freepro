@@ -819,7 +819,7 @@ function TalentView({ data }) {
           </section>
         )}
         {filteredSchedule.map((day, i) => (
-          <DaySection key={day.id} day={day} showCalls={false} dayIndex={i} talentCallTime={day.talent_call_time} />
+          <DaySection key={day.id} day={day} showCalls={false} dayIndex={i} talentCallTime={day.talent_call_time} hideCallWrap />
         ))}
       </div>
     </div>
@@ -888,7 +888,7 @@ function DietaryCell({ value }) {
   );
 }
 
-function DaySection({ day, showCalls, flights, dayIndex, talentCallTime }) {
+function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCallWrap }) {
   const [open, setOpen] = useState(true);
   const now = useNow();
 
@@ -951,7 +951,7 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime }) {
         </div>
       </div>
 
-      {(day.call_time || day.wrap_time) && (
+      {!hideCallWrap && (day.call_time || day.wrap_time) && (
         <div style={{ fontSize:11, color:'var(--tan)', marginTop:4 }}>
           {day.call_time && <span>Call: <strong>{fmtTime(day.call_time)}</strong></span>}
           {day.call_time && day.wrap_time && <span style={{ margin:'0 8px', color:'var(--muted)' }}>·</span>}
