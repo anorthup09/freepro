@@ -69,6 +69,42 @@ function mapsUrl(address) {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
 }
 
+function directionsUrl(from, to) {
+  return `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(from)}&destination=${encodeURIComponent(to)}&travelmode=driving`;
+}
+
+// Module-level caches so geocode/drive-time results persist across re-renders
+const _geoCache = new Map();
+const _driveCache = new Map();
+
+async function _geocode(address) {
+  if (_geoCache.has(address)) return _geoCache.get(address);
+  try {
+    const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`, { headers: { 'Accept-Language': 'en' } });
+    const d = await r.json();
+    const result = d[0] ? { lat: parseFloat(d[0].lat), lon: parseFloat(d[0].lon) } : null;
+    _geoCache.set(address, result);
+    return result;
+  } catch { _geoCache.set(address, null); return null; }
+}
+
+async function _driveTime(fromAddr, toAddr) {
+  const key = `${fromAddr}||${toAddr}`;
+  if (_driveCache.has(key)) return _driveCache.get(key);
+  const [c1, c2] = await Promise.all([_geocode(fromAddr), _geocode(toAddr)]);
+  if (!c1 || !c2) { _driveCache.set(key, null); return null; }
+  try {
+    const r = await fetch(`https://router.project-osrm.org/route/v1/driving/${c1.lon},${c1.lat};${c2.lon},${c2.lat}?overview=false`);
+    const d = await r.json();
+    const secs = d.routes?.[0]?.duration;
+    if (!secs) { _driveCache.set(key, null); return null; }
+    const mins = Math.round(secs / 60);
+    const label = mins < 60 ? `${mins} min` : `${Math.floor(mins / 60)}h ${mins % 60}m`;
+    _driveCache.set(key, label);
+    return label;
+  } catch { _driveCache.set(key, null); return null; }
+}
+
 function GearSection({ gear, onlineRentals = [], producerView, shareToken }) {
   const [editingGear, setEditingGear] = useState({});
   const [gearDraft, setGearDraft] = useState({});
@@ -990,6 +1026,7 @@ function DietaryCell({ value }) {
 function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCallWrap, tagFilter }) {
   const [open, setOpen] = useState(true);
   const now = useNow();
+  const [driveTimes, setDriveTimes] = useState({});
 
   const filteredDay = tagFilter
     ? { ...day, events: day.events.filter(e => (e.tags || []).some(t => t.type === tagFilter)) }
@@ -1032,6 +1069,32 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
     ...filteredDay.events.map(e => ({ _type:'event', _sort: timeToMins(e.start_time), ...e })),
     ...(tagFilter ? [] : flightLegs.map(f => ({ _type:'flight', _sort: timeToMins(f._time), ...f }))),
   ].sort((a, b) => a._sort - b._sort);
+
+  // Compute driving times between consecutive events with different locations
+  useEffect(() => {
+    const locItems = allItems.filter(i => i._type === 'event' && i.location?.address);
+    const pairs = [];
+    for (let i = 1; i < locItems.length; i++) {
+      const from = locItems[i-1].location.address;
+      const to   = locItems[i].location.address;
+      if (from !== to) pairs.push({ key: `${from}||${to}`, from, to });
+    }
+    if (!pairs.length) return;
+    let cancelled = false;
+    (async () => {
+      for (const { key, from, to } of pairs) {
+        if (cancelled) break;
+        if (_driveCache.has(key)) {
+          setDriveTimes(dt => ({ ...dt, [key]: _driveCache.get(key) }));
+        } else {
+          const t = await _driveTime(from, to);
+          if (!cancelled) setDriveTimes(dt => ({ ...dt, [key]: t }));
+          await new Promise(r => setTimeout(r, 200)); // gentle rate limiting
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [day.id, allItems.length]);
 
   const hasWeather = day.weather_high != null || day.weather_condition;
   const weatherStr = hasWeather
@@ -1139,15 +1202,43 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
                     </div>
                   </div>
                 </div>
-              ) : (
-                <div key={item.id || i} className="ev">
-                  <div className="ev-time">{fmtTime(item.start_time)}{item.end_time ? ` – ${fmtTime(item.end_time)}` : ''}</div>
-                  <div className={`ev-body${item.is_alert ? ' warn' : ''}`} style={!item.is_alert ? { borderLeft:'2px solid var(--orange)', ...(item.is_filming ? { background:'linear-gradient(90deg, rgba(255,140,0,0.12) 0%, transparent 100%)', borderRadius:'0 6px 6px 0' } : {}) } : {}}>
-                    <div className={`ev-title${item.is_alert ? ' alert' : ''}`} style={item.is_filming ? { color:'var(--orange)' } : {}}>{item.is_filming ? '🎬 ' : ''}{item.title}</div>
-                    {item.detail && <div className="ev-detail">{item.detail}</div>}
+              ) : (() => {
+                const loc = item.location;
+                const prevLocItem = allItems.slice(0, i).reverse().find(x => x._type === 'event' && x.location?.address);
+                const prevAddr = prevLocItem?.location?.address;
+                const thisAddr = loc?.address;
+                const driveKey = prevAddr && thisAddr && prevAddr !== thisAddr ? `${prevAddr}||${thisAddr}` : null;
+                const driveTime = driveKey ? driveTimes[driveKey] : null;
+                return (
+                  <div key={item.id || i} className="ev">
+                    <div className="ev-time">{fmtTime(item.start_time)}{item.end_time ? ` – ${fmtTime(item.end_time)}` : ''}</div>
+                    <div className={`ev-body${item.is_alert ? ' warn' : ''}`} style={!item.is_alert ? { borderLeft:'2px solid var(--orange)', ...(item.is_filming ? { background:'linear-gradient(90deg, rgba(255,140,0,0.12) 0%, transparent 100%)', borderRadius:'0 6px 6px 0' } : {}) } : {}}>
+                      <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:8 }}>
+                        <div style={{ flex:1, minWidth:0 }}>
+                          <div className={`ev-title${item.is_alert ? ' alert' : ''}`} style={item.is_filming ? { color:'var(--orange)' } : {}}>{item.is_filming ? '🎬 ' : ''}{item.title}</div>
+                          {item.detail && <div className="ev-detail">{item.detail}</div>}
+                        </div>
+                        {loc && (
+                          <div style={{ flexShrink:0, textAlign:'right', fontSize:11, color:'var(--muted)', maxWidth:160 }}>
+                            <div style={{ fontWeight:600, color:'var(--text)', marginBottom:1 }}>{loc.name}</div>
+                            <a href={directionsUrl('', loc.address)} target="_blank" rel="noopener noreferrer"
+                               style={{ color:'#4a9eff', textDecoration:'none', fontSize:10, display:'block', marginBottom:driveTime ? 2 : 0 }}
+                               onClick={e => { e.stopPropagation(); window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loc.address)}`,'_blank'); e.preventDefault(); }}>
+                              {loc.address}
+                            </a>
+                            {driveTime && (
+                              <a href={directionsUrl(prevAddr, thisAddr)} target="_blank" rel="noopener noreferrer"
+                                 style={{ color:'var(--muted)', textDecoration:'none', fontSize:10 }}>
+                                🚗 {driveTime} from prev
+                              </a>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })())}
             </div>
           )}
     </section>

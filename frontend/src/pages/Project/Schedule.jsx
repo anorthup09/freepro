@@ -115,9 +115,9 @@ export default function Schedule({ project }) {
   const [showAddDay, setShowAddDay] = useState(false);
   const [dayForm, setDayForm] = useState({ date:'', callTime:'', wrapTime:'', weather:'', notes:'' });
   const [showAddEvent, setShowAddEvent] = useState(false);
-  const [eventForm, setEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', isAlert:false, isFilming:false, tags:[], audience:[] });
+  const [eventForm, setEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', isAlert:false, isFilming:false, tags:[], audience:[], locationId:'' });
   const [editEventId, setEditEventId] = useState(null);
-  const [editEventForm, setEditEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', isAlert:false, isFilming:false, tags:[], audience:[] });
+  const [editEventForm, setEditEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', isAlert:false, isFilming:false, tags:[], audience:[], locationId:'' });
   const [keyTalent, setKeyTalent] = useState([]);
   const [editCallId, setEditCallId] = useState(null);
   const [callTime, setCallTime] = useState('');
@@ -281,7 +281,7 @@ export default function Schedule({ project }) {
 
   function openEditEvent(ev) {
     setEditEventId(ev.id);
-    setEditEventForm({ startTime: ev.start_time || ev.startTime || '', endTime: ev.end_time || ev.endTime || '', title: ev.title || '', detail: ev.detail || '', isAlert: ev.is_alert || ev.isAlert || false, isFilming: ev.is_filming || ev.isFilming || false, tags: ev.tags || [], audience: ev.audience || [] });
+    setEditEventForm({ startTime: ev.start_time || ev.startTime || '', endTime: ev.end_time || ev.endTime || '', title: ev.title || '', detail: ev.detail || '', isAlert: ev.is_alert || ev.isAlert || false, isFilming: ev.is_filming || ev.isFilming || false, tags: ev.tags || [], audience: ev.audience || [], locationId: ev.location_id || '' });
   }
 
   function toggleEditTag(type) {
@@ -609,6 +609,15 @@ export default function Schedule({ project }) {
                 <div className="field"><label>End Time</label><input type="time" value={eventForm.endTime} onChange={e => setEventForm(f=>({...f,endTime:e.target.value}))} /></div>
                 <div className="field span2"><label>Title</label><input value={eventForm.title} onChange={e => setEventForm(f=>({...f,title:e.target.value}))} required /></div>
                 <div className="field span2"><label>Detail / Notes</label><textarea value={eventForm.detail} onChange={e => setEventForm(f=>({...f,detail:e.target.value}))} /></div>
+                {(project.locations||[]).length > 0 && (
+                  <div className="field span2">
+                    <label>Location</label>
+                    <select value={eventForm.locationId} onChange={e => setEventForm(f=>({...f,locationId:e.target.value}))}>
+                      <option value="">— No location —</option>
+                      {(project.locations||[]).map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                    </select>
+                  </div>
+                )}
                 <div className="field span2">
                   <label>Tags</label>
                   <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:4 }}>
@@ -662,6 +671,15 @@ export default function Schedule({ project }) {
                 <div className="field"><label>End Time</label><input type="time" value={editEventForm.endTime} onChange={e => setEditEventForm(f=>({...f,endTime:e.target.value}))} /></div>
                 <div className="field span2"><label>Title</label><input value={editEventForm.title} onChange={e => setEditEventForm(f=>({...f,title:e.target.value}))} required /></div>
                 <div className="field span2"><label>Detail / Notes</label><textarea value={editEventForm.detail} onChange={e => setEditEventForm(f=>({...f,detail:e.target.value}))} /></div>
+                {(project.locations||[]).length > 0 && (
+                  <div className="field span2">
+                    <label>Location</label>
+                    <select value={editEventForm.locationId} onChange={e => setEditEventForm(f=>({...f,locationId:e.target.value}))}>
+                      <option value="">— No location —</option>
+                      {(project.locations||[]).map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                    </select>
+                  </div>
+                )}
                 <div className="field span2">
                   <label>Tags</label>
                   <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:4 }}>
