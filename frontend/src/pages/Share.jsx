@@ -971,11 +971,17 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
     return legs;
   });
 
+  const SYNTHETIC_META_SHARE = {
+    ct:  { color:'#4a9eff', bg:'rgba(74,158,255,0.08)',   notesKey:'call_time_notes',      tagsKey:'call_time_tags' },
+    sct: { color:'#ff8c00', bg:'rgba(255,140,0,0.10)',    notesKey:'shooting_call_notes',  tagsKey:'shooting_call_tags' },
+    lt:  { color:'#4ade80', bg:'rgba(74,222,128,0.08)',   notesKey:'lunch_notes',          tagsKey:'lunch_tags' },
+    wt:  { color:'#a78bfa', bg:'rgba(167,139,250,0.08)', notesKey:'wrap_time_notes',      tagsKey:'wrap_time_tags' },
+  };
   const syntheticDayItems = tagFilter ? [] : [
-    day.call_time         && { _type:'synthetic', _key:'ct',  _sort: timeToMins(day.call_time),          startTime: day.call_time,          title:'General Call Time' },
-    day.shooting_call_time && { _type:'synthetic', _key:'sct', _sort: timeToMins(day.shooting_call_time), startTime: day.shooting_call_time, title:'Shooting Call' },
-    day.lunch_time        && { _type:'synthetic', _key:'lt',  _sort: timeToMins(day.lunch_time),          startTime: day.lunch_time,         title:'Lunch' },
-    day.wrap_time         && { _type:'synthetic', _key:'wt',  _sort: timeToMins(day.wrap_time),           startTime: day.wrap_time,          title:'Est. Wrap' },
+    day.call_time          && { _type:'synthetic', _key:'ct',  _sort: timeToMins(day.call_time),           startTime: day.call_time,          title:'General Call Time', notes: day.call_time_notes,      tags: day.call_time_tags },
+    day.shooting_call_time && { _type:'synthetic', _key:'sct', _sort: timeToMins(day.shooting_call_time),  startTime: day.shooting_call_time, title:'Shooting Call',     notes: day.shooting_call_notes,  tags: day.shooting_call_tags },
+    day.lunch_time         && { _type:'synthetic', _key:'lt',  _sort: timeToMins(day.lunch_time),          startTime: day.lunch_time,         title:'Lunch',             notes: day.lunch_notes,          tags: day.lunch_tags },
+    day.wrap_time          && { _type:'synthetic', _key:'wt',  _sort: timeToMins(day.wrap_time),           startTime: day.wrap_time,          title:'Est. Wrap',         notes: day.wrap_time_notes,      tags: day.wrap_time_tags },
   ].filter(Boolean);
 
   const allItems = [
@@ -1049,14 +1055,24 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
 
       {allItems.length > 0 && open && (
         <div className="tl" style={{ marginTop:8 }}>
-              {allItems.map((item, i) => item._type === 'synthetic' ? (
-                <div key={item._key} className="ev">
-                  <div className="ev-time">{fmtTime(item.startTime)}</div>
-                  <div className="ev-body" style={{ borderLeft:'2px solid var(--border2)', background:'transparent' }}>
-                    <div className="ev-title" style={{ color:'var(--muted)', fontWeight:500 }}>{item.title}</div>
+              {allItems.map((item, i) => item._type === 'synthetic' ? (() => {
+                const sm = SYNTHETIC_META_SHARE[item._key];
+                const itemTags = Array.isArray(item.tags) ? item.tags : [];
+                return (
+                  <div key={item._key} className="ev">
+                    <div className="ev-time" style={{ color: sm.color }}>{fmtTime(item.startTime)}</div>
+                    <div className="ev-body" style={{ borderLeft:`2px solid ${sm.color}`, background: sm.bg }}>
+                      <div className="ev-title" style={{ color: sm.color }}>{item.title}</div>
+                      {item.notes && <div className="ev-detail">{item.notes}</div>}
+                      {itemTags.length > 0 && (
+                        <div className="ev-tags" style={{ marginTop:4 }}>
+                          {itemTags.map(t => <span key={t} className={`etag ${t === 'VIDEO' ? 'etag-video' : 'etag-photo'}`}>{t === 'VIDEO' ? '🎬 Video' : '📷 Photo'}</span>)}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ) : item._type === 'flight' ? (
+                );
+              })() : item._type === 'flight' ? (
                 <div key={`f-${item.id}-${item._leg}`} className="ev">
                   <div className="ev-time">✈ {item._time}</div>
                   <div className="ev-body" style={{ borderLeft:'2px solid var(--orange)' }}>

@@ -102,6 +102,13 @@ const TAG_TYPES = ['VIDEO','PHOTO','AUDIO','ALL_CREW','TALENT','CUSTOM'];
 const TAG_CLASS = { VIDEO:'v', PHOTO:'p', AUDIO:'a', ALL_CREW:'a', TALENT:'t', CUSTOM:'v' };
 const TAG_LABEL = { VIDEO:'Video', PHOTO:'Photo', AUDIO:'Audio', ALL_CREW:'All Crew', TALENT:'Talent', CUSTOM:'Custom' };
 
+const SYNTHETIC_META = {
+  ct:  { color:'#4a9eff', bg:'rgba(74,158,255,0.08)',  notesKey:'callTimeNotes',      tagsKey:'callTimeTags' },
+  sct: { color:'#ff8c00', bg:'rgba(255,140,0,0.10)',   notesKey:'shootingCallNotes',  tagsKey:'shootingCallTags' },
+  lt:  { color:'#4ade80', bg:'rgba(74,222,128,0.08)',  notesKey:'lunchNotes',         tagsKey:'lunchTags' },
+  wt:  { color:'#a78bfa', bg:'rgba(167,139,250,0.08)', notesKey:'wrapTimeNotes',      tagsKey:'wrapTimeTags' },
+};
+
 export default function Schedule({ project }) {
   const [days, setDays] = useState([]);
   const [activeDay, setActiveDay] = useState(null);
@@ -115,6 +122,7 @@ export default function Schedule({ project }) {
   const [editCallId, setEditCallId] = useState(null);
   const [callTime, setCallTime] = useState('');
   const [dayTimesForm, setDayTimesForm] = useState({});
+  const [editingSyntheticKey, setEditingSyntheticKey] = useState(null);
   const [dayMeta, setDayMeta] = useState({});
   const [flights, setFlights] = useState([]);
   const [weatherByDate, setWeatherByDate] = useState({});
@@ -136,7 +144,13 @@ export default function Schedule({ project }) {
       const times = {};
       d.forEach(day => {
         meta[day.id] = { crewLunch: day.crew_lunch||'', gearStorage: day.gear_storage||'', gsAudio: day.gs_audio||'' };
-        times[day.id] = { callTime: day.call_time||'', shootingCallTime: day.shooting_call_time||'', lunchTime: day.lunch_time||'', wrapTime: day.wrap_time||'' };
+        times[day.id] = {
+          callTime: day.call_time||'', shootingCallTime: day.shooting_call_time||'', lunchTime: day.lunch_time||'', wrapTime: day.wrap_time||'',
+          callTimeNotes: day.call_time_notes||'', callTimeTags: day.call_time_tags||[],
+          shootingCallNotes: day.shooting_call_notes||'', shootingCallTags: day.shooting_call_tags||[],
+          lunchNotes: day.lunch_notes||'', lunchTags: day.lunch_tags||[],
+          wrapTimeNotes: day.wrap_time_notes||'', wrapTimeTags: day.wrap_time_tags||[],
+        };
       });
       setDayMeta(meta);
       setDayTimesForm(times);
@@ -178,11 +192,18 @@ export default function Schedule({ project }) {
 
   async function saveDayTime(dayId, field, value) {
     setDayTimesForm(m => ({ ...m, [dayId]: { ...m[dayId], [field]: value } }));
-    const apiKey = { callTime:'callTime', shootingCallTime:'shootingCallTime', lunchTime:'lunchTime', wrapTime:'wrapTime' }[field];
     try {
-      const updated = await api.updateDay(project.id, dayId, { [apiKey]: value || null });
-      setDays(ds => ds.map(d => d.id === dayId ? { ...d, call_time: updated.call_time, wrap_time: updated.wrap_time, shooting_call_time: updated.shooting_call_time, lunch_time: updated.lunch_time } : d));
+      await api.updateDay(project.id, dayId, { [field]: value || null });
     } catch(e) { alert(e.message); }
+  }
+
+  async function saveSyntheticMeta(dayId, key) {
+    const t = dayTimesForm[dayId] || {};
+    const meta = SYNTHETIC_META[key];
+    try {
+      await api.updateDay(project.id, dayId, { [meta.notesKey]: t[meta.notesKey]||null, [meta.tagsKey]: t[meta.tagsKey]||[] });
+    } catch(e) { alert(e.message); }
+    setEditingSyntheticKey(null);
   }
 
   const currentDay = days.find(d => d.id === activeDay);
@@ -349,7 +370,7 @@ export default function Schedule({ project }) {
                     value={dayMeta[currentDay.id]?.[field] || ''}
                     onChange={e => setDayMeta(m => ({ ...m, [currentDay.id]: { ...m[currentDay.id], [field]: e.target.value } }))}
                     onBlur={e => saveDayMeta(currentDay.id, field, e.target.value)}
-                    placeholder={label === 'Crew Lunch' ? 'Chipotle · 12:30 PM' : label === 'Gear Storage' ? 'Room 104B' : 'Main stage L/R'}
+                    placeholder="Insert Info"
                   />
                 </div>
               ))}
@@ -400,10 +421,10 @@ export default function Schedule({ project }) {
             const flightItems = legs.map((leg, i) => ({ _type:'flight', _sort: timeToMinutes(legDisplayTime(leg)), _key: leg.id + leg._leg, ...leg }));
             const dayTimes = dayTimesForm[currentDay.id] || {};
             const syntheticItems = [
-              dayTimes.callTime        && { _type:'synthetic', _key:'ct',  _sort: timeToMinutes(dayTimes.callTime),        startTime: dayTimes.callTime,        title:'General Call Time' },
-              dayTimes.shootingCallTime && { _type:'synthetic', _key:'sct', _sort: timeToMinutes(dayTimes.shootingCallTime), startTime: dayTimes.shootingCallTime, title:'Shooting Call' },
-              dayTimes.lunchTime       && { _type:'synthetic', _key:'lt',  _sort: timeToMinutes(dayTimes.lunchTime),        startTime: dayTimes.lunchTime,        title:'Lunch' },
-              dayTimes.wrapTime        && { _type:'synthetic', _key:'wt',  _sort: timeToMinutes(dayTimes.wrapTime),         startTime: dayTimes.wrapTime,         title:'Est. Wrap' },
+              dayTimes.callTime         && { _type:'synthetic', _key:'ct',  _sort: timeToMinutes(dayTimes.callTime),         startTime: dayTimes.callTime,         title:'General Call Time', notes: dayTimes.callTimeNotes,     tags: dayTimes.callTimeTags||[] },
+              dayTimes.shootingCallTime && { _type:'synthetic', _key:'sct', _sort: timeToMinutes(dayTimes.shootingCallTime), startTime: dayTimes.shootingCallTime, title:'Shooting Call',      notes: dayTimes.shootingCallNotes, tags: dayTimes.shootingCallTags||[] },
+              dayTimes.lunchTime        && { _type:'synthetic', _key:'lt',  _sort: timeToMinutes(dayTimes.lunchTime),        startTime: dayTimes.lunchTime,        title:'Lunch',              notes: dayTimes.lunchNotes,        tags: dayTimes.lunchTags||[] },
+              dayTimes.wrapTime         && { _type:'synthetic', _key:'wt',  _sort: timeToMinutes(dayTimes.wrapTime),         startTime: dayTimes.wrapTime,         title:'Est. Wrap',          notes: dayTimes.wrapTimeNotes,     tags: dayTimes.wrapTimeTags||[] },
             ].filter(Boolean);
             const previewItems = (showAddEvent && (eventForm.title || eventForm.startTime))
               ? [{ _type:'preview', _sort: timeToMinutes(eventForm.startTime) || 9998, _key:'preview', ...eventForm }]
@@ -419,14 +440,59 @@ export default function Schedule({ project }) {
                 <div style={{ marginTop:10 }}>
                   {items.length === 0 && <div className="empty">No events yet for this day.</div>}
                   <div className="tl">
-                    {items.map(item => item._type === 'synthetic' ? (
-                      <div key={item._key} className="ev">
-                        <div className="ev-time">{fmtTime(item.startTime)}</div>
-                        <div className="ev-body" style={{ borderLeft:'2px solid var(--border2)', background:'transparent' }}>
-                          <div className="ev-title" style={{ color:'var(--muted)', fontWeight:500 }}>{item.title}</div>
+                    {items.map(item => item._type === 'synthetic' ? (() => {
+                      const sm = SYNTHETIC_META[item._key];
+                      const isEditing = editingSyntheticKey === item._key;
+                      const dt = dayTimesForm[currentDay.id] || {};
+                      return (
+                        <div key={item._key} className="ev">
+                          <div className="ev-time" style={{ color: sm.color }}>{fmtTime(item.startTime)}</div>
+                          <div className="ev-body" style={{ borderLeft:`2px solid ${sm.color}`, background: sm.bg, cursor:'pointer' }}
+                            onClick={() => setEditingSyntheticKey(isEditing ? null : item._key)}>
+                            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                              <div className="ev-title" style={{ color: sm.color }}>{item.title}</div>
+                              <span style={{ fontSize:10, color: sm.color, opacity:0.7 }}>{isEditing ? '▲' : '✎'}</span>
+                            </div>
+                            {item.notes && !isEditing && <div className="ev-detail">{item.notes}</div>}
+                            {item.tags?.length > 0 && !isEditing && (
+                              <div className="ev-tags" style={{ marginTop:4 }}>
+                                {item.tags.map(t => <span key={t} className={`etag ${TAG_CLASS[t]}`}>{TAG_LABEL[t]}</span>)}
+                              </div>
+                            )}
+                            {isEditing && (
+                              <div style={{ marginTop:8 }} onClick={e => e.stopPropagation()}>
+                                <textarea
+                                  style={{ width:'100%', fontSize:11, background:'var(--bg)', border:'1px solid var(--border)', borderRadius:4, padding:'4px 6px', color:'var(--text)', resize:'vertical', minHeight:48, boxSizing:'border-box' }}
+                                  placeholder="Notes…"
+                                  value={dt[sm.notesKey]||''}
+                                  onChange={e => setDayTimesForm(m => ({ ...m, [currentDay.id]: { ...m[currentDay.id], [sm.notesKey]: e.target.value } }))}
+                                />
+                                <div style={{ display:'flex', gap:6, marginTop:6, flexWrap:'wrap', alignItems:'center' }}>
+                                  {['VIDEO','PHOTO'].map(tag => {
+                                    const sel = (dt[sm.tagsKey]||[]).includes(tag);
+                                    return (
+                                      <button key={tag} type="button"
+                                        className={`etag ${TAG_CLASS[tag]}`}
+                                        style={{ opacity: sel ? 1 : 0.35, cursor:'pointer', padding:'3px 10px' }}
+                                        onClick={() => setDayTimesForm(m => {
+                                          const cur = m[currentDay.id]?.[sm.tagsKey]||[];
+                                          return { ...m, [currentDay.id]: { ...m[currentDay.id], [sm.tagsKey]: sel ? cur.filter(x=>x!==tag) : [...cur, tag] } };
+                                        })}>
+                                        {TAG_LABEL[tag]}
+                                      </button>
+                                    );
+                                  })}
+                                  <div style={{ marginLeft:'auto', display:'flex', gap:6 }}>
+                                    <button className="btn btn-primary btn-sm" onClick={() => saveSyntheticMeta(currentDay.id, item._key)}>Save</button>
+                                    <button className="btn btn-ghost btn-sm" onClick={() => setEditingSyntheticKey(null)}>Cancel</button>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ) : item._type === 'preview' ? (
+                      );
+                    })() : item._type === 'preview' ? (
                       <div key="preview" className="ev" style={{ opacity:0.55 }}>
                         <div className="ev-time" style={{ fontStyle:'italic' }}>{fmtTime(item.startTime) || '—'}{item.endTime ? ` – ${fmtTime(item.endTime)}` : ''}</div>
                         <div className={`ev-body${item.isAlert ? ' warn' : ''}`} style={{ border:'1px dashed var(--border2)' }}>

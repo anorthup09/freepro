@@ -431,6 +431,15 @@ async function migrate() {
   await sql`ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS shooting_call_time TEXT`;
   await sql`ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS lunch_time TEXT`;
 
+  await sql`ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS call_time_notes TEXT`;
+  await sql`ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS call_time_tags TEXT[] DEFAULT '{}'`;
+  await sql`ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS shooting_call_notes TEXT`;
+  await sql`ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS shooting_call_tags TEXT[] DEFAULT '{}'`;
+  await sql`ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS lunch_notes TEXT`;
+  await sql`ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS lunch_tags TEXT[] DEFAULT '{}'`;
+  await sql`ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS wrap_time_notes TEXT`;
+  await sql`ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS wrap_time_tags TEXT[] DEFAULT '{}'`;
+
   await sql`
     CREATE TABLE IF NOT EXISTS talent_day_calls (
       id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
