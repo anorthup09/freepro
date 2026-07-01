@@ -733,6 +733,9 @@ function TalentView({ data }) {
   const { project, talent_name, locations, techSpecs, clientContacts, keyTalent, productionCrew, schedule } = data;
   const scheduleRef = useRef(null);
 
+  const talentRecord = (keyTalent || []).find(t => t.name === talent_name);
+  const callTime = talentRecord?.call_time ? fmtTime(talentRecord.call_time) : null;
+
   // Only show days that have at least one event tagged for this talent
   const filteredSchedule = [...(schedule || [])].sort((a,b) => (a.date||'').localeCompare(b.date||'')).map(day => ({
     ...day,
@@ -752,11 +755,19 @@ function TalentView({ data }) {
               <span className="meta">{fmt(project.start_date)} – {fmt(project.end_date)}</span>
             </div>
           </div>
-          {filteredSchedule.length > 0 && (
-            <button onClick={() => scheduleRef.current?.scrollIntoView({ behavior:'smooth' })} style={{ flexShrink:0, marginTop:4, padding:'6px 14px', fontSize:12, fontWeight:600, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:6, color:'var(--text)', cursor:'pointer', whiteSpace:'nowrap' }}>
-              Jump to Schedule ↓
-            </button>
-          )}
+          <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:8, flexShrink:0 }}>
+            {callTime && (
+              <div style={{ textAlign:'right' }}>
+                <div style={{ fontSize:11, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:2 }}>Call Time</div>
+                <div style={{ fontSize:26, fontWeight:800, color:'var(--text)', letterSpacing:'-0.02em', lineHeight:1 }}>{callTime}</div>
+              </div>
+            )}
+            {filteredSchedule.length > 0 && (
+              <button onClick={() => scheduleRef.current?.scrollIntoView({ behavior:'smooth' })} style={{ padding:'6px 14px', fontSize:12, fontWeight:600, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:6, color:'var(--text)', cursor:'pointer', whiteSpace:'nowrap' }}>
+                Jump to Schedule ↓
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

@@ -420,6 +420,8 @@ async function migrate() {
 
   await sql`ALTER TABLE schedule_events ADD COLUMN IF NOT EXISTS is_filming BOOLEAN DEFAULT FALSE`;
 
+  await sql`ALTER TABLE key_talent ADD COLUMN IF NOT EXISTS call_time TEXT`;
+
   console.log('Migration complete.');
 }
 

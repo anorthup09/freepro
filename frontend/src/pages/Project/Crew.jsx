@@ -28,7 +28,7 @@ export default function Crew({ project, onProjectUpdate }) {
   const [showTalentModal, setShowTalentModal] = useState(false);
   const [talentForm, setTalentForm] = useState({ name:'', role:'' });
   const [editTalent, setEditTalent] = useState(null);
-  const [editTalentForm, setEditTalentForm] = useState({ name:'', role:'', phone:'', email:'', notes:'', dietaryRestrictions:'' });
+  const [editTalentForm, setEditTalentForm] = useState({ name:'', role:'', phone:'', email:'', notes:'', dietaryRestrictions:'', callTime:'' });
 
   useEffect(() => {
     Promise.all([
@@ -281,7 +281,7 @@ export default function Crew({ project, onProjectUpdate }) {
                   <th>Phone</th>
                   <th>Email</th>
                   <th>Dietary</th>
-                  <th>Notes</th>
+                  <th>Call Time</th>
                   <th></th>
                 </tr>
               </thead>
@@ -298,10 +298,10 @@ export default function Crew({ project, onProjectUpdate }) {
                     <td style={{ fontSize:11, color:'var(--tan)', whiteSpace:'nowrap' }}>{t.phone || '—'}</td>
                     <td style={{ fontSize:11, color:'var(--muted)' }}>{t.email || '—'}</td>
                     <td style={{ fontSize:11, color:'var(--muted)' }}>{t.dietary_restrictions || '—'}</td>
-                    <td style={{ fontSize:11, color:'var(--muted)' }}>{t.notes || '—'}</td>
+                    <td style={{ fontSize:11, color:'var(--muted)', whiteSpace:'nowrap' }}>{t.call_time || '—'}</td>
                     <td style={{ textAlign:'right' }}>
                       <div style={{ display:'flex', gap:6, justifyContent:'flex-end' }}>
-                        <button className="btn btn-ghost btn-sm" onClick={() => { setEditTalent(t); setEditTalentForm({ name: t.name, role: t.role, phone: t.phone||'', email: t.email||'', notes: t.notes||'', dietaryRestrictions: t.dietary_restrictions||'' }); }}>Edit</button>
+                        <button className="btn btn-ghost btn-sm" onClick={() => { setEditTalent(t); setEditTalentForm({ name: t.name, role: t.role, phone: t.phone||'', email: t.email||'', notes: t.notes||'', dietaryRestrictions: t.dietary_restrictions||'', callTime: t.call_time||'' }); }}>Edit</button>
                         <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text)' }} onClick={() => deleteTalent(t.id)}>✕</button>
                       </div>
                     </td>
@@ -496,6 +496,7 @@ export default function Crew({ project, onProjectUpdate }) {
                 <div className="field"><label>Phone</label><input value={editTalentForm.phone} onChange={e => setEditTalentForm(f=>({...f,phone:e.target.value}))} placeholder="555-123-4567" /></div>
                 <div className="field"><label>Email</label><input type="email" value={editTalentForm.email} onChange={e => setEditTalentForm(f=>({...f,email:e.target.value}))} /></div>
                 <div className="field"><label>Dietary Restrictions</label><input value={editTalentForm.dietaryRestrictions} onChange={e => setEditTalentForm(f=>({...f,dietaryRestrictions:e.target.value}))} placeholder="Vegetarian, nut allergy…" /></div>
+                <div className="field"><label>Call Time</label><input type="time" value={editTalentForm.callTime} onChange={e => setEditTalentForm(f=>({...f,callTime:e.target.value}))} /></div>
                 <div className="field span2"><label>Notes</label><textarea value={editTalentForm.notes} onChange={e => setEditTalentForm(f=>({...f,notes:e.target.value}))} rows={3} /></div>
               </div>
               <div className="btn-row">
