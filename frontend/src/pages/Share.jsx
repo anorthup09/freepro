@@ -48,6 +48,9 @@ function mapsUrl(address) {
 }
 
 function GearSection({ gear, onlineRentals = [], producerView, shareToken }) {
+  const [editingGear, setEditingGear] = useState({});
+  const [gearDraft, setGearDraft] = useState({});
+
   if (!gear && onlineRentals.length === 0) return null;
   const hasRental = gear && (gear.rental_company || gear.rental_contact || gear.rental_phone || gear.rental_email);
   const gearList = gear ? [
@@ -66,9 +69,6 @@ function GearSection({ gear, onlineRentals = [], producerView, shareToken }) {
     { label: 'CC Auth', done: gear.cc_auth_received },
   ] : [];
   const hasDocInfo = producerView && docs.some(d => d.done != null);
-
-  const [editingGear, setEditingGear] = useState({});
-  const [gearDraft, setGearDraft] = useState({});
 
   function startEdit(label, value) {
     if (!shareToken) return;
