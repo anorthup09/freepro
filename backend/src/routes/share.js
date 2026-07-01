@@ -197,7 +197,7 @@ router.get('/:token', async (req, res, next) => {
     } else if (viewType === 'talent') {
       const filteredDays = daysWithData.map(day => ({
         ...day,
-        events: day.events.filter(e => !e.audience || e.audience.length === 0 || e.audience.includes(talentName) || e.audience.includes('talent')),
+        events: day.events.filter(e => (e.audience || []).includes(talentName) || (e.audience || []).includes('talent')),
         crewCalls: day.crewCalls.filter(c => !c.audience || c.audience.length === 0 || c.audience.includes(talentName) || c.audience.includes('talent')),
       }));
       const productionCrew = mappedCrew.filter(a => KEY_PRODUCTION_POSITIONS.includes(a.position_name));

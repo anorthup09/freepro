@@ -728,131 +728,100 @@ function ClientView({ data }) {
   );
 }
 
-// ── Talent Call Sheet ────────────────────────────────────────────────────────
+// ── Talent View ──────────────────────────────────────────────────────────────
 function TalentView({ data }) {
   const { project, talent_name, locations, techSpecs, clientContacts, keyTalent, productionCrew, schedule } = data;
+  const scheduleRef = useRef(null);
+
+  // Only show days that have at least one event tagged for this talent
+  const filteredSchedule = [...(schedule || [])].sort((a,b) => (a.date||'').localeCompare(b.date||'')).map(day => ({
+    ...day,
+    events: day.events.filter(e => (e.audience || []).includes(talent_name) || (e.audience || []).includes('talent')),
+  })).filter(day => day.events.length > 0);
 
   return (
-    <div className="callsheet">
-      {schedule.map((day, i) => (
-        <div key={day.id} className="callsheet-day">
-          {/* Header */}
-          <div className="cs-header">
-            <div className="cs-header-main">
-              <span className="cs-day-label">SHOOT DAY {day.day_number} OF {day.totalDays}</span>
-              <span className="cs-project-name">{project.title}</span>
-            </div>
-            <div className="cs-header-times">
-              {day.call_time && <span><strong>Call:</strong> {fmtTime(day.call_time)}</span>}
-              {day.wrap_time && <span><strong>Wrap:</strong> {fmtTime(day.wrap_time)}</span>}
-              {day.weather && <span className="cs-weather">{day.weather}</span>}
+    <div className="share-view">
+      <div className="share-header">
+        <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12 }}>
+          <div>
+            <div className="proj-code">{project.code}</div>
+            <div className="proj-title">{project.title}</div>
+            <div className="proj-meta" style={{ marginTop: 6 }}>
+              <span className="meta">{project.client}</span>
+              <span className="meta">{project.city}, {project.state}</span>
+              <span className="meta">{fmt(project.start_date)} – {fmt(project.end_date)}</span>
             </div>
           </div>
-
-          {/* Tech specs line */}
-          {techSpecs && (
-            <div className="cs-specs-line">
-              {[techSpecs.aspect_ratio, techSpecs.resolution, techSpecs.cameras].filter(Boolean).join(' · ')}
-            </div>
-          )}
-
-          {/* Location Table */}
-          {locations.length > 0 && (
-            <div className="cs-table-block">
-              <div className="cs-table-header">LOCATION INFO</div>
-              <table className="cs-table">
-                <thead>
-                  <tr><th>Location</th><th>Address</th><th>Notes</th></tr>
-                </thead>
-                <tbody>
-                  {locations.map(l => (
-                    <tr key={l.id}><td>{l.name}</td><td>{l.address}</td><td>{l.notes||''}</td></tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* Talent table — this talent's call */}
-          {keyTalent.length > 0 && (
-            <div className="cs-table-block">
-              <div className="cs-table-header">TALENT</div>
-              <table className="cs-table">
-                <thead>
-                  <tr><th>Name</th><th>Role</th><th>Call</th></tr>
-                </thead>
-                <tbody>
-                  {keyTalent.map(t => {
-                    const callEntry = day.crewCalls.find(c => c.crewAssignment?.crewMember?.name === t.name);
-                    return (
-                      <tr key={t.id}><td>{t.name}</td><td>{t.role}</td><td>{fmtTime(callEntry?.call_time || day.call_time) || '—'}</td></tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* Client Table */}
-          {clientContacts.length > 0 && (
-            <div className="cs-table-block">
-              <div className="cs-table-header">CLIENT</div>
-              <table className="cs-table">
-                <thead>
-                  <tr><th>Title</th><th>Name</th><th>Phone</th><th>Email</th></tr>
-                </thead>
-                <tbody>
-                  {clientContacts.map(c => (
-                    <tr key={c.id}><td>{c.title}</td><td>{c.name}</td><td>{c.phone||'—'}</td><td>{c.email||'—'}</td></tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* Production contacts */}
-          {productionCrew?.length > 0 && (
-            <div className="cs-table-block">
-              <div className="cs-table-header">PRODUCTION</div>
-              <table className="cs-table">
-                <thead>
-                  <tr><th>Title</th><th>Name</th><th>Phone</th><th>Call</th></tr>
-                </thead>
-                <tbody>
-                  {productionCrew.map(a => {
-                    const call = day.crewCalls.find(c => c.crew_assignment_id === a.id);
-                    return (
-                      <tr key={a.id}>
-                        <td>{a.position.name}</td>
-                        <td>{a.crewMember ? displayName(a.crewMember) : 'TBD'}</td>
-                        <td>{a.crewMember?.phone || '—'}</td>
-                        <td>{call?.call_time ? fmtTime(call.call_time) : '—'}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* Schedule table */}
-          {day.events.length > 0 && (
-            <div className="cs-table-block">
-              <div className="cs-table-header">SCHEDULE</div>
-              <table className="cs-table">
-                <thead>
-                  <tr><th>Time</th><th>Event</th><th>Notes</th></tr>
-                </thead>
-                <tbody>
-                  {day.events.map(e => (
-                    <tr key={e.id}><td>{fmtTime(e.start_time)}{e.end_time ? ` – ${fmtTime(e.end_time)}` : ''}</td><td>{e.title}</td><td>{e.detail||''}</td></tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          {filteredSchedule.length > 0 && (
+            <button onClick={() => scheduleRef.current?.scrollIntoView({ behavior:'smooth' })} style={{ flexShrink:0, marginTop:4, padding:'6px 14px', fontSize:12, fontWeight:600, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:6, color:'var(--text)', cursor:'pointer', whiteSpace:'nowrap' }}>
+              Jump to Schedule ↓
+            </button>
           )}
         </div>
-      ))}
+      </div>
+
+      {project.poc_name && (
+        <section className="share-section">
+          <div className="sec-lbl">Key Contacts</div>
+          <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
+            <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 14px', flex:1, minWidth:180 }}>
+              <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:4 }}>Main POC</div>
+              <div style={{ fontWeight:600, fontSize:13 }}>{shortName(project.poc_name)}</div>
+              {project.poc_phone && <div style={{ fontSize:12, color:'var(--tan)', marginTop:2 }}>{project.poc_phone}</div>}
+              {project.poc_email && <div style={{ fontSize:11, color:'var(--muted)' }}>{project.poc_email}</div>}
+            </div>
+          </div>
+        </section>
+      )}
+
+      <SpecTiles techSpecs={techSpecs} />
+
+      {locations?.length > 0 && (
+        <section className="share-section">
+          <div className="sec-lbl">Locations</div>
+          <div className="loc-grid">
+            {locations.map(l => (
+              <div key={l.id} className="loc">
+                <div className="loc-ico">{l.emoji || '📍'}</div>
+                <div>
+                  <div className="loc-name">{l.name}</div>
+                  {l.address
+                    ? <a href={mapsUrl(l.address)} target="_blank" rel="noreferrer" className="loc-addr" style={{ color:'var(--tan)', textDecoration:'underline' }}>{l.address}</a>
+                    : null}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {clientContacts?.length > 0 && (
+        <section className="share-section">
+          <div className="sec-lbl">Client Contacts</div>
+          <ShareTable cols={['Name','Title','Email','Phone']} colClasses={['','','','nowrap']} rows={clientContacts.map(c => [c.name, c.title, c.email||'—', c.phone||'—'])} />
+        </section>
+      )}
+
+      {productionCrew?.length > 0 && (
+        <section className="share-section">
+          <div className="sec-lbl">Production Team</div>
+          <ShareTable cols={['Role','Name','Phone']} colClasses={['','','nowrap']} rows={productionCrew.map(a => [a.position.name, a.crewMember ? shortName(displayName(a.crewMember)) || 'TBD' : 'TBD', a.crewMember?.phone||'—'])} />
+        </section>
+      )}
+
+      <div ref={scheduleRef}>
+        {filteredSchedule.length > 0 && (
+          <div style={{ fontSize:16, fontWeight:700, color:'var(--text)', margin:'24px 0 8px', letterSpacing:'-0.01em' }}>Schedule</div>
+        )}
+        {filteredSchedule.length === 0 && (
+          <section className="share-section">
+            <div style={{ fontSize:13, color:'var(--muted)', fontStyle:'italic' }}>No schedule items have been tagged for {talent_name} yet.</div>
+          </section>
+        )}
+        {filteredSchedule.map((day, i) => (
+          <DaySection key={day.id} day={day} showCalls={false} dayIndex={i} />
+        ))}
+      </div>
     </div>
   );
 }
