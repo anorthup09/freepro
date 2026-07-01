@@ -434,6 +434,25 @@ function ProducerView({ data }) {
         </section>
       )}
 
+      {(() => {
+        const dayLogistics = (schedule||[]).filter(d => d.crew_lunch || d.gear_storage || d.gs_audio);
+        if (!dayLogistics.length) return null;
+        return (
+          <section className="share-section">
+            <div className="sec-lbl">Daily Logistics</div>
+            <ShareTable
+              cols={['Day', 'Crew Meal Location', 'Gear Storage', 'Audio Contact']}
+              rows={dayLogistics.map((d, i) => [
+                `Day ${d.day_number}`,
+                d.crew_lunch || '—',
+                d.gear_storage || '—',
+                d.gs_audio || '—',
+              ])}
+            />
+          </section>
+        );
+      })()}
+
       <SpecTiles techSpecs={techSpecs} />
 
       {/* ── Hotels at top ── */}
@@ -608,6 +627,25 @@ function CrewView({ data, shareToken }) {
           </div>
         </section>
       )}
+
+      {(() => {
+        const dayLogistics = (sortedSchedule||[]).filter(d => d.crew_lunch || d.gear_storage || d.gs_audio);
+        if (!dayLogistics.length) return null;
+        return (
+          <section className="share-section">
+            <div className="sec-lbl">Daily Logistics</div>
+            <ShareTable
+              cols={['Day', 'Crew Meal Location', 'Gear Storage', 'Audio Contact']}
+              rows={dayLogistics.map(d => [
+                `Day ${d.day_number}`,
+                d.crew_lunch || '—',
+                d.gear_storage || '—',
+                d.gs_audio || '—',
+              ])}
+            />
+          </section>
+        );
+      })()}
 
       <SpecTiles techSpecs={techSpecs} />
 
@@ -1049,21 +1087,6 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
           </div>
         );
       })()}
-
-      {(day.crew_lunch || day.gear_storage || day.gs_audio) && (
-        <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:8 }}>
-          {[
-            { label:'Crew Meal', value: day.crew_lunch },
-            { label:'Gear Storage', value: day.gear_storage },
-            { label:'Audio Contact', value: day.gs_audio },
-          ].filter(f => f.value).map(f => (
-            <div key={f.label} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:6, padding:'5px 10px', fontSize:11 }}>
-              <span style={{ color:'var(--muted)', marginRight:5 }}>{f.label}:</span>
-              <span style={{ color:'var(--text)', fontWeight:500 }}>{f.value}</span>
-            </div>
-          ))}
-        </div>
-      )}
 
       {showCalls && day.crewCalls?.length > 0 && (
         <div style={{ marginTop:8 }}>
