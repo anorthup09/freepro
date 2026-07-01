@@ -539,7 +539,9 @@ function ProducerView({ data }) {
             ))}
           </div>
         )}
-        {[...(schedule||[])].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map((day, i) => (
+        {[...(schedule||[])].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).filter(day =>
+          !tagFilter || day.events.some(e => (e.tags || []).some(t => t.type === tagFilter))
+        ).map((day, i) => (
           <DaySection key={day.id} day={day} showCalls flights={flights} dayIndex={i} tagFilter={tagFilter} />
         ))}
       </div>
@@ -692,7 +694,9 @@ function CrewView({ data, shareToken }) {
             ))}
           </div>
         )}
-        {sortedSchedule.map((day, i) => (
+        {sortedSchedule.filter(day =>
+          !tagFilter || day.events.some(e => (e.tags || []).some(t => t.type === tagFilter))
+        ).map((day, i) => (
           <DaySection key={day.id} day={day} showCalls flights={flights} dayIndex={i} tagFilter={tagFilter} />
         ))}
       </div>
