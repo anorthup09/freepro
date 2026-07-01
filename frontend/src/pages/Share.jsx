@@ -37,6 +37,97 @@ function mapsUrl(address) {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
 }
 
+function GearSection({ gear, producerView }) {
+  if (!gear) return null;
+  const hasRental = gear.rental_company || gear.rental_contact || gear.rental_phone || gear.rental_email;
+  const gearList = [
+    { label: 'Camera', value: gear.camera_gear },
+    { label: 'Grip', value: gear.grip_gear },
+    { label: 'Electric', value: gear.electric_gear },
+    { label: 'Audio', value: gear.audio_gear },
+    { label: 'Media Management', value: gear.media_management_gear },
+    { label: 'Editing', value: gear.editing_gear },
+  ].filter(g => g.value);
+  const hasDelivery = gear.delivery_datetime || gear.pickup_datetime || gear.delivery_driver;
+  const docs = [
+    { label: 'Internal Request', done: gear.internal_request_submitted },
+    { label: 'COI', done: gear.coi_received },
+    { label: 'Rental Agreement', done: gear.rental_agreement_received },
+    { label: 'CC Auth', done: gear.cc_auth_received },
+  ];
+  const hasDocInfo = producerView && docs.some(d => d.done != null);
+
+  if (!gear.storage_location && !hasRental && !gearList.length && !hasDelivery && !hasDocInfo) return null;
+
+  return (
+    <section className="share-section">
+      <div className="sec-lbl">Gear</div>
+
+      {gear.storage_location && (
+        <div style={{ marginBottom:10 }}>
+          <span style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em' }}>Storage Location</span>
+          <div style={{ fontSize:13, color:'var(--text)', marginTop:3 }}>{gear.storage_location}</div>
+        </div>
+      )}
+
+      {hasRental && (
+        <div style={{ marginBottom:10 }}>
+          <span style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em' }}>Rental House</span>
+          <div style={{ fontSize:13, color:'var(--text)', marginTop:3, fontWeight:500 }}>{gear.rental_company || '—'}</div>
+          {(gear.rental_contact || gear.rental_phone || gear.rental_email) && (
+            <div style={{ fontSize:12, color:'var(--tan)', marginTop:2 }}>
+              {[gear.rental_contact, gear.rental_phone, gear.rental_email].filter(Boolean).join(' · ')}
+            </div>
+          )}
+        </div>
+      )}
+
+      {gearList.length > 0 && (
+        <div style={{ marginBottom:10 }}>
+          <span style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em' }}>Gear List</span>
+          <div style={{ marginTop:4 }}>
+            {gearList.map(g => (
+              <div key={g.label} style={{ display:'flex', gap:8, fontSize:12, marginBottom:3 }}>
+                <span style={{ color:'var(--muted)', minWidth:120 }}>{g.label}</span>
+                <span style={{ color:'var(--text)' }}>{g.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {producerView && hasDelivery && (
+        <div style={{ marginBottom:10 }}>
+          <span style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em' }}>Delivery</span>
+          <div style={{ marginTop:4 }}>
+            {gear.delivery_datetime && <div style={{ fontSize:12, color:'var(--text)', marginBottom:2 }}>📦 Delivery: {gear.delivery_datetime}</div>}
+            {gear.pickup_datetime && <div style={{ fontSize:12, color:'var(--text)', marginBottom:2 }}>🔄 Pickup: {gear.pickup_datetime}</div>}
+            {gear.delivery_driver && (
+              <div style={{ fontSize:12, color:'var(--tan)' }}>
+                Driver: {gear.delivery_driver}{gear.delivery_driver_phone ? ` · ${gear.delivery_driver_phone}` : ''}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {producerView && (
+        <div>
+          <span style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em' }}>Documents</span>
+          <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginTop:6 }}>
+            {docs.map(d => (
+              <div key={d.label} style={{ display:'flex', alignItems:'center', gap:5, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:6, padding:'4px 10px', fontSize:11 }}>
+                <span style={{ color: d.done ? 'var(--green, #4ade80)' : 'var(--muted)' }}>{d.done ? '✓' : '○'}</span>
+                <span style={{ color: d.done ? 'var(--text)' : 'var(--muted)' }}>{d.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
 function SpecTiles({ techSpecs }) {
   if (!techSpecs) return null;
   const specs = [
@@ -189,6 +280,8 @@ function ProducerView({ data }) {
           />
         </section>
       )}
+
+      <GearSection gear={gear} producerView />
 
       {/* ── Post-Production ── */}
       {deliverables?.length > 0 && (
@@ -349,6 +442,8 @@ function CrewView({ data }) {
           />
         </section>
       )}
+
+      <GearSection gear={gear} />
 
       {deliverables?.length > 0 && (
         <section className="share-section">
