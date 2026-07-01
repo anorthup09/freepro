@@ -418,6 +418,8 @@ async function migrate() {
     )
   `;
 
+  await sql`ALTER TABLE schedule_events ADD COLUMN IF NOT EXISTS is_filming BOOLEAN DEFAULT FALSE`;
+
   console.log('Migration complete.');
 }
 

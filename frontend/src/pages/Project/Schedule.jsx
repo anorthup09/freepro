@@ -108,9 +108,9 @@ export default function Schedule({ project }) {
   const [showAddDay, setShowAddDay] = useState(false);
   const [dayForm, setDayForm] = useState({ date:'', callTime:'', wrapTime:'', weather:'', notes:'' });
   const [showAddEvent, setShowAddEvent] = useState(false);
-  const [eventForm, setEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', isAlert:false, tags:[] });
+  const [eventForm, setEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', isAlert:false, isFilming:false, tags:[] });
   const [editEventId, setEditEventId] = useState(null);
-  const [editEventForm, setEditEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', isAlert:false, tags:[] });
+  const [editEventForm, setEditEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', isAlert:false, isFilming:false, tags:[] });
   const [editCallId, setEditCallId] = useState(null);
   const [callTime, setCallTime] = useState('');
   const [editDayTimes, setEditDayTimes] = useState(false);
@@ -201,7 +201,7 @@ export default function Schedule({ project }) {
       const ev = await api.createEvent(project.id, activeDay, eventForm);
       setDays(ds => ds.map(d => d.id === activeDay ? { ...d, events: [...d.events, ev].sort((a,b) => (a.start_time||'').localeCompare(b.start_time||'')) } : d));
       setShowAddEvent(false);
-      setEventForm({ startTime:'', endTime:'', title:'', detail:'', isAlert:false, tags:[] });
+      setEventForm({ startTime:'', endTime:'', title:'', detail:'', isAlert:false, isFilming:false, tags:[] });
     } catch(e) { alert(e.message); }
   }
 
@@ -225,7 +225,7 @@ export default function Schedule({ project }) {
 
   function openEditEvent(ev) {
     setEditEventId(ev.id);
-    setEditEventForm({ startTime: ev.start_time || ev.startTime || '', endTime: ev.end_time || ev.endTime || '', title: ev.title || '', detail: ev.detail || '', isAlert: ev.is_alert || ev.isAlert || false, tags: ev.tags || [] });
+    setEditEventForm({ startTime: ev.start_time || ev.startTime || '', endTime: ev.end_time || ev.endTime || '', title: ev.title || '', detail: ev.detail || '', isAlert: ev.is_alert || ev.isAlert || false, isFilming: ev.is_filming || ev.isFilming || false, tags: ev.tags || [] });
   }
 
   function toggleEditTag(type) {
@@ -436,9 +436,9 @@ export default function Schedule({ project }) {
                     ) : (
                       <div key={item.id} className="ev">
                         <div className="ev-time">{fmtTime(item.start_time || item.startTime)}{(item.end_time || item.endTime) ? ` – ${fmtTime(item.end_time || item.endTime)}` : ''}</div>
-                        <div className={`ev-body${(item.is_alert||item.isAlert) ? ' warn' : ''}`} style={!(item.is_alert||item.isAlert) ? { borderLeft:'2px solid var(--orange)' } : {}}>
+                        <div className={`ev-body${(item.is_alert||item.isAlert) ? ' warn' : ''}`} style={!(item.is_alert||item.isAlert) ? { borderLeft:'2px solid var(--orange)', ...(item.is_filming||item.isFilming ? { background:'linear-gradient(90deg, rgba(255,140,0,0.12) 0%, transparent 100%)', borderRadius:'0 6px 6px 0' } : {}) } : {}}>
                           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
-                            <div className={`ev-title${(item.is_alert||item.isAlert) ? ' alert' : ''}`}>{(item.is_alert||item.isAlert) ? '⚠ ' : ''}{item.title}</div>
+                            <div className={`ev-title${(item.is_alert||item.isAlert) ? ' alert' : ''}`} style={(item.is_filming||item.isFilming) ? { color:'var(--orange)' } : {}}>{(item.is_alert||item.isAlert) ? '⚠ ' : ''}{(item.is_filming||item.isFilming) ? '🎬 ' : ''}{item.title}</div>
                             <div style={{ display:'flex', gap:4, flexShrink:0, marginLeft:8 }}>
                               <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => openEditEvent(item)}>✎</button>
                               <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => deleteEvent(item.id)}>✕</button>
@@ -506,6 +506,10 @@ export default function Schedule({ project }) {
                   </div>
                 </div>
                 <div className="field span2" style={{ flexDirection:'row', alignItems:'center', gap:10 }}>
+                  <input type="checkbox" id="isFilming" checked={eventForm.isFilming} onChange={e => setEventForm(f=>({...f,isFilming:e.target.checked}))} style={{ width:'auto' }} />
+                  <label htmlFor="isFilming" style={{ textTransform:'none', letterSpacing:0, fontSize:12, color:'var(--orange)', fontWeight:600 }}>🎬 Filming</label>
+                </div>
+                <div className="field span2" style={{ flexDirection:'row', alignItems:'center', gap:10 }}>
                   <input type="checkbox" id="isAlert" checked={eventForm.isAlert} onChange={e => setEventForm(f=>({...f,isAlert:e.target.checked}))} style={{ width:'auto' }} />
                   <label htmlFor="isAlert" style={{ textTransform:'none', letterSpacing:0, fontSize:12, color:'var(--text)' }}>Mark as urgent alert</label>
                 </div>
@@ -539,6 +543,10 @@ export default function Schedule({ project }) {
                       </button>
                     ))}
                   </div>
+                </div>
+                <div className="field span2" style={{ flexDirection:'row', alignItems:'center', gap:10 }}>
+                  <input type="checkbox" id="editIsFilming" checked={editEventForm.isFilming} onChange={e => setEditEventForm(f=>({...f,isFilming:e.target.checked}))} style={{ width:'auto' }} />
+                  <label htmlFor="editIsFilming" style={{ textTransform:'none', letterSpacing:0, fontSize:12, color:'var(--orange)', fontWeight:600 }}>🎬 Filming</label>
                 </div>
                 <div className="field span2" style={{ flexDirection:'row', alignItems:'center', gap:10 }}>
                   <input type="checkbox" id="editIsAlert" checked={editEventForm.isAlert} onChange={e => setEditEventForm(f=>({...f,isAlert:e.target.checked}))} style={{ width:'auto' }} />

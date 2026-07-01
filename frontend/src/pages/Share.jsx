@@ -12,7 +12,7 @@ function useNow() {
   return now;
 }
 
-const COMING_SOON = { label: 'Status Coming Soon', color: 'var(--orange)', dot: null };
+const COMING_SOON = { label: 'status coming soon', color: 'var(--orange)', dot: null };
 function flightStatus(f, now) {
   const depart = f.depart_time ? new Date(f.depart_time) : null;
   const arrive = f.arrive_time ? new Date(f.arrive_time) : null;
@@ -983,14 +983,14 @@ function DaySection({ day, showCalls, flights, dayIndex }) {
         <div className="tl" style={{ marginTop:8 }}>
               {allItems.map((item, i) => item._type === 'flight' ? (
                 <div key={`f-${item.id}-${item._leg}`} className="ev">
-                  <div className="ev-time"><span style={{ fontSize:18, lineHeight:1 }}>✈</span><br/><span style={{ fontSize:10 }}>{item._time}</span></div>
-                  <div className="ev-body" style={{ borderLeft:'3px solid var(--orange)', background:'linear-gradient(90deg, rgba(255,140,0,0.12) 0%, transparent 100%)', borderRadius:'0 6px 6px 0' }}>
+                  <div className="ev-time">✈ {item._time}</div>
+                  <div className="ev-body" style={{ borderLeft:'2px solid var(--orange)' }}>
                     <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
-                      <div className="ev-title" style={{ color:'var(--orange)' }}>{item._leg === 'depart' ? 'Departure' : 'Arrival'} — {item.crew_name || item.passenger_name}</div>
+                      <div className="ev-title">{item._leg === 'depart' ? 'Departure' : 'Arrival'} — {item.crew_name || item.passenger_name}</div>
                       {(() => { const s = flightStatus(item, now); return s ? (
                         <div style={{ display:'flex', alignItems:'center', gap:5, flexShrink:0, background:'rgba(0,0,0,0.25)', borderRadius:20, padding:'3px 10px' }}>
                           <div style={{ width:6, height:6, borderRadius:'50%', background: s.dot || 'transparent', border: s.dot ? 'none' : '1.5px solid var(--orange)', flexShrink:0 }} />
-                          <span style={{ fontSize:10, fontWeight:600, color:s.color, textTransform:'uppercase', letterSpacing:'0.06em', fontStyle: s.dot ? 'normal' : 'italic' }}>{s.label}</span>
+                          <span style={{ fontSize: s.dot ? 10 : 9, fontWeight: s.dot ? 600 : 400, color:s.color, textTransform: s.dot ? 'uppercase' : 'none', letterSpacing: s.dot ? '0.06em' : 0, fontStyle: s.dot ? 'normal' : 'italic' }}>{s.label}</span>
                         </div>
                       ) : null; })()}
                     </div>
@@ -1004,8 +1004,8 @@ function DaySection({ day, showCalls, flights, dayIndex }) {
               ) : (
                 <div key={item.id || i} className="ev">
                   <div className="ev-time">{fmtTime(item.start_time)}{item.end_time ? ` – ${fmtTime(item.end_time)}` : ''}</div>
-                  <div className={`ev-body${item.is_alert ? ' warn' : ''}`} style={!item.is_alert ? { borderLeft:'2px solid var(--orange)' } : {}}>
-                    <div className={`ev-title${item.is_alert ? ' alert' : ''}`}>{item.title}</div>
+                  <div className={`ev-body${item.is_alert ? ' warn' : ''}`} style={!item.is_alert ? { borderLeft:'2px solid var(--orange)', ...(item.is_filming ? { background:'linear-gradient(90deg, rgba(255,140,0,0.12) 0%, transparent 100%)', borderRadius:'0 6px 6px 0' } : {}) } : {}}>
+                    <div className={`ev-title${item.is_alert ? ' alert' : ''}`} style={item.is_filming ? { color:'var(--orange)' } : {}}>{item.is_filming ? '🎬 ' : ''}{item.title}</div>
                     {item.detail && <div className="ev-detail">{item.detail}</div>}
                   </div>
                 </div>
