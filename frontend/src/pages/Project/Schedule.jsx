@@ -108,9 +108,10 @@ export default function Schedule({ project }) {
   const [showAddDay, setShowAddDay] = useState(false);
   const [dayForm, setDayForm] = useState({ date:'', callTime:'', wrapTime:'', weather:'', notes:'' });
   const [showAddEvent, setShowAddEvent] = useState(false);
-  const [eventForm, setEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', isAlert:false, isFilming:false, tags:[] });
+  const [eventForm, setEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', isAlert:false, isFilming:false, tags:[], audience:[] });
   const [editEventId, setEditEventId] = useState(null);
-  const [editEventForm, setEditEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', isAlert:false, isFilming:false, tags:[] });
+  const [editEventForm, setEditEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', isAlert:false, isFilming:false, tags:[], audience:[] });
+  const [keyTalent, setKeyTalent] = useState([]);
   const [editCallId, setEditCallId] = useState(null);
   const [callTime, setCallTime] = useState('');
   const [editDayTimes, setEditDayTimes] = useState(false);
@@ -122,6 +123,10 @@ export default function Schedule({ project }) {
   function refreshFlights() {
     api.getFlights(project.id).then(setFlights).catch(() => {});
   }
+
+  useEffect(() => {
+    api.getTalent(project.id).then(setKeyTalent).catch(() => {});
+  }, [project.id]);
 
   useEffect(() => {
     refreshFlights();
@@ -201,7 +206,7 @@ export default function Schedule({ project }) {
       const ev = await api.createEvent(project.id, activeDay, eventForm);
       setDays(ds => ds.map(d => d.id === activeDay ? { ...d, events: [...d.events, ev].sort((a,b) => (a.start_time||'').localeCompare(b.start_time||'')) } : d));
       setShowAddEvent(false);
-      setEventForm({ startTime:'', endTime:'', title:'', detail:'', isAlert:false, isFilming:false, tags:[] });
+      setEventForm({ startTime:'', endTime:'', title:'', detail:'', isAlert:false, isFilming:false, tags:[], audience:[] });
     } catch(e) { alert(e.message); }
   }
 
@@ -225,7 +230,7 @@ export default function Schedule({ project }) {
 
   function openEditEvent(ev) {
     setEditEventId(ev.id);
-    setEditEventForm({ startTime: ev.start_time || ev.startTime || '', endTime: ev.end_time || ev.endTime || '', title: ev.title || '', detail: ev.detail || '', isAlert: ev.is_alert || ev.isAlert || false, isFilming: ev.is_filming || ev.isFilming || false, tags: ev.tags || [] });
+    setEditEventForm({ startTime: ev.start_time || ev.startTime || '', endTime: ev.end_time || ev.endTime || '', title: ev.title || '', detail: ev.detail || '', isAlert: ev.is_alert || ev.isAlert || false, isFilming: ev.is_filming || ev.isFilming || false, tags: ev.tags || [], audience: ev.audience || [] });
   }
 
   function toggleEditTag(type) {
@@ -488,6 +493,10 @@ export default function Schedule({ project }) {
             <div className="modal-title">Add Event — Day {currentDay?.dayNumber}</div>
             <form onSubmit={addEvent}>
               <div className="form-grid" style={{ marginBottom:12 }}>
+                <div className="field span2" style={{ flexDirection:'row', alignItems:'center', gap:10 }}>
+                  <input type="checkbox" id="isFilming" checked={eventForm.isFilming} onChange={e => setEventForm(f=>({...f,isFilming:e.target.checked}))} style={{ width:'auto' }} />
+                  <label htmlFor="isFilming" style={{ textTransform:'none', letterSpacing:0, fontSize:12, color:'var(--orange)', fontWeight:600 }}>🎬 Filming</label>
+                </div>
                 <div className="field"><label>Start Time</label><input type="time" value={eventForm.startTime} onChange={e => setEventForm(f=>({...f,startTime:e.target.value}))} required /></div>
                 <div className="field"><label>End Time</label><input type="time" value={eventForm.endTime} onChange={e => setEventForm(f=>({...f,endTime:e.target.value}))} /></div>
                 <div className="field span2"><label>Title</label><input value={eventForm.title} onChange={e => setEventForm(f=>({...f,title:e.target.value}))} required /></div>
@@ -504,10 +513,20 @@ export default function Schedule({ project }) {
                       </button>
                     ))}
                   </div>
-                </div>
-                <div className="field span2" style={{ flexDirection:'row', alignItems:'center', gap:10 }}>
-                  <input type="checkbox" id="isFilming" checked={eventForm.isFilming} onChange={e => setEventForm(f=>({...f,isFilming:e.target.checked}))} style={{ width:'auto' }} />
-                  <label htmlFor="isFilming" style={{ textTransform:'none', letterSpacing:0, fontSize:12, color:'var(--orange)', fontWeight:600 }}>🎬 Filming</label>
+                  {eventForm.tags.some(t=>t.type==='TALENT') && keyTalent.length > 0 && (
+                    <div style={{ marginTop:8, display:'flex', gap:6, flexWrap:'wrap' }}>
+                      {keyTalent.map(t => {
+                        const sel = eventForm.audience.includes(t.name);
+                        return (
+                          <button key={t.id} type="button"
+                            style={{ fontSize:11, padding:'3px 10px', borderRadius:12, border:'1px solid var(--orange)', background: sel ? 'var(--orange)' : 'transparent', color: sel ? '#fff' : 'var(--orange)', cursor:'pointer', fontWeight:600 }}
+                            onClick={() => setEventForm(f => ({ ...f, audience: sel ? f.audience.filter(n=>n!==t.name) : [...f.audience, t.name] }))}>
+                            {t.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
                 <div className="field span2" style={{ flexDirection:'row', alignItems:'center', gap:10 }}>
                   <input type="checkbox" id="isAlert" checked={eventForm.isAlert} onChange={e => setEventForm(f=>({...f,isAlert:e.target.checked}))} style={{ width:'auto' }} />
@@ -527,6 +546,10 @@ export default function Schedule({ project }) {
             <div className="modal-title">Edit Event</div>
             <form onSubmit={saveEditEvent}>
               <div className="form-grid" style={{ marginBottom:12 }}>
+                <div className="field span2" style={{ flexDirection:'row', alignItems:'center', gap:10 }}>
+                  <input type="checkbox" id="editIsFilming" checked={editEventForm.isFilming} onChange={e => setEditEventForm(f=>({...f,isFilming:e.target.checked}))} style={{ width:'auto' }} />
+                  <label htmlFor="editIsFilming" style={{ textTransform:'none', letterSpacing:0, fontSize:12, color:'var(--orange)', fontWeight:600 }}>🎬 Filming</label>
+                </div>
                 <div className="field"><label>Start Time</label><input type="time" value={editEventForm.startTime} onChange={e => setEditEventForm(f=>({...f,startTime:e.target.value}))} required /></div>
                 <div className="field"><label>End Time</label><input type="time" value={editEventForm.endTime} onChange={e => setEditEventForm(f=>({...f,endTime:e.target.value}))} /></div>
                 <div className="field span2"><label>Title</label><input value={editEventForm.title} onChange={e => setEditEventForm(f=>({...f,title:e.target.value}))} required /></div>
@@ -543,10 +566,20 @@ export default function Schedule({ project }) {
                       </button>
                     ))}
                   </div>
-                </div>
-                <div className="field span2" style={{ flexDirection:'row', alignItems:'center', gap:10 }}>
-                  <input type="checkbox" id="editIsFilming" checked={editEventForm.isFilming} onChange={e => setEditEventForm(f=>({...f,isFilming:e.target.checked}))} style={{ width:'auto' }} />
-                  <label htmlFor="editIsFilming" style={{ textTransform:'none', letterSpacing:0, fontSize:12, color:'var(--orange)', fontWeight:600 }}>🎬 Filming</label>
+                  {editEventForm.tags.some(t=>t.type==='TALENT') && keyTalent.length > 0 && (
+                    <div style={{ marginTop:8, display:'flex', gap:6, flexWrap:'wrap' }}>
+                      {keyTalent.map(t => {
+                        const sel = editEventForm.audience.includes(t.name);
+                        return (
+                          <button key={t.id} type="button"
+                            style={{ fontSize:11, padding:'3px 10px', borderRadius:12, border:'1px solid var(--orange)', background: sel ? 'var(--orange)' : 'transparent', color: sel ? '#fff' : 'var(--orange)', cursor:'pointer', fontWeight:600 }}
+                            onClick={() => setEditEventForm(f => ({ ...f, audience: sel ? f.audience.filter(n=>n!==t.name) : [...f.audience, t.name] }))}>
+                            {t.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
                 <div className="field span2" style={{ flexDirection:'row', alignItems:'center', gap:10 }}>
                   <input type="checkbox" id="editIsAlert" checked={editEventForm.isAlert} onChange={e => setEditEventForm(f=>({...f,isAlert:e.target.checked}))} style={{ width:'auto' }} />

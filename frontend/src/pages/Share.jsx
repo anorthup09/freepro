@@ -12,7 +12,7 @@ function useNow() {
   return now;
 }
 
-const COMING_SOON = { label: 'status coming soon', color: 'var(--orange)', dot: null };
+const COMING_SOON = { label: 'STATUS COMING SOON', color: 'var(--orange)', dot: null };
 function flightStatus(f, now) {
   const depart = f.depart_time ? new Date(f.depart_time) : null;
   const arrive = f.arrive_time ? new Date(f.arrive_time) : null;
@@ -354,7 +354,7 @@ function FlightStatusCell({ f }) {
   return (
     <div style={{ display:'flex', alignItems:'center', gap:5 }}>
       <div style={{ width:7, height:7, borderRadius:'50%', background: s.dot || 'transparent', border: s.dot ? 'none' : '1.5px solid var(--orange)', flexShrink:0 }} />
-      <span style={{ fontSize:11, fontWeight: s.dot ? 600 : 400, color:s.color, textTransform:'uppercase', letterSpacing:'0.05em', fontStyle: s.dot ? 'normal' : 'italic' }}>{s.label}</span>
+      <span style={{ fontSize: s.dot ? 11 : 9, fontWeight: s.dot ? 600 : 400, color:s.color, textTransform:'uppercase', letterSpacing: s.dot ? '0.05em' : '0.03em', fontStyle: s.dot ? 'normal' : 'italic' }}>{s.label}</span>
     </div>
   );
 }
@@ -990,7 +990,7 @@ function DaySection({ day, showCalls, flights, dayIndex }) {
                       {(() => { const s = flightStatus(item, now); return s ? (
                         <div style={{ display:'flex', alignItems:'center', gap:5, flexShrink:0, background:'rgba(0,0,0,0.25)', borderRadius:20, padding:'3px 10px' }}>
                           <div style={{ width:6, height:6, borderRadius:'50%', background: s.dot || 'transparent', border: s.dot ? 'none' : '1.5px solid var(--orange)', flexShrink:0 }} />
-                          <span style={{ fontSize: s.dot ? 10 : 9, fontWeight: s.dot ? 600 : 400, color:s.color, textTransform: s.dot ? 'uppercase' : 'none', letterSpacing: s.dot ? '0.06em' : 0, fontStyle: s.dot ? 'normal' : 'italic' }}>{s.label}</span>
+                          <span style={{ fontSize: s.dot ? 10 : 9, fontWeight: s.dot ? 600 : 400, color:s.color, textTransform:'uppercase', letterSpacing: s.dot ? '0.06em' : '0.03em', fontStyle: s.dot ? 'normal' : 'italic' }}>{s.label}</span>
                         </div>
                       ) : null; })()}
                     </div>

@@ -46,6 +46,7 @@ export const api = {
   deleteContact: (projectId, id) => req('DELETE', `/projects/${projectId}/contacts/${id}`),
 
   // Talent
+  getTalent: (projectId) => req('GET', `/projects/${projectId}/talent`),
   createTalent: (projectId, data) => req('POST', `/projects/${projectId}/talent`, data),
   updateTalent: (projectId, id, data) => req('PATCH', `/projects/${projectId}/talent/${id}`, data),
   deleteTalent: (projectId, id) => req('DELETE', `/projects/${projectId}/talent/${id}`),
