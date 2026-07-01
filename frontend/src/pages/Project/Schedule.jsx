@@ -363,32 +363,37 @@ export default function Schedule({ project }) {
               </div>
               <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text)' }} onClick={() => deleteDay(currentDay.id)}>Delete Day</button>
             </div>
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr) 1fr 1fr 1fr', gap:10 }}>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, marginBottom:10 }}>
               {[
-                { label:'Call Time', field:'callTime', type:'time', isTime:true },
-                { label:'Shooting Call', field:'shootingCallTime', type:'time', isTime:true },
-                { label:'Lunch', field:'lunchTime', type:'time', isTime:true },
-                { label:'Est. Wrap', field:'wrapTime', type:'time', isTime:true },
-                { label:'Crew Meal Location', field:'crewLunch', type:'text', isTime:false },
-                { label:'Gear Storage', field:'gearStorage', type:'text', isTime:false },
-                { label:'GS Audio Contact', field:'gsAudio', type:'text', isTime:false },
-              ].map(({ label, field, type, isTime }) => (
+                { label:'Call Time', field:'callTime' },
+                { label:'Shooting Call Time', field:'shootingCallTime' },
+                { label:'Lunch', field:'lunchTime' },
+                { label:'Est. Wrap Time', field:'wrapTime' },
+              ].map(({ label, field }) => (
                 <div key={field} className="field" style={{ margin:0 }}>
                   <label style={{ fontSize:10 }}>{label}</label>
-                  {isTime ? (
-                    <input type="time"
-                      value={dayTimesForm[currentDay.id]?.[field] || ''}
-                      onChange={e => setDayTimesForm(m => ({ ...m, [currentDay.id]: { ...m[currentDay.id], [field]: e.target.value } }))}
-                      onBlur={e => saveDayTime(currentDay.id, field, e.target.value)}
-                    />
-                  ) : (
-                    <input type="text"
-                      value={dayMeta[currentDay.id]?.[field] || ''}
-                      onChange={e => setDayMeta(m => ({ ...m, [currentDay.id]: { ...m[currentDay.id], [field]: e.target.value } }))}
-                      onBlur={e => saveDayMeta(currentDay.id, field, e.target.value)}
-                      placeholder="Insert Info"
-                    />
-                  )}
+                  <input type="time"
+                    value={dayTimesForm[currentDay.id]?.[field] || ''}
+                    onChange={e => setDayTimesForm(m => ({ ...m, [currentDay.id]: { ...m[currentDay.id], [field]: e.target.value } }))}
+                    onBlur={e => saveDayTime(currentDay.id, field, e.target.value)}
+                  />
+                </div>
+              ))}
+            </div>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:10 }}>
+              {[
+                { label:'Crew Meal Location', field:'crewLunch' },
+                { label:'Gear Storage', field:'gearStorage' },
+                { label:'GS Audio Contact', field:'gsAudio' },
+              ].map(({ label, field }) => (
+                <div key={field} className="field" style={{ margin:0 }}>
+                  <label style={{ fontSize:10 }}>{label}</label>
+                  <input
+                    value={dayMeta[currentDay.id]?.[field] || ''}
+                    onChange={e => setDayMeta(m => ({ ...m, [currentDay.id]: { ...m[currentDay.id], [field]: e.target.value } }))}
+                    onBlur={e => saveDayMeta(currentDay.id, field, e.target.value)}
+                    placeholder="Insert Info"
+                  />
                 </div>
               ))}
             </div>
