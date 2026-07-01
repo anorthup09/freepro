@@ -71,24 +71,46 @@ function GearSection({ gear, onlineRentals = [], producerView }) {
 
   return (
     <section className="share-section">
-      <div className="sec-lbl">Gear</div>
+      <div style={{ fontSize:16, fontWeight:700, color:'var(--text)', marginBottom:12, letterSpacing:'-0.01em' }}>Gear</div>
 
-      {gear.storage_location && (
+      {gear?.storage_location && (
         <div style={{ marginBottom:10 }}>
           <span style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em' }}>Storage Location</span>
           <div style={{ fontSize:13, color:'var(--text)', marginTop:3 }}>{gear.storage_location}</div>
         </div>
       )}
 
-      {hasRental && (
-        <div style={{ marginBottom:10 }}>
-          <span style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em' }}>Rental House</span>
-          <div style={{ fontSize:13, color:'var(--text)', marginTop:3, fontWeight:500 }}>{gear.rental_company || '—'}</div>
-          {(gear.rental_contact || gear.rental_phone || gear.rental_email) && (
-            <div style={{ fontSize:12, color:'var(--tan)', marginTop:2 }}>
-              {[gear.rental_contact, gear.rental_phone, gear.rental_email].filter(Boolean).join(' · ')}
-            </div>
-          )}
+      {/* Rental House + Online Rentals side by side */}
+      {(hasRental || onlineRentals.length > 0) && (
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:10 }}>
+          <div>
+            <span style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em' }}>Rental House</span>
+            {hasRental ? (
+              <>
+                <div style={{ fontSize:13, color:'var(--text)', marginTop:3, fontWeight:500 }}>{gear.rental_company || '—'}</div>
+                {(gear.rental_contact || gear.rental_phone || gear.rental_email) && (
+                  <div style={{ fontSize:12, color:'var(--tan)', marginTop:2 }}>
+                    {[gear.rental_contact, gear.rental_phone, gear.rental_email].filter(Boolean).join(' · ')}
+                  </div>
+                )}
+              </>
+            ) : <div style={{ fontSize:12, color:'var(--muted)', marginTop:3 }}>—</div>}
+          </div>
+          <div>
+            <span style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em' }}>Online Rentals</span>
+            {onlineRentals.length > 0 ? (
+              <div style={{ marginTop:3 }}>
+                {onlineRentals.map(r => (
+                  <div key={r.id} style={{ marginBottom:6, paddingBottom:6, borderBottom:'1px solid var(--border)' }}>
+                    {r.renter_name && <div style={{ fontSize:12, fontWeight:600, color:'var(--text)' }}>{r.renter_name}</div>}
+                    {r.confirmation && <div style={{ fontSize:11, color:'var(--muted)' }}>Conf # {r.confirmation}</div>}
+                    {r.tracking_number && <div style={{ fontSize:11, color:'var(--muted)' }}>Tracking: <span style={{ color:'var(--text)' }}>{r.tracking_number}</span></div>}
+                    {r.notes && <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>{r.notes}</div>}
+                  </div>
+                ))}
+              </div>
+            ) : <div style={{ fontSize:12, color:'var(--muted)', marginTop:3 }}>—</div>}
+          </div>
         </div>
       )}
 
@@ -117,22 +139,6 @@ function GearSection({ gear, onlineRentals = [], producerView }) {
                 Driver: {gear.delivery_driver}{gear.delivery_driver_phone ? ` · ${gear.delivery_driver_phone}` : ''}
               </div>
             )}
-          </div>
-        </div>
-      )}
-
-      {onlineRentals.length > 0 && (
-        <div style={{ marginBottom:10 }}>
-          <span style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em' }}>Online Rentals</span>
-          <div style={{ marginTop:4 }}>
-            {onlineRentals.map(r => (
-              <div key={r.id} style={{ marginBottom:6, paddingBottom:6, borderBottom:'1px solid var(--border)' }}>
-                {r.renter_name && <div style={{ fontSize:12, fontWeight:600, color:'var(--text)' }}>{r.renter_name}</div>}
-                {r.confirmation && <div style={{ fontSize:11, color:'var(--muted)' }}>Conf # {r.confirmation}</div>}
-                {r.tracking_number && <div style={{ fontSize:11, color:'var(--muted)' }}>Tracking: <span style={{ color:'var(--text)' }}>{r.tracking_number}</span></div>}
-                {r.notes && <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>{r.notes}</div>}
-              </div>
-            ))}
           </div>
         </div>
       )}
@@ -394,7 +400,7 @@ function ProducerView({ data }) {
       {/* ── Post-Production ── */}
       {deliverables?.length > 0 && (
         <section className="share-section">
-          <div className="sec-lbl">Post-Production — Deliverables</div>
+          <div style={{ fontSize:16, fontWeight:700, color:'var(--text)', marginBottom:12, letterSpacing:'-0.01em' }}>Post-Production — Deliverables</div>
           {gear?.gear_person_name && (
             <div style={{ fontSize:12, color:'var(--muted)', marginBottom:8 }}>
               DIT: <span style={{ color:'var(--text)', fontWeight:500 }}>{gear.gear_person_name}</span>
@@ -416,6 +422,9 @@ function ProducerView({ data }) {
 
       {/* ── Schedule (with integrated flights) at bottom ── */}
       <div ref={scheduleRef}>
+        {(schedule||[]).length > 0 && (
+          <div style={{ fontSize:16, fontWeight:700, color:'var(--text)', margin:'24px 0 8px', letterSpacing:'-0.01em' }}>Schedule</div>
+        )}
         {[...(schedule||[])].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map((day, i) => (
           <DaySection key={day.id} day={day} showCalls flights={flights} dayIndex={i} />
         ))}
@@ -553,7 +562,7 @@ function CrewView({ data }) {
 
       {deliverables?.length > 0 && (
         <section className="share-section">
-          <div className="sec-lbl">Post-Production — Deliverables</div>
+          <div style={{ fontSize:16, fontWeight:700, color:'var(--text)', marginBottom:12, letterSpacing:'-0.01em' }}>Post-Production — Deliverables</div>
           {gear?.gear_person_name && (
             <div style={{ fontSize:12, color:'var(--muted)', marginBottom:8 }}>
               DIT: <span style={{ color:'var(--text)', fontWeight:500 }}>{gear.gear_person_name}</span>
@@ -574,6 +583,9 @@ function CrewView({ data }) {
       )}
 
       <div ref={scheduleRef}>
+        {sortedSchedule.length > 0 && (
+          <div style={{ fontSize:16, fontWeight:700, color:'var(--text)', margin:'24px 0 8px', letterSpacing:'-0.01em' }}>Schedule</div>
+        )}
         {sortedSchedule.map((day, i) => (
           <DaySection key={day.id} day={day} showCalls flights={flights} dayIndex={i} />
         ))}
