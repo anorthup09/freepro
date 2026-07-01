@@ -190,7 +190,7 @@ router.post('/:id/talent', requireAuth, requireRole('ADMIN','PRODUCER'), async (
 router.patch('/:id/talent/:tid', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
     const d = req.body;
-    const [t] = await sql`UPDATE key_talent SET name=COALESCE(${d.name??null},name), role=COALESCE(${d.role??null},role), phone=${d.phone!==undefined?(d.phone||null):sql`phone`}, email=${d.email!==undefined?(d.email||null):sql`email`}, notes=${d.notes!==undefined?(d.notes||null):sql`notes`}, dietary_restrictions=${d.dietaryRestrictions!==undefined?(d.dietaryRestrictions||null):sql`dietary_restrictions`}, call_time=${d.callTime!==undefined?(d.callTime||null):sql`call_time`} WHERE id=${req.params.tid} RETURNING *`;
+    const [t] = await sql`UPDATE key_talent SET name=COALESCE(${d.name??null},name), role=COALESCE(${d.role??null},role), phone=${d.phone!==undefined?(d.phone||null):sql`phone`}, email=${d.email!==undefined?(d.email||null):sql`email`}, notes=${d.notes!==undefined?(d.notes||null):sql`notes`}, dietary_restrictions=${d.dietaryRestrictions!==undefined?(d.dietaryRestrictions||null):sql`dietary_restrictions`}, call_time=${d.callTime!==undefined?(d.callTime||null):sql`call_time`}, wardrobe_notes=${d.wardrobeNotes!==undefined?(d.wardrobeNotes||null):sql`wardrobe_notes`}, arrival_notes=${d.arrivalNotes!==undefined?(d.arrivalNotes||null):sql`arrival_notes`} WHERE id=${req.params.tid} RETURNING *`;
     res.json(t);
   } catch(e){next(e);}
 });

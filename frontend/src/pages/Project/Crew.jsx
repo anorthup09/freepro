@@ -2,6 +2,16 @@ import React, { useEffect, useState } from 'react';
 import { api } from '../../api.js';
 import { displayName } from '../../utils/displayName.js';
 
+function fmtTime(str) {
+  if (!str) return '';
+  if (/AM|PM/i.test(str)) return str;
+  const [h, m] = str.split(':').map(Number);
+  if (isNaN(h)) return str;
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 || 12;
+  return `${h12}:${String(m).padStart(2,'0')} ${ampm}`;
+}
+
 function DietaryBadge({ value }) {
   const [show, setShow] = useState(false);
   if (!value || value === 'N/A') return <span style={{ color:'var(--muted)', fontSize:11 }}>—</span>;
@@ -44,7 +54,7 @@ export default function Crew({ project, onProjectUpdate }) {
   const [showTalentModal, setShowTalentModal] = useState(false);
   const [talentForm, setTalentForm] = useState({ name:'', role:'' });
   const [editTalent, setEditTalent] = useState(null);
-  const [editTalentForm, setEditTalentForm] = useState({ name:'', role:'', phone:'', email:'', notes:'', dietaryRestrictions:'', callTime:'' });
+  const [editTalentForm, setEditTalentForm] = useState({ name:'', role:'', phone:'', email:'', notes:'', dietaryRestrictions:'', callTime:'', wardrobeNotes:'', arrivalNotes:'' });
   const [talentDays, setTalentDays] = useState([]);
   const [talentDayCallsForm, setTalentDayCallsForm] = useState({});
 
@@ -326,12 +336,12 @@ export default function Crew({ project, onProjectUpdate }) {
                     <td style={{ fontSize:11, color:'var(--tan)', whiteSpace:'nowrap' }}>{t.phone || '—'}</td>
                     <td style={{ fontSize:11, color:'var(--muted)' }}>{t.email || '—'}</td>
                     <td style={{ fontSize:11, color:'var(--muted)' }}>{t.dietary_restrictions || '—'}</td>
-                    <td style={{ fontSize:11, color:'var(--muted)', whiteSpace:'nowrap' }}>{t.call_time || '—'}</td>
+                    <td style={{ fontSize:11, color:'var(--muted)', whiteSpace:'nowrap' }}>{t.call_time ? fmtTime(t.call_time) : '—'}</td>
                     <td style={{ textAlign:'right' }}>
                       <div style={{ display:'flex', gap:6, justifyContent:'flex-end' }}>
                         <button className="btn btn-ghost btn-sm" onClick={() => {
                           setEditTalent(t);
-                          setEditTalentForm({ name: t.name, role: t.role, phone: t.phone||'', email: t.email||'', notes: t.notes||'', dietaryRestrictions: t.dietary_restrictions||'', callTime: t.call_time||'' });
+                          setEditTalentForm({ name: t.name, role: t.role, phone: t.phone||'', email: t.email||'', notes: t.notes||'', dietaryRestrictions: t.dietary_restrictions||'', callTime: t.call_time||'', wardrobeNotes: t.wardrobe_notes||'', arrivalNotes: t.arrival_notes||'' });
                           setTalentDayCallsForm({});
                           Promise.all([
                             api.getSchedule(project.id),
@@ -546,7 +556,8 @@ export default function Crew({ project, onProjectUpdate }) {
                 <div className="field"><label>Phone</label><input value={editTalentForm.phone} onChange={e => setEditTalentForm(f=>({...f,phone:e.target.value}))} placeholder="555-123-4567" /></div>
                 <div className="field"><label>Email</label><input type="email" value={editTalentForm.email} onChange={e => setEditTalentForm(f=>({...f,email:e.target.value}))} /></div>
                 <div className="field span2"><label>Dietary Restrictions</label><input value={editTalentForm.dietaryRestrictions} onChange={e => setEditTalentForm(f=>({...f,dietaryRestrictions:e.target.value}))} placeholder="Vegetarian, nut allergy…" /></div>
-                <div className="field span2"><label>Notes</label><textarea value={editTalentForm.notes} onChange={e => setEditTalentForm(f=>({...f,notes:e.target.value}))} rows={3} /></div>
+                <div className="field span2"><label>Wardrobe Notes</label><textarea value={editTalentForm.wardrobeNotes} onChange={e => setEditTalentForm(f=>({...f,wardrobeNotes:e.target.value}))} rows={2} /></div>
+                <div className="field span2"><label>Arrival Notes</label><textarea value={editTalentForm.arrivalNotes} onChange={e => setEditTalentForm(f=>({...f,arrivalNotes:e.target.value}))} rows={2} /></div>
               </div>
               {talentDays.length > 0 && (
                 <div style={{ marginBottom:12 }}>

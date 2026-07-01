@@ -760,19 +760,39 @@ function TalentView({ data }) {
         </div>
       </div>
 
-      {project.poc_name && (
-        <section className="share-section">
-          <div className="sec-lbl">Key Contacts</div>
-          <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
-            <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 14px', flex:1, minWidth:180 }}>
-              <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:4 }}>Main POC</div>
-              <div style={{ fontWeight:600, fontSize:13 }}>{shortName(project.poc_name)}</div>
-              {project.poc_phone && <div style={{ fontSize:12, color:'var(--tan)', marginTop:2 }}>{project.poc_phone}</div>}
-              {project.poc_email && <div style={{ fontSize:11, color:'var(--muted)' }}>{project.poc_email}</div>}
+      {(() => {
+        const talentRecord = (keyTalent || []).find(t => t.name === talent_name);
+        const wardrobeNotes = talentRecord?.wardrobe_notes;
+        const arrivalNotes = talentRecord?.arrival_notes;
+        if (!project.poc_name && !wardrobeNotes && !arrivalNotes) return null;
+        return (
+          <section className="share-section">
+            <div className="sec-lbl">Key Contacts</div>
+            <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
+              {project.poc_name && (
+                <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 14px', flex:1, minWidth:180 }}>
+                  <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:4 }}>Main POC</div>
+                  <div style={{ fontWeight:600, fontSize:13 }}>{shortName(project.poc_name)}</div>
+                  {project.poc_phone && <div style={{ fontSize:12, color:'var(--tan)', marginTop:2 }}>{project.poc_phone}</div>}
+                  {project.poc_email && <div style={{ fontSize:11, color:'var(--muted)' }}>{project.poc_email}</div>}
+                </div>
+              )}
+              {wardrobeNotes && (
+                <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 14px', flex:1, minWidth:180 }}>
+                  <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:4 }}>Wardrobe Notes</div>
+                  <div style={{ fontSize:13, color:'var(--text)', whiteSpace:'pre-wrap' }}>{wardrobeNotes}</div>
+                </div>
+              )}
+              {arrivalNotes && (
+                <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 14px', flex:1, minWidth:180 }}>
+                  <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:4 }}>Arrival Notes</div>
+                  <div style={{ fontSize:13, color:'var(--text)', whiteSpace:'pre-wrap' }}>{arrivalNotes}</div>
+                </div>
+              )}
             </div>
-          </div>
-        </section>
-      )}
+          </section>
+        );
+      })()}
 
       <SpecTiles techSpecs={techSpecs} />
 
