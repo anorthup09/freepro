@@ -108,9 +108,9 @@ export default function Schedule({ project }) {
   const [showAddDay, setShowAddDay] = useState(false);
   const [dayForm, setDayForm] = useState({ date:'', callTime:'', wrapTime:'', weather:'', notes:'' });
   const [showAddEvent, setShowAddEvent] = useState(false);
-  const [eventForm, setEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', isAlert:false, isFilming:false, tags:[], audience:[] });
+  const [eventForm, setEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', isAlert:false, isFilming:false, isShootingCall:false, isLunch:false, tags:[], audience:[] });
   const [editEventId, setEditEventId] = useState(null);
-  const [editEventForm, setEditEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', isAlert:false, isFilming:false, tags:[], audience:[] });
+  const [editEventForm, setEditEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', isAlert:false, isFilming:false, isShootingCall:false, isLunch:false, tags:[], audience:[] });
   const [keyTalent, setKeyTalent] = useState([]);
   const [editCallId, setEditCallId] = useState(null);
   const [callTime, setCallTime] = useState('');
@@ -206,7 +206,7 @@ export default function Schedule({ project }) {
       const ev = await api.createEvent(project.id, activeDay, eventForm);
       setDays(ds => ds.map(d => d.id === activeDay ? { ...d, events: [...d.events, ev].sort((a,b) => (a.start_time||'').localeCompare(b.start_time||'')) } : d));
       setShowAddEvent(false);
-      setEventForm({ startTime:'', endTime:'', title:'', detail:'', isAlert:false, isFilming:false, tags:[], audience:[] });
+      setEventForm({ startTime:'', endTime:'', title:'', detail:'', isAlert:false, isFilming:false, isShootingCall:false, isLunch:false, tags:[], audience:[] });
     } catch(e) { alert(e.message); }
   }
 
@@ -230,7 +230,7 @@ export default function Schedule({ project }) {
 
   function openEditEvent(ev) {
     setEditEventId(ev.id);
-    setEditEventForm({ startTime: ev.start_time || ev.startTime || '', endTime: ev.end_time || ev.endTime || '', title: ev.title || '', detail: ev.detail || '', isAlert: ev.is_alert || ev.isAlert || false, isFilming: ev.is_filming || ev.isFilming || false, tags: ev.tags || [], audience: ev.audience || [] });
+    setEditEventForm({ startTime: ev.start_time || ev.startTime || '', endTime: ev.end_time || ev.endTime || '', title: ev.title || '', detail: ev.detail || '', isAlert: ev.is_alert || ev.isAlert || false, isFilming: ev.is_filming || ev.isFilming || false, isShootingCall: ev.is_shooting_call || ev.isShootingCall || false, isLunch: ev.is_lunch || ev.isLunch || false, tags: ev.tags || [], audience: ev.audience || [] });
   }
 
   function toggleEditTag(type) {
@@ -493,9 +493,19 @@ export default function Schedule({ project }) {
             <div className="modal-title">Add Event — Day {currentDay?.dayNumber}</div>
             <form onSubmit={addEvent}>
               <div className="form-grid" style={{ marginBottom:12 }}>
-                <div className="field span2" style={{ flexDirection:'row', alignItems:'center', gap:10 }}>
-                  <input type="checkbox" id="isFilming" checked={eventForm.isFilming} onChange={e => setEventForm(f=>({...f,isFilming:e.target.checked}))} style={{ width:'auto' }} />
-                  <label htmlFor="isFilming" style={{ textTransform:'none', letterSpacing:0, fontSize:12, color:'var(--orange)', fontWeight:600 }}>🎬 Filming</label>
+                <div className="field span2" style={{ flexDirection:'row', alignItems:'center', gap:16, flexWrap:'wrap' }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                    <input type="checkbox" id="isFilming" checked={eventForm.isFilming} onChange={e => setEventForm(f=>({...f,isFilming:e.target.checked}))} style={{ width:'auto' }} />
+                    <label htmlFor="isFilming" style={{ textTransform:'none', letterSpacing:0, fontSize:12, color:'var(--orange)', fontWeight:600 }}>🎬 Filming</label>
+                  </div>
+                  <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                    <input type="checkbox" id="isShootingCall" checked={eventForm.isShootingCall} onChange={e => setEventForm(f=>({...f,isShootingCall:e.target.checked}))} style={{ width:'auto' }} />
+                    <label htmlFor="isShootingCall" style={{ textTransform:'none', letterSpacing:0, fontSize:12, color:'var(--text)', fontWeight:500 }}>Shooting Call</label>
+                  </div>
+                  <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                    <input type="checkbox" id="isLunch" checked={eventForm.isLunch} onChange={e => setEventForm(f=>({...f,isLunch:e.target.checked}))} style={{ width:'auto' }} />
+                    <label htmlFor="isLunch" style={{ textTransform:'none', letterSpacing:0, fontSize:12, color:'var(--text)', fontWeight:500 }}>Lunch</label>
+                  </div>
                 </div>
                 <div className="field"><label>Start Time</label><input type="time" value={eventForm.startTime} onChange={e => setEventForm(f=>({...f,startTime:e.target.value}))} required /></div>
                 <div className="field"><label>End Time</label><input type="time" value={eventForm.endTime} onChange={e => setEventForm(f=>({...f,endTime:e.target.value}))} /></div>
@@ -546,9 +556,19 @@ export default function Schedule({ project }) {
             <div className="modal-title">Edit Event</div>
             <form onSubmit={saveEditEvent}>
               <div className="form-grid" style={{ marginBottom:12 }}>
-                <div className="field span2" style={{ flexDirection:'row', alignItems:'center', gap:10 }}>
-                  <input type="checkbox" id="editIsFilming" checked={editEventForm.isFilming} onChange={e => setEditEventForm(f=>({...f,isFilming:e.target.checked}))} style={{ width:'auto' }} />
-                  <label htmlFor="editIsFilming" style={{ textTransform:'none', letterSpacing:0, fontSize:12, color:'var(--orange)', fontWeight:600 }}>🎬 Filming</label>
+                <div className="field span2" style={{ flexDirection:'row', alignItems:'center', gap:16, flexWrap:'wrap' }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                    <input type="checkbox" id="editIsFilming" checked={editEventForm.isFilming} onChange={e => setEditEventForm(f=>({...f,isFilming:e.target.checked}))} style={{ width:'auto' }} />
+                    <label htmlFor="editIsFilming" style={{ textTransform:'none', letterSpacing:0, fontSize:12, color:'var(--orange)', fontWeight:600 }}>🎬 Filming</label>
+                  </div>
+                  <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                    <input type="checkbox" id="editIsShootingCall" checked={editEventForm.isShootingCall} onChange={e => setEditEventForm(f=>({...f,isShootingCall:e.target.checked}))} style={{ width:'auto' }} />
+                    <label htmlFor="editIsShootingCall" style={{ textTransform:'none', letterSpacing:0, fontSize:12, color:'var(--text)', fontWeight:500 }}>Shooting Call</label>
+                  </div>
+                  <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                    <input type="checkbox" id="editIsLunch" checked={editEventForm.isLunch} onChange={e => setEditEventForm(f=>({...f,isLunch:e.target.checked}))} style={{ width:'auto' }} />
+                    <label htmlFor="editIsLunch" style={{ textTransform:'none', letterSpacing:0, fontSize:12, color:'var(--text)', fontWeight:500 }}>Lunch</label>
+                  </div>
                 </div>
                 <div className="field"><label>Start Time</label><input type="time" value={editEventForm.startTime} onChange={e => setEditEventForm(f=>({...f,startTime:e.target.value}))} required /></div>
                 <div className="field"><label>End Time</label><input type="time" value={editEventForm.endTime} onChange={e => setEditEventForm(f=>({...f,endTime:e.target.value}))} /></div>

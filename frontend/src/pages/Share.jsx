@@ -1004,6 +1004,18 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
           {day.wrap_time && <span>Wrap: <strong>{fmtTime(day.wrap_time)}</strong></span>}
         </div>
       )}
+      {!hideCallWrap && (() => {
+        const shootingCall = day.events?.find(e => e.is_shooting_call);
+        const lunch = day.events?.find(e => e.is_lunch);
+        if (!shootingCall && !lunch) return null;
+        return (
+          <div style={{ fontSize:11, color:'var(--tan)', marginTop:2 }}>
+            {shootingCall && <span>Shooting Call: <strong>{fmtTime(shootingCall.start_time)}</strong></span>}
+            {shootingCall && lunch && <span style={{ margin:'0 8px', color:'var(--muted)' }}>·</span>}
+            {lunch && <span>Lunch: <strong>{fmtTime(lunch.start_time)}</strong></span>}
+          </div>
+        );
+      })()}
 
       {showCalls && day.crewCalls?.length > 0 && (
         <div style={{ marginTop:8 }}>

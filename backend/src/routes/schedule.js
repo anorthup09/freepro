@@ -91,10 +91,10 @@ router.delete('/:id/schedule/days/:dayId', requireAuth, requireRole('ADMIN','PRO
 // POST event
 router.post('/:id/schedule/days/:dayId/events', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const { startTime, endTime, title, detail, locationId, isAlert, alertMessage, isFilming, tags=[], audience=[] } = req.body;
+    const { startTime, endTime, title, detail, locationId, isAlert, alertMessage, isFilming, isShootingCall, isLunch, tags=[], audience=[] } = req.body;
     const [ev] = await sql`
-      INSERT INTO schedule_events (id, shoot_day_id, start_time, end_time, title, detail, location_id, is_alert, alert_message, is_filming, audience)
-      VALUES (gen_random_uuid()::text, ${req.params.dayId}, ${startTime}, ${endTime||null}, ${title}, ${detail||null}, ${locationId||null}, ${isAlert||false}, ${alertMessage||null}, ${isFilming||false}, ${sql.array(audience)})
+      INSERT INTO schedule_events (id, shoot_day_id, start_time, end_time, title, detail, location_id, is_alert, alert_message, is_filming, is_shooting_call, is_lunch, audience)
+      VALUES (gen_random_uuid()::text, ${req.params.dayId}, ${startTime}, ${endTime||null}, ${title}, ${detail||null}, ${locationId||null}, ${isAlert||false}, ${alertMessage||null}, ${isFilming||false}, ${isShootingCall||false}, ${isLunch||false}, ${sql.array(audience)})
       RETURNING *`;
     if (tags.length) {
       await Promise.all(tags.map(t => sql`INSERT INTO event_tags (id, event_id, type, label) VALUES (gen_random_uuid()::text, ${ev.id}, ${t.type}::event_tag_type, ${t.label||null})`));
@@ -113,6 +113,8 @@ router.patch('/:id/schedule/events/:eventId', requireAuth, requireRole('ADMIN','
         start_time=COALESCE(${d.startTime??null},start_time), end_time=COALESCE(${d.endTime??null},end_time),
         is_alert=COALESCE(${d.isAlert??null},is_alert),
         is_filming=COALESCE(${d.isFilming??null},is_filming),
+        is_shooting_call=COALESCE(${d.isShootingCall??null},is_shooting_call),
+        is_lunch=COALESCE(${d.isLunch??null},is_lunch),
         audience=COALESCE(${d.audience!=null?sql.array(d.audience):null},audience)
       WHERE id=${req.params.eventId} RETURNING *`;
     if (d.tags !== undefined) {
