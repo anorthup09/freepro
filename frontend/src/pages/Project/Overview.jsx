@@ -3,8 +3,15 @@ import { api } from '../../api.js';
 import { displayName } from '../../utils/displayName.js';
 
 const LOC_TYPES = ['PRIMARY_VENUE','CREW_HOTEL','SECONDARY','AIRPORT','OTHER'];
-const LOC_LABELS = { PRIMARY_VENUE:'Primary Venue', CREW_HOTEL:'Crew Hotel', SECONDARY:'Secondary', AIRPORT:'Airport', OTHER:'Other' };
+const LOC_LABELS = { PRIMARY_VENUE:'Shooting Location', CREW_HOTEL:'Hotel', SECONDARY:'Rental Car Location', AIRPORT:'Airport', OTHER:'Other' };
 const LOC_TAG = { PRIMARY_VENUE:'main', CREW_HOTEL:'crew', SECONDARY:'sec', AIRPORT:'sec', OTHER:'sec' };
+
+const LOC_GROUPS = [
+  { label: 'Shooting Locations', types: ['PRIMARY_VENUE','SECONDARY'], icon: '🎬' },
+  { label: 'Hotels',             types: ['CREW_HOTEL'],                icon: '🏨' },
+  { label: 'Airports',           types: ['AIRPORT'],                   icon: '✈️'  },
+  { label: 'Rental Car',         types: ['OTHER'],                     icon: '🚗' },
+];
 
 function fmtDate(d) {
   if (!d) return '';
@@ -258,28 +265,47 @@ export default function Overview({ project, setProject, onTabChange }) {
       </div>
 
       {/* Locations */}
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-        <div className="sec-lbl">Shooting Locations</div>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
+        <div className="sec-lbl" style={{ marginBottom:0 }}>Locations</div>
         <button className="btn btn-ghost btn-sm" onClick={() => setShowLocModal(true)}>+ Add</button>
       </div>
-      <div className="loc-grid" style={{ marginBottom:4 }}>
-        {project.locations?.map(l => (
-          <div key={l.id} className="loc">
-            <div className="loc-ico">{l.emoji || '📍'}</div>
-            <div style={{ flex:1 }}>
-              <div className="loc-name">{l.name}</div>
-              <a
-                href={`https://maps.google.com/?q=${encodeURIComponent(l.address)}`}
-                target="_blank"
-                rel="noreferrer"
-                className="loc-addr"
-                style={{ color:'var(--tan)', textDecoration:'none' }}
-              >{l.address}</a>
-              <span className={`tag ${LOC_TAG[l.type]}`}>{LOC_LABELS[l.type]}</span>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:20 }}>
+        {LOC_GROUPS.map(group => {
+          const groupLocs = (project.locations || []).filter(l => group.types.includes(l.type));
+          // Merge hotel blocks into the Hotels group
+          const hotelEntries = group.label === 'Hotels'
+            ? (project.hotelBlocks || []).map(hb => ({ _isHotel: true, id: hb.id, name: hb.name, address: hb.address }))
+            : [];
+          const allEntries = [...groupLocs, ...hotelEntries];
+          return (
+            <div key={group.label} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 12px', borderBottom:'1px solid var(--border)', background:'var(--bg3)' }}>
+                <span style={{ fontSize:13 }}>{group.icon}</span>
+                <span style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'.07em', color:'var(--muted)' }}>{group.label}</span>
+              </div>
+              {allEntries.length === 0 && (
+                <div style={{ padding:'10px 12px', fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>None added</div>
+              )}
+              {allEntries.map(l => (
+                <div key={l.id} style={{ display:'flex', alignItems:'flex-start', gap:8, padding:'9px 12px', borderBottom:'1px solid var(--border)' }}>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontWeight:600, fontSize:12, color:'var(--text)' }}>{l.emoji ? `${l.emoji} ` : ''}{l.name}</div>
+                    {l.address && (
+                      <a href={`https://maps.google.com/?q=${encodeURIComponent(l.address)}`} target="_blank" rel="noreferrer"
+                        style={{ fontSize:11, color:'var(--tan)', textDecoration:'none', display:'block', marginTop:1 }}>
+                        {l.address}
+                      </a>
+                    )}
+                    {!l._isHotel && <span className={`tag ${LOC_TAG[l.type]}`} style={{ marginTop:3, display:'inline-block' }}>{LOC_LABELS[l.type]}</span>}
+                  </div>
+                  {!l._isHotel && (
+                    <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11, flexShrink:0 }} onClick={() => deleteLocation(l.id)}>✕</button>
+                  )}
+                </div>
+              ))}
             </div>
-            <button className="btn btn-ghost btn-sm" style={{ padding:'2px 6px', color:'var(--muted)' }} onClick={() => deleteLocation(l.id)}>✕</button>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Hotel Blocks */}
@@ -289,11 +315,7 @@ export default function Overview({ project, setProject, onTabChange }) {
           <div style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:16 }}>
             {project.hotelBlocks.map(hb => (
               <div key={hb.id} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'12px 16px' }}>
-                <div style={{ fontWeight:600, fontSize:13, marginBottom:2 }}>🏨 {hb.name}</div>
-                <div style={{ fontSize:11, color:'var(--muted)', marginBottom:hb.guests?.length ? 8 : 0 }}>
-                  <a href={`https://maps.google.com/?q=${encodeURIComponent(hb.address)}`} target="_blank" rel="noreferrer" style={{ color:'var(--tan)', textDecoration:'none' }}>{hb.address}</a>
-                  {hb.phone ? ` · ${hb.phone}` : ''}
-                </div>
+                <div style={{ fontWeight:600, fontSize:13, marginBottom: hb.guests?.length ? 8 : 0 }}>🏨 {hb.name}</div>
                 {hb.guests?.length > 0 && (
                   <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
                     {hb.guests.map(g => (
@@ -352,7 +374,11 @@ export default function Overview({ project, setProject, onTabChange }) {
                 <div className="field span2"><label>Address</label><input value={locForm.address} onChange={e => setLocForm(f=>({...f,address:e.target.value}))} required /></div>
                 <div className="field"><label>Type</label>
                   <select value={locForm.type} onChange={e => setLocForm(f=>({...f,type:e.target.value}))}>
-                    {LOC_TYPES.map(t => <option key={t} value={t}>{LOC_LABELS[t]}</option>)}
+                    <option value="PRIMARY_VENUE">Shooting Location</option>
+                    <option value="SECONDARY">Secondary Location</option>
+                    <option value="CREW_HOTEL">Hotel</option>
+                    <option value="AIRPORT">Airport</option>
+                    <option value="OTHER">Rental Car Location</option>
                   </select>
                 </div>
                 <div className="field"><label>Emoji</label><input value={locForm.emoji} onChange={e => setLocForm(f=>({...f,emoji:e.target.value}))} placeholder="🏛" /></div>
