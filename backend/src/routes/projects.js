@@ -224,7 +224,7 @@ router.get('/:id/crew', requireAuth, async (req, res, next) => {
     const rows = await sql`
       SELECT ca.*, p.name as position_name, p.sort_order,
              cm.id as cm_id, cm.name as cm_name, cm.email as cm_email, cm.phone as cm_phone, cm.company as cm_company, cm.initials, cm.avatar_color,
-             cm.preferred_first_name as cm_pref_first, cm.preferred_last_name as cm_pref_last
+             cm.preferred_first_name as cm_pref_first, cm.preferred_last_name as cm_pref_last, cm.dietary_restrictions as cm_dietary
       FROM crew_assignments ca
       JOIN positions p ON p.id = ca.position_id
       LEFT JOIN crew_members cm ON cm.id = ca.crew_member_id
@@ -233,7 +233,7 @@ router.get('/:id/crew', requireAuth, async (req, res, next) => {
     res.json(rows.map(a => ({
       ...a,
       position: { id: a.position_id, name: a.position_name, sortOrder: a.sort_order },
-      crewMember: a.cm_id ? { id: a.cm_id, name: a.cm_name, preferredFirstName: a.cm_pref_first, preferredLastName: a.cm_pref_last, email: a.cm_email, phone: a.cm_phone, company: a.cm_company, initials: a.initials, avatarColor: a.avatar_color } : null,
+      crewMember: a.cm_id ? { id: a.cm_id, name: a.cm_name, preferredFirstName: a.cm_pref_first, preferredLastName: a.cm_pref_last, email: a.cm_email, phone: a.cm_phone, company: a.cm_company, initials: a.initials, avatarColor: a.avatar_color, dietaryRestrictions: a.cm_dietary } : null,
     })));
   } catch(e){next(e);}
 });
@@ -245,10 +245,10 @@ router.post('/:id/crew', requireAuth, requireRole('ADMIN','PRODUCER'), async (re
       VALUES (gen_random_uuid()::text, ${req.params.id}, ${positionId}, ${crewMemberId||null}, ${slotNumber}, ${notes||null})
       RETURNING *`;
     const [full] = await sql`
-      SELECT ca.*, p.name as position_name, cm.id as cm_id, cm.name as cm_name, cm.email as cm_email, cm.phone as cm_phone, cm.initials, cm.avatar_color, cm.preferred_first_name as cm_pref_first, cm.preferred_last_name as cm_pref_last
+      SELECT ca.*, p.name as position_name, cm.id as cm_id, cm.name as cm_name, cm.email as cm_email, cm.phone as cm_phone, cm.initials, cm.avatar_color, cm.preferred_first_name as cm_pref_first, cm.preferred_last_name as cm_pref_last, cm.dietary_restrictions as cm_dietary
       FROM crew_assignments ca JOIN positions p ON p.id=ca.position_id LEFT JOIN crew_members cm ON cm.id=ca.crew_member_id
       WHERE ca.id = ${a.id}`;
-    res.status(201).json({ ...full, position:{id:full.position_id,name:full.position_name}, crewMember: full.cm_id?{id:full.cm_id,name:full.cm_name,preferredFirstName:full.cm_pref_first,preferredLastName:full.cm_pref_last,email:full.cm_email,phone:full.cm_phone,initials:full.initials,avatarColor:full.avatar_color}:null });
+    res.status(201).json({ ...full, position:{id:full.position_id,name:full.position_name}, crewMember: full.cm_id?{id:full.cm_id,name:full.cm_name,preferredFirstName:full.cm_pref_first,preferredLastName:full.cm_pref_last,email:full.cm_email,phone:full.cm_phone,initials:full.initials,avatarColor:full.avatar_color,dietaryRestrictions:full.cm_dietary}:null });
   } catch(e){
     if(e.code==='23505') return res.status(409).json({error:'That position slot already exists on this project'});
     next(e);
@@ -265,10 +265,10 @@ router.patch('/:id/crew/:aid', requireAuth, requireRole('ADMIN','PRODUCER'), asy
         end_date = ${endDate !== undefined ? (endDate||null) : sql`end_date`}
       WHERE id = ${req.params.aid}`;
     const [full] = await sql`
-      SELECT ca.*, p.name as position_name, cm.id as cm_id, cm.name as cm_name, cm.email as cm_email, cm.phone as cm_phone, cm.initials, cm.avatar_color, cm.preferred_first_name as cm_pref_first, cm.preferred_last_name as cm_pref_last
+      SELECT ca.*, p.name as position_name, cm.id as cm_id, cm.name as cm_name, cm.email as cm_email, cm.phone as cm_phone, cm.initials, cm.avatar_color, cm.preferred_first_name as cm_pref_first, cm.preferred_last_name as cm_pref_last, cm.dietary_restrictions as cm_dietary
       FROM crew_assignments ca JOIN positions p ON p.id=ca.position_id LEFT JOIN crew_members cm ON cm.id=ca.crew_member_id
       WHERE ca.id = ${req.params.aid}`;
-    res.json({ ...full, position:{id:full.position_id,name:full.position_name}, crewMember: full.cm_id?{id:full.cm_id,name:full.cm_name,preferredFirstName:full.cm_pref_first,preferredLastName:full.cm_pref_last,email:full.cm_email,phone:full.cm_phone,initials:full.initials,avatarColor:full.avatar_color}:null });
+    res.json({ ...full, position:{id:full.position_id,name:full.position_name}, crewMember: full.cm_id?{id:full.cm_id,name:full.cm_name,preferredFirstName:full.cm_pref_first,preferredLastName:full.cm_pref_last,email:full.cm_email,phone:full.cm_phone,initials:full.initials,avatarColor:full.avatar_color,dietaryRestrictions:full.cm_dietary}:null });
   } catch(e){next(e);}
 });
 router.delete('/:id/crew/:aid', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {

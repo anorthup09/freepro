@@ -486,7 +486,7 @@ function ProducerView({ data }) {
       {crewAssignments?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Crew</div>
-          <ShareTable cols={['Position','Name','Email','Phone']} colClasses={['','','','nowrap']} rows={crewAssignments.map(a => [a.position.name, a.crewMember ? displayName(a.crewMember)||'TBD' : 'TBD', a.crewMember?.email||'—', a.crewMember?.phone||'—'])} />
+          <ShareTable cols={['Position','Name','Email','Phone','Dietary']} colClasses={['','','','nowrap','']} rows={crewAssignments.map(a => [a.position.name, a.crewMember ? displayName(a.crewMember)||'TBD' : 'TBD', a.crewMember?.email||'—', a.crewMember?.phone||'—', a.crewMember?.dietaryRestrictions || '—'])} />
         </section>
       )}
 

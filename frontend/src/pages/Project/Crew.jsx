@@ -197,6 +197,7 @@ export default function Crew({ project, onProjectUpdate }) {
                 <th>Crew Member</th>
                 <th>Phone</th>
                 <th>Email</th>
+                <th>Dietary</th>
                 <th>Start Date</th>
                 <th>End Date</th>
                 <th></th>
@@ -232,6 +233,9 @@ export default function Crew({ project, onProjectUpdate }) {
                   </td>
                   <td style={{ fontSize:11, color:'var(--tan)', whiteSpace:'nowrap' }}>{a.crewMember?.phone || '—'}</td>
                   <td style={{ fontSize:11, color:'var(--muted)' }}>{a.crewMember?.email || '—'}</td>
+                  <td style={{ fontSize:13, textAlign:'center' }} title={a.crewMember?.dietaryRestrictions || ''}>
+                    {a.crewMember?.dietaryRestrictions && a.crewMember.dietaryRestrictions !== 'N/A' ? '⚠️' : '—'}
+                  </td>
                   <td>
                     {editId === a.id
                       ? <input type="date" style={{ width:130 }} value={editForm.startDate||''} onChange={e => setEditForm(f=>({...f,startDate:e.target.value}))} />
@@ -380,7 +384,16 @@ export default function Crew({ project, onProjectUpdate }) {
                 <div className="field"><label>Phone</label><input value={memberForm.phone} onChange={e => setMemberForm(f=>({...f,phone:e.target.value}))} /></div>
                 <div className="field"><label>Company / Role</label><input value={memberForm.company} onChange={e => setMemberForm(f=>({...f,company:e.target.value}))} /></div>
                 <div className="field"><label>Home Airport</label><input value={memberForm.homeAirport} onChange={e => setMemberForm(f=>({...f,homeAirport:e.target.value}))} placeholder="STL" /></div>
-                <div className="field span2"><label>Dietary Restrictions</label><input value={memberForm.dietaryRestrictions} onChange={e => setMemberForm(f=>({...f,dietaryRestrictions:e.target.value}))} placeholder="Vegetarian, gluten-free, nut allergy…" /></div>
+                <div className="field span2">
+                  <label>Dietary Restrictions</label>
+                  <div style={{ display:'flex', gap:10, alignItems:'center' }}>
+                    <input value={memberForm.dietaryRestrictions === 'N/A' ? '' : memberForm.dietaryRestrictions} onChange={e => setMemberForm(f=>({...f,dietaryRestrictions:e.target.value}))} placeholder="Vegetarian, gluten-free, nut allergy…" disabled={memberForm.dietaryRestrictions === 'N/A'} style={{ flex:1 }} />
+                    <label style={{ display:'flex', alignItems:'center', gap:5, fontSize:11, color:'var(--muted)', whiteSpace:'nowrap', cursor:'pointer' }}>
+                      <input type="checkbox" checked={memberForm.dietaryRestrictions === 'N/A'} onChange={e => setMemberForm(f=>({...f,dietaryRestrictions: e.target.checked ? 'N/A' : ''}))} style={{ width:'auto', margin:0 }} />
+                      N/A
+                    </label>
+                  </div>
+                </div>
               </div>
               <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)', marginBottom:6 }}>Travel Info</div>
               <div className="form-grid" style={{ marginBottom:14 }}>
