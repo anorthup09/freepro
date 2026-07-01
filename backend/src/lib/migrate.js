@@ -402,6 +402,8 @@ async function migrate() {
     WHERE preferred_first_name IS NULL AND preferred_last_name IS NULL
   `;
 
+  await sql`ALTER TABLE project_gear ADD COLUMN IF NOT EXISTS rental_cost NUMERIC(10,2)`;
+
   await sql`
     CREATE TABLE IF NOT EXISTS online_rentals (
       id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,

@@ -60,6 +60,7 @@ export default function Gear({ project, setProject }) {
     mediaManagementGear: '',
     editingGear: '',
     storageLocation: '',
+    rentalCost: '',
   });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -88,6 +89,7 @@ export default function Gear({ project, setProject }) {
         mediaManagementGear: g.media_management_gear || '',
         editingGear: g.editing_gear || '',
         storageLocation: g.storage_location || '',
+        rentalCost: g.rental_cost || '',
       });
     }
   }, [project.gear]);
@@ -214,6 +216,7 @@ export default function Gear({ project, setProject }) {
           <div className="field"><label>Pick-up Date / Time</label><input {...field('pickupDatetime')} placeholder="Aug 9 · 10:00 AM" /></div>
           <div className="field"><label>Delivery Driver Name</label><input {...field('deliveryDriver')} placeholder="John Doe" /></div>
           <div className="field"><label>Delivery Driver Phone</label><input {...field('deliveryDriverPhone')} placeholder="(314) 555-0199" /></div>
+          <div className="field"><label>Cost Estimate ($)</label><input type="number" step="0.01" min="0" {...field('rentalCost')} placeholder="0.00" /></div>
         </div>
       </div>
 

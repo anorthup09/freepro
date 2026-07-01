@@ -303,12 +303,12 @@ router.put('/:id/gear', requireAuth, requireRole('ADMIN','PRODUCER'), async (req
         rental_company, rental_contact, rental_phone, rental_email,
         coi_received, rental_agreement_received, cc_auth_received,
         delivery_datetime, pickup_datetime, delivery_driver, delivery_driver_phone,
-        camera_gear, grip_gear, electric_gear, audio_gear, media_management_gear, editing_gear, storage_location)
+        camera_gear, grip_gear, electric_gear, audio_gear, media_management_gear, editing_gear, storage_location, rental_cost)
       VALUES (gen_random_uuid()::text, ${req.params.id}, ${d.gearPersonId||null}, ${d.internalRequestSubmitted||false},
         ${d.rentalCompany||null}, ${d.rentalContact||null}, ${d.rentalPhone||null}, ${d.rentalEmail||null},
         ${d.coiReceived||false}, ${d.rentalAgreementReceived||false}, ${d.ccAuthReceived||false},
         ${d.deliveryDatetime||null}, ${d.pickupDatetime||null}, ${d.deliveryDriver||null}, ${d.deliveryDriverPhone||null},
-        ${d.cameraGear||null}, ${d.gripGear||null}, ${d.electricGear||null}, ${d.audioGear||null}, ${d.mediaManagementGear||null}, ${d.editingGear||null}, ${d.storageLocation||null})
+        ${d.cameraGear||null}, ${d.gripGear||null}, ${d.electricGear||null}, ${d.audioGear||null}, ${d.mediaManagementGear||null}, ${d.editingGear||null}, ${d.storageLocation||null}, ${d.rentalCost||null})
       ON CONFLICT (project_id) DO UPDATE SET
         gear_person_id = EXCLUDED.gear_person_id,
         internal_request_submitted = EXCLUDED.internal_request_submitted,
@@ -320,7 +320,8 @@ router.put('/:id/gear', requireAuth, requireRole('ADMIN','PRODUCER'), async (req
         delivery_driver_phone = EXCLUDED.delivery_driver_phone,
         camera_gear = EXCLUDED.camera_gear, grip_gear = EXCLUDED.grip_gear, electric_gear = EXCLUDED.electric_gear,
         audio_gear = EXCLUDED.audio_gear, media_management_gear = EXCLUDED.media_management_gear,
-        editing_gear = EXCLUDED.editing_gear, storage_location = EXCLUDED.storage_location
+        editing_gear = EXCLUDED.editing_gear, storage_location = EXCLUDED.storage_location,
+        rental_cost = EXCLUDED.rental_cost
       RETURNING *`;
     const [cm] = g.gear_person_id ? await sql`SELECT name, phone, email FROM crew_members WHERE id = ${g.gear_person_id}` : [null];
     res.json({ ...g, gear_person_name: cm?.name || null, gear_person_phone: cm?.phone || null, gear_person_email: cm?.email || null });
