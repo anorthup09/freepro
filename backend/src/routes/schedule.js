@@ -115,7 +115,14 @@ router.patch('/:id/schedule/events/:eventId', requireAuth, requireRole('ADMIN','
         is_filming=COALESCE(${d.isFilming??null},is_filming),
         audience=COALESCE(${d.audience!=null?sql.array(d.audience):null},audience)
       WHERE id=${req.params.eventId} RETURNING *`;
-    res.json(ev);
+    if (d.tags !== undefined) {
+      await sql`DELETE FROM event_tags WHERE event_id = ${req.params.eventId}`;
+      if (d.tags.length) {
+        await Promise.all(d.tags.map(t => sql`INSERT INTO event_tags (id, event_id, type, label) VALUES (gen_random_uuid()::text, ${req.params.eventId}, ${t.type}::event_tag_type, ${t.label||null})`));
+      }
+    }
+    const tags = await sql`SELECT * FROM event_tags WHERE event_id = ${req.params.eventId}`;
+    res.json({ ...ev, tags });
   } catch(e){next(e);}
 });
 

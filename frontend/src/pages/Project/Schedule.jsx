@@ -441,13 +441,13 @@ export default function Schedule({ project }) {
                     ) : (
                       <div key={item.id} className="ev">
                         <div className="ev-time">{fmtTime(item.start_time || item.startTime)}{(item.end_time || item.endTime) ? ` – ${fmtTime(item.end_time || item.endTime)}` : ''}</div>
-                        <div className={`ev-body${(item.is_alert||item.isAlert) ? ' warn' : ''}`} style={!(item.is_alert||item.isAlert) ? { borderLeft:'2px solid var(--orange)', ...(item.is_filming||item.isFilming ? { background:'linear-gradient(90deg, rgba(255,140,0,0.12) 0%, transparent 100%)', borderRadius:'0 6px 6px 0' } : {}) } : {}}>
+                        <div className={`ev-body${(item.is_alert||item.isAlert) ? ' warn' : ''}`}
+                          style={{ cursor:'pointer', ...(!(item.is_alert||item.isAlert) ? { borderLeft:'2px solid var(--orange)', ...(item.is_filming||item.isFilming ? { background:'linear-gradient(90deg, rgba(255,140,0,0.12) 0%, transparent 100%)', borderRadius:'0 6px 6px 0' } : {}) } : {}) }}
+                          onClick={() => openEditEvent(item)}>
                           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
                             <div className={`ev-title${(item.is_alert||item.isAlert) ? ' alert' : ''}`} style={(item.is_filming||item.isFilming) ? { color:'var(--orange)' } : {}}>{(item.is_alert||item.isAlert) ? '⚠ ' : ''}{(item.is_filming||item.isFilming) ? '🎬 ' : ''}{item.title}</div>
-                            <div style={{ display:'flex', gap:4, flexShrink:0, marginLeft:8 }}>
-                              <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => openEditEvent(item)}>✎</button>
-                              <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => deleteEvent(item.id)}>✕</button>
-                            </div>
+                            <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11, flexShrink:0, marginLeft:8 }}
+                              onClick={e => { e.stopPropagation(); deleteEvent(item.id); }}>✕</button>
                           </div>
                           {item.detail && <div className="ev-detail">{item.detail}</div>}
                           {item.location && <div style={{ fontSize:10, color:'var(--tan)', marginTop:3 }}>📍 {item.location.name}</div>}

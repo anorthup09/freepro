@@ -959,7 +959,7 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
 
   const allItems = [
     ...filteredDay.events.map(e => ({ _type:'event', _sort: timeToMins(e.start_time), ...e })),
-    ...flightLegs.map(f => ({ _type:'flight', _sort: timeToMins(f._time), ...f })),
+    ...(tagFilter ? [] : flightLegs.map(f => ({ _type:'flight', _sort: timeToMins(f._time), ...f }))),
   ].sort((a, b) => a._sort - b._sort);
 
   const hasWeather = day.weather_high != null || day.weather_condition;
