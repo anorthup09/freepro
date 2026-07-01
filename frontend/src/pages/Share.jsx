@@ -17,7 +17,7 @@ function flightStatus(f, now) {
   const arrive = f.arrive_time ? new Date(f.arrive_time) : null;
   if (!depart) return null;
   if (now < depart) return { label: 'Pre-flight', color: '#6b7280', dot: '#6b7280' };
-  if (arrive && now < arrive) return { label: 'In-flight', color: '#f59e0b', dot: '#f59e0b' };
+  if (arrive && now < arrive) return { label: 'In-flight', color: '#60a5fa', dot: '#60a5fa' };
   return { label: 'Arrived', color: '#22c55e', dot: '#22c55e' };
 }
 
