@@ -806,31 +806,23 @@ function TalentView({ data }) {
         );
       })()}
 
-      {clientContacts?.length > 0 && (
+      {(clientContacts?.length > 0 || productionCrew?.length > 0) && (
         <section className="share-section">
-          <div className="sec-lbl">Client Contacts</div>
-          <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
-            {clientContacts.map(c => (
-              <div key={c.id} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'8px 12px', minWidth:150 }}>
-                <div style={{ fontWeight:600, fontSize:12 }}>{c.name}</div>
+          <div style={{ display:'flex', gap:8, flexWrap:'nowrap', overflowX:'auto' }}>
+            {(clientContacts || []).map(c => (
+              <div key={c.id} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 14px', flex:'1 1 0', minWidth:0 }}>
+                <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:2 }}>Client</div>
+                <div style={{ fontWeight:600, fontSize:13 }}>{c.name}</div>
                 <div style={{ fontSize:11, color:'var(--muted)', marginTop:1 }}>{c.title}</div>
-                {c.phone && <div style={{ fontSize:11, color:'var(--tan)', marginTop:2 }}>{c.phone}</div>}
+                {c.phone && <div style={{ fontSize:12, color:'var(--tan)', marginTop:3 }}>{c.phone}</div>}
                 {c.email && <div style={{ fontSize:11, color:'var(--muted)' }}>{c.email}</div>}
               </div>
             ))}
-          </div>
-        </section>
-      )}
-
-      {productionCrew?.length > 0 && (
-        <section className="share-section">
-          <div className="sec-lbl">Production Team</div>
-          <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
-            {productionCrew.map(a => (
-              <div key={a.id} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'8px 12px', minWidth:150 }}>
+            {(productionCrew || []).map(a => (
+              <div key={a.id} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 14px', flex:'1 1 0', minWidth:0 }}>
                 <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:2 }}>{a.position.name}</div>
-                <div style={{ fontWeight:600, fontSize:12 }}>{a.crewMember ? shortName(displayName(a.crewMember)) || 'TBD' : 'TBD'}</div>
-                {a.crewMember?.phone && <div style={{ fontSize:11, color:'var(--tan)', marginTop:2 }}>{a.crewMember.phone}</div>}
+                <div style={{ fontWeight:600, fontSize:13 }}>{a.crewMember ? shortName(displayName(a.crewMember)) || 'TBD' : 'TBD'}</div>
+                {a.crewMember?.phone && <div style={{ fontSize:12, color:'var(--tan)', marginTop:3 }}>{a.crewMember.phone}</div>}
               </div>
             ))}
           </div>

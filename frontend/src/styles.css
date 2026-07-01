@@ -87,14 +87,14 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
 /* ── Schedule Timeline ── */
 .tl { position: relative; padding-left: 16px; }
 .tl::before { content: ''; position: absolute; left: 4px; top: 0; bottom: 0; width: 1px; background: var(--border); }
-.ev { display: flex; gap: 8px; margin-bottom: 6px; position: relative; }
-.ev::before { content: ''; position: absolute; left: -12px; top: 7px; width: 5px; height: 5px; border-radius: 50%; background: var(--bg3); border: 1px solid var(--border2); }
-.ev-time { font-size: 10px; color: var(--muted); min-width: 80px; padding-top: 3px; font-variant-numeric: tabular-nums; flex-shrink: 0; }
-.ev-body { background: var(--bg2); border: 1px solid var(--border); border-radius: 6px; padding: 7px 10px; flex: 1; }
+.ev { display: flex; gap: 8px; margin-bottom: 8px; position: relative; }
+.ev::before { content: ''; position: absolute; left: -12px; top: 10px; width: 5px; height: 5px; border-radius: 50%; background: var(--bg3); border: 1px solid var(--border2); }
+.ev-time { font-size: 11px; color: var(--muted); min-width: 90px; padding-top: 4px; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.ev-body { background: var(--bg2); border: 1px solid var(--border); border-radius: 6px; padding: 11px 14px; flex: 1; }
 .ev-body.warn { border-color: var(--red-border); }
-.ev-title { font-size: 12px; font-weight: 500; }
+.ev-title { font-size: 13px; font-weight: 600; }
 .ev-title.alert { color: var(--orange); }
-.ev-detail { font-size: 11px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+.ev-detail { font-size: 12px; color: var(--muted); margin-top: 3px; line-height: 1.4; }
 .ev-tags { display: flex; gap: 3px; margin-top: 5px; flex-wrap: wrap; }
 
 /* ── Crew grid ── */
