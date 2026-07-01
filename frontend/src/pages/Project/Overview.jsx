@@ -125,6 +125,10 @@ export default function Overview({ project, setProject, onTabChange }) {
     ? Math.round((new Date(endDate.slice(0,10)+'T12:00:00') - new Date(startDate.slice(0,10)+'T12:00:00')) / 86400000) + 1
     : 0;
 
+  const daysUntil = startDate
+    ? Math.ceil((new Date(startDate.slice(0,10)+'T12:00:00') - new Date(new Date().toISOString().slice(0,10)+'T12:00:00')) / 86400000)
+    : null;
+
   return (
     <div>
       {/* Header */}
@@ -138,7 +142,20 @@ export default function Overview({ project, setProject, onTabChange }) {
             <div className="meta"><span className="dot6" />{project.client}</div>
           </div>
         </div>
-        <button className="btn btn-ghost btn-sm" onClick={() => setEditInfo(true)}>Edit Info</button>
+        <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:8 }}>
+          {daysUntil != null && daysUntil > 0 && (
+            <div style={{ textAlign:'right', background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'8px 14px' }}>
+              <div style={{ fontSize:22, fontWeight:700, color:'var(--orange)', lineHeight:1 }}>{daysUntil}</div>
+              <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginTop:2 }}>days until {project.title}</div>
+            </div>
+          )}
+          {daysUntil != null && daysUntil === 0 && (
+            <div style={{ textAlign:'right', background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'8px 14px' }}>
+              <div style={{ fontSize:13, fontWeight:700, color:'var(--orange)' }}>Day 1 is today!</div>
+            </div>
+          )}
+          <button className="btn btn-ghost btn-sm" onClick={() => setEditInfo(true)}>Edit Info</button>
+        </div>
       </div>
 
       {/* Stats */}

@@ -230,7 +230,7 @@ export default function Crew({ project, onProjectUpdate }) {
                       ) : <span style={{ color:'var(--muted)', fontSize:11 }}>— Unassigned —</span>
                     )}
                   </td>
-                  <td style={{ fontSize:11, color:'var(--tan)' }}>{a.crewMember?.phone || '—'}</td>
+                  <td style={{ fontSize:11, color:'var(--tan)', whiteSpace:'nowrap' }}>{a.crewMember?.phone || '—'}</td>
                   <td style={{ fontSize:11, color:'var(--muted)' }}>{a.crewMember?.email || '—'}</td>
                   <td>
                     {editId === a.id
@@ -295,7 +295,7 @@ export default function Crew({ project, onProjectUpdate }) {
                         <div style={{ fontSize:12, fontWeight:500 }}>{t.name}</div>
                       </div>
                     </td>
-                    <td style={{ fontSize:11, color:'var(--tan)' }}>{t.phone || '—'}</td>
+                    <td style={{ fontSize:11, color:'var(--tan)', whiteSpace:'nowrap' }}>{t.phone || '—'}</td>
                     <td style={{ fontSize:11, color:'var(--muted)' }}>{t.email || '—'}</td>
                     <td style={{ fontSize:11, color:'var(--muted)' }}>{t.dietary_restrictions || '—'}</td>
                     <td style={{ fontSize:11, color:'var(--muted)' }}>{t.notes || '—'}</td>

@@ -111,6 +111,8 @@ export default function Schedule({ project }) {
   const [editEventForm, setEditEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', isAlert:false, tags:[] });
   const [editCallId, setEditCallId] = useState(null);
   const [callTime, setCallTime] = useState('');
+  const [editDayTimes, setEditDayTimes] = useState(false);
+  const [dayTimesForm, setDayTimesForm] = useState({ callTime:'', wrapTime:'' });
   const [dayMeta, setDayMeta] = useState({});
   const [flights, setFlights] = useState([]);
   const [weatherByDate, setWeatherByDate] = useState({});
@@ -269,7 +271,7 @@ export default function Schedule({ project }) {
       {days.length > 0 && (
         <div className="day-tabs">
           {[...days].sort((a,b) => (a.date||'').localeCompare(b.date||'')).map((d, i) => (
-            <button key={d.id} className={`day-tab${d.id === activeDay ? ' on' : ''}`} onClick={() => setActiveDay(d.id)}>
+            <button key={d.id} className={`day-tab${d.id === activeDay ? ' on' : ''}`} onClick={() => { setActiveDay(d.id); setEditDayTimes(false); }}>
               Day {i + 1} · {parseDay(d.date).toLocaleDateString('en-US', { month:'short', day:'numeric' })}
             </button>
           ))}
@@ -295,10 +297,29 @@ export default function Schedule({ project }) {
                     );
                   })()}
                 </div>
-                <div style={{ fontSize:11, color:'var(--muted)', marginTop:3 }}>
-                  {currentDay.callTime && `Call ${fmtTime(currentDay.callTime)}`}
-                  {currentDay.wrapTime && ` · Wrap ${fmtTime(currentDay.wrapTime)}`}
-                  {currentDay.weather && ` · ${currentDay.weather}`}
+                <div style={{ fontSize:11, color:'var(--muted)', marginTop:3, display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
+                  {editDayTimes ? (
+                    <>
+                      <span style={{ color:'var(--muted)' }}>Call:</span>
+                      <input style={{ width:90, fontSize:11 }} value={dayTimesForm.callTime} onChange={e => setDayTimesForm(f=>({...f,callTime:e.target.value}))} placeholder="7:30 AM" autoFocus />
+                      <span style={{ color:'var(--muted)' }}>Wrap:</span>
+                      <input style={{ width:90, fontSize:11 }} value={dayTimesForm.wrapTime} onChange={e => setDayTimesForm(f=>({...f,wrapTime:e.target.value}))} placeholder="10:00 PM" />
+                      <button className="btn btn-primary btn-sm" onClick={async () => {
+                        const updated = await api.updateDay(project.id, currentDay.id, { callTime: dayTimesForm.callTime||null, wrapTime: dayTimesForm.wrapTime||null });
+                        setDays(ds => ds.map(d => d.id === currentDay.id ? { ...d, callTime: updated.call_time, wrapTime: updated.wrap_time } : d));
+                        setEditDayTimes(false);
+                      }}>Save</button>
+                      <button className="btn btn-ghost btn-sm" onClick={() => setEditDayTimes(false)}>Cancel</button>
+                    </>
+                  ) : (
+                    <>
+                      <span style={{ cursor:'pointer', color:'var(--tan)' }} onClick={() => { setEditDayTimes(true); setDayTimesForm({ callTime: currentDay.callTime||'', wrapTime: currentDay.wrapTime||'' }); }}>
+                        {currentDay.callTime ? `Call ${fmtTime(currentDay.callTime)}` : <span style={{ color:'var(--muted)', fontStyle:'italic' }}>Set call time…</span>}
+                        {currentDay.wrapTime && ` · Wrap ${fmtTime(currentDay.wrapTime)}`}
+                      </span>
+                      {currentDay.weather && <span> · {currentDay.weather}</span>}
+                    </>
+                  )}
                 </div>
               </div>
               <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text)' }} onClick={() => deleteDay(currentDay.id)}>Delete Day</button>
