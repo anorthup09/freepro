@@ -6,7 +6,7 @@ const { requireAuth, requireRole } = require('../middleware/auth');
 async function getFullProject(id) {
   const [project] = await sql`SELECT * FROM projects WHERE id = ${id}`;
   if (!project) return null;
-  const [locations, techSpecs, clientContacts, agencyContacts, keyTalent, crewAssignments, deliverables, hotelBlocks, gear] = await Promise.all([
+  const [locations, techSpecs, clientContacts, agencyContacts, keyTalent, crewAssignments, deliverables, hotelBlocks, gear, onlineRentals] = await Promise.all([
     sql`SELECT * FROM locations WHERE project_id = ${id}`,
     sql`SELECT * FROM tech_specs WHERE project_id = ${id}`,
     sql`SELECT * FROM client_contacts WHERE project_id = ${id}`,
@@ -30,6 +30,7 @@ async function getFullProject(id) {
         FROM project_gear pg
         LEFT JOIN crew_members cm ON cm.id = pg.gear_person_id
         WHERE pg.project_id = ${id}`,
+    sql`SELECT * FROM online_rentals WHERE project_id = ${id} ORDER BY created_at`,
   ]);
   return {
     ...project,
@@ -40,6 +41,7 @@ async function getFullProject(id) {
     keyTalent,
     hotelBlocks,
     gear: gear[0] || null,
+    onlineRentals,
     crewAssignments: crewAssignments.map(a => ({
       ...a,
       position: { id: a.position_id, name: a.position_name, sortOrder: a.sort_order },
@@ -322,6 +324,41 @@ router.put('/:id/gear', requireAuth, requireRole('ADMIN','PRODUCER'), async (req
       RETURNING *`;
     const [cm] = g.gear_person_id ? await sql`SELECT name, phone, email FROM crew_members WHERE id = ${g.gear_person_id}` : [null];
     res.json({ ...g, gear_person_name: cm?.name || null, gear_person_phone: cm?.phone || null, gear_person_email: cm?.email || null });
+  } catch(e){next(e);}
+});
+
+// ─── Online Rentals ──────────────────────────────────────────────────────────
+router.post('/:id/online-rentals', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try {
+    const { renterName, confirmation, trackingNumber, cost, notes } = req.body;
+    const [r] = await sql`
+      INSERT INTO online_rentals (id, project_id, renter_name, confirmation, tracking_number, cost, notes)
+      VALUES (gen_random_uuid()::text, ${req.params.id}, ${renterName||null}, ${confirmation||null}, ${trackingNumber||null}, ${cost||null}, ${notes||null})
+      RETURNING *`;
+    res.status(201).json(r);
+  } catch(e){next(e);}
+});
+
+router.patch('/:id/online-rentals/:rid', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try {
+    const { renterName, confirmation, trackingNumber, cost, notes } = req.body;
+    const [r] = await sql`
+      UPDATE online_rentals SET
+        renter_name = ${renterName !== undefined ? (renterName||null) : sql`renter_name`},
+        confirmation = ${confirmation !== undefined ? (confirmation||null) : sql`confirmation`},
+        tracking_number = ${trackingNumber !== undefined ? (trackingNumber||null) : sql`tracking_number`},
+        cost = ${cost !== undefined ? (cost||null) : sql`cost`},
+        notes = ${notes !== undefined ? (notes||null) : sql`notes`}
+      WHERE id = ${req.params.rid} AND project_id = ${req.params.id}
+      RETURNING *`;
+    res.json(r);
+  } catch(e){next(e);}
+});
+
+router.delete('/:id/online-rentals/:rid', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try {
+    await sql`DELETE FROM online_rentals WHERE id = ${req.params.rid} AND project_id = ${req.params.id}`;
+    res.status(204).end();
   } catch(e){next(e);}
 });
 

@@ -20,7 +20,25 @@ function Check({ id, label, checked, onChange }) {
   );
 }
 
+function detectCarrier(num) {
+  if (!num) return null;
+  const n = num.replace(/\s+/g, '');
+  if (/^1Z[A-Z0-9]{16}$/i.test(n)) return { name: 'UPS', url: `https://www.ups.com/track?tracknum=${n}` };
+  if (/^\d{12}$/.test(n) || /^\d{15}$/.test(n) || /^\d{20}$/.test(n)) return { name: 'FedEx', url: `https://www.fedex.com/fedextrack/?trknbr=${n}` };
+  if (/^\d{22}$/.test(n) || /^9[2345]\d{20}$/.test(n) || /^(420\d{9})?9[4-5]\d{20}$/.test(n)) return { name: 'USPS', url: `https://tools.usps.com/go/TrackConfirmAction?tLabels=${n}` };
+  if (/^\d{10,11}$/.test(n)) return { name: 'DHL', url: `https://www.dhl.com/us-en/home/tracking.html?tracking-id=${n}` };
+  if (/^[A-Z]{2}\d{9}[A-Z]{2}$/.test(n)) return { name: 'USPS', url: `https://tools.usps.com/go/TrackConfirmAction?tLabels=${n}` };
+  return null;
+}
+
+const BLANK_RENTAL = { renterName: '', confirmation: '', trackingNumber: '', cost: '', notes: '' };
+
 export default function Gear({ project, setProject }) {
+  const [onlineRentals, setOnlineRentals] = useState(project.onlineRentals || []);
+  const [showAddRental, setShowAddRental] = useState(false);
+  const [rentalForm, setRentalForm] = useState(BLANK_RENTAL);
+  const [editRental, setEditRental] = useState(null);
+  const [editRentalForm, setEditRentalForm] = useState(BLANK_RENTAL);
   const [gear, setGear] = useState({
     gearPersonId: '',
     internalRequestSubmitted: false,
@@ -104,6 +122,31 @@ export default function Gear({ project, setProject }) {
     };
   }
 
+  async function addRental(e) {
+    e.preventDefault();
+    try {
+      const r = await api.createOnlineRental(project.id, rentalForm);
+      setOnlineRentals(rs => [...rs, r]);
+      setRentalForm(BLANK_RENTAL);
+      setShowAddRental(false);
+    } catch(err) { alert(err.message); }
+  }
+
+  async function saveEditRental(e) {
+    e.preventDefault();
+    try {
+      const r = await api.updateOnlineRental(project.id, editRental.id, editRentalForm);
+      setOnlineRentals(rs => rs.map(x => x.id === r.id ? r : x));
+      setEditRental(null);
+    } catch(err) { alert(err.message); }
+  }
+
+  async function removeRental(id) {
+    if (!confirm('Remove this online rental?')) return;
+    await api.deleteOnlineRental(project.id, id);
+    setOnlineRentals(rs => rs.filter(r => r.id !== id));
+  }
+
   const assignedCrew = (project.crewAssignments || []).filter(a => a.crewMember);
   const gearPerson = assignedCrew.find(a => a.crewMember.id === gear.gearPersonId)?.crewMember || null;
 
@@ -174,6 +217,68 @@ export default function Gear({ project, setProject }) {
         </div>
       </div>
 
+      {/* ── Online Rentals ── */}
+      <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'16px', marginBottom:20 }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
+          <div className="sec-lbl" style={{ marginTop:0, marginBottom:0 }}>Online Rentals</div>
+          <button className="btn btn-ghost btn-sm" onClick={() => setShowAddRental(true)}>+ Add</button>
+        </div>
+
+        {onlineRentals.length === 0 && !showAddRental && (
+          <div style={{ fontSize:12, color:'var(--muted)', fontStyle:'italic' }}>No online rentals added yet.</div>
+        )}
+
+        {onlineRentals.map(r => {
+          const carrier = detectCarrier(r.tracking_number);
+          return (
+            <div key={r.id} style={{ padding:'10px 0', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'flex-start', gap:12 }}>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
+                  {r.renter_name && <span style={{ fontSize:13, fontWeight:600, color:'var(--text)' }}>{r.renter_name}</span>}
+                  {r.confirmation && <span style={{ fontSize:11, color:'var(--muted)' }}>Conf # {r.confirmation}</span>}
+                  {r.cost && <span style={{ fontSize:11, color:'var(--green,#4ade80)', fontWeight:600 }}>${parseFloat(r.cost).toFixed(2)}</span>}
+                </div>
+                {r.tracking_number && (
+                  <div style={{ fontSize:11, color:'var(--muted)', marginTop:4, display:'flex', alignItems:'center', gap:6 }}>
+                    <span>Tracking: <span style={{ color:'var(--text)' }}>{r.tracking_number}</span></span>
+                    {carrier ? (
+                      <a href={carrier.url} target="_blank" rel="noopener noreferrer"
+                        style={{ fontSize:10, padding:'1px 6px', borderRadius:4, background:'var(--orange)', color:'#000', fontWeight:700, textDecoration:'none' }}>
+                        Track {carrier.name}
+                      </a>
+                    ) : (
+                      <span style={{ fontSize:10, color:'var(--muted)', fontStyle:'italic' }}>Unknown carrier</span>
+                    )}
+                  </div>
+                )}
+                {r.notes && <div style={{ fontSize:11, color:'var(--muted)', marginTop:3, fontStyle:'italic' }}>{r.notes}</div>}
+              </div>
+              <div style={{ display:'flex', gap:6, flexShrink:0 }}>
+                <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }}
+                  onClick={() => { setEditRental(r); setEditRentalForm({ renterName: r.renter_name||'', confirmation: r.confirmation||'', trackingNumber: r.tracking_number||'', cost: r.cost||'', notes: r.notes||'' }); }}>Edit</button>
+                <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => removeRental(r.id)}>✕</button>
+              </div>
+            </div>
+          );
+        })}
+
+        {showAddRental && (
+          <form onSubmit={addRental} style={{ marginTop:12 }}>
+            <div className="form-grid">
+              <div className="field"><label>Renter Name</label><input value={rentalForm.renterName} onChange={e => setRentalForm(f=>({...f,renterName:e.target.value}))} placeholder="John Doe" /></div>
+              <div className="field"><label>Rental Confirmation #</label><input value={rentalForm.confirmation} onChange={e => setRentalForm(f=>({...f,confirmation:e.target.value}))} placeholder="ORD-482910" /></div>
+              <div className="field"><label>Shipping Tracking #</label><input value={rentalForm.trackingNumber} onChange={e => setRentalForm(f=>({...f,trackingNumber:e.target.value}))} placeholder="1Z999AA10123456784" /></div>
+              <div className="field"><label>Cost ($)</label><input type="number" step="0.01" min="0" value={rentalForm.cost} onChange={e => setRentalForm(f=>({...f,cost:e.target.value}))} placeholder="0.00" /></div>
+              <div className="field span2"><label>Notes</label><input value={rentalForm.notes} onChange={e => setRentalForm(f=>({...f,notes:e.target.value}))} placeholder="B&H Photo — lens kit" /></div>
+            </div>
+            <div className="btn-row">
+              <button className="btn btn-primary btn-sm">Add Rental</button>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setShowAddRental(false); setRentalForm(BLANK_RENTAL); }}>Cancel</button>
+            </div>
+          </form>
+        )}
+      </div>
+
       {/* ── Gear List ── */}
       <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'16px', marginBottom:20 }}>
         <div className="sec-lbl" style={{ marginTop:0 }}>Gear List</div>
@@ -187,6 +292,26 @@ export default function Gear({ project, setProject }) {
         </div>
       </div>
 
+      {editRental && (
+        <div className="modal-bg" onClick={e => e.target === e.currentTarget && setEditRental(null)}>
+          <div className="modal">
+            <div className="modal-title">Edit Online Rental</div>
+            <form onSubmit={saveEditRental}>
+              <div className="form-grid">
+                <div className="field"><label>Renter Name</label><input value={editRentalForm.renterName} onChange={e => setEditRentalForm(f=>({...f,renterName:e.target.value}))} placeholder="John Doe" /></div>
+                <div className="field"><label>Rental Confirmation #</label><input value={editRentalForm.confirmation} onChange={e => setEditRentalForm(f=>({...f,confirmation:e.target.value}))} placeholder="ORD-482910" /></div>
+                <div className="field"><label>Shipping Tracking #</label><input value={editRentalForm.trackingNumber} onChange={e => setEditRentalForm(f=>({...f,trackingNumber:e.target.value}))} placeholder="1Z999AA10123456784" /></div>
+                <div className="field"><label>Cost ($)</label><input type="number" step="0.01" min="0" value={editRentalForm.cost} onChange={e => setEditRentalForm(f=>({...f,cost:e.target.value}))} placeholder="0.00" /></div>
+                <div className="field span2"><label>Notes</label><input value={editRentalForm.notes} onChange={e => setEditRentalForm(f=>({...f,notes:e.target.value}))} placeholder="B&H Photo — lens kit" /></div>
+              </div>
+              <div className="btn-row">
+                <button className="btn btn-primary">Save</button>
+                <button type="button" className="btn btn-ghost" onClick={() => setEditRental(null)}>Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

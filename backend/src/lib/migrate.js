@@ -402,6 +402,19 @@ async function migrate() {
     WHERE preferred_first_name IS NULL AND preferred_last_name IS NULL
   `;
 
+  await sql`
+    CREATE TABLE IF NOT EXISTS online_rentals (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      renter_name TEXT,
+      confirmation TEXT,
+      tracking_number TEXT,
+      cost NUMERIC(10,2),
+      notes TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+
   console.log('Migration complete.');
 }
 

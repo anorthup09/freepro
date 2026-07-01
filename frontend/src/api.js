@@ -118,4 +118,9 @@ export const api = {
 
   // Gear
   saveGear: (projectId, data) => req('PUT', `/projects/${projectId}/gear`, data),
+
+  // Online Rentals
+  createOnlineRental: (projectId, data) => req('POST', `/projects/${projectId}/online-rentals`, data),
+  updateOnlineRental: (projectId, id, data) => req('PATCH', `/projects/${projectId}/online-rentals/${id}`, data),
+  deleteOnlineRental: (projectId, id) => req('DELETE', `/projects/${projectId}/online-rentals/${id}`),
 };
