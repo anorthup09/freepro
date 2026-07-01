@@ -609,15 +609,16 @@ export default function Schedule({ project }) {
                 <div className="field"><label>End Time</label><input type="time" value={eventForm.endTime} onChange={e => setEventForm(f=>({...f,endTime:e.target.value}))} /></div>
                 <div className="field span2"><label>Title</label><input value={eventForm.title} onChange={e => setEventForm(f=>({...f,title:e.target.value}))} required /></div>
                 <div className="field span2"><label>Detail / Notes</label><textarea value={eventForm.detail} onChange={e => setEventForm(f=>({...f,detail:e.target.value}))} /></div>
-                {(project.locations||[]).length > 0 && (
-                  <div className="field span2">
-                    <label>Location</label>
-                    <select value={eventForm.locationId} onChange={e => setEventForm(f=>({...f,locationId:e.target.value}))}>
-                      <option value="">— No location —</option>
-                      {(project.locations||[]).map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-                    </select>
-                  </div>
-                )}
+                <div className="field span2">
+                  <label>Location</label>
+                  {(project.locations||[]).length === 0
+                    ? <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic', paddingTop:4 }}>No locations added yet — add them in the Overview tab.</div>
+                    : <select value={eventForm.locationId} onChange={e => setEventForm(f=>({...f,locationId:e.target.value}))}>
+                        <option value="">— No location —</option>
+                        {(project.locations||[]).map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                      </select>
+                  }
+                </div>
                 <div className="field span2">
                   <label>Tags</label>
                   <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:4 }}>
@@ -671,15 +672,16 @@ export default function Schedule({ project }) {
                 <div className="field"><label>End Time</label><input type="time" value={editEventForm.endTime} onChange={e => setEditEventForm(f=>({...f,endTime:e.target.value}))} /></div>
                 <div className="field span2"><label>Title</label><input value={editEventForm.title} onChange={e => setEditEventForm(f=>({...f,title:e.target.value}))} required /></div>
                 <div className="field span2"><label>Detail / Notes</label><textarea value={editEventForm.detail} onChange={e => setEditEventForm(f=>({...f,detail:e.target.value}))} /></div>
-                {(project.locations||[]).length > 0 && (
-                  <div className="field span2">
-                    <label>Location</label>
-                    <select value={editEventForm.locationId} onChange={e => setEditEventForm(f=>({...f,locationId:e.target.value}))}>
-                      <option value="">— No location —</option>
-                      {(project.locations||[]).map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-                    </select>
-                  </div>
-                )}
+                <div className="field span2">
+                  <label>Location</label>
+                  {(project.locations||[]).length === 0
+                    ? <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic', paddingTop:4 }}>No locations added yet — add them in the Overview tab.</div>
+                    : <select value={editEventForm.locationId} onChange={e => setEditEventForm(f=>({...f,locationId:e.target.value}))}>
+                        <option value="">— No location —</option>
+                        {(project.locations||[]).map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                      </select>
+                  }
+                </div>
                 <div className="field span2">
                   <label>Tags</label>
                   <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:4 }}>
