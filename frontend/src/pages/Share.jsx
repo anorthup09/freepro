@@ -128,6 +128,92 @@ function GearSection({ gear, producerView }) {
   );
 }
 
+function HotelRoster({ hotelBlocks, crewAssignments }) {
+  // Build a flat map: crew_member_id → { guest, hotelBlock }
+  const bookingMap = {};
+  (hotelBlocks || []).forEach(hb => {
+    (hb.guests || []).forEach(g => {
+      if (g.crew_member_id) {
+        if (!bookingMap[g.crew_member_id]) bookingMap[g.crew_member_id] = [];
+        bookingMap[g.crew_member_id].push({ guest: g, hotel: hb });
+      }
+    });
+  });
+
+  // Guests that aren't linked to a crew member (manually entered names)
+  const unlinkedGuests = [];
+  (hotelBlocks || []).forEach(hb => {
+    (hb.guests || []).forEach(g => {
+      if (!g.crew_member_id) unlinkedGuests.push({ guest: g, hotel: hb });
+    });
+  });
+
+  const crew = (crewAssignments || []).filter(a => a.crewMember);
+
+  return (
+    <div>
+      {/* Hotel block headers */}
+      {(hotelBlocks || []).map(hb => (
+        <div key={hb.id} style={{ fontSize:12, color:'var(--tan)', marginBottom:6 }}>
+          🏨 <span style={{ fontWeight:600, color:'var(--text)' }}>{hb.name}</span>
+          {hb.address && <> · <a href={mapsUrl(hb.address)} target="_blank" rel="noreferrer" style={{ color:'var(--tan)', textDecoration:'underline' }}>{hb.address}</a></>}
+          {hb.phone && <> · {hb.phone}</>}
+        </div>
+      ))}
+
+      <div className="tl" style={{ marginTop:10 }}>
+        {crew.map(a => {
+          const bookings = bookingMap[a.crewMember.id] || [];
+          const hasBooking = bookings.length > 0;
+          const confirmed = bookings.some(b => b.guest.confirmation);
+          const dim = !hasBooking || !confirmed;
+
+          return (
+            <div key={a.id} className="ev" style={{ opacity: dim ? 0.4 : 1 }}>
+              <div className="ev-time" style={{ fontSize:18, lineHeight:1, paddingTop:2 }}>
+                {confirmed ? '✓' : hasBooking ? '○' : '—'}
+              </div>
+              <div className="ev-body" style={{ borderLeft: `2px solid ${confirmed ? 'var(--green, #4ade80)' : 'var(--border)'}` }}>
+                <div className="ev-title">{a.crewMember.name}</div>
+                <div className="ev-detail" style={{ color:'var(--muted)' }}>{a.position.name}</div>
+                {bookings.map((b, i) => (
+                  <div key={i} style={{ marginTop:3, fontSize:11, color: b.guest.confirmation ? 'var(--tan)' : 'var(--muted)' }}>
+                    {bookings.length > 1 && <span style={{ color:'var(--muted)' }}>{b.hotel.name} · </span>}
+                    {fmtDT(b.guest.check_in)} → {fmtDT(b.guest.check_out)}
+                    {b.guest.confirmation
+                      ? <span style={{ marginLeft:8, color:'var(--text)', fontWeight:500 }}>#{b.guest.confirmation}</span>
+                      : <span style={{ marginLeft:8, color:'var(--muted)', fontStyle:'italic' }}>No confirmation</span>}
+                  </div>
+                ))}
+                {!hasBooking && <div style={{ fontSize:11, color:'var(--muted)', marginTop:2, fontStyle:'italic' }}>No booking</div>}
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Unlinked guests (manually entered, no crew_member_id) */}
+        {unlinkedGuests.map((b, i) => (
+          <div key={`unlinked-${i}`} className="ev">
+            <div className="ev-time" style={{ fontSize:18, lineHeight:1, paddingTop:2 }}>
+              {b.guest.confirmation ? '✓' : '○'}
+            </div>
+            <div className="ev-body" style={{ borderLeft: `2px solid ${b.guest.confirmation ? 'var(--green, #4ade80)' : 'var(--border)'}` }}>
+              <div className="ev-title">{b.guest.guest_name}</div>
+              {unlinkedGuests.length > 1 && <div className="ev-detail" style={{ color:'var(--muted)' }}>{b.hotel.name}</div>}
+              <div style={{ marginTop:3, fontSize:11, color: b.guest.confirmation ? 'var(--tan)' : 'var(--muted)' }}>
+                {fmtDT(b.guest.check_in)} → {fmtDT(b.guest.check_out)}
+                {b.guest.confirmation
+                  ? <span style={{ marginLeft:8, color:'var(--text)', fontWeight:500 }}>#{b.guest.confirmation}</span>
+                  : <span style={{ marginLeft:8, color:'var(--muted)', fontStyle:'italic' }}>No confirmation</span>}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function SpecTiles({ techSpecs }) {
   if (!techSpecs) return null;
   const specs = [
@@ -206,21 +292,7 @@ function ProducerView({ data }) {
       {hotelBlocks?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Hotel Accommodations</div>
-          {hotelBlocks.map(hb => (
-            <div key={hb.id} style={{ marginBottom:12 }}>
-              <div style={{ fontWeight:600, fontSize:13, marginBottom:4 }}>
-                🏨 {hb.name}
-                {hb.address && <> — <a href={mapsUrl(hb.address)} target="_blank" rel="noreferrer" style={{ color:'var(--tan)', textDecoration:'underline', fontWeight:400, fontSize:12 }}>{hb.address}</a></>}
-                {hb.phone ? <span style={{ color:'var(--muted)', fontWeight:400, fontSize:12 }}> · {hb.phone}</span> : ''}
-              </div>
-              {hb.guests?.length > 0 && (
-                <ShareTable
-                  cols={['Guest','Check-in','Check-out','Confirmation']}
-                  rows={hb.guests.map(g => [g.guest_name, fmtDT(g.check_in), fmtDT(g.check_out), g.confirmation || '—'])}
-                />
-              )}
-            </div>
-          ))}
+          <HotelRoster hotelBlocks={hotelBlocks} crewAssignments={crewAssignments} />
         </section>
       )}
 
@@ -380,21 +452,7 @@ function CrewView({ data }) {
       {hotelBlocks?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Hotel Accommodations</div>
-          {hotelBlocks.map(hb => (
-            <div key={hb.id} style={{ marginBottom:12 }}>
-              <div style={{ fontWeight:600, fontSize:13, marginBottom:4 }}>
-                🏨 {hb.name}
-                {hb.address && <> — <a href={mapsUrl(hb.address)} target="_blank" rel="noreferrer" style={{ color:'var(--tan)', textDecoration:'underline', fontWeight:400, fontSize:12 }}>{hb.address}</a></>}
-                {hb.phone ? <span style={{ color:'var(--muted)', fontWeight:400, fontSize:12 }}> · {hb.phone}</span> : ''}
-              </div>
-              {hb.guests?.length > 0 && (
-                <ShareTable
-                  cols={['Guest','Check-in','Check-out','Confirmation']}
-                  rows={hb.guests.map(g => [shortName(g.guest_name), fmtDT(g.check_in), fmtDT(g.check_out), g.confirmation || '—'])}
-                />
-              )}
-            </div>
-          ))}
+          <HotelRoster hotelBlocks={hotelBlocks} crewAssignments={crewAssignments} />
         </section>
       )}
 

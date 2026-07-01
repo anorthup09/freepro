@@ -87,7 +87,7 @@ router.get('/:token', async (req, res, next) => {
             FROM flights f LEFT JOIN crew_members cm ON cm.id = f.crew_member_id
             WHERE f.project_id = ${projectId} ORDER BY f.depart_time`),
         safe(sql`SELECT hb.id, hb.name, hb.address, hb.phone,
-                   json_agg(json_build_object('id',hg.id,'guest_name',hg.guest_name,'check_in',hg.check_in,'check_out',hg.check_out,'confirmation',hg.confirmation) ORDER BY hg.check_in) FILTER (WHERE hg.id IS NOT NULL) as guests
+                   json_agg(json_build_object('id',hg.id,'guest_name',hg.guest_name,'crew_member_id',hg.crew_member_id,'check_in',hg.check_in,'check_out',hg.check_out,'confirmation',hg.confirmation) ORDER BY hg.check_in) FILTER (WHERE hg.id IS NOT NULL) as guests
             FROM hotel_blocks hb LEFT JOIN hotel_guests hg ON hg.hotel_block_id = hb.id
             WHERE hb.project_id = ${projectId} GROUP BY hb.id, hb.name, hb.address, hb.phone`),
         safe(sql`SELECT id, vendor, pickup_location, dropoff_location, pickup_date, dropoff_date, confirmation, notes FROM rental_cars WHERE project_id = ${projectId}`),
@@ -121,7 +121,7 @@ router.get('/:token', async (req, res, next) => {
             FROM flights f LEFT JOIN crew_members cm ON cm.id = f.crew_member_id
             WHERE f.project_id = ${projectId} ORDER BY f.depart_time`),
         safe2(sql`SELECT hb.id, hb.name, hb.address, hb.phone,
-                   json_agg(json_build_object('id',hg.id,'guest_name',hg.guest_name,'check_in',hg.check_in,'check_out',hg.check_out,'confirmation',hg.confirmation) ORDER BY hg.check_in) FILTER (WHERE hg.id IS NOT NULL) as guests
+                   json_agg(json_build_object('id',hg.id,'guest_name',hg.guest_name,'crew_member_id',hg.crew_member_id,'check_in',hg.check_in,'check_out',hg.check_out,'confirmation',hg.confirmation) ORDER BY hg.check_in) FILTER (WHERE hg.id IS NOT NULL) as guests
             FROM hotel_blocks hb LEFT JOIN hotel_guests hg ON hg.hotel_block_id = hb.id
             WHERE hb.project_id = ${projectId} GROUP BY hb.id, hb.name, hb.address, hb.phone`),
         safe2(sql`SELECT id, vendor, pickup_location, dropoff_location, pickup_date, dropoff_date, confirmation, notes FROM rental_cars WHERE project_id = ${projectId}`),
