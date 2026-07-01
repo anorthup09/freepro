@@ -12,11 +12,26 @@ const travelRoutes = require('./routes/travel');
 const shareRoutes = require('./routes/share');
 const utilRoutes = require('./routes/util');
 
+const path = require('path');
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(cors());
 app.use(express.json());
+
+// Serve frontend static files if present (production)
+const publicDir = path.join(__dirname, '../../public');
+const fs = require('fs');
+if (fs.existsSync(publicDir)) {
+  // Assets (hashed filenames) get long cache; index.html never cached
+  app.use('/assets', express.static(path.join(publicDir, 'assets'), { maxAge: '1y', immutable: true }));
+  app.use(express.static(publicDir, { index: false }));
+  app.get('/', (req, res) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.sendFile(path.join(publicDir, 'index.html'));
+  });
+}
 
 app.get('/health', (req, res) => res.json({ status: 'ok', ts: new Date(), aerodatabox: !!process.env.AERODATABOX_API_KEY }));
 
@@ -46,6 +61,15 @@ app.use('/api/projects', scheduleRoutes);
 app.use('/api/projects', deliverableRoutes);
 app.use('/api/projects', travelRoutes);
 app.use('/api/util', utilRoutes);
+
+// Fallback: serve index.html for client-side routing (React Router)
+if (fs.existsSync(publicDir)) {
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api') || req.path.startsWith('/share') || req.path.startsWith('/admin') || req.path.startsWith('/health')) return next();
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.sendFile(path.join(publicDir, 'index.html'));
+  });
+}
 
 app.use((err, req, res, next) => {
   console.error(err);
