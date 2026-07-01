@@ -14,6 +14,9 @@ function useNow() {
 
 const COMING_SOON = { label: 'STATUS COMING SOON', color: 'var(--orange)', dot: null };
 function flightStatus(f, now) {
+  const st = (f.status || '').toUpperCase();
+  if (st === 'CANCELLED') return { label: 'Cancelled', color: '#ef4444', dot: '#ef4444', alert: true };
+  if (st === 'DELAYED')   return { label: 'Delayed',   color: '#f59e0b', dot: '#f59e0b', alert: true };
   const depart = f.depart_time ? new Date(f.depart_time) : null;
   const arrive = f.arrive_time ? new Date(f.arrive_time) : null;
   if (!depart) return COMING_SOON;
@@ -388,7 +391,11 @@ function FlightStatusCell({ f }) {
   const s = flightStatus(f, now);
   return (
     <div style={{ display:'flex', alignItems:'center', gap:5 }}>
-      <div style={{ width:7, height:7, borderRadius:'50%', background: s.dot || 'transparent', border: s.dot ? 'none' : '1.5px solid var(--orange)', flexShrink:0 }} />
+      {s.alert ? (
+        <span style={{ fontSize:13 }}>❗</span>
+      ) : (
+        <div style={{ width:7, height:7, borderRadius:'50%', background: s.dot || 'transparent', border: s.dot ? 'none' : '1.5px solid var(--orange)', flexShrink:0 }} />
+      )}
       <span style={{ fontSize: s.dot ? 11 : 9, fontWeight: s.dot ? 600 : 400, color:s.color, textTransform:'uppercase', letterSpacing: s.dot ? '0.05em' : '0.03em', fontStyle: s.dot ? 'normal' : 'italic' }}>{s.label}</span>
     </div>
   );
@@ -396,26 +403,34 @@ function FlightStatusCell({ f }) {
 
 function FlightsTable({ flights }) {
   return (
-    <table className="share-table">
-      <thead>
-        <tr>
-          {['Passenger','Route','Departure','Arrival','Flight','Confirmation','Status'].map(c => <th key={c}>{c}</th>)}
-        </tr>
-      </thead>
-      <tbody>
-        {flights.map((f, i) => (
-          <tr key={i}>
-            <td>{f.crew_name || f.passenger_name || '—'}</td>
-            <td>{f.origin} → {f.destination}</td>
-            <td className="nowrap">{f.depart_display || fmtDT(f.depart_time)}</td>
-            <td className="nowrap">{f.arrive_display || fmtDT(f.arrive_time)}</td>
-            <td className="nowrap">{[f.airline, f.flight_number].filter(Boolean).join(' ') || '—'}</td>
-            <td>{f.confirmation || '—'}</td>
-            <td><FlightStatusCell f={f} /></td>
+    <div style={{ overflowX:'auto' }}>
+      <table className="share-table">
+        <thead>
+          <tr>
+            <th>Passenger</th>
+            <th>Route</th>
+            <th>Departure</th>
+            <th>Arrival</th>
+            <th className="hide-mobile">Flight</th>
+            <th className="hide-mobile">Confirmation</th>
+            <th>Status</th>
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {flights.map((f, i) => (
+            <tr key={i}>
+              <td>{f.crew_name || f.passenger_name || '—'}</td>
+              <td>{f.origin} → {f.destination}</td>
+              <td className="nowrap">{f.depart_display || fmtDT(f.depart_time)}</td>
+              <td className="nowrap">{f.arrive_display || fmtDT(f.arrive_time)}</td>
+              <td className="nowrap hide-mobile">{[f.airline, f.flight_number].filter(Boolean).join(' ') || '—'}</td>
+              <td className="hide-mobile">{f.confirmation || '—'}</td>
+              <td><FlightStatusCell f={f} /></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -1182,27 +1197,37 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
                     </div>
                   </div>
                 );
-              })() : item._type === 'flight' ? (
-                <div key={`f-${item.id}-${item._leg}`} className="ev">
-                  <div className="ev-time">✈ {item._time}</div>
-                  <div className="ev-body" style={{ borderLeft:'2px solid var(--orange)' }}>
-                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
-                      <div className="ev-title">{item._leg === 'depart' ? 'Departure' : 'Arrival'} — {item.crew_name || item.passenger_name}</div>
-                      {item._leg === 'depart' && (() => { const s = flightStatus(item, now); return s ? (
-                        <div style={{ display:'flex', alignItems:'center', gap:5, flexShrink:0, background:'rgba(0,0,0,0.25)', borderRadius:20, padding:'3px 10px' }}>
-                          <div style={{ width:6, height:6, borderRadius:'50%', background: s.dot || 'transparent', border: s.dot ? 'none' : '1.5px solid var(--orange)', flexShrink:0 }} />
-                          <span style={{ fontSize: s.dot ? 10 : 9, fontWeight: s.dot ? 600 : 400, color:s.color, textTransform:'uppercase', letterSpacing: s.dot ? '0.06em' : '0.03em', fontStyle: s.dot ? 'normal' : 'italic' }}>{s.label}</span>
+              })() : item._type === 'flight' ? (() => {
+                const fs = flightStatus(item, now);
+                const adjustedArrival = item._leg === 'arrive' ? (item.arrive_display || null) : null;
+                return (
+                  <div key={`f-${item.id}-${item._leg}`} className="ev">
+                    <div className="ev-time">✈ {item._time}</div>
+                    <div className="ev-body" style={{ borderLeft:`2px solid ${fs.alert ? fs.color : 'var(--orange)'}`, ...(fs.alert ? { background: `${fs.color}11` } : {}) }}>
+                      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
+                        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                          {fs.alert && <span style={{ fontSize:14 }}>❗</span>}
+                          <div className="ev-title" style={fs.alert ? { color: fs.color } : {}}>
+                            {item._leg === 'depart' ? 'Departure' : 'Arrival'} — {item.crew_name || item.passenger_name}
+                          </div>
                         </div>
-                      ) : null; })()}
-                    </div>
-                    <div className="ev-detail">
-                      {item.origin} → {item.destination}
-                      {(item.airline || item.flight_number) && <span style={{ color:'var(--muted)', marginLeft:8 }}>{[item.airline, item.flight_number].filter(Boolean).join(' ')}</span>}
-                      {item.confirmation && <span style={{ color:'var(--muted)', marginLeft:8 }}>#{item.confirmation}</span>}
+                        {(() => { return fs ? (
+                          <div style={{ display:'flex', alignItems:'center', gap:5, flexShrink:0, background:'rgba(0,0,0,0.25)', borderRadius:20, padding:'3px 10px' }}>
+                            {fs.alert ? <span style={{ fontSize:11 }}>❗</span> : <div style={{ width:6, height:6, borderRadius:'50%', background: fs.dot || 'transparent', border: fs.dot ? 'none' : '1.5px solid var(--orange)', flexShrink:0 }} />}
+                            <span style={{ fontSize: fs.dot ? 10 : 9, fontWeight: fs.dot ? 600 : 400, color:fs.color, textTransform:'uppercase', letterSpacing: fs.dot ? '0.06em' : '0.03em', fontStyle: fs.dot ? 'normal' : 'italic' }}>{fs.label}</span>
+                          </div>
+                        ) : null; })()}
+                      </div>
+                      <div className="ev-detail">
+                        {item.origin} → {item.destination}
+                        {(item.airline || item.flight_number) && <span style={{ color:'var(--muted)', marginLeft:8 }}>{[item.airline, item.flight_number].filter(Boolean).join(' ')}</span>}
+                        {item.confirmation && <span style={{ color:'var(--muted)', marginLeft:8 }}>#{item.confirmation}</span>}
+                        {adjustedArrival && <span style={{ color:'var(--muted)', marginLeft:8 }}>Arrives: {adjustedArrival}</span>}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ) : (() => {
+                );
+              })() : (() => {
                 const loc = item.location;
                 const prevLocItem = allItems.slice(0, i).reverse().find(x => x._type === 'event' && x.location?.address);
                 const prevAddr = prevLocItem?.location?.address;
