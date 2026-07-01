@@ -127,4 +127,10 @@ export const api = {
   createOnlineRental: (projectId, data) => req('POST', `/projects/${projectId}/online-rentals`, data),
   updateOnlineRental: (projectId, id, data) => req('PATCH', `/projects/${projectId}/online-rentals/${id}`, data),
   deleteOnlineRental: (projectId, id) => req('DELETE', `/projects/${projectId}/online-rentals/${id}`),
+
+  // Gear Items
+  getGearItems: (projectId) => req('GET', `/projects/${projectId}/gear-items`),
+  createGearItem: (projectId, data) => req('POST', `/projects/${projectId}/gear-items`, data),
+  updateGearItem: (projectId, id, data) => req('PATCH', `/projects/${projectId}/gear-items/${id}`, data),
+  deleteGearItem: (projectId, id) => req('DELETE', `/projects/${projectId}/gear-items/${id}`),
 };

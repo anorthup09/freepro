@@ -156,7 +156,7 @@ export default function Gear({ project, setProject }) {
     <div>
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:20 }}>
         <div>
-          <div className="page-title" style={{ marginBottom:3 }}>Gear</div>
+          <div className="page-title" style={{ marginBottom:3 }}>Gear Management</div>
           <div className="page-sub">{project.client} · {project.code}</div>
         </div>
         {saving && <span style={{ fontSize:11, color:'var(--muted)' }}>Saving…</span>}
@@ -280,19 +280,6 @@ export default function Gear({ project, setProject }) {
             </div>
           </form>
         )}
-      </div>
-
-      {/* ── Gear List ── */}
-      <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'16px', marginBottom:20 }}>
-        <div className="sec-lbl" style={{ marginTop:0 }}>Gear List</div>
-        <div className="form-grid">
-          <div className="field"><label>Camera</label><textarea {...field('cameraGear')} placeholder="2x RED V-Raptor, 1x Sony FX3…" style={{ minHeight:64 }} /></div>
-          <div className="field"><label>Grip</label><textarea {...field('gripGear')} placeholder="Dana Dolly, Doorway Dolly, Steadicam…" style={{ minHeight:64 }} /></div>
-          <div className="field"><label>Electric</label><textarea {...field('electricGear')} placeholder="2x Aputure 600D, 4x Aputure 300X…" style={{ minHeight:64 }} /></div>
-          <div className="field"><label>Audio</label><textarea {...field('audioGear')} placeholder="Sound Devices 833, 2x Lectrosonics…" style={{ minHeight:64 }} /></div>
-          <div className="field"><label>Media Management</label><textarea {...field('mediaManagementGear')} placeholder="OWC Thunderbay 4, Archivist…" style={{ minHeight:64 }} /></div>
-          <div className="field"><label>Editing</label><textarea {...field('editingGear')} placeholder="MacBook Pro 16-inch, Dell 4K monitor…" style={{ minHeight:64 }} /></div>
-        </div>
       </div>
 
       {editRental && (

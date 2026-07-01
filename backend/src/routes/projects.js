@@ -381,4 +381,46 @@ router.delete('/:id/online-rentals/:rid', requireAuth, requireRole('ADMIN','PROD
   } catch(e){next(e);}
 });
 
+// ── Gear Items ────────────────────────────────────────────────────────────────
+router.get('/:id/gear-items', requireAuth, async (req, res, next) => {
+  try {
+    const items = await sql`SELECT * FROM gear_items WHERE project_id = ${req.params.id} ORDER BY sort_order, created_at`;
+    res.json(items);
+  } catch(e){next(e);}
+});
+
+router.post('/:id/gear-items', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try {
+    const { category, item, source, notes, sortOrder } = req.body;
+    const [row] = await sql`
+      INSERT INTO gear_items (id, project_id, category, item, source, notes, sort_order)
+      VALUES (gen_random_uuid()::text, ${req.params.id}, ${category||'other'}, ${item}, ${source||'internal'}, ${notes||null}, ${sortOrder||0})
+      RETURNING *`;
+    res.status(201).json(row);
+  } catch(e){next(e);}
+});
+
+router.patch('/:id/gear-items/:itemId', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try {
+    const d = req.body;
+    const [row] = await sql`
+      UPDATE gear_items SET
+        category = COALESCE(${d.category??null}, category),
+        item     = COALESCE(${d.item??null}, item),
+        source   = COALESCE(${d.source??null}, source),
+        notes    = ${d.notes !== undefined ? (d.notes||null) : sql`notes`}
+      WHERE id = ${req.params.itemId} AND project_id = ${req.params.id}
+      RETURNING *`;
+    if (!row) return res.status(404).json({ error: 'Not found' });
+    res.json(row);
+  } catch(e){next(e);}
+});
+
+router.delete('/:id/gear-items/:itemId', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try {
+    await sql`DELETE FROM gear_items WHERE id = ${req.params.itemId} AND project_id = ${req.params.id}`;
+    res.status(204).end();
+  } catch(e){next(e);}
+});
+
 module.exports = router;

@@ -7,13 +7,15 @@ import Crew from './Crew.jsx';
 import Deliverables from './Deliverables.jsx';
 import Travel from './Travel.jsx';
 import Gear from './Gear.jsx';
+import GearList from './GearList.jsx';
 
 const TABS = [
   { id: 'overview',         label: 'Overview' },
   { id: 'schedule',         label: 'Schedule' },
   { id: 'crew',             label: 'Crew' },
   { id: 'travel',           label: 'Travel' },
-  { id: 'gear',             label: 'Gear' },
+  { id: 'gear',             label: 'Gear Management' },
+  { id: 'gear-list',        label: 'Gear List' },
   { id: 'post-production',  label: 'Post-Production' },
 ];
 
@@ -153,6 +155,7 @@ export default function Project() {
         {tab === 'crew'         && <Crew         project={project} onProjectUpdate={setProject} />}
         {tab === 'travel'          && <Travel       project={project} />}
         {tab === 'gear'            && <Gear         project={project} setProject={setProject} />}
+        {tab === 'gear-list'       && <GearList     project={project} />}
         {tab === 'post-production' && <Deliverables project={project} />}
       </div>
     </>

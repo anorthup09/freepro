@@ -450,6 +450,19 @@ async function migrate() {
     )
   `;
 
+  await sql`
+    CREATE TABLE IF NOT EXISTS gear_items (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      category TEXT NOT NULL DEFAULT 'other',
+      item TEXT NOT NULL,
+      source TEXT NOT NULL DEFAULT 'internal',
+      notes TEXT,
+      sort_order INT DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+
   console.log('Migration complete.');
 }
 
