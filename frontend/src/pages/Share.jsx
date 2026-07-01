@@ -615,7 +615,7 @@ function CrewView({ data, shareToken }) {
         </section>
       )}
 
-      <GearSection gear={gear} onlineRentals={onlineRentals} shareToken={token} />
+      <GearSection gear={gear} onlineRentals={onlineRentals} shareToken={shareToken} />
 
       {deliverables?.length > 0 && (
         <section className="share-section">
