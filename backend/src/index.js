@@ -21,7 +21,7 @@ app.use(cors());
 app.use(express.json());
 
 // Serve frontend static files if present (production)
-const publicDir = path.join(__dirname, '../../public');
+const publicDir = path.join(__dirname, '../public');
 const fs = require('fs');
 if (fs.existsSync(publicDir)) {
   // Assets (hashed filenames) get long cache; index.html never cached
