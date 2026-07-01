@@ -388,6 +388,20 @@ async function migrate() {
   await sql`ALTER TABLE key_talent ADD COLUMN IF NOT EXISTS email TEXT`;
   await sql`ALTER TABLE key_talent ADD COLUMN IF NOT EXISTS notes TEXT`;
 
+  // Backfill preferred name from legal name for existing crew members
+  await sql`
+    UPDATE crew_members SET
+      preferred_first_name = CASE
+        WHEN position(' ' IN name) > 0 THEN split_part(name, ' ', 1)
+        ELSE name
+      END,
+      preferred_last_name = CASE
+        WHEN position(' ' IN name) > 0 THEN substring(name FROM position(' ' IN name) + 1)
+        ELSE NULL
+      END
+    WHERE preferred_first_name IS NULL AND preferred_last_name IS NULL
+  `;
+
   console.log('Migration complete.');
 }
 
