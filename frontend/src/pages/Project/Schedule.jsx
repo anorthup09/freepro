@@ -126,6 +126,13 @@ export default function Schedule({ project }) {
   const [dayMeta, setDayMeta] = useState({});
   const [flights, setFlights] = useState([]);
   const [weatherByDate, setWeatherByDate] = useState({});
+  const [savedToast, setSavedToast] = useState(false);
+  const savedToastTimer = React.useRef(null);
+  function flashSaved() {
+    setSavedToast(true);
+    clearTimeout(savedToastTimer.current);
+    savedToastTimer.current = setTimeout(() => setSavedToast(false), 1800);
+  }
 
   function refreshFlights() {
     api.getFlights(project.id).then(setFlights).catch(() => {});
@@ -187,13 +194,22 @@ export default function Schedule({ project }) {
 
   async function saveDayMeta(dayId, field, value) {
     setDayMeta(m => ({ ...m, [dayId]: { ...m[dayId], [field]: value } }));
-    try { await api.updateDay(project.id, dayId, { [field]: value }); } catch(e) { alert(e.message); }
+    try { await api.updateDay(project.id, dayId, { [field]: value }); flashSaved(); } catch(e) { alert(e.message); }
   }
 
   async function saveDayTime(dayId, field, value) {
     setDayTimesForm(m => ({ ...m, [dayId]: { ...m[dayId], [field]: value } }));
     try {
-      await api.updateDay(project.id, dayId, { [field]: value || null });
+      const updated = await api.updateDay(project.id, dayId, { [field]: value || null });
+      if (updated) {
+        setDayTimesForm(m => ({ ...m, [dayId]: { ...m[dayId],
+          callTimeTags:     updated.call_time_tags     ?? m[dayId]?.callTimeTags     ?? [],
+          shootingCallTags: updated.shooting_call_tags ?? m[dayId]?.shootingCallTags ?? [],
+          lunchTags:        updated.lunch_tags         ?? m[dayId]?.lunchTags        ?? [],
+          wrapTimeTags:     updated.wrap_time_tags     ?? m[dayId]?.wrapTimeTags     ?? [],
+        }}));
+      }
+      flashSaved();
     } catch(e) { alert(e.message); }
   }
 
@@ -202,6 +218,7 @@ export default function Schedule({ project }) {
     const meta = SYNTHETIC_META[key];
     try {
       await api.updateDay(project.id, dayId, { [meta.notesKey]: t[meta.notesKey]||null, [meta.tagsKey]: t[meta.tagsKey]||[] });
+      flashSaved();
     } catch(e) { alert(e.message); }
     setEditingSyntheticKey(null);
   }
@@ -298,6 +315,11 @@ export default function Schedule({ project }) {
 
   return (
     <div>
+      {savedToast && (
+        <div style={{ position:'fixed', bottom:24, right:24, background:'#22c55e', color:'#fff', fontSize:13, fontWeight:600, padding:'8px 18px', borderRadius:20, zIndex:9999, boxShadow:'0 2px 12px rgba(0,0,0,0.25)', pointerEvents:'none', letterSpacing:'.02em' }}>
+          ✓ Saved
+        </div>
+      )}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
         <div>
           <div className="page-title">Schedule</div>

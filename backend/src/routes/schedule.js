@@ -71,6 +71,26 @@ router.post('/:id/schedule/days', requireAuth, requireRole('ADMIN','PRODUCER'), 
 router.patch('/:id/schedule/days/:dayId', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
     const d = req.body;
+    // Auto-tag time fields with VIDEO+PHOTO if they're being set for the first time (no existing tags)
+    const AUTO_TAGS = ['VIDEO', 'PHOTO'];
+    const timeTagMap = [
+      { timeField: 'callTime',         tagsField: 'callTimeTags',        dbTagsCol: 'call_time_tags' },
+      { timeField: 'shootingCallTime', tagsField: 'shootingCallTags',    dbTagsCol: 'shooting_call_tags' },
+      { timeField: 'lunchTime',        tagsField: 'lunchTags',           dbTagsCol: 'lunch_tags' },
+      { timeField: 'wrapTime',         tagsField: 'wrapTimeTags',        dbTagsCol: 'wrap_time_tags' },
+    ];
+    if (timeTagMap.some(m => d[m.timeField] !== undefined && d[m.timeField])) {
+      const [current] = await sql`SELECT call_time_tags,shooting_call_tags,lunch_tags,wrap_time_tags FROM shoot_days WHERE id=${req.params.dayId}`;
+      if (current) {
+        for (const { timeField, tagsField, dbTagsCol } of timeTagMap) {
+          if (d[timeField] !== undefined && d[timeField] && d[tagsField] === undefined) {
+            const existing = current[dbTagsCol] || [];
+            if (existing.length === 0) d[tagsField] = AUTO_TAGS;
+          }
+        }
+      }
+    }
+
     const [day] = await sql`
       UPDATE shoot_days SET
         call_time=COALESCE(${d.callTime??null},call_time), wrap_time=COALESCE(${d.wrapTime??null},wrap_time),

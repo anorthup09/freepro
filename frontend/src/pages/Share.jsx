@@ -546,9 +546,12 @@ function ProducerView({ data }) {
             ))}
           </div>
         )}
-        {[...(schedule||[])].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).filter(day =>
-          !tagFilter || day.events.some(e => (e.tags || []).some(t => t.type === tagFilter))
-        ).map((day, i) => (
+        {[...(schedule||[])].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).filter(day => {
+          if (!tagFilter) return true;
+          if (day.events.some(e => (e.tags || []).some(t => t.type === tagFilter))) return true;
+          return [day.call_time_tags, day.shooting_call_tags, day.lunch_tags, day.wrap_time_tags]
+            .some(tags => Array.isArray(tags) && tags.includes(tagFilter));
+        }).map((day, i) => (
           <DaySection key={day.id} day={day} showCalls flights={flights} dayIndex={i} tagFilter={tagFilter} />
         ))}
       </div>
@@ -708,9 +711,12 @@ function CrewView({ data, shareToken }) {
             ))}
           </div>
         )}
-        {sortedSchedule.filter(day =>
-          !tagFilter || day.events.some(e => (e.tags || []).some(t => t.type === tagFilter))
-        ).map((day, i) => (
+        {sortedSchedule.filter(day => {
+          if (!tagFilter) return true;
+          if (day.events.some(e => (e.tags || []).some(t => t.type === tagFilter))) return true;
+          return [day.call_time_tags, day.shooting_call_tags, day.lunch_tags, day.wrap_time_tags]
+            .some(tags => Array.isArray(tags) && tags.includes(tagFilter));
+        }).map((day, i) => (
           <DaySection key={day.id} day={day} showCalls flights={flights} dayIndex={i} tagFilter={tagFilter} />
         ))}
       </div>
@@ -1025,18 +1031,37 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
         </div>
       </div>
 
-      {!hideCallWrap && (day.call_time || day.wrap_time) && (
-        <div style={{ fontSize:11, color:'var(--tan)', marginTop:4 }}>
-          {day.call_time && <span>Call: <strong>{fmtTime(day.call_time)}</strong></span>}
-          {day.call_time && day.wrap_time && <span style={{ margin:'0 8px', color:'var(--muted)' }}>·</span>}
-          {day.wrap_time && <span>Wrap: <strong>{fmtTime(day.wrap_time)}</strong></span>}
-        </div>
-      )}
-      {!hideCallWrap && (day.shooting_call_time || day.lunch_time) && (
-        <div style={{ fontSize:11, color:'var(--tan)', marginTop:2 }}>
-          {day.shooting_call_time && <span>Shooting Call: <strong>{fmtTime(day.shooting_call_time)}</strong></span>}
-          {day.shooting_call_time && day.lunch_time && <span style={{ margin:'0 8px', color:'var(--muted)' }}>·</span>}
-          {day.lunch_time && <span>Lunch: <strong>{fmtTime(day.lunch_time)}</strong></span>}
+      {!hideCallWrap && (day.call_time || day.shooting_call_time || day.lunch_time || day.wrap_time) && (() => {
+        const slots = [
+          { label: 'Call Time',      value: day.call_time },
+          { label: 'Shooting Call',  value: day.shooting_call_time },
+          { label: 'Lunch',          value: day.lunch_time },
+          { label: 'Est. Wrap',      value: day.wrap_time },
+        ].filter(s => s.value);
+        return (
+          <div style={{ display:'inline-flex', marginTop:8, border:'1px solid var(--border2)', borderRadius:8, overflow:'hidden' }}>
+            {slots.map((s, i) => (
+              <div key={s.label} style={{ padding:'6px 14px', borderLeft: i > 0 ? '1px solid var(--border2)' : 'none', display:'flex', flexDirection:'column', gap:2 }}>
+                <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', fontWeight:600 }}>{s.label}</div>
+                <div style={{ fontSize:13, fontWeight:700, color:'var(--tan)', fontVariantNumeric:'tabular-nums' }}>{fmtTime(s.value)}</div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
+
+      {(day.crew_lunch || day.gear_storage || day.gs_audio) && (
+        <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:8 }}>
+          {[
+            { label:'Crew Meal', value: day.crew_lunch },
+            { label:'Gear Storage', value: day.gear_storage },
+            { label:'Audio Contact', value: day.gs_audio },
+          ].filter(f => f.value).map(f => (
+            <div key={f.label} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:6, padding:'5px 10px', fontSize:11 }}>
+              <span style={{ color:'var(--muted)', marginRight:5 }}>{f.label}:</span>
+              <span style={{ color:'var(--text)', fontWeight:500 }}>{f.value}</span>
+            </div>
+          ))}
         </div>
       )}
 
