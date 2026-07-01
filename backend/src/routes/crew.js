@@ -55,6 +55,9 @@ const crewSchema = z.object({
   seatPreference: z.string().optional().nullable(),
   emergencyContact: z.string().optional().nullable(),
   emergencyPhone: z.string().optional().nullable(),
+  preferredFirstName: z.string().optional().nullable(),
+  preferredLastName: z.string().optional().nullable(),
+  dietaryRestrictions: z.string().optional().nullable(),
 });
 
 router.get('/', requireAuth, async (req, res, next) => {
@@ -110,6 +113,9 @@ router.patch('/:id', requireAuth, requireRole('ADMIN', 'PRODUCER'), async (req, 
         seat_preference = ${data.seatPreference !== undefined ? (data.seatPreference||null) : sql`seat_preference`},
         emergency_contact = ${data.emergencyContact !== undefined ? (data.emergencyContact||null) : sql`emergency_contact`},
         emergency_phone = ${data.emergencyPhone !== undefined ? (data.emergencyPhone||null) : sql`emergency_phone`},
+        preferred_first_name = ${data.preferredFirstName !== undefined ? (data.preferredFirstName||null) : sql`preferred_first_name`},
+        preferred_last_name = ${data.preferredLastName !== undefined ? (data.preferredLastName||null) : sql`preferred_last_name`},
+        dietary_restrictions = ${data.dietaryRestrictions !== undefined ? (data.dietaryRestrictions||null) : sql`dietary_restrictions`},
         updated_at = NOW()
       WHERE id = ${req.params.id} RETURNING *`;
     res.json(m);

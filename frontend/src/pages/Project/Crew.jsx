@@ -4,6 +4,13 @@ import { api } from '../../api.js';
 function initials(name) {
   return name?.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase() || '??';
 }
+function displayName(m) {
+  if (!m) return '';
+  const first = m.preferred_first_name || m.name?.split(' ')[0] || '';
+  const last = m.preferred_last_name || m.name?.split(' ').slice(1).join(' ') || '';
+  if (m.preferred_first_name || m.preferred_last_name) return [first, last].filter(Boolean).join(' ');
+  return m.name || '';
+}
 const COLORS = ['#E8A030','#5ABF80','#8080E0','#E08080','#B080E0','#40A0A0','#D0A030','#C08080'];
 function colorFor(str) { let h = 0; for (let c of str||'') h = (h*31+c.charCodeAt(0))&0xffffffff; return COLORS[Math.abs(h)%COLORS.length]; }
 
@@ -26,6 +33,8 @@ export default function Crew({ project, onProjectUpdate }) {
   const [editForm, setEditForm] = useState({});
   const [showTalentModal, setShowTalentModal] = useState(false);
   const [talentForm, setTalentForm] = useState({ name:'', role:'' });
+  const [editTalent, setEditTalent] = useState(null);
+  const [editTalentForm, setEditTalentForm] = useState({ name:'', role:'', phone:'', email:'', notes:'' });
 
   useEffect(() => {
     Promise.all([
@@ -96,6 +105,9 @@ export default function Crew({ project, onProjectUpdate }) {
       seatPreference: memberDetail.seat_preference || '',
       emergencyContact: memberDetail.emergency_contact || '',
       emergencyPhone: memberDetail.emergency_phone || '',
+      preferredFirstName: memberDetail.preferred_first_name || '',
+      preferredLastName: memberDetail.preferred_last_name || '',
+      dietaryRestrictions: memberDetail.dietary_restrictions || '',
     });
     setMemberEditing(true);
   }
@@ -138,6 +150,15 @@ export default function Crew({ project, onProjectUpdate }) {
       if (onProjectUpdate) onProjectUpdate(p => ({ ...p, keyTalent: [...(p.keyTalent||[]), t] }));
       setShowTalentModal(false);
       setTalentForm({ name:'', role:'' });
+    } catch(e) { alert(e.message); }
+  }
+
+  async function saveEditTalent(e) {
+    e.preventDefault();
+    try {
+      const t = await api.updateTalent(project.id, editTalent.id, editTalentForm);
+      if (onProjectUpdate) onProjectUpdate(p => ({ ...p, keyTalent: p.keyTalent.map(x => x.id === t.id ? { ...x, ...t } : x) }));
+      setEditTalent(null);
     } catch(e) { alert(e.message); }
   }
 
@@ -201,7 +222,7 @@ export default function Crew({ project, onProjectUpdate }) {
                           <div className="av" style={{ width:26, height:26, fontSize:9, background: colorFor(a.crewMember.name)+'22', color: colorFor(a.crewMember.name) }}>
                             {initials(a.crewMember.name)}
                           </div>
-                          <div style={{ fontSize:12, fontWeight:500 }}>{a.crewMember.name}</div>
+                          <div style={{ fontSize:12, fontWeight:500 }}>{displayName(a.crewMember)}</div>
                         </div>
                       ) : <span style={{ color:'var(--muted)', fontSize:11 }}>— Unassigned —</span>
                     )}
@@ -271,12 +292,15 @@ export default function Crew({ project, onProjectUpdate }) {
                         <div style={{ fontSize:12, fontWeight:500 }}>{t.name}</div>
                       </div>
                     </td>
-                    <td style={{ fontSize:11, color:'var(--muted)' }}>—</td>
-                    <td style={{ fontSize:11, color:'var(--muted)' }}>—</td>
+                    <td style={{ fontSize:11, color:'var(--tan)' }}>{t.phone || '—'}</td>
+                    <td style={{ fontSize:11, color:'var(--muted)' }}>{t.email || '—'}</td>
                     <td style={{ fontSize:11, color:'var(--muted)' }}>—</td>
                     <td style={{ fontSize:11, color:'var(--muted)' }}>—</td>
                     <td style={{ textAlign:'right' }}>
-                      <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text)' }} onClick={() => deleteTalent(t.id)}>✕</button>
+                      <div style={{ display:'flex', gap:6, justifyContent:'flex-end' }}>
+                        <button className="btn btn-ghost btn-sm" onClick={() => { setEditTalent(t); setEditTalentForm({ name: t.name, role: t.role, phone: t.phone||'', email: t.email||'', notes: t.notes||'' }); }}>Edit</button>
+                        <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text)' }} onClick={() => deleteTalent(t.id)}>✕</button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -309,7 +333,8 @@ export default function Crew({ project, onProjectUpdate }) {
             >
               <div className="av" style={{ width:28, height:28, fontSize:10, flexShrink:0, background: colorFor(m.name)+'22', color: colorFor(m.name) }}>{initials(m.name)}</div>
               <div>
-                <div style={{ fontSize:12, fontWeight:500 }}>{m.name}</div>
+                <div style={{ fontSize:12, fontWeight:500 }}>{displayName(m)}</div>
+                {displayName(m) !== m.name && <div style={{ fontSize:10, color:'var(--muted)' }}>Legal: {m.name}</div>}
                 <div style={{ fontSize:10, color:'var(--muted)' }}>{[m.company, m.email].filter(Boolean).join(' · ')}</div>
               </div>
             </div>
@@ -329,7 +354,8 @@ export default function Crew({ project, onProjectUpdate }) {
             <div style={{ display:'flex', alignItems:'center', gap:10 }}>
               <div className="av" style={{ width:36, height:36, fontSize:12, flexShrink:0, background: colorFor(memberDetail.name)+'22', color: colorFor(memberDetail.name) }}>{initials(memberDetail.name)}</div>
               <div>
-                <div style={{ fontWeight:600, fontSize:14 }}>{memberDetail.name}</div>
+                <div style={{ fontWeight:600, fontSize:14 }}>{displayName(memberDetail)}</div>
+                {displayName(memberDetail) !== memberDetail.name && <div style={{ fontSize:10, color:'var(--muted)' }}>Legal: {memberDetail.name}</div>}
                 <div style={{ fontSize:11, color:'var(--muted)' }}>{[memberDetail.company, memberDetail.home_airport].filter(Boolean).join(' · ')}</div>
               </div>
             </div>
@@ -343,11 +369,14 @@ export default function Crew({ project, onProjectUpdate }) {
             <form onSubmit={saveMember}>
               <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)', marginBottom:6 }}>Contact</div>
               <div className="form-grid" style={{ marginBottom:14 }}>
-                <div className="field span2"><label>Full Name</label><input value={memberForm.name} onChange={e => setMemberForm(f=>({...f,name:e.target.value}))} required /></div>
+                <div className="field span2"><label>Legal Full Name</label><input value={memberForm.name} onChange={e => setMemberForm(f=>({...f,name:e.target.value}))} required /></div>
+                <div className="field"><label>Preferred First Name</label><input value={memberForm.preferredFirstName} onChange={e => setMemberForm(f=>({...f,preferredFirstName:e.target.value}))} placeholder="Leave blank to use legal name" /></div>
+                <div className="field"><label>Preferred Last Name</label><input value={memberForm.preferredLastName} onChange={e => setMemberForm(f=>({...f,preferredLastName:e.target.value}))} placeholder="Leave blank to use legal name" /></div>
                 <div className="field"><label>Email</label><input type="email" value={memberForm.email} onChange={e => setMemberForm(f=>({...f,email:e.target.value}))} /></div>
                 <div className="field"><label>Phone</label><input value={memberForm.phone} onChange={e => setMemberForm(f=>({...f,phone:e.target.value}))} /></div>
                 <div className="field"><label>Company / Role</label><input value={memberForm.company} onChange={e => setMemberForm(f=>({...f,company:e.target.value}))} /></div>
                 <div className="field"><label>Home Airport</label><input value={memberForm.homeAirport} onChange={e => setMemberForm(f=>({...f,homeAirport:e.target.value}))} placeholder="STL" /></div>
+                <div className="field span2"><label>Dietary Restrictions</label><input value={memberForm.dietaryRestrictions} onChange={e => setMemberForm(f=>({...f,dietaryRestrictions:e.target.value}))} placeholder="Vegetarian, gluten-free, nut allergy…" /></div>
               </div>
               <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)', marginBottom:6 }}>Travel Info</div>
               <div className="form-grid" style={{ marginBottom:14 }}>
@@ -377,8 +406,10 @@ export default function Crew({ project, onProjectUpdate }) {
             </form>
           ) : (
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'6px 24px', fontSize:12 }}>
+              {(memberDetail.preferred_first_name || memberDetail.preferred_last_name) && <div style={{ gridColumn:'1/-1' }}><span style={{ color:'var(--muted)' }}>Preferred Name </span>{[memberDetail.preferred_first_name, memberDetail.preferred_last_name].filter(Boolean).join(' ')}</div>}
               {memberDetail.email && <div><span style={{ color:'var(--muted)' }}>Email </span>{memberDetail.email}</div>}
               {memberDetail.phone && <div><span style={{ color:'var(--muted)' }}>Phone </span>{memberDetail.phone}</div>}
+              {memberDetail.dietary_restrictions && <div style={{ gridColumn:'1/-1' }}><span style={{ color:'var(--muted)' }}>Dietary </span>{memberDetail.dietary_restrictions}</div>}
               {memberDetail.date_of_birth && <div><span style={{ color:'var(--muted)' }}>DOB </span>{new Date(memberDetail.date_of_birth.slice(0,10) + 'T12:00:00').toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' })}</div>}
               {memberDetail.seat_preference && <div><span style={{ color:'var(--muted)' }}>Seat </span>{memberDetail.seat_preference}</div>}
               {memberDetail.passport_number && <div><span style={{ color:'var(--muted)' }}>Passport </span>{memberDetail.passport_number}{memberDetail.passport_expiry ? ` (exp ${new Date(memberDetail.passport_expiry.slice(0,10) + 'T12:00:00').toLocaleDateString('en-US', { month:'short', year:'numeric' })})` : ''}</div>}
@@ -444,6 +475,28 @@ export default function Crew({ project, onProjectUpdate }) {
                 )}
               </div>
               <div className="btn-row"><button className="btn btn-primary">Add to Project</button><button type="button" className="btn btn-ghost" onClick={() => setShowAddSlot(false)}>Cancel</button></div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Talent Modal */}
+      {editTalent && (
+        <div className="modal-bg" onClick={e => e.target === e.currentTarget && setEditTalent(null)}>
+          <div className="modal">
+            <div className="modal-title">Edit Talent — {editTalent.name}</div>
+            <form onSubmit={saveEditTalent}>
+              <div className="form-grid" style={{ marginBottom:12 }}>
+                <div className="field"><label>Name</label><input value={editTalentForm.name} onChange={e => setEditTalentForm(f=>({...f,name:e.target.value}))} required /></div>
+                <div className="field"><label>Role / Title</label><input value={editTalentForm.role} onChange={e => setEditTalentForm(f=>({...f,role:e.target.value}))} required /></div>
+                <div className="field"><label>Phone</label><input value={editTalentForm.phone} onChange={e => setEditTalentForm(f=>({...f,phone:e.target.value}))} placeholder="555-123-4567" /></div>
+                <div className="field"><label>Email</label><input type="email" value={editTalentForm.email} onChange={e => setEditTalentForm(f=>({...f,email:e.target.value}))} /></div>
+                <div className="field span2"><label>Notes</label><textarea value={editTalentForm.notes} onChange={e => setEditTalentForm(f=>({...f,notes:e.target.value}))} rows={3} /></div>
+              </div>
+              <div className="btn-row">
+                <button className="btn btn-primary">Save</button>
+                <button type="button" className="btn btn-ghost" onClick={() => setEditTalent(null)}>Cancel</button>
+              </div>
             </form>
           </div>
         </div>

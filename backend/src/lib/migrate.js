@@ -380,6 +380,14 @@ async function migrate() {
 
   await sql`INSERT INTO positions (id, name, sort_order) VALUES (gen_random_uuid()::text, 'Post-Production Supervisor', 999) ON CONFLICT (name) DO NOTHING`;
 
+  await sql`ALTER TABLE crew_members ADD COLUMN IF NOT EXISTS preferred_first_name TEXT`;
+  await sql`ALTER TABLE crew_members ADD COLUMN IF NOT EXISTS preferred_last_name TEXT`;
+  await sql`ALTER TABLE crew_members ADD COLUMN IF NOT EXISTS dietary_restrictions TEXT`;
+
+  await sql`ALTER TABLE key_talent ADD COLUMN IF NOT EXISTS phone TEXT`;
+  await sql`ALTER TABLE key_talent ADD COLUMN IF NOT EXISTS email TEXT`;
+  await sql`ALTER TABLE key_talent ADD COLUMN IF NOT EXISTS notes TEXT`;
+
   console.log('Migration complete.');
 }
 
