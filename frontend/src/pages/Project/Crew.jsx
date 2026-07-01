@@ -106,6 +106,15 @@ export default function Crew({ project, onProjectUpdate }) {
     setMemberEditing(true);
   }
 
+  async function deleteMember() {
+    if (!confirm(`Remove ${displayName(memberDetail)} from the roster? This cannot be undone.`)) return;
+    await api.deleteCrewMember(memberDetail.id);
+    setRoster(r => r.filter(m => m.id !== memberDetail.id));
+    setSelectedMember(null);
+    setMemberDetail(null);
+    setMemberEditing(false);
+  }
+
   async function saveMember(e) {
     e.preventDefault();
     setMemberSaving(true);
@@ -355,6 +364,7 @@ export default function Crew({ project, onProjectUpdate }) {
             </div>
             <div style={{ display:'flex', gap:6 }}>
               {!memberEditing && <button className="btn btn-ghost btn-sm" onClick={startEditMember}>Edit</button>}
+              {!memberEditing && <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text, #e08080)' }} onClick={deleteMember}>Delete</button>}
               <button className="btn btn-ghost btn-sm" onClick={() => { setSelectedMember(null); setMemberEditing(false); }}>✕</button>
             </div>
           </div>

@@ -55,6 +55,7 @@ export const api = {
   getCrewMember: (id) => req('GET', `/crew/${id}`),
   createCrewMember: (data) => req('POST', '/crew', data),
   updateCrewMember: (id, data) => req('PATCH', `/crew/${id}`, data),
+  deleteCrewMember: (id) => req('DELETE', `/crew/${id}`),
 
   // Positions
   getPositions: () => req('GET', '/crew/positions'),
