@@ -129,7 +129,8 @@ router.post('/:id/schedule/days/:dayId/events', requireAuth, requireRole('ADMIN'
     if (tags.length) {
       await Promise.all(tags.map(t => sql`INSERT INTO event_tags (id, event_id, type, label) VALUES (gen_random_uuid()::text, ${ev.id}, ${t.type}::event_tag_type, ${t.label||null})`));
     }
-    res.status(201).json({ ...ev, tags });
+    const [loc] = ev.location_id ? await sql`SELECT id, name, address FROM locations WHERE id = ${ev.location_id}` : [null];
+    res.status(201).json({ ...ev, tags, location: loc ? { name: loc.name, address: loc.address } : null });
   } catch(e){next(e);}
 });
 
@@ -145,6 +146,7 @@ router.patch('/:id/schedule/events/:eventId', requireAuth, requireRole('ADMIN','
         is_filming=COALESCE(${d.isFilming??null},is_filming),
         is_shooting_call=COALESCE(${d.isShootingCall??null},is_shooting_call),
         is_lunch=COALESCE(${d.isLunch??null},is_lunch),
+        location_id=${d.locationId !== undefined ? (d.locationId || null) : sql`location_id`},
         audience=COALESCE(${d.audience!=null?sql.array(d.audience):null},audience)
       WHERE id=${req.params.eventId} RETURNING *`;
     if (d.tags !== undefined) {
@@ -154,7 +156,8 @@ router.patch('/:id/schedule/events/:eventId', requireAuth, requireRole('ADMIN','
       }
     }
     const tags = await sql`SELECT * FROM event_tags WHERE event_id = ${req.params.eventId}`;
-    res.json({ ...ev, tags });
+    const [loc] = ev.location_id ? await sql`SELECT id, name, address FROM locations WHERE id = ${ev.location_id}` : [null];
+    res.json({ ...ev, tags, location: loc ? { name: loc.name, address: loc.address } : null });
   } catch(e){next(e);}
 });
 
