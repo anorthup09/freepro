@@ -277,7 +277,7 @@ export default function Overview({ project, setProject, onTabChange }) {
           const groupLocs = (project.locations || []).filter(l => group.types.includes(l.type));
           // Merge hotel blocks into the Hotels group
           const hotelEntries = group.label === 'Hotels'
-            ? (project.hotelBlocks || []).map(hb => ({ _isHotel: true, id: hb.id, name: hb.name, address: hb.address }))
+            ? (project.hotelBlocks || []).map(hb => ({ _isHotel: true, id: hb.id, name: hb.name, address: hb.address, guests: hb.guests }))
             : [];
           const allEntries = [...groupLocs, ...hotelEntries];
           return (
@@ -300,6 +300,20 @@ export default function Overview({ project, setProject, onTabChange }) {
                       </a>
                     )}
                     {!l._isHotel && <span className={`tag ${LOC_TAG[l.type]}`} style={{ marginTop:3, display:'inline-block' }}>{LOC_LABELS[l.type]}</span>}
+                    {l._isHotel && l.guests?.length > 0 && (
+                      <div style={{ display:'flex', flexWrap:'wrap', gap:4, marginTop:5 }}>
+                        {l.guests.map(g => (
+                          <div key={g.id} style={{ fontSize:10, background:'var(--bg)', border:'1px solid var(--border)', borderRadius:5, padding:'2px 6px' }}>
+                            <span style={{ fontWeight:500 }}>{g.guest_name}</span>
+                            <span style={{ color:'var(--muted)', marginLeft:4 }}>
+                              {g.check_in ? new Date(g.check_in.slice(0,10)+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}) : ''}
+                              {g.check_out ? ` – ${new Date(g.check_out.slice(0,10)+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})}` : ''}
+                            </span>
+                            {g.confirmation && <span style={{ color:'var(--tan)', marginLeft:4 }}>#{g.confirmation}</span>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   {!l._isHotel && (
                     <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11, flexShrink:0 }} onClick={() => deleteLocation(l.id)}>✕</button>
@@ -311,33 +325,6 @@ export default function Overview({ project, setProject, onTabChange }) {
         })}
       </div>
 
-      {/* Hotel Blocks */}
-      {project.hotelBlocks?.length > 0 && (
-        <>
-          <div className="sec-lbl">Hotel Accommodations</div>
-          <div style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:16 }}>
-            {project.hotelBlocks.map(hb => (
-              <div key={hb.id} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'12px 16px' }}>
-                <div style={{ fontWeight:600, fontSize:13, marginBottom: hb.guests?.length ? 8 : 0 }}>🏨 {hb.name}</div>
-                {hb.guests?.length > 0 && (
-                  <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
-                    {hb.guests.map(g => (
-                      <div key={g.id} style={{ fontSize:11, background:'var(--bg)', border:'1px solid var(--border)', borderRadius:6, padding:'3px 8px' }}>
-                        <span style={{ fontWeight:500 }}>{g.guest_name}</span>
-                        <span style={{ color:'var(--muted)', marginLeft:6 }}>
-                          {g.check_in ? new Date(g.check_in.slice(0,10)+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}) : ''}
-                          {g.check_out ? ` – ${new Date(g.check_out.slice(0,10)+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})}` : ''}
-                        </span>
-                        {g.confirmation && <span style={{ color:'var(--tan)', marginLeft:6 }}>#{g.confirmation}</span>}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </>
-      )}
 
       {/* Edit Info Modal */}
       {editInfo && (
