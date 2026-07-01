@@ -2,6 +2,22 @@ import React, { useEffect, useState } from 'react';
 import { api } from '../../api.js';
 import { displayName } from '../../utils/displayName.js';
 
+function DietaryBadge({ value }) {
+  const [show, setShow] = useState(false);
+  if (!value || value === 'N/A') return <span style={{ color:'var(--muted)', fontSize:11 }}>—</span>;
+  return (
+    <div style={{ position:'relative', display:'inline-block' }}>
+      <span style={{ cursor:'pointer', fontSize:14 }} onClick={() => setShow(s => !s)} title={value}>⚠️</span>
+      {show && (
+        <div style={{ position:'absolute', right:0, top:'100%', marginTop:4, zIndex:99, background:'var(--bg)', border:'1px solid var(--border)', borderRadius:6, padding:'6px 10px', fontSize:11, color:'var(--text)', whiteSpace:'nowrap', boxShadow:'0 4px 12px rgba(0,0,0,0.3)', minWidth:120 }}>
+          {value}
+          <div style={{ marginTop:4, fontSize:10, color:'var(--muted)', cursor:'pointer' }} onClick={() => setShow(false)}>✕ close</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function initials(name) {
   return name?.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase() || '??';
 }
@@ -29,6 +45,8 @@ export default function Crew({ project, onProjectUpdate }) {
   const [talentForm, setTalentForm] = useState({ name:'', role:'' });
   const [editTalent, setEditTalent] = useState(null);
   const [editTalentForm, setEditTalentForm] = useState({ name:'', role:'', phone:'', email:'', notes:'', dietaryRestrictions:'', callTime:'' });
+  const [talentDays, setTalentDays] = useState([]);
+  const [talentDayCallsForm, setTalentDayCallsForm] = useState({});
 
   useEffect(() => {
     Promise.all([
@@ -159,7 +177,13 @@ export default function Crew({ project, onProjectUpdate }) {
   async function saveEditTalent(e) {
     e.preventDefault();
     try {
-      const t = await api.updateTalent(project.id, editTalent.id, editTalentForm);
+      const dayCalls = Object.entries(talentDayCallsForm)
+        .filter(([, v]) => v)
+        .map(([shootDayId, callTime]) => ({ shootDayId, callTime }));
+      const [t] = await Promise.all([
+        api.updateTalent(project.id, editTalent.id, editTalentForm),
+        api.saveTalentDayCalls(project.id, editTalent.id, dayCalls),
+      ]);
       if (onProjectUpdate) onProjectUpdate(p => ({ ...p, keyTalent: p.keyTalent.map(x => x.id === t.id ? { ...x, ...t } : x) }));
       setEditTalent(null);
     } catch(e) { alert(e.message); }
@@ -233,8 +257,8 @@ export default function Crew({ project, onProjectUpdate }) {
                   </td>
                   <td style={{ fontSize:11, color:'var(--tan)', whiteSpace:'nowrap' }}>{a.crewMember?.phone || '—'}</td>
                   <td style={{ fontSize:11, color:'var(--muted)' }}>{a.crewMember?.email || '—'}</td>
-                  <td style={{ fontSize:13, textAlign:'center' }} title={a.crewMember?.dietaryRestrictions || ''}>
-                    {a.crewMember?.dietaryRestrictions && a.crewMember.dietaryRestrictions !== 'N/A' ? '⚠️' : '—'}
+                  <td style={{ textAlign:'center' }}>
+                    <DietaryBadge value={a.crewMember?.dietaryRestrictions} />
                   </td>
                   <td>
                     {editId === a.id
@@ -305,7 +329,20 @@ export default function Crew({ project, onProjectUpdate }) {
                     <td style={{ fontSize:11, color:'var(--muted)', whiteSpace:'nowrap' }}>{t.call_time || '—'}</td>
                     <td style={{ textAlign:'right' }}>
                       <div style={{ display:'flex', gap:6, justifyContent:'flex-end' }}>
-                        <button className="btn btn-ghost btn-sm" onClick={() => { setEditTalent(t); setEditTalentForm({ name: t.name, role: t.role, phone: t.phone||'', email: t.email||'', notes: t.notes||'', dietaryRestrictions: t.dietary_restrictions||'', callTime: t.call_time||'' }); }}>Edit</button>
+                        <button className="btn btn-ghost btn-sm" onClick={() => {
+                          setEditTalent(t);
+                          setEditTalentForm({ name: t.name, role: t.role, phone: t.phone||'', email: t.email||'', notes: t.notes||'', dietaryRestrictions: t.dietary_restrictions||'', callTime: t.call_time||'' });
+                          setTalentDayCallsForm({});
+                          Promise.all([
+                            api.getSchedule(project.id),
+                            api.getTalentDayCalls(project.id, t.id),
+                          ]).then(([days, calls]) => {
+                            setTalentDays(days);
+                            const m = {};
+                            calls.forEach(c => { m[c.shoot_day_id] = c.call_time || ''; });
+                            setTalentDayCallsForm(m);
+                          }).catch(() => {});
+                        }}>Edit</button>
                         <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text)' }} onClick={() => deleteTalent(t.id)}>✕</button>
                       </div>
                     </td>
@@ -508,10 +545,27 @@ export default function Crew({ project, onProjectUpdate }) {
                 <div className="field"><label>Role / Title</label><input value={editTalentForm.role} onChange={e => setEditTalentForm(f=>({...f,role:e.target.value}))} required /></div>
                 <div className="field"><label>Phone</label><input value={editTalentForm.phone} onChange={e => setEditTalentForm(f=>({...f,phone:e.target.value}))} placeholder="555-123-4567" /></div>
                 <div className="field"><label>Email</label><input type="email" value={editTalentForm.email} onChange={e => setEditTalentForm(f=>({...f,email:e.target.value}))} /></div>
-                <div className="field"><label>Dietary Restrictions</label><input value={editTalentForm.dietaryRestrictions} onChange={e => setEditTalentForm(f=>({...f,dietaryRestrictions:e.target.value}))} placeholder="Vegetarian, nut allergy…" /></div>
-                <div className="field"><label>Call Time</label><input type="time" value={editTalentForm.callTime} onChange={e => setEditTalentForm(f=>({...f,callTime:e.target.value}))} /></div>
+                <div className="field span2"><label>Dietary Restrictions</label><input value={editTalentForm.dietaryRestrictions} onChange={e => setEditTalentForm(f=>({...f,dietaryRestrictions:e.target.value}))} placeholder="Vegetarian, nut allergy…" /></div>
                 <div className="field span2"><label>Notes</label><textarea value={editTalentForm.notes} onChange={e => setEditTalentForm(f=>({...f,notes:e.target.value}))} rows={3} /></div>
               </div>
+              {talentDays.length > 0 && (
+                <div style={{ marginBottom:12 }}>
+                  <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)', marginBottom:8 }}>Call Times by Day</div>
+                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'6px 12px' }}>
+                    {talentDays.map((day, i) => {
+                      const dateLabel = day.date ? new Date(day.date.slice(0,10)+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '';
+                      return (
+                        <React.Fragment key={day.id}>
+                          <div style={{ display:'flex', alignItems:'center', fontSize:12, color:'var(--text)', fontWeight:500 }}>
+                            Day {i+1}{dateLabel ? ` — ${dateLabel}` : ''}
+                          </div>
+                          <input type="time" value={talentDayCallsForm[day.id] || ''} onChange={e => setTalentDayCallsForm(m => ({ ...m, [day.id]: e.target.value }))} />
+                        </React.Fragment>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
               <div className="btn-row">
                 <button className="btn btn-primary">Save</button>
                 <button type="button" className="btn btn-ghost" onClick={() => setEditTalent(null)}>Cancel</button>

@@ -422,6 +422,16 @@ async function migrate() {
 
   await sql`ALTER TABLE key_talent ADD COLUMN IF NOT EXISTS call_time TEXT`;
 
+  await sql`
+    CREATE TABLE IF NOT EXISTS talent_day_calls (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      talent_id TEXT NOT NULL REFERENCES key_talent(id) ON DELETE CASCADE,
+      shoot_day_id TEXT NOT NULL REFERENCES shoot_days(id) ON DELETE CASCADE,
+      call_time TEXT,
+      UNIQUE(talent_id, shoot_day_id)
+    )
+  `;
+
   console.log('Migration complete.');
 }
 

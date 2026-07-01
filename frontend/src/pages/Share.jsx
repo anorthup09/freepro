@@ -486,7 +486,7 @@ function ProducerView({ data }) {
       {crewAssignments?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Crew</div>
-          <ShareTable cols={['Position','Name','Email','Phone','Dietary']} colClasses={['','','','nowrap','']} rows={crewAssignments.map(a => [a.position.name, a.crewMember ? displayName(a.crewMember)||'TBD' : 'TBD', a.crewMember?.email||'—', a.crewMember?.phone||'—', a.crewMember?.dietaryRestrictions || '—'])} />
+          <ShareTable cols={['Position','Name','Email','Phone','Dietary']} colClasses={['','','','nowrap','']} rows={crewAssignments.map(a => [a.position.name, a.crewMember ? displayName(a.crewMember)||'TBD' : 'TBD', a.crewMember?.email||'—', a.crewMember?.phone||'—', <DietaryCell key={a.id} value={a.crewMember?.dietaryRestrictions} />])} />
         </section>
       )}
 
@@ -733,9 +733,6 @@ function TalentView({ data }) {
   const { project, talent_name, locations, techSpecs, clientContacts, keyTalent, productionCrew, schedule } = data;
   const scheduleRef = useRef(null);
 
-  const talentRecord = (keyTalent || []).find(t => t.name === talent_name);
-  const callTime = talentRecord?.call_time ? fmtTime(talentRecord.call_time) : null;
-
   // Only show days that have at least one event tagged for this talent
   const filteredSchedule = [...(schedule || [])].sort((a,b) => (a.date||'').localeCompare(b.date||'')).map(day => ({
     ...day,
@@ -755,19 +752,11 @@ function TalentView({ data }) {
               <span className="meta">{fmt(project.start_date)} – {fmt(project.end_date)}</span>
             </div>
           </div>
-          <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:8, flexShrink:0 }}>
-            {callTime && (
-              <div style={{ textAlign:'right' }}>
-                <div style={{ fontSize:11, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:2 }}>Call Time</div>
-                <div style={{ fontSize:26, fontWeight:800, color:'var(--text)', letterSpacing:'-0.02em', lineHeight:1 }}>{callTime}</div>
-              </div>
-            )}
-            {filteredSchedule.length > 0 && (
-              <button onClick={() => scheduleRef.current?.scrollIntoView({ behavior:'smooth' })} style={{ padding:'6px 14px', fontSize:12, fontWeight:600, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:6, color:'var(--text)', cursor:'pointer', whiteSpace:'nowrap' }}>
-                Jump to Schedule ↓
-              </button>
-            )}
-          </div>
+          {filteredSchedule.length > 0 && (
+            <button onClick={() => scheduleRef.current?.scrollIntoView({ behavior:'smooth' })} style={{ flexShrink:0, marginTop:4, padding:'6px 14px', fontSize:12, fontWeight:600, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:6, color:'var(--text)', cursor:'pointer', whiteSpace:'nowrap' }}>
+              Jump to Schedule ↓
+            </button>
+          )}
         </div>
       </div>
 
@@ -830,7 +819,7 @@ function TalentView({ data }) {
           </section>
         )}
         {filteredSchedule.map((day, i) => (
-          <DaySection key={day.id} day={day} showCalls={false} dayIndex={i} />
+          <DaySection key={day.id} day={day} showCalls={false} dayIndex={i} talentCallTime={day.talent_call_time} />
         ))}
       </div>
     </div>
@@ -883,7 +872,23 @@ function flightTime(f, leg) {
   return f.arrive_time ? new Date(f.arrive_time).toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' }) : '';
 }
 
-function DaySection({ day, showCalls, flights, dayIndex }) {
+function DietaryCell({ value }) {
+  const [show, setShow] = useState(false);
+  if (!value || value === 'N/A') return <span>—</span>;
+  return (
+    <div style={{ position:'relative', display:'inline-block' }}>
+      <span style={{ cursor:'pointer', fontSize:14 }} onClick={() => setShow(s => !s)}>⚠️</span>
+      {show && (
+        <div style={{ position:'absolute', right:0, top:'100%', marginTop:4, zIndex:99, background:'var(--bg)', border:'1px solid var(--border)', borderRadius:6, padding:'6px 10px', fontSize:11, color:'var(--text)', whiteSpace:'nowrap', boxShadow:'0 4px 12px rgba(0,0,0,0.3)', minWidth:120 }}>
+          {value}
+          <div style={{ marginTop:4, fontSize:10, color:'var(--muted)', cursor:'pointer' }} onClick={() => setShow(false)}>✕ close</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DaySection({ day, showCalls, flights, dayIndex, talentCallTime }) {
   const [open, setOpen] = useState(true);
   const now = useNow();
 
@@ -931,11 +936,19 @@ function DaySection({ day, showCalls, flights, dayIndex }) {
             {weatherStr || 'Weather coming soon'}
           </div>
         </div>
-        {allItems.length > 0 && (
-          <button onClick={() => setOpen(o => !o)} style={{ background:'none', border:'none', color:'var(--muted)', fontSize:11, cursor:'pointer', padding:0 }}>
-            {open ? 'Collapse' : `Show (${allItems.length})`}
-          </button>
-        )}
+        <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4 }}>
+          {talentCallTime && (
+            <div style={{ textAlign:'right' }}>
+              <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', lineHeight:1, marginBottom:2 }}>Call Time</div>
+              <div style={{ fontSize:20, fontWeight:800, color:'var(--text)', letterSpacing:'-0.02em', lineHeight:1 }}>{fmtTime(talentCallTime)}</div>
+            </div>
+          )}
+          {allItems.length > 0 && (
+            <button onClick={() => setOpen(o => !o)} style={{ background:'none', border:'none', color:'var(--muted)', fontSize:11, cursor:'pointer', padding:0 }}>
+              {open ? 'Collapse' : `Show (${allItems.length})`}
+            </button>
+          )}
+        </div>
       </div>
 
       {(day.call_time || day.wrap_time) && (
