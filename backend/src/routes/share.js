@@ -107,7 +107,7 @@ router.get('/:token', async (req, res, next) => {
       return {
         ...day,
         totalDays,
-        events: events.map(e => ({ ...e, location: e.location_name ? { name: e.location_name, address: e.location_address } : null })),
+        events: events.map(e => ({ ...e, tags: e.tags || [], location: e.location_name ? { name: e.location_name, address: e.location_address } : null })),
         crewCalls: crewCalls.map(c => ({
           ...c,
           crewAssignment: { id: c.crew_assignment_id, positionId: c.position_id, slotNumber: c.slot_number, position: { name: c.position_name }, crewMember: c.cm_id ? { id: c.cm_id, name: c.cm_name, preferredFirstName: c.cm_pref_first, preferredLastName: c.cm_pref_last, phone: c.cm_phone } : null }
