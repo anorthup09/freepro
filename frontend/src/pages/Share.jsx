@@ -344,6 +344,50 @@ function SpecTiles({ techSpecs }) {
   );
 }
 
+function FlightStatusCell({ f }) {
+  const now = useNow();
+  const s = flightStatus(f, now);
+  if (s) {
+    return (
+      <div style={{ display:'flex', alignItems:'center', gap:5 }}>
+        <div style={{ width:7, height:7, borderRadius:'50%', background:s.dot, flexShrink:0 }} />
+        <span style={{ fontSize:11, fontWeight:600, color:s.color, textTransform:'uppercase', letterSpacing:'0.05em' }}>{s.label}</span>
+      </div>
+    );
+  }
+  return (
+    <div style={{ display:'flex', alignItems:'center', gap:5 }}>
+      <div style={{ width:7, height:7, borderRadius:'50%', border:'1.5px solid var(--orange)', flexShrink:0 }} />
+      <span style={{ fontSize:11, color:'var(--orange)', fontStyle:'italic' }}>Status Coming Soon</span>
+    </div>
+  );
+}
+
+function FlightsTable({ flights }) {
+  return (
+    <table className="share-table">
+      <thead>
+        <tr>
+          {['Passenger','Route','Departure','Arrival','Flight','Confirmation','Status'].map(c => <th key={c}>{c}</th>)}
+        </tr>
+      </thead>
+      <tbody>
+        {flights.map((f, i) => (
+          <tr key={i}>
+            <td>{f.crew_name || f.passenger_name || '—'}</td>
+            <td>{f.origin} → {f.destination}</td>
+            <td className="nowrap">{f.depart_display || fmtDT(f.depart_time)}</td>
+            <td className="nowrap">{f.arrive_display || fmtDT(f.arrive_time)}</td>
+            <td className="nowrap">{[f.airline, f.flight_number].filter(Boolean).join(' ') || '—'}</td>
+            <td>{f.confirmation || '—'}</td>
+            <td><FlightStatusCell f={f} /></td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
 // ── Producer View ────────────────────────────────────────────────────────────
 function ProducerView({ data }) {
   const { project, locations, techSpecs, clientContacts, keyTalent, crewAssignments, schedule, flights, hotelBlocks, rentalCars, deliverables, gear, onlineRentals = [] } = data;
@@ -406,17 +450,7 @@ function ProducerView({ data }) {
       {flights?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Flights</div>
-          <ShareTable
-            cols={['Passenger','Route','Departure','Arrival','Flight','Confirmation']}
-            rows={flights.map(f => [
-              f.crew_name || f.passenger_name || '—',
-              `${f.origin} → ${f.destination}`,
-              f.depart_display || fmtDT(f.depart_time),
-              f.arrive_display || fmtDT(f.arrive_time),
-              [f.airline, f.flight_number].filter(Boolean).join(' ') || '—',
-              f.confirmation || '—',
-            ])}
-          />
+          <FlightsTable flights={flights} />
         </section>
       )}
 
