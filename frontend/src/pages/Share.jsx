@@ -15,7 +15,7 @@ function useNow() {
 function flightStatus(f, now) {
   const depart = f.depart_time ? new Date(f.depart_time) : null;
   const arrive = f.arrive_time ? new Date(f.arrive_time) : null;
-  if (!depart) return null;
+  if (!depart) return { label: 'Status Coming Soon', color: 'var(--orange)', dot: null };
   if (now < depart) return { label: 'Pre-flight', color: '#6b7280', dot: '#6b7280' };
   if (arrive && now < arrive) return { label: 'In-flight', color: '#60a5fa', dot: '#60a5fa' };
   return { label: 'Arrived', color: '#22c55e', dot: '#22c55e' };
@@ -347,18 +347,10 @@ function SpecTiles({ techSpecs }) {
 function FlightStatusCell({ f }) {
   const now = useNow();
   const s = flightStatus(f, now);
-  if (s) {
-    return (
-      <div style={{ display:'flex', alignItems:'center', gap:5 }}>
-        <div style={{ width:7, height:7, borderRadius:'50%', background:s.dot, flexShrink:0 }} />
-        <span style={{ fontSize:11, fontWeight:600, color:s.color, textTransform:'uppercase', letterSpacing:'0.05em' }}>{s.label}</span>
-      </div>
-    );
-  }
   return (
     <div style={{ display:'flex', alignItems:'center', gap:5 }}>
-      <div style={{ width:7, height:7, borderRadius:'50%', border:'1.5px solid var(--orange)', flexShrink:0 }} />
-      <span style={{ fontSize:11, color:'var(--orange)', fontStyle:'italic' }}>Status Coming Soon</span>
+      <div style={{ width:7, height:7, borderRadius:'50%', background: s.dot || 'transparent', border: s.dot ? 'none' : '1.5px solid var(--orange)', flexShrink:0 }} />
+      <span style={{ fontSize:11, fontWeight: s.dot ? 600 : 400, color:s.color, textTransform:'uppercase', letterSpacing:'0.05em', fontStyle: s.dot ? 'normal' : 'italic' }}>{s.label}</span>
     </div>
   );
 }
@@ -993,8 +985,8 @@ function DaySection({ day, showCalls, flights, dayIndex }) {
                       <div className="ev-title" style={{ color:'var(--orange)' }}>{item._leg === 'depart' ? 'Departure' : 'Arrival'} — {item.crew_name || item.passenger_name}</div>
                       {(() => { const s = flightStatus(item, now); return s ? (
                         <div style={{ display:'flex', alignItems:'center', gap:5, flexShrink:0, background:'rgba(0,0,0,0.25)', borderRadius:20, padding:'3px 10px' }}>
-                          <div style={{ width:6, height:6, borderRadius:'50%', background:s.dot }} />
-                          <span style={{ fontSize:10, fontWeight:600, color:s.color, textTransform:'uppercase', letterSpacing:'0.06em' }}>{s.label}</span>
+                          <div style={{ width:6, height:6, borderRadius:'50%', background: s.dot || 'transparent', border: s.dot ? 'none' : '1.5px solid var(--orange)', flexShrink:0 }} />
+                          <span style={{ fontSize:10, fontWeight:600, color:s.color, textTransform:'uppercase', letterSpacing:'0.06em', fontStyle: s.dot ? 'normal' : 'italic' }}>{s.label}</span>
                         </div>
                       ) : null; })()}
                     </div>
