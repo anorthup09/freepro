@@ -428,6 +428,9 @@ async function migrate() {
   await sql`ALTER TABLE schedule_events ADD COLUMN IF NOT EXISTS is_shooting_call BOOLEAN DEFAULT FALSE`;
   await sql`ALTER TABLE schedule_events ADD COLUMN IF NOT EXISTS is_lunch BOOLEAN DEFAULT FALSE`;
 
+  await sql`ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS shooting_call_time TEXT`;
+  await sql`ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS lunch_time TEXT`;
+
   await sql`
     CREATE TABLE IF NOT EXISTS talent_day_calls (
       id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,

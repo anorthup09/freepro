@@ -971,7 +971,15 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
     return legs;
   });
 
+  const syntheticDayItems = tagFilter ? [] : [
+    day.call_time         && { _type:'synthetic', _key:'ct',  _sort: timeToMins(day.call_time),          startTime: day.call_time,          title:'General Call Time' },
+    day.shooting_call_time && { _type:'synthetic', _key:'sct', _sort: timeToMins(day.shooting_call_time), startTime: day.shooting_call_time, title:'Shooting Call' },
+    day.lunch_time        && { _type:'synthetic', _key:'lt',  _sort: timeToMins(day.lunch_time),          startTime: day.lunch_time,         title:'Lunch' },
+    day.wrap_time         && { _type:'synthetic', _key:'wt',  _sort: timeToMins(day.wrap_time),           startTime: day.wrap_time,          title:'Est. Wrap' },
+  ].filter(Boolean);
+
   const allItems = [
+    ...syntheticDayItems,
     ...filteredDay.events.map(e => ({ _type:'event', _sort: timeToMins(e.start_time), ...e })),
     ...(tagFilter ? [] : flightLegs.map(f => ({ _type:'flight', _sort: timeToMins(f._time), ...f }))),
   ].sort((a, b) => a._sort - b._sort);
@@ -1018,18 +1026,13 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
           {day.wrap_time && <span>Wrap: <strong>{fmtTime(day.wrap_time)}</strong></span>}
         </div>
       )}
-      {!hideCallWrap && (() => {
-        const shootingCall = day.events?.find(e => e.is_shooting_call);
-        const lunch = day.events?.find(e => e.is_lunch);
-        if (!shootingCall && !lunch) return null;
-        return (
-          <div style={{ fontSize:11, color:'var(--tan)', marginTop:2 }}>
-            {shootingCall && <span>Shooting Call: <strong>{fmtTime(shootingCall.start_time)}</strong></span>}
-            {shootingCall && lunch && <span style={{ margin:'0 8px', color:'var(--muted)' }}>·</span>}
-            {lunch && <span>Lunch: <strong>{fmtTime(lunch.start_time)}</strong></span>}
-          </div>
-        );
-      })()}
+      {!hideCallWrap && (day.shooting_call_time || day.lunch_time) && (
+        <div style={{ fontSize:11, color:'var(--tan)', marginTop:2 }}>
+          {day.shooting_call_time && <span>Shooting Call: <strong>{fmtTime(day.shooting_call_time)}</strong></span>}
+          {day.shooting_call_time && day.lunch_time && <span style={{ margin:'0 8px', color:'var(--muted)' }}>·</span>}
+          {day.lunch_time && <span>Lunch: <strong>{fmtTime(day.lunch_time)}</strong></span>}
+        </div>
+      )}
 
       {showCalls && day.crewCalls?.length > 0 && (
         <div style={{ marginTop:8 }}>
@@ -1046,7 +1049,14 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
 
       {allItems.length > 0 && open && (
         <div className="tl" style={{ marginTop:8 }}>
-              {allItems.map((item, i) => item._type === 'flight' ? (
+              {allItems.map((item, i) => item._type === 'synthetic' ? (
+                <div key={item._key} className="ev">
+                  <div className="ev-time">{fmtTime(item.startTime)}</div>
+                  <div className="ev-body" style={{ borderLeft:'2px solid var(--border2)', background:'transparent' }}>
+                    <div className="ev-title" style={{ color:'var(--muted)', fontWeight:500 }}>{item.title}</div>
+                  </div>
+                </div>
+              ) : item._type === 'flight' ? (
                 <div key={`f-${item.id}-${item._leg}`} className="ev">
                   <div className="ev-time">✈ {item._time}</div>
                   <div className="ev-body" style={{ borderLeft:'2px solid var(--orange)' }}>

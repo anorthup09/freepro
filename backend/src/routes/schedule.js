@@ -74,6 +74,8 @@ router.patch('/:id/schedule/days/:dayId', requireAuth, requireRole('ADMIN','PROD
     const [day] = await sql`
       UPDATE shoot_days SET
         call_time=COALESCE(${d.callTime??null},call_time), wrap_time=COALESCE(${d.wrapTime??null},wrap_time),
+        shooting_call_time=${d.shootingCallTime !== undefined ? (d.shootingCallTime||null) : sql`shooting_call_time`},
+        lunch_time=${d.lunchTime !== undefined ? (d.lunchTime||null) : sql`lunch_time`},
         weather=COALESCE(${d.weather??null},weather), notes=COALESCE(${d.notes??null},notes),
         crew_lunch=${d.crewLunch !== undefined ? (d.crewLunch||null) : sql`crew_lunch`},
         gear_storage=${d.gearStorage !== undefined ? (d.gearStorage||null) : sql`gear_storage`},
