@@ -12,10 +12,14 @@ function useNow() {
   return now;
 }
 
+const COMING_SOON = { label: 'Status Coming Soon', color: 'var(--orange)', dot: null };
 function flightStatus(f, now) {
   const depart = f.depart_time ? new Date(f.depart_time) : null;
   const arrive = f.arrive_time ? new Date(f.arrive_time) : null;
-  if (!depart) return { label: 'Status Coming Soon', color: 'var(--orange)', dot: null };
+  if (!depart) return COMING_SOON;
+  const todayStr = now.toISOString().slice(0, 10);
+  const departStr = depart.toISOString().slice(0, 10);
+  if (todayStr < departStr) return COMING_SOON;
   if (now < depart) return { label: 'Pre-flight', color: '#6b7280', dot: '#6b7280' };
   if (arrive && now < arrive) return { label: 'In-flight', color: '#60a5fa', dot: '#60a5fa' };
   return { label: 'Arrived', color: '#22c55e', dot: '#22c55e' };
