@@ -856,9 +856,20 @@ function timeToMins(str) {
 
 function isoDate(ts) { if (!ts) return null; return new Date(ts).toISOString().slice(0, 10); }
 
+function extractTime(display) {
+  if (!display) return null;
+  const m = display.match(/(\d{1,2}:\d{2}\s*(?:AM|PM))/i);
+  return m ? m[1] : null;
+}
 function flightTime(f, leg) {
-  if (leg === 'depart') return f.depart_display || (f.depart_time ? new Date(f.depart_time).toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' }) : '');
-  return f.arrive_display || (f.arrive_time ? new Date(f.arrive_time).toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' }) : '');
+  if (leg === 'depart') {
+    const t = extractTime(f.depart_display);
+    if (t) return t;
+    return f.depart_time ? new Date(f.depart_time).toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' }) : '';
+  }
+  const t = extractTime(f.arrive_display);
+  if (t) return t;
+  return f.arrive_time ? new Date(f.arrive_time).toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' }) : '';
 }
 
 function DaySection({ day, showCalls, flights, dayIndex }) {
@@ -870,12 +881,14 @@ function DaySection({ day, showCalls, flights, dayIndex }) {
     const legs = [];
     const departMD = f.depart_display ? displayMD(f.depart_display) : null;
     const arriveMD = f.arrive_display ? displayMD(f.arrive_display) : null;
-    const departMatch = departMD
-      ? (dayMD && departMD === dayMD)
-      : (f.depart_time && isoDate(new Date(f.depart_time)) === dayStr);
-    const arriveMatch = arriveMD
-      ? (dayMD && arriveMD === dayMD)
-      : (f.arrive_time && isoDate(new Date(f.arrive_time)) === dayStr);
+    const departMatch =
+      (departMD && dayMD && departMD === dayMD) ||
+      (!departMD && f.depart_time && isoDate(new Date(f.depart_time)) === dayStr) ||
+      (departMD && f.depart_time && isoDate(new Date(f.depart_time)) === dayStr);
+    const arriveMatch =
+      (arriveMD && dayMD && arriveMD === dayMD) ||
+      (!arriveMD && f.arrive_time && isoDate(new Date(f.arrive_time)) === dayStr) ||
+      (arriveMD && f.arrive_time && isoDate(new Date(f.arrive_time)) === dayStr);
     if (departMatch) legs.push({ ...f, _leg:'depart', _time: flightTime(f,'depart') });
     if (arriveMatch) legs.push({ ...f, _leg:'arrive', _time: flightTime(f,'arrive') });
     return legs;
