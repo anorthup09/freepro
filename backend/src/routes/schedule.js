@@ -4,26 +4,26 @@ const sql = require('../lib/db');
 const { requireAuth, requireRole } = require('../middleware/auth');
 
 async function getDayFull(dayId) {
-  const [day] = await sql`SELECT * FROM shoot_days WHERE id = ${dayId}`;
-  if (!day) return null;
-  const events = await sql`
-    SELECT se.*, json_agg(DISTINCT jsonb_build_object('id',et.id,'type',et.type,'label',et.label)) FILTER (WHERE et.id IS NOT NULL) as tags,
+  const [[day], events, crewCalls] = await Promise.all([
+    sql`SELECT * FROM shoot_days WHERE id = ${dayId}`,
+    sql`SELECT se.*, json_agg(DISTINCT jsonb_build_object('id',et.id,'type',et.type,'label',et.label)) FILTER (WHERE et.id IS NOT NULL) as tags,
            l.name as location_name, l.address as location_address
     FROM schedule_events se
     LEFT JOIN event_tags et ON et.event_id = se.id
     LEFT JOIN locations l ON l.id = se.location_id
     WHERE se.shoot_day_id = ${dayId}
     GROUP BY se.id, l.name, l.address
-    ORDER BY se.start_time`;
-  const crewCalls = await sql`
-    SELECT cdc.*, ca.slot_number, ca.position_id, p.name as position_name,
+    ORDER BY se.start_time`,
+    sql`SELECT cdc.*, ca.slot_number, ca.position_id, p.name as position_name,
            cm.id as cm_id, cm.name as cm_name, cm.phone as cm_phone
     FROM crew_day_calls cdc
     JOIN crew_assignments ca ON ca.id = cdc.crew_assignment_id
     JOIN positions p ON p.id = ca.position_id
     LEFT JOIN crew_members cm ON cm.id = ca.crew_member_id
     WHERE cdc.shoot_day_id = ${dayId}
-    ORDER BY p.sort_order, ca.slot_number`;
+    ORDER BY p.sort_order, ca.slot_number`,
+  ]);
+  if (!day) return null;
   return {
     ...day,
     events: events.map(e => ({ ...e, tags: e.tags || [], location: e.location_name ? { name: e.location_name, address: e.location_address } : null })),
@@ -34,12 +34,42 @@ async function getDayFull(dayId) {
   };
 }
 
-// GET /api/projects/:id/schedule
+// GET /api/projects/:id/schedule — fetch all days in 3 parallel bulk queries instead of N×3
 router.get('/:id/schedule', requireAuth, async (req, res, next) => {
   try {
     const days = await sql`SELECT * FROM shoot_days WHERE project_id = ${req.params.id} ORDER BY day_number`;
-    const full = await Promise.all(days.map(d => getDayFull(d.id)));
-    res.json(full);
+    if (days.length === 0) return res.json([]);
+    const dayIds = days.map(d => d.id);
+
+    const [events, crewCalls] = await Promise.all([
+      sql`SELECT se.*, json_agg(DISTINCT jsonb_build_object('id',et.id,'type',et.type,'label',et.label)) FILTER (WHERE et.id IS NOT NULL) as tags,
+             l.name as location_name, l.address as location_address
+          FROM schedule_events se
+          LEFT JOIN event_tags et ON et.event_id = se.id
+          LEFT JOIN locations l ON l.id = se.location_id
+          WHERE se.shoot_day_id = ANY(${sql.array(dayIds)})
+          GROUP BY se.id, l.name, l.address
+          ORDER BY se.start_time`,
+      sql`SELECT cdc.*, ca.slot_number, ca.position_id, p.name as position_name,
+             cm.id as cm_id, cm.name as cm_name, cm.phone as cm_phone
+          FROM crew_day_calls cdc
+          JOIN crew_assignments ca ON ca.id = cdc.crew_assignment_id
+          JOIN positions p ON p.id = ca.position_id
+          LEFT JOIN crew_members cm ON cm.id = ca.crew_member_id
+          WHERE cdc.shoot_day_id = ANY(${sql.array(dayIds)})
+          ORDER BY p.sort_order, ca.slot_number`,
+    ]);
+
+    const eventsByDay = {};
+    const callsByDay = {};
+    for (const e of events) {
+      (eventsByDay[e.shoot_day_id] ||= []).push({ ...e, tags: e.tags || [], location: e.location_name ? { name: e.location_name, address: e.location_address } : null });
+    }
+    for (const c of crewCalls) {
+      (callsByDay[c.shoot_day_id] ||= []).push({ ...c, crewAssignment: { id: c.crew_assignment_id, positionId: c.position_id, slotNumber: c.slot_number, position: { name: c.position_name }, crewMember: c.cm_id ? { id: c.cm_id, name: c.cm_name, phone: c.cm_phone } : null } });
+    }
+
+    res.json(days.map(d => ({ ...d, events: eventsByDay[d.id] || [], crewCalls: callsByDay[d.id] || [] })));
   } catch(e){next(e);}
 });
 
