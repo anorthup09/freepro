@@ -80,48 +80,51 @@ function GearSection({ gear, onlineRentals = [], producerView }) {
         </div>
       )}
 
-      {/* Rental House + Online Rentals side by side */}
+      {/* Rental House + Online Rentals side by side as tiles */}
       {(hasRental || onlineRentals.length > 0) && (
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:10 }}>
-          <div>
-            <span style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em' }}>Rental House</span>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:12 }}>
+          <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding:'14px 16px' }}>
+            <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:8, fontWeight:600 }}>Rental House</div>
             {hasRental ? (
               <>
-                <div style={{ fontSize:13, color:'var(--text)', marginTop:3, fontWeight:500 }}>{gear.rental_company || '—'}</div>
+                <div style={{ fontSize:14, color:'var(--text)', fontWeight:600, marginBottom:4 }}>{gear.rental_company || '—'}</div>
                 {(gear.rental_contact || gear.rental_phone || gear.rental_email) && (
-                  <div style={{ fontSize:12, color:'var(--tan)', marginTop:2 }}>
-                    {[gear.rental_contact, gear.rental_phone, gear.rental_email].filter(Boolean).join(' · ')}
+                  <div style={{ fontSize:12, color:'var(--tan)', lineHeight:1.6 }}>
+                    {gear.rental_contact && <div>{gear.rental_contact}</div>}
+                    {gear.rental_phone && <div>{gear.rental_phone}</div>}
+                    {gear.rental_email && <div>{gear.rental_email}</div>}
                   </div>
                 )}
+                {gear.rental_cost && <div style={{ fontSize:12, color:'var(--green,#4ade80)', fontWeight:600, marginTop:6 }}>Est. ${parseFloat(gear.rental_cost).toFixed(2)}</div>}
               </>
-            ) : <div style={{ fontSize:12, color:'var(--muted)', marginTop:3 }}>—</div>}
+            ) : <div style={{ fontSize:12, color:'var(--muted)' }}>None</div>}
           </div>
-          <div>
-            <span style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em' }}>Online Rentals</span>
+          <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding:'14px 16px' }}>
+            <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:8, fontWeight:600 }}>Online Rentals</div>
             {onlineRentals.length > 0 ? (
-              <div style={{ marginTop:3 }}>
-                {onlineRentals.map(r => (
-                  <div key={r.id} style={{ marginBottom:6, paddingBottom:6, borderBottom:'1px solid var(--border)' }}>
-                    {r.renter_name && <div style={{ fontSize:12, fontWeight:600, color:'var(--text)' }}>{r.renter_name}</div>}
+              <div>
+                {onlineRentals.map((r, idx) => (
+                  <div key={r.id} style={{ marginBottom: idx < onlineRentals.length - 1 ? 10 : 0, paddingBottom: idx < onlineRentals.length - 1 ? 10 : 0, borderBottom: idx < onlineRentals.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                    {r.renter_name && <div style={{ fontSize:13, fontWeight:600, color:'var(--text)', marginBottom:3 }}>{r.renter_name}</div>}
                     {r.confirmation && <div style={{ fontSize:11, color:'var(--muted)' }}>Conf # {r.confirmation}</div>}
-                    {r.tracking_number && <div style={{ fontSize:11, color:'var(--muted)' }}>Tracking: <span style={{ color:'var(--text)' }}>{r.tracking_number}</span></div>}
-                    {r.notes && <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>{r.notes}</div>}
+                    {r.tracking_number && <div style={{ fontSize:11, color:'var(--muted)', marginTop:2 }}>Tracking: <span style={{ color:'var(--text)' }}>{r.tracking_number}</span></div>}
+                    {r.notes && <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic', marginTop:2 }}>{r.notes}</div>}
                   </div>
                 ))}
               </div>
-            ) : <div style={{ fontSize:12, color:'var(--muted)', marginTop:3 }}>—</div>}
+            ) : <div style={{ fontSize:12, color:'var(--muted)' }}>None</div>}
           </div>
         </div>
       )}
 
       {gearList.length > 0 && (
-        <div style={{ marginBottom:10 }}>
-          <span style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em' }}>Gear List</span>
-          <div style={{ marginTop:4 }}>
+        <div style={{ marginBottom:12 }}>
+          <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:8, fontWeight:600 }}>Gear List</div>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
             {gearList.map(g => (
-              <div key={g.label} style={{ display:'flex', gap:8, fontSize:12, marginBottom:3 }}>
-                <span style={{ color:'var(--muted)', minWidth:120 }}>{g.label}</span>
-                <span style={{ color:'var(--text)' }}>{g.value}</span>
+              <div key={g.label} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 12px' }}>
+                <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:6, fontWeight:600 }}>{g.label}</div>
+                <div style={{ fontSize:13, color:'var(--text)', lineHeight:1.5, whiteSpace:'pre-wrap' }}>{g.value}</div>
               </div>
             ))}
           </div>
