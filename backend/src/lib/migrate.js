@@ -370,6 +370,14 @@ async function migrate() {
 
   await sql`ALTER TABLE tech_specs ADD COLUMN IF NOT EXISTS frame_rate TEXT`;
 
+  await sql`ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS weather_high INT`;
+  await sql`ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS weather_low INT`;
+  await sql`ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS weather_sunrise TEXT`;
+  await sql`ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS weather_sunset TEXT`;
+  await sql`ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS weather_precip INT`;
+  await sql`ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS weather_condition TEXT`;
+  await sql`ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS weather_fetched_at TIMESTAMPTZ`;
+
   await sql`INSERT INTO positions (id, name, sort_order) VALUES (gen_random_uuid()::text, 'Post-Production Supervisor', 999) ON CONFLICT (name) DO NOTHING`;
 
   console.log('Migration complete.');

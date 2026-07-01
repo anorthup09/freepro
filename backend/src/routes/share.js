@@ -1,7 +1,39 @@
 const router = require('express').Router();
 const sql = require('../lib/db');
+const { geocode, fetchWeatherForDay } = require('../lib/weather');
 
 const KEY_PRODUCTION_POSITIONS = ['Director', 'Executive Producer', 'Field Producer', 'Producer', 'Line Producer'];
+
+// Refresh weather for shoot days that are missing it or stale (>6h old)
+async function refreshWeather(project, shootDays) {
+  if (!project.city || !project.state || !shootDays.length) return;
+  const stale = shootDays.filter(d => {
+    if (!d.weather_fetched_at) return true;
+    const age = Date.now() - new Date(d.weather_fetched_at).getTime();
+    return age > 6 * 60 * 60 * 1000;
+  });
+  if (!stale.length) return;
+  try {
+    const { lat, lon } = await geocode(project.city, project.state);
+    await Promise.all(stale.map(async day => {
+      try {
+        const dateStr = new Date(day.date).toISOString().slice(0, 10);
+        const w = await fetchWeatherForDay(lat, lon, dateStr);
+        await sql`UPDATE shoot_days SET
+          weather_high=${w.high}, weather_low=${w.low},
+          weather_sunrise=${w.sunrise}, weather_sunset=${w.sunset},
+          weather_precip=${w.precip}, weather_condition=${w.condition},
+          weather_fetched_at=NOW()
+          WHERE id=${day.id}`;
+        Object.assign(day, {
+          weather_high: w.high, weather_low: w.low,
+          weather_sunrise: w.sunrise, weather_sunset: w.sunset,
+          weather_precip: w.precip, weather_condition: w.condition,
+        });
+      } catch(e) { /* leave weather null for this day */ }
+    }));
+  } catch(e) { /* geocode failed, leave all weather null */ }
+}
 
 // GET /share/:token — public, no auth
 router.get('/:token', async (req, res, next) => {
@@ -47,6 +79,9 @@ router.get('/:token', async (req, res, next) => {
     // Load schedule
     const shootDays = await sql`SELECT * FROM shoot_days WHERE project_id = ${projectId} ORDER BY day_number`;
     const totalDays = shootDays.length;
+
+    // Fire-and-forget weather refresh (mutates shootDays rows in place)
+    await refreshWeather(project, shootDays);
 
     const daysWithData = await Promise.all(shootDays.map(async day => {
       const events = await sql`

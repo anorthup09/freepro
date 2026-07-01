@@ -789,10 +789,26 @@ function DaySection({ day, showCalls, flights, dayIndex }) {
     ...flightLegs.map(f => ({ _type:'flight', _sort: timeToMins(f._time), ...f })),
   ].sort((a, b) => a._sort - b._sort);
 
+  const hasWeather = day.weather_high != null || day.weather_condition;
+  const weatherStr = hasWeather
+    ? [
+        day.weather_condition,
+        day.weather_high != null && day.weather_low != null ? `${day.weather_high}°↑ ${day.weather_low}°↓` : null,
+        day.weather_precip != null ? `${day.weather_precip}% precip` : null,
+        day.weather_sunrise ? `☀ ${day.weather_sunrise}` : null,
+        day.weather_sunset  ? `☽ ${day.weather_sunset}`  : null,
+      ].filter(Boolean).join(' · ')
+    : null;
+
   return (
     <section className="share-section">
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-        <div className="sec-lbl" style={{ margin:0 }}>Day {dayIndex != null ? dayIndex + 1 : day.day_number} — {new Date(day.date.slice ? day.date.slice(0,10) + 'T12:00:00' : day.date).toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' })}</div>
+        <div>
+          <div className="sec-lbl" style={{ margin:0 }}>Day {dayIndex != null ? dayIndex + 1 : day.day_number} — {new Date(day.date.slice ? day.date.slice(0,10) + 'T12:00:00' : day.date).toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' })}</div>
+          <div style={{ fontSize:11, color:'var(--muted)', marginTop:2 }}>
+            {weatherStr || 'Weather coming soon'}
+          </div>
+        </div>
         {allItems.length > 0 && (
           <button onClick={() => setOpen(o => !o)} style={{ background:'none', border:'none', color:'var(--muted)', fontSize:11, cursor:'pointer', padding:0 }}>
             {open ? 'Collapse' : `Show (${allItems.length})`}
