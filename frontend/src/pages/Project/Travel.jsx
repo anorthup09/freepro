@@ -310,38 +310,95 @@ export default function Travel({ project }) {
         </div>
         <button className="btn btn-ghost btn-sm" onClick={() => setShowHotel(true)}>+ Add Hotel</button>
       </div>
-      {hotels.map(h => (
-        <div key={h.id} className="h-card">
-          <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between' }}>
-            <div className="h-name">{h.name}</div>
-            <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11, marginLeft:8, flexShrink:0 }} onClick={() => removeHotel(h.id)}>✕</button>
-          </div>
-          <div className="h-addr">
-            {h.address
-              ? <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(h.address)}`} target="_blank" rel="noreferrer" style={{ color:'var(--muted)', textDecoration:'underline' }}>{h.address}</a>
-              : null}
-            {h.phone && ` · ${h.phone}`}
-          </div>
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
-            <span style={{ fontSize:11, color:'var(--muted)' }}>{h.guests.length} confirmation{h.guests.length !== 1 ? 's' : ''}</span>
-            <button className="btn btn-ghost btn-sm" onClick={() => { setGuestHotelId(h.id); setGuestForm({ selectedHotelId:'', crewMemberId:'', guestName:'', confirmation:'', checkIn:'', checkOut:'', cost:'' }); }}>+ Add Confirmation</button>
-          </div>
-          <div className="guests">
-            {h.guests.map(g => (
-              <div key={g.id} className="gc" style={{ position:'relative' }}>
-                <div className="gn">{g.crew_name || g.guest_name}</div>
-                <div className="gconf">{g.confirmation ? `# ${g.confirmation}` : 'No confirmation'}</div>
-                <div className="gdates">{fmt(g.check_in)} – {fmt(g.check_out)}</div>
-                {g.cost && <div style={{ fontSize:10, color:'var(--green)', fontWeight:600 }}>{fmtCost(g.cost)}</div>}
-                <div style={{ position:'absolute', top:4, right:6, display:'flex', gap:6 }}>
-                  <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:10 }} onClick={() => openEditGuest(g, h.id)}>Edit</button>
-                  <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:10 }} onClick={() => removeGuest(h.id, g.id)}>✕</button>
+      {hotels.map(h => {
+        // Build a map: crew_member_id → guest
+        const bookingMap = {};
+        h.guests.forEach(g => { if (g.crew_member_id) bookingMap[g.crew_member_id] = g; });
+        const unlinked = h.guests.filter(g => !g.crew_member_id);
+        const assignedCrew = (project.crewAssignments || []).filter(a => a.crewMember);
+
+        return (
+          <div key={h.id} className="h-card">
+            <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between' }}>
+              <div>
+                <div className="h-name">{h.name}</div>
+                <div className="h-addr">
+                  {h.address
+                    ? <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(h.address)}`} target="_blank" rel="noreferrer" style={{ color:'var(--muted)', textDecoration:'underline' }}>{h.address}</a>
+                    : null}
+                  {h.phone && ` · ${h.phone}`}
                 </div>
               </div>
-            ))}
+              <div style={{ display:'flex', gap:6, alignItems:'center', flexShrink:0 }}>
+                <button className="btn btn-ghost btn-sm" onClick={() => { setGuestHotelId(h.id); setGuestForm({ selectedHotelId:'', crewMemberId:'', guestName:'', confirmation:'', checkIn:'', checkOut:'', cost:'' }); }}>+ Add</button>
+                <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => removeHotel(h.id)}>✕</button>
+              </div>
+            </div>
+
+            {/* Crew roster */}
+            <div style={{ marginTop:10 }}>
+              {assignedCrew.map(a => {
+                const g = bookingMap[a.crewMember.id];
+                const confirmed = !!(g?.confirmation);
+                const dim = !g || !confirmed;
+                return (
+                  <div key={a.id} style={{ display:'flex', alignItems:'flex-start', gap:10, padding:'6px 0', borderBottom:'1px solid var(--border)', opacity: dim ? 0.45 : 1 }}>
+                    <div style={{ fontSize:16, lineHeight:1, paddingTop:2, minWidth:14, color: confirmed ? 'var(--green, #4ade80)' : 'var(--muted)' }}>
+                      {confirmed ? '✓' : g ? '○' : '—'}
+                    </div>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontSize:12, fontWeight:600, color:'var(--text)' }}>{a.crewMember.name}</div>
+                      <div style={{ fontSize:11, color:'var(--muted)' }}>{a.position.name}</div>
+                      {g && (
+                        <div style={{ fontSize:11, marginTop:2, color: confirmed ? 'var(--tan)' : 'var(--muted)' }}>
+                          {fmt(g.check_in)} → {fmt(g.check_out)}
+                          {g.confirmation && <span style={{ marginLeft:8, color:'var(--text)', fontWeight:500 }}>#{g.confirmation}</span>}
+                          {!g.confirmation && <span style={{ marginLeft:8, fontStyle:'italic' }}>No confirmation</span>}
+                          {g.cost && <span style={{ marginLeft:8, color:'var(--green)', fontWeight:600 }}>{fmtCost(g.cost)}</span>}
+                        </div>
+                      )}
+                      {!g && <div style={{ fontSize:11, color:'var(--muted)', marginTop:2, fontStyle:'italic' }}>No booking</div>}
+                    </div>
+                    {g && (
+                      <div style={{ display:'flex', gap:6, flexShrink:0 }}>
+                        <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:10 }} onClick={() => openEditGuest(g, h.id)}>Edit</button>
+                        <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:10 }} onClick={() => removeGuest(h.id, g.id)}>✕</button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* Unlinked guests (manually entered) */}
+              {unlinked.map(g => (
+                <div key={g.id} style={{ display:'flex', alignItems:'flex-start', gap:10, padding:'6px 0', borderBottom:'1px solid var(--border)', opacity: g.confirmation ? 1 : 0.45 }}>
+                  <div style={{ fontSize:16, lineHeight:1, paddingTop:2, minWidth:14, color: g.confirmation ? 'var(--green, #4ade80)' : 'var(--muted)' }}>
+                    {g.confirmation ? '✓' : '○'}
+                  </div>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontSize:12, fontWeight:600, color:'var(--text)' }}>{g.guest_name}</div>
+                    <div style={{ fontSize:11, color:'var(--muted)' }}>Guest</div>
+                    <div style={{ fontSize:11, marginTop:2, color: g.confirmation ? 'var(--tan)' : 'var(--muted)' }}>
+                      {fmt(g.check_in)} → {fmt(g.check_out)}
+                      {g.confirmation && <span style={{ marginLeft:8, color:'var(--text)', fontWeight:500 }}>#{g.confirmation}</span>}
+                      {!g.confirmation && <span style={{ marginLeft:8, fontStyle:'italic' }}>No confirmation</span>}
+                      {g.cost && <span style={{ marginLeft:8, color:'var(--green)', fontWeight:600 }}>{fmtCost(g.cost)}</span>}
+                    </div>
+                  </div>
+                  <div style={{ display:'flex', gap:6, flexShrink:0 }}>
+                    <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:10 }} onClick={() => openEditGuest(g, h.id)}>Edit</button>
+                    <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:10 }} onClick={() => removeGuest(h.id, g.id)}>✕</button>
+                  </div>
+                </div>
+              ))}
+
+              {assignedCrew.length === 0 && h.guests.length === 0 && (
+                <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic', padding:'6px 0' }}>No crew assigned yet.</div>
+              )}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
       {hotels.length === 0 && <div className="empty">No hotels added yet.</div>}
 
       {/* ── Flights ── */}
