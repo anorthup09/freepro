@@ -116,7 +116,7 @@ router.get('/:token', async (req, res, next) => {
 
     if (viewType === 'producer') {
       const safe = async (q) => { try { return await q; } catch(e) { console.error('share query failed:', e.message); return []; } };
-      const [flights, hotelBlocks, rentalCars, deliverables, gear] = await Promise.all([
+      const [flights, hotelBlocks, rentalCars, deliverables, gear, onlineRentals] = await Promise.all([
         safe(sql`SELECT id, passenger_name, origin, destination, depart_time, arrive_time, depart_display, arrive_display, airline, flight_number, confirmation, is_return,
                    COALESCE(NULLIF(TRIM(COALESCE(cm.preferred_first_name,'') || ' ' || COALESCE(cm.preferred_last_name,'')), ''), cm.name) as crew_name
             FROM flights f LEFT JOIN crew_members cm ON cm.id = f.crew_member_id
@@ -128,6 +128,7 @@ router.get('/:token', async (req, res, next) => {
         safe(sql`SELECT id, vendor, pickup_location, dropoff_location, pickup_date, dropoff_date, confirmation, notes FROM rental_cars WHERE project_id = ${projectId}`),
         safe(sql`SELECT id, title, description, status, editor_name, aspect_ratio, resolution, due_date, is_urgent FROM deliverables WHERE project_id = ${projectId} ORDER BY created_at`),
         safe(sql`SELECT pg.*, cm.name as gear_person_name, cm.phone as gear_person_phone FROM project_gear pg LEFT JOIN crew_members cm ON cm.id = pg.gear_person_id WHERE pg.project_id = ${projectId}`),
+        safe(sql`SELECT id, renter_name, confirmation, tracking_number, notes FROM online_rentals WHERE project_id = ${projectId} ORDER BY created_at`),
       ]);
       responseData = {
         ...responseData,
@@ -142,6 +143,7 @@ router.get('/:token', async (req, res, next) => {
         rentalCars,
         deliverables,
         gear: gear[0] || null,
+        onlineRentals,
       };
     } else if (viewType === 'crew') {
       const filteredDays = daysWithData.map(day => ({
@@ -150,7 +152,7 @@ router.get('/:token', async (req, res, next) => {
         crewCalls: day.crewCalls.filter(c => !c.audience || c.audience.length === 0 || c.audience.includes('crew')),
       }));
       const safe2 = async (q) => { try { return await q; } catch(e) { console.error('share query failed:', e.message); return []; } };
-      const [crewFlights, crewHotels, crewCars, crewDeliverables, crewGear] = await Promise.all([
+      const [crewFlights, crewHotels, crewCars, crewDeliverables, crewGear, crewOnlineRentals] = await Promise.all([
         safe2(sql`SELECT id, passenger_name, origin, destination, depart_time, arrive_time, depart_display, arrive_display, airline, flight_number, confirmation, is_return,
                    COALESCE(NULLIF(TRIM(COALESCE(cm.preferred_first_name,'') || ' ' || COALESCE(cm.preferred_last_name,'')), ''), cm.name) as crew_name
             FROM flights f LEFT JOIN crew_members cm ON cm.id = f.crew_member_id
@@ -162,6 +164,7 @@ router.get('/:token', async (req, res, next) => {
         safe2(sql`SELECT id, vendor, pickup_location, dropoff_location, pickup_date, dropoff_date, confirmation, notes FROM rental_cars WHERE project_id = ${projectId}`),
         safe2(sql`SELECT id, title, description, status, editor_name, aspect_ratio, resolution, due_date, is_urgent FROM deliverables WHERE project_id = ${projectId} ORDER BY created_at`),
         safe2(sql`SELECT pg.*, cm.name as gear_person_name, cm.phone as gear_person_phone FROM project_gear pg LEFT JOIN crew_members cm ON cm.id = pg.gear_person_id WHERE pg.project_id = ${projectId}`),
+        safe2(sql`SELECT id, renter_name, confirmation, tracking_number, notes FROM online_rentals WHERE project_id = ${projectId} ORDER BY created_at`),
       ]);
       responseData = {
         ...responseData,
@@ -176,6 +179,7 @@ router.get('/:token', async (req, res, next) => {
         rentalCars: crewCars,
         deliverables: crewDeliverables,
         gear: crewGear[0] || null,
+        onlineRentals: crewOnlineRentals,
       };
     } else if (viewType === 'client') {
       const filteredDays = daysWithData.map(day => ({

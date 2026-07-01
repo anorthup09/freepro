@@ -47,27 +47,27 @@ function mapsUrl(address) {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
 }
 
-function GearSection({ gear, producerView }) {
-  if (!gear) return null;
-  const hasRental = gear.rental_company || gear.rental_contact || gear.rental_phone || gear.rental_email;
-  const gearList = [
+function GearSection({ gear, onlineRentals = [], producerView }) {
+  if (!gear && onlineRentals.length === 0) return null;
+  const hasRental = gear && (gear.rental_company || gear.rental_contact || gear.rental_phone || gear.rental_email);
+  const gearList = gear ? [
     { label: 'Camera', value: gear.camera_gear },
     { label: 'Grip', value: gear.grip_gear },
     { label: 'Electric', value: gear.electric_gear },
     { label: 'Audio', value: gear.audio_gear },
     { label: 'Media Management', value: gear.media_management_gear },
     { label: 'Editing', value: gear.editing_gear },
-  ].filter(g => g.value);
-  const hasDelivery = gear.delivery_datetime || gear.pickup_datetime || gear.delivery_driver;
-  const docs = [
+  ].filter(g => g.value) : [];
+  const hasDelivery = gear && (gear.delivery_datetime || gear.pickup_datetime || gear.delivery_driver);
+  const docs = gear ? [
     { label: 'Internal Request', done: gear.internal_request_submitted },
     { label: 'COI', done: gear.coi_received },
     { label: 'Rental Agreement', done: gear.rental_agreement_received },
     { label: 'CC Auth', done: gear.cc_auth_received },
-  ];
+  ] : [];
   const hasDocInfo = producerView && docs.some(d => d.done != null);
 
-  if (!gear.storage_location && !hasRental && !gearList.length && !hasDelivery && !hasDocInfo) return null;
+  if (!gear?.storage_location && !hasRental && !gearList.length && !hasDelivery && !hasDocInfo && onlineRentals.length === 0) return null;
 
   return (
     <section className="share-section">
@@ -106,7 +106,7 @@ function GearSection({ gear, producerView }) {
         </div>
       )}
 
-      {producerView && hasDelivery && (
+      {hasDelivery && (
         <div style={{ marginBottom:10 }}>
           <span style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em' }}>Delivery</span>
           <div style={{ marginTop:4 }}>
@@ -117,6 +117,22 @@ function GearSection({ gear, producerView }) {
                 Driver: {gear.delivery_driver}{gear.delivery_driver_phone ? ` · ${gear.delivery_driver_phone}` : ''}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {onlineRentals.length > 0 && (
+        <div style={{ marginBottom:10 }}>
+          <span style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em' }}>Online Rentals</span>
+          <div style={{ marginTop:4 }}>
+            {onlineRentals.map(r => (
+              <div key={r.id} style={{ marginBottom:6, paddingBottom:6, borderBottom:'1px solid var(--border)' }}>
+                {r.renter_name && <div style={{ fontSize:12, fontWeight:600, color:'var(--text)' }}>{r.renter_name}</div>}
+                {r.confirmation && <div style={{ fontSize:11, color:'var(--muted)' }}>Conf # {r.confirmation}</div>}
+                {r.tracking_number && <div style={{ fontSize:11, color:'var(--muted)' }}>Tracking: <span style={{ color:'var(--text)' }}>{r.tracking_number}</span></div>}
+                {r.notes && <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>{r.notes}</div>}
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -249,7 +265,7 @@ function SpecTiles({ techSpecs }) {
 
 // ── Producer View ────────────────────────────────────────────────────────────
 function ProducerView({ data }) {
-  const { project, locations, techSpecs, clientContacts, keyTalent, crewAssignments, schedule, flights, hotelBlocks, rentalCars, deliverables, gear } = data;
+  const { project, locations, techSpecs, clientContacts, keyTalent, crewAssignments, schedule, flights, hotelBlocks, rentalCars, deliverables, gear, onlineRentals = [] } = data;
   const scheduleRef = useRef(null);
   return (
     <div className="share-view">
@@ -373,7 +389,7 @@ function ProducerView({ data }) {
         </section>
       )}
 
-      <GearSection gear={gear} producerView />
+      <GearSection gear={gear} onlineRentals={onlineRentals} producerView />
 
       {/* ── Post-Production ── */}
       {deliverables?.length > 0 && (
@@ -410,7 +426,7 @@ function ProducerView({ data }) {
 
 // ── Crew View ────────────────────────────────────────────────────────────────
 function CrewView({ data }) {
-  const { project, locations, techSpecs, clientContacts, keyTalent, crewAssignments, schedule, flights, hotelBlocks, rentalCars, deliverables, gear } = data;
+  const { project, locations, techSpecs, clientContacts, keyTalent, crewAssignments, schedule, flights, hotelBlocks, rentalCars, deliverables, gear, onlineRentals = [] } = data;
   const sortedSchedule = [...(schedule || [])].sort((a,b) => (a.date||'').localeCompare(b.date||''));
   const scheduleRef = useRef(null);
   return (
@@ -533,7 +549,7 @@ function CrewView({ data }) {
         </section>
       )}
 
-      <GearSection gear={gear} />
+      <GearSection gear={gear} onlineRentals={onlineRentals} />
 
       {deliverables?.length > 0 && (
         <section className="share-section">
