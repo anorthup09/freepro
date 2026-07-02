@@ -59,11 +59,29 @@ router.get('/', requireAuth, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// Auto-advance status based on dates (PLANNING→ACTIVE on start, ACTIVE→WRAPPED day after end)
+async function maybeAutoStatus(project) {
+  const { id, status, start_date, end_date } = project;
+  if (!start_date || !end_date) return project;
+  const today = new Date().toISOString().slice(0, 10);
+  const start = start_date.slice(0, 10);
+  const end = end_date.slice(0, 10);
+  let next = null;
+  if (status === 'PLANNING' && today >= start) next = 'ACTIVE';
+  else if (status === 'ACTIVE' && today > end) next = 'WRAPPED';
+  if (next) {
+    await sql`UPDATE projects SET status = ${next} WHERE id = ${id}`;
+    return { ...project, status: next };
+  }
+  return project;
+}
+
 // GET /api/projects/:id
 router.get('/:id', requireAuth, async (req, res, next) => {
   try {
-    const project = await getFullProject(req.params.id);
+    let project = await getFullProject(req.params.id);
     if (!project) return res.status(404).json({ error: 'Project not found' });
+    project = await maybeAutoStatus(project);
     res.json(project);
   } catch (err) { next(err); }
 });

@@ -19,8 +19,8 @@ function fmtDate(d) {
   return new Date(d.slice(0,10) + 'T12:00:00').toLocaleDateString();
 }
 
-const STATUS_PILL = { PLANNING:'amber', ACTIVE:'green', WRAPPED:'purple', DELIVERED:'green', ARCHIVED:'' };
-const ALL_STATUSES = ['PLANNING','ACTIVE','WRAPPED','DELIVERED','ARCHIVED'];
+const STATUS_PILL = { PLANNING:'amber', ACTIVE:'green', WRAPPED:'purple', ARCHIVED:'' };
+const ALL_STATUSES = ['PLANNING','ACTIVE','WRAPPED','ARCHIVED'];
 
 function StatusSelect({ project, setProject }) {
   async function changeStatus(newStatus) {
@@ -388,7 +388,7 @@ export default function Overview({ project, setProject, onTabChange }) {
         background:'#000',
       }}>
         {[
-          { label:'Shoot Days', val: shootDays, sub:`${fmtDate(startDate)} – ${fmtDate(endDate)}`, tab:'schedule' },
+          { label:'Days', val: shootDays, sub:`${fmtDate(startDate)} – ${fmtDate(endDate)}`, tab:'schedule' },
           { label:'Crew', val: project.crewAssignments?.length || 0, sub:'positions assigned', tab:'crew' },
           { label:'Deliverables', val: project.deliverables?.length || 0, sub:'video outputs', tab:'post-production' },
         ].map((s, i) => (
@@ -546,7 +546,7 @@ export default function Overview({ project, setProject, onTabChange }) {
                 <div className="field"><label>Client</label><input value={info.client} onChange={e => setInfo(i=>({...i,client:e.target.value}))} required /></div>
                 <div className="field"><label>Status</label>
                   <select value={info.status} onChange={e => setInfo(i=>({...i,status:e.target.value}))}>
-                    {['PLANNING','ACTIVE','WRAPPED','DELIVERED','ARCHIVED'].map(s => <option key={s} value={s}>{s}</option>)}
+                    {['PLANNING','ACTIVE','WRAPPED','ARCHIVED'].map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
                 <div className="field"><label>City</label><input value={info.city} onChange={e => setInfo(i=>({...i,city:e.target.value}))} /></div>

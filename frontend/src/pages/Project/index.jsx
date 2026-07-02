@@ -187,8 +187,8 @@ export default function Project() {
     ? Math.ceil((new Date(startDate.slice(0,10)+'T12:00:00') - new Date(new Date().toISOString().slice(0,10)+'T12:00:00')) / 86400000)
     : null;
 
-  const STATUS_PILL = { PLANNING:'amber', ACTIVE:'green', WRAPPED:'purple', DELIVERED:'green', ARCHIVED:'' };
-  const ALL_STATUSES = ['PLANNING','ACTIVE','WRAPPED','DELIVERED','ARCHIVED'];
+  const STATUS_PILL = { PLANNING:'amber', ACTIVE:'green', WRAPPED:'purple', ARCHIVED:'' };
+  const ALL_STATUSES = ['PLANNING','ACTIVE','WRAPPED','ARCHIVED'];
 
   async function changeStatus(newStatus) {
     try {
