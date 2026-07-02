@@ -564,7 +564,7 @@ function ProducerView({ data }) {
       {keyTalent?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Key Talent</div>
-          <ShareTable cols={['Name','Role','Phone','Email','Dietary','Notes']} colClasses={['','','nowrap','','','']} rows={keyTalent.map(t => [t.name, t.role, t.phone||'—', t.email||'—', t.dietary_restrictions||'—', t.notes||'—'])} />
+          <ShareTable cols={['Name','Role','Phone','Email','Dietary','Notes']} colClasses={['','','nowrap','','','']} rows={keyTalent.map(t => [t.name, t.role, t.phone||'—', t.email||'—', t.dietary_restrictions && t.dietary_restrictions !== 'N/A' ? `⚠️ ${t.dietary_restrictions}` : '—', t.notes||'—'])} />
         </section>
       )}
 
@@ -762,7 +762,7 @@ function CrewView({ data, shareToken }) {
       {keyTalent?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Key Talent</div>
-          <ShareTable cols={['Name','Role','Phone','Email','Dietary','Notes']} colClasses={['','','nowrap','','','']} rows={keyTalent.map(t => [t.name, t.role, t.phone||'—', t.email||'—', t.dietary_restrictions||'—', t.notes||'—'])} />
+          <ShareTable cols={['Name','Role','Phone','Email','Dietary','Notes']} colClasses={['','','nowrap','','','']} rows={keyTalent.map(t => [t.name, t.role, t.phone||'—', t.email||'—', t.dietary_restrictions && t.dietary_restrictions !== 'N/A' ? `⚠️ ${t.dietary_restrictions}` : '—', t.notes||'—'])} />
         </section>
       )}
 
@@ -1047,19 +1047,8 @@ function flightTime(f, leg) {
 }
 
 function DietaryCell({ value }) {
-  const [show, setShow] = useState(false);
   if (!value || value === 'N/A') return <span>—</span>;
-  return (
-    <div style={{ position:'relative', display:'inline-block' }}>
-      <span style={{ cursor:'pointer', fontSize:14 }} onClick={() => setShow(s => !s)}>⚠️</span>
-      {show && (
-        <div style={{ position:'absolute', right:0, top:'100%', marginTop:4, zIndex:99, background:'var(--bg)', border:'1px solid var(--border)', borderRadius:6, padding:'6px 10px', fontSize:11, color:'var(--text)', whiteSpace:'nowrap', boxShadow:'0 4px 12px rgba(0,0,0,0.3)', minWidth:120 }}>
-          {value}
-          <div style={{ marginTop:4, fontSize:10, color:'var(--muted)', cursor:'pointer' }} onClick={() => setShow(false)}>✕ close</div>
-        </div>
-      )}
-    </div>
-  );
+  return <span style={{ fontSize:12 }}>⚠️ {value}</span>;
 }
 
 const MEAL_META = {
