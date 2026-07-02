@@ -1501,14 +1501,14 @@ function GlassHeader({ project, headerRef }) {
       background: 'rgba(10,10,8,0.55)',
       borderBottom: '1px solid rgba(255,255,255,0.07)',
       boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
-      padding: '10px 20px',
+      padding: '14px 24px',
       display: 'flex',
       alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 20,
     }}>
-      <div>
-        <div style={{ fontSize:11, color:'rgba(255,255,255,0.7)', textTransform:'uppercase', letterSpacing:'0.12em', fontWeight:700, marginBottom:2 }}>{project.code}</div>
-        <div style={{ fontFamily:"'Syne', sans-serif", fontWeight:800, fontSize:16, letterSpacing:'-0.3px', color:'#fff', lineHeight:1 }}>{project.title}</div>
-      </div>
+      <div style={{ fontSize:12, color:'rgba(255,255,255,0.6)', textTransform:'uppercase', letterSpacing:'0.14em', fontWeight:700, flexShrink:0 }}>{project.code}</div>
+      <div style={{ fontFamily:"'Syne', sans-serif", fontWeight:800, fontSize:17, letterSpacing:'-0.3px', color:'#fff', lineHeight:1, textAlign:'right' }}>{project.title}</div>
     </div>
   );
 }
