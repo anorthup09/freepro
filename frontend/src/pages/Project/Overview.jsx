@@ -19,6 +19,31 @@ function fmtDate(d) {
   return new Date(d.slice(0,10) + 'T12:00:00').toLocaleDateString();
 }
 
+const STATUS_PILL = { PLANNING:'amber', ACTIVE:'green', WRAPPED:'purple', DELIVERED:'green', ARCHIVED:'' };
+const ALL_STATUSES = ['PLANNING','ACTIVE','WRAPPED','DELIVERED','ARCHIVED'];
+
+function StatusSelect({ project, setProject }) {
+  async function changeStatus(newStatus) {
+    try {
+      await api.updateProject(project.id, { status: newStatus });
+      setProject(p => ({ ...p, status: newStatus }));
+    } catch(e) { alert(e.message); }
+  }
+  return (
+    <div style={{ position:'relative', display:'inline-block' }}>
+      <select
+        value={project.status}
+        onChange={e => changeStatus(e.target.value)}
+        className={`pill ${STATUS_PILL[project.status] || ''}`}
+        style={{ cursor:'pointer', appearance:'none', WebkitAppearance:'none', paddingRight:22, fontWeight:500, fontSize:11, border:'1px solid', background:'var(--bg2)' }}
+      >
+        {ALL_STATUSES.map(s => <option key={s} value={s}>{s.replace(/_/g,' ')}</option>)}
+      </select>
+      <span style={{ position:'absolute', right:7, top:'50%', transform:'translateY(-50%)', pointerEvents:'none', fontSize:9, color:'inherit' }}>▾</span>
+    </div>
+  );
+}
+
 function PlaceSearch({ onSelect }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
@@ -261,7 +286,10 @@ export default function Overview({ project, setProject, onTabChange }) {
       {/* Header */}
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', paddingBottom:18, borderBottom:'1px solid var(--border)', marginBottom:4 }}>
         <div>
-          <div className="proj-code">{project.code}</div>
+          <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:2 }}>
+            <div className="proj-code" style={{ marginBottom:0 }}>{project.code}</div>
+            <StatusSelect project={project} setProject={setProject} />
+          </div>
           <div className="proj-title">{project.title}</div>
           <div className="proj-meta">
             <div className="meta"><span className="dot6" />{project.city}, {project.state}</div>

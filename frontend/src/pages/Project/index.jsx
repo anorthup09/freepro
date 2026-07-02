@@ -154,6 +154,7 @@ export default function Project() {
   const nav = useNavigate();
   const [project, setProject] = useState(null);
   const [tab, setTab] = useState('overview');
+  const [hasUnanswered, setHasUnanswered] = useState(false);
   const [showCateringGrid, setShowCateringGrid] = useState(() => {
     try { return localStorage.getItem(`catering-${id}`) === 'true'; } catch { return false; }
   });
@@ -166,6 +167,17 @@ export default function Project() {
   useEffect(() => {
     api.getProject(id).then(setProject).catch(() => nav('/'));
   }, [id]);
+
+  useEffect(() => {
+    api.getQuestions(id).then(qs => setHasUnanswered(qs.some(q => !q.answer))).catch(() => {});
+  }, [id]);
+
+  // Refresh unanswered count when switching away from Questions tab
+  useEffect(() => {
+    if (tab !== 'questions') {
+      api.getQuestions(id).then(qs => setHasUnanswered(qs.some(q => !q.answer))).catch(() => {});
+    }
+  }, [tab]);
 
   if (!project) return null;
 
@@ -198,19 +210,11 @@ export default function Project() {
         <button
           className={`tab${tab === 'questions' ? ' on' : ''}`}
           onClick={() => setTab('questions')}
-          style={{ marginLeft:'auto', border:'1px solid var(--orange)', borderRadius:6, color:'#fff', flexShrink:0 }}
-        >Questions</button>
-        <div style={{ position:'relative' }}>
-          <select
-            value={project.status}
-            onChange={e => changeStatus(e.target.value)}
-            className={`pill ${STATUS_PILL[project.status] || ''}`}
-            style={{ cursor:'pointer', appearance:'none', WebkitAppearance:'none', paddingRight:22, fontWeight:500, fontSize:11, border:'1px solid', background:'var(--bg2)' }}
-          >
-            {ALL_STATUSES.map(s => <option key={s} value={s}>{s.replace(/_/g,' ')}</option>)}
-          </select>
-          <span style={{ position:'absolute', right:7, top:'50%', transform:'translateY(-50%)', pointerEvents:'none', fontSize:9, color:'inherit' }}>▾</span>
-        </div>
+          style={{ marginLeft:'auto', border:'1px solid var(--orange)', borderRadius:6, color:'#fff', flexShrink:0, display:'flex', alignItems:'center', gap:5 }}
+        >
+          {hasUnanswered && tab !== 'questions' && <span style={{ fontSize:11, color:'var(--orange)' }}>!</span>}
+          Questions
+        </button>
         <ShareDropdown projectId={id} />
       </nav>
 
