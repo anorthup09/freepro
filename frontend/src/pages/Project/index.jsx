@@ -134,7 +134,7 @@ function ShareDropdown({ projectId }) {
           <div className="share-menu-item" onClick={() => openPdf('crew')}>Crew PDF</div>
           <div className="share-menu-item" onClick={() => openPdf('client')}>Client PDF</div>
           <div style={{ borderTop:'1px solid var(--border)', margin:'4px 0' }} />
-          <div className="share-menu-item" onClick={() => { setOpen(false); navigate(`/projects/${projectId}/talent-callsheets`); }}>Talent ↗</div>
+          <div className="share-menu-item" onClick={() => { setOpen(false); navigate(`/projects/${projectId}/talent-callsheets`); }} style={{ border:'1px solid rgba(255,255,255,0.5)', borderRadius:5, margin:'4px 8px', padding:'6px 10px', color:'#fff' }}>Talent</div>
         </div>
       )}
       {toast && <div className="share-toast">{toast}</div>}
