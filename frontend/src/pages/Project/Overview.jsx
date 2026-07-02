@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { api } from '../../api.js';
 import { displayName } from '../../utils/displayName.js';
 
@@ -281,20 +281,70 @@ export default function Overview({ project, setProject, onTabChange }) {
     ? Math.ceil((new Date(startDate.slice(0,10)+'T12:00:00') - new Date(new Date().toISOString().slice(0,10)+'T12:00:00')) / 86400000)
     : null;
 
+  const headerRef = useRef(null);
+  const [glassVisible, setGlassVisible] = useState(false);
+
+  useEffect(() => {
+    function onScroll() {
+      if (!headerRef.current) return;
+      const rect = headerRef.current.getBoundingClientRect();
+      setGlassVisible(rect.bottom < 56); // 56 = approx nav height
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
   return (
     <div>
-      {/* Header */}
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', paddingBottom:18, borderBottom:'1px solid var(--border)', marginBottom:4 }}>
+      {/* Sticky liquid-glass bar */}
+      <div style={{
+        position: 'fixed',
+        top: 48,
+        left: 0,
+        right: 0,
+        zIndex: 90,
+        pointerEvents: glassVisible ? 'auto' : 'none',
+        opacity: glassVisible ? 1 : 0,
+        transform: glassVisible ? 'translateY(0)' : 'translateY(-6px)',
+        transition: 'opacity 0.25s ease, transform 0.25s ease',
+        backdropFilter: 'blur(20px) saturate(160%)',
+        WebkitBackdropFilter: 'blur(20px) saturate(160%)',
+        background: 'rgba(10,10,8,0.55)',
+        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
+        padding: '10px 20px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+      }}>
         <div>
-          <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:2 }}>
-            <div className="proj-code" style={{ marginBottom:0 }}>{project.code}</div>
-            <StatusSelect project={project} setProject={setProject} />
+          <div style={{ fontSize:9, color:'rgba(255,255,255,0.4)', textTransform:'uppercase', letterSpacing:'0.12em', fontWeight:600, marginBottom:1 }}>{project.code}</div>
+          <div style={{ fontFamily:"'Syne', sans-serif", fontWeight:800, fontSize:16, letterSpacing:'-0.3px', color:'#fff', lineHeight:1 }}>{project.title}</div>
+        </div>
+        {daysUntil != null && daysUntil > 0 && (
+          <div style={{ display:'flex', alignItems:'baseline', gap:5 }}>
+            <span style={{ fontSize:20, fontWeight:700, color:'var(--orange)', lineHeight:1 }}>{daysUntil}</span>
+            <span style={{ fontSize:10, color:'rgba(255,255,255,0.45)', textTransform:'uppercase', letterSpacing:'0.06em' }}>days until {project.title}</span>
           </div>
+        )}
+        {daysUntil != null && daysUntil === 0 && (
+          <span style={{ fontSize:13, fontWeight:700, color:'var(--orange)' }}>Day 1 is today!</span>
+        )}
+      </div>
+
+      {/* Header */}
+      <div ref={headerRef} style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', paddingBottom:18, borderBottom:'1px solid var(--border)', marginBottom:4 }}>
+        <div>
+          <div className="proj-code">{project.code}</div>
           <div className="proj-title">{project.title}</div>
           <div className="proj-meta">
             <div className="meta"><span className="dot6" />{project.city}, {project.state}</div>
             <div className="meta"><span className="dot6" />{fmtDate(startDate)} – {fmtDate(endDate)}</div>
-            <div className="meta"><span className="dot6" />{project.client}</div>
+            <div className="meta" style={{ display:'flex', alignItems:'center', gap:6 }}>
+              <span className="dot6" />
+              {project.client}
+              <StatusSelect project={project} setProject={setProject} />
+            </div>
           </div>
           {project.notes && (
             <div style={{ marginTop:10, fontSize:13, color:'var(--muted)', maxWidth:480, lineHeight:1.6, whiteSpace:'pre-wrap' }}>{project.notes}</div>
