@@ -1578,10 +1578,17 @@ export default function Share() {
             {view_type === 'talent' ? `${data.talent_name} — Talent` : `${view_type.charAt(0).toUpperCase() + view_type.slice(1)} View`}
           </div>
         )}
-        <button
-          onClick={() => window.print()}
-          style={{ background:'var(--bg3)', border:'1px solid var(--border2)', color:'var(--tan)', borderRadius:6, padding:'5px 12px', fontSize:12, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}
-        >Download PDF</button>
+        <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4 }}>
+          {(view_type === 'producer' || view_type === 'crew') && (
+            <span style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', fontWeight:600 }}>
+              {view_type === 'producer' ? 'Producer View' : 'Crew View'}
+            </span>
+          )}
+          <button
+            onClick={() => window.print()}
+            style={{ background:'var(--bg3)', border:'1px solid var(--border2)', color:'var(--tan)', borderRadius:6, padding:'5px 12px', fontSize:12, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}
+          >Download PDF</button>
+        </div>
       </nav>
       <div className="wrap">
         {hasQuestions && sharePage === 'questions' ? (
