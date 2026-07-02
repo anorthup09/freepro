@@ -1,19 +1,166 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { api } from '../../api.js';
 
-const DISTANCES = ['Wide', 'Medium', 'Close', 'ECU', 'OTS', 'Two-Shot', 'Insert'];
 const MOVEMENTS = ['Static', 'Pan', 'Tilt', 'Dolly', 'Handheld', 'Crane', 'Zoom', 'Gimbal'];
-const PRIORITIES = ['Essential', 'Important', 'Nice to Have'];
-
-const PRIORITY_COLOR = {
-  Essential: '#f97316',
-  Important: '#f59e0b',
-  'Nice to Have': 'var(--muted)',
-};
 
 function shotLabel(sceneNumber, index) {
   const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   return `${sceneNumber}${letters[index] || index}`;
+}
+
+function ShotRow({ shot, index, sceneNumber, projectId, onUpdate, onDelete }) {
+  const captured = shot.status === 'captured';
+  const [desc, setDesc] = useState(shot.description || '');
+  const [movement, setMovement] = useState(shot.movement || '');
+  const [estMinutes, setEstMinutes] = useState(shot.est_minutes || '');
+
+  async function save(field, value) {
+    try {
+      const updated = await api.updateShot(projectId, shot.id, { [field]: value || null });
+      onUpdate(updated);
+    } catch {}
+  }
+
+  async function toggleCapture() {
+    const status = captured ? 'not_captured' : 'captured';
+    const updated = await api.updateShot(projectId, shot.id, { status });
+    onUpdate(updated);
+  }
+
+  return (
+    <tr style={{
+      borderBottom: '1px solid var(--border)',
+      background: captured ? 'rgba(15,15,12,0.7)' : 'transparent',
+      outline: captured ? 'none' : '1px solid rgba(251,146,60,0.35)',
+      outlineOffset: '-1px',
+      opacity: captured ? 0.45 : 1,
+      transition: 'background 0.2s, opacity 0.2s',
+    }}>
+      {/* Checkbox */}
+      <td style={{ padding:'10px 10px 10px 14px', width:32 }}>
+        <div onClick={toggleCapture} style={{ width:16, height:16, borderRadius:4, border:`2px solid ${captured ? '#4ade80' : 'var(--orange)'}`, background: captured ? '#4ade80' : 'transparent', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, transition:'all 0.15s' }}>
+          {captured && <svg width="9" height="7" viewBox="0 0 9 7" fill="none"><path d="M1 3.5L3.5 6L8 1" stroke="#000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+        </div>
+      </td>
+      {/* Shot label */}
+      <td style={{ padding:'10px 8px', fontSize:13, fontWeight:700, color: captured ? 'var(--muted)' : 'var(--orange)', whiteSpace:'nowrap', width:44 }}>
+        {shotLabel(sceneNumber, index)}
+      </td>
+      {/* Description */}
+      <td style={{ padding:'6px 8px' }}>
+        <input
+          value={desc}
+          onChange={e => setDesc(e.target.value)}
+          onBlur={() => { if (desc !== (shot.description || '')) save('description', desc); }}
+          placeholder="Shot description…"
+          style={{ width:'100%', background:'transparent', border:'none', outline:'none', color: captured ? 'var(--muted)' : 'var(--text)', fontSize:13, fontFamily:"inherit", padding:0 }}
+        />
+      </td>
+      {/* Movement */}
+      <td style={{ padding:'6px 8px', width:130 }}>
+        <select
+          value={movement}
+          onChange={e => { setMovement(e.target.value); save('movement', e.target.value); }}
+          style={{ background:'transparent', border:'none', outline:'none', color: movement ? (captured ? 'var(--muted)' : 'var(--text)') : 'var(--muted)', fontSize:13, fontFamily:"inherit", cursor:'pointer', padding:0, width:'100%' }}
+        >
+          <option value="">— Movement —</option>
+          {MOVEMENTS.map(m => <option key={m} value={m}>{m}</option>)}
+        </select>
+      </td>
+      {/* Time */}
+      <td style={{ padding:'6px 8px', width:80 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+          <input
+            type="number"
+            min="1"
+            value={estMinutes}
+            onChange={e => setEstMinutes(e.target.value)}
+            onBlur={() => { if (String(estMinutes) !== String(shot.est_minutes || '')) save('estMinutes', estMinutes ? Number(estMinutes) : null); }}
+            placeholder="min"
+            style={{ width:40, background:'transparent', border:'none', outline:'none', color: captured ? 'var(--muted)' : 'var(--text)', fontSize:13, fontFamily:"inherit", padding:0, MozAppearance:'textfield' }}
+          />
+          {estMinutes && <span style={{ fontSize:11, color:'var(--muted)' }}>m</span>}
+        </div>
+      </td>
+      {/* Delete */}
+      <td style={{ padding:'10px 14px 10px 8px', width:28, textAlign:'right' }}>
+        <button onClick={() => onDelete(shot.id)} style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:13, padding:0, lineHeight:1, opacity:0.5 }}>✕</button>
+      </td>
+    </tr>
+  );
+}
+
+function NewShotRow({ sceneNumber, nextIndex, projectId, sceneId, onAdded }) {
+  const [desc, setDesc] = useState('');
+  const [movement, setMovement] = useState('');
+  const [estMinutes, setEstMinutes] = useState('');
+  const [saving, setSaving] = useState(false);
+  const descRef = useRef(null);
+
+  async function submit() {
+    if (!desc.trim() || saving) return;
+    setSaving(true);
+    try {
+      const shot = await api.createShot(projectId, sceneId, { description: desc, movement: movement || null, estMinutes: estMinutes ? Number(estMinutes) : 9 });
+      onAdded(shot);
+      setDesc('');
+      setMovement('');
+      setEstMinutes('');
+      descRef.current?.focus();
+    } catch {}
+    setSaving(false);
+  }
+
+  function onKeyDown(e) {
+    if (e.key === 'Enter') { e.preventDefault(); submit(); }
+  }
+
+  return (
+    <tr style={{ borderBottom:'1px solid var(--border)', opacity: saving ? 0.5 : 1 }}>
+      <td style={{ padding:'10px 10px 10px 14px', width:32 }}>
+        <div style={{ width:16, height:16, borderRadius:4, border:'2px solid var(--border)', background:'transparent' }} />
+      </td>
+      <td style={{ padding:'10px 8px', fontSize:13, fontWeight:700, color:'var(--muted)', whiteSpace:'nowrap', width:44 }}>
+        {shotLabel(sceneNumber, nextIndex)}
+      </td>
+      <td style={{ padding:'6px 8px' }}>
+        <input
+          ref={descRef}
+          value={desc}
+          onChange={e => setDesc(e.target.value)}
+          onKeyDown={onKeyDown}
+          onBlur={submit}
+          placeholder="Add a shot…"
+          style={{ width:'100%', background:'transparent', border:'none', outline:'none', color:'var(--text)', fontSize:13, fontFamily:"inherit", padding:0 }}
+        />
+      </td>
+      <td style={{ padding:'6px 8px', width:130 }}>
+        <select
+          value={movement}
+          onChange={e => setMovement(e.target.value)}
+          style={{ background:'transparent', border:'none', outline:'none', color: movement ? 'var(--text)' : 'var(--muted)', fontSize:13, fontFamily:"inherit", cursor:'pointer', padding:0, width:'100%' }}
+        >
+          <option value="">— Movement —</option>
+          {MOVEMENTS.map(m => <option key={m} value={m}>{m}</option>)}
+        </select>
+      </td>
+      <td style={{ padding:'6px 8px', width:80 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+          <input
+            type="number"
+            min="1"
+            value={estMinutes}
+            onChange={e => setEstMinutes(e.target.value)}
+            onKeyDown={onKeyDown}
+            placeholder="min"
+            style={{ width:40, background:'transparent', border:'none', outline:'none', color:'var(--text)', fontSize:13, fontFamily:"inherit", padding:0, MozAppearance:'textfield' }}
+          />
+          {estMinutes && <span style={{ fontSize:11, color:'var(--muted)' }}>m</span>}
+        </div>
+      </td>
+      <td style={{ padding:'10px 14px 10px 8px', width:28 }} />
+    </tr>
+  );
 }
 
 export default function ShotList({ project }) {
@@ -23,21 +170,17 @@ export default function ShotList({ project }) {
   const [sceneForm, setSceneForm] = useState({ name: '', description: '' });
   const [editSceneId, setEditSceneId] = useState(null);
   const [editSceneForm, setEditSceneForm] = useState({ name: '', description: '' });
-  const [showAddShot, setShowAddShot] = useState(false);
-  const [shotForm, setShotForm] = useState({ description: '', distance: '', movement: '', priority: 'Important', estMinutes: 9 });
-  const [editShotId, setEditShotId] = useState(null);
-  const [editShotForm, setEditShotForm] = useState({ description: '', distance: '', movement: '', priority: 'Important', estMinutes: 9 });
 
   useEffect(() => {
     api.getShotList(project.id).then(data => {
       setScenes(data);
-      if (data.length > 0 && !activeSceneId) setActiveSceneId(data[0].id);
+      if (data.length > 0) setActiveSceneId(data[0].id);
     }).catch(() => {});
   }, [project.id]);
 
   const totalShots = scenes.reduce((s, sc) => s + sc.shots.length, 0);
   const totalMinutes = scenes.reduce((s, sc) => s + sc.shots.reduce((a, sh) => a + (sh.est_minutes || 0), 0), 0);
-  const estHours = (totalMinutes / 60).toFixed(1);
+  const capturedShots = scenes.reduce((s, sc) => s + sc.shots.filter(sh => sh.status === 'captured').length, 0);
   const activeScene = scenes.find(s => s.id === activeSceneId);
 
   async function addScene(e) {
@@ -63,38 +206,21 @@ export default function ShotList({ project }) {
   async function deleteScene(sceneId) {
     if (!confirm('Delete this scene and all its shots?')) return;
     await api.deleteScene(project.id, sceneId);
-    setScenes(prev => prev.filter(s => s.id !== sceneId));
-    if (activeSceneId === sceneId) setActiveSceneId(scenes.find(s => s.id !== sceneId)?.id || null);
+    const remaining = scenes.filter(s => s.id !== sceneId);
+    setScenes(remaining);
+    if (activeSceneId === sceneId) setActiveSceneId(remaining[0]?.id || null);
   }
 
-  async function addShot(e) {
-    e.preventDefault();
-    if (!activeSceneId) return;
-    try {
-      const shot = await api.createShot(project.id, activeSceneId, { ...shotForm, estMinutes: Number(shotForm.estMinutes) });
-      setScenes(prev => prev.map(s => s.id === activeSceneId ? { ...s, shots: [...s.shots, shot] } : s));
-      setShowAddShot(false);
-      setShotForm({ description: '', distance: '', movement: '', priority: 'Important', estMinutes: 9 });
-    } catch(err) { alert(err.message); }
+  function handleShotUpdate(updated) {
+    setScenes(prev => prev.map(s => ({ ...s, shots: s.shots.map(sh => sh.id === updated.id ? updated : sh) })));
   }
 
-  async function saveShot(e) {
-    e.preventDefault();
-    try {
-      const updated = await api.updateShot(project.id, editShotId, { ...editShotForm, estMinutes: Number(editShotForm.estMinutes) });
-      setScenes(prev => prev.map(s => ({ ...s, shots: s.shots.map(sh => sh.id === editShotId ? updated : sh) })));
-      setEditShotId(null);
-    } catch(err) { alert(err.message); }
+  function handleShotAdded(sceneId, shot) {
+    setScenes(prev => prev.map(s => s.id === sceneId ? { ...s, shots: [...s.shots, shot] } : s));
   }
 
-  async function toggleCapture(shot) {
-    const status = shot.status === 'captured' ? 'not_captured' : 'captured';
-    const updated = await api.updateShot(project.id, shot.id, { status });
-    setScenes(prev => prev.map(s => ({ ...s, shots: s.shots.map(sh => sh.id === shot.id ? updated : sh) })));
-  }
-
-  async function deleteShot(shotId) {
-    await api.deleteShot(project.id, shotId);
+  function handleShotDelete(shotId) {
+    api.deleteShot(project.id, shotId).catch(() => {});
     setScenes(prev => prev.map(s => ({ ...s, shots: s.shots.filter(sh => sh.id !== shotId) })));
   }
 
@@ -109,11 +235,12 @@ export default function ShotList({ project }) {
       </div>
 
       {/* Stats */}
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:10, margin:'20px 0' }}>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:10, margin:'20px 0' }}>
         {[
           { label:'Total Shots', val: totalShots },
-          { label:'Scenes', val: scenes.length },
-          { label:'Est. Hours', val: `${estHours}h` },
+          { label:'Captured', val: capturedShots },
+          { label:'Remaining', val: totalShots - capturedShots },
+          { label:'Est. Hours', val: `${(totalMinutes / 60).toFixed(1)}h` },
         ].map(s => (
           <div key={s.label} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding:'16px 20px' }}>
             <div style={{ fontSize:26, fontWeight:800, color:'var(--text)', fontFamily:"'Syne',sans-serif", letterSpacing:'-0.5px', lineHeight:1 }}>{s.val}</div>
@@ -126,84 +253,71 @@ export default function ShotList({ project }) {
         <div className="empty">No scenes yet — add one to get started.</div>
       )}
 
-      {/* Scene grid */}
+      {/* Scene tabs */}
       {scenes.length > 0 && (
-        <div style={{ marginBottom:24 }}>
-          <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.1em', fontWeight:700, marginBottom:10 }}>Scenes</div>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:8 }}>
+        <div style={{ marginBottom:20 }}>
+          <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
             {scenes.map(s => (
               <button key={s.id} onClick={() => setActiveSceneId(s.id)}
-                style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', background:'var(--bg2)', border:`1px solid ${s.id === activeSceneId ? 'var(--orange)' : 'var(--border)'}`, borderRadius:8, cursor:'pointer', textAlign:'left', transition:'border-color 0.15s' }}>
-                <span style={{ flexShrink:0, width:24, height:24, borderRadius:'50%', border:`2px solid ${s.id === activeSceneId ? 'var(--orange)' : 'var(--border)'}`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, color: s.id === activeSceneId ? 'var(--orange)' : 'var(--muted)' }}>{s.scene_number}</span>
-                <span style={{ fontSize:12, fontWeight:600, color:'var(--text)', flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{s.name}</span>
-                <span style={{ fontSize:11, color:'var(--muted)', flexShrink:0 }}>{s.shots.length}</span>
+                style={{ padding:'6px 14px', background: s.id === activeSceneId ? 'rgba(251,146,60,0.12)' : 'var(--bg2)', border:`1px solid ${s.id === activeSceneId ? 'var(--orange)' : 'var(--border)'}`, borderRadius:100, cursor:'pointer', fontSize:12, fontWeight: s.id === activeSceneId ? 700 : 500, color: s.id === activeSceneId ? 'var(--orange)' : 'var(--text)', transition:'all 0.15s', whiteSpace:'nowrap' }}>
+                Scene {s.scene_number} · {s.name}
               </button>
             ))}
           </div>
         </div>
       )}
 
-      {/* Active scene detail */}
+      {/* Active scene */}
       {activeScene && (
         <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, overflow:'hidden' }}>
           {/* Scene header */}
-          <div style={{ padding:'16px 20px', borderBottom:'1px solid var(--border)' }}>
-            <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12 }}>
-              <div style={{ flex:1 }}>
-                <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:4 }}>
-                  <span style={{ fontSize:10, fontWeight:700, color:'var(--orange)', textTransform:'uppercase', letterSpacing:'.08em', border:'1px solid var(--orange)', borderRadius:4, padding:'2px 8px' }}>Scene {activeScene.scene_number}</span>
-                  <span style={{ fontSize:16, fontWeight:700, color:'var(--text)' }}>{activeScene.name}</span>
-                  <span style={{ fontSize:12, color:'var(--muted)', marginLeft:'auto' }}>{activeScene.shots.length} shot{activeScene.shots.length !== 1 ? 's' : ''}</span>
-                </div>
-                {activeScene.description && <div style={{ fontSize:12, color:'var(--muted)' }}>{activeScene.description}</div>}
-              </div>
-              <div style={{ display:'flex', gap:6, flexShrink:0 }}>
-                <button className="btn btn-ghost btn-sm" onClick={() => { setEditSceneId(activeScene.id); setEditSceneForm({ name: activeScene.name, description: activeScene.description || '' }); }}>Edit</button>
-                <button className="btn btn-ghost btn-sm" style={{ color:'var(--muted)' }} onClick={() => deleteScene(activeScene.id)}>Delete</button>
-              </div>
+          <div style={{ padding:'14px 20px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'space-between', gap:12 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+              <span style={{ fontSize:10, fontWeight:700, color:'var(--orange)', textTransform:'uppercase', letterSpacing:'.08em', border:'1px solid var(--orange)', borderRadius:4, padding:'2px 8px' }}>Scene {activeScene.scene_number}</span>
+              <span style={{ fontSize:15, fontWeight:700, color:'var(--text)' }}>{activeScene.name}</span>
+              {activeScene.description && <span style={{ fontSize:12, color:'var(--muted)' }}>· {activeScene.description}</span>}
+              <span style={{ fontSize:12, color:'var(--muted)' }}>{activeScene.shots.length} shot{activeScene.shots.length !== 1 ? 's' : ''}</span>
+            </div>
+            <div style={{ display:'flex', gap:6 }}>
+              <button className="btn btn-ghost btn-sm" onClick={() => { setEditSceneId(activeScene.id); setEditSceneForm({ name: activeScene.name, description: activeScene.description || '' }); }}>Edit</button>
+              <button className="btn btn-ghost btn-sm" style={{ color:'var(--muted)' }} onClick={() => deleteScene(activeScene.id)}>Delete</button>
             </div>
           </div>
 
-          {/* Shots table */}
+          {/* Shot table */}
           <table style={{ width:'100%', borderCollapse:'collapse' }}>
             <thead>
               <tr style={{ borderBottom:'1px solid var(--border)' }}>
-                {['Shot','Description','Distance','Movement','Priority','Time',''].map(h => (
-                  <th key={h} style={{ padding:'8px 12px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign: h === 'Time' || h === '' ? 'right' : 'left', whiteSpace:'nowrap' }}>{h}</th>
-                ))}
+                <th style={{ width:32 }} />
+                <th style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:44 }}>Shot</th>
+                <th style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left' }}>Description</th>
+                <th style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:130 }}>Movement</th>
+                <th style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:80 }}>Time</th>
+                <th style={{ width:28 }} />
               </tr>
             </thead>
             <tbody>
               {activeScene.shots.map((shot, i) => (
-                <tr key={shot.id} style={{ borderBottom:'1px solid var(--border)', background: shot.status === 'captured' ? 'rgba(74,222,128,0.04)' : 'transparent' }}>
-                  <td style={{ padding:'12px', fontSize:13, fontWeight:700, color:'var(--text)', whiteSpace:'nowrap' }}>{shotLabel(activeScene.scene_number, i)}</td>
-                  <td style={{ padding:'12px', fontSize:13, color:'var(--text)', maxWidth:260 }}>{shot.description || '—'}</td>
-                  <td style={{ padding:'12px', fontSize:13, color:'var(--muted)', whiteSpace:'nowrap' }}>{shot.distance || '—'}</td>
-                  <td style={{ padding:'12px', fontSize:13, color:'var(--muted)', whiteSpace:'nowrap' }}>{shot.movement || '—'}</td>
-                  <td style={{ padding:'12px', whiteSpace:'nowrap' }}>
-                    <span style={{ fontSize:12, fontWeight:600, color: PRIORITY_COLOR[shot.priority] || 'var(--muted)' }}>{shot.priority}</span>
-                  </td>
-                  <td style={{ padding:'12px', textAlign:'right', whiteSpace:'nowrap' }}>
-                    <div style={{ display:'flex', alignItems:'center', justifyContent:'flex-end', gap:8 }}>
-                      <span style={{ fontSize:12, color:'var(--muted)' }}>{shot.est_minutes}m</span>
-                      <div onClick={() => toggleCapture(shot)} title={shot.status === 'captured' ? 'Mark not captured' : 'Mark captured'}
-                        style={{ width:10, height:10, borderRadius:'50%', background: shot.status === 'captured' ? '#4ade80' : 'transparent', border:`2px solid ${shot.status === 'captured' ? '#4ade80' : 'var(--muted)'}`, cursor:'pointer', flexShrink:0 }} />
-                    </div>
-                  </td>
-                  <td style={{ padding:'12px', textAlign:'right', whiteSpace:'nowrap' }}>
-                    <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => { setEditShotId(shot.id); setEditShotForm({ description: shot.description||'', distance: shot.distance||'', movement: shot.movement||'', priority: shot.priority||'Important', estMinutes: shot.est_minutes||9 }); }}>Edit</button>
-                    <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11, marginLeft:6 }} onClick={() => deleteShot(shot.id)}>✕</button>
-                  </td>
-                </tr>
+                <ShotRow
+                  key={shot.id}
+                  shot={shot}
+                  index={i}
+                  sceneNumber={activeScene.scene_number}
+                  projectId={project.id}
+                  onUpdate={handleShotUpdate}
+                  onDelete={handleShotDelete}
+                />
               ))}
-              {activeScene.shots.length === 0 && (
-                <tr><td colSpan={7} style={{ padding:'20px 12px', fontSize:12, color:'var(--muted)', textAlign:'center', fontStyle:'italic' }}>No shots yet</td></tr>
-              )}
+              <NewShotRow
+                key={`new-${activeScene.id}`}
+                sceneNumber={activeScene.scene_number}
+                nextIndex={activeScene.shots.length}
+                projectId={project.id}
+                sceneId={activeScene.id}
+                onAdded={shot => handleShotAdded(activeScene.id, shot)}
+              />
             </tbody>
           </table>
-          <div style={{ padding:'12px 16px', borderTop:'1px solid var(--border)' }}>
-            <button className="btn btn-ghost btn-sm" onClick={() => setShowAddShot(true)}>+ Add Shot</button>
-          </div>
         </div>
       )}
 
@@ -235,80 +349,6 @@ export default function ShotList({ project }) {
               <div style={{ display:'flex', gap:8, marginTop:16 }}>
                 <button type="submit" className="btn btn-primary btn-sm">Save</button>
                 <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditSceneId(null)}>Cancel</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Add Shot Modal */}
-      {showAddShot && (
-        <div className="modal-backdrop" onClick={() => setShowAddShot(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-title">Add Shot — Scene {activeScene?.scene_number}</div>
-            <form onSubmit={addShot} style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
-              <div className="field span2"><label>Description</label><textarea value={shotForm.description} onChange={e => setShotForm(f => ({...f, description: e.target.value}))} placeholder="Hero group shot. Floor team smiling, waving at camera." rows={2} style={{ resize:'vertical' }} autoFocus /></div>
-              <div className="field">
-                <label>Distance</label>
-                <select value={shotForm.distance} onChange={e => setShotForm(f => ({...f, distance: e.target.value}))}>
-                  <option value="">— Select —</option>
-                  {DISTANCES.map(d => <option key={d} value={d}>{d}</option>)}
-                </select>
-              </div>
-              <div className="field">
-                <label>Movement</label>
-                <select value={shotForm.movement} onChange={e => setShotForm(f => ({...f, movement: e.target.value}))}>
-                  <option value="">— Select —</option>
-                  {MOVEMENTS.map(m => <option key={m} value={m}>{m}</option>)}
-                </select>
-              </div>
-              <div className="field">
-                <label>Priority</label>
-                <select value={shotForm.priority} onChange={e => setShotForm(f => ({...f, priority: e.target.value}))}>
-                  {PRIORITIES.map(p => <option key={p} value={p}>{p}</option>)}
-                </select>
-              </div>
-              <div className="field"><label>Est. Minutes</label><input type="number" min="1" value={shotForm.estMinutes} onChange={e => setShotForm(f => ({...f, estMinutes: e.target.value}))} /></div>
-              <div className="span2" style={{ display:'flex', gap:8, marginTop:4 }}>
-                <button type="submit" className="btn btn-primary btn-sm">Add Shot</button>
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowAddShot(false)}>Cancel</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Shot Modal */}
-      {editShotId && (
-        <div className="modal-backdrop" onClick={() => setEditShotId(null)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-title">Edit Shot</div>
-            <form onSubmit={saveShot} style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
-              <div className="field span2"><label>Description</label><textarea value={editShotForm.description} onChange={e => setEditShotForm(f => ({...f, description: e.target.value}))} rows={2} style={{ resize:'vertical' }} autoFocus /></div>
-              <div className="field">
-                <label>Distance</label>
-                <select value={editShotForm.distance} onChange={e => setEditShotForm(f => ({...f, distance: e.target.value}))}>
-                  <option value="">— Select —</option>
-                  {DISTANCES.map(d => <option key={d} value={d}>{d}</option>)}
-                </select>
-              </div>
-              <div className="field">
-                <label>Movement</label>
-                <select value={editShotForm.movement} onChange={e => setEditShotForm(f => ({...f, movement: e.target.value}))}>
-                  <option value="">— Select —</option>
-                  {MOVEMENTS.map(m => <option key={m} value={m}>{m}</option>)}
-                </select>
-              </div>
-              <div className="field">
-                <label>Priority</label>
-                <select value={editShotForm.priority} onChange={e => setEditShotForm(f => ({...f, priority: e.target.value}))}>
-                  {PRIORITIES.map(p => <option key={p} value={p}>{p}</option>)}
-                </select>
-              </div>
-              <div className="field"><label>Est. Minutes</label><input type="number" min="1" value={editShotForm.estMinutes} onChange={e => setEditShotForm(f => ({...f, estMinutes: e.target.value}))} /></div>
-              <div className="span2" style={{ display:'flex', gap:8, marginTop:4 }}>
-                <button type="submit" className="btn btn-primary btn-sm">Save</button>
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditShotId(null)}>Cancel</button>
               </div>
             </form>
           </div>
