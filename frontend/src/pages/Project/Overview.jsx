@@ -327,7 +327,7 @@ export default function Overview({ project, setProject, onTabChange }) {
       {/* Crew List */}
       {(project.crewAssignments||[]).length > 0 && (
         <>
-          <div className="sec-lbl">Crew</div>
+          <div className="sec-lbl" style={{ fontWeight:700, fontSize:12, color:'var(--text)' }}>Crew</div>
           <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden', marginBottom:20 }}>
             <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))' }}>
               {(project.crewAssignments||[]).map((a, i) => (
@@ -362,7 +362,7 @@ export default function Overview({ project, setProject, onTabChange }) {
         <div>
           {scheduleDays.length > 0 && (
             <>
-              <div className="sec-lbl">Key Dates</div>
+              <div className="sec-lbl" style={{ fontWeight:700, fontSize:12, color:'var(--text)' }}>Key Dates</div>
               <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden' }}>
                 {scheduleDays.map((d, i) => (
                   <div key={d.id} style={{ display:'grid', gridTemplateColumns:'1fr auto', alignItems:'center', gap:12, padding:'10px 16px', borderBottom: i < scheduleDays.length - 1 ? '1px solid var(--border)' : 'none' }}>
@@ -433,7 +433,7 @@ export default function Overview({ project, setProject, onTabChange }) {
 
       {/* Locations */}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
-        <div className="sec-lbl" style={{ marginBottom:0 }}>Locations</div>
+        <div className="sec-lbl" style={{ marginBottom:0, fontWeight:700, fontSize:12, color:'var(--text)' }}>Locations</div>
         <button className="btn btn-ghost btn-sm" onClick={() => setShowLocModal(true)}>+ Add</button>
       </div>
       {!(project.locations?.length) && (
