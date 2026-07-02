@@ -271,7 +271,7 @@ export default function Overview({ project, setProject, onTabChange }) {
       </div>
 
       {/* Public View Password */}
-      <form onSubmit={saveSharePw} style={{ display:'flex', alignItems:'center', gap:12, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'12px 16px', margin:'20px 0 10px' }}>
+      <form onSubmit={saveSharePw} style={{ display:'flex', alignItems:'center', gap:12, background:'linear-gradient(135deg, var(--bg2) 55%, rgba(232,80,10,0.09) 100%)', border:'1px solid rgba(232,80,10,0.28)', borderRadius:8, padding:'12px 16px', margin:'20px 0 10px' }}>
         <span style={{ fontSize:13, fontWeight:700, whiteSpace:'nowrap' }}>Public View Password</span>
         <input
           value={sharePw}

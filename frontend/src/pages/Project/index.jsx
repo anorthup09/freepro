@@ -136,7 +136,10 @@ export default function Project() {
   return (
     <>
       <nav className="nav">
-        <Link to="/" className="logo">Free<em>Pro</em></Link>
+        <div style={{ display:'flex', flexDirection:'column', gap:1 }}>
+          <Link to="/" className="logo">Free<em>Pro</em></Link>
+          <span style={{ fontSize:9, color:'var(--muted)', letterSpacing:'0.06em', paddingLeft:1 }}>Powered by Unbridled Media</span>
+        </div>
         <div className="tabs">
           {[...BASE_TABS, ...(showCateringGrid ? [{ id:'catering', label:'Catering' }] : [])].map(t => (
             <button key={t.id} className={`tab${tab === t.id ? ' on' : ''}`} onClick={() => setTab(t.id)}>

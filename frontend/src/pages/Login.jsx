@@ -30,6 +30,7 @@ export default function Login() {
     <div className="login-wrap">
       <div className="login-box">
         <div className="login-logo">Free<em>Pro</em></div>
+        <div style={{ textAlign:'center', fontSize:9, color:'var(--muted)', letterSpacing:'0.06em', marginTop:-6, marginBottom:8 }}>Powered by Unbridled Media</div>
         {err && <div className="login-err">{err}</div>}
         <form onSubmit={submit}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
