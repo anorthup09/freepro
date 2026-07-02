@@ -450,6 +450,11 @@ async function migrate() {
     )
   `;
 
+  await sql`ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS call_time_location_id TEXT REFERENCES locations(id)`;
+  await sql`ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS shooting_call_location_id TEXT REFERENCES locations(id)`;
+  await sql`ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS lunch_location_id TEXT REFERENCES locations(id)`;
+  await sql`ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS wrap_time_location_id TEXT REFERENCES locations(id)`;
+
   await sql`
     CREATE TABLE IF NOT EXISTS gear_items (
       id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,

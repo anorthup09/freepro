@@ -103,10 +103,10 @@ const TAG_CLASS = { VIDEO:'v', PHOTO:'p', AUDIO:'a', ALL_CREW:'a', TALENT:'t', C
 const TAG_LABEL = { VIDEO:'Video', PHOTO:'Photo', AUDIO:'Audio', ALL_CREW:'All Crew', TALENT:'Talent', CUSTOM:'Custom' };
 
 const SYNTHETIC_META = {
-  ct:  { color:'#4a9eff', bg:'rgba(74,158,255,0.08)',  notesKey:'callTimeNotes',      tagsKey:'callTimeTags' },
-  sct: { color:'#ff8c00', bg:'rgba(255,140,0,0.10)',   notesKey:'shootingCallNotes',  tagsKey:'shootingCallTags' },
-  lt:  { color:'#4ade80', bg:'rgba(74,222,128,0.08)',  notesKey:'lunchNotes',         tagsKey:'lunchTags' },
-  wt:  { color:'#a78bfa', bg:'rgba(167,139,250,0.08)', notesKey:'wrapTimeNotes',      tagsKey:'wrapTimeTags' },
+  ct:  { color:'#4a9eff', bg:'rgba(74,158,255,0.08)',  notesKey:'callTimeNotes',      tagsKey:'callTimeTags',      locationKey:'callTimeLocationId' },
+  sct: { color:'#ff8c00', bg:'rgba(255,140,0,0.10)',   notesKey:'shootingCallNotes',  tagsKey:'shootingCallTags',  locationKey:'shootingCallLocationId' },
+  lt:  { color:'#4ade80', bg:'rgba(74,222,128,0.08)',  notesKey:'lunchNotes',         tagsKey:'lunchTags',         locationKey:'lunchLocationId' },
+  wt:  { color:'#a78bfa', bg:'rgba(167,139,250,0.08)', notesKey:'wrapTimeNotes',      tagsKey:'wrapTimeTags',      locationKey:'wrapTimeLocationId' },
 };
 
 export default function Schedule({ project }) {
@@ -157,6 +157,10 @@ export default function Schedule({ project }) {
           shootingCallNotes: day.shooting_call_notes||'', shootingCallTags: day.shooting_call_tags||[],
           lunchNotes: day.lunch_notes||'', lunchTags: day.lunch_tags||[],
           wrapTimeNotes: day.wrap_time_notes||'', wrapTimeTags: day.wrap_time_tags||[],
+          callTimeLocationId: day.call_time_location_id||'',
+          shootingCallLocationId: day.shooting_call_location_id||'',
+          lunchLocationId: day.lunch_location_id||'',
+          wrapTimeLocationId: day.wrap_time_location_id||'',
         };
       });
       setDayMeta(meta);
@@ -217,10 +221,23 @@ export default function Schedule({ project }) {
     const t = dayTimesForm[dayId] || {};
     const meta = SYNTHETIC_META[key];
     try {
-      await api.updateDay(project.id, dayId, { [meta.notesKey]: t[meta.notesKey]||null, [meta.tagsKey]: t[meta.tagsKey]||[] });
+      await api.updateDay(project.id, dayId, {
+        [meta.notesKey]: t[meta.notesKey]||null,
+        [meta.tagsKey]: t[meta.tagsKey]||[],
+        [meta.locationKey]: t[meta.locationKey]||null,
+      });
       flashSaved();
     } catch(e) { alert(e.message); }
     setEditingSyntheticKey(null);
+  }
+
+  async function applyMetaToAll(field, value) {
+    const otherDays = days.filter(d => d.id !== currentDay.id);
+    otherDays.forEach(d => setDayMeta(m => ({ ...m, [d.id]: { ...m[d.id], [field]: value } })));
+    try {
+      await Promise.all(otherDays.map(d => api.updateDay(project.id, d.id, { [field]: value })));
+      flashSaved();
+    } catch(e) { alert(e.message); }
   }
 
   const currentDay = days.find(d => d.id === activeDay);
@@ -387,7 +404,16 @@ export default function Schedule({ project }) {
                 { label:'GS Audio Contact', field:'gsAudio' },
               ].map(({ label, field }) => (
                 <div key={field} className="field" style={{ margin:0 }}>
-                  <label style={{ fontSize:10 }}>{label}</label>
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:3 }}>
+                    <label style={{ fontSize:10, margin:0 }}>{label}</label>
+                    {days.length > 1 && (
+                      <button type="button"
+                        style={{ fontSize:9, padding:'1px 7px', borderRadius:10, border:'1px solid var(--border2)', background:'var(--bg3)', color:'var(--muted)', cursor:'pointer', fontWeight:600, lineHeight:'16px' }}
+                        onClick={() => applyMetaToAll(field, dayMeta[currentDay.id]?.[field] || '')}>
+                        Apply to All
+                      </button>
+                    )}
+                  </div>
                   <input
                     value={dayMeta[currentDay.id]?.[field] || ''}
                     onChange={e => setDayMeta(m => ({ ...m, [currentDay.id]: { ...m[currentDay.id], [field]: e.target.value } }))}
@@ -471,16 +497,29 @@ export default function Schedule({ project }) {
                           <div className="ev-time" style={{ color: sm.color }}>{fmtTime(item.startTime)}</div>
                           <div className="ev-body" style={{ borderLeft:`2px solid ${sm.color}`, background: sm.bg, cursor:'pointer' }}
                             onClick={() => setEditingSyntheticKey(isEditing ? null : item._key)}>
-                            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-                              <div className="ev-title" style={{ color: sm.color }}>{item.title}</div>
-                              <span style={{ fontSize:10, color: sm.color, opacity:0.7 }}>{isEditing ? '▲' : '✎'}</span>
-                            </div>
-                            {item.notes && !isEditing && <div className="ev-detail">{item.notes}</div>}
-                            {item.tags?.length > 0 && !isEditing && (
-                              <div className="ev-tags" style={{ marginTop:4 }}>
-                                {item.tags.map(t => <span key={t} className={`etag ${TAG_CLASS[t]}`}>{TAG_LABEL[t]}</span>)}
+                            <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between' }}>
+                              <div style={{ flex:1 }}>
+                                <div className="ev-title" style={{ color: sm.color }}>{item.title}</div>
+                                {item.notes && !isEditing && <div className="ev-detail">{item.notes}</div>}
+                                {item.tags?.length > 0 && !isEditing && (
+                                  <div className="ev-tags" style={{ marginTop:4 }}>
+                                    {item.tags.map(t => <span key={t} className={`etag ${TAG_CLASS[t]}`}>{TAG_LABEL[t]}</span>)}
+                                  </div>
+                                )}
                               </div>
-                            )}
+                              <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:2, marginLeft:8, flexShrink:0 }}>
+                                {!isEditing && dt[sm.locationKey] && (() => {
+                                  const loc = (project.locations||[]).find(l => l.id === dt[sm.locationKey]);
+                                  return loc ? (
+                                    <div style={{ textAlign:'right' }}>
+                                      <div style={{ fontSize:10, color:'var(--tan)', fontWeight:600 }}>📍 {loc.name}</div>
+                                      {loc.address && <div style={{ fontSize:10, color:'var(--muted)' }}>{loc.address}</div>}
+                                    </div>
+                                  ) : null;
+                                })()}
+                                <span style={{ fontSize:10, color: sm.color, opacity:0.7 }}>{isEditing ? '▲' : '✎'}</span>
+                              </div>
+                            </div>
                             {isEditing && (
                               <div style={{ marginTop:8 }} onClick={e => e.stopPropagation()}>
                                 <textarea
@@ -489,6 +528,15 @@ export default function Schedule({ project }) {
                                   value={dt[sm.notesKey]||''}
                                   onChange={e => setDayTimesForm(m => ({ ...m, [currentDay.id]: { ...m[currentDay.id], [sm.notesKey]: e.target.value } }))}
                                 />
+                                {(project.locations||[]).length > 0 && (
+                                  <select
+                                    style={{ width:'100%', marginTop:6, fontSize:11, background:'var(--bg)', border:'1px solid var(--border)', borderRadius:4, padding:'4px 6px', color:'var(--text)' }}
+                                    value={dt[sm.locationKey]||''}
+                                    onChange={e => setDayTimesForm(m => ({ ...m, [currentDay.id]: { ...m[currentDay.id], [sm.locationKey]: e.target.value } }))}>
+                                    <option value="">— No location —</option>
+                                    {(project.locations||[]).map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                                  </select>
+                                )}
                                 <div style={{ display:'flex', gap:6, marginTop:6, flexWrap:'wrap', alignItems:'center' }}>
                                   {['VIDEO','PHOTO'].map(tag => {
                                     const sel = (dt[sm.tagsKey]||[]).includes(tag);
@@ -552,18 +600,27 @@ export default function Schedule({ project }) {
                         <div className={`ev-body${(item.is_alert||item.isAlert) ? ' warn' : ''}`}
                           style={{ cursor:'pointer', ...(!(item.is_alert||item.isAlert) ? { borderLeft:'2px solid var(--orange)', ...(item.is_filming||item.isFilming ? { background:'linear-gradient(90deg, rgba(255,140,0,0.12) 0%, transparent 100%)', borderRadius:'0 6px 6px 0' } : {}) } : {}) }}
                           onClick={() => openEditEvent(item)}>
-                          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
-                            <div className={`ev-title${(item.is_alert||item.isAlert) ? ' alert' : ''}`} style={(item.is_filming||item.isFilming) ? { color:'var(--orange)' } : {}}>{(item.is_alert||item.isAlert) ? '⚠ ' : ''}{(item.is_filming||item.isFilming) ? '🎬 ' : ''}{item.title}</div>
-                            <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11, flexShrink:0, marginLeft:8 }}
-                              onClick={e => { e.stopPropagation(); deleteEvent(item.id); }}>✕</button>
-                          </div>
-                          {item.detail && <div className="ev-detail">{item.detail}</div>}
-                          {item.location && <div style={{ fontSize:10, color:'var(--tan)', marginTop:3 }}>📍 {item.location.name}</div>}
-                          {item.tags?.length > 0 && (
-                            <div className="ev-tags">
-                              {item.tags.map(t => <span key={t.id} className={`etag ${TAG_CLASS[t.type]}`}>{TAG_LABEL[t.type]}</span>)}
+                          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:8 }}>
+                            <div style={{ flex:1, minWidth:0 }}>
+                              <div className={`ev-title${(item.is_alert||item.isAlert) ? ' alert' : ''}`} style={(item.is_filming||item.isFilming) ? { color:'var(--orange)' } : {}}>{(item.is_alert||item.isAlert) ? '⚠ ' : ''}{(item.is_filming||item.isFilming) ? '🎬 ' : ''}{item.title}</div>
+                              {item.detail && <div className="ev-detail">{item.detail}</div>}
+                              {item.tags?.length > 0 && (
+                                <div className="ev-tags">
+                                  {item.tags.map(t => <span key={t.id} className={`etag ${TAG_CLASS[t.type]}`}>{TAG_LABEL[t.type]}</span>)}
+                                </div>
+                              )}
                             </div>
-                          )}
+                            <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4, flexShrink:0 }}>
+                              {item.location && (
+                                <div style={{ textAlign:'right' }}>
+                                  <div style={{ fontSize:10, color:'var(--tan)', fontWeight:600 }}>📍 {item.location.name}</div>
+                                  {item.location.address && <div style={{ fontSize:10, color:'var(--muted)' }}>{item.location.address}</div>}
+                                </div>
+                              )}
+                              <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }}
+                                onClick={e => { e.stopPropagation(); deleteEvent(item.id); }}>✕</button>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     ))}
