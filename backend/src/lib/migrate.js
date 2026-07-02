@@ -418,6 +418,19 @@ async function migrate() {
     )
   `;
 
+  await sql`
+    CREATE TABLE IF NOT EXISTS catering_orders (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      shoot_day_id TEXT NOT NULL REFERENCES shoot_days(id) ON DELETE CASCADE,
+      meal_type TEXT NOT NULL,
+      name TEXT,
+      address TEXT,
+      order_number TEXT,
+      delivery_time TEXT,
+      UNIQUE(shoot_day_id, meal_type)
+    )
+  `;
+
   await sql`ALTER TABLE schedule_events ADD COLUMN IF NOT EXISTS is_filming BOOLEAN DEFAULT FALSE`;
 
   await sql`ALTER TABLE key_talent ADD COLUMN IF NOT EXISTS call_time TEXT`;

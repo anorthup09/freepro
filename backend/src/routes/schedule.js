@@ -41,7 +41,7 @@ router.get('/:id/schedule', requireAuth, async (req, res, next) => {
     if (days.length === 0) return res.json([]);
     const dayIds = days.map(d => d.id);
 
-    const [events, crewCalls] = await Promise.all([
+    const [events, crewCalls, catering] = await Promise.all([
       sql`SELECT se.*, json_agg(DISTINCT jsonb_build_object('id',et.id,'type',et.type,'label',et.label)) FILTER (WHERE et.id IS NOT NULL) as tags,
              l.name as location_name, l.address as location_address
           FROM schedule_events se
@@ -58,18 +58,23 @@ router.get('/:id/schedule', requireAuth, async (req, res, next) => {
           LEFT JOIN crew_members cm ON cm.id = ca.crew_member_id
           WHERE cdc.shoot_day_id = ANY(${sql.array(dayIds)})
           ORDER BY p.sort_order, ca.slot_number`,
+      sql`SELECT * FROM catering_orders WHERE shoot_day_id = ANY(${sql.array(dayIds)}) ORDER BY meal_type`,
     ]);
 
     const eventsByDay = {};
     const callsByDay = {};
+    const cateringByDay = {};
     for (const e of events) {
       (eventsByDay[e.shoot_day_id] ||= []).push({ ...e, tags: e.tags || [], location: e.location_name ? { name: e.location_name, address: e.location_address } : null });
     }
     for (const c of crewCalls) {
       (callsByDay[c.shoot_day_id] ||= []).push({ ...c, crewAssignment: { id: c.crew_assignment_id, positionId: c.position_id, slotNumber: c.slot_number, position: { name: c.position_name }, crewMember: c.cm_id ? { id: c.cm_id, name: c.cm_name, phone: c.cm_phone } : null } });
     }
+    for (const c of catering) {
+      (cateringByDay[c.shoot_day_id] ||= []).push(c);
+    }
 
-    res.json(days.map(d => ({ ...d, events: eventsByDay[d.id] || [], crewCalls: callsByDay[d.id] || [] })));
+    res.json(days.map(d => ({ ...d, events: eventsByDay[d.id] || [], crewCalls: callsByDay[d.id] || [], catering: cateringByDay[d.id] || [] })));
   } catch(e){next(e);}
 });
 
@@ -236,6 +241,27 @@ router.patch('/:id/schedule/calls/:callId', requireAuth, requireRole('ADMIN','PR
       LEFT JOIN crew_members cm ON cm.id=ca.crew_member_id
       WHERE cdc.id=${req.params.callId}`;
     res.json({ ...full, crewAssignment: { position: { name: full.position_name }, slotNumber: full.slot_number, crewMember: full.cm_id?{id:full.cm_id,name:full.cm_name}:null }});
+  } catch(e){next(e);}
+});
+
+// POST (upsert) catering — mealTypes is array, same caterer info saved for each
+router.post('/:id/schedule/days/:dayId/catering', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try {
+    const { mealTypes = [], name, address, orderNumber, deliveryTime, deleteMealTypes = [] } = req.body;
+    if (deleteMealTypes.length) {
+      await sql`DELETE FROM catering_orders WHERE shoot_day_id = ${req.params.dayId} AND meal_type = ANY(${sql.array(deleteMealTypes)})`;
+    }
+    const results = [];
+    for (const mealType of mealTypes) {
+      const [row] = await sql`
+        INSERT INTO catering_orders (id, shoot_day_id, meal_type, name, address, order_number, delivery_time)
+        VALUES (gen_random_uuid()::text, ${req.params.dayId}, ${mealType}, ${name||null}, ${address||null}, ${orderNumber||null}, ${deliveryTime||null})
+        ON CONFLICT (shoot_day_id, meal_type) DO UPDATE SET
+          name=${name||null}, address=${address||null}, order_number=${orderNumber||null}, delivery_time=${deliveryTime||null}
+        RETURNING *`;
+      results.push(row);
+    }
+    res.json(results);
   } catch(e){next(e);}
 });
 

@@ -105,6 +105,12 @@ const DAY_TYPES = [
   { value:'SCOUT',        label:'Scout Day' },
 ];
 
+const MEAL_COLORS = {
+  BREAKFAST: { color:'#fbbf24', bg:'rgba(251,191,36,0.10)', emoji:'🍳', label:'Breakfast' },
+  DINNER:    { color:'#f87171', bg:'rgba(248,113,113,0.10)', emoji:'🍽️', label:'Dinner' },
+  LUNCH:     { color:'#4ade80', bg:'rgba(74,222,128,0.08)',  emoji:'🥗', label:'Lunch' },
+};
+
 const TAG_TYPES = ['VIDEO','PHOTO','AUDIO','ALL_CREW','TALENT','CUSTOM'];
 const TAG_CLASS = { VIDEO:'v', PHOTO:'p', AUDIO:'a', ALL_CREW:'a', TALENT:'t', CUSTOM:'v' };
 const TAG_LABEL = { VIDEO:'Video', PHOTO:'Photo', AUDIO:'Audio', ALL_CREW:'All Crew', TALENT:'Talent', CUSTOM:'Custom' };
@@ -133,6 +139,9 @@ export default function Schedule({ project }) {
   const [dayMeta, setDayMeta] = useState({});
   const [flights, setFlights] = useState([]);
   const [weatherByDate, setWeatherByDate] = useState({});
+  const [showCateringGrid, setShowCateringGrid] = useState(false);
+  const [cateringModal, setCateringModal] = useState(null);
+  const [cateringForm, setCateringForm] = useState({ mealTypes:[], name:'', address:'', orderNumber:'', deliveryTime:'' });
   const [savedToast, setSavedToast] = useState(false);
   const savedToastTimer = React.useRef(null);
   function flashSaved() {
@@ -206,6 +215,41 @@ export default function Schedule({ project }) {
   async function saveDayType(dayId, value) {
     setDays(ds => ds.map(d => d.id === dayId ? { ...d, day_type: value } : d));
     try { await api.updateDay(project.id, dayId, { dayType: value }); flashSaved(); } catch(e) { alert(e.message); }
+  }
+
+  function openCateringModal(dayId) {
+    const day = days.find(d => d.id === dayId);
+    const existing = day?.catering || [];
+    const mealTypes = existing.map(c => c.meal_type);
+    const first = existing[0] || {};
+    setCateringForm({ mealTypes, name: first.name||'', address: first.address||'', orderNumber: first.order_number||'', deliveryTime: first.delivery_time||'' });
+    setCateringModal(dayId);
+  }
+
+  async function saveCatering(e) {
+    e.preventDefault();
+    const dayId = cateringModal;
+    const { mealTypes, name, address, orderNumber, deliveryTime } = cateringForm;
+    const day = days.find(d => d.id === dayId);
+    const existingTypes = (day?.catering || []).map(c => c.meal_type);
+    const deleteMealTypes = existingTypes.filter(mt => !mealTypes.includes(mt));
+    try {
+      const results = await api.saveCatering(project.id, dayId, { mealTypes, name, address, orderNumber, deliveryTime, deleteMealTypes });
+      setDays(ds => ds.map(d => {
+        if (d.id !== dayId) return d;
+        const kept = (d.catering||[]).filter(c => !mealTypes.includes(c.meal_type) && !deleteMealTypes.includes(c.meal_type));
+        return { ...d, catering: [...kept, ...results] };
+      }));
+      setCateringModal(null);
+      flashSaved();
+    } catch(e) { alert(e.message); }
+  }
+
+  function toggleMealType(mt) {
+    setCateringForm(f => ({
+      ...f,
+      mealTypes: f.mealTypes.includes(mt) ? f.mealTypes.filter(x => x !== mt) : [...f.mealTypes, mt],
+    }));
   }
 
   async function saveDayMeta(dayId, field, value) {
@@ -354,7 +398,15 @@ export default function Schedule({ project }) {
           <div className="page-title">Schedule</div>
           <div className="page-sub">{project.city}, {project.state} · {parseDay(project.start_date||project.startDate).toLocaleDateString()} – {parseDay(project.end_date||project.endDate).toLocaleDateString()}</div>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowAddDay(true)}>+ Add Day</button>
+        <div style={{ display:'flex', gap:8 }}>
+          <button className="btn btn-primary" onClick={() => setShowAddDay(true)}>+ Add Day</button>
+          <button
+            onClick={() => setShowCateringGrid(s => !s)}
+            style={{ fontSize:12, fontWeight:600, padding:'6px 14px', borderRadius:6, border:`1px solid ${showCateringGrid ? '#22c55e' : 'var(--border2)'}`, background: showCateringGrid ? 'rgba(34,197,94,0.15)' : 'var(--bg2)', color: showCateringGrid ? '#22c55e' : 'var(--muted)', cursor:'pointer', transition:'all .15s' }}
+          >
+            {showCateringGrid ? '✓ Catering Grid' : '+ Add Catering Grid'}
+          </button>
+        </div>
       </div>
 
       {days.length === 0 && <div className="empty">No shoot days yet — add a day to start building the schedule.</div>}
@@ -363,10 +415,52 @@ export default function Schedule({ project }) {
       {days.length > 0 && (
         <div className="day-tabs">
           {[...days].sort((a,b) => (a.date||'').localeCompare(b.date||'')).map((d, i) => (
-            <button key={d.id} className={`day-tab${d.id === activeDay ? ' on' : ''}`} onClick={() => { setActiveDay(d.id); setEditDayTimes(false); }}>
+            <button key={d.id} className={`day-tab${d.id === activeDay ? ' on' : ''}`} onClick={() => { setActiveDay(d.id); }}>
               Day {i + 1} · {parseDay(d.date).toLocaleDateString('en-US', { month:'short', day:'numeric' })}
             </button>
           ))}
+        </div>
+      )}
+
+      {/* Catering Grid */}
+      {showCateringGrid && days.length > 0 && (
+        <div style={{ marginBottom:20 }}>
+          <div className="sec-lbl" style={{ marginBottom:10 }}>Catering Grid</div>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(260px, 1fr))', gap:12 }}>
+            {[...days].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map((d, i) => {
+              const catering = d.catering || [];
+              const byMeal = Object.fromEntries(catering.map(c => [c.meal_type, c]));
+              return (
+                <div key={d.id} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden' }}>
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 14px', borderBottom:'1px solid var(--border)' }}>
+                    <div style={{ fontWeight:700, fontSize:13 }}>Day {i+1} · {parseDay(d.date).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</div>
+                    <button className="btn btn-ghost btn-sm" style={{ fontSize:11, padding:'3px 10px' }} onClick={() => openCateringModal(d.id)}>+ Add Catering</button>
+                  </div>
+                  <div style={{ padding:'10px 14px' }}>
+                    {['BREAKFAST','LUNCH','DINNER'].map(mt => {
+                      const mc = MEAL_COLORS[mt];
+                      const entry = byMeal[mt];
+                      return (
+                        <div key={mt} style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:8, paddingBottom:8, borderBottom: mt !== 'DINNER' ? '1px solid var(--border)' : 'none' }}>
+                          <div style={{ fontSize:11, fontWeight:700, color: mc.color }}>{mc.emoji} {mc.label}</div>
+                          {entry ? (
+                            <div style={{ textAlign:'right', fontSize:11 }}>
+                              <div style={{ fontWeight:600, color:'var(--text)' }}>{entry.name}</div>
+                              {entry.address && <div style={{ color:'var(--muted)', fontSize:10 }}>{entry.address}</div>}
+                              {entry.order_number && <div style={{ color:'var(--muted)', fontSize:10 }}>Order #{entry.order_number}</div>}
+                              {entry.delivery_time && <div style={{ color: mc.color, fontSize:10 }}>🚚 {fmtTime(entry.delivery_time)}</div>}
+                            </div>
+                          ) : (
+                            <span style={{ fontSize:10, color:'var(--muted)', fontStyle:'italic' }}>Not set</span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
@@ -496,7 +590,11 @@ export default function Schedule({ project }) {
             const previewItems = (showAddEvent && (eventForm.title || eventForm.startTime))
               ? [{ _type:'preview', _sort: timeToMinutes(eventForm.startTime) || 9998, _key:'preview', ...eventForm }]
               : [];
-            const items = [...syntheticItems, ...eventItems, ...flightItems, ...previewItems].sort((a, b) => a._sort - b._sort);
+            const cateringItems = (currentDay.catering || [])
+              .filter(c => c.meal_type !== 'LUNCH')
+              .map(c => ({ _type:'catering', _sort: timeToMinutes(c.delivery_time) || 9997, _key:`cat-${c.id}`, ...c }));
+            const lunchCatering = (currentDay.catering || []).find(c => c.meal_type === 'LUNCH');
+            const items = [...syntheticItems, ...eventItems, ...flightItems, ...cateringItems, ...previewItems].sort((a, b) => a._sort - b._sort);
 
             return (
               <>
@@ -530,12 +628,20 @@ export default function Schedule({ project }) {
                                 {!isEditing && dt[sm.locationKey] && (() => {
                                   const loc = (project.locations||[]).find(l => l.id === dt[sm.locationKey]);
                                   return loc ? (
-                                    <div style={{ textAlign:'right' }}>
+                                    <div style={{ textAlign:'right', marginBottom:4 }}>
                                       <div style={{ fontSize:10, color:'var(--tan)', fontWeight:600 }}>📍 {loc.name}</div>
                                       {loc.address && <div style={{ fontSize:10, color:'var(--muted)' }}>{loc.address}</div>}
                                     </div>
                                   ) : null;
                                 })()}
+                              {!isEditing && item._key === 'lt' && lunchCatering && (
+                                <div style={{ textAlign:'right' }}>
+                                  <div style={{ fontSize:10, fontWeight:600, color:'var(--text)' }}>{lunchCatering.name}</div>
+                                  {lunchCatering.address && <div style={{ fontSize:10, color:'var(--muted)' }}>{lunchCatering.address}</div>}
+                                  {lunchCatering.order_number && <div style={{ fontSize:10, color:'var(--muted)' }}>Order #{lunchCatering.order_number}</div>}
+                                  {lunchCatering.delivery_time && <div style={{ fontSize:10, color:'#4ade80' }}>🚚 {fmtTime(lunchCatering.delivery_time)}</div>}
+                                </div>
+                              )}
                                 <span style={{ fontSize:10, color: sm.color, opacity:0.7 }}>{isEditing ? '▲' : '✎'}</span>
                               </div>
                             </div>
@@ -596,7 +702,24 @@ export default function Schedule({ project }) {
                           )}
                         </div>
                       </div>
-                    ) : item._type === 'flight' ? (
+                    ) : item._type === 'catering' ? (() => {
+                      const mc = MEAL_COLORS[item.meal_type] || MEAL_COLORS.BREAKFAST;
+                      return (
+                        <div key={item._key} className="ev">
+                          <div className="ev-time" style={{ color: mc.color }}>{item.delivery_time ? fmtTime(item.delivery_time) : '—'}</div>
+                          <div className="ev-body" style={{ borderLeft:`2px solid ${mc.color}`, background: mc.bg }}>
+                            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
+                              <div className="ev-title" style={{ color: mc.color }}>{mc.emoji} {mc.label}</div>
+                              <div style={{ textAlign:'right' }}>
+                                {item.name && <div style={{ fontSize:12, fontWeight:600, color:'var(--text)' }}>{item.name}</div>}
+                                {item.address && <div style={{ fontSize:10, color:'var(--muted)' }}>{item.address}</div>}
+                                {item.order_number && <div style={{ fontSize:10, color:'var(--muted)' }}>Order #{item.order_number}</div>}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })() : item._type === 'flight' ? (
                       <div key={item._key} className="ev">
                         <div className="ev-time">✈ {legDisplayTime(item)}</div>
                         <div className="ev-body" style={{ borderLeft:'2px solid var(--orange)' }}>
@@ -728,6 +851,43 @@ export default function Schedule({ project }) {
                 </div>
               </div>
               <div className="btn-row"><button className="btn btn-primary">Add Event</button><button type="button" className="btn btn-ghost" onClick={() => setShowAddEvent(false)}>Cancel</button></div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Catering Modal */}
+      {cateringModal && (
+        <div className="modal-bg" onClick={e => e.target === e.currentTarget && setCateringModal(null)}>
+          <div className="modal">
+            <div className="modal-title">Add Catering Info</div>
+            <form onSubmit={saveCatering}>
+              <div style={{ marginBottom:14 }}>
+                <div style={{ fontSize:11, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)', marginBottom:8 }}>Meal(s)</div>
+                <div style={{ display:'flex', gap:10 }}>
+                  {['BREAKFAST','LUNCH','DINNER'].map(mt => {
+                    const mc = MEAL_COLORS[mt];
+                    const sel = cateringForm.mealTypes.includes(mt);
+                    return (
+                      <button key={mt} type="button"
+                        onClick={() => toggleMealType(mt)}
+                        style={{ flex:1, padding:'8px 6px', borderRadius:8, border:`2px solid ${sel ? mc.color : 'var(--border)'}`, background: sel ? mc.bg : 'var(--bg)', color: sel ? mc.color : 'var(--muted)', fontWeight:700, fontSize:12, cursor:'pointer', transition:'all .12s' }}>
+                        {mc.emoji} {mc.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className="form-grid" style={{ marginBottom:12 }}>
+                <div className="field span2"><label>Name of Catering / Restaurant</label><input value={cateringForm.name} onChange={e => setCateringForm(f=>({...f,name:e.target.value}))} placeholder="Catering Co." /></div>
+                <div className="field span2"><label>Address</label><input value={cateringForm.address} onChange={e => setCateringForm(f=>({...f,address:e.target.value}))} placeholder="123 Main St" /></div>
+                <div className="field"><label>Order Number</label><input value={cateringForm.orderNumber} onChange={e => setCateringForm(f=>({...f,orderNumber:e.target.value}))} placeholder="#12345" /></div>
+                <div className="field"><label>Est. Delivery Time</label><input type="time" value={cateringForm.deliveryTime} onChange={e => setCateringForm(f=>({...f,deliveryTime:e.target.value}))} /></div>
+              </div>
+              <div className="btn-row">
+                <button className="btn btn-primary" type="submit">Save Catering</button>
+                <button type="button" className="btn btn-ghost" onClick={() => setCateringModal(null)}>Cancel</button>
+              </div>
             </form>
           </div>
         </div>

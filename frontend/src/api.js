@@ -80,6 +80,7 @@ export const api = {
   deleteEvent: (projectId, eventId) => req('DELETE', `/projects/${projectId}/schedule/events/${eventId}`),
   saveDayCalls: (projectId, dayId, calls) => req('PUT', `/projects/${projectId}/schedule/days/${dayId}/calls`, calls),
   updateDayCall: (projectId, callId, data) => req('PATCH', `/projects/${projectId}/schedule/calls/${callId}`, data),
+  saveCatering: (projectId, dayId, data) => req('POST', `/projects/${projectId}/schedule/days/${dayId}/catering`, data),
 
   // Deliverables
   getDeliverables: (projectId) => req('GET', `/projects/${projectId}/deliverables`),
