@@ -1569,7 +1569,7 @@ function GlassHeader({ project, headerRef }) {
       transition: 'opacity 0.25s ease, transform 0.25s ease',
       backdropFilter: 'blur(20px) saturate(160%)',
       WebkitBackdropFilter: 'blur(20px) saturate(160%)',
-      background: 'rgba(10,10,8,0.55)',
+      background: 'rgba(10,10,8,0.25)',
       borderBottom: '1px solid rgba(255,255,255,0.07)',
       boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
       padding: '16px 24px',
