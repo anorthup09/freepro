@@ -271,8 +271,8 @@ export default function Overview({ project, setProject, onTabChange }) {
       </div>
 
       {/* Public View Password */}
-      <form onSubmit={saveSharePw} style={{ display:'flex', alignItems:'center', gap:12, background:'linear-gradient(135deg, var(--bg2) 40%, rgba(232,80,10,0.22) 100%)', border:'1px solid rgba(232,80,10,0.45)', borderRadius:8, padding:'12px 16px', margin:'20px 0 10px' }}>
-        <span style={{ fontSize:13, fontWeight:700, whiteSpace:'nowrap' }}>Public View Password</span>
+      <form onSubmit={saveSharePw} style={{ display:'flex', alignItems:'center', gap:12, background:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='250' height='250'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='250' height='250' filter='url(%23g)' opacity='0.18'/%3E%3C/svg%3E") #E8500A`, border:'1px solid rgba(255,255,255,0.15)', borderRadius:8, padding:'12px 16px', margin:'20px 0 10px' }}>
+        <span style={{ fontSize:13, fontWeight:700, whiteSpace:'nowrap', color:'#fff' }}>Public View Password</span>
         <input
           value={sharePw}
           onChange={e => { setSharePw(e.target.value.replace(/[^a-zA-Z0-9]/g, '')); setSharePwSaved(false); }}
@@ -348,9 +348,9 @@ export default function Overview({ project, setProject, onTabChange }) {
           <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden', marginBottom:20 }}>
             <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))' }}>
               {(project.crewAssignments||[]).map((a, i) => (
-                <div key={a.id} style={{ padding:'10px 16px', borderRight:'1px solid var(--border)', borderBottom:'1px solid var(--border)', display:'flex', flexDirection:'column', gap:2, background:'linear-gradient(135deg, var(--bg2) 40%, rgba(232,80,10,0.20) 100%)' }}>
-                  <div style={{ fontSize:10, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)', fontWeight:700 }}>{a.position?.name}{a.slotNumber > 1 ? ` ${a.slotNumber}` : ''}</div>
-                  <div style={{ fontSize:13, fontWeight:600, color: a.crewMember ? 'var(--text)' : 'var(--muted)', fontStyle: a.crewMember ? 'normal' : 'italic' }}>
+                <div key={a.id} style={{ padding:'10px 16px', borderRight:'1px solid rgba(255,255,255,0.12)', borderBottom:'1px solid rgba(255,255,255,0.12)', display:'flex', flexDirection:'column', gap:2, background:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='250' height='250'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='250' height='250' filter='url(%23g)' opacity='0.18'/%3E%3C/svg%3E") #E8500A` }}>
+                  <div style={{ fontSize:10, textTransform:'uppercase', letterSpacing:'0.06em', color:'rgba(255,255,255,0.6)', fontWeight:700 }}>{a.position?.name}{a.slotNumber > 1 ? ` ${a.slotNumber}` : ''}</div>
+                  <div style={{ fontSize:13, fontWeight:600, color: a.crewMember ? '#fff' : 'rgba(255,255,255,0.5)', fontStyle: a.crewMember ? 'normal' : 'italic' }}>
                     {a.crewMember ? displayName(a.crewMember) : 'Unassigned'}
                   </div>
                 </div>
