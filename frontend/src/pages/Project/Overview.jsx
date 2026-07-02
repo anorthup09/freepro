@@ -306,22 +306,39 @@ export default function Overview({ project, setProject, onTabChange }) {
       </div>
 
       {/* Stats */}
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8, margin:'10px 0 20px' }}>
-        <div className="stat" style={{ cursor:'pointer' }} onClick={() => onTabChange?.('schedule')}>
-          <div className="stat-lbl">Shoot Days</div>
-          <div className="stat-val">{shootDays}</div>
-          <div className="stat-sub">{fmtDate(startDate)} – {fmtDate(endDate)}</div>
-        </div>
-        <div className="stat" style={{ cursor:'pointer' }} onClick={() => onTabChange?.('crew')}>
-          <div className="stat-lbl">Crew</div>
-          <div className="stat-val">{project.crewAssignments?.length || 0}</div>
-          <div className="stat-sub">positions assigned</div>
-        </div>
-        <div className="stat" style={{ cursor:'pointer' }} onClick={() => onTabChange?.('post-production')}>
-          <div className="stat-lbl">Deliverables</div>
-          <div className="stat-val">{project.deliverables?.length || 0}</div>
-          <div className="stat-sub">video outputs</div>
-        </div>
+      <div style={{
+        display:'grid', gridTemplateColumns:'repeat(3,1fr)',
+        margin:'10px 0 20px',
+        borderRadius:10,
+        overflow:'hidden',
+        border:'1px solid rgba(0,0,0,0.10)',
+        boxShadow:'0 2px 16px rgba(0,0,0,0.35)',
+        position:'relative',
+        background:`
+          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.045'/%3E%3C/svg%3E"),
+          linear-gradient(135deg, #ffffff 0%, #f5f0e8 60%, #ede5d8 100%)
+        `,
+      }}>
+        {[
+          { label:'Shoot Days', val: shootDays, sub:`${fmtDate(startDate)} – ${fmtDate(endDate)}`, tab:'schedule' },
+          { label:'Crew', val: project.crewAssignments?.length || 0, sub:'positions assigned', tab:'crew' },
+          { label:'Deliverables', val: project.deliverables?.length || 0, sub:'video outputs', tab:'post-production' },
+        ].map((s, i) => (
+          <div key={s.tab} onClick={() => onTabChange?.(s.tab)} style={{
+            padding:'18px 20px',
+            cursor:'pointer',
+            borderRight: i < 2 ? '1px solid rgba(0,0,0,0.08)' : 'none',
+            display:'flex', flexDirection:'column', gap:3,
+            transition:'background 0.15s',
+          }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.04)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+          >
+            <div style={{ fontSize:10, color:'rgba(0,0,0,0.45)', textTransform:'uppercase', letterSpacing:'.1em', fontWeight:600 }}>{s.label}</div>
+            <div style={{ fontFamily:"'Syne',sans-serif", fontSize:26, fontWeight:700, color:'#1a1209', lineHeight:1.1 }}>{s.val}</div>
+            <div style={{ fontSize:10, color:'rgba(0,0,0,0.38)', marginTop:1 }}>{s.sub}</div>
+          </div>
+        ))}
       </div>
 
       {/* Crew List */}
