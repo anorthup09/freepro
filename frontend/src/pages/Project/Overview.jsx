@@ -271,7 +271,7 @@ export default function Overview({ project, setProject, onTabChange }) {
       </div>
 
       {/* Public View Password */}
-      <form onSubmit={saveSharePw} style={{ display:'flex', alignItems:'center', gap:12, background:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23g)' opacity='0.55'/%3E%3C/svg%3E") rgba(232,80,10,0.5)`, border:'1px solid rgba(255,255,255,0.15)', borderRadius:8, padding:'12px 16px', margin:'20px 0 10px' }}>
+      <form onSubmit={saveSharePw} style={{ display:'flex', alignItems:'center', gap:12, background:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23g)' opacity='0.55'/%3E%3C/svg%3E") rgba(232,80,10,0.75)`, border:'1px solid rgba(255,255,255,0.15)', borderRadius:8, padding:'12px 16px', margin:'20px 0 10px' }}>
         <span style={{ fontSize:13, fontWeight:700, whiteSpace:'nowrap', color:'#fff' }}>Public View Password</span>
         <input
           value={sharePw}
@@ -285,8 +285,8 @@ export default function Overview({ project, setProject, onTabChange }) {
         {sharePw && <button type="button" className="btn btn-ghost btn-sm" style={{ color:'var(--muted)' }} onClick={() => { setSharePw(''); }}>Clear</button>}
       </form>
 
-      {/* Main POC */}
-      <div style={{ display:'flex', alignItems:'center', gap:12, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'12px 16px', marginBottom:10 }}>
+      {/* Main POC + Gear Contact */}
+      <div style={{ display:'flex', alignItems:'center', gap:12, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'12px 16px', marginBottom: gearPerson ? 0 : 10, borderBottomLeftRadius: gearPerson ? 0 : 8, borderBottomRightRadius: gearPerson ? 0 : 8, borderBottom: gearPerson ? 'none' : undefined }}>
         <span style={{ fontSize:13, fontWeight:700, color:'var(--text)', whiteSpace:'nowrap' }}>Main POC</span>
         <select value={pocId} onChange={e => savePoc(e.target.value)} style={{ flex:1, maxWidth:320 }}>
           <option value="">— Unassigned —</option>
@@ -304,6 +304,17 @@ export default function Overview({ project, setProject, onTabChange }) {
           </div>
         )}
       </div>
+      {gearPerson && (
+        <div
+          onClick={() => onTabChange?.('gear')}
+          style={{ display:'flex', alignItems:'center', gap:12, background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'1px solid var(--border2)', borderRadius:8, borderTopLeftRadius:0, borderTopRightRadius:0, padding:'10px 16px', marginBottom:10, cursor:'pointer' }}
+        >
+          <span style={{ fontSize:13, fontWeight:700, color:'var(--text)', whiteSpace:'nowrap' }}>Gear Contact</span>
+          <span style={{ fontWeight:500, fontSize:13 }}>{gearPerson.name}</span>
+          {gearPerson.phone && <span style={{ fontSize:12, color:'var(--tan)' }}>{gearPerson.phone}</span>}
+          {gearPerson.email && <span style={{ fontSize:12, color:'var(--muted)' }}>{gearPerson.email}</span>}
+        </div>
+      )}
 
       {/* Stats */}
       <div style={{
@@ -311,13 +322,10 @@ export default function Overview({ project, setProject, onTabChange }) {
         margin:'10px 0 20px',
         borderRadius:10,
         overflow:'hidden',
-        border:'1px solid var(--border)',
+        border:'3px solid #ffffff',
         boxShadow:'0 2px 16px rgba(0,0,0,0.35)',
         position:'relative',
-        background:`
-          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.045'/%3E%3C/svg%3E"),
-          linear-gradient(135deg, rgba(255,255,255,0.5) 0%, rgba(245,240,232,0.5) 60%, rgba(237,229,216,0.5) 100%)
-        `,
+        background:'#000',
       }}>
         {[
           { label:'Shoot Days', val: shootDays, sub:`${fmtDate(startDate)} – ${fmtDate(endDate)}`, tab:'schedule' },
@@ -327,11 +335,11 @@ export default function Overview({ project, setProject, onTabChange }) {
           <div key={s.tab} onClick={() => onTabChange?.(s.tab)} style={{
             padding:'18px 20px',
             cursor:'pointer',
-            borderRight: i < 2 ? '1px solid rgba(0,0,0,0.08)' : 'none',
+            borderRight: i < 2 ? '1px solid rgba(255,255,255,0.15)' : 'none',
             display:'flex', flexDirection:'column', gap:3,
             transition:'background 0.15s',
           }}
-            onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.04)'}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
           >
             <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.1em', fontWeight:600 }}>{s.label}</div>
@@ -348,7 +356,7 @@ export default function Overview({ project, setProject, onTabChange }) {
           <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden', marginBottom:20 }}>
             <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))' }}>
               {(project.crewAssignments||[]).map((a, i) => (
-                <div key={a.id} style={{ padding:'10px 16px', borderRight:'1px solid rgba(255,255,255,0.12)', borderBottom:'1px solid rgba(255,255,255,0.12)', display:'flex', flexDirection:'column', gap:2, background:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23g)' opacity='0.55'/%3E%3C/svg%3E") rgba(232,80,10,0.5)` }}>
+                <div key={a.id} style={{ padding:'10px 16px', borderRight:'1px solid rgba(255,255,255,0.12)', borderBottom:'1px solid rgba(255,255,255,0.12)', display:'flex', flexDirection:'column', gap:2, background:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23g)' opacity='0.55'/%3E%3C/svg%3E") rgba(232,80,10,0.75)` }}>
                   <div style={{ fontSize:10, textTransform:'uppercase', letterSpacing:'0.06em', color:'rgba(255,255,255,0.6)', fontWeight:700 }}>{a.position?.name}{a.slotNumber > 1 ? ` ${a.slotNumber}` : ''}</div>
                   <div style={{ fontSize:13, fontWeight:600, color: a.crewMember ? '#fff' : 'rgba(255,255,255,0.5)', fontStyle: a.crewMember ? 'normal' : 'italic' }}>
                     {a.crewMember ? displayName(a.crewMember) : 'Unassigned'}
@@ -358,19 +366,6 @@ export default function Overview({ project, setProject, onTabChange }) {
             </div>
           </div>
         </>
-      )}
-
-      {/* Gear Person tile */}
-      {gearPerson && (
-        <div
-          onClick={() => onTabChange?.('gear')}
-          style={{ display:'flex', alignItems:'center', gap:12, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 16px', marginBottom:20, cursor:'pointer' }}
-        >
-          <span style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)', whiteSpace:'nowrap' }}>Gear Contact</span>
-          <span style={{ fontWeight:500, fontSize:13 }}>{gearPerson.name}</span>
-          {gearPerson.phone && <span style={{ fontSize:12, color:'var(--tan)' }}>{gearPerson.phone}</span>}
-          {gearPerson.email && <span style={{ fontSize:12, color:'var(--muted)' }}>{gearPerson.email}</span>}
-        </div>
       )}
 
       {/* Key Dates (left) + Contacts (right) */}
