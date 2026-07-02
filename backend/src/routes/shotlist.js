@@ -33,12 +33,13 @@ router.post('/:id/shot-list/scenes', requireAuth, requireRole('ADMIN','PRODUCER'
 // PATCH /api/projects/:id/shot-list/scenes/:sceneId
 router.patch('/:id/shot-list/scenes/:sceneId', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const { name, description, sceneType } = req.body;
+    const { name, description, sceneType, estStartTime } = req.body;
     const [scene] = await sql`
       UPDATE shot_list_scenes SET
         name = COALESCE(${name??null}, name),
         description = ${description !== undefined ? (description||null) : sql`description`},
-        scene_type = COALESCE(${sceneType??null}, scene_type)
+        scene_type = COALESCE(${sceneType??null}, scene_type),
+        est_start_time = ${estStartTime !== undefined ? (estStartTime||null) : sql`est_start_time`}
       WHERE id = ${req.params.sceneId} RETURNING *`;
     res.json(scene);
   } catch(e) { next(e); }

@@ -148,8 +148,35 @@ function NewShotRow({ sceneNumber, nextIndex, projectId, sceneId, onAdded }) {
   );
 }
 
-function SceneBlock({ scene, projectId, onShotUpdate, onShotAdded, onShotDelete, onEditScene, onDeleteScene }) {
+function calcWrapTime(startTime, shots) {
+  if (!startTime) return null;
+  const match = startTime.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!match) return null;
+  let [, h, m, meridiem] = match;
+  h = parseInt(h); m = parseInt(m);
+  if (meridiem.toUpperCase() === 'PM' && h !== 12) h += 12;
+  if (meridiem.toUpperCase() === 'AM' && h === 12) h = 0;
+  const totalStart = h * 60 + m;
+  const shotMins = shots.reduce((s, sh) => s + (sh.est_minutes || 0), 0);
+  const totalEnd = totalStart + shotMins;
+  const endH = Math.floor(totalEnd / 60) % 24;
+  const endM = totalEnd % 60;
+  const period = endH >= 12 ? 'PM' : 'AM';
+  const displayH = endH % 12 || 12;
+  return `${displayH}:${String(endM).padStart(2, '0')} ${period}`;
+}
+
+function SceneBlock({ scene, projectId, onShotUpdate, onShotAdded, onShotDelete, onEditScene, onDeleteScene, onStartTimeChange }) {
   const st = SCENE_TYPE_STYLES[scene.scene_type] || SCENE_TYPE_STYLES.interior;
+  const [startTime, setStartTime] = useState(scene.est_start_time || '');
+  const wrapTime = calcWrapTime(startTime, scene.shots);
+
+  async function saveStartTime(val) {
+    try {
+      await api.updateScene(projectId, scene.id, { estStartTime: val || null });
+      onStartTimeChange(scene.id, val);
+    } catch {}
+  }
 
   return (
     <div style={{ background:'var(--bg2)', border:`1px solid ${st.border}`, borderRadius:10, overflow:'hidden', marginBottom:16 }}>
@@ -163,7 +190,17 @@ function SceneBlock({ scene, projectId, onShotUpdate, onShotAdded, onShotDelete,
           {scene.description && <span style={{ fontSize:12, color:'var(--muted)' }}>· {scene.description}</span>}
           <span style={{ fontSize:12, color:'var(--muted)', marginLeft:4 }}>{scene.shots.length} shot{scene.shots.length !== 1 ? 's' : ''}</span>
         </div>
-        <div style={{ display:'flex', gap:6 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+            <span style={{ fontSize:10, fontWeight:700, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', whiteSpace:'nowrap' }}>Est. Start</span>
+            <input
+              value={startTime}
+              onChange={e => setStartTime(e.target.value)}
+              onBlur={() => saveStartTime(startTime)}
+              placeholder="9:00 AM"
+              style={{ width:78, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.12)', borderRadius:5, padding:'3px 7px', fontSize:12, color:'var(--text)', fontFamily:'inherit', outline:'none' }}
+            />
+          </div>
           <button className="btn btn-ghost btn-sm" onClick={() => onEditScene(scene)}>Edit</button>
           <button className="btn btn-ghost btn-sm" style={{ color:'var(--muted)' }} onClick={() => onDeleteScene(scene.id)}>Delete</button>
         </div>
@@ -196,6 +233,14 @@ function SceneBlock({ scene, projectId, onShotUpdate, onShotAdded, onShotDelete,
           />
         </tbody>
       </table>
+
+      {/* Wrap time footer */}
+      <div style={{ padding:'10px 20px', background: st.bg, borderTop:`1px solid ${st.border}`, display:'flex', alignItems:'center', justifyContent:'flex-end' }}>
+        <span style={{ fontSize:11, fontWeight:700, color: st.badgeText, textTransform:'uppercase', letterSpacing:'.08em', opacity:0.7 }}>Est. Scene Wrap:&nbsp;</span>
+        <span style={{ fontSize:13, fontWeight:800, color: st.badgeText, letterSpacing:'.04em', fontVariantNumeric:'tabular-nums' }}>
+          {wrapTime || (startTime ? 'Invalid time' : '—')}
+        </span>
+      </div>
     </div>
   );
 }
@@ -287,6 +332,10 @@ export default function ShotList({ project }) {
     setScenes(prev => prev.map(s => ({ ...s, shots: s.shots.filter(sh => sh.id !== shotId) })));
   }
 
+  function handleStartTimeChange(sceneId, val) {
+    setScenes(prev => prev.map(s => s.id === sceneId ? { ...s, est_start_time: val } : s));
+  }
+
   return (
     <div>
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4 }}>
@@ -330,6 +379,7 @@ export default function ShotList({ project }) {
           onShotDelete={handleShotDelete}
           onEditScene={s => { setEditScene(s); setEditSceneForm({ name: s.name, description: s.description || '', sceneType: s.scene_type || 'interior' }); }}
           onDeleteScene={deleteScene}
+          onStartTimeChange={handleStartTimeChange}
         />
       ))}
 
