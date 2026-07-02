@@ -304,12 +304,15 @@ export default function Overview({ project, setProject, onTabChange }) {
         <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center' }}>
           <span style={{ color:'rgba(255,255,255,0.3)', fontSize:14, userSelect:'none' }}>|</span>
         </div>
-        <div style={{ display:'flex', gap:4 }}>
+        <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4 }}>
+          <span style={{ fontSize:9, color:'rgba(255,255,255,0.55)', textTransform:'uppercase', letterSpacing:'0.08em', fontWeight:600 }}>Quick Copy Links</span>
+          <div style={{ display:'flex', gap:4 }}>
           {['producer','crew','client'].map(vt => (
             <button key={vt} type="button" className="btn btn-ghost btn-sm" style={{ color:'#fff' }} onClick={() => copyShareLink(vt)}>
               {copyToast === vt ? '✓ Copied!' : `${vt.charAt(0).toUpperCase() + vt.slice(1)} View`}
             </button>
           ))}
+          </div>
         </div>
       </form>
 
