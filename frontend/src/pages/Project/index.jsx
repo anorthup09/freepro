@@ -68,7 +68,7 @@ function DropdownTab({ label, subtabs, tab, setTab }) {
 
 const FRONTEND_BASE = window.location.origin;
 
-function ShareDropdown({ projectId }) {
+function ShareDropdown({ projectId, showShotList }) {
   const navigate = useNavigate();
   const [shares, setShares] = useState([]);
   const [open, setOpen] = useState(false);
@@ -134,6 +134,14 @@ function ShareDropdown({ projectId }) {
           <div className="share-menu-item" onClick={() => openPdf('crew')}>Crew PDF</div>
           <div className="share-menu-item" onClick={() => openPdf('client')}>Client PDF</div>
           <div style={{ borderTop:'1px solid var(--border)', margin:'4px 0' }} />
+          {showShotList && (
+            <div className="share-menu-item" onClick={async () => {
+              const share = await ensureShare('producer');
+              const url = `${FRONTEND_BASE}/share/${share.token}?tab=shot-list&pdf=1`;
+              window.open(url, '_blank');
+              setOpen(false);
+            }} style={{ border:'1px solid rgba(255,255,255,0.5)', borderRadius:5, margin:'4px 8px', padding:'6px 10px', color:'#fff' }}>Shot List PDF</div>
+          )}
           <div className="share-menu-item" onClick={() => { setOpen(false); navigate(`/projects/${projectId}/talent-callsheets`); }} style={{ border:'1px solid rgba(255,255,255,0.5)', borderRadius:5, margin:'4px 8px', padding:'6px 10px', color:'#fff' }}>Talent</div>
         </div>
       )}
@@ -327,7 +335,7 @@ export default function Project() {
           {hasUnanswered && tab !== 'questions' && <span style={{ fontSize:11, color:'var(--orange)' }}>!</span>}
           Questions
         </button>
-        <ShareDropdown projectId={id} />
+        <ShareDropdown projectId={id} showShotList={showShotList} />
       </nav>
 
       <div className="wrap">

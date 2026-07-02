@@ -1854,7 +1854,8 @@ export default function Share() {
   const [pwInput, setPwInput] = useState('');
   const [pwError, setPwError] = useState('');
   const [pwLoading, setPwLoading] = useState(false);
-  const [sharePage, setSharePage] = useState('callsheet');
+  const initialPage = searchParams.get('tab') || 'callsheet';
+  const [sharePage, setSharePage] = useState(initialPage);
   const [resolvedPw, setResolvedPw] = useState(null);
   const shareHeaderRef = useRef(null);
 
