@@ -98,6 +98,13 @@ function wmoIcon(code) {
   return '⛈️';
 }
 
+const DAY_TYPES = [
+  { value:'SHOOT',        label:'Shoot Day' },
+  { value:'TRAVEL',       label:'Travel Day' },
+  { value:'TRAVEL_SHOOT', label:'Travel/Shoot Day' },
+  { value:'SCOUT',        label:'Scout Day' },
+];
+
 const TAG_TYPES = ['VIDEO','PHOTO','AUDIO','ALL_CREW','TALENT','CUSTOM'];
 const TAG_CLASS = { VIDEO:'v', PHOTO:'p', AUDIO:'a', ALL_CREW:'a', TALENT:'t', CUSTOM:'v' };
 const TAG_LABEL = { VIDEO:'Video', PHOTO:'Photo', AUDIO:'Audio', ALL_CREW:'All Crew', TALENT:'Talent', CUSTOM:'Custom' };
@@ -195,6 +202,11 @@ export default function Schedule({ project }) {
     }
     if (days.length) fetchWeather();
   }, [days, project.city]);
+
+  async function saveDayType(dayId, value) {
+    setDays(ds => ds.map(d => d.id === dayId ? { ...d, day_type: value } : d));
+    try { await api.updateDay(project.id, dayId, { dayType: value }); flashSaved(); } catch(e) { alert(e.message); }
+  }
 
   async function saveDayMeta(dayId, field, value) {
     setDayMeta(m => ({ ...m, [dayId]: { ...m[dayId], [field]: value } }));
@@ -363,7 +375,7 @@ export default function Schedule({ project }) {
         <div>
           <div className="card" style={{ marginBottom:16 }}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
-              <div>
+              <div style={{ display:'flex', alignItems:'center', gap:12, flexWrap:'wrap' }}>
                 <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:15, display:'flex', alignItems:'center', gap:10 }}>
                   Day {[...days].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).findIndex(d=>d.id===currentDay.id)+1} · {parseDay(currentDay.date).toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' })}
                   {(() => {
@@ -377,6 +389,13 @@ export default function Schedule({ project }) {
                     );
                   })()}
                 </div>
+                <select
+                  value={currentDay.day_type || 'SHOOT'}
+                  onChange={e => saveDayType(currentDay.id, e.target.value)}
+                  style={{ fontSize:11, fontWeight:600, padding:'3px 10px', borderRadius:12, border:'1px solid var(--border2)', background:'var(--bg3)', color:'var(--orange)', cursor:'pointer', appearance:'none', WebkitAppearance:'none' }}
+                >
+                  {DAY_TYPES.map(dt => <option key={dt.value} value={dt.value}>{dt.label}</option>)}
+                </select>
               </div>
               <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text)' }} onClick={() => deleteDay(currentDay.id)}>Delete Day</button>
             </div>

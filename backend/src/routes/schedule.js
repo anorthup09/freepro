@@ -135,6 +135,7 @@ router.patch('/:id/schedule/days/:dayId', requireAuth, requireRole('ADMIN','PROD
         wrap_time_notes=${d.wrapTimeNotes !== undefined ? (d.wrapTimeNotes||null) : sql`wrap_time_notes`},
         wrap_time_tags=${d.wrapTimeTags !== undefined ? sql.array(d.wrapTimeTags) : sql`wrap_time_tags`},
         weather=COALESCE(${d.weather??null},weather), notes=COALESCE(${d.notes??null},notes),
+        day_type=${d.dayType !== undefined ? (d.dayType||null) : sql`day_type`},
         crew_lunch=${d.crewLunch !== undefined ? (d.crewLunch||null) : sql`crew_lunch`},
         gear_storage=${d.gearStorage !== undefined ? (d.gearStorage||null) : sql`gear_storage`},
         gs_audio=${d.gsAudio !== undefined ? (d.gsAudio||null) : sql`gs_audio`},

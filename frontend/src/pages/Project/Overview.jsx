@@ -6,12 +6,13 @@ const LOC_TYPES = ['PRIMARY_VENUE','CREW_HOTEL','AIRPORT','OTHER'];
 const LOC_LABELS = { PRIMARY_VENUE:'Shooting Location', CREW_HOTEL:'Hotel', SECONDARY:'Rental Car Location', AIRPORT:'Airport', OTHER:'Other' };
 const LOC_TAG = { PRIMARY_VENUE:'main', CREW_HOTEL:'crew', SECONDARY:'sec', AIRPORT:'sec', OTHER:'sec' };
 
-const LOC_GROUPS = [
-  { label: 'Shooting Locations', types: ['PRIMARY_VENUE','SECONDARY'], icon: '🎬' },
-  { label: 'Hotels',             types: ['CREW_HOTEL'],                icon: '🏨' },
-  { label: 'Airports',           types: ['AIRPORT'],                   icon: '✈️'  },
-  { label: 'Rental Car',         types: ['OTHER'],                     icon: '🚗' },
+const DAY_TYPES = [
+  { value:'SHOOT',        label:'Shoot Day' },
+  { value:'TRAVEL',       label:'Travel Day' },
+  { value:'TRAVEL_SHOOT', label:'Travel/Shoot Day' },
+  { value:'SCOUT',        label:'Scout Day' },
 ];
+const DAY_TYPE_LABEL = Object.fromEntries(DAY_TYPES.map(d => [d.value, d.label]));
 
 function fmtDate(d) {
   if (!d) return '';
@@ -88,8 +89,14 @@ function PlaceSearch({ onSelect }) {
   );
 }
 
+function parseDay(dateStr) {
+  if (!dateStr) return new Date();
+  return new Date(dateStr.slice(0, 10) + 'T12:00:00');
+}
+
 export default function Overview({ project, setProject, onTabChange }) {
   const [editInfo, setEditInfo] = useState(false);
+  const [scheduleDays, setScheduleDays] = useState([]);
   const [info, setInfo] = useState({ code: project.code, title: project.title, client: project.client, city: project.city, state: project.state, startDate: (project.start_date||project.startDate)?.slice(0,10), endDate: (project.end_date||project.endDate)?.slice(0,10), status: project.status, notes: project.notes || '' });
   const [showLocModal, setShowLocModal] = useState(false);
   const [locForm, setLocForm] = useState({ name:'', address:'', type:'PRIMARY_VENUE', emoji:'' });
@@ -102,6 +109,17 @@ export default function Overview({ project, setProject, onTabChange }) {
   const [editAgencyId, setEditAgencyId] = useState(null);
   const [editAgencyForm, setEditAgencyForm] = useState({ name:'', title:'', email:'', phone:'' });
   const [pocSaving, setPocSaving] = useState(false);
+
+  useEffect(() => {
+    api.getSchedule(project.id).then(d => {
+      setScheduleDays([...d].sort((a,b) => (a.date||'').localeCompare(b.date||'')));
+    }).catch(() => {});
+  }, [project.id]);
+
+  async function saveDayType(dayId, value) {
+    setScheduleDays(ds => ds.map(d => d.id === dayId ? { ...d, day_type: value } : d));
+    try { await api.updateDay(project.id, dayId, { dayType: value }); } catch(e) { alert(e.message); }
+  }
 
   async function saveInfo(e) {
     e.preventDefault();
@@ -336,6 +354,29 @@ export default function Overview({ project, setProject, onTabChange }) {
           </div>
         </div>
       </div>
+
+      {/* Key Dates */}
+      {scheduleDays.length > 0 && (
+        <>
+          <div className="sec-lbl">Key Dates</div>
+          <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden', marginBottom:20 }}>
+            {scheduleDays.map((d, i) => (
+              <div key={d.id} style={{ display:'grid', gridTemplateColumns:'1fr auto', alignItems:'center', gap:12, padding:'10px 16px', borderBottom: i < scheduleDays.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                <div style={{ fontSize:13, fontWeight:600 }}>
+                  Day {i + 1} · {parseDay(d.date).toLocaleDateString('en-US', { weekday:'short', month:'long', day:'numeric' })}
+                </div>
+                <select
+                  value={d.day_type || 'SHOOT'}
+                  onChange={e => saveDayType(d.id, e.target.value)}
+                  style={{ fontSize:11, fontWeight:600, padding:'3px 10px', borderRadius:12, border:'1px solid var(--border2)', background:'var(--bg3)', color:'var(--orange)', cursor:'pointer', appearance:'none', WebkitAppearance:'none' }}
+                >
+                  {DAY_TYPES.map(dt => <option key={dt.value} value={dt.value}>{dt.label}</option>)}
+                </select>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
 
       {/* Locations */}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
