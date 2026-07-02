@@ -22,8 +22,7 @@ function flightStatus(f, now) {
   if (!depart) return COMING_SOON;
   const todayStr = now.toISOString().slice(0, 10);
   const departStr = depart.toISOString().slice(0, 10);
-  if (todayStr < departStr) return COMING_SOON;
-  if (now < depart) return { label: 'Pre-flight', color: '#6b7280', dot: '#6b7280' };
+  if (todayStr <= departStr) return COMING_SOON;
   if (arrive && now < arrive) return { label: 'In-flight', color: '#60a5fa', dot: '#60a5fa' };
   return { label: 'Arrived', color: '#22c55e', dot: '#22c55e' };
 }
