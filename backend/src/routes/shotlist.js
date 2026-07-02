@@ -19,12 +19,12 @@ router.get('/:id/shot-list', requireAuth, async (req, res, next) => {
 // POST /api/projects/:id/shot-list/scenes
 router.post('/:id/shot-list/scenes', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const { name, description } = req.body;
+    const { name, description, sceneType } = req.body;
     const [{ max_num }] = await sql`SELECT COALESCE(MAX(scene_number), 0) as max_num FROM shot_list_scenes WHERE project_id = ${req.params.id}`;
     const [scene_num] = await sql`SELECT COALESCE(MAX(sort_order), 0) + 1 as n FROM shot_list_scenes WHERE project_id = ${req.params.id}`;
     const [scene] = await sql`
-      INSERT INTO shot_list_scenes (id, project_id, scene_number, name, description, sort_order)
-      VALUES (gen_random_uuid()::text, ${req.params.id}, ${Number(max_num) + 1}, ${name}, ${description||null}, ${Number(scene_num.n)})
+      INSERT INTO shot_list_scenes (id, project_id, scene_number, name, description, scene_type, sort_order)
+      VALUES (gen_random_uuid()::text, ${req.params.id}, ${Number(max_num) + 1}, ${name}, ${description||null}, ${sceneType||'interior'}, ${Number(scene_num.n)})
       RETURNING *`;
     res.status(201).json({ ...scene, shots: [] });
   } catch(e) { next(e); }
@@ -33,11 +33,12 @@ router.post('/:id/shot-list/scenes', requireAuth, requireRole('ADMIN','PRODUCER'
 // PATCH /api/projects/:id/shot-list/scenes/:sceneId
 router.patch('/:id/shot-list/scenes/:sceneId', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const { name, description } = req.body;
+    const { name, description, sceneType } = req.body;
     const [scene] = await sql`
       UPDATE shot_list_scenes SET
         name = COALESCE(${name??null}, name),
-        description = ${description !== undefined ? (description||null) : sql`description`}
+        description = ${description !== undefined ? (description||null) : sql`description`},
+        scene_type = COALESCE(${sceneType??null}, scene_type)
       WHERE id = ${req.params.sceneId} RETURNING *`;
     res.json(scene);
   } catch(e) { next(e); }

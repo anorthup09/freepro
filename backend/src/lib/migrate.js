@@ -501,6 +501,7 @@ async function migrate() {
   `;
 
   await sql`ALTER TABLE projects ADD COLUMN IF NOT EXISTS show_shot_list BOOLEAN DEFAULT FALSE`;
+  await sql`ALTER TABLE shot_list_scenes ADD COLUMN IF NOT EXISTS scene_type TEXT DEFAULT 'interior'`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS shot_list_scenes (
