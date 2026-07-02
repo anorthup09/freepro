@@ -68,6 +68,14 @@ function fmtTime(str) {
   return `${h12}:${String(m).padStart(2,'0')} ${ampm}`;
 }
 
+const LOCATION_TYPE_LABEL = {
+  PRIMARY_VENUE: 'Shoot Location',
+  CREW_HOTEL:    'Crew Hotel',
+  SECONDARY:     'Secondary Location',
+  AIRPORT:       'Airport',
+  OTHER:         'Location',
+};
+
 function mapsUrl(address) {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
 }
@@ -528,6 +536,7 @@ function ProducerView({ data }) {
               <div key={l.id} className="loc">
                 <div className="loc-ico">{l.emoji || '📍'}</div>
                 <div>
+                  {l.type && <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', fontWeight:600, marginBottom:2 }}>{LOCATION_TYPE_LABEL[l.type] || l.type}</div>}
                   <div className="loc-name">{l.name}</div>
                   {l.address
                     ? <a href={mapsUrl(l.address)} target="_blank" rel="noreferrer" className="loc-addr" style={{ color:'var(--tan)', textDecoration:'underline' }}>{l.address}</a>
@@ -714,6 +723,7 @@ function CrewView({ data, shareToken }) {
               <div key={l.id} className="loc">
                 <div className="loc-ico">{l.emoji || '📍'}</div>
                 <div>
+                  {l.type && <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', fontWeight:600, marginBottom:2 }}>{LOCATION_TYPE_LABEL[l.type] || l.type}</div>}
                   <div className="loc-name">{l.name}</div>
                   {l.address
                     ? <a href={mapsUrl(l.address)} target="_blank" rel="noreferrer" className="loc-addr" style={{ color:'var(--tan)', textDecoration:'underline' }}>{l.address}</a>
@@ -833,7 +843,11 @@ function ClientView({ data }) {
             {locations.map(l => (
               <div key={l.id} className="loc">
                 <div className="loc-ico">{l.emoji || '📍'}</div>
-                <div><div className="loc-name">{l.name}</div><div className="loc-addr">{l.address}</div></div>
+                <div>
+                  {l.type && <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', fontWeight:600, marginBottom:2 }}>{LOCATION_TYPE_LABEL[l.type] || l.type}</div>}
+                  <div className="loc-name">{l.name}</div>
+                  <div className="loc-addr">{l.address}</div>
+                </div>
               </div>
             ))}
           </div>
@@ -1106,6 +1120,7 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
     lt:  { color:'#4ade80', bg:'rgba(74,222,128,0.08)',   notesKey:'lunch_notes',          tagsKey:'lunch_tags' },
     wt:  { color:'#a78bfa', bg:'rgba(167,139,250,0.08)', notesKey:'wrap_time_notes',      tagsKey:'wrap_time_tags' },
   };
+  const lunchCatering = (day.catering || []).find(c => c.meal_type === 'LUNCH');
   const syntheticDayItems = tagFilter ? [] : [
     day.call_time          && { _type:'synthetic', _key:'ct',  _sort: timeToMins(day.call_time),           startTime: day.call_time,          title:'General Call Time', notes: day.call_time_notes,      tags: day.call_time_tags },
     day.shooting_call_time && { _type:'synthetic', _key:'sct', _sort: timeToMins(day.shooting_call_time),  startTime: day.shooting_call_time, title:'Shooting Call',     notes: day.shooting_call_notes,  tags: day.shooting_call_tags },
@@ -1113,8 +1128,13 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
     day.wrap_time          && { _type:'synthetic', _key:'wt',  _sort: timeToMins(day.wrap_time),           startTime: day.wrap_time,          title:'Est. Wrap',         notes: day.wrap_time_notes,      tags: day.wrap_time_tags },
   ].filter(Boolean);
 
+  const cateringItems = tagFilter ? [] : (day.catering || [])
+    .filter(c => c.meal_type !== 'LUNCH')
+    .map(c => ({ _type:'catering', _sort: timeToMins(c.delivery_time) || 9997, _key:`cat-${c.id}`, ...c }));
+
   const allItems = [
     ...syntheticDayItems,
+    ...cateringItems,
     ...filteredDay.events.map(e => ({ _type:'event', _sort: timeToMins(e.start_time), ...e })),
     ...(tagFilter ? [] : flightLegs.map(f => ({ _type:'flight', _sort: timeToMins(f._time), ...f }))),
   ].sort((a, b) => a._sort - b._sort);
@@ -1172,7 +1192,6 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
               <div style={{ fontSize:20, fontWeight:800, color:'var(--text)', letterSpacing:'-0.02em', lineHeight:1 }}>{fmtTime(talentCallTime)}</div>
             </div>
           )}
-          {cateringDetail && <CateringBadge catering={day.catering} detail={cateringDetail} />}
           {allItems.length > 0 && (
             <button onClick={() => setOpen(o => !o)} style={{ background:'none', border:'none', color:'var(--muted)', fontSize:11, cursor:'pointer', padding:0 }}>
               {open ? 'Collapse' : `Show (${allItems.length})`}
@@ -1215,20 +1234,52 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
 
       {allItems.length > 0 && open && (
         <div className="tl" style={{ marginTop:8 }}>
-              {allItems.map((item, i) => item._type === 'synthetic' ? (() => {
+              {allItems.map((item, i) => item._type === 'catering' ? (() => {
+                const mm = MEAL_META[item.meal_type] || MEAL_META.BREAKFAST;
+                return (
+                  <div key={item._key} className="ev">
+                    <div className="ev-time" style={{ color: mm.color }}>{item.delivery_time ? fmtTime(item.delivery_time) : '—'}</div>
+                    <div className="ev-body" style={{ borderLeft:`2px solid ${mm.color}`, background: `${mm.color}14` }}>
+                      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
+                        <div className="ev-title" style={{ color: mm.color }}>{mm.emoji} {mm.label}</div>
+                        {cateringDetail && (
+                          <div style={{ textAlign:'right' }}>
+                            {item.name && <div style={{ fontSize:12, fontWeight:600, color:'var(--text)' }}>{item.name}</div>}
+                            {cateringDetail === 'full' && item.address && <div style={{ fontSize:10, color:'var(--muted)' }}>{item.address}</div>}
+                            {cateringDetail === 'full' && item.order_number && <div style={{ fontSize:10, color:'var(--muted)' }}>Order #{item.order_number}</div>}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })() : item._type === 'synthetic' ? (() => {
                 const sm = SYNTHETIC_META_SHARE[item._key];
                 const itemTags = Array.isArray(item.tags) ? item.tags : [];
+                const isLunch = item._key === 'lt';
                 return (
                   <div key={item._key} className="ev">
                     <div className="ev-time" style={{ color: sm.color }}>{fmtTime(item.startTime)}</div>
                     <div className="ev-body" style={{ borderLeft:`2px solid ${sm.color}`, background: sm.bg }}>
-                      <div className="ev-title" style={{ color: sm.color }}>{item.title}</div>
-                      {item.notes && <div className="ev-detail">{item.notes}</div>}
-                      {itemTags.length > 0 && (
-                        <div className="ev-tags" style={{ marginTop:4 }}>
-                          {itemTags.map(t => <span key={t} className={`etag ${t === 'VIDEO' ? 'etag-video' : 'etag-photo'}`}>{t === 'VIDEO' ? '🎬 Video' : '📷 Photo'}</span>)}
+                      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
+                        <div style={{ flex:1 }}>
+                          <div className="ev-title" style={{ color: sm.color }}>{item.title}</div>
+                          {item.notes && <div className="ev-detail">{item.notes}</div>}
+                          {itemTags.length > 0 && (
+                            <div className="ev-tags" style={{ marginTop:4 }}>
+                              {itemTags.map(t => <span key={t} className={`etag ${t === 'VIDEO' ? 'etag-video' : 'etag-photo'}`}>{t === 'VIDEO' ? '🎬 Video' : '📷 Photo'}</span>)}
+                            </div>
+                          )}
                         </div>
-                      )}
+                        {isLunch && lunchCatering && cateringDetail && (
+                          <div style={{ textAlign:'right', marginLeft:8, flexShrink:0 }}>
+                            <div style={{ fontSize:12, fontWeight:600, color:'var(--text)' }}>{lunchCatering.name}</div>
+                            {cateringDetail === 'full' && lunchCatering.address && <div style={{ fontSize:10, color:'var(--muted)' }}>{lunchCatering.address}</div>}
+                            {cateringDetail === 'full' && lunchCatering.order_number && <div style={{ fontSize:10, color:'var(--muted)' }}>Order #{lunchCatering.order_number}</div>}
+                            {cateringDetail === 'full' && lunchCatering.delivery_time && <div style={{ fontSize:10, color:'#4ade80' }}>🚚 {fmtTime(lunchCatering.delivery_time)}</div>}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
