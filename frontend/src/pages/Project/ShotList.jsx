@@ -13,7 +13,7 @@ function shotLabel(sceneNumber, index) {
   return `${sceneNumber}${letters[index] || index}`;
 }
 
-function ShotRow({ shot, index, sceneNumber, projectId, onUpdate, onDelete }) {
+function ShotRow({ shot, index, sceneNumber, projectId, onUpdate, onDelete, accentColor }) {
   const captured = shot.status === 'captured';
   const [desc, setDesc] = useState(shot.description || '');
   const [movement, setMovement] = useState(shot.movement || '');
@@ -36,17 +36,17 @@ function ShotRow({ shot, index, sceneNumber, projectId, onUpdate, onDelete }) {
     <tr style={{
       borderBottom: '1px solid var(--border)',
       background: captured ? 'rgba(15,15,12,0.6)' : 'transparent',
-      outline: captured ? 'none' : '1px solid rgba(251,146,60,0.3)',
+      outline: captured ? 'none' : `1px solid ${accentColor}55`,
       outlineOffset: '-1px',
       opacity: captured ? 0.4 : 1,
       transition: 'background 0.2s, opacity 0.2s',
     }}>
       <td style={{ padding:'10px 10px 10px 14px', width:32 }}>
-        <div onClick={toggleCapture} style={{ width:16, height:16, borderRadius:4, border:`2px solid ${captured ? '#4ade80' : 'var(--orange)'}`, background: captured ? '#4ade80' : 'transparent', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, transition:'all 0.15s' }}>
+        <div onClick={toggleCapture} style={{ width:16, height:16, borderRadius:4, border:`2px solid ${captured ? '#4ade80' : accentColor}`, background: captured ? '#4ade80' : 'transparent', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, transition:'all 0.15s' }}>
           {captured && <svg width="9" height="7" viewBox="0 0 9 7" fill="none"><path d="M1 3.5L3.5 6L8 1" stroke="#000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
         </div>
       </td>
-      <td style={{ padding:'10px 8px', fontSize:13, fontWeight:700, color: captured ? 'var(--muted)' : 'var(--orange)', whiteSpace:'nowrap', width:44 }}>
+      <td style={{ padding:'10px 8px', fontSize:13, fontWeight:700, color: captured ? 'var(--muted)' : accentColor, whiteSpace:'nowrap', width:44 }}>
         {shotLabel(sceneNumber, index)}
       </td>
       <td style={{ padding:'6px 8px' }}>
@@ -88,7 +88,7 @@ function ShotRow({ shot, index, sceneNumber, projectId, onUpdate, onDelete }) {
   );
 }
 
-function NewShotRow({ sceneNumber, nextIndex, projectId, sceneId, onAdded }) {
+function NewShotRow({ sceneNumber, nextIndex, projectId, sceneId, onAdded, accentColor }) {
   const [desc, setDesc] = useState('');
   const [movement, setMovement] = useState('');
   const [estMinutes, setEstMinutes] = useState('');
@@ -112,7 +112,7 @@ function NewShotRow({ sceneNumber, nextIndex, projectId, sceneId, onAdded }) {
       <td style={{ padding:'10px 10px 10px 14px', width:32 }}>
         <div style={{ width:16, height:16, borderRadius:4, border:'2px solid var(--border)' }} />
       </td>
-      <td style={{ padding:'10px 8px', fontSize:13, fontWeight:700, color:'var(--muted)', width:44 }}>
+      <td style={{ padding:'10px 8px', fontSize:13, fontWeight:700, color: accentColor ? `${accentColor}66` : 'var(--muted)', width:44 }}>
         {shotLabel(sceneNumber, nextIndex)}
       </td>
       <td style={{ padding:'6px 8px' }}>
@@ -221,7 +221,7 @@ function SceneBlock({ scene, projectId, onShotUpdate, onShotAdded, onShotDelete,
         <tbody>
           {scene.shots.map((shot, i) => (
             <ShotRow key={shot.id} shot={shot} index={i} sceneNumber={scene.scene_number}
-              projectId={projectId} onUpdate={onShotUpdate} onDelete={onShotDelete} />
+              projectId={projectId} onUpdate={onShotUpdate} onDelete={onShotDelete} accentColor={st.badgeText} />
           ))}
           <NewShotRow
             key={`new-${scene.id}`}
@@ -230,6 +230,7 @@ function SceneBlock({ scene, projectId, onShotUpdate, onShotAdded, onShotDelete,
             projectId={projectId}
             sceneId={scene.id}
             onAdded={shot => onShotAdded(scene.id, shot)}
+            accentColor={st.badgeText}
           />
         </tbody>
       </table>
