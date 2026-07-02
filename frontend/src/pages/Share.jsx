@@ -1477,18 +1477,26 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
 // ── Liquid Glass Sticky Header ───────────────────────────────────────────────
 function GlassHeader({ project, headerRef }) {
   const [visible, setVisible] = React.useState(false);
+  const [navH, setNavH] = React.useState(64);
+
+  React.useEffect(() => {
+    const nav = document.querySelector('nav.nav');
+    if (nav) setNavH(nav.getBoundingClientRect().height);
+  }, []);
+
   React.useEffect(() => {
     function onScroll() {
       if (!headerRef.current) return;
-      setVisible(headerRef.current.getBoundingClientRect().bottom < 56);
+      setVisible(headerRef.current.getBoundingClientRect().bottom < navH + 10);
     }
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
-  }, []);
+  }, [navH]);
+
   return (
     <div style={{
       position: 'fixed',
-      top: 48,
+      top: navH,
       left: 0,
       right: 0,
       zIndex: 90,
@@ -1501,14 +1509,14 @@ function GlassHeader({ project, headerRef }) {
       background: 'rgba(10,10,8,0.55)',
       borderBottom: '1px solid rgba(255,255,255,0.07)',
       boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
-      padding: '14px 24px',
+      padding: '16px 24px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
       gap: 20,
     }}>
       <div style={{ fontSize:12, color:'rgba(255,255,255,0.6)', textTransform:'uppercase', letterSpacing:'0.14em', fontWeight:700, flexShrink:0 }}>{project.code}</div>
-      <div style={{ fontFamily:"'Syne', sans-serif", fontWeight:800, fontSize:17, letterSpacing:'-0.3px', color:'#fff', lineHeight:1, textAlign:'right' }}>{project.title}</div>
+      <div style={{ fontFamily:"'Syne', sans-serif", fontWeight:800, fontSize:18, letterSpacing:'-0.3px', color:'#fff', lineHeight:1, textAlign:'right' }}>{project.title}</div>
     </div>
   );
 }
