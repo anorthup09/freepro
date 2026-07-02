@@ -196,11 +196,17 @@ export default function Project() {
   }, [tab]);
 
   const [glassVisible, setGlassVisible] = useState(false);
+  const [clockTime, setClockTime] = useState(new Date());
 
   useEffect(() => {
     function onScroll() { setGlassVisible(window.scrollY > 60); }
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  useEffect(() => {
+    const id = setInterval(() => setClockTime(new Date()), 1000);
+    return () => clearInterval(id);
   }, []);
 
   if (!project) return null;
@@ -238,14 +244,21 @@ export default function Project() {
         background: 'rgba(10,10,8,0.55)',
         borderBottom: '1px solid rgba(255,255,255,0.07)',
         boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
-        padding: '10px 20px',
+        padding: tab === 'shot-list' ? '14px 20px' : '10px 20px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
+        transition: 'padding 0.2s ease',
       }}>
         <div>
           <div style={{ fontSize:10, color:'rgba(255,255,255,0.65)', textTransform:'uppercase', letterSpacing:'0.12em', fontWeight:700, marginBottom:2 }}>{project.code}</div>
           <div style={{ fontFamily:"'Syne', sans-serif", fontWeight:800, fontSize:16, letterSpacing:'-0.3px', color:'#fff', lineHeight:1 }}>{project.title}</div>
+          {tab === 'shot-list' && (
+            <div style={{ marginTop:5, fontSize:12, fontWeight:700, color:'rgba(255,255,255,0.5)', letterSpacing:'.08em', fontVariantNumeric:'tabular-nums' }}>
+              <span style={{ fontSize:10, textTransform:'uppercase', letterSpacing:'.14em', marginRight:5, color:'rgba(255,255,255,0.3)' }}>Current Time</span>
+              {clockTime.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit', second:'2-digit', hour12:true })}
+            </div>
+          )}
         </div>
         {daysUntil != null && daysUntil > 0 && (
           <div style={{ display:'flex', alignItems:'center', gap:5 }}>
