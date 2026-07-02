@@ -49,7 +49,7 @@ router.get('/:token', async (req, res, next) => {
     // Load project base info
     const [project] = await sql`
       SELECT p.id, p.code, p.title, p.subtitle, p.client, p.city, p.state, p.start_date, p.end_date, p.status, p.notes, p.share_password,
-             cm.name as poc_name, cm.phone as poc_phone, cm.email as poc_email
+             COALESCE(NULLIF(TRIM(CONCAT(cm.preferred_first_name, ' ', cm.preferred_last_name)), ''), cm.name) as poc_name, cm.phone as poc_phone, cm.email as poc_email
       FROM projects p
       LEFT JOIN crew_members cm ON cm.id = p.poc_crew_member_id
       WHERE p.id = ${projectId}`;
@@ -304,7 +304,7 @@ router.post('/:token/questions', async (req, res, next) => {
     // Fire-and-forget email to POC
     if (r.share.view_type === 'crew') {
       const [proj] = await sql`
-        SELECT p.code, p.title, cm.name as poc_name, cm.email as poc_email
+        SELECT p.code, p.title, COALESCE(NULLIF(TRIM(CONCAT(cm.preferred_first_name, ' ', cm.preferred_last_name)), ''), cm.name) as poc_name, cm.email as poc_email
         FROM projects p
         LEFT JOIN crew_members cm ON cm.id = p.poc_crew_member_id
         WHERE p.id = ${r.share.project_id}`;
