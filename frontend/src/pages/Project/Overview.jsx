@@ -302,11 +302,13 @@ export default function Overview({ project, setProject, onTabChange }) {
         </button>
         {sharePw && <button type="button" className="btn btn-ghost btn-sm" style={{ color:'#fff' }} onClick={() => { setSharePw(''); }}>Clear</button>}
         <span style={{ color:'rgba(255,255,255,0.3)', fontSize:14, userSelect:'none' }}>|</span>
-        {['producer','crew','client'].map(vt => (
-          <button key={vt} type="button" className="btn btn-ghost btn-sm" style={{ color:'#fff', textTransform:'capitalize' }} onClick={() => copyShareLink(vt)}>
-            {copyToast === vt ? '✓ Copied!' : `Copy ${vt.charAt(0).toUpperCase() + vt.slice(1)}`}
-          </button>
-        ))}
+        <div style={{ marginLeft:'auto', display:'flex', gap:4 }}>
+          {['producer','crew','client'].map(vt => (
+            <button key={vt} type="button" className="btn btn-ghost btn-sm" style={{ color:'#fff' }} onClick={() => copyShareLink(vt)}>
+              {copyToast === vt ? '✓ Copied!' : `${vt.charAt(0).toUpperCase() + vt.slice(1)} View`}
+            </button>
+          ))}
+        </div>
       </form>
 
       {/* Main POC + Gear Contact */}
