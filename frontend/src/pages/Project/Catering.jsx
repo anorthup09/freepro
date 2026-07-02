@@ -42,33 +42,36 @@ export default function Catering({ project }) {
   }, [project.id]);
 
   function openCateringModal(dayId) {
-    const day = days.find(d => d.id === dayId);
-    const existing = day?.catering || [];
-    const mealTypes = existing.map(c => c.meal_type);
-    const first = existing[0] || {};
-    setCateringForm({ mealTypes, name: first.name||'', address: first.address||'', orderNumber: first.order_number||'', deliveryTime: first.delivery_time||'' });
+    setCateringForm({ mealTypes: [], name: '', address: '', orderNumber: '', deliveryTime: '' });
     setCateringModal(dayId);
   }
 
   function selectMealType(mt) {
-    setCateringForm(f => ({ ...f, mealTypes: [mt] }));
+    const day = days.find(d => d.id === cateringModal);
+    const existing = (day?.catering || []).find(c => c.meal_type === mt);
+    setCateringForm({
+      mealTypes: [mt],
+      name: existing?.name || '',
+      address: existing?.address || '',
+      orderNumber: existing?.order_number || '',
+      deliveryTime: existing?.delivery_time || '',
+    });
   }
 
   async function saveCatering(e) {
     e.preventDefault();
     const dayId = cateringModal;
     const { mealTypes, name, address, orderNumber, deliveryTime } = cateringForm;
-    const day = days.find(d => d.id === dayId);
-    const existingTypes = (day?.catering || []).map(c => c.meal_type);
-    const deleteMealTypes = existingTypes.filter(mt => !mealTypes.includes(mt));
+    if (!mealTypes.length) return;
     try {
-      const results = await api.saveCatering(project.id, dayId, { mealTypes, name, address, orderNumber, deliveryTime, deleteMealTypes });
+      const results = await api.saveCatering(project.id, dayId, { mealTypes, name, address, orderNumber, deliveryTime, deleteMealTypes: [] });
       setDays(ds => ds.map(d => {
         if (d.id !== dayId) return d;
-        const kept = (d.catering||[]).filter(c => !mealTypes.includes(c.meal_type) && !deleteMealTypes.includes(c.meal_type));
+        const kept = (d.catering||[]).filter(c => !mealTypes.includes(c.meal_type));
         return { ...d, catering: [...kept, ...results] };
       }));
-      setCateringModal(null);
+      // Clear fields and deselect meal so user can pick the next one
+      setCateringForm({ mealTypes: [], name: '', address: '', orderNumber: '', deliveryTime: '' });
       flashSaved();
     } catch(e) { alert(e.message); }
   }
