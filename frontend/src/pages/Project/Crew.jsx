@@ -250,7 +250,7 @@ export default function Crew({ project, onProjectUpdate }) {
                         const id = e.target.value;
                         const dates = flightDatesFor(id);
                         setEditForm(f => ({ ...f, crewMemberId: id||null, startDate: f.startDate || dates.startDate, endDate: f.endDate || dates.endDate }));
-                      }} style={{ width:'100%' }}>
+                      }} onKeyDown={e => e.key === 'Enter' && saveEdit(a.id)} style={{ width:'100%' }}>
                         <option value="">— Unassigned —</option>
                         {roster.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                       </select>
@@ -274,13 +274,13 @@ export default function Crew({ project, onProjectUpdate }) {
                   </td>
                   <td>
                     {editId === a.id
-                      ? <input type="date" style={{ width:130 }} value={editForm.startDate||''} onChange={e => setEditForm(f=>({...f,startDate:e.target.value}))} />
+                      ? <input type="date" style={{ width:130 }} value={editForm.startDate||''} onChange={e => setEditForm(f=>({...f,startDate:e.target.value}))} onKeyDown={e => e.key === 'Enter' && saveEdit(a.id)} />
                       : <span style={{ fontSize:11, color:'var(--orange)' }}>{fmtDate(a.start_date)}</span>
                     }
                   </td>
                   <td>
                     {editId === a.id
-                      ? <input type="date" style={{ width:130 }} value={editForm.endDate||''} onChange={e => setEditForm(f=>({...f,endDate:e.target.value}))} />
+                      ? <input type="date" style={{ width:130 }} value={editForm.endDate||''} onChange={e => setEditForm(f=>({...f,endDate:e.target.value}))} onKeyDown={e => e.key === 'Enter' && saveEdit(a.id)} />
                       : <span style={{ fontSize:11, color:'var(--orange)' }}>{fmtDate(a.end_date)}</span>
                     }
                   </td>
