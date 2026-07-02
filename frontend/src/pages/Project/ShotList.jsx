@@ -38,9 +38,21 @@ function ShotRow({ shot, index, sceneNumber, projectId, onUpdate, onDelete, acce
   const captured = shot.status === 'captured';
   const [desc, setDesc] = useState(shot.description || '');
   const [movement, setMovement] = useState(shot.movement || '');
-  const [estMinutes, setEstMinutes] = useState(shot.est_minutes ?? 15);
   const [open, setOpen] = useState(false);
+  const [talentOpen, setTalentOpen] = useState(false);
+  const talentRef = useRef(null);
   const isOpen = allExpanded || open;
+
+  // Derived display time from breakdown
+  const displayMinutes = (shot.setup_minutes ?? 5) + ((shot.takes_count ?? 1) * (shot.take_minutes ?? 5)) + (shot.buffer_minutes ?? 5);
+
+  useEffect(() => {
+    function handleClick(e) {
+      if (talentRef.current && !talentRef.current.contains(e.target)) setTalentOpen(false);
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
 
   // Detail form state
   const [detail, setDetail] = useState({
@@ -60,7 +72,6 @@ function ShotRow({ shot, index, sceneNumber, projectId, onUpdate, onDelete, acce
 
   useEffect(() => { setDesc(shot.description || ''); }, [shot.description]);
   useEffect(() => { setMovement(shot.movement || ''); }, [shot.movement]);
-  useEffect(() => { setEstMinutes(shot.est_minutes ?? 15); }, [shot.est_minutes]);
   useEffect(() => {
     setDetail({
       angle: shot.angle || '',
@@ -163,14 +174,30 @@ function ShotRow({ shot, index, sceneNumber, projectId, onUpdate, onDelete, acce
             {MOVEMENTS.map(m => <option key={m} value={m}>{m}</option>)}
           </select>
         </td>
-        {/* Time */}
-        <td style={{ padding:'6px 8px', width:70 }}>
-          <div style={{ display:'flex', alignItems:'center', gap:4 }}>
-            <input type="number" min="1" value={estMinutes} onChange={e => setEstMinutes(e.target.value)}
-              onBlur={() => { if (String(estMinutes) !== String(shot.est_minutes ?? 15)) save('estMinutes', estMinutes ? Number(estMinutes) : null); }}
-              style={{ width:36, background:'transparent', border:'none', outline:'none', color: captured ? 'var(--muted)' : 'var(--text)', fontSize:13, fontFamily:'inherit', padding:0, MozAppearance:'textfield' }} />
-            <span style={{ fontSize:11, color:'var(--muted)' }}>m</span>
-          </div>
+        {/* Talent */}
+        <td style={{ padding:'6px 8px', width:80 }} ref={talentRef}>
+          {(shot.talent_tags || []).length > 0 ? (
+            <div style={{ position:'relative' }}>
+              <button onClick={() => setTalentOpen(o => !o)}
+                style={{ background: talentOpen ? `${accentColor}22` : 'transparent', border:`1px solid ${accentColor}55`, borderRadius:100, padding:'2px 8px', fontSize:11, fontWeight:700, color: captured ? 'var(--muted)' : accentColor, cursor:'pointer', lineHeight:'16px', whiteSpace:'nowrap' }}>
+                {shot.talent_tags.length} {shot.talent_tags.length === 1 ? 'talent' : 'talent'}
+              </button>
+              {talentOpen && (
+                <div style={{ position:'absolute', top:'calc(100% + 4px)', left:0, zIndex:200, background:'var(--bg)', border:'1px solid var(--border)', borderRadius:8, boxShadow:'0 4px 16px rgba(0,0,0,0.4)', padding:'8px 12px', minWidth:120, whiteSpace:'nowrap' }}>
+                  {shot.talent_tags.map(name => (
+                    <div key={name} style={{ fontSize:12, color:'var(--text)', padding:'3px 0', borderBottom:'1px solid var(--border)' }}
+                      className="last-no-border">{name}</div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <span style={{ fontSize:12, color:'var(--muted)', opacity:0.4 }}>—</span>
+          )}
+        </td>
+        {/* Time (read-only, derived from breakdown) */}
+        <td style={{ padding:'6px 8px', width:60 }}>
+          <span style={{ fontSize:13, color: captured ? 'var(--muted)' : 'var(--text)', fontVariantNumeric:'tabular-nums' }}>{displayMinutes}<span style={{ fontSize:10, color:'var(--muted)', marginLeft:2 }}>m</span></span>
         </td>
         {/* Delete */}
         <td style={{ padding:'10px 14px 10px 4px', width:28, textAlign:'right' }}>
@@ -181,7 +208,7 @@ function ShotRow({ shot, index, sceneNumber, projectId, onUpdate, onDelete, acce
       {/* Expanded detail row */}
       {isOpen && (
         <tr style={{ borderBottom:'1px solid var(--border)', background:'rgba(255,255,255,0.025)' }}>
-          <td colSpan={8} style={{ padding:'12px 14px 16px 76px' }}>
+          <td colSpan={9} style={{ padding:'12px 14px 16px 76px' }}>
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr', gap:'10px 14px', marginBottom:12 }}>
               <div className="field" style={{ margin:0 }}>
                 <label style={{ fontSize:10 }}>Angle</label>
@@ -324,7 +351,8 @@ function NewShotRow({ sceneNumber, nextIndex, projectId, sceneId, onAdded, accen
           {MOVEMENTS.map(m => <option key={m} value={m}>{m}</option>)}
         </select>
       </td>
-      <td style={{ padding:'6px 8px', width:70 }}>
+      <td style={{ width:80 }} />
+      <td style={{ padding:'6px 8px', width:60 }}>
         <span style={{ fontSize:12, color:'var(--muted)' }}>15m</span>
       </td>
       <td style={{ width:28 }} />
@@ -459,7 +487,8 @@ function SceneBlock({ scene, projectId, talent, onShotUpdate, onShotAdded, onSho
             <th style={{ width:20 }} />
             <th style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left' }}>Description</th>
             <th style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:130 }}>Movement</th>
-            <th style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:70 }}>Time</th>
+            <th style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:80 }}>Talent</th>
+            <th style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:60 }}>Time</th>
             <th style={{ width:28 }} />
           </tr>
         </thead>
