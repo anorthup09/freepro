@@ -1404,7 +1404,7 @@ export default function Share() {
     <div style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:'100vh', background:'var(--bg)', color:'var(--text)' }}>
       <div style={{ background:'rgba(232,80,10,0.80)', border:'1px solid rgba(255,255,255,0.35)', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.25), inset -1px 0 0 rgba(0,0,0,0.4), 0 3px 10px rgba(0,0,0,0.5)', borderRadius:12, padding:'36px 40px', width:320, textAlign:'center' }}>
         <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:2, marginBottom:20 }}>
-          <div className="logo" style={{ justifyContent:'center' }}>Free<em>Pro</em></div>
+          <div className="logo" style={{ justifyContent:'center', color:'#fff' }}>Free<em style={{ color:'#fff' }}>Pro</em></div>
           <span style={{ fontSize:9, color:'rgba(255,255,255,0.6)', letterSpacing:'0.06em' }}>Powered by Unbridled Media</span>
         </div>
         <div style={{ fontSize:15, fontWeight:700, marginBottom:6, color:'#fff' }}>Password Required</div>
