@@ -18,6 +18,7 @@ export default function Deliverables({ project }) {
   const [ditId, setDitId] = useState(project.techSpecs?.dit_crew_member_id || '');
   const [ditSaving, setDitSaving] = useState(false);
   const [frameRate, setFrameRate] = useState(project.techSpecs?.frame_rate || '');
+  const [brollFrameRate, setBrollFrameRate] = useState(project.techSpecs?.broll_frame_rate || '');
   const [aspectRatio, setAspectRatio] = useState(project.techSpecs?.aspect_ratio || '');
   const [resolution, setResolution] = useState(project.techSpecs?.resolution || '');
 
@@ -37,6 +38,7 @@ export default function Deliverables({ project }) {
       notes: existing.notes || null,
       ditCrewMemberId: ditId || null,
       frameRate: frameRate || null,
+      brollFrameRate: brollFrameRate || null,
       ...fields,
     });
   }
@@ -52,6 +54,12 @@ export default function Deliverables({ project }) {
   async function saveFrameRate(value) {
     setFrameRate(value);
     try { await saveTechSpecsField({ frameRate: value || null }); }
+    catch(err) { alert(err.message); }
+  }
+
+  async function saveBrollFrameRate(value) {
+    setBrollFrameRate(value);
+    try { await saveTechSpecsField({ brollFrameRate: value || null }); }
     catch(err) { alert(err.message); }
   }
 
@@ -119,8 +127,12 @@ export default function Deliverables({ project }) {
           <input className="spec-tile-input" value={resolution} onChange={e => setResolution(e.target.value)} onBlur={e => saveResolution(e.target.value)} placeholder="1920×1080" />
         </div>
         <div className="spec-tile">
-          <div className="spec-tile-label">Frame Rate</div>
+          <div className="spec-tile-label">Interview Frame Rate</div>
           <input className="spec-tile-input" value={frameRate} onChange={e => setFrameRate(e.target.value)} onBlur={e => saveFrameRate(e.target.value)} placeholder="23.976fps" />
+        </div>
+        <div className="spec-tile">
+          <div className="spec-tile-label">B-Roll Frame Rate</div>
+          <input className="spec-tile-input" value={brollFrameRate} onChange={e => setBrollFrameRate(e.target.value)} onBlur={e => saveBrollFrameRate(e.target.value)} placeholder="23.976fps" />
         </div>
 
       </div>
