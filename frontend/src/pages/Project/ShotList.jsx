@@ -208,9 +208,28 @@ function LiveClock() {
   }, []);
   const fmt = time.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit', second:'2-digit', hour12:true });
   return (
-    <div style={{ background:'rgba(255,255,255,0.08)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:8, padding:'10px 20px', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:14 }}>
-      <span style={{ fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.5)', textTransform:'uppercase', letterSpacing:'.18em' }}>Current Time:&nbsp;</span>
-      <span style={{ fontSize:13, fontWeight:700, color:'rgba(255,255,255,0.85)', letterSpacing:'.08em', fontVariantNumeric:'tabular-nums' }}>{fmt}</span>
+    <div style={{
+      position: 'sticky',
+      top: 48,
+      zIndex: 80,
+      backdropFilter: 'blur(20px) saturate(160%)',
+      WebkitBackdropFilter: 'blur(20px) saturate(160%)',
+      background: 'rgba(255,255,255,0.06)',
+      borderBottom: '1px solid rgba(255,255,255,0.08)',
+      borderTop: '1px solid rgba(255,255,255,0.06)',
+      boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+      padding: '10px 20px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      marginBottom: 14,
+      marginLeft: -20,
+      marginRight: -20,
+    }}>
+      <span style={{ fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.4)', textTransform:'uppercase', letterSpacing:'.18em' }}>Current Time</span>
+      <span style={{ fontSize:11, color:'rgba(255,255,255,0.2)' }}>·</span>
+      <span style={{ fontSize:14, fontWeight:700, color:'rgba(255,255,255,0.85)', letterSpacing:'.06em', fontVariantNumeric:'tabular-nums' }}>{fmt}</span>
     </div>
   );
 }
