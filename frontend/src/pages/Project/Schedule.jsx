@@ -99,10 +99,10 @@ function wmoIcon(code) {
 }
 
 const DAY_TYPES = [
-  { value:'SHOOT',        label:'Shoot Day' },
-  { value:'TRAVEL',       label:'Travel Day' },
-  { value:'TRAVEL_SHOOT', label:'Travel/Shoot Day' },
-  { value:'SCOUT',        label:'Scout Day' },
+  { value:'SHOOT',        label:'🎬 Shoot Day' },
+  { value:'TRAVEL',       label:'✈️ Travel Day' },
+  { value:'TRAVEL_SHOOT', label:'✈️🎬 Travel/Shoot Day' },
+  { value:'SCOUT',        label:'👀🗺️ Scout Day' },
 ];
 
 const MEAL_COLORS = {
@@ -469,29 +469,29 @@ export default function Schedule({ project }) {
         <div>
           <div className="card" style={{ marginBottom:16 }}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
-              <div style={{ display:'flex', alignItems:'center', gap:12, flexWrap:'wrap' }}>
-                <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:15, display:'flex', alignItems:'center', gap:10 }}>
-                  Day {[...days].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).findIndex(d=>d.id===currentDay.id)+1} · {parseDay(currentDay.date).toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' })}
-                  {(() => {
-                    const w = weatherByDate[currentDay.date?.slice(0,10)];
-                    if (!w) return null;
-                    return (
-                      <span style={{ fontSize:12, fontWeight:400, color:'var(--tan)', display:'flex', alignItems:'center', gap:5 }}>
-                        {wmoIcon(w.code)} {w.high}° / {w.low}°
-                        {w.precip > 0 && <span style={{ color:'var(--muted)', fontSize:11 }}>· {w.precip}% precip</span>}
-                      </span>
-                    );
-                  })()}
-                </div>
+              <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:15, display:'flex', alignItems:'center', gap:10 }}>
+                Day {[...days].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).findIndex(d=>d.id===currentDay.id)+1} · {parseDay(currentDay.date).toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' })}
+                {(() => {
+                  const w = weatherByDate[currentDay.date?.slice(0,10)];
+                  if (!w) return null;
+                  return (
+                    <span style={{ fontSize:12, fontWeight:400, color:'var(--tan)', display:'flex', alignItems:'center', gap:5 }}>
+                      {wmoIcon(w.code)} {w.high}° / {w.low}°
+                      {w.precip > 0 && <span style={{ color:'var(--muted)', fontSize:11 }}>· {w.precip}% precip</span>}
+                    </span>
+                  );
+                })()}
+              </div>
+              <div style={{ display:'flex', alignItems:'center', gap:10 }}>
                 <select
                   value={currentDay.day_type || 'SHOOT'}
                   onChange={e => saveDayType(currentDay.id, e.target.value)}
-                  style={{ fontSize:11, fontWeight:600, padding:'3px 10px', borderRadius:12, border:'1px solid var(--border2)', background:'var(--bg3)', color:'var(--orange)', cursor:'pointer', appearance:'none', WebkitAppearance:'none' }}
+                  style={{ fontSize:11, fontWeight:600, padding:'4px 10px', borderRadius:12, border:'1px solid var(--border2)', background:'var(--bg3)', color:'var(--orange)', cursor:'pointer', appearance:'none', WebkitAppearance:'none' }}
                 >
                   {DAY_TYPES.map(dt => <option key={dt.value} value={dt.value}>{dt.label}</option>)}
                 </select>
+                <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text)' }} onClick={() => deleteDay(currentDay.id)}>Delete Day</button>
               </div>
-              <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text)' }} onClick={() => deleteDay(currentDay.id)}>Delete Day</button>
             </div>
             <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, marginBottom:10 }}>
               {[

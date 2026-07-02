@@ -7,10 +7,10 @@ const LOC_LABELS = { PRIMARY_VENUE:'Shooting Location', CREW_HOTEL:'Hotel', SECO
 const LOC_TAG = { PRIMARY_VENUE:'main', CREW_HOTEL:'crew', SECONDARY:'sec', AIRPORT:'sec', OTHER:'sec' };
 
 const DAY_TYPES = [
-  { value:'SHOOT',        label:'Shoot Day' },
-  { value:'TRAVEL',       label:'Travel Day' },
-  { value:'TRAVEL_SHOOT', label:'Travel/Shoot Day' },
-  { value:'SCOUT',        label:'Scout Day' },
+  { value:'SHOOT',        label:'🎬 Shoot Day' },
+  { value:'TRAVEL',       label:'✈️ Travel Day' },
+  { value:'TRAVEL_SHOOT', label:'✈️🎬 Travel/Shoot Day' },
+  { value:'SCOUT',        label:'👀🗺️ Scout Day' },
 ];
 const DAY_TYPE_LABEL = Object.fromEntries(DAY_TYPES.map(d => [d.value, d.label]));
 
@@ -308,75 +308,80 @@ export default function Overview({ project, setProject, onTabChange }) {
         </div>
       )}
 
-      {/* Contacts row: Client | Agency side by side */}
+      {/* Key Dates (left) + Contacts (right) */}
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20, marginBottom:20 }}>
-        {/* Client Contacts */}
+        {/* Left: Key Dates */}
         <div>
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-            <div className="sec-lbl">Client Contacts</div>
-            <button className="btn btn-ghost btn-sm" onClick={() => setShowContactModal(true)}>+ Add</button>
-          </div>
-          <div className="chips">
-            {project.clientContacts?.map(c => (
-              <div key={c.id} className="chip" style={{ position:'relative', paddingRight:50 }}>
-                <strong>{c.title}</strong>
-                {c.name} {c.phone && `· ${c.phone}`}
-                {c.email && <><br /><span style={{ color:'var(--muted)' }}>{c.email}</span></>}
-                <div style={{ position:'absolute', top:4, right:6, display:'flex', gap:4 }}>
-                  <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => { setEditContactId(c.id); setEditContactForm({ name:c.name, title:c.title, email:c.email||'', phone:c.phone||'' }); }}>✎</button>
-                  <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => deleteContact(c.id)}>✕</button>
-                </div>
+          {scheduleDays.length > 0 && (
+            <>
+              <div className="sec-lbl">Key Dates</div>
+              <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden' }}>
+                {scheduleDays.map((d, i) => (
+                  <div key={d.id} style={{ display:'grid', gridTemplateColumns:'1fr auto', alignItems:'center', gap:12, padding:'10px 16px', borderBottom: i < scheduleDays.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                    <div style={{ fontSize:13, fontWeight:600 }}>
+                      Day {i + 1} · {parseDay(d.date).toLocaleDateString('en-US', { weekday:'short', month:'long', day:'numeric' })}
+                    </div>
+                    <select
+                      value={d.day_type || 'SHOOT'}
+                      onChange={e => saveDayType(d.id, e.target.value)}
+                      style={{ fontSize:11, fontWeight:600, padding:'3px 10px', borderRadius:12, border:'1px solid var(--border2)', background:'var(--bg3)', color:'var(--orange)', cursor:'pointer', appearance:'none', WebkitAppearance:'none' }}
+                    >
+                      {DAY_TYPES.map(dt => <option key={dt.value} value={dt.value}>{dt.label}</option>)}
+                    </select>
+                  </div>
+                ))}
               </div>
-            ))}
-            {!project.clientContacts?.length && <span className="empty" style={{ padding:0, fontSize:12 }}>No client contacts yet.</span>}
-          </div>
+            </>
+          )}
         </div>
 
-        {/* Agency Contacts */}
-        <div>
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-            <div className="sec-lbl">Agency Contacts</div>
-            <button className="btn btn-ghost btn-sm" onClick={() => setShowAgencyModal(true)}>+ Add</button>
-          </div>
-          <div className="chips">
-            {(project.agencyContacts||[]).map(c => (
-              <div key={c.id} className="chip" style={{ position:'relative', paddingRight:50 }}>
-                <strong>{c.title}</strong>
-                {c.name} {c.phone && `· ${c.phone}`}
-                {c.email && <><br /><span style={{ color:'var(--muted)' }}>{c.email}</span></>}
-                <div style={{ position:'absolute', top:4, right:6, display:'flex', gap:4 }}>
-                  <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => { setEditAgencyId(c.id); setEditAgencyForm({ name:c.name, title:c.title, email:c.email||'', phone:c.phone||'' }); }}>✎</button>
-                  <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => deleteAgencyContact(c.id)}>✕</button>
+        {/* Right: Client Contacts + Agency Contacts stacked */}
+        <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
+          {/* Client Contacts */}
+          <div>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+              <div className="sec-lbl">Client Contacts</div>
+              <button className="btn btn-ghost btn-sm" onClick={() => setShowContactModal(true)}>+ Add</button>
+            </div>
+            <div className="chips">
+              {project.clientContacts?.map(c => (
+                <div key={c.id} className="chip" style={{ position:'relative', paddingRight:50 }}>
+                  <strong>{c.title}</strong>
+                  {c.name} {c.phone && `· ${c.phone}`}
+                  {c.email && <><br /><span style={{ color:'var(--muted)' }}>{c.email}</span></>}
+                  <div style={{ position:'absolute', top:4, right:6, display:'flex', gap:4 }}>
+                    <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => { setEditContactId(c.id); setEditContactForm({ name:c.name, title:c.title, email:c.email||'', phone:c.phone||'' }); }}>✎</button>
+                    <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => deleteContact(c.id)}>✕</button>
+                  </div>
                 </div>
-              </div>
-            ))}
-            {!(project.agencyContacts?.length) && <span className="empty" style={{ padding:0, fontSize:12 }}>No agency contacts yet.</span>}
+              ))}
+              {!project.clientContacts?.length && <span className="empty" style={{ padding:0, fontSize:12 }}>No client contacts yet.</span>}
+            </div>
+          </div>
+
+          {/* Agency Contacts */}
+          <div>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+              <div className="sec-lbl">Agency Contacts</div>
+              <button className="btn btn-ghost btn-sm" onClick={() => setShowAgencyModal(true)}>+ Add</button>
+            </div>
+            <div className="chips">
+              {(project.agencyContacts||[]).map(c => (
+                <div key={c.id} className="chip" style={{ position:'relative', paddingRight:50 }}>
+                  <strong>{c.title}</strong>
+                  {c.name} {c.phone && `· ${c.phone}`}
+                  {c.email && <><br /><span style={{ color:'var(--muted)' }}>{c.email}</span></>}
+                  <div style={{ position:'absolute', top:4, right:6, display:'flex', gap:4 }}>
+                    <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => { setEditAgencyId(c.id); setEditAgencyForm({ name:c.name, title:c.title, email:c.email||'', phone:c.phone||'' }); }}>✎</button>
+                    <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => deleteAgencyContact(c.id)}>✕</button>
+                  </div>
+                </div>
+              ))}
+              {!(project.agencyContacts?.length) && <span className="empty" style={{ padding:0, fontSize:12 }}>No agency contacts yet.</span>}
+            </div>
           </div>
         </div>
       </div>
-
-      {/* Key Dates */}
-      {scheduleDays.length > 0 && (
-        <>
-          <div className="sec-lbl">Key Dates</div>
-          <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden', marginBottom:20 }}>
-            {scheduleDays.map((d, i) => (
-              <div key={d.id} style={{ display:'grid', gridTemplateColumns:'1fr auto', alignItems:'center', gap:12, padding:'10px 16px', borderBottom: i < scheduleDays.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                <div style={{ fontSize:13, fontWeight:600 }}>
-                  Day {i + 1} · {parseDay(d.date).toLocaleDateString('en-US', { weekday:'short', month:'long', day:'numeric' })}
-                </div>
-                <select
-                  value={d.day_type || 'SHOOT'}
-                  onChange={e => saveDayType(d.id, e.target.value)}
-                  style={{ fontSize:11, fontWeight:600, padding:'3px 10px', borderRadius:12, border:'1px solid var(--border2)', background:'var(--bg3)', color:'var(--orange)', cursor:'pointer', appearance:'none', WebkitAppearance:'none' }}
-                >
-                  {DAY_TYPES.map(dt => <option key={dt.value} value={dt.value}>{dt.label}</option>)}
-                </select>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
 
       {/* Locations */}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
