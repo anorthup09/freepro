@@ -625,6 +625,10 @@ export default function ShotList({ project, onScenesChange }) {
     updateScenes(prev => prev.map(s => s.id === sceneId ? { ...s, ...updated } : s));
   }
 
+  const shootingCall = scenes.length > 0 ? scenes[0].est_start_time || null : null;
+  const lastScene = scenes.length > 0 ? scenes[scenes.length - 1] : null;
+  const shootingWrap = lastScene ? calcWrapTime(lastScene.est_start_time, lastScene.shots || []) : null;
+
   return (
     <div>
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4 }}>
@@ -632,7 +636,27 @@ export default function ShotList({ project, onScenesChange }) {
           <div className="page-title" style={{ marginBottom:0 }}>Shot List</div>
           <div className="page-sub">{project.client} · {project.code}</div>
         </div>
-        <button className="btn btn-primary btn-sm" onClick={() => setShowAddScene(true)}>+ Add Scene</button>
+        <div style={{ display:'flex', alignItems:'center', gap:16 }}>
+          {(shootingCall || shootingWrap) && (
+            <div style={{ display:'flex', alignItems:'center', gap:16 }}>
+              {shootingCall && (
+                <div style={{ textAlign:'center' }}>
+                  <div style={{ fontSize:9, fontWeight:700, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.12em', marginBottom:2 }}>Shooting Call</div>
+                  <div style={{ fontSize:15, fontWeight:800, color:'var(--text)', fontVariantNumeric:'tabular-nums' }}>{shootingCall}</div>
+                </div>
+              )}
+              {shootingCall && shootingWrap && <div style={{ width:1, height:28, background:'var(--border)' }} />}
+              {shootingWrap && (
+                <div style={{ textAlign:'center' }}>
+                  <div style={{ fontSize:9, fontWeight:700, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.12em', marginBottom:2 }}>Shooting Wrap</div>
+                  <div style={{ fontSize:15, fontWeight:800, color:'var(--text)', fontVariantNumeric:'tabular-nums' }}>{shootingWrap}</div>
+                </div>
+              )}
+              <div style={{ width:1, height:28, background:'var(--border)' }} />
+            </div>
+          )}
+          <button className="btn btn-primary btn-sm" onClick={() => setShowAddScene(true)}>+ Add Scene</button>
+        </div>
       </div>
 
       <LiveClock />

@@ -56,11 +56,12 @@ router.delete('/:id/shot-list/scenes/:sceneId', requireAuth, requireRole('ADMIN'
 // POST /api/projects/:id/shot-list/scenes/:sceneId/shots
 router.post('/:id/shot-list/scenes/:sceneId/shots', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const { description, distance, movement, priority, estMinutes, status } = req.body;
+    const { description, distance, movement, priority, estMinutes, status,
+            setupMinutes, takesCount, takeMinutes, bufferMinutes } = req.body;
     const [{ n }] = await sql`SELECT COALESCE(MAX(sort_order), 0) + 1 as n FROM shot_list_shots WHERE scene_id = ${req.params.sceneId}`;
     const [shot] = await sql`
-      INSERT INTO shot_list_shots (id, scene_id, description, distance, movement, priority, est_minutes, status, sort_order)
-      VALUES (gen_random_uuid()::text, ${req.params.sceneId}, ${description||null}, ${distance||null}, ${movement||null}, ${priority||'Important'}, ${estMinutes||9}, ${status||'not_captured'}, ${Number(n)})
+      INSERT INTO shot_list_shots (id, scene_id, description, distance, movement, priority, est_minutes, status, sort_order, setup_minutes, takes_count, take_minutes, buffer_minutes)
+      VALUES (gen_random_uuid()::text, ${req.params.sceneId}, ${description||null}, ${distance||null}, ${movement||null}, ${priority||'Important'}, ${estMinutes||15}, ${status||'not_captured'}, ${Number(n)}, ${Number(setupMinutes??5)}, ${Number(takesCount??1)}, ${Number(takeMinutes??5)}, ${Number(bufferMinutes??5)})
       RETURNING *`;
     res.status(201).json(shot);
   } catch(e) { next(e); }
