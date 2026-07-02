@@ -200,6 +200,21 @@ function SceneBlock({ scene, projectId, onShotUpdate, onShotAdded, onShotDelete,
   );
 }
 
+function LiveClock() {
+  const [time, setTime] = useState(new Date());
+  useEffect(() => {
+    const id = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const fmt = time.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit', second:'2-digit', hour12:true });
+  return (
+    <div style={{ background:'rgba(255,255,255,0.08)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:8, padding:'10px 20px', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:14 }}>
+      <span style={{ fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.5)', textTransform:'uppercase', letterSpacing:'.18em' }}>Current Time:&nbsp;</span>
+      <span style={{ fontSize:13, fontWeight:700, color:'rgba(255,255,255,0.85)', letterSpacing:'.08em', fontVariantNumeric:'tabular-nums' }}>{fmt}</span>
+    </div>
+  );
+}
+
 export default function ShotList({ project }) {
   const [scenes, setScenes] = useState([]);
   const [showAddScene, setShowAddScene] = useState(false);
@@ -263,8 +278,11 @@ export default function ShotList({ project }) {
         <button className="btn btn-primary btn-sm" onClick={() => setShowAddScene(true)}>+ Add Scene</button>
       </div>
 
+      {/* Live clock */}
+      <LiveClock />
+
       {/* Stats */}
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:10, margin:'20px 0' }}>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:10, marginBottom:20 }}>
         {[
           { label:'Total Shots', val: totalShots },
           { label:'Captured', val: capturedShots },
