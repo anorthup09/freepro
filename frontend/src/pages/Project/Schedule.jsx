@@ -574,9 +574,10 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
               ? [{ _type:'preview', _sort: timeToMinutes(eventForm.startTime) || 9998, _key:'preview', ...eventForm }]
               : [];
             const cateringItems = (currentDay.catering || [])
-              .filter(c => c.meal_type !== 'LUNCH')
+              .filter(c => c.meal_type !== 'LUNCH' && (c.name || c.address || c.delivery_time))
               .map(c => ({ _type:'catering', _sort: timeToMinutes(c.delivery_time) || 9997, _key:`cat-${c.id}`, ...c }));
-            const lunchCatering = (currentDay.catering || []).find(c => c.meal_type === 'LUNCH');
+            const lunchCateringRaw = (currentDay.catering || []).find(c => c.meal_type === 'LUNCH');
+            const lunchCatering = lunchCateringRaw && (lunchCateringRaw.name || lunchCateringRaw.address || lunchCateringRaw.delivery_time) ? lunchCateringRaw : null;
             const items = [...syntheticItems, ...eventItems, ...flightItems, ...cateringItems, ...previewItems].sort((a, b) => a._sort - b._sort);
 
             return (

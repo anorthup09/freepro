@@ -1120,7 +1120,8 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
     lt:  { color:'#4ade80', bg:'rgba(74,222,128,0.08)',   notesKey:'lunch_notes',          tagsKey:'lunch_tags' },
     wt:  { color:'#a78bfa', bg:'rgba(167,139,250,0.08)', notesKey:'wrap_time_notes',      tagsKey:'wrap_time_tags' },
   };
-  const lunchCatering = (day.catering || []).find(c => c.meal_type === 'LUNCH');
+  const lunchCateringRaw = (day.catering || []).find(c => c.meal_type === 'LUNCH');
+  const lunchCatering = lunchCateringRaw && (lunchCateringRaw.name || lunchCateringRaw.address || lunchCateringRaw.delivery_time) ? lunchCateringRaw : null;
   const syntheticDayItems = tagFilter ? [] : [
     day.call_time          && { _type:'synthetic', _key:'ct',  _sort: timeToMins(day.call_time),           startTime: day.call_time,          title:'General Call Time', notes: day.call_time_notes,      tags: day.call_time_tags },
     day.shooting_call_time && { _type:'synthetic', _key:'sct', _sort: timeToMins(day.shooting_call_time),  startTime: day.shooting_call_time, title:'Shooting Call',     notes: day.shooting_call_notes,  tags: day.shooting_call_tags },
@@ -1129,7 +1130,7 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
   ].filter(Boolean);
 
   const cateringItems = tagFilter ? [] : (day.catering || [])
-    .filter(c => c.meal_type !== 'LUNCH')
+    .filter(c => c.meal_type !== 'LUNCH' && (c.name || c.address || c.delivery_time))
     .map(c => ({ _type:'catering', _sort: timeToMins(c.delivery_time) || 9997, _key:`cat-${c.id}`, ...c }));
 
   const allItems = [
@@ -1401,10 +1402,10 @@ export default function Share() {
 
   if (passwordRequired && !data) return (
     <div style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:'100vh', background:'var(--bg)', color:'var(--text)' }}>
-      <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, padding:'36px 40px', width:320, textAlign:'center' }}>
+      <div style={{ background:'rgba(232,80,10,0.80)', border:'1px solid rgba(255,255,255,0.35)', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.25), inset -1px 0 0 rgba(0,0,0,0.4), 0 3px 10px rgba(0,0,0,0.5)', borderRadius:12, padding:'36px 40px', width:320, textAlign:'center' }}>
         <div className="logo" style={{ justifyContent:'center', marginBottom:20 }}>Free<em>Pro</em></div>
-        <div style={{ fontSize:15, fontWeight:700, marginBottom:6 }}>Password Required</div>
-        <div style={{ fontSize:12, color:'var(--muted)', marginBottom:20 }}>This view is password protected.</div>
+        <div style={{ fontSize:15, fontWeight:700, marginBottom:6, color:'#fff' }}>Password Required</div>
+        <div style={{ fontSize:12, color:'rgba(255,255,255,0.7)', marginBottom:20 }}>This view is password protected.</div>
         <form onSubmit={submitPassword}>
           <input
             type="password"
