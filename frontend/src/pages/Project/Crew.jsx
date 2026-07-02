@@ -267,8 +267,10 @@ export default function Crew({ project, onProjectUpdate }) {
                   </td>
                   <td style={{ fontSize:11, color:'var(--tan)', whiteSpace:'nowrap' }}>{a.crewMember?.phone || '—'}</td>
                   <td style={{ fontSize:11, color:'var(--muted)' }}>{a.crewMember?.email || '—'}</td>
-                  <td style={{ textAlign:'center' }}>
-                    <DietaryBadge value={a.crewMember?.dietaryRestrictions} />
+                  <td style={{ fontSize:11 }}>
+                    {a.crewMember?.dietaryRestrictions && a.crewMember.dietaryRestrictions !== 'N/A'
+                      ? <span>⚠️ {a.crewMember.dietaryRestrictions}</span>
+                      : <span style={{ color:'var(--muted)' }}>—</span>}
                   </td>
                   <td>
                     {editId === a.id
