@@ -1504,7 +1504,7 @@ function GlassHeader({ project, headerRef }) {
       alignItems: 'center',
     }}>
       <div>
-        <div style={{ fontSize:9, color:'rgba(255,255,255,0.4)', textTransform:'uppercase', letterSpacing:'0.12em', fontWeight:600, marginBottom:1 }}>{project.code}</div>
+        <div style={{ fontSize:10, color:'rgba(255,255,255,0.65)', textTransform:'uppercase', letterSpacing:'0.12em', fontWeight:700, marginBottom:2 }}>{project.code}</div>
         <div style={{ fontFamily:"'Syne', sans-serif", fontWeight:800, fontSize:16, letterSpacing:'-0.3px', color:'#fff', lineHeight:1 }}>{project.title}</div>
       </div>
     </div>
