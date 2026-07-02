@@ -14,7 +14,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
 /* ── Nav ── */
 .nav { background: var(--bg); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 10px 20px; gap: 6px; flex-wrap: wrap; position: sticky; top: 0; z-index: 100; }
 .logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 17px; color: var(--text); margin-right: 24px; letter-spacing: -0.3px; text-decoration: none; }
-.logo em { color: var(--orange); font-style: normal; }
+.logo em { color: var(--orange); font-style: italic; }
 .tabs { display: flex; gap: 2px; flex-wrap: wrap; }
 .tab { padding: 5px 12px; border-radius: 5px; font-size: 12px; color: var(--muted); cursor: pointer; border: none; background: transparent; font-family: 'DM Sans', sans-serif; transition: all .12s; }
 .tab:hover { color: var(--text); background: var(--bg3); }
@@ -186,7 +186,7 @@ textarea { resize: vertical; min-height: 70px; }
 .login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
 .login-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 32px; width: 340px; }
 .login-logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 22px; margin-bottom: 24px; text-align: center; }
-.login-logo em { color: var(--orange); font-style: normal; }
+.login-logo em { color: var(--orange); font-style: italic; }
 .login-err { background: var(--red-bg); border: 1px solid var(--red-border); color: var(--red-text); border-radius: 6px; padding: 8px 12px; font-size: 12px; margin-bottom: 14px; }
 
 /* ── Modal overlay ── */
