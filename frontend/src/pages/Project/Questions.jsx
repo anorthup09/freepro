@@ -106,7 +106,9 @@ export default function Questions({ project }) {
             <div style={{ fontSize:12, color:'var(--muted)', fontStyle:'italic', padding:'12px 0' }}>No answered questions yet.</div>
           )}
           {answered.map(q => (
-            <AnsweredTile key={q.id} q={q} onDelete={() => deleteQuestion(q.id)} />
+            <AnsweredTile key={q.id} q={q} onDelete={() => deleteQuestion(q.id)}
+              onSaveAnswer={answer => api.answerQuestion(project.id, q.id, { answer }).then(updated => setQuestions(prev => prev.map(x => x.id === q.id ? updated : x)))}
+            />
           ))}
         </div>
       </div>
@@ -163,7 +165,20 @@ function QuestionTile({ q, isAnswering, answerInput, setAnswerInput, onStartAnsw
   );
 }
 
-function AnsweredTile({ q, onDelete }) {
+function AnsweredTile({ q, onDelete, onSaveAnswer }) {
+  const [editing, setEditing] = useState(false);
+  const [editVal, setEditVal] = useState(q.answer);
+  const [saving, setSaving] = useState(false);
+
+  async function save() {
+    if (!editVal.trim()) return;
+    setSaving(true);
+    try {
+      await onSaveAnswer(editVal.trim());
+      setEditing(false);
+    } finally { setSaving(false); }
+  }
+
   return (
     <div style={{
       border: '1.5px solid rgba(34,197,94,0.5)',
@@ -173,10 +188,31 @@ function AnsweredTile({ q, onDelete }) {
       background: 'var(--bg2)',
     }}>
       <div style={{ display:'flex', alignItems:'flex-start', gap:8 }}>
-        <div style={{ fontSize:14, flexShrink:0, marginTop:1 }}>✓</div>
+        <div style={{ color:'#22c55e', fontSize:14, flexShrink:0, marginTop:1 }}>✓</div>
         <div style={{ flex:1 }}>
           <div style={{ fontSize:13, fontWeight:600, color:'var(--text)', marginBottom:6 }}>{q.question}</div>
-          <div style={{ fontSize:12, color:'var(--muted)', lineHeight:1.5 }}>{q.answer}</div>
+          {editing ? (
+            <div>
+              <textarea
+                value={editVal}
+                onChange={e => setEditVal(e.target.value)}
+                rows={3}
+                autoFocus
+                style={{ width:'100%', boxSizing:'border-box', fontFamily:'inherit', fontSize:12, resize:'vertical', marginBottom:8 }}
+              />
+              <div style={{ display:'flex', gap:8 }}>
+                <button className="btn btn-sm" disabled={saving || !editVal.trim()} onClick={save} style={{ background:'#22c55e', color:'#fff', border:'none', fontWeight:600 }}>
+                  {saving ? 'Saving…' : 'Save'}
+                </button>
+                <button className="btn btn-ghost btn-sm" onClick={() => { setEditing(false); setEditVal(q.answer); }}>Cancel</button>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <div style={{ fontSize:12, color:'var(--muted)', lineHeight:1.5, marginBottom:6 }}>{q.answer}</div>
+              <button className="btn btn-ghost btn-sm" style={{ fontSize:11 }} onClick={() => setEditing(true)}>Edit Answer</button>
+            </div>
+          )}
         </div>
         <button onClick={onDelete} style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11, flexShrink:0 }}>✕</button>
       </div>
