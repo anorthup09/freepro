@@ -56,6 +56,17 @@ export default function Projects() {
     finally { setSaving(false); }
   }
 
+  const today = new Date(new Date().toISOString().slice(0,10)+'T12:00:00');
+
+  function daysUntil(startDate) {
+    if (!startDate) return null;
+    return Math.ceil((new Date(startDate.slice(0,10)+'T12:00:00') - today) / 86400000);
+  }
+
+  const activeProjects = projects
+    .filter(p => p.status !== 'ARCHIVED')
+    .sort((a, b) => (a.start_date || '').localeCompare(b.start_date || ''));
+
   return (
     <>
       <nav className="nav">
@@ -75,13 +86,24 @@ export default function Projects() {
         {projects.length === 0 && <div className="empty">No projects yet — create one to get started.</div>}
 
         <div className="proj-list">
-          {projects.filter(p => p.status !== 'ARCHIVED').map(p => (
+          {activeProjects.map(p => {
+            const d = daysUntil(p.start_date);
+            return (
             <Link key={p.id} to={`/projects/${p.id}`} className="proj-card">
               <div className="proj-card-info">
                 <div className="proj-card-code">{p.code}</div>
                 <div className="proj-card-title">{p.title}</div>
                 <div className="proj-card-meta">{p.client} · {p.city}, {p.state} · {new Date(p.start_date?.slice(0,10)+'T12:00:00').toLocaleDateString()} – {new Date(p.end_date?.slice(0,10)+'T12:00:00').toLocaleDateString()}</div>
               </div>
+              {d != null && d > 0 && (
+                <div style={{ textAlign:'right', flexShrink:0 }}>
+                  <div style={{ fontSize:20, fontWeight:700, color:'var(--orange)', lineHeight:1 }}>{d}</div>
+                  <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginTop:2 }}>days away</div>
+                </div>
+              )}
+              {d === 0 && (
+                <div style={{ fontSize:11, fontWeight:700, color:'var(--orange)', flexShrink:0 }}>Today!</div>
+              )}
               <span className={`pill ${STATUS_PILL[p.status] || ''}`}>{p.status.replace(/_/g,' ')}</span>
               <button
                 onClick={e => archiveProject(e, p.id)}
@@ -89,7 +111,8 @@ export default function Projects() {
               >Archive</button>
               <span className="proj-card-arrow">›</span>
             </Link>
-          ))}
+            );
+          })}
         </div>
 
         {projects.some(p => p.status === 'ARCHIVED') && (
