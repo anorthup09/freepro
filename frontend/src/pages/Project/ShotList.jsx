@@ -306,7 +306,7 @@ export default function ShotList({ project }) {
           { label:'Total Shots', val: totalShots },
           { label:'Captured', val: capturedShots },
           { label:'Remaining', val: totalShots - capturedShots },
-          { label:'Est. Hours', val: `${(totalMinutes / 60).toFixed(1)}h` },
+          { label:'Est. Time', val: `${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m` },
         ].map(s => (
           <div key={s.label} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding:'16px 20px' }}>
             <div style={{ fontSize:26, fontWeight:800, color:'var(--text)', fontFamily:"'Syne',sans-serif", letterSpacing:'-0.5px', lineHeight:1 }}>{s.val}</div>
