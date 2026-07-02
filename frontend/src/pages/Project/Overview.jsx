@@ -388,7 +388,7 @@ export default function Overview({ project, setProject, onTabChange }) {
           {/* Client Contacts */}
           <div>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-              <div className="sec-lbl">Client Contacts</div>
+              <div className="sec-lbl" style={{ fontWeight:700, fontSize:12, color:'var(--text)' }}>Client Contacts</div>
               <button className="btn btn-ghost btn-sm" onClick={() => setShowContactModal(true)}>+ Add</button>
             </div>
             <div className="chips">
@@ -410,7 +410,7 @@ export default function Overview({ project, setProject, onTabChange }) {
           {/* Agency Contacts */}
           <div>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-              <div className="sec-lbl">Agency Contacts</div>
+              <div className="sec-lbl" style={{ fontWeight:700, fontSize:12, color:'var(--text)' }}>Agency Contacts</div>
               <button className="btn btn-ghost btn-sm" onClick={() => setShowAgencyModal(true)}>+ Add</button>
             </div>
             <div className="chips">
