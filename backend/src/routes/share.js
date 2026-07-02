@@ -290,6 +290,52 @@ async function resolveShare(token, pw) {
   return { share };
 }
 
+// PATCH /share/:token/shots/:shotId
+router.patch('/:token/shots/:shotId', async (req, res, next) => {
+  try {
+    const [share] = await sql`SELECT * FROM project_shares WHERE token = ${req.params.token}`;
+    if (!share) return res.status(404).json({ error: 'Share not found' });
+    const { status, estMinutes, angle, lens, frameRate, coverage, talentTags,
+            specialEquipment, audioNotes, setupMinutes, takesCount, takeMinutes, bufferMinutes } = req.body;
+    const [shot] = await sql`
+      UPDATE shot_list_shots SET
+        status = COALESCE(${status??null}, status),
+        est_minutes = COALESCE(${estMinutes??null}, est_minutes),
+        angle = ${angle !== undefined ? (angle||null) : sql`angle`},
+        lens = ${lens !== undefined ? (lens||null) : sql`lens`},
+        frame_rate = ${frameRate !== undefined ? (frameRate||null) : sql`frame_rate`},
+        coverage = ${coverage !== undefined ? (coverage||null) : sql`coverage`},
+        talent_tags = ${talentTags !== undefined ? sql.json(talentTags) : sql`talent_tags`},
+        special_equipment = ${specialEquipment !== undefined ? (specialEquipment||null) : sql`special_equipment`},
+        audio_notes = ${audioNotes !== undefined ? (audioNotes||null) : sql`audio_notes`},
+        setup_minutes = ${setupMinutes !== undefined ? Number(setupMinutes||0) : sql`setup_minutes`},
+        takes_count = ${takesCount !== undefined ? Number(takesCount||1) : sql`takes_count`},
+        take_minutes = ${takeMinutes !== undefined ? Number(takeMinutes||0) : sql`take_minutes`},
+        buffer_minutes = ${bufferMinutes !== undefined ? Number(bufferMinutes??5) : sql`buffer_minutes`}
+      WHERE id = ${req.params.shotId}
+        AND scene_id IN (SELECT id FROM shot_list_scenes WHERE project_id = ${share.project_id})
+      RETURNING *`;
+    if (!shot) return res.status(404).json({ error: 'Shot not found' });
+    res.json(shot);
+  } catch(e) { next(e); }
+});
+
+// PATCH /share/:token/scenes/:sceneId
+router.patch('/:token/scenes/:sceneId', async (req, res, next) => {
+  try {
+    const [share] = await sql`SELECT * FROM project_shares WHERE token = ${req.params.token}`;
+    if (!share) return res.status(404).json({ error: 'Share not found' });
+    const { estStartTime } = req.body;
+    const [scene] = await sql`
+      UPDATE shot_list_scenes SET
+        est_start_time = ${estStartTime !== undefined ? (estStartTime||null) : sql`est_start_time`}
+      WHERE id = ${req.params.sceneId} AND project_id = ${share.project_id}
+      RETURNING *`;
+    if (!scene) return res.status(404).json({ error: 'Scene not found' });
+    res.json(scene);
+  } catch(e) { next(e); }
+});
+
 // GET /share/:token/questions
 router.get('/:token/questions', async (req, res, next) => {
   try {

@@ -951,65 +951,324 @@ function QuestionsView({ shareToken, pw, canAnswer }) {
   );
 }
 
-// ── Shot List Share View ──────────────────────────────────────────────────────
-const SHOT_PRIORITY_COLOR = { Essential: '#f97316', Important: '#f59e0b', 'Nice to Have': 'var(--muted)' };
-function shotLbl(sceneNumber, index) {
-  const L = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-  return `${sceneNumber}${L[index] || index}`;
+// ── Shot List Full View (share) ───────────────────────────────────────────────
+const SL_MOVEMENTS = ['Static', 'Pan', 'Tilt', 'Dolly', 'Handheld', 'Crane', 'Zoom', 'Gimbal'];
+const SL_COVERAGES = ['Interview', 'B-Roll'];
+const SL_SCENE_STYLES = {
+  interior: { bg:'rgba(96,165,250,0.12)', border:'rgba(96,165,250,0.4)', badge:'rgba(96,165,250,0.18)', badgeText:'#60a5fa', label:'INT.' },
+  exterior: { bg:'rgba(74,222,128,0.10)', border:'rgba(74,222,128,0.4)', badge:'rgba(74,222,128,0.15)', badgeText:'#4ade80', label:'EXT.' },
+};
+function slLabel(sceneNum, idx) { return `${sceneNum}${'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[idx]||idx}`; }
+function slCalcWrap(startTime, shots) {
+  if (!startTime) return null;
+  const m = startTime.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!m) return null;
+  let [,h,min,mer] = m; h=parseInt(h); min=parseInt(min);
+  if (mer.toUpperCase()==='PM'&&h!==12) h+=12;
+  if (mer.toUpperCase()==='AM'&&h===12) h=0;
+  const total = h*60+min + shots.reduce((s,sh)=>s+(sh.est_minutes||0),0);
+  const eh=Math.floor(total/60)%24, em=total%60;
+  return `${eh%12||12}:${String(em).padStart(2,'0')} ${eh>=12?'PM':'AM'}`;
 }
-function ShotListShareView({ scenes }) {
-  const [activeId, setActiveId] = React.useState(scenes[0]?.id || null);
-  const totalShots = scenes.reduce((s, sc) => s + (sc.shots || []).length, 0);
-  const totalMinutes = scenes.reduce((s, sc) => s + (sc.shots || []).reduce((a, sh) => a + (sh.est_minutes || 0), 0), 0);
-  const activeScene = scenes.find(s => s.id === activeId);
+
+function SlShotRow({ shot, index, sceneNum, shareToken, onUpdate, accentColor, allExpanded, talent }) {
+  const captured = shot.status === 'captured';
+  const [desc, setDesc] = useState(shot.description || '');
+  const [movement, setMovement] = useState(shot.movement || '');
+  const [open, setOpen] = useState(false);
+  const [talentOpen, setTalentOpen] = useState(false);
+  const talentRef = useRef(null);
+  const isOpen = allExpanded || open;
+  const displayMinutes = (shot.setup_minutes??5) + ((shot.takes_count??1)*(shot.take_minutes??5)) + (shot.buffer_minutes??5);
+
+  const [detail, setDetail] = useState({
+    angle: shot.angle||'', lens: shot.lens||'', frameRate: shot.frame_rate||'',
+    coverage: shot.coverage||'', talentTags: shot.talent_tags||[],
+    specialEquipment: shot.special_equipment||'', audioNotes: shot.audio_notes||'',
+    setupMinutes: shot.setup_minutes??5, takesCount: shot.takes_count??1,
+    takeMinutes: shot.take_minutes??5, bufferMinutes: shot.buffer_minutes??5,
+  });
+  const [detailSaving, setDetailSaving] = useState(false);
+  const totalTime = Number(detail.setupMinutes||0)+(Number(detail.takesCount||0)*Number(detail.takeMinutes||0))+Number(detail.bufferMinutes||0);
+
+  useEffect(() => { setDesc(shot.description||''); }, [shot.description]);
+  useEffect(() => { setMovement(shot.movement||''); }, [shot.movement]);
+  useEffect(() => {
+    setDetail({ angle:shot.angle||'', lens:shot.lens||'', frameRate:shot.frame_rate||'',
+      coverage:shot.coverage||'', talentTags:shot.talent_tags||[],
+      specialEquipment:shot.special_equipment||'', audioNotes:shot.audio_notes||'',
+      setupMinutes:shot.setup_minutes??5, takesCount:shot.takes_count??1,
+      takeMinutes:shot.take_minutes??5, bufferMinutes:shot.buffer_minutes??5 });
+  }, [shot.id]);
+
+  useEffect(() => {
+    function h(e) { if (talentRef.current && !talentRef.current.contains(e.target)) setTalentOpen(false); }
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, []);
+
+  async function save(field, value) {
+    try { const u = await api.updateShareShot(shareToken, shot.id, {[field]: value??null}); onUpdate(u); } catch {}
+  }
+  async function toggleCapture() {
+    const status = captured ? 'not_captured' : 'captured';
+    try { const u = await api.updateShareShot(shareToken, shot.id, {status}); onUpdate(u); } catch {}
+  }
+  async function saveDetail() {
+    setDetailSaving(true);
+    try {
+      const u = await api.updateShareShot(shareToken, shot.id, {...detail, estMinutes: totalTime||null});
+      onUpdate(u); setOpen(false);
+    } catch(e) { alert(e.message); }
+    setDetailSaving(false);
+  }
+  function toggleTalent(name) {
+    setDetail(f => ({ ...f, talentTags: f.talentTags.includes(name) ? f.talentTags.filter(t=>t!==name) : [...f.talentTags, name] }));
+  }
+
+  return (
+    <>
+      <tr style={{ borderBottom: isOpen ? 'none' : '1px solid var(--border)', background: captured ? 'rgba(15,15,12,0.6)' : 'transparent', outline: captured ? 'none' : `1px solid ${accentColor}55`, outlineOffset:'-1px', opacity: captured ? 0.4 : 1, transition:'background 0.15s, opacity 0.2s' }}>
+        <td style={{ padding:'10px 8px 10px 14px', width:28 }}>
+          <div onClick={toggleCapture} style={{ width:16, height:16, borderRadius:4, border:`2px solid ${captured?'#4ade80':accentColor}`, background: captured?'#4ade80':'transparent', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, transition:'all 0.15s' }}>
+            {captured && <svg width="9" height="7" viewBox="0 0 9 7" fill="none"><path d="M1 3.5L3.5 6L8 1" stroke="#000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+          </div>
+        </td>
+        <td style={{ padding:'10px 6px', fontSize:13, fontWeight:700, color: captured?'var(--muted)':accentColor, width:40, whiteSpace:'nowrap' }}>{slLabel(sceneNum, index)}</td>
+        <td style={{ padding:'10px 4px', width:20 }}>
+          <button onClick={() => setOpen(o=>!o)} style={{ background:'none', border:'none', color: isOpen?accentColor:'var(--muted)', cursor:'pointer', fontSize:11, padding:0, lineHeight:1, opacity: isOpen?1:0.5 }}>{isOpen?'▼':'▶'}</button>
+        </td>
+        <td style={{ padding:'6px 8px' }}>
+          <input value={desc} onChange={e=>setDesc(e.target.value)} onBlur={()=>{if(desc!==(shot.description||'')) save('description',desc);}}
+            placeholder="Shot description…" style={{ width:'100%', background:'transparent', border:'none', outline:'none', color: captured?'var(--muted)':'var(--text)', fontSize:13, fontFamily:'inherit', padding:0 }} />
+        </td>
+        <td style={{ padding:'6px 8px', width:130 }}>
+          <select value={movement} onChange={e=>{setMovement(e.target.value); save('movement',e.target.value);}}
+            style={{ background:'transparent', border:'none', outline:'none', color: movement?(captured?'var(--muted)':'var(--text)'):'var(--muted)', fontSize:13, fontFamily:'inherit', cursor:'pointer', padding:0, width:'100%' }}>
+            <option value="">— Movement —</option>
+            {SL_MOVEMENTS.map(m=><option key={m} value={m}>{m}</option>)}
+          </select>
+        </td>
+        <td style={{ padding:'6px 8px', width:80 }} ref={talentRef}>
+          {(shot.talent_tags||[]).length > 0 ? (
+            <div style={{ position:'relative' }}>
+              <button onClick={()=>setTalentOpen(o=>!o)} style={{ background: talentOpen?`${accentColor}22`:'transparent', border:`1px solid ${accentColor}55`, borderRadius:100, padding:'2px 8px', fontSize:11, fontWeight:700, color: captured?'var(--muted)':accentColor, cursor:'pointer', lineHeight:'16px', whiteSpace:'nowrap' }}>
+                {shot.talent_tags.length} talent
+              </button>
+              {talentOpen && (
+                <div style={{ position:'absolute', top:'calc(100% + 4px)', left:0, zIndex:200, background:'var(--bg)', border:'1px solid var(--border)', borderRadius:8, boxShadow:'0 4px 16px rgba(0,0,0,0.4)', padding:'8px 12px', minWidth:120, whiteSpace:'nowrap' }}>
+                  {shot.talent_tags.map(name=><div key={name} style={{ fontSize:12, color:'var(--text)', padding:'3px 0', borderBottom:'1px solid var(--border)' }}>{name}</div>)}
+                </div>
+              )}
+            </div>
+          ) : <span style={{ fontSize:12, color:'var(--muted)', opacity:0.4 }}>—</span>}
+        </td>
+        <td style={{ padding:'6px 8px', width:60 }}>
+          <span style={{ fontSize:13, color: captured?'var(--muted)':'var(--text)', fontVariantNumeric:'tabular-nums' }}>{displayMinutes}<span style={{ fontSize:10, color:'var(--muted)', marginLeft:2 }}>m</span></span>
+        </td>
+      </tr>
+      {isOpen && (
+        <tr style={{ borderBottom:'1px solid var(--border)', background:'rgba(255,255,255,0.025)' }}>
+          <td colSpan={7} style={{ padding:'12px 14px 16px 60px' }}>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr', gap:'10px 14px', marginBottom:12 }}>
+              {[['Angle','angle','e.g. Eye level'],['Lens','lens','e.g. 85mm'],['Frame Rate','frameRate','e.g. 24fps']].map(([lbl,key,ph])=>(
+                <div key={key} className="field" style={{ margin:0 }}>
+                  <label style={{ fontSize:10 }}>{lbl}</label>
+                  <input value={detail[key]} onChange={e=>setDetail(f=>({...f,[key]:e.target.value}))} placeholder={ph} />
+                </div>
+              ))}
+              <div className="field" style={{ margin:0 }}>
+                <label style={{ fontSize:10 }}>Coverage</label>
+                <select value={detail.coverage} onChange={e=>setDetail(f=>({...f,coverage:e.target.value}))}>
+                  <option value="">— Select —</option>
+                  {SL_COVERAGES.map(c=><option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div className="field" style={{ margin:0, gridColumn:'span 2' }}>
+                <label style={{ fontSize:10 }}>Special Equipment</label>
+                <input value={detail.specialEquipment} onChange={e=>setDetail(f=>({...f,specialEquipment:e.target.value}))} placeholder="e.g. Gimbal, Drone" />
+              </div>
+              <div className="field" style={{ margin:0, gridColumn:'span 2' }}>
+                <label style={{ fontSize:10 }}>Audio</label>
+                <input value={detail.audioNotes} onChange={e=>setDetail(f=>({...f,audioNotes:e.target.value}))} placeholder="e.g. Lav mic, Boom" />
+              </div>
+            </div>
+            {talent.length > 0 && (
+              <div className="field" style={{ margin:'0 0 12px' }}>
+                <label style={{ fontSize:10 }}>Talent</label>
+                <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginTop:4 }}>
+                  {talent.map(t=>{
+                    const active=detail.talentTags.includes(t.name);
+                    return <button key={t.name} type="button" onClick={()=>toggleTalent(t.name)} style={{ padding:'3px 10px', borderRadius:100, fontSize:11, fontWeight:600, cursor:'pointer', border:`1px solid ${active?'var(--orange)':'var(--border)'}`, background: active?'rgba(251,146,60,0.15)':'var(--bg2)', color: active?'var(--orange)':'var(--muted)' }}>{t.name}</button>;
+                  })}
+                </div>
+              </div>
+            )}
+            <div style={{ background:'var(--bg3)', border:'1px solid var(--border)', borderRadius:8, padding:'12px 14px', marginBottom:12 }}>
+              <div style={{ fontSize:10, fontWeight:700, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.1em', marginBottom:10 }}>Timing Breakdown</div>
+              <div style={{ display:'flex', alignItems:'center', gap:16, flexWrap:'wrap' }}>
+                {[['Setup','setupMinutes'],['Buffer','bufferMinutes']].map(([lbl,key])=>(
+                  <div key={key} style={{ display:'flex', alignItems:'center', gap:6 }}>
+                    <span style={{ fontSize:11, color:'var(--muted)' }}>{lbl}</span>
+                    <input type="number" min="0" value={detail[key]} onChange={e=>setDetail(f=>({...f,[key]:e.target.value}))} style={{ width:48, textAlign:'center' }} />
+                    <span style={{ fontSize:11, color:'var(--muted)' }}>min</span>
+                  </div>
+                ))}
+                <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                  <span style={{ fontSize:11, color:'var(--muted)' }}>Takes</span>
+                  <input type="number" min="1" value={detail.takesCount} onChange={e=>setDetail(f=>({...f,takesCount:e.target.value}))} style={{ width:48, textAlign:'center' }} />
+                  <span style={{ fontSize:11, color:'var(--muted)' }}>×</span>
+                  <input type="number" min="0" value={detail.takeMinutes} onChange={e=>setDetail(f=>({...f,takeMinutes:e.target.value}))} style={{ width:48, textAlign:'center' }} />
+                  <span style={{ fontSize:11, color:'var(--muted)' }}>min</span>
+                </div>
+                <div style={{ marginLeft:'auto', display:'flex', alignItems:'baseline', gap:5 }}>
+                  <span style={{ fontSize:11, fontWeight:700, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em' }}>Total</span>
+                  <span style={{ fontSize:18, fontWeight:800, color:'var(--text)', fontVariantNumeric:'tabular-nums' }}>{totalTime}</span>
+                  <span style={{ fontSize:11, color:'var(--muted)' }}>min</span>
+                </div>
+              </div>
+            </div>
+            <div style={{ display:'flex', gap:8 }}>
+              <button className="btn btn-primary btn-sm" onClick={saveDetail} disabled={detailSaving}>{detailSaving?'Saving…':'Save Details'}</button>
+              <button className="btn btn-ghost btn-sm" onClick={()=>setOpen(false)}>Close</button>
+            </div>
+          </td>
+        </tr>
+      )}
+    </>
+  );
+}
+
+function SlSceneBlock({ scene, shareToken, talent, onShotUpdate, onStartTimeChange }) {
+  const st = SL_SCENE_STYLES[scene.scene_type] || SL_SCENE_STYLES.interior;
+  const [startTime, setStartTime] = useState(scene.est_start_time||'');
+  const [allExpanded, setAllExpanded] = useState(false);
+  const wrapTime = slCalcWrap(startTime, scene.shots||[]);
+
+  async function saveStartTime(val) {
+    try { await api.updateShareScene(shareToken, scene.id, {estStartTime: val||null}); onStartTimeChange(scene.id, val); } catch {}
+  }
+
+  return (
+    <div style={{ background:'var(--bg2)', border:`1px solid ${st.border}`, borderRadius:10, overflow:'hidden', marginBottom:16 }}>
+      <div style={{ padding:'12px 20px', background:st.bg, borderBottom:`1px solid ${st.border}`, display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+          <span style={{ fontSize:10, fontWeight:800, color:st.badgeText, textTransform:'uppercase', letterSpacing:'.1em', background:st.badge, border:`1px solid ${st.border}`, borderRadius:4, padding:'2px 8px' }}>
+            {st.label} · Scene {scene.scene_number}
+          </span>
+          <span style={{ fontSize:15, fontWeight:700, color:'var(--text)' }}>{scene.name}</span>
+          {scene.description && <span style={{ fontSize:12, color:'var(--muted)' }}>· {scene.description}</span>}
+          <span style={{ fontSize:12, color:'var(--muted)' }}>{(scene.shots||[]).length} shot{(scene.shots||[]).length!==1?'s':''}</span>
+        </div>
+        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+          <span style={{ fontSize:10, fontWeight:700, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em' }}>Est. Start</span>
+          <input value={startTime} onChange={e=>setStartTime(e.target.value)} onBlur={()=>saveStartTime(startTime)}
+            placeholder="9:00 AM"
+            style={{ width:78, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.12)', borderRadius:5, padding:'3px 7px', fontSize:12, color:'var(--text)', fontFamily:'inherit', outline:'none' }} />
+        </div>
+      </div>
+      <table style={{ width:'100%', borderCollapse:'collapse' }}>
+        <thead>
+          <tr style={{ borderBottom:'1px solid var(--border)' }}>
+            <th style={{ width:28 }} />
+            <th style={{ padding:'8px 6px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:40 }}>Shot</th>
+            <th style={{ width:20 }} />
+            <th style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left' }}>Description</th>
+            <th style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:130 }}>Movement</th>
+            <th style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:80 }}>Talent</th>
+            <th style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:60 }}>Time</th>
+          </tr>
+        </thead>
+        <tbody>
+          {(scene.shots||[]).map((shot,i)=>(
+            <SlShotRow key={shot.id} shot={shot} index={i} sceneNum={scene.scene_number}
+              shareToken={shareToken} onUpdate={onShotUpdate}
+              accentColor={st.badgeText} allExpanded={allExpanded} talent={talent} />
+          ))}
+        </tbody>
+      </table>
+      <div style={{ padding:'10px 20px', background:st.bg, borderTop:`1px solid ${st.border}`, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+        <button onClick={()=>setAllExpanded(e=>!e)} style={{ background:'none', border:'none', fontSize:11, fontWeight:700, color:st.badgeText, cursor:'pointer', padding:0, textTransform:'uppercase', letterSpacing:'.08em', opacity:0.8, display:'flex', alignItems:'center', gap:5 }}>
+          <span style={{ fontSize:12 }}>{allExpanded?'▲':'▼'}</span>
+          {allExpanded?'Collapse All':'Expand All Shots'}
+        </button>
+        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+          <span style={{ fontSize:11, fontWeight:700, color:st.badgeText, textTransform:'uppercase', letterSpacing:'.08em', opacity:0.7 }}>Est. Scene Wrap:</span>
+          <span style={{ fontSize:13, fontWeight:800, color:st.badgeText, fontVariantNumeric:'tabular-nums' }}>{wrapTime||(startTime?'Invalid time':'—')}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SlLiveClock() {
+  const [time, setTime] = useState(new Date());
+  useEffect(()=>{ const id=setInterval(()=>setTime(new Date()),1000); return ()=>clearInterval(id); },[]);
+  const fmt = time.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',second:'2-digit',hour12:true});
+  return (
+    <div style={{ position:'sticky', top:48, zIndex:80, backdropFilter:'blur(20px) saturate(160%)', WebkitBackdropFilter:'blur(20px) saturate(160%)', background:'rgba(255,255,255,0.06)', borderBottom:'1px solid rgba(255,255,255,0.08)', borderTop:'1px solid rgba(255,255,255,0.06)', boxShadow:'0 4px 20px rgba(0,0,0,0.3)', padding:'10px 20px', display:'flex', alignItems:'center', justifyContent:'center', gap:8, marginBottom:14, marginLeft:-20, marginRight:-20 }}>
+      <span style={{ fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.4)', textTransform:'uppercase', letterSpacing:'.18em' }}>Current Time</span>
+      <span style={{ fontSize:11, color:'rgba(255,255,255,0.2)' }}>·</span>
+      <span style={{ fontSize:14, fontWeight:700, color:'rgba(255,255,255,0.85)', letterSpacing:'.06em', fontVariantNumeric:'tabular-nums' }}>{fmt}</span>
+    </div>
+  );
+}
+
+function ShotListShareView({ scenes: initialScenes, shareToken, talent }) {
+  const [scenes, setScenes] = useState(initialScenes);
+
+  function handleShotUpdate(updated) {
+    setScenes(prev => prev.map(s => ({ ...s, shots:(s.shots||[]).map(sh => sh.id===updated.id ? updated : sh) })));
+  }
+  function handleStartTimeChange(sceneId, val) {
+    setScenes(prev => prev.map(s => s.id===sceneId ? { ...s, est_start_time:val } : s));
+  }
+
+  const totalShots = scenes.reduce((s,sc)=>s+(sc.shots||[]).length,0);
+  const totalMinutes = scenes.reduce((s,sc)=>s+(sc.shots||[]).reduce((a,sh)=>a+(sh.est_minutes||0),0),0);
+  const capturedShots = scenes.reduce((s,sc)=>s+(sc.shots||[]).filter(sh=>sh.status==='captured').length,0);
+  const shootingCall = scenes.length>0 ? scenes[0].est_start_time||null : null;
+  const lastScene = scenes.length>0 ? scenes[scenes.length-1] : null;
+  const shootingWrap = lastScene ? slCalcWrap(lastScene.est_start_time, lastScene.shots||[]) : null;
+
   return (
     <div>
-      <div style={{ display:'flex', gap:12, marginBottom:24 }}>
-        {[{ label:'Total Shots', val: totalShots }, { label:'Scenes', val: scenes.length }, { label:'Est. Hours', val:(totalMinutes/60).toFixed(1) }].map(s => (
-          <div key={s.label} style={{ flex:1, background:'var(--bg2)', borderRadius:10, padding:'14px 18px', border:'1px solid var(--border)' }}>
-            <div style={{ fontSize:22, fontWeight:800, color:'var(--orange)' }}>{s.val}</div>
-            <div style={{ fontSize:11, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.06em', marginTop:2 }}>{s.label}</div>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'flex-end', marginBottom:4 }}>
+        {(shootingCall||shootingWrap) && (
+          <div style={{ display:'flex', alignItems:'center', gap:16 }}>
+            {shootingCall && (
+              <div style={{ textAlign:'center' }}>
+                <div style={{ fontSize:9, fontWeight:700, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.12em', marginBottom:2 }}>Shooting Call</div>
+                <div style={{ fontSize:15, fontWeight:800, color:'var(--text)', fontVariantNumeric:'tabular-nums' }}>{shootingCall}</div>
+              </div>
+            )}
+            {shootingCall && shootingWrap && <div style={{ width:1, height:28, background:'var(--border)' }} />}
+            {shootingWrap && (
+              <div style={{ textAlign:'center' }}>
+                <div style={{ fontSize:9, fontWeight:700, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.12em', marginBottom:2 }}>Shooting Wrap</div>
+                <div style={{ fontSize:15, fontWeight:800, color:'var(--text)', fontVariantNumeric:'tabular-nums' }}>{shootingWrap}</div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <SlLiveClock />
+
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:10, marginBottom:20 }}>
+        {[{label:'Total Shots',val:totalShots},{label:'Captured',val:capturedShots},{label:'Remaining',val:totalShots-capturedShots},{label:'Est. Time',val:`${Math.floor(totalMinutes/60)}h ${totalMinutes%60}m`}].map(s=>(
+          <div key={s.label} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding:'16px 20px' }}>
+            <div style={{ fontSize:26, fontWeight:800, color:'var(--text)', fontFamily:"'Syne',sans-serif", letterSpacing:'-0.5px', lineHeight:1 }}>{s.val}</div>
+            <div style={{ fontSize:11, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', fontWeight:500, marginTop:4 }}>{s.label}</div>
           </div>
         ))}
       </div>
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:10, marginBottom:24 }}>
-        {scenes.map(sc => (
-          <div key={sc.id} onClick={() => setActiveId(sc.id)}
-            style={{ background: sc.id === activeId ? 'rgba(251,146,60,0.1)' : 'var(--bg2)', border:`1px solid ${sc.id === activeId ? 'var(--orange)' : 'var(--border)'}`, borderRadius:10, padding:'12px 14px', cursor:'pointer' }}>
-            <div style={{ fontSize:10, color:'var(--orange)', fontWeight:700, letterSpacing:'.06em', marginBottom:4 }}>SCENE {sc.scene_number}</div>
-            <div style={{ fontSize:14, fontWeight:700, color:'var(--text)', marginBottom:4 }}>{sc.name}</div>
-            <div style={{ fontSize:11, color:'var(--muted)' }}>{(sc.shots||[]).length} shots</div>
-          </div>
-        ))}
-      </div>
-      {activeScene && (
-        <div>
-          <div style={{ fontSize:13, fontWeight:700, color:'var(--text)', marginBottom:12 }}>Scene {activeScene.scene_number} — {activeScene.name}</div>
-          {activeScene.description && <div style={{ fontSize:12, color:'var(--muted)', marginBottom:12 }}>{activeScene.description}</div>}
-          <table className="share-table">
-            <thead><tr>
-              <th>Shot</th><th>Description</th><th>Distance</th><th>Movement</th><th>Priority</th><th>Est.</th><th>Status</th>
-            </tr></thead>
-            <tbody>
-              {(activeScene.shots || []).map((sh, i) => (
-                <tr key={sh.id}>
-                  <td style={{ fontWeight:700, color:'var(--orange)', whiteSpace:'nowrap' }}>{shotLbl(activeScene.scene_number, i)}</td>
-                  <td>{sh.description || '—'}</td>
-                  <td>{sh.distance || '—'}</td>
-                  <td>{sh.movement || '—'}</td>
-                  <td style={{ color: SHOT_PRIORITY_COLOR[sh.priority] || 'var(--muted)', fontWeight:600, fontSize:11 }}>{sh.priority}</td>
-                  <td style={{ whiteSpace:'nowrap' }}>{sh.est_minutes ? `${sh.est_minutes}m` : '—'}</td>
-                  <td>
-                    <span style={{ fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:100, background: sh.status === 'captured' ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.06)', color: sh.status === 'captured' ? '#22c55e' : 'var(--muted)', border:`1px solid ${sh.status === 'captured' ? 'rgba(34,197,94,0.3)' : 'var(--border)'}` }}>
-                      {sh.status === 'captured' ? 'Captured' : 'Pending'}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+
+      {scenes.length===0 && <div className="empty">No scenes added yet.</div>}
+      {scenes.map(scene=>(
+        <SlSceneBlock key={scene.id} scene={scene} shareToken={shareToken} talent={talent}
+          onShotUpdate={handleShotUpdate} onStartTimeChange={handleStartTimeChange} />
+      ))}
     </div>
   );
 }
@@ -1727,7 +1986,7 @@ export default function Share() {
             shareToken={token}
           />
         ) : hasShotList && sharePage === 'shot-list' ? (
-          <ShotListShareView scenes={data.shotList || []} />
+          <ShotListShareView scenes={data.shotList || []} shareToken={token} talent={[...(data.keyTalent||[]), ...(data.crewAssignments||[]).filter(a=>a.crewMember).map(a=>({name: a.crewMember.first_name ? `${a.crewMember.first_name} ${a.crewMember.last_name||''}`.trim() : a.crewMember.name || ''}))] .filter(t=>t.name)} />
         ) : (
           <>
             {view_type === 'producer' && <ProducerView data={data} hideGear />}

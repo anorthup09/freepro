@@ -163,6 +163,8 @@ export const api = {
     return data;
   },
   // Shot List
+  updateShareShot: (token, shotId, data) => req('PATCH', `/share/${token}/shots/${shotId}`, data),
+  updateShareScene: (token, sceneId, data) => req('PATCH', `/share/${token}/scenes/${sceneId}`, data),
   getShotList: (projectId) => req('GET', `/projects/${projectId}/shot-list`),
   createScene: (projectId, data) => req('POST', `/projects/${projectId}/shot-list/scenes`, data),
   updateScene: (projectId, sceneId, data) => req('PATCH', `/projects/${projectId}/shot-list/scenes/${sceneId}`, data),
