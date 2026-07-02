@@ -71,7 +71,7 @@ router.patch('/:id/shot-list/shots/:shotId', requireAuth, requireRole('ADMIN','P
   try {
     const { description, distance, movement, priority, estMinutes, status,
             angle, lens, frameRate, coverage, talentTags, specialEquipment, audioNotes,
-            setupMinutes, takesCount, takeMinutes, bufferMinutes } = req.body;
+            setupMinutes, takesCount, takeMinutes, bufferMinutes, sortOrder } = req.body;
     const [shot] = await sql`
       UPDATE shot_list_shots SET
         description = COALESCE(${description??null}, description),
@@ -90,7 +90,8 @@ router.patch('/:id/shot-list/shots/:shotId', requireAuth, requireRole('ADMIN','P
         setup_minutes = ${setupMinutes !== undefined ? Number(setupMinutes||0) : sql`setup_minutes`},
         takes_count = ${takesCount !== undefined ? Number(takesCount||1) : sql`takes_count`},
         take_minutes = ${takeMinutes !== undefined ? Number(takeMinutes||0) : sql`take_minutes`},
-        buffer_minutes = ${bufferMinutes !== undefined ? Number(bufferMinutes??2) : sql`buffer_minutes`}
+        buffer_minutes = ${bufferMinutes !== undefined ? Number(bufferMinutes??2) : sql`buffer_minutes`},
+        sort_order = ${sortOrder !== undefined ? Number(sortOrder) : sql`sort_order`}
       WHERE id = ${req.params.shotId} RETURNING *`;
     res.json(shot);
   } catch(e) { next(e); }
