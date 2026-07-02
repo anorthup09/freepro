@@ -70,7 +70,7 @@ async function maybeAutoStatus(project) {
   if (status === 'PLANNING' && today >= start) next = 'ACTIVE';
   else if (status === 'ACTIVE' && today > end) next = 'WRAPPED';
   if (next) {
-    await sql`UPDATE projects SET status = ${next} WHERE id = ${id}`;
+    await sql`UPDATE projects SET status = ${next}::project_status WHERE id = ${id}`;
     return { ...project, status: next };
   }
   return project;
