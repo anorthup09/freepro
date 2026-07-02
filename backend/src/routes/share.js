@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const sql = require('../lib/db');
 const { geocode, fetchWeatherForDay } = require('../lib/weather');
+const { sendQuestionNotification } = require('../lib/email');
 
 const KEY_PRODUCTION_POSITIONS = ['Director', 'Executive Producer', 'Field Producer', 'Producer', 'Line Producer'];
 
@@ -299,6 +300,25 @@ router.post('/:token/questions', async (req, res, next) => {
     if (!question?.trim()) return res.status(400).json({ error: 'Question is required' });
     const [q] = await sql`INSERT INTO project_questions (project_id, question) VALUES (${r.share.project_id}, ${question.trim()}) RETURNING *`;
     res.status(201).json(q);
+
+    // Fire-and-forget email to POC
+    if (r.share.view_type === 'crew') {
+      const [proj] = await sql`
+        SELECT p.code, p.title, cm.name as poc_name, cm.email as poc_email
+        FROM projects p
+        LEFT JOIN crew_members cm ON cm.id = p.poc_crew_member_id
+        WHERE p.id = ${r.share.project_id}`;
+      if (proj?.poc_email) {
+        sendQuestionNotification({
+          pocEmail: proj.poc_email,
+          pocName: proj.poc_name,
+          projectTitle: proj.title,
+          projectCode: proj.code,
+          question: question.trim(),
+          shareToken: req.params.token,
+        });
+      }
+    }
   } catch(e){ next(e); }
 });
 
