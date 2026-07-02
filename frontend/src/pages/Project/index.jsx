@@ -9,6 +9,7 @@ import Travel from './Travel.jsx';
 import Gear from './Gear.jsx';
 import GearList from './GearList.jsx';
 import Catering from './Catering.jsx';
+import SpaceInfo from './SpaceInfo.jsx';
 
 const BASE_TABS = [
   { id: 'overview',         label: 'Overview' },
@@ -18,6 +19,7 @@ const BASE_TABS = [
   { id: 'gear',             label: 'Gear Management' },
   { id: 'gear-list',        label: 'Gear List' },
   { id: 'post-production',  label: 'Post-Production' },
+  { id: 'space-info',       label: 'Room / Space Info' },
 ];
 
 const FRONTEND_BASE = window.location.origin;
@@ -170,6 +172,7 @@ export default function Project() {
         {tab === 'gear'            && <Gear         project={project} setProject={setProject} />}
         {tab === 'gear-list'       && <GearList     project={project} />}
         {tab === 'post-production' && <Deliverables project={project} />}
+        {tab === 'space-info'      && <SpaceInfo    project={project} setProject={setProject} />}
       </div>
     </>
   );

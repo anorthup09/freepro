@@ -495,17 +495,16 @@ function ProducerView({ data }) {
       {(() => {
         const dayLogistics = (schedule||[]).filter(d => d.crew_lunch || d.gear_storage || d.gs_audio);
         if (!dayLogistics.length) return null;
+        const hasAudio = dayLogistics.some(d => d.gs_audio);
         return (
           <section className="share-section">
             <div className="sec-lbl">Daily Logistics</div>
             <ShareTable
-              cols={['Day', 'Crew Meal Location', 'Gear Storage', 'Audio Contact']}
-              rows={dayLogistics.map((d, i) => [
-                `Day ${d.day_number}`,
-                d.crew_lunch || '—',
-                d.gear_storage || '—',
-                d.gs_audio || '—',
-              ])}
+              cols={hasAudio ? ['Day', 'Crew Meal Location', 'Gear Storage', 'Audio Contact'] : ['Day', 'Crew Meal Location', 'Gear Storage']}
+              rows={dayLogistics.map(d => hasAudio
+                ? [`Day ${d.day_number}`, d.crew_lunch || '—', d.gear_storage || '—', d.gs_audio || '—']
+                : [`Day ${d.day_number}`, d.crew_lunch || '—', d.gear_storage || '—']
+              )}
             />
           </section>
         );
@@ -690,17 +689,16 @@ function CrewView({ data, shareToken }) {
       {(() => {
         const dayLogistics = (sortedSchedule||[]).filter(d => d.crew_lunch || d.gear_storage || d.gs_audio);
         if (!dayLogistics.length) return null;
+        const hasAudio = dayLogistics.some(d => d.gs_audio);
         return (
           <section className="share-section">
             <div className="sec-lbl">Daily Logistics</div>
             <ShareTable
-              cols={['Day', 'Crew Meal Location', 'Gear Storage', 'Audio Contact']}
-              rows={dayLogistics.map(d => [
-                `Day ${d.day_number}`,
-                d.crew_lunch || '—',
-                d.gear_storage || '—',
-                d.gs_audio || '—',
-              ])}
+              cols={hasAudio ? ['Day', 'Crew Meal Location', 'Gear Storage', 'Audio Contact'] : ['Day', 'Crew Meal Location', 'Gear Storage']}
+              rows={dayLogistics.map(d => hasAudio
+                ? [`Day ${d.day_number}`, d.crew_lunch || '—', d.gear_storage || '—', d.gs_audio || '—']
+                : [`Day ${d.day_number}`, d.crew_lunch || '—', d.gear_storage || '—']
+              )}
             />
           </section>
         );
@@ -732,6 +730,18 @@ function CrewView({ data, shareToken }) {
               </div>
             ))}
           </div>
+          {locations.some(l => l.space_map) && (
+            <div style={{ marginTop:16, display:'flex', flexDirection:'column', gap:16 }}>
+              {locations.filter(l => l.space_map).map(l => (
+                <div key={l.id}>
+                  <div style={{ fontSize:11, fontWeight:600, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:6 }}>
+                    {l.emoji || '📍'} {l.name} — Space Map
+                  </div>
+                  <img src={l.space_map} alt={`Space map for ${l.name}`} style={{ maxWidth:'100%', borderRadius:8, display:'block', border:'1px solid var(--border)' }} />
+                </div>
+              ))}
+            </div>
+          )}
         </section>
       )}
 

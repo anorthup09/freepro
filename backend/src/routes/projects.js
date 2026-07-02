@@ -129,7 +129,7 @@ router.post('/:id/locations', requireAuth, requireRole('ADMIN','PRODUCER'), asyn
 router.patch('/:id/locations/:lid', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
     const d = req.body;
-    const [l] = await sql`UPDATE locations SET name=COALESCE(${d.name??null},name), address=COALESCE(${d.address??null},address), type=COALESCE(${d.type??null}::location_type,type), emoji=COALESCE(${d.emoji??null},emoji) WHERE id=${req.params.lid} RETURNING *`;
+    const [l] = await sql`UPDATE locations SET name=COALESCE(${d.name??null},name), address=COALESCE(${d.address??null},address), type=COALESCE(${d.type??null}::location_type,type), emoji=COALESCE(${d.emoji??null},emoji), space_map=CASE WHEN ${d.spaceMap!==undefined} THEN ${d.spaceMap||null} ELSE space_map END WHERE id=${req.params.lid} RETURNING *`;
     res.json(l);
   } catch(e){next(e);}
 });
