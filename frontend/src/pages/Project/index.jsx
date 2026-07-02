@@ -15,7 +15,6 @@ import Questions from './Questions.jsx';
 const BASE_TABS = [
   { id: 'overview',            label: 'Overview' },
   { id: 'deliverable-overview', label: 'Deliverable Overview' },
-  { id: 'questions',           label: 'Questions' },
 ];
 
 const LOGISTICS_TABS = [
@@ -188,16 +187,18 @@ export default function Project() {
           <span style={{ fontSize:9, color:'var(--muted)', letterSpacing:'0.06em', paddingLeft:1 }}>Powered by Unbridled Media</span>
         </div>
         <div className="tabs">
-          {BASE_TABS.map(t => (
-            <button key={t.id} className={`tab${tab === t.id ? ' on' : ''}`} onClick={() => setTab(t.id)}>
-              {t.label}
-            </button>
-          ))}
+          <button className={`tab${tab === 'overview' ? ' on' : ''}`} onClick={() => setTab('overview')}>Overview</button>
           <DropdownTab label="Logistics" subtabs={LOGISTICS_TABS} tab={tab} setTab={setTab} />
           <DropdownTab label="Gear" subtabs={GEAR_TABS} tab={tab} setTab={setTab} />
+          <button className={`tab${tab === 'deliverable-overview' ? ' on' : ''}`} onClick={() => setTab('deliverable-overview')}>Deliverable Overview</button>
           {showCateringGrid && (
             <button className={`tab${tab === 'catering' ? ' on' : ''}`} onClick={() => setTab('catering')}>Catering</button>
           )}
+          <button
+            className={`tab${tab === 'questions' ? ' on' : ''}`}
+            onClick={() => setTab('questions')}
+            style={{ border: '1.5px solid var(--orange)', borderRadius:6, color: tab === 'questions' ? '#fff' : 'var(--orange)' }}
+          >Questions</button>
         </div>
         <div style={{ marginLeft:'auto', position:'relative' }}>
           <select
