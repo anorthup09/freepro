@@ -106,7 +106,7 @@ export default function Catering({ project }) {
                   Day {i+1} · {parseDay(d.date).toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' })}
                 </div>
                 <button className="btn btn-ghost btn-sm" style={{ fontSize:11, padding:'3px 10px' }} onClick={() => openCateringModal(d.id)}>
-                  + Add Catering
+                  Edit Catering
                 </button>
               </div>
               <div style={{ padding:'10px 14px' }}>
