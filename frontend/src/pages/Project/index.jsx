@@ -197,6 +197,7 @@ export default function Project() {
 
   const [glassVisible, setGlassVisible] = useState(false);
   const [clockTime, setClockTime] = useState(new Date());
+  const [shotListScenes, setShotListScenes] = useState([]);
 
   useEffect(() => {
     function onScroll() { setGlassVisible(window.scrollY > 60); }
@@ -208,6 +209,28 @@ export default function Project() {
     const id = setInterval(() => setClockTime(new Date()), 1000);
     return () => clearInterval(id);
   }, []);
+
+  function calcWrapTime(startTime, shots) {
+    if (!startTime) return null;
+    const match = startTime.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+    if (!match) return null;
+    let [, h, m, meridiem] = match;
+    h = parseInt(h); m = parseInt(m);
+    if (meridiem.toUpperCase() === 'PM' && h !== 12) h += 12;
+    if (meridiem.toUpperCase() === 'AM' && h === 12) h = 0;
+    const totalStart = h * 60 + m;
+    const shotMins = shots.reduce((s, sh) => s + (sh.est_minutes || 0), 0);
+    const totalEnd = totalStart + shotMins;
+    const endH = Math.floor(totalEnd / 60) % 24;
+    const endM = totalEnd % 60;
+    const period = endH >= 12 ? 'PM' : 'AM';
+    const displayH = endH % 12 || 12;
+    return `${displayH}:${String(endM).padStart(2, '0')} ${period}`;
+  }
+
+  const shootingCall = shotListScenes.length > 0 ? shotListScenes[0].est_start_time || null : null;
+  const lastScene = shotListScenes.length > 0 ? shotListScenes[shotListScenes.length - 1] : null;
+  const shootingWrap = lastScene ? calcWrapTime(lastScene.est_start_time, lastScene.shots || []) : null;
 
   if (!project) return null;
 
@@ -260,15 +283,30 @@ export default function Project() {
             </div>
           )}
         </div>
-        {daysUntil != null && daysUntil > 0 && (
+        {tab === 'shot-list' && (shootingCall || shootingWrap) ? (
+          <div style={{ display:'flex', alignItems:'center', gap:20 }}>
+            {shootingCall && (
+              <div style={{ textAlign:'center' }}>
+                <div style={{ fontSize:9, fontWeight:700, color:'rgba(255,255,255,0.35)', textTransform:'uppercase', letterSpacing:'.12em', marginBottom:2 }}>Shooting Call</div>
+                <div style={{ fontSize:15, fontWeight:800, color:'rgba(255,255,255,0.9)', fontVariantNumeric:'tabular-nums', letterSpacing:'.02em' }}>{shootingCall}</div>
+              </div>
+            )}
+            {shootingCall && shootingWrap && <div style={{ width:1, height:28, background:'rgba(255,255,255,0.12)' }} />}
+            {shootingWrap && (
+              <div style={{ textAlign:'center' }}>
+                <div style={{ fontSize:9, fontWeight:700, color:'rgba(255,255,255,0.35)', textTransform:'uppercase', letterSpacing:'.12em', marginBottom:2 }}>Shooting Wrap</div>
+                <div style={{ fontSize:15, fontWeight:800, color:'rgba(255,255,255,0.9)', fontVariantNumeric:'tabular-nums', letterSpacing:'.02em' }}>{shootingWrap}</div>
+              </div>
+            )}
+          </div>
+        ) : daysUntil != null && daysUntil > 0 ? (
           <div style={{ display:'flex', alignItems:'center', gap:5 }}>
             <span style={{ fontSize:20, fontWeight:700, color:'var(--orange)', lineHeight:1 }}>{daysUntil}</span>
             <span style={{ fontSize:10, color:'rgba(255,255,255,0.45)', textTransform:'uppercase', letterSpacing:'0.06em' }}>days until {project.title}</span>
           </div>
-        )}
-        {daysUntil != null && daysUntil === 0 && (
+        ) : daysUntil != null && daysUntil === 0 ? (
           <span style={{ fontSize:13, fontWeight:700, color:'var(--orange)' }}>Day 1 is today!</span>
-        )}
+        ) : null}
       </div>
       <nav className="nav">
         <div style={{ display:'flex', flexDirection:'column', gap:1 }}>
@@ -296,7 +334,7 @@ export default function Project() {
         {tab === 'overview'             && <Overview     project={project} setProject={setProject} onTabChange={setTab} />}
         {tab === 'schedule'             && <Schedule     project={project} showCateringGrid={showCateringGrid} setShowCateringGrid={toggleCateringGrid} onCateringTabChange={() => setTab('catering')} showShotList={showShotList} setShowShotList={toggleShotList} onShotListTabChange={() => setTab('shot-list')} showTravel={showTravel} setShowTravel={toggleTravel} onTravelTabChange={() => setTab('travel')} />}
         {tab === 'catering'             && <Catering     project={project} />}
-        {tab === 'shot-list'            && <ShotList     project={project} />}
+        {tab === 'shot-list'            && <ShotList     project={project} onScenesChange={setShotListScenes} />}
         {tab === 'crew'                 && <Crew         project={project} onProjectUpdate={setProject} />}
         {tab === 'travel'               && <Travel       project={project} />}
         {tab === 'gear'                 && <Gear         project={project} setProject={setProject} />}

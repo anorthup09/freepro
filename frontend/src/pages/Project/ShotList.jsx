@@ -533,14 +533,22 @@ function LiveClock() {
 }
 
 // ── Main Component ────────────────────────────────────────────────────────────
-export default function ShotList({ project }) {
+export default function ShotList({ project, onScenesChange }) {
   const [scenes, setScenes] = useState([]);
   const [talent, setTalent] = useState([]);
   const [showAddScene, setShowAddScene] = useState(false);
   const [sceneForm, setSceneForm] = useState({ name: '', description: '', sceneType: 'interior' });
 
+  function updateScenes(updater) {
+    setScenes(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      onScenesChange?.(next);
+      return next;
+    });
+  }
+
   useEffect(() => {
-    api.getShotList(project.id).then(setScenes).catch(() => {});
+    api.getShotList(project.id).then(s => { setScenes(s); onScenesChange?.(s); }).catch(() => {});
     api.getTalent(project.id).then(setTalent).catch(() => {});
   }, [project.id]);
 
@@ -552,7 +560,7 @@ export default function ShotList({ project }) {
     e.preventDefault();
     try {
       const scene = await api.createScene(project.id, sceneForm);
-      setScenes(prev => [...prev, scene]);
+      updateScenes(prev => [...prev, scene]);
       setShowAddScene(false);
       setSceneForm({ name: '', description: '', sceneType: 'interior' });
     } catch(err) { alert(err.message); }
@@ -560,32 +568,32 @@ export default function ShotList({ project }) {
 
   async function deleteScene(sceneId) {
     await api.deleteScene(project.id, sceneId);
-    setScenes(prev => prev.filter(s => s.id !== sceneId));
+    updateScenes(prev => prev.filter(s => s.id !== sceneId));
   }
 
   function handleShotUpdate(updated) {
-    setScenes(prev => prev.map(s => ({ ...s, shots: s.shots.map(sh => sh.id === updated.id ? updated : sh) })));
+    updateScenes(prev => prev.map(s => ({ ...s, shots: s.shots.map(sh => sh.id === updated.id ? updated : sh) })));
   }
 
   function handleShotAdded(sceneId, shot) {
-    setScenes(prev => prev.map(s => s.id === sceneId ? { ...s, shots: [...s.shots, shot] } : s));
+    updateScenes(prev => prev.map(s => s.id === sceneId ? { ...s, shots: [...s.shots, shot] } : s));
   }
 
   function handleShotDelete(shotId) {
     api.deleteShot(project.id, shotId).catch(() => {});
-    setScenes(prev => prev.map(s => ({ ...s, shots: s.shots.filter(sh => sh.id !== shotId) })));
+    updateScenes(prev => prev.map(s => ({ ...s, shots: s.shots.filter(sh => sh.id !== shotId) })));
   }
 
   function handleStartTimeChange(sceneId, val) {
-    setScenes(prev => prev.map(s => s.id === sceneId ? { ...s, est_start_time: val } : s));
+    updateScenes(prev => prev.map(s => s.id === sceneId ? { ...s, est_start_time: val } : s));
   }
 
   function handleShotsReorder(sceneId, newShots) {
-    setScenes(prev => prev.map(s => s.id === sceneId ? { ...s, shots: newShots } : s));
+    updateScenes(prev => prev.map(s => s.id === sceneId ? { ...s, shots: newShots } : s));
   }
 
   function handleSceneUpdate(sceneId, updated) {
-    setScenes(prev => prev.map(s => s.id === sceneId ? { ...s, ...updated } : s));
+    updateScenes(prev => prev.map(s => s.id === sceneId ? { ...s, ...updated } : s));
   }
 
   return (
