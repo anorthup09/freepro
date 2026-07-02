@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { api } from '../../api.js';
 import { displayName } from '../../utils/displayName.js';
 
-const LOC_TYPES = ['PRIMARY_VENUE','CREW_HOTEL','SECONDARY','AIRPORT','OTHER'];
+const LOC_TYPES = ['PRIMARY_VENUE','CREW_HOTEL','AIRPORT','OTHER'];
 const LOC_LABELS = { PRIMARY_VENUE:'Shooting Location', CREW_HOTEL:'Hotel', SECONDARY:'Rental Car Location', AIRPORT:'Airport', OTHER:'Other' };
 const LOC_TAG = { PRIMARY_VENUE:'main', CREW_HOTEL:'crew', SECONDARY:'sec', AIRPORT:'sec', OTHER:'sec' };
 
@@ -16,6 +16,76 @@ const LOC_GROUPS = [
 function fmtDate(d) {
   if (!d) return '';
   return new Date(d.slice(0,10) + 'T12:00:00').toLocaleDateString();
+}
+
+function PlaceSearch({ onSelect }) {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+  const debounce = useRef(null);
+  const wrapRef = useRef(null);
+
+  useEffect(() => {
+    function handleClick(e) {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  function handleChange(e) {
+    const val = e.target.value;
+    setQuery(val);
+    clearTimeout(debounce.current);
+    if (!val.trim()) { setResults([]); setOpen(false); return; }
+    debounce.current = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(val)}&format=json&limit=6&addressdetails=1`, {
+          headers: { 'Accept-Language': 'en' }
+        });
+        const data = await res.json();
+        setResults(data);
+        setOpen(data.length > 0);
+      } catch { setResults([]); }
+      setLoading(false);
+    }, 400);
+  }
+
+  function pick(item) {
+    const name = item.name || item.display_name.split(',')[0].trim();
+    const address = item.display_name;
+    setQuery(name);
+    setOpen(false);
+    onSelect({ name, address });
+  }
+
+  return (
+    <div ref={wrapRef} style={{ position:'relative' }}>
+      <input
+        value={query}
+        onChange={handleChange}
+        onFocus={() => results.length > 0 && setOpen(true)}
+        placeholder="Search for a place…"
+        autoComplete="off"
+        style={{ width:'100%', boxSizing:'border-box' }}
+      />
+      {loading && <div style={{ position:'absolute', right:10, top:'50%', transform:'translateY(-50%)', fontSize:11, color:'var(--muted)' }}>…</div>}
+      {open && results.length > 0 && (
+        <div style={{ position:'absolute', top:'calc(100% + 4px)', left:0, right:0, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:6, zIndex:999, maxHeight:200, overflowY:'auto', boxShadow:'0 4px 16px rgba(0,0,0,0.3)' }}>
+          {results.map((item, i) => (
+            <div key={i}
+              onMouseDown={() => pick(item)}
+              style={{ padding:'8px 12px', fontSize:12, cursor:'pointer', borderBottom: i < results.length - 1 ? '1px solid var(--border)' : 'none', lineHeight:1.4 }}>
+              <div style={{ fontWeight:600, color:'var(--text)' }}>{item.name || item.display_name.split(',')[0]}</div>
+              <div style={{ color:'var(--muted)', fontSize:11 }}>{item.display_name}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function Overview({ project, setProject, onTabChange }) {
@@ -324,15 +394,18 @@ export default function Overview({ project, setProject, onTabChange }) {
             <div className="modal-title">Add Location</div>
             <form onSubmit={addLocation}>
               <div className="form-grid" style={{ marginBottom:12 }}>
-                <div className="field span2"><label>Name</label><input value={locForm.name} onChange={e => setLocForm(f=>({...f,name:e.target.value}))} required /></div>
-                <div className="field span2"><label>Address</label><input value={locForm.address} onChange={e => setLocForm(f=>({...f,address:e.target.value}))} required /></div>
+                <div className="field span2">
+                  <label>Search Place</label>
+                  <PlaceSearch onSelect={({ name, address }) => setLocForm(f => ({ ...f, name, address }))} />
+                </div>
+                <div className="field span2"><label>Name</label><input value={locForm.name} onChange={e => setLocForm(f=>({...f,name:e.target.value}))} required placeholder="Auto-filled from search or type manually" /></div>
+                <div className="field span2"><label>Address</label><input value={locForm.address} onChange={e => setLocForm(f=>({...f,address:e.target.value}))} required placeholder="Auto-filled from search or type manually" /></div>
                 <div className="field"><label>Type</label>
                   <select value={locForm.type} onChange={e => setLocForm(f=>({...f,type:e.target.value}))}>
                     <option value="PRIMARY_VENUE">Shooting Location</option>
-                    <option value="SECONDARY">Secondary Location</option>
                     <option value="CREW_HOTEL">Hotel</option>
                     <option value="AIRPORT">Airport</option>
-                    <option value="OTHER">Rental Car Location</option>
+                    <option value="OTHER">Other</option>
                   </select>
                 </div>
                 <div className="field"><label>Emoji</label><input value={locForm.emoji} onChange={e => setLocForm(f=>({...f,emoji:e.target.value}))} placeholder="🏛" /></div>
