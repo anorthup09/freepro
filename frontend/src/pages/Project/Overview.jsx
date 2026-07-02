@@ -290,12 +290,12 @@ export default function Overview({ project, setProject, onTabChange }) {
 
       {/* Public View Password */}
       <form onSubmit={saveSharePw} style={{ display:'flex', alignItems:'center', gap:12, background:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23g)' opacity='0.55'/%3E%3C/svg%3E") rgba(232,80,10,0.90)`, border:'1px solid rgba(255,255,255,0.15)', borderRadius:8, padding:'12px 16px', margin:'20px 0 10px' }}>
-        <span style={{ fontSize:13, fontWeight:700, whiteSpace:'nowrap', color:'#fff' }}>Public View Password</span>
+        <span style={{ fontSize:13, fontWeight:700, whiteSpace:'nowrap', color:'#fff', width:160, flexShrink:0 }}>Public View Password</span>
         <input
           value={sharePw}
           onChange={e => { setSharePw(e.target.value.replace(/[^a-zA-Z0-9]/g, '')); setSharePwSaved(false); }}
           placeholder="No password set"
-          style={{ flex:1, maxWidth:220 }}
+          style={{ width:200, flexShrink:0 }}
         />
         <button className="btn btn-ghost btn-sm" type="submit" disabled={sharePwSaving} style={{ color:'#fff' }}>
           {sharePwSaved ? 'Saved!' : sharePwSaving ? 'Saving…' : 'Save'}
@@ -311,8 +311,8 @@ export default function Overview({ project, setProject, onTabChange }) {
 
       {/* Main POC + Gear Contact */}
       <div style={{ display:'flex', alignItems:'center', gap:12, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'12px 16px', marginBottom: gearPerson ? 0 : 10, borderBottomLeftRadius: gearPerson ? 0 : 8, borderBottomRightRadius: gearPerson ? 0 : 8, borderBottom: gearPerson ? 'none' : undefined }}>
-        <span style={{ fontSize:13, fontWeight:700, color:'var(--text)', whiteSpace:'nowrap' }}>Main POC</span>
-        <select value={pocId} onChange={e => savePoc(e.target.value)} style={{ flex:1, maxWidth:320 }}>
+        <span style={{ fontSize:13, fontWeight:700, color:'var(--text)', whiteSpace:'nowrap', width:160, flexShrink:0 }}>Main POC</span>
+        <select value={pocId} onChange={e => savePoc(e.target.value)} style={{ width:200, flexShrink:0 }}>
           <option value="">— Unassigned —</option>
           {assignedCrew.map(a => (
             <option key={a.crewMember.id} value={a.crewMember.id}>
@@ -333,8 +333,8 @@ export default function Overview({ project, setProject, onTabChange }) {
           onClick={() => onTabChange?.('gear')}
           style={{ display:'flex', alignItems:'center', gap:12, background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'1px solid var(--border2)', borderRadius:8, borderTopLeftRadius:0, borderTopRightRadius:0, padding:'10px 16px', marginBottom:10, cursor:'pointer' }}
         >
-          <span style={{ fontSize:13, fontWeight:700, color:'var(--text)', whiteSpace:'nowrap' }}>Gear Contact</span>
-          <span style={{ fontWeight:500, fontSize:13 }}>{gearPerson.name}</span>
+          <span style={{ fontSize:13, fontWeight:700, color:'var(--text)', whiteSpace:'nowrap', width:160, flexShrink:0 }}>Gear Contact</span>
+          <span style={{ fontWeight:500, fontSize:13, width:200, flexShrink:0 }}>{gearPerson.name}</span>
           {gearPerson.phone && <span style={{ fontSize:12, color:'var(--tan)' }}>{gearPerson.phone}</span>}
           {gearPerson.email && <span style={{ fontSize:12, color:'var(--muted)' }}>{gearPerson.email}</span>}
         </div>
