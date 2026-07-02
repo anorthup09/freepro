@@ -18,11 +18,10 @@ const BASE_TABS = [
   { id: 'deliverable-overview', label: 'Deliverable Overview' },
 ];
 
-const LOGISTICS_TABS = [
+const BASE_LOGISTICS_TABS = [
   { id: 'schedule',    label: 'Schedule' },
   { id: 'crew',        label: 'Crew' },
   { id: 'travel',      label: 'Travel' },
-  { id: 'catering',    label: 'Catering/Meals' },
   { id: 'space-info',  label: 'Room / Space Info' },
 ];
 
@@ -251,7 +250,7 @@ export default function Project() {
         </div>
         <div className="tabs">
           <button className={`tab${tab === 'overview' ? ' on' : ''}`} onClick={() => setTab('overview')}>Overview</button>
-          <DropdownTab label="Logistics" subtabs={LOGISTICS_TABS} tab={tab} setTab={setTab} />
+          <DropdownTab label="Logistics" subtabs={[...BASE_LOGISTICS_TABS, ...(showCateringGrid ? [{ id:'catering', label:'Catering/Meals' }] : [])]} tab={tab} setTab={setTab} />
           <DropdownTab label="Gear" subtabs={GEAR_TABS} tab={tab} setTab={setTab} />
           <button className={`tab${tab === 'deliverable-overview' ? ' on' : ''}`} onClick={() => setTab('deliverable-overview')}>Deliverable Overview</button>
           {showShotList && (
