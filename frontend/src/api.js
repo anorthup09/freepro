@@ -92,7 +92,13 @@ export const api = {
   getShares: (id) => req('GET', `/projects/${id}/shares`),
   createShare: (id, data) => req('POST', `/projects/${id}/shares`, data),
   deleteShare: (id, sid) => req('DELETE', `/projects/${id}/shares/${sid}`),
-  getPublicShare: (token) => fetch(`${BACKEND}/api/share/${token}`).then(r => r.json()),
+  getPublicShare: async (token, pw) => {
+    const url = pw ? `${BACKEND}/api/share/${token}?pw=${encodeURIComponent(pw)}` : `${BACKEND}/api/share/${token}`;
+    const r = await fetch(url);
+    const data = await r.json();
+    if (!r.ok) return { _status: r.status, ...data };
+    return data;
+  },
 
   // Travel
   getHotels: (projectId) => req('GET', `/projects/${projectId}/travel/hotels`),

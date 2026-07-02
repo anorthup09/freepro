@@ -1363,19 +1363,65 @@ export default function Share() {
   const isPdf = searchParams.get('pdf') === '1';
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
+  const [passwordRequired, setPasswordRequired] = useState(false);
+  const [pwInput, setPwInput] = useState('');
+  const [pwError, setPwError] = useState('');
+  const [pwLoading, setPwLoading] = useState(false);
 
-  useEffect(() => {
-    api.getPublicShare(token).then(d => {
-      if (d.error) setError(d.error);
-      else setData(d);
-    }).catch(() => setError('Failed to load share'));
-  }, [token]);
+  async function fetchShare(pw) {
+    try {
+      const d = await api.getPublicShare(token, pw || undefined);
+      if (d._status === 401 && d.passwordRequired) {
+        setPasswordRequired(true);
+        if (pw) setPwError('Incorrect password. Please try again.');
+      } else if (d.error) {
+        setError(d.error);
+      } else {
+        setPasswordRequired(false);
+        setPwError('');
+        setData(d);
+      }
+    } catch { setError('Failed to load share'); }
+  }
+
+  useEffect(() => { fetchShare(null); }, [token]);
 
   useEffect(() => {
     if (isPdf && data) {
       setTimeout(() => window.print(), 400);
     }
   }, [isPdf, data]);
+
+  async function submitPassword(e) {
+    e.preventDefault();
+    setPwLoading(true);
+    await fetchShare(pwInput);
+    setPwLoading(false);
+  }
+
+  if (passwordRequired && !data) return (
+    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:'100vh', background:'var(--bg)', color:'var(--text)' }}>
+      <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, padding:'36px 40px', width:320, textAlign:'center' }}>
+        <div className="logo" style={{ justifyContent:'center', marginBottom:20 }}>Free<em>Pro</em></div>
+        <div style={{ fontSize:15, fontWeight:700, marginBottom:6 }}>Password Required</div>
+        <div style={{ fontSize:12, color:'var(--muted)', marginBottom:20 }}>This view is password protected.</div>
+        <form onSubmit={submitPassword}>
+          <input
+            type="password"
+            value={pwInput}
+            onChange={e => { setPwInput(e.target.value.replace(/[^a-zA-Z0-9]/g, '')); setPwError(''); }}
+            placeholder="Enter password"
+            autoFocus
+            style={{ width:'100%', boxSizing:'border-box', marginBottom:10, textAlign:'center', letterSpacing:'0.1em' }}
+          />
+          {pwError && <div style={{ fontSize:12, color:'#ef4444', marginBottom:8 }}>{pwError}</div>}
+          <button className="btn btn-primary" style={{ width:'100%' }} disabled={pwLoading}>
+            {pwLoading ? 'Checking…' : 'View'}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
 
   if (error) return (
     <div style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:'100vh', color:'#7A7565' }}>

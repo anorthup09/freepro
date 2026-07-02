@@ -109,6 +109,9 @@ export default function Overview({ project, setProject, onTabChange }) {
   const [editAgencyId, setEditAgencyId] = useState(null);
   const [editAgencyForm, setEditAgencyForm] = useState({ name:'', title:'', email:'', phone:'' });
   const [pocSaving, setPocSaving] = useState(false);
+  const [sharePw, setSharePw] = useState(project.share_password || '');
+  const [sharePwSaving, setSharePwSaving] = useState(false);
+  const [sharePwSaved, setSharePwSaved] = useState(false);
 
   useEffect(() => {
     api.getSchedule(project.id).then(d => {
@@ -133,6 +136,17 @@ export default function Overview({ project, setProject, onTabChange }) {
       setInfo({ code: updated.code, title: updated.title, client: updated.client, city: updated.city, state: updated.state, startDate: (updated.start_date||updated.startDate)?.slice(0,10), endDate: (updated.end_date||updated.endDate)?.slice(0,10), status: updated.status, notes: updated.notes || '' });
       setEditInfo(false);
     } catch(e) { alert(e.message); }
+  }
+
+  async function saveSharePw(e) {
+    e.preventDefault();
+    setSharePwSaving(true);
+    try {
+      await api.updateProject(project.id, { sharePassword: sharePw || null });
+      setSharePwSaved(true);
+      setTimeout(() => setSharePwSaved(false), 2000);
+    } catch(e) { alert(e.message); }
+    setSharePwSaving(false);
   }
 
   async function savePoc(crewMemberId) {
@@ -256,8 +270,43 @@ export default function Overview({ project, setProject, onTabChange }) {
         </div>
       </div>
 
+      {/* Public View Password */}
+      <form onSubmit={saveSharePw} style={{ display:'flex', alignItems:'center', gap:12, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'12px 16px', margin:'20px 0 10px' }}>
+        <span style={{ fontSize:13, fontWeight:700, whiteSpace:'nowrap' }}>Public View Password</span>
+        <input
+          value={sharePw}
+          onChange={e => { setSharePw(e.target.value.replace(/[^a-zA-Z0-9]/g, '')); setSharePwSaved(false); }}
+          placeholder="No password set"
+          style={{ flex:1, maxWidth:220 }}
+        />
+        <button className="btn btn-ghost btn-sm" type="submit" disabled={sharePwSaving}>
+          {sharePwSaved ? 'Saved!' : sharePwSaving ? 'Saving…' : 'Save'}
+        </button>
+        {sharePw && <button type="button" className="btn btn-ghost btn-sm" style={{ color:'var(--muted)' }} onClick={() => { setSharePw(''); }}>Clear</button>}
+      </form>
+
+      {/* Main POC */}
+      <div style={{ display:'flex', alignItems:'center', gap:12, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'12px 16px', marginBottom:10 }}>
+        <span style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)', whiteSpace:'nowrap' }}>Main POC</span>
+        <select value={pocId} onChange={e => savePoc(e.target.value)} style={{ flex:1, maxWidth:320 }}>
+          <option value="">— Unassigned —</option>
+          {assignedCrew.map(a => (
+            <option key={a.crewMember.id} value={a.crewMember.id}>
+              {displayName(a.crewMember)} — {a.position.name}
+            </option>
+          ))}
+        </select>
+        {pocSaving && <span style={{ fontSize:11, color:'var(--muted)' }}>Saving…</span>}
+        {pocMember && !pocSaving && (
+          <div style={{ fontSize:12, color:'var(--muted)', display:'flex', gap:16 }}>
+            {pocMember.phone && <span style={{ color:'var(--tan)' }}>{pocMember.phone}</span>}
+            {pocMember.email && <span>{pocMember.email}</span>}
+          </div>
+        )}
+      </div>
+
       {/* Stats */}
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8, margin:'20px 0' }}>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8, margin:'10px 0 20px' }}>
         <div className="stat" style={{ cursor:'pointer' }} onClick={() => onTabChange?.('schedule')}>
           <div className="stat-lbl">Shoot Days</div>
           <div className="stat-val">{shootDays}</div>
@@ -293,26 +342,6 @@ export default function Overview({ project, setProject, onTabChange }) {
           </div>
         </>
       )}
-
-      {/* Main POC + Gear Person */}
-      <div style={{ display:'flex', alignItems:'center', gap:12, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'12px 16px', marginBottom:12 }}>
-        <span style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)', whiteSpace:'nowrap' }}>Main POC</span>
-        <select value={pocId} onChange={e => savePoc(e.target.value)} style={{ flex:1, maxWidth:320 }}>
-          <option value="">— Unassigned —</option>
-          {assignedCrew.map(a => (
-            <option key={a.crewMember.id} value={a.crewMember.id}>
-              {displayName(a.crewMember)} — {a.position.name}
-            </option>
-          ))}
-        </select>
-        {pocSaving && <span style={{ fontSize:11, color:'var(--muted)' }}>Saving…</span>}
-        {pocMember && !pocSaving && (
-          <div style={{ fontSize:12, color:'var(--muted)', display:'flex', gap:16 }}>
-            {pocMember.phone && <span style={{ color:'var(--tan)' }}>{pocMember.phone}</span>}
-            {pocMember.email && <span>{pocMember.email}</span>}
-          </div>
-        )}
-      </div>
 
       {/* Gear Person tile */}
       {gearPerson && (
@@ -407,22 +436,30 @@ export default function Overview({ project, setProject, onTabChange }) {
         <div className="sec-lbl" style={{ marginBottom:0 }}>Locations</div>
         <button className="btn btn-ghost btn-sm" onClick={() => setShowLocModal(true)}>+ Add</button>
       </div>
-      <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden', marginBottom:20 }}>
-        {!(project.locations?.length) && (
-          <div style={{ padding:'12px 16px', fontSize:12, color:'var(--muted)', fontStyle:'italic' }}>No locations added yet.</div>
-        )}
-        {(project.locations || []).map((l, i) => (
-          <div key={l.id} style={{ display:'grid', gridTemplateColumns:'160px 1fr 1fr auto', alignItems:'center', gap:12, padding:'10px 16px', borderBottom: i < project.locations.length - 1 ? '1px solid var(--border)' : 'none' }}>
-            <span className={`tag ${LOC_TAG[l.type]}`} style={{ justifySelf:'start' }}>{LOC_LABELS[l.type]}</span>
-            <span style={{ fontWeight:600, fontSize:13 }}>{l.name}</span>
-            {l.address
-              ? <a href={`https://maps.google.com/?q=${encodeURIComponent(l.address)}`} target="_blank" rel="noreferrer" style={{ fontSize:12, color:'var(--tan)', textDecoration:'none' }}>{l.address}</a>
-              : <span style={{ fontSize:12, color:'var(--muted)' }}>—</span>
-            }
-            <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => deleteLocation(l.id)}>✕</button>
+      {!(project.locations?.length) && (
+        <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'12px 16px', fontSize:12, color:'var(--muted)', fontStyle:'italic', marginBottom:20 }}>No locations added yet.</div>
+      )}
+      {LOC_TYPES.filter(t => (project.locations||[]).some(l => l.type === t)).map(type => {
+        const group = (project.locations||[]).filter(l => l.type === type);
+        return (
+          <div key={type} style={{ marginBottom:12 }}>
+            <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--muted)', marginBottom:4 }}>{LOC_LABELS[type]}</div>
+            <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden' }}>
+              {group.map((l, i) => (
+                <div key={l.id} style={{ display:'grid', gridTemplateColumns:'1fr 1fr auto', alignItems:'center', gap:12, padding:'10px 16px', borderBottom: i < group.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                  <span style={{ fontWeight:600, fontSize:13 }}>{l.name}</span>
+                  {l.address
+                    ? <a href={`https://maps.google.com/?q=${encodeURIComponent(l.address)}`} target="_blank" rel="noreferrer" style={{ fontSize:12, color:'var(--tan)', textDecoration:'none' }}>{l.address}</a>
+                    : <span style={{ fontSize:12, color:'var(--muted)' }}>—</span>
+                  }
+                  <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => deleteLocation(l.id)}>✕</button>
+                </div>
+              ))}
+            </div>
           </div>
-        ))}
-      </div>
+        );
+      })}
+      <div style={{ marginBottom:20 }} />
 
 
       {/* Edit Info Modal */}

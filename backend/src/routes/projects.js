@@ -100,6 +100,7 @@ router.patch('/:id', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, r
         status = COALESCE(${d.status??null}::project_status, status),
         notes = COALESCE(${d.notes??null}, notes),
         poc_crew_member_id = CASE WHEN ${d.pocCrewMemberId !== undefined} THEN ${d.pocCrewMemberId||null} ELSE poc_crew_member_id END,
+        share_password = CASE WHEN ${d.sharePassword !== undefined} THEN ${d.sharePassword||null} ELSE share_password END,
         updated_at = NOW()
       WHERE id = ${req.params.id}`;
     res.json(await getFullProject(req.params.id));

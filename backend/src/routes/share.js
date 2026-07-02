@@ -47,12 +47,19 @@ router.get('/:token', async (req, res, next) => {
 
     // Load project base info
     const [project] = await sql`
-      SELECT p.id, p.code, p.title, p.subtitle, p.client, p.city, p.state, p.start_date, p.end_date, p.status, p.notes,
+      SELECT p.id, p.code, p.title, p.subtitle, p.client, p.city, p.state, p.start_date, p.end_date, p.status, p.notes, p.share_password,
              cm.name as poc_name, cm.phone as poc_phone, cm.email as poc_email
       FROM projects p
       LEFT JOIN crew_members cm ON cm.id = p.poc_crew_member_id
       WHERE p.id = ${projectId}`;
     if (!project) return res.status(404).json({ error: 'Project not found' });
+
+    if (project.share_password) {
+      const supplied = req.query.pw || '';
+      if (supplied !== project.share_password) {
+        return res.status(401).json({ passwordRequired: true });
+      }
+    }
 
     const [locations, techSpecs, clientContacts, keyTalent, agencyContacts] = await Promise.all([
       sql`SELECT * FROM locations WHERE project_id = ${projectId}`,
