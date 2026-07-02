@@ -500,6 +500,8 @@ async function migrate() {
     )
   `;
 
+  await sql`ALTER TABLE projects ADD COLUMN IF NOT EXISTS show_shot_list BOOLEAN DEFAULT FALSE`;
+
   await sql`
     CREATE TABLE IF NOT EXISTS shot_list_scenes (
       id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,

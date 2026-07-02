@@ -166,6 +166,7 @@ export default function Project() {
   function toggleShotList(val) {
     setShowShotList(val);
     try { localStorage.setItem(`shotlist-${id}`, String(val)); } catch {}
+    api.updateProject(id, { showShotList: val }).catch(() => {});
   }
 
   function toggleTravel(val) {
@@ -174,7 +175,13 @@ export default function Project() {
   }
 
   useEffect(() => {
-    api.getProject(id).then(setProject).catch(() => nav('/'));
+    api.getProject(id).then(p => {
+      setProject(p);
+      if (p.show_shot_list != null) {
+        setShowShotList(!!p.show_shot_list);
+        try { localStorage.setItem(`shotlist-${id}`, String(!!p.show_shot_list)); } catch {}
+      }
+    }).catch(() => nav('/'));
   }, [id]);
 
   useEffect(() => {

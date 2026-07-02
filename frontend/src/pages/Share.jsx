@@ -1673,7 +1673,7 @@ export default function Share() {
 
   const hasQuestions = view_type === 'producer' || view_type === 'crew';
   const hasGearTab = view_type === 'producer' || view_type === 'crew';
-  const hasShotList = (view_type === 'producer' || view_type === 'crew' || view_type === 'client') && (data.shotList || []).length > 0;
+  const hasShotList = (view_type === 'producer' || view_type === 'crew' || view_type === 'client') && !!data.project.show_shot_list;
 
   return (
     <>
