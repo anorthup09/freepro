@@ -17,13 +17,33 @@ function totalCost(items) {
   return t > 0 ? '$' + t.toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 }) : null;
 }
 
-function statusColor(s) {
-  if (!s) return 'var(--muted)';
-  const l = s.toLowerCase();
-  if (l.includes('cancel')) return 'var(--red-text, #e08080)';
-  if (l.includes('delay')) return 'var(--orange, #e8a030)';
-  if (l.includes('time') || l.includes('arrived') || l.includes('landed')) return 'var(--green, #5abf80)';
-  return 'var(--muted)';
+function computeFlightStatus(f) {
+  const now = new Date();
+  const st = (f.status || '').toUpperCase();
+  const delayed = st === 'DELAYED';
+  if (st === 'CANCELLED') return { label: 'Cancelled', color: '#ef4444', dot: '#ef4444', cancelled: true };
+  const depart = f.depart_time ? new Date(f.depart_time) : null;
+  const arrive = f.arrive_time ? new Date(f.arrive_time) : null;
+  if (!depart) return { label: 'Status Coming Soon', color: 'var(--muted)', dot: null, delayed };
+  const todayStr = now.toISOString().slice(0, 10);
+  const departStr = depart.toISOString().slice(0, 10);
+  if (todayStr < departStr) return { label: 'Status Coming Soon', color: 'var(--muted)', dot: null, delayed };
+  if (now < depart) return { label: 'Pre-Flight', color: '#a78bfa', dot: '#a78bfa', delayed };
+  if (arrive && now < arrive) return { label: 'In-Flight', color: '#60a5fa', dot: '#60a5fa', delayed };
+  return { label: 'Arrived', color: '#22c55e', dot: '#22c55e', delayed };
+}
+
+function FlightStatusBadge({ f }) {
+  const s = computeFlightStatus(f);
+  return (
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:2, marginLeft:'auto' }}>
+      <div style={{ display:'flex', alignItems:'center', gap:5 }}>
+        {s.dot && <div style={{ width:6, height:6, borderRadius:'50%', background: s.dot, flexShrink:0 }} />}
+        <span style={{ fontSize:10, fontWeight:600, color: s.color, textTransform:'uppercase', letterSpacing:'0.05em' }}>{s.label}</span>
+      </div>
+      {s.delayed && <span style={{ fontSize:10, fontWeight:600, color:'#f59e0b' }}>(!) Delayed</span>}
+    </div>
+  );
 }
 
 // Debounce hook
@@ -422,17 +442,12 @@ export default function Travel({ project }) {
             {f.airline && <span className="abadge">{f.airline}</span>}
             {f.confirmation && <span style={{ fontSize:10, color:'var(--muted)' }}># {f.confirmation}</span>}
             {f.cost && <span style={{ fontSize:10, color:'var(--green)', fontWeight:600 }}>{fmtCost(f.cost)}</span>}
-            {showLive && f.status && (
-              <span style={{ fontSize:10, fontWeight:600, color: statusColor(f.status) }}>{f.status}</span>
-            )}
+            {f.is_return && <span className="badge">Return</span>}
             {showLive && f.flight_number && (
               <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:10 }} onClick={() => refreshFlightStatus(f)} title="Refresh live status">↻</button>
             )}
-            {!showLive && f.depart_time && (
-              <span style={{ fontSize:10, color:'var(--muted)' }}>Live status available within 24 hrs</span>
-            )}
-            {f.is_return && <span className="badge">Return</span>}
-            <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11, marginLeft:'auto' }} onClick={() => openEditFlight(f)}>Edit</button>
+            <FlightStatusBadge f={f} />
+            <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => openEditFlight(f)}>Edit</button>
             <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => removeFlight(f.id)}>✕</button>
           </div>
         );

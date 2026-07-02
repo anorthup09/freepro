@@ -12,19 +12,19 @@ function useNow() {
   return now;
 }
 
-const COMING_SOON = { label: 'STATUS COMING SOON', color: 'var(--orange)', dot: null };
 function flightStatus(f, now) {
   const st = (f.status || '').toUpperCase();
-  if (st === 'CANCELLED') return { label: 'Cancelled', color: '#ef4444', dot: '#ef4444', alert: true };
-  if (st === 'DELAYED')   return { label: 'Delayed',   color: '#f59e0b', dot: '#f59e0b', alert: true };
+  const delayed = st === 'DELAYED';
+  if (st === 'CANCELLED') return { label: 'Cancelled', color: '#ef4444', dot: '#ef4444', cancelled: true };
   const depart = f.depart_time ? new Date(f.depart_time) : null;
   const arrive = f.arrive_time ? new Date(f.arrive_time) : null;
-  if (!depart) return COMING_SOON;
+  if (!depart) return { label: 'Status Coming Soon', color: 'var(--muted)', dot: null, delayed };
   const todayStr = now.toISOString().slice(0, 10);
   const departStr = depart.toISOString().slice(0, 10);
-  if (todayStr <= departStr) return COMING_SOON;
-  if (arrive && now < arrive) return { label: 'In-flight', color: '#60a5fa', dot: '#60a5fa' };
-  return { label: 'Arrived', color: '#22c55e', dot: '#22c55e' };
+  if (todayStr < departStr) return { label: 'Status Coming Soon', color: 'var(--muted)', dot: null, delayed };
+  if (now < depart) return { label: 'Pre-Flight', color: '#a78bfa', dot: '#a78bfa', delayed };
+  if (arrive && now < arrive) return { label: 'In-Flight', color: '#60a5fa', dot: '#60a5fa', delayed };
+  return { label: 'Arrived', color: '#22c55e', dot: '#22c55e', delayed };
 }
 
 function fmt(dt) {
@@ -393,19 +393,22 @@ function SpecTiles({ techSpecs }) {
   );
 }
 
+function FlightStatusPill({ s }) {
+  return (
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:3 }}>
+      <div style={{ display:'flex', alignItems:'center', gap:5 }}>
+        <div style={{ width:7, height:7, borderRadius:'50%', background: s.dot || 'rgba(255,255,255,0.2)', flexShrink:0 }} />
+        <span style={{ fontSize:11, fontWeight:600, color: s.color, textTransform:'uppercase', letterSpacing:'0.05em' }}>{s.label}</span>
+      </div>
+      {s.delayed && <span style={{ fontSize:10, fontWeight:600, color:'#f59e0b' }}>(!) Delayed</span>}
+    </div>
+  );
+}
+
 function FlightStatusCell({ f }) {
   const now = useNow();
   const s = flightStatus(f, now);
-  return (
-    <div style={{ display:'flex', alignItems:'center', gap:5 }}>
-      {s.alert ? (
-        <span style={{ fontSize:13 }}>❗</span>
-      ) : (
-        <div style={{ width:7, height:7, borderRadius:'50%', background: s.dot || 'transparent', border: s.dot ? 'none' : '1.5px solid var(--orange)', flexShrink:0 }} />
-      )}
-      <span style={{ fontSize: s.dot ? 11 : 9, fontWeight: s.dot ? 600 : 400, color:s.color, textTransform:'uppercase', letterSpacing: s.dot ? '0.05em' : '0.03em', fontStyle: s.dot ? 'normal' : 'italic' }}>{s.label}</span>
-    </div>
-  );
+  return <FlightStatusPill s={s} />;
 }
 
 function FlightsTable({ flights }) {
@@ -1413,12 +1416,11 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
                             {item._leg === 'depart' ? 'Departure' : 'Arrival'} — {item.crew_name || item.passenger_name}
                           </div>
                         </div>
-                        {item._leg === 'depart' && fs && fs.dot && (() => (
-                          <div style={{ display:'flex', alignItems:'center', gap:5, flexShrink:0, background:'rgba(0,0,0,0.25)', borderRadius:20, padding:'3px 10px' }}>
-                            {fs.alert ? <span style={{ fontSize:11 }}>❗</span> : <div style={{ width:6, height:6, borderRadius:'50%', background: fs.dot, flexShrink:0 }} />}
-                            <span style={{ fontSize:10, fontWeight:600, color:fs.color, textTransform:'uppercase', letterSpacing:'0.06em' }}>{fs.label}</span>
+                        {item._leg === 'depart' && !fs.cancelled && (
+                          <div style={{ flexShrink:0, background:'rgba(0,0,0,0.25)', borderRadius:12, padding:'4px 12px' }}>
+                            <FlightStatusPill s={fs} />
                           </div>
-                        ))()}
+                        )}
                       </div>
                       <div className="ev-detail">
                         {item.origin} → {item.destination}
