@@ -54,7 +54,7 @@ export default function Crew({ project, onProjectUpdate }) {
   const [showTalentModal, setShowTalentModal] = useState(false);
   const [talentForm, setTalentForm] = useState({ name:'', role:'' });
   const [editTalent, setEditTalent] = useState(null);
-  const [editTalentForm, setEditTalentForm] = useState({ name:'', role:'', phone:'', email:'', notes:'', dietaryRestrictions:'', callTime:'', wardrobeNotes:'', arrivalNotes:'' });
+  const [editTalentForm, setEditTalentForm] = useState({ name:'', role:'', videoTitle:'', phone:'', email:'', notes:'', dietaryRestrictions:'', callTime:'', wardrobeNotes:'', arrivalNotes:'' });
   const [talentDays, setTalentDays] = useState([]);
   const [talentDayCallsForm, setTalentDayCallsForm] = useState({});
 
@@ -314,8 +314,9 @@ export default function Crew({ project, onProjectUpdate }) {
             <table className="pos-table" style={{ width:'100%' }}>
               <thead>
                 <tr>
-                  <th>Role</th>
                   <th>Name</th>
+                  <th>Role</th>
+                  <th>Video Title</th>
                   <th>Phone</th>
                   <th>Email</th>
                   <th>Dietary</th>
@@ -326,13 +327,14 @@ export default function Crew({ project, onProjectUpdate }) {
               <tbody>
                 {(project.keyTalent||[]).map(t => (
                   <tr key={t.id}>
-                    <td><div className="pos-name">{t.role}</div></td>
                     <td>
                       <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                         <div className="av" style={{ width:26, height:26, fontSize:9, background: colorFor(t.name)+'22', color: colorFor(t.name) }}>{initials(t.name)}</div>
                         <div style={{ fontSize:12, fontWeight:500 }}>{t.name}</div>
                       </div>
                     </td>
+                    <td><div className="pos-name">{t.role}</div></td>
+                    <td style={{ fontSize:11, color:'var(--muted)' }}>{t.video_title || '—'}</td>
                     <td style={{ fontSize:11, color:'var(--tan)', whiteSpace:'nowrap' }}>{t.phone || '—'}</td>
                     <td style={{ fontSize:11, color:'var(--muted)' }}>{t.email || '—'}</td>
                     <td style={{ fontSize:11, color:'var(--muted)' }}>{t.dietary_restrictions || '—'}</td>
@@ -341,7 +343,7 @@ export default function Crew({ project, onProjectUpdate }) {
                       <div style={{ display:'flex', gap:6, justifyContent:'flex-end' }}>
                         <button className="btn btn-ghost btn-sm" onClick={() => {
                           setEditTalent(t);
-                          setEditTalentForm({ name: t.name, role: t.role, phone: t.phone||'', email: t.email||'', notes: t.notes||'', dietaryRestrictions: t.dietary_restrictions||'', callTime: t.call_time||'', wardrobeNotes: t.wardrobe_notes||'', arrivalNotes: t.arrival_notes||'' });
+                          setEditTalentForm({ name: t.name, role: t.role, videoTitle: t.video_title||'', phone: t.phone||'', email: t.email||'', notes: t.notes||'', dietaryRestrictions: t.dietary_restrictions||'', callTime: t.call_time||'', wardrobeNotes: t.wardrobe_notes||'', arrivalNotes: t.arrival_notes||'' });
                           setTalentDayCallsForm({});
                           Promise.all([
                             api.getSchedule(project.id),
@@ -553,6 +555,7 @@ export default function Crew({ project, onProjectUpdate }) {
               <div className="form-grid" style={{ marginBottom:12 }}>
                 <div className="field"><label>Name</label><input value={editTalentForm.name} onChange={e => setEditTalentForm(f=>({...f,name:e.target.value}))} required /></div>
                 <div className="field"><label>Role / Title</label><input value={editTalentForm.role} onChange={e => setEditTalentForm(f=>({...f,role:e.target.value}))} required /></div>
+                <div className="field span2"><label>Video Title</label><input value={editTalentForm.videoTitle} onChange={e => setEditTalentForm(f=>({...f,videoTitle:e.target.value}))} placeholder="Campaign name or video title…" /></div>
                 <div className="field"><label>Phone</label><input value={editTalentForm.phone} onChange={e => setEditTalentForm(f=>({...f,phone:e.target.value}))} placeholder="555-123-4567" /></div>
                 <div className="field"><label>Email</label><input type="email" value={editTalentForm.email} onChange={e => setEditTalentForm(f=>({...f,email:e.target.value}))} /></div>
                 <div className="field span2"><label>Dietary Restrictions</label><input value={editTalentForm.dietaryRestrictions} onChange={e => setEditTalentForm(f=>({...f,dietaryRestrictions:e.target.value}))} placeholder="Vegetarian, nut allergy…" /></div>

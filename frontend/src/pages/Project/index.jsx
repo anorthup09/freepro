@@ -108,7 +108,14 @@ export default function Project() {
   const nav = useNavigate();
   const [project, setProject] = useState(null);
   const [tab, setTab] = useState('overview');
-  const [showCateringGrid, setShowCateringGrid] = useState(false);
+  const [showCateringGrid, setShowCateringGrid] = useState(() => {
+    try { return localStorage.getItem(`catering-${id}`) === 'true'; } catch { return false; }
+  });
+
+  function toggleCateringGrid(val) {
+    setShowCateringGrid(val);
+    try { localStorage.setItem(`catering-${id}`, String(val)); } catch {}
+  }
 
   useEffect(() => {
     api.getProject(id).then(setProject).catch(() => nav('/'));
@@ -153,7 +160,7 @@ export default function Project() {
 
       <div className="wrap">
         {tab === 'overview'     && <Overview     project={project} setProject={setProject} onTabChange={setTab} />}
-        {tab === 'schedule'     && <Schedule     project={project} showCateringGrid={showCateringGrid} setShowCateringGrid={setShowCateringGrid} onCateringTabChange={() => setTab('catering')} />}
+        {tab === 'schedule'     && <Schedule     project={project} showCateringGrid={showCateringGrid} setShowCateringGrid={toggleCateringGrid} onCateringTabChange={() => setTab('catering')} />}
         {tab === 'catering'     && <Catering     project={project} />}
         {tab === 'crew'         && <Crew         project={project} onProjectUpdate={setProject} />}
         {tab === 'travel'          && <Travel       project={project} />}

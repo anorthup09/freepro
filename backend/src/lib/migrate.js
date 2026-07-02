@@ -483,6 +483,8 @@ async function migrate() {
     )
   `;
 
+  await sql`ALTER TABLE key_talent ADD COLUMN IF NOT EXISTS video_title TEXT`;
+
   console.log('Migration complete.');
 }
 
