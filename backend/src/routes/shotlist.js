@@ -69,7 +69,9 @@ router.post('/:id/shot-list/scenes/:sceneId/shots', requireAuth, requireRole('AD
 // PATCH /api/projects/:id/shot-list/shots/:shotId
 router.patch('/:id/shot-list/shots/:shotId', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const { description, distance, movement, priority, estMinutes, status } = req.body;
+    const { description, distance, movement, priority, estMinutes, status,
+            angle, lens, frameRate, coverage, talentTags, specialEquipment, audioNotes,
+            setupMinutes, takesCount, takeMinutes, bufferMinutes } = req.body;
     const [shot] = await sql`
       UPDATE shot_list_shots SET
         description = COALESCE(${description??null}, description),
@@ -77,7 +79,18 @@ router.patch('/:id/shot-list/shots/:shotId', requireAuth, requireRole('ADMIN','P
         movement = ${movement !== undefined ? (movement||null) : sql`movement`},
         priority = COALESCE(${priority??null}, priority),
         est_minutes = COALESCE(${estMinutes??null}, est_minutes),
-        status = COALESCE(${status??null}, status)
+        status = COALESCE(${status??null}, status),
+        angle = ${angle !== undefined ? (angle||null) : sql`angle`},
+        lens = ${lens !== undefined ? (lens||null) : sql`lens`},
+        frame_rate = ${frameRate !== undefined ? (frameRate||null) : sql`frame_rate`},
+        coverage = ${coverage !== undefined ? (coverage||null) : sql`coverage`},
+        talent_tags = ${talentTags !== undefined ? sql.json(talentTags) : sql`talent_tags`},
+        special_equipment = ${specialEquipment !== undefined ? (specialEquipment||null) : sql`special_equipment`},
+        audio_notes = ${audioNotes !== undefined ? (audioNotes||null) : sql`audio_notes`},
+        setup_minutes = ${setupMinutes !== undefined ? Number(setupMinutes||0) : sql`setup_minutes`},
+        takes_count = ${takesCount !== undefined ? Number(takesCount||1) : sql`takes_count`},
+        take_minutes = ${takeMinutes !== undefined ? Number(takeMinutes||0) : sql`take_minutes`},
+        buffer_minutes = ${bufferMinutes !== undefined ? Number(bufferMinutes??2) : sql`buffer_minutes`}
       WHERE id = ${req.params.shotId} RETURNING *`;
     res.json(shot);
   } catch(e) { next(e); }

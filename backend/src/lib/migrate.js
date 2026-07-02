@@ -503,6 +503,17 @@ async function migrate() {
   await sql`ALTER TABLE projects ADD COLUMN IF NOT EXISTS show_shot_list BOOLEAN DEFAULT FALSE`;
   await sql`ALTER TABLE shot_list_scenes ADD COLUMN IF NOT EXISTS scene_type TEXT DEFAULT 'interior'`;
   await sql`ALTER TABLE shot_list_scenes ADD COLUMN IF NOT EXISTS est_start_time TEXT`;
+  await sql`ALTER TABLE shot_list_shots ADD COLUMN IF NOT EXISTS angle TEXT`;
+  await sql`ALTER TABLE shot_list_shots ADD COLUMN IF NOT EXISTS lens TEXT`;
+  await sql`ALTER TABLE shot_list_shots ADD COLUMN IF NOT EXISTS frame_rate TEXT`;
+  await sql`ALTER TABLE shot_list_shots ADD COLUMN IF NOT EXISTS coverage TEXT`;
+  await sql`ALTER TABLE shot_list_shots ADD COLUMN IF NOT EXISTS talent_tags JSONB DEFAULT '[]'`;
+  await sql`ALTER TABLE shot_list_shots ADD COLUMN IF NOT EXISTS special_equipment TEXT`;
+  await sql`ALTER TABLE shot_list_shots ADD COLUMN IF NOT EXISTS audio_notes TEXT`;
+  await sql`ALTER TABLE shot_list_shots ADD COLUMN IF NOT EXISTS setup_minutes INTEGER DEFAULT 0`;
+  await sql`ALTER TABLE shot_list_shots ADD COLUMN IF NOT EXISTS takes_count INTEGER DEFAULT 1`;
+  await sql`ALTER TABLE shot_list_shots ADD COLUMN IF NOT EXISTS take_minutes INTEGER DEFAULT 0`;
+  await sql`ALTER TABLE shot_list_shots ADD COLUMN IF NOT EXISTS buffer_minutes INTEGER DEFAULT 2`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS shot_list_scenes (
