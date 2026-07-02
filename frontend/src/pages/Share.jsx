@@ -1616,9 +1616,15 @@ export default function Share() {
             <button className={`tab${sharePage === 'questions' ? ' on' : ''}`} onClick={() => setSharePage('questions')}>Questions</button>
           </div>
         ) : (
-          <div style={{ fontSize:11, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em' }}>
-            {view_type === 'talent' ? `${data.talent_name} — Talent` : `${view_type.charAt(0).toUpperCase() + view_type.slice(1)} View`}
-          </div>
+          view_type === 'talent' ? (
+            <div style={{ fontSize:11, color:'#fff', textTransform:'uppercase', letterSpacing:'.08em', border:'1px solid rgba(255,255,255,0.6)', borderRadius:6, padding:'4px 10px' }}>
+              {data.talent_name} — Talent
+            </div>
+          ) : (
+            <div style={{ fontSize:11, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em' }}>
+              {view_type.charAt(0).toUpperCase() + view_type.slice(1)} View
+            </div>
+          )
         )}
         <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4 }}>
           {(view_type === 'producer' || view_type === 'crew') && (
