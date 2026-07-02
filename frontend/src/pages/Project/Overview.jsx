@@ -275,6 +275,25 @@ export default function Overview({ project, setProject, onTabChange }) {
         </div>
       </div>
 
+      {/* Crew List */}
+      {(project.crewAssignments||[]).length > 0 && (
+        <>
+          <div className="sec-lbl">Crew</div>
+          <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden', marginBottom:20 }}>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))' }}>
+              {(project.crewAssignments||[]).map((a, i) => (
+                <div key={a.id} style={{ padding:'10px 16px', borderRight:'1px solid var(--border)', borderBottom:'1px solid var(--border)', display:'flex', flexDirection:'column', gap:2 }}>
+                  <div style={{ fontSize:10, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)', fontWeight:700 }}>{a.position?.name}{a.slotNumber > 1 ? ` ${a.slotNumber}` : ''}</div>
+                  <div style={{ fontSize:13, fontWeight:600, color: a.crewMember ? 'var(--text)' : 'var(--muted)', fontStyle: a.crewMember ? 'normal' : 'italic' }}>
+                    {a.crewMember ? displayName(a.crewMember) : 'Unassigned'}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
       {/* Main POC + Gear Person */}
       <div style={{ display:'flex', alignItems:'center', gap:12, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'12px 16px', marginBottom:12 }}>
         <span style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)', whiteSpace:'nowrap' }}>Main POC</span>

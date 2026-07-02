@@ -122,7 +122,7 @@ const SYNTHETIC_META = {
   wt:  { color:'#a78bfa', bg:'rgba(167,139,250,0.08)', notesKey:'wrapTimeNotes',      tagsKey:'wrapTimeTags',      locationKey:'wrapTimeLocationId' },
 };
 
-export default function Schedule({ project }) {
+export default function Schedule({ project, showCateringGrid, setShowCateringGrid, onCateringTabChange }) {
   const [days, setDays] = useState([]);
   const [activeDay, setActiveDay] = useState(null);
   const [showAddDay, setShowAddDay] = useState(false);
@@ -139,7 +139,6 @@ export default function Schedule({ project }) {
   const [dayMeta, setDayMeta] = useState({});
   const [flights, setFlights] = useState([]);
   const [weatherByDate, setWeatherByDate] = useState({});
-  const [showCateringGrid, setShowCateringGrid] = useState(false);
   const [cateringModal, setCateringModal] = useState(null);
   const [cateringForm, setCateringForm] = useState({ mealTypes:[], name:'', address:'', orderNumber:'', deliveryTime:'' });
   const [savedToast, setSavedToast] = useState(false);
@@ -398,11 +397,18 @@ export default function Schedule({ project }) {
           <div className="page-title">Schedule</div>
           <div className="page-sub">{project.city}, {project.state} · {parseDay(project.start_date||project.startDate).toLocaleDateString()} – {parseDay(project.end_date||project.endDate).toLocaleDateString()}</div>
         </div>
-        <div style={{ display:'flex', gap:8 }}>
+        <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:6 }}>
           <button className="btn btn-primary" onClick={() => setShowAddDay(true)}>+ Add Day</button>
           <button
-            onClick={() => setShowCateringGrid(s => !s)}
-            style={{ fontSize:12, fontWeight:600, padding:'6px 14px', borderRadius:6, border:`1px solid ${showCateringGrid ? '#22c55e' : 'var(--border2)'}`, background: showCateringGrid ? 'rgba(34,197,94,0.15)' : 'var(--bg2)', color: showCateringGrid ? '#22c55e' : 'var(--muted)', cursor:'pointer', transition:'all .15s' }}
+            onClick={() => {
+              if (!showCateringGrid) {
+                setShowCateringGrid(true);
+                onCateringTabChange?.();
+              } else {
+                setShowCateringGrid(false);
+              }
+            }}
+            style={{ fontSize:11, fontWeight:600, padding:'4px 12px', borderRadius:6, border:`1px solid ${showCateringGrid ? '#22c55e' : 'var(--border2)'}`, background: showCateringGrid ? 'rgba(34,197,94,0.15)' : 'var(--bg2)', color: showCateringGrid ? '#22c55e' : 'var(--muted)', cursor:'pointer', transition:'all .15s', whiteSpace:'nowrap' }}
           >
             {showCateringGrid ? '✓ Catering Grid' : '+ Add Catering Grid'}
           </button>
@@ -419,48 +425,6 @@ export default function Schedule({ project }) {
               Day {i + 1} · {parseDay(d.date).toLocaleDateString('en-US', { month:'short', day:'numeric' })}
             </button>
           ))}
-        </div>
-      )}
-
-      {/* Catering Grid */}
-      {showCateringGrid && days.length > 0 && (
-        <div style={{ marginBottom:20 }}>
-          <div className="sec-lbl" style={{ marginBottom:10 }}>Catering Grid</div>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(260px, 1fr))', gap:12 }}>
-            {[...days].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map((d, i) => {
-              const catering = d.catering || [];
-              const byMeal = Object.fromEntries(catering.map(c => [c.meal_type, c]));
-              return (
-                <div key={d.id} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden' }}>
-                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 14px', borderBottom:'1px solid var(--border)' }}>
-                    <div style={{ fontWeight:700, fontSize:13 }}>Day {i+1} · {parseDay(d.date).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</div>
-                    <button className="btn btn-ghost btn-sm" style={{ fontSize:11, padding:'3px 10px' }} onClick={() => openCateringModal(d.id)}>+ Add Catering</button>
-                  </div>
-                  <div style={{ padding:'10px 14px' }}>
-                    {['BREAKFAST','LUNCH','DINNER'].map(mt => {
-                      const mc = MEAL_COLORS[mt];
-                      const entry = byMeal[mt];
-                      return (
-                        <div key={mt} style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:8, paddingBottom:8, borderBottom: mt !== 'DINNER' ? '1px solid var(--border)' : 'none' }}>
-                          <div style={{ fontSize:11, fontWeight:700, color: mc.color }}>{mc.emoji} {mc.label}</div>
-                          {entry ? (
-                            <div style={{ textAlign:'right', fontSize:11 }}>
-                              <div style={{ fontWeight:600, color:'var(--text)' }}>{entry.name}</div>
-                              {entry.address && <div style={{ color:'var(--muted)', fontSize:10 }}>{entry.address}</div>}
-                              {entry.order_number && <div style={{ color:'var(--muted)', fontSize:10 }}>Order #{entry.order_number}</div>}
-                              {entry.delivery_time && <div style={{ color: mc.color, fontSize:10 }}>🚚 {fmtTime(entry.delivery_time)}</div>}
-                            </div>
-                          ) : (
-                            <span style={{ fontSize:10, color:'var(--muted)', fontStyle:'italic' }}>Not set</span>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
         </div>
       )}
 

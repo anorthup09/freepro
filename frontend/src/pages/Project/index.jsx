@@ -8,8 +8,9 @@ import Deliverables from './Deliverables.jsx';
 import Travel from './Travel.jsx';
 import Gear from './Gear.jsx';
 import GearList from './GearList.jsx';
+import Catering from './Catering.jsx';
 
-const TABS = [
+const BASE_TABS = [
   { id: 'overview',         label: 'Overview' },
   { id: 'schedule',         label: 'Schedule' },
   { id: 'crew',             label: 'Crew' },
@@ -107,6 +108,7 @@ export default function Project() {
   const nav = useNavigate();
   const [project, setProject] = useState(null);
   const [tab, setTab] = useState('overview');
+  const [showCateringGrid, setShowCateringGrid] = useState(false);
 
   useEffect(() => {
     api.getProject(id).then(setProject).catch(() => nav('/'));
@@ -129,7 +131,7 @@ export default function Project() {
       <nav className="nav">
         <Link to="/" className="logo">Free<em>Pro</em></Link>
         <div className="tabs">
-          {TABS.map(t => (
+          {[...BASE_TABS, ...(showCateringGrid ? [{ id:'catering', label:'Catering' }] : [])].map(t => (
             <button key={t.id} className={`tab${tab === t.id ? ' on' : ''}`} onClick={() => setTab(t.id)}>
               {t.label}
             </button>
@@ -151,7 +153,8 @@ export default function Project() {
 
       <div className="wrap">
         {tab === 'overview'     && <Overview     project={project} setProject={setProject} onTabChange={setTab} />}
-        {tab === 'schedule'     && <Schedule     project={project} />}
+        {tab === 'schedule'     && <Schedule     project={project} showCateringGrid={showCateringGrid} setShowCateringGrid={setShowCateringGrid} onCateringTabChange={() => setTab('catering')} />}
+        {tab === 'catering'     && <Catering     project={project} />}
         {tab === 'crew'         && <Crew         project={project} onProjectUpdate={setProject} />}
         {tab === 'travel'          && <Travel       project={project} />}
         {tab === 'gear'            && <Gear         project={project} setProject={setProject} />}
