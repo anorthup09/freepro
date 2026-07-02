@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { api } from '../../api.js';
 import { displayName } from '../../utils/displayName.js';
 
@@ -121,7 +120,6 @@ function parseDay(dateStr) {
 }
 
 export default function Overview({ project, setProject, onTabChange }) {
-  const navigate = useNavigate();
   const [editInfo, setEditInfo] = useState(false);
   const [scheduleDays, setScheduleDays] = useState([]);
   const [info, setInfo] = useState({ code: project.code, title: project.title, client: project.client, city: project.city, state: project.state, startDate: (project.start_date||project.startDate)?.slice(0,10), endDate: (project.end_date||project.endDate)?.slice(0,10), status: project.status, notes: project.notes || '' });
@@ -342,9 +340,6 @@ export default function Overview({ project, setProject, onTabChange }) {
               {copyToast === vt ? '✓ Copied!' : `${vt.charAt(0).toUpperCase() + vt.slice(1)} View`}
             </button>
           ))}
-          <button type="button" className="btn btn-ghost btn-sm" style={{ color:'#fff', borderLeft:'1px solid rgba(255,255,255,0.2)', paddingLeft:8, marginLeft:4 }} onClick={() => navigate(`/projects/${project.id}/talent-callsheets`)}>
-            Talent
-          </button>
           </div>
         </div>
       </form>

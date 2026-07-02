@@ -69,6 +69,7 @@ function DropdownTab({ label, subtabs, tab, setTab }) {
 const FRONTEND_BASE = window.location.origin;
 
 function ShareDropdown({ projectId }) {
+  const navigate = useNavigate();
   const [shares, setShares] = useState([]);
   const [open, setOpen] = useState(false);
   const [toast, setToast] = useState('');
@@ -128,20 +129,12 @@ function ShareDropdown({ projectId }) {
           <div className="share-menu-item" onClick={() => handleOption('producer')}>Producer View</div>
           <div className="share-menu-item" onClick={() => handleOption('crew')}>Crew View</div>
           <div className="share-menu-item" onClick={() => handleOption('client')}>Client View</div>
-          {talentShares.map(s => (
-            <div key={s.id} className="share-menu-item" onClick={() => copyLink(s)}>
-              {s.talent_name} — Talent
-            </div>
-          ))}
           <div style={{ borderTop:'1px solid var(--border)', margin:'4px 0', padding:'6px 14px 3px', fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em' }}>Download PDF</div>
           <div className="share-menu-item" onClick={() => openPdf('producer')}>Producer PDF</div>
           <div className="share-menu-item" onClick={() => openPdf('crew')}>Crew PDF</div>
           <div className="share-menu-item" onClick={() => openPdf('client')}>Client PDF</div>
-          {talentShares.map(s => (
-            <div key={`pdf-${s.id}`} className="share-menu-item" onClick={() => openPdf('talent', s.talent_name)}>
-              {s.talent_name} — Talent PDF
-            </div>
-          ))}
+          <div style={{ borderTop:'1px solid var(--border)', margin:'4px 0' }} />
+          <div className="share-menu-item" onClick={() => { setOpen(false); navigate(`/projects/${projectId}/talent-callsheets`); }}>Talent ↗</div>
         </div>
       )}
       {toast && <div className="share-toast">{toast}</div>}
