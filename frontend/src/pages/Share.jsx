@@ -442,7 +442,7 @@ function FlightsTable({ flights }) {
 }
 
 // ── Producer View ────────────────────────────────────────────────────────────
-function ProducerView({ data }) {
+function ProducerView({ data, hideGear }) {
   const { project, locations, techSpecs, clientContacts, agencyContacts = [], keyTalent, crewAssignments, schedule, flights, hotelBlocks, rentalCars, deliverables, gear, onlineRentals = [] } = data;
   const scheduleRef = useRef(null);
   const [tagFilter, setTagFilter] = useState(null);
@@ -584,7 +584,7 @@ function ProducerView({ data }) {
         </section>
       )}
 
-      <GearSection gear={gear} onlineRentals={onlineRentals} producerView />
+      {!hideGear && <GearSection gear={gear} onlineRentals={onlineRentals} producerView />}
 
       {/* ── Post-Production ── */}
       {deliverables?.length > 0 && (
@@ -636,7 +636,7 @@ function ProducerView({ data }) {
 }
 
 // ── Crew View ────────────────────────────────────────────────────────────────
-function CrewView({ data, shareToken }) {
+function CrewView({ data, shareToken, hideGear }) {
   const { project, locations, techSpecs, clientContacts, agencyContacts = [], keyTalent, crewAssignments, schedule, flights, hotelBlocks, rentalCars, deliverables, gear, onlineRentals = [] } = data;
   const sortedSchedule = [...(schedule || [])].sort((a,b) => (a.date||'').localeCompare(b.date||''));
   const scheduleRef = useRef(null);
@@ -782,7 +782,7 @@ function CrewView({ data, shareToken }) {
         </section>
       )}
 
-      <GearSection gear={gear} onlineRentals={onlineRentals} shareToken={shareToken} />
+      {!hideGear && <GearSection gear={gear} onlineRentals={onlineRentals} shareToken={shareToken} />}
 
       {deliverables?.length > 0 && (
         <section className="share-section">
@@ -1599,6 +1599,7 @@ export default function Share() {
   const { view_type } = data;
 
   const hasQuestions = view_type === 'producer' || view_type === 'crew';
+  const hasGearTab = view_type === 'producer' || view_type === 'crew';
 
   return (
     <>
@@ -1613,6 +1614,7 @@ export default function Share() {
         {hasQuestions ? (
           <div className="tabs">
             <button className={`tab${sharePage === 'callsheet' ? ' on' : ''}`} onClick={() => setSharePage('callsheet')}>Call Sheet</button>
+            <button className={`tab${sharePage === 'gear' ? ' on' : ''}`} onClick={() => setSharePage('gear')}>Gear</button>
             <button className={`tab${sharePage === 'questions' ? ' on' : ''}`} onClick={() => setSharePage('questions')}>Questions</button>
           </div>
         ) : (
@@ -1642,10 +1644,17 @@ export default function Share() {
         <div ref={shareHeaderRef} style={{ height:0 }} />
         {hasQuestions && sharePage === 'questions' ? (
           <QuestionsView shareToken={token} pw={resolvedPw} canAnswer={view_type === 'producer'} />
+        ) : hasGearTab && sharePage === 'gear' ? (
+          <GearSection
+            gear={data.gear}
+            onlineRentals={data.onlineRentals || []}
+            producerView={view_type === 'producer'}
+            shareToken={token}
+          />
         ) : (
           <>
-            {view_type === 'producer' && <ProducerView data={data} />}
-            {view_type === 'crew'     && <CrewView     data={data} shareToken={token} />}
+            {view_type === 'producer' && <ProducerView data={data} hideGear />}
+            {view_type === 'crew'     && <CrewView     data={data} shareToken={token} hideGear />}
             {view_type === 'client'   && <ClientView   data={data} />}
             {view_type === 'talent'   && <TalentView   data={data} />}
           </>
