@@ -311,12 +311,12 @@ export default function Overview({ project, setProject, onTabChange }) {
         margin:'10px 0 20px',
         borderRadius:10,
         overflow:'hidden',
-        border:'1px solid rgba(0,0,0,0.10)',
+        border:'1px solid var(--border)',
         boxShadow:'0 2px 16px rgba(0,0,0,0.35)',
         position:'relative',
         background:`
           url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.045'/%3E%3C/svg%3E"),
-          linear-gradient(135deg, #ffffff 0%, #f5f0e8 60%, #ede5d8 100%)
+          linear-gradient(135deg, rgba(255,255,255,0.5) 0%, rgba(245,240,232,0.5) 60%, rgba(237,229,216,0.5) 100%)
         `,
       }}>
         {[
@@ -334,9 +334,9 @@ export default function Overview({ project, setProject, onTabChange }) {
             onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.04)'}
             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
           >
-            <div style={{ fontSize:10, color:'rgba(0,0,0,0.45)', textTransform:'uppercase', letterSpacing:'.1em', fontWeight:600 }}>{s.label}</div>
-            <div style={{ fontFamily:"'Syne',sans-serif", fontSize:26, fontWeight:700, color:'#1a1209', lineHeight:1.1 }}>{s.val}</div>
-            <div style={{ fontSize:10, color:'rgba(0,0,0,0.38)', marginTop:1 }}>{s.sub}</div>
+            <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.1em', fontWeight:600 }}>{s.label}</div>
+            <div style={{ fontFamily:"'Syne',sans-serif", fontSize:26, fontWeight:700, color:'var(--text)', lineHeight:1.1 }}>{s.val}</div>
+            <div style={{ fontSize:10, color:'var(--muted)', marginTop:1 }}>{s.sub}</div>
           </div>
         ))}
       </div>
