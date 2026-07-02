@@ -98,6 +98,19 @@ function wmoIcon(code) {
   return '⛈️';
 }
 
+function flightStatusLabel(f) {
+  const st = (f.status || '').toUpperCase();
+  if (st === 'CANCELLED') return { label:'Cancelled', color:'#ef4444', alert:true };
+  if (st === 'DELAYED')   return { label:'Delayed',   color:'#f59e0b', alert:true };
+  const depart = f.depart_time ? new Date(f.depart_time) : null;
+  const arrive = f.arrive_time ? new Date(f.arrive_time) : null;
+  const now = new Date();
+  if (!depart) return { label:'Status Coming Soon', color:'var(--orange)', dot:null };
+  if (now < depart) return { label:'Pre-flight', color:'#6b7280', dot:'#6b7280' };
+  if (arrive && now < arrive) return { label:'In-flight', color:'#60a5fa', dot:'#60a5fa' };
+  return { label:'Arrived', color:'#22c55e', dot:'#22c55e' };
+}
+
 const DAY_TYPES = [
   { value:'SHOOT',        label:'🎬 Shoot Day' },
   { value:'TRAVEL',       label:'✈️ Travel Day' },
@@ -128,9 +141,10 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
   const [showAddDay, setShowAddDay] = useState(false);
   const [dayForm, setDayForm] = useState({ date:'', callTime:'', wrapTime:'', weather:'', notes:'' });
   const [showAddEvent, setShowAddEvent] = useState(false);
-  const [eventForm, setEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', isAlert:false, isFilming:false, tags:[], audience:[], locationId:'' });
+  const [eventForm, setEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', roomSpace:'', isAlert:false, isFilming:false, tags:[], audience:[], locationId:'' });
   const [editEventId, setEditEventId] = useState(null);
-  const [editEventForm, setEditEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', isAlert:false, isFilming:false, tags:[], audience:[], locationId:'' });
+  const [editEventForm, setEditEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', roomSpace:'', isAlert:false, isFilming:false, tags:[], audience:[], locationId:'' });
+  const [dayCardCollapsed, setDayCardCollapsed] = useState(false);
   const [keyTalent, setKeyTalent] = useState([]);
   const [editCallId, setEditCallId] = useState(null);
   const [callTime, setCallTime] = useState('');
@@ -353,7 +367,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
 
   function openEditEvent(ev) {
     setEditEventId(ev.id);
-    setEditEventForm({ startTime: ev.start_time || ev.startTime || '', endTime: ev.end_time || ev.endTime || '', title: ev.title || '', detail: ev.detail || '', isAlert: ev.is_alert || ev.isAlert || false, isFilming: ev.is_filming || ev.isFilming || false, tags: ev.tags || [], audience: ev.audience || [], locationId: ev.location_id || '' });
+    setEditEventForm({ startTime: ev.start_time || ev.startTime || '', endTime: ev.end_time || ev.endTime || '', title: ev.title || '', detail: ev.detail || '', roomSpace: ev.room_space || '', isAlert: ev.is_alert || ev.isAlert || false, isFilming: ev.is_filming || ev.isFilming || false, tags: ev.tags || [], audience: ev.audience || [], locationId: ev.location_id || '' });
   }
 
   function toggleEditTag(type) {
@@ -432,7 +446,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
       {currentDay && (
         <div>
           <div className="card" style={{ marginBottom:16 }}>
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: dayCardCollapsed ? 0 : 12 }}>
               <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:15, display:'flex', alignItems:'center', gap:10 }}>
                 Day {[...days].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).findIndex(d=>d.id===currentDay.id)+1} · {parseDay(currentDay.date).toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' })}
                 {(() => {
@@ -454,52 +468,57 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                 >
                   {DAY_TYPES.map(dt => <option key={dt.value} value={dt.value}>{dt.label}</option>)}
                 </select>
+                <button className="btn btn-ghost btn-sm" onClick={() => setDayCardCollapsed(c => !c)} style={{ color:'var(--muted)', fontSize:11 }}>
+                  {dayCardCollapsed ? '▸ Expand' : '▾ Collapse'}
+                </button>
                 <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text)' }} onClick={() => deleteDay(currentDay.id)}>Delete Day</button>
               </div>
             </div>
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, marginBottom:10 }}>
-              {[
-                { label:'Call Time', field:'callTime' },
-                { label:'Shooting Call Time', field:'shootingCallTime' },
-                { label:'Lunch', field:'lunchTime' },
-                { label:'Est. Wrap Time', field:'wrapTime' },
-              ].map(({ label, field }) => (
-                <div key={field} className="field" style={{ margin:0 }}>
-                  <label style={{ fontSize:10 }}>{label}</label>
-                  <input type="time"
-                    value={dayTimesForm[currentDay.id]?.[field] || ''}
-                    onChange={e => setDayTimesForm(m => ({ ...m, [currentDay.id]: { ...m[currentDay.id], [field]: e.target.value } }))}
-                    onBlur={e => saveDayTime(currentDay.id, field, e.target.value)}
-                  />
-                </div>
-              ))}
-            </div>
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:10 }}>
-              {[
-                { label:'Crew Meal Location', field:'crewLunch' },
-                { label:'Gear Storage', field:'gearStorage' },
-                { label:'GS Audio Contact', field:'gsAudio' },
-              ].map(({ label, field }) => (
-                <div key={field} className="field" style={{ margin:0 }}>
-                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:3 }}>
-                    <label style={{ fontSize:10, margin:0 }}>{label}</label>
-                    {days.length > 1 && (
-                      <button type="button"
-                        style={{ fontSize:9, padding:'1px 7px', borderRadius:10, border:'1px solid var(--border2)', background:'var(--bg3)', color:'var(--muted)', cursor:'pointer', fontWeight:600, lineHeight:'16px' }}
-                        onClick={() => applyMetaToAll(field, dayMeta[currentDay.id]?.[field] || '')}>
-                        Apply to All
-                      </button>
-                    )}
+            {!dayCardCollapsed && <>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, marginBottom:10 }}>
+                {[
+                  { label:'Call Time', field:'callTime' },
+                  { label:'Shooting Call Time', field:'shootingCallTime' },
+                  { label:'Lunch', field:'lunchTime' },
+                  { label:'Est. Wrap Time', field:'wrapTime' },
+                ].map(({ label, field }) => (
+                  <div key={field} className="field" style={{ margin:0 }}>
+                    <label style={{ fontSize:10 }}>{label}</label>
+                    <input type="time"
+                      value={dayTimesForm[currentDay.id]?.[field] || ''}
+                      onChange={e => setDayTimesForm(m => ({ ...m, [currentDay.id]: { ...m[currentDay.id], [field]: e.target.value } }))}
+                      onBlur={e => saveDayTime(currentDay.id, field, e.target.value)}
+                    />
                   </div>
-                  <input
-                    value={dayMeta[currentDay.id]?.[field] || ''}
-                    onChange={e => setDayMeta(m => ({ ...m, [currentDay.id]: { ...m[currentDay.id], [field]: e.target.value } }))}
-                    onBlur={e => saveDayMeta(currentDay.id, field, e.target.value)}
-                    placeholder="Insert Info"
-                  />
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:10 }}>
+                {[
+                  { label:'Crew Meal Location', field:'crewLunch' },
+                  { label:'Gear Storage', field:'gearStorage' },
+                  { label:'GS Audio Contact', field:'gsAudio' },
+                ].map(({ label, field }) => (
+                  <div key={field} className="field" style={{ margin:0 }}>
+                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:3 }}>
+                      <label style={{ fontSize:10, margin:0 }}>{label}</label>
+                      {days.length > 1 && (
+                        <button type="button"
+                          style={{ fontSize:9, padding:'1px 7px', borderRadius:10, border:'1px solid var(--border2)', background:'var(--bg3)', color:'var(--muted)', cursor:'pointer', fontWeight:600, lineHeight:'16px' }}
+                          onClick={() => applyMetaToAll(field, dayMeta[currentDay.id]?.[field] || '')}>
+                          Apply to All
+                        </button>
+                      )}
+                    </div>
+                    <input
+                      value={dayMeta[currentDay.id]?.[field] || ''}
+                      onChange={e => setDayMeta(m => ({ ...m, [currentDay.id]: { ...m[currentDay.id], [field]: e.target.value } }))}
+                      onBlur={e => saveDayMeta(currentDay.id, field, e.target.value)}
+                      placeholder="Insert Info"
+                    />
+                  </div>
+                ))}
+              </div>
+            </>}
           </div>
 
           {/* Crew Calls */}
@@ -683,24 +702,37 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                           </div>
                         </div>
                       );
-                    })() : item._type === 'flight' ? (
-                      <div key={item._key} className="ev">
-                        <div className="ev-time">✈ {legDisplayTime(item)}</div>
-                        <div className="ev-body" style={{ borderLeft:'2px solid var(--orange)' }}>
-                          <div className="ev-title">
-                            {item._leg === 'depart' ? 'Departure' : 'Arrival'} — {item.crew_name || item.passenger_name}
-                            {item.is_return && <span style={{ fontSize:10, marginLeft:6, color:'var(--muted)' }}>↩ return</span>}
-                          </div>
-                          <div className="ev-detail">
-                            {item.origin} → {item.destination}
-                            {(item.airline || item.flight_number) && (
-                              <span style={{ color:'var(--muted)', marginLeft:8 }}>{[item.airline, item.flight_number].filter(Boolean).join(' ')}</span>
-                            )}
-                            {item.confirmation && <span style={{ color:'var(--muted)', marginLeft:8 }}>#{item.confirmation}</span>}
+                    })() : item._type === 'flight' ? (() => {
+                      const fs = flightStatusLabel(item);
+                      return (
+                        <div key={item._key} className="ev">
+                          <div className="ev-time">✈ {legDisplayTime(item)}</div>
+                          <div className="ev-body" style={{ borderLeft:`2px solid ${fs.alert ? fs.color : 'var(--orange)'}`, ...(fs.alert ? { background:`${fs.color}11` } : {}) }}>
+                            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
+                              <div>
+                                <div className="ev-title" style={fs.alert ? { color:fs.color } : {}}>
+                                  {fs.alert && '❗ '}{item._leg === 'depart' ? 'Departure' : 'Arrival'} — {item.crew_name || item.passenger_name}
+                                  {item.is_return && <span style={{ fontSize:10, marginLeft:6, color:'var(--muted)' }}>↩ return</span>}
+                                </div>
+                                <div className="ev-detail">
+                                  {item.origin} → {item.destination}
+                                  {(item.airline || item.flight_number) && (
+                                    <span style={{ color:'var(--muted)', marginLeft:8 }}>{[item.airline, item.flight_number].filter(Boolean).join(' ')}</span>
+                                  )}
+                                  {item.confirmation && <span style={{ color:'var(--muted)', marginLeft:8 }}>#{item.confirmation}</span>}
+                                </div>
+                              </div>
+                              {item._leg === 'depart' && (
+                                <div style={{ display:'flex', alignItems:'center', gap:5, flexShrink:0, background:'rgba(0,0,0,0.2)', borderRadius:20, padding:'3px 10px' }}>
+                                  {fs.dot && <div style={{ width:6, height:6, borderRadius:'50%', background:fs.dot }} />}
+                                  <span style={{ fontSize:10, fontWeight:600, color:fs.color, textTransform:'uppercase', letterSpacing:'.06em' }}>{fs.label}</span>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ) : (
+                      );
+                    })() : (
                       <div key={item.id} className="ev">
                         <div className="ev-time">{fmtTime(item.start_time || item.startTime)}{(item.end_time || item.endTime) ? ` – ${fmtTime(item.end_time || item.endTime)}` : ''}</div>
                         <div className={`ev-body${(item.is_alert||item.isAlert) ? ' warn' : ''}`}
@@ -717,6 +749,11 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                               )}
                             </div>
                             <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4, flexShrink:0 }}>
+                              {item.room_space && (
+                                <div style={{ fontSize:12, fontWeight:700, color:'var(--text)', whiteSpace:'nowrap' }}>
+                                  <span style={{ fontWeight:400, color:'var(--muted)', fontSize:11 }}>Room/Space: </span>{item.room_space}
+                                </div>
+                              )}
                               {item.location && (
                                 <div style={{ textAlign:'right' }}>
                                   <div style={{ fontSize:10, color:'var(--tan)', fontWeight:600 }}>📍 {item.location.name}</div>
@@ -771,7 +808,8 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                 <div className="field"><label>Start Time</label><input type="time" value={eventForm.startTime} onChange={e => setEventForm(f=>({...f,startTime:e.target.value}))} required /></div>
                 <div className="field"><label>End Time</label><input type="time" value={eventForm.endTime} onChange={e => setEventForm(f=>({...f,endTime:e.target.value}))} /></div>
                 <div className="field span2"><label>Title</label><input value={eventForm.title} onChange={e => setEventForm(f=>({...f,title:e.target.value}))} required /></div>
-                <div className="field span2"><label>Detail / Notes</label><textarea value={eventForm.detail} onChange={e => setEventForm(f=>({...f,detail:e.target.value}))} /></div>
+                <div className="field"><label>Room / Space</label><input value={eventForm.roomSpace} onChange={e => setEventForm(f=>({...f,roomSpace:e.target.value}))} placeholder="Ballroom 3" /></div>
+                <div className="field"><label>Detail / Notes</label><textarea value={eventForm.detail} onChange={e => setEventForm(f=>({...f,detail:e.target.value}))} /></div>
                 <div className="field span2">
                   <label>Location</label>
                   {(project.locations||[]).length === 0
@@ -871,7 +909,8 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                 <div className="field"><label>Start Time</label><input type="time" value={editEventForm.startTime} onChange={e => setEditEventForm(f=>({...f,startTime:e.target.value}))} required /></div>
                 <div className="field"><label>End Time</label><input type="time" value={editEventForm.endTime} onChange={e => setEditEventForm(f=>({...f,endTime:e.target.value}))} /></div>
                 <div className="field span2"><label>Title</label><input value={editEventForm.title} onChange={e => setEditEventForm(f=>({...f,title:e.target.value}))} required /></div>
-                <div className="field span2"><label>Detail / Notes</label><textarea value={editEventForm.detail} onChange={e => setEditEventForm(f=>({...f,detail:e.target.value}))} /></div>
+                <div className="field"><label>Room / Space</label><input value={editEventForm.roomSpace} onChange={e => setEditEventForm(f=>({...f,roomSpace:e.target.value}))} placeholder="Ballroom 3" /></div>
+                <div className="field"><label>Detail / Notes</label><textarea value={editEventForm.detail} onChange={e => setEditEventForm(f=>({...f,detail:e.target.value}))} /></div>
                 <div className="field span2">
                   <label>Location</label>
                   {(project.locations||[]).length === 0

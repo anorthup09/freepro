@@ -484,6 +484,7 @@ async function migrate() {
   `;
 
   await sql`ALTER TABLE key_talent ADD COLUMN IF NOT EXISTS video_title TEXT`;
+  await sql`ALTER TABLE schedule_events ADD COLUMN IF NOT EXISTS room_space TEXT`;
 
   console.log('Migration complete.');
 }
