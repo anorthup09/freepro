@@ -832,6 +832,123 @@ function CrewView({ data, shareToken }) {
   );
 }
 
+// ── Questions View ────────────────────────────────────────────────────────────
+function QuestionsView({ shareToken, pw, canAnswer }) {
+  const [questions, setQuestions] = useState([]);
+  const [input, setInput] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [answeringId, setAnsweringId] = useState(null);
+  const [answerInput, setAnswerInput] = useState('');
+  const [answeringSubmitting, setAnsweringSubmitting] = useState(false);
+  const [animatingId, setAnimatingId] = useState(null);
+
+  useEffect(() => {
+    api.getShareQuestions(shareToken, pw).then(setQuestions).catch(() => {});
+  }, [shareToken]);
+
+  async function submitQuestion(e) {
+    e.preventDefault();
+    if (!input.trim()) return;
+    setSubmitting(true);
+    try {
+      const q = await api.createShareQuestion(shareToken, pw, input.trim());
+      setQuestions(prev => [...prev, q]);
+      setInput('');
+    } catch(err) { alert(err.message); }
+    finally { setSubmitting(false); }
+  }
+
+  async function submitAnswer(qid) {
+    if (!answerInput.trim()) return;
+    setAnsweringSubmitting(true);
+    try {
+      const updated = await api.answerShareQuestion(shareToken, pw, qid, answerInput.trim());
+      setAnimatingId(qid);
+      setTimeout(() => {
+        setQuestions(prev => prev.map(q => q.id === qid ? updated : q));
+        setAnimatingId(null);
+        setAnsweringId(null);
+        setAnswerInput('');
+      }, 500);
+    } catch(err) { alert(err.message); }
+    finally { setAnsweringSubmitting(false); }
+  }
+
+  const unanswered = questions.filter(q => !q.answer);
+  const answered = questions.filter(q => q.answer);
+
+  return (
+    <div className="share-view">
+      <div className="share-header" style={{ paddingBottom:16 }}>
+        <div style={{ fontSize:16, fontWeight:700, letterSpacing:'-0.01em' }}>Questions</div>
+        <div style={{ fontSize:12, color:'var(--muted)', marginTop:4 }}>
+          {canAnswer ? 'Ask a question or answer open ones below.' : 'Submit a question and check back for answers.'}
+        </div>
+      </div>
+
+      <form onSubmit={submitQuestion} style={{ display:'flex', gap:10, marginBottom:28, alignItems:'flex-start' }}>
+        <textarea
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitQuestion(e); } }}
+          placeholder="Type a question…"
+          rows={2}
+          style={{ flex:1, resize:'vertical', fontFamily:'inherit', fontSize:13 }}
+        />
+        <button className="btn btn-primary" type="submit" disabled={submitting || !input.trim()} style={{ flexShrink:0, alignSelf:'flex-end' }}>
+          {submitting ? 'Submitting…' : 'Submit'}
+        </button>
+      </form>
+
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20 }}>
+        <div>
+          <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--muted)', marginBottom:10 }}>Unanswered ({unanswered.length})</div>
+          {unanswered.length === 0 && <div style={{ fontSize:12, color:'var(--muted)', fontStyle:'italic' }}>No open questions.</div>}
+          {unanswered.map(q => (
+            <div key={q.id} style={{ border:'1.5px solid rgba(239,68,68,0.5)', borderRadius:8, padding:'12px 14px', marginBottom:10, background:'var(--bg2)', opacity: animatingId === q.id ? 0 : 1, transform: animatingId === q.id ? 'translateX(40px)' : 'none', transition: animatingId === q.id ? 'opacity 0.4s, transform 0.4s' : 'none' }}>
+              <div style={{ display:'flex', alignItems:'flex-start', gap:8 }}>
+                <div style={{ width:8, height:8, borderRadius:'50%', background:'#ef4444', flexShrink:0, marginTop:4 }} />
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:13, color:'var(--text)', marginBottom: answeringId === q.id ? 10 : 0 }}>{q.question}</div>
+                  {canAnswer && answeringId === q.id ? (
+                    <div>
+                      <textarea value={answerInput} onChange={e => setAnswerInput(e.target.value)} placeholder="Type your answer…" rows={3} autoFocus style={{ width:'100%', boxSizing:'border-box', fontFamily:'inherit', fontSize:12, resize:'vertical', marginBottom:8 }} />
+                      <div style={{ display:'flex', gap:8 }}>
+                        <button className="btn btn-sm" disabled={answeringSubmitting || !answerInput.trim()} onClick={() => submitAnswer(q.id)} style={{ background:'#22c55e', color:'#fff', border:'none', fontWeight:600 }}>
+                          {answeringSubmitting ? 'Saving…' : 'Submit Answer'}
+                        </button>
+                        <button className="btn btn-ghost btn-sm" onClick={() => { setAnsweringId(null); setAnswerInput(''); }}>Cancel</button>
+                      </div>
+                    </div>
+                  ) : canAnswer ? (
+                    <button className="btn btn-ghost btn-sm" style={{ marginTop:6, fontSize:11 }} onClick={() => { setAnsweringId(q.id); setAnswerInput(''); }}>Answer</button>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div>
+          <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--muted)', marginBottom:10 }}>Answered ({answered.length})</div>
+          {answered.length === 0 && <div style={{ fontSize:12, color:'var(--muted)', fontStyle:'italic' }}>No answered questions yet.</div>}
+          {answered.map(q => (
+            <div key={q.id} style={{ border:'1.5px solid rgba(34,197,94,0.5)', borderRadius:8, padding:'12px 14px', marginBottom:10, background:'var(--bg2)' }}>
+              <div style={{ display:'flex', alignItems:'flex-start', gap:8 }}>
+                <div style={{ color:'#22c55e', fontSize:14, flexShrink:0, marginTop:1 }}>✓</div>
+                <div>
+                  <div style={{ fontSize:13, fontWeight:600, color:'var(--text)', marginBottom:6 }}>{q.question}</div>
+                  <div style={{ fontSize:12, color:'var(--muted)', lineHeight:1.5 }}>{q.answer}</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Client View ──────────────────────────────────────────────────────────────
 function ClientView({ data }) {
   const { project, locations, clientContacts, keyTalent, schedule } = data;
@@ -1367,6 +1484,8 @@ export default function Share() {
   const [pwInput, setPwInput] = useState('');
   const [pwError, setPwError] = useState('');
   const [pwLoading, setPwLoading] = useState(false);
+  const [sharePage, setSharePage] = useState('callsheet');
+  const [resolvedPw, setResolvedPw] = useState(null);
 
   async function fetchShare(pw) {
     try {
@@ -1380,6 +1499,7 @@ export default function Share() {
         setPasswordRequired(false);
         setPwError('');
         setData(d);
+        if (pw) setResolvedPw(pw);
       }
     } catch { setError('Failed to load share'); }
   }
@@ -1439,6 +1559,8 @@ export default function Share() {
 
   const { view_type } = data;
 
+  const hasQuestions = view_type === 'producer' || view_type === 'crew';
+
   return (
     <>
       <nav className="nav" style={{ justifyContent:'space-between' }}>
@@ -1446,19 +1568,32 @@ export default function Share() {
           <div className="logo">Free<em>Pro</em></div>
           <span style={{ fontSize:9, color:'var(--muted)', letterSpacing:'0.06em', paddingLeft:1 }}>Powered by Unbridled Media</span>
         </div>
-        <div style={{ fontSize:11, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em' }}>
-          {view_type === 'talent' ? `${data.talent_name} — Talent` : `${view_type.charAt(0).toUpperCase() + view_type.slice(1)} View`}
-        </div>
+        {hasQuestions ? (
+          <div className="tabs">
+            <button className={`tab${sharePage === 'callsheet' ? ' on' : ''}`} onClick={() => setSharePage('callsheet')}>Call Sheet</button>
+            <button className={`tab${sharePage === 'questions' ? ' on' : ''}`} onClick={() => setSharePage('questions')}>Questions</button>
+          </div>
+        ) : (
+          <div style={{ fontSize:11, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em' }}>
+            {view_type === 'talent' ? `${data.talent_name} — Talent` : `${view_type.charAt(0).toUpperCase() + view_type.slice(1)} View`}
+          </div>
+        )}
         <button
           onClick={() => window.print()}
           style={{ background:'var(--bg3)', border:'1px solid var(--border2)', color:'var(--tan)', borderRadius:6, padding:'5px 12px', fontSize:12, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}
         >Download PDF</button>
       </nav>
       <div className="wrap">
-        {view_type === 'producer' && <ProducerView data={data} />}
-        {view_type === 'crew'     && <CrewView     data={data} shareToken={token} />}
-        {view_type === 'client'   && <ClientView   data={data} />}
-        {view_type === 'talent'   && <TalentView   data={data} />}
+        {hasQuestions && sharePage === 'questions' ? (
+          <QuestionsView shareToken={token} pw={resolvedPw} canAnswer={view_type === 'producer'} />
+        ) : (
+          <>
+            {view_type === 'producer' && <ProducerView data={data} />}
+            {view_type === 'crew'     && <CrewView     data={data} shareToken={token} />}
+            {view_type === 'client'   && <ClientView   data={data} />}
+            {view_type === 'talent'   && <TalentView   data={data} />}
+          </>
+        )}
       </div>
     </>
   );

@@ -424,4 +424,37 @@ router.delete('/:id/gear-items/:itemId', requireAuth, requireRole('ADMIN','PRODU
   } catch(e){next(e);}
 });
 
+// Questions
+router.get('/:id/questions', requireAuth, async (req, res, next) => {
+  try {
+    const questions = await sql`SELECT * FROM project_questions WHERE project_id = ${req.params.id} ORDER BY asked_at ASC`;
+    res.json(questions);
+  } catch(e){next(e);}
+});
+
+router.post('/:id/questions', requireAuth, async (req, res, next) => {
+  try {
+    const { question } = req.body;
+    if (!question?.trim()) return res.status(400).json({ error: 'Question is required' });
+    const [q] = await sql`INSERT INTO project_questions (project_id, question) VALUES (${req.params.id}, ${question.trim()}) RETURNING *`;
+    res.status(201).json(q);
+  } catch(e){next(e);}
+});
+
+router.patch('/:id/questions/:qid', requireAuth, async (req, res, next) => {
+  try {
+    const { answer } = req.body;
+    const [q] = await sql`UPDATE project_questions SET answer = ${answer?.trim() || null}, answered_at = ${answer?.trim() ? sql`NOW()` : null} WHERE id = ${req.params.qid} AND project_id = ${req.params.id} RETURNING *`;
+    if (!q) return res.status(404).json({ error: 'Not found' });
+    res.json(q);
+  } catch(e){next(e);}
+});
+
+router.delete('/:id/questions/:qid', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try {
+    await sql`DELETE FROM project_questions WHERE id = ${req.params.qid} AND project_id = ${req.params.id}`;
+    res.status(204).end();
+  } catch(e){next(e);}
+});
+
 module.exports = router;

@@ -10,14 +10,19 @@ import Gear from './Gear.jsx';
 import GearList from './GearList.jsx';
 import Catering from './Catering.jsx';
 import SpaceInfo from './SpaceInfo.jsx';
+import Questions from './Questions.jsx';
 
 const BASE_TABS = [
-  { id: 'overview',         label: 'Overview' },
-  { id: 'schedule',         label: 'Schedule' },
-  { id: 'crew',             label: 'Crew' },
-  { id: 'travel',           label: 'Travel' },
-  { id: 'post-production',  label: 'Post-Production' },
-  { id: 'space-info',       label: 'Room / Space Info' },
+  { id: 'overview',            label: 'Overview' },
+  { id: 'deliverable-overview', label: 'Deliverable Overview' },
+  { id: 'questions',           label: 'Questions' },
+];
+
+const LOGISTICS_TABS = [
+  { id: 'schedule',    label: 'Schedule' },
+  { id: 'crew',        label: 'Crew' },
+  { id: 'travel',      label: 'Travel' },
+  { id: 'space-info',  label: 'Room / Space Info' },
 ];
 
 const GEAR_TABS = [
@@ -25,10 +30,10 @@ const GEAR_TABS = [
   { id: 'gear-list', label: 'Gear List' },
 ];
 
-function GearDropdownTab({ tab, setTab }) {
+function DropdownTab({ label, subtabs, tab, setTab }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
-  const isGearActive = tab === 'gear' || tab === 'gear-list';
+  const isActive = subtabs.some(t => t.id === tab);
 
   useEffect(() => {
     function handleClick(e) {
@@ -40,12 +45,12 @@ function GearDropdownTab({ tab, setTab }) {
 
   return (
     <div ref={ref} style={{ position:'relative' }} onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
-      <button className={`tab${isGearActive ? ' on' : ''}`} onClick={() => !isGearActive && setTab('gear')}>
-        Gear ▾
+      <button className={`tab${isActive ? ' on' : ''}`} onClick={() => !isActive && setTab(subtabs[0].id)}>
+        {label} ▾
       </button>
       {open && (
-        <div style={{ position:'absolute', top:'100%', left:0, zIndex:200, background:'var(--bg)', border:'1px solid var(--border)', borderRadius:6, boxShadow:'0 4px 12px rgba(0,0,0,0.3)', minWidth:150, overflow:'hidden' }}>
-          {GEAR_TABS.map(t => (
+        <div style={{ position:'absolute', top:'100%', left:0, zIndex:200, background:'var(--bg)', border:'1px solid var(--border)', borderRadius:6, boxShadow:'0 4px 12px rgba(0,0,0,0.3)', minWidth:160, overflow:'hidden' }}>
+          {subtabs.map(t => (
             <div
               key={t.id}
               onClick={() => { setTab(t.id); setOpen(false); }}
@@ -188,7 +193,8 @@ export default function Project() {
               {t.label}
             </button>
           ))}
-          <GearDropdownTab tab={tab} setTab={setTab} />
+          <DropdownTab label="Logistics" subtabs={LOGISTICS_TABS} tab={tab} setTab={setTab} />
+          <DropdownTab label="Gear" subtabs={GEAR_TABS} tab={tab} setTab={setTab} />
           {showCateringGrid && (
             <button className={`tab${tab === 'catering' ? ' on' : ''}`} onClick={() => setTab('catering')}>Catering</button>
           )}
@@ -208,15 +214,16 @@ export default function Project() {
       </nav>
 
       <div className="wrap">
-        {tab === 'overview'     && <Overview     project={project} setProject={setProject} onTabChange={setTab} />}
-        {tab === 'schedule'     && <Schedule     project={project} showCateringGrid={showCateringGrid} setShowCateringGrid={toggleCateringGrid} onCateringTabChange={() => setTab('catering')} />}
-        {tab === 'catering'     && <Catering     project={project} />}
-        {tab === 'crew'         && <Crew         project={project} onProjectUpdate={setProject} />}
-        {tab === 'travel'          && <Travel       project={project} />}
-        {tab === 'gear'            && <Gear         project={project} setProject={setProject} />}
-        {tab === 'gear-list'       && <GearList     project={project} />}
-        {tab === 'post-production' && <Deliverables project={project} />}
-        {tab === 'space-info'      && <SpaceInfo    project={project} setProject={setProject} />}
+        {tab === 'overview'             && <Overview     project={project} setProject={setProject} onTabChange={setTab} />}
+        {tab === 'schedule'             && <Schedule     project={project} showCateringGrid={showCateringGrid} setShowCateringGrid={toggleCateringGrid} onCateringTabChange={() => setTab('catering')} />}
+        {tab === 'catering'             && <Catering     project={project} />}
+        {tab === 'crew'                 && <Crew         project={project} onProjectUpdate={setProject} />}
+        {tab === 'travel'               && <Travel       project={project} />}
+        {tab === 'gear'                 && <Gear         project={project} setProject={setProject} />}
+        {tab === 'gear-list'            && <GearList     project={project} />}
+        {tab === 'deliverable-overview' && <Deliverables project={project} />}
+        {tab === 'space-info'           && <SpaceInfo    project={project} setProject={setProject} />}
+        {tab === 'questions'            && <Questions    project={project} />}
       </div>
     </>
   );

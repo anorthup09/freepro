@@ -488,6 +488,17 @@ async function migrate() {
   await sql`ALTER TABLE projects ADD COLUMN IF NOT EXISTS share_password TEXT`;
   await sql`ALTER TABLE locations ADD COLUMN IF NOT EXISTS space_map TEXT`;
 
+  await sql`
+    CREATE TABLE IF NOT EXISTS project_questions (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      question TEXT NOT NULL,
+      answer TEXT,
+      asked_at TIMESTAMPTZ DEFAULT NOW(),
+      answered_at TIMESTAMPTZ
+    )
+  `;
+
   console.log('Migration complete.');
 }
 

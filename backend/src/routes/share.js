@@ -268,4 +268,51 @@ router.patch('/:token/gear', async (req, res, next) => {
   } catch(e){ next(e); }
 });
 
+// Helper: resolve share token + optional pw check
+async function resolveShare(token, pw) {
+  const [share] = await sql`SELECT * FROM project_shares WHERE token = ${token}`;
+  if (!share) return { error: 'Share not found', status: 404 };
+  const [project] = await sql`SELECT share_password FROM projects WHERE id = ${share.project_id}`;
+  if (project?.share_password) {
+    const supplied = pw || '';
+    if (supplied !== project.share_password) return { error: 'Unauthorized', status: 401 };
+  }
+  return { share };
+}
+
+// GET /share/:token/questions
+router.get('/:token/questions', async (req, res, next) => {
+  try {
+    const r = await resolveShare(req.params.token, req.query.pw);
+    if (r.error) return res.status(r.status).json({ error: r.error });
+    const questions = await sql`SELECT * FROM project_questions WHERE project_id = ${r.share.project_id} ORDER BY asked_at ASC`;
+    res.json(questions);
+  } catch(e){ next(e); }
+});
+
+// POST /share/:token/questions
+router.post('/:token/questions', async (req, res, next) => {
+  try {
+    const r = await resolveShare(req.params.token, req.query.pw);
+    if (r.error) return res.status(r.status).json({ error: r.error });
+    const { question } = req.body;
+    if (!question?.trim()) return res.status(400).json({ error: 'Question is required' });
+    const [q] = await sql`INSERT INTO project_questions (project_id, question) VALUES (${r.share.project_id}, ${question.trim()}) RETURNING *`;
+    res.status(201).json(q);
+  } catch(e){ next(e); }
+});
+
+// PATCH /share/:token/questions/:qid — answer a question
+router.patch('/:token/questions/:qid', async (req, res, next) => {
+  try {
+    const r = await resolveShare(req.params.token, req.query.pw);
+    if (r.error) return res.status(r.status).json({ error: r.error });
+    if (r.share.view_type !== 'producer') return res.status(403).json({ error: 'Only producers can answer questions' });
+    const { answer } = req.body;
+    const [q] = await sql`UPDATE project_questions SET answer = ${answer?.trim() || null}, answered_at = ${answer?.trim() ? sql`NOW()` : null} WHERE id = ${req.params.qid} AND project_id = ${r.share.project_id} RETURNING *`;
+    if (!q) return res.status(404).json({ error: 'Not found' });
+    res.json(q);
+  } catch(e){ next(e); }
+});
+
 module.exports = router;

@@ -140,4 +140,33 @@ export const api = {
   createGearItem: (projectId, data) => req('POST', `/projects/${projectId}/gear-items`, data),
   updateGearItem: (projectId, id, data) => req('PATCH', `/projects/${projectId}/gear-items/${id}`, data),
   deleteGearItem: (projectId, id) => req('DELETE', `/projects/${projectId}/gear-items/${id}`),
+
+  // Questions
+  getQuestions: (projectId) => req('GET', `/projects/${projectId}/questions`),
+  createQuestion: (projectId, data) => req('POST', `/projects/${projectId}/questions`, data),
+  answerQuestion: (projectId, qid, data) => req('PATCH', `/projects/${projectId}/questions/${qid}`, data),
+  deleteQuestion: (projectId, qid) => req('DELETE', `/projects/${projectId}/questions/${qid}`),
+
+  // Share Questions
+  getShareQuestions: async (token, pw) => {
+    const url = `${BACKEND}/api/share/${token}/questions${pw ? `?pw=${encodeURIComponent(pw)}` : ''}`;
+    const r = await fetch(url);
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Failed');
+    return data;
+  },
+  createShareQuestion: async (token, pw, question) => {
+    const url = `${BACKEND}/api/share/${token}/questions${pw ? `?pw=${encodeURIComponent(pw)}` : ''}`;
+    const r = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ question }) });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Failed');
+    return data;
+  },
+  answerShareQuestion: async (token, pw, qid, answer) => {
+    const url = `${BACKEND}/api/share/${token}/questions/${qid}${pw ? `?pw=${encodeURIComponent(pw)}` : ''}`;
+    const r = await fetch(url, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ answer }) });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Failed');
+    return data;
+  },
 };
