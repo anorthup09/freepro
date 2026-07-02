@@ -181,8 +181,8 @@ router.get('/:id/talent', requireAuth, async (req, res, next) => {
 });
 router.post('/:id/talent', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const { name, role, notes } = req.body;
-    const [t] = await sql`INSERT INTO key_talent (id, project_id, name, role, notes) VALUES (gen_random_uuid()::text, ${req.params.id}, ${name}, ${role}, ${notes||null}) RETURNING *`;
+    const { name, role, notes, phone, email, dietaryRestrictions, callTime, videoTitle, wardrobeNotes, arrivalNotes } = req.body;
+    const [t] = await sql`INSERT INTO key_talent (id, project_id, name, role, notes, phone, email, dietary_restrictions, call_time, video_title, wardrobe_notes, arrival_notes) VALUES (gen_random_uuid()::text, ${req.params.id}, ${name}, ${role||null}, ${notes||null}, ${phone||null}, ${email||null}, ${dietaryRestrictions||null}, ${callTime||null}, ${videoTitle||null}, ${wardrobeNotes||null}, ${arrivalNotes||null}) RETURNING *`;
     // Auto-create a share token for this talent
     await sql`INSERT INTO project_shares (id, project_id, token, view_type, talent_name) VALUES (gen_random_uuid()::text, ${req.params.id}, gen_random_uuid()::text, 'talent', ${name})`;
     res.status(201).json(t);

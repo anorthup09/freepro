@@ -52,7 +52,7 @@ export default function Crew({ project, onProjectUpdate }) {
   const [editId, setEditId] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [showTalentModal, setShowTalentModal] = useState(false);
-  const [talentForm, setTalentForm] = useState({ name:'', role:'' });
+  const [talentForm, setTalentForm] = useState({ name:'', role:'', videoTitle:'', phone:'', email:'', notes:'', dietaryRestrictions:'', callTime:'', wardrobeNotes:'', arrivalNotes:'' });
   const [editTalent, setEditTalent] = useState(null);
   const [editTalentForm, setEditTalentForm] = useState({ name:'', role:'', videoTitle:'', phone:'', email:'', notes:'', dietaryRestrictions:'', callTime:'', wardrobeNotes:'', arrivalNotes:'' });
   const [talentDays, setTalentDays] = useState([]);
@@ -180,7 +180,7 @@ export default function Crew({ project, onProjectUpdate }) {
       const t = await api.createTalent(project.id, talentForm);
       if (onProjectUpdate) onProjectUpdate(p => ({ ...p, keyTalent: [...(p.keyTalent||[]), t] }));
       setShowTalentModal(false);
-      setTalentForm({ name:'', role:'' });
+      setTalentForm({ name:'', role:'', videoTitle:'', phone:'', email:'', notes:'', dietaryRestrictions:'', callTime:'', wardrobeNotes:'', arrivalNotes:'' });
     } catch(e) { alert(e.message); }
   }
 
@@ -307,7 +307,7 @@ export default function Crew({ project, onProjectUpdate }) {
       {/* Talent */}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:24, marginBottom:6 }}>
         <div className="sec-lbl" style={{ marginTop:0 }}>Talent</div>
-        <button className="btn btn-ghost btn-sm" onClick={() => setShowTalentModal(true)}>+ Add</button>
+        <button className="btn btn-primary btn-sm" onClick={() => setShowTalentModal(true)}>+ Add Talent</button>
       </div>
       {(project.keyTalent||[]).length === 0
         ? <div className="empty" style={{ marginBottom:16 }}>No talent added yet.</div>
@@ -594,12 +594,20 @@ export default function Crew({ project, onProjectUpdate }) {
       {/* Add Talent Modal */}
       {showTalentModal && (
         <div className="modal-bg" onClick={e => e.target === e.currentTarget && setShowTalentModal(false)}>
-          <div className="modal">
+          <div className="modal" style={{ maxWidth: 520 }}>
             <div className="modal-title">Add Talent</div>
             <form onSubmit={addTalent}>
               <div className="form-grid" style={{ marginBottom:12 }}>
-                <div className="field"><label>Name</label><input value={talentForm.name} onChange={e => setTalentForm(f=>({...f,name:e.target.value}))} required /></div>
-                <div className="field"><label>Role / Title</label><input value={talentForm.role} onChange={e => setTalentForm(f=>({...f,role:e.target.value}))} required /></div>
+                <div className="field"><label>Name *</label><input value={talentForm.name} onChange={e => setTalentForm(f=>({...f,name:e.target.value}))} required /></div>
+                <div className="field"><label>Role / Title</label><input value={talentForm.role} onChange={e => setTalentForm(f=>({...f,role:e.target.value}))} /></div>
+                <div className="field"><label>Email</label><input type="email" value={talentForm.email} onChange={e => setTalentForm(f=>({...f,email:e.target.value}))} /></div>
+                <div className="field"><label>Phone</label><input value={talentForm.phone} onChange={e => setTalentForm(f=>({...f,phone:e.target.value}))} /></div>
+                <div className="field"><label>Video Title</label><input value={talentForm.videoTitle} onChange={e => setTalentForm(f=>({...f,videoTitle:e.target.value}))} /></div>
+                <div className="field"><label>Call Time</label><input type="time" value={talentForm.callTime} onChange={e => setTalentForm(f=>({...f,callTime:e.target.value}))} /></div>
+                <div className="field"><label>Dietary Restrictions</label><input value={talentForm.dietaryRestrictions} onChange={e => setTalentForm(f=>({...f,dietaryRestrictions:e.target.value}))} /></div>
+                <div className="field"><label>Wardrobe Notes</label><input value={talentForm.wardrobeNotes} onChange={e => setTalentForm(f=>({...f,wardrobeNotes:e.target.value}))} /></div>
+                <div className="field span2"><label>Arrival Notes</label><input value={talentForm.arrivalNotes} onChange={e => setTalentForm(f=>({...f,arrivalNotes:e.target.value}))} /></div>
+                <div className="field span2"><label>Notes</label><textarea rows={2} value={talentForm.notes} onChange={e => setTalentForm(f=>({...f,notes:e.target.value}))} style={{ fontFamily:'inherit', fontSize:12, resize:'vertical' }} /></div>
               </div>
               <div className="btn-row"><button className="btn btn-primary">Add Talent</button><button type="button" className="btn btn-ghost" onClick={() => setShowTalentModal(false)}>Cancel</button></div>
             </form>
