@@ -148,7 +148,7 @@ function GearSection({ gear, onlineRentals = [], producerView, shareToken }) {
     body[dbKey] = gearDraft[label] || null;
     try {
       const BACKEND = import.meta.env.VITE_API_URL || 'https://freepro-production.up.railway.app';
-      await fetch(`${BACKEND}/share/${shareToken}/gear`, {
+      await fetch(`${BACKEND}/api/share/${shareToken}/gear`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),

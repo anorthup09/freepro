@@ -91,7 +91,7 @@ export const api = {
   getShares: (id) => req('GET', `/projects/${id}/shares`),
   createShare: (id, data) => req('POST', `/projects/${id}/shares`, data),
   deleteShare: (id, sid) => req('DELETE', `/projects/${id}/shares/${sid}`),
-  getPublicShare: (token) => fetch(`${BACKEND}/share/${token}`).then(r => r.json()),
+  getPublicShare: (token) => fetch(`${BACKEND}/api/share/${token}`).then(r => r.json()),
 
   // Travel
   getHotels: (projectId) => req('GET', `/projects/${projectId}/travel/hotels`),

@@ -53,7 +53,7 @@ app.post('/admin/seed-crew', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.use('/share', shareRoutes);
+app.use('/api/share', shareRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/crew', crewRoutes);
 app.use('/api/projects', projectRoutes);
@@ -65,7 +65,7 @@ app.use('/api/util', utilRoutes);
 // Fallback: serve index.html for client-side routing (React Router)
 if (fs.existsSync(publicDir)) {
   app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api') || req.path.startsWith('/share') || req.path.startsWith('/admin') || req.path.startsWith('/health')) return next();
+    if (req.path.startsWith('/api') || req.path.startsWith('/admin') || req.path.startsWith('/health')) return next();
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.sendFile(path.join(publicDir, 'index.html'));
   });
