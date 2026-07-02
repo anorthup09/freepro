@@ -257,12 +257,9 @@ export default function Project() {
         </div>
         <div className="tabs">
           <button className={`tab${tab === 'overview' ? ' on' : ''}`} onClick={() => setTab('overview')}>Overview</button>
-          <DropdownTab label="Logistics" subtabs={[...BASE_LOGISTICS_TABS, ...(showTravel ? [{ id:'travel', label:'Travel' }] : []), ...(showCateringGrid ? [{ id:'catering', label:'Catering/Meals' }] : [])]} tab={tab} setTab={setTab} />
+          <DropdownTab label="Logistics" subtabs={[...BASE_LOGISTICS_TABS, ...(showTravel ? [{ id:'travel', label:'Travel' }] : []), ...(showCateringGrid ? [{ id:'catering', label:'Catering/Meals' }] : []), ...(showShotList ? [{ id:'shot-list', label:'Shot List' }] : [])]} tab={tab} setTab={setTab} />
           <DropdownTab label="Gear" subtabs={GEAR_TABS} tab={tab} setTab={setTab} />
           <button className={`tab${tab === 'deliverable-overview' ? ' on' : ''}`} onClick={() => setTab('deliverable-overview')}>Deliverable Overview</button>
-          {showShotList && (
-            <button className={`tab${tab === 'shot-list' ? ' on' : ''}`} onClick={() => setTab('shot-list')}>Shot List</button>
-          )}
         </div>
         <button
           className={`tab${tab === 'questions' ? ' on' : ''}`}
