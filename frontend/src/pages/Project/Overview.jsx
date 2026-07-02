@@ -112,6 +112,24 @@ export default function Overview({ project, setProject, onTabChange }) {
   const [sharePw, setSharePw] = useState(project.share_password || '');
   const [sharePwSaving, setSharePwSaving] = useState(false);
   const [sharePwSaved, setSharePwSaved] = useState(false);
+  const [shares, setShares] = useState([]);
+  const [copyToast, setCopyToast] = useState('');
+
+  useEffect(() => {
+    api.getShares(project.id).then(setShares).catch(() => {});
+  }, [project.id]);
+
+  async function copyShareLink(viewType) {
+    let share = shares.find(s => s.view_type === viewType && !s.talent_name);
+    if (!share) {
+      share = await api.createShare(project.id, { viewType });
+      setShares(prev => [...prev, share]);
+    }
+    const url = `${window.location.origin}/share/${share.token}`;
+    await navigator.clipboard.writeText(url);
+    setCopyToast(viewType);
+    setTimeout(() => setCopyToast(''), 2000);
+  }
 
   useEffect(() => {
     api.getSchedule(project.id).then(d => {
@@ -271,7 +289,7 @@ export default function Overview({ project, setProject, onTabChange }) {
       </div>
 
       {/* Public View Password */}
-      <form onSubmit={saveSharePw} style={{ display:'flex', alignItems:'center', gap:12, background:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23g)' opacity='0.55'/%3E%3C/svg%3E") rgba(232,80,10,0.75)`, border:'1px solid rgba(255,255,255,0.15)', borderRadius:8, padding:'12px 16px', margin:'20px 0 10px' }}>
+      <form onSubmit={saveSharePw} style={{ display:'flex', alignItems:'center', gap:12, background:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23g)' opacity='0.55'/%3E%3C/svg%3E") rgba(232,80,10,0.90)`, border:'1px solid rgba(255,255,255,0.15)', borderRadius:8, padding:'12px 16px', margin:'20px 0 10px' }}>
         <span style={{ fontSize:13, fontWeight:700, whiteSpace:'nowrap', color:'#fff' }}>Public View Password</span>
         <input
           value={sharePw}
@@ -279,10 +297,16 @@ export default function Overview({ project, setProject, onTabChange }) {
           placeholder="No password set"
           style={{ flex:1, maxWidth:220 }}
         />
-        <button className="btn btn-ghost btn-sm" type="submit" disabled={sharePwSaving}>
+        <button className="btn btn-ghost btn-sm" type="submit" disabled={sharePwSaving} style={{ color:'#fff' }}>
           {sharePwSaved ? 'Saved!' : sharePwSaving ? 'Saving…' : 'Save'}
         </button>
-        {sharePw && <button type="button" className="btn btn-ghost btn-sm" style={{ color:'var(--muted)' }} onClick={() => { setSharePw(''); }}>Clear</button>}
+        {sharePw && <button type="button" className="btn btn-ghost btn-sm" style={{ color:'#fff' }} onClick={() => { setSharePw(''); }}>Clear</button>}
+        <span style={{ color:'rgba(255,255,255,0.3)', fontSize:14, userSelect:'none' }}>|</span>
+        {['producer','crew','client'].map(vt => (
+          <button key={vt} type="button" className="btn btn-ghost btn-sm" style={{ color:'#fff', textTransform:'capitalize' }} onClick={() => copyShareLink(vt)}>
+            {copyToast === vt ? '✓ Copied!' : `Copy ${vt.charAt(0).toUpperCase() + vt.slice(1)}`}
+          </button>
+        ))}
       </form>
 
       {/* Main POC + Gear Contact */}
@@ -356,7 +380,7 @@ export default function Overview({ project, setProject, onTabChange }) {
           <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden', marginBottom:20 }}>
             <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))' }}>
               {(project.crewAssignments||[]).map((a, i) => (
-                <div key={a.id} style={{ padding:'10px 16px', borderRight:'1px solid rgba(255,255,255,0.12)', borderBottom:'1px solid rgba(255,255,255,0.12)', display:'flex', flexDirection:'column', gap:2, background:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23g)' opacity='0.55'/%3E%3C/svg%3E") rgba(232,80,10,0.75)` }}>
+                <div key={a.id} style={{ padding:'10px 16px', borderRight:'1px solid rgba(255,255,255,0.12)', borderBottom:'1px solid rgba(255,255,255,0.12)', display:'flex', flexDirection:'column', gap:2, background:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23g)' opacity='0.55'/%3E%3C/svg%3E") rgba(232,80,10,0.90)` }}>
                   <div style={{ fontSize:10, textTransform:'uppercase', letterSpacing:'0.06em', color:'rgba(255,255,255,0.6)', fontWeight:700 }}>{a.position?.name}{a.slotNumber > 1 ? ` ${a.slotNumber}` : ''}</div>
                   <div style={{ fontSize:13, fontWeight:600, color: a.crewMember ? '#fff' : 'rgba(255,255,255,0.5)', fontStyle: a.crewMember ? 'normal' : 'italic' }}>
                     {a.crewMember ? displayName(a.crewMember) : 'Unassigned'}
