@@ -621,7 +621,7 @@ function ProducerView({ data }) {
           return [day.call_time_tags, day.shooting_call_tags, day.lunch_tags, day.wrap_time_tags]
             .some(tags => Array.isArray(tags) && tags.includes(tagFilter));
         }).map((day, i) => (
-          <DaySection key={day.id} day={day} showCalls flights={flights} dayIndex={i} tagFilter={tagFilter} />
+          <DaySection key={day.id} day={day} showCalls flights={flights} dayIndex={i} tagFilter={tagFilter} cateringDetail="full" />
         ))}
       </div>
     </div>
@@ -805,7 +805,7 @@ function CrewView({ data, shareToken }) {
           return [day.call_time_tags, day.shooting_call_tags, day.lunch_tags, day.wrap_time_tags]
             .some(tags => Array.isArray(tags) && tags.includes(tagFilter));
         }).map((day, i) => (
-          <DaySection key={day.id} day={day} showCalls flights={flights} dayIndex={i} tagFilter={tagFilter} />
+          <DaySection key={day.id} day={day} showCalls flights={flights} dayIndex={i} tagFilter={tagFilter} cateringDetail="name" />
         ))}
       </div>
     </div>
@@ -852,7 +852,7 @@ function ClientView({ data }) {
         </section>
       )}
       {[...(schedule||[])].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map((day, i) => (
-        <DaySection key={day.id} day={day} showCalls={false} dayIndex={i} />
+        <DaySection key={day.id} day={day} showCalls={false} dayIndex={i} cateringDetail="name" />
       ))}
     </div>
   );
@@ -1038,7 +1038,41 @@ function DietaryCell({ value }) {
   );
 }
 
-function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCallWrap, tagFilter }) {
+const MEAL_META = {
+  BREAKFAST: { emoji:'🍳', label:'Breakfast', color:'#fbbf24' },
+  LUNCH:     { emoji:'🥗', label:'Lunch',     color:'#4ade80' },
+  DINNER:    { emoji:'🍽️', label:'Dinner',    color:'#f87171' },
+};
+
+function CateringBadge({ catering, detail }) {
+  if (!catering || catering.length === 0) return null;
+  const ordered = ['BREAKFAST','LUNCH','DINNER'].map(mt => catering.find(c => c.meal_type === mt)).filter(Boolean);
+  if (!ordered.length) return null;
+  return (
+    <div style={{ textAlign:'right', fontSize:11 }}>
+      {ordered.map(c => {
+        const mm = MEAL_META[c.meal_type] || {};
+        return (
+          <div key={c.meal_type} style={{ marginBottom:3 }}>
+            {detail === 'full' ? (
+              <div style={{ textAlign:'right' }}>
+                <div style={{ fontWeight:700, color: mm.color, fontSize:10, textTransform:'uppercase', letterSpacing:'.06em' }}>{mm.emoji} {mm.label}</div>
+                <div style={{ fontWeight:600, color:'var(--text)', fontSize:12 }}>{c.name}</div>
+                {c.address && <div style={{ color:'var(--muted)', fontSize:10 }}>{c.address}</div>}
+                {c.order_number && <div style={{ color:'var(--muted)', fontSize:10 }}>Order #{c.order_number}</div>}
+                {c.delivery_time && <div style={{ color: mm.color, fontSize:10 }}>🚚 {fmtTime(c.delivery_time)}</div>}
+              </div>
+            ) : (
+              <span style={{ color:'var(--muted)', fontSize:11 }}>{mm.emoji} <span style={{ color:'var(--text)', fontWeight:500 }}>{c.name}</span></span>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCallWrap, tagFilter, cateringDetail }) {
   const [open, setOpen] = useState(true);
   const now = useNow();
   const [driveTimes, setDriveTimes] = useState({});
@@ -1138,6 +1172,7 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
               <div style={{ fontSize:20, fontWeight:800, color:'var(--text)', letterSpacing:'-0.02em', lineHeight:1 }}>{fmtTime(talentCallTime)}</div>
             </div>
           )}
+          {cateringDetail && <CateringBadge catering={day.catering} detail={cateringDetail} />}
           {allItems.length > 0 && (
             <button onClick={() => setOpen(o => !o)} style={{ background:'none', border:'none', color:'var(--muted)', fontSize:11, cursor:'pointer', padding:0 }}>
               {open ? 'Collapse' : `Show (${allItems.length})`}
@@ -1211,7 +1246,7 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
                             {item._leg === 'depart' ? 'Departure' : 'Arrival'} — {item.crew_name || item.passenger_name}
                           </div>
                         </div>
-                        {(() => { return fs ? (
+                        {item._leg === 'depart' && (() => { return fs ? (
                           <div style={{ display:'flex', alignItems:'center', gap:5, flexShrink:0, background:'rgba(0,0,0,0.25)', borderRadius:20, padding:'3px 10px' }}>
                             {fs.alert ? <span style={{ fontSize:11 }}>❗</span> : <div style={{ width:6, height:6, borderRadius:'50%', background: fs.dot || 'transparent', border: fs.dot ? 'none' : '1.5px solid var(--orange)', flexShrink:0 }} />}
                             <span style={{ fontSize: fs.dot ? 10 : 9, fontWeight: fs.dot ? 600 : 400, color:fs.color, textTransform:'uppercase', letterSpacing: fs.dot ? '0.06em' : '0.03em', fontStyle: fs.dot ? 'normal' : 'italic' }}>{fs.label}</span>

@@ -84,6 +84,14 @@ router.get('/:token', async (req, res, next) => {
     // Fire-and-forget weather refresh (mutates shootDays rows in place)
     await refreshWeather(project, shootDays);
 
+    // Bulk-load catering for all days
+    const dayIds = shootDays.map(d => d.id);
+    const allCatering = dayIds.length
+      ? await sql`SELECT * FROM catering_orders WHERE shoot_day_id = ANY(${sql.array(dayIds)})`
+      : [];
+    const cateringByDay = {};
+    allCatering.forEach(c => { (cateringByDay[c.shoot_day_id] = cateringByDay[c.shoot_day_id] || []).push(c); });
+
     const daysWithData = await Promise.all(shootDays.map(async day => {
       const events = await sql`
         SELECT se.*, l.name as location_name, l.address as location_address,
@@ -108,6 +116,7 @@ router.get('/:token', async (req, res, next) => {
       return {
         ...day,
         totalDays,
+        catering: cateringByDay[day.id] || [],
         events: events.map(e => ({ ...e, tags: e.tags || [], location: e.location_name ? { name: e.location_name, address: e.location_address } : null })),
         crewCalls: crewCalls.map(c => ({
           ...c,
