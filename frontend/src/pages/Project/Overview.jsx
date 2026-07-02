@@ -268,61 +268,25 @@ export default function Overview({ project, setProject, onTabChange }) {
       </div>
 
       {/* Locations */}
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
         <div className="sec-lbl" style={{ marginBottom:0 }}>Locations</div>
         <button className="btn btn-ghost btn-sm" onClick={() => setShowLocModal(true)}>+ Add</button>
       </div>
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:20 }}>
-        {LOC_GROUPS.map(group => {
-          const groupLocs = (project.locations || []).filter(l => group.types.includes(l.type));
-          // Merge hotel blocks into the Hotels group
-          const hotelEntries = group.label === 'Hotels'
-            ? (project.hotelBlocks || []).map(hb => ({ _isHotel: true, id: hb.id, name: hb.name, address: hb.address, guests: hb.guests }))
-            : [];
-          const allEntries = [...groupLocs, ...hotelEntries];
-          return (
-            <div key={group.label} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden' }}>
-              <div style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 12px', borderBottom:'1px solid var(--border)', background:'var(--bg3)' }}>
-                <span style={{ fontSize:13 }}>{group.icon}</span>
-                <span style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'.07em', color:'var(--muted)' }}>{group.label}</span>
-              </div>
-              {allEntries.length === 0 && (
-                <div style={{ padding:'10px 12px', fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>None added</div>
-              )}
-              {allEntries.map(l => (
-                <div key={l.id} style={{ display:'flex', alignItems:'flex-start', gap:8, padding:'9px 12px', borderBottom:'1px solid var(--border)' }}>
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontWeight:600, fontSize:12, color:'var(--text)' }}>{l.emoji ? `${l.emoji} ` : ''}{l.name}</div>
-                    {l.address && (
-                      <a href={`https://maps.google.com/?q=${encodeURIComponent(l.address)}`} target="_blank" rel="noreferrer"
-                        style={{ fontSize:11, color:'var(--tan)', textDecoration:'none', display:'block', marginTop:1 }}>
-                        {l.address}
-                      </a>
-                    )}
-                    {!l._isHotel && <span className={`tag ${LOC_TAG[l.type]}`} style={{ marginTop:3, display:'inline-block' }}>{LOC_LABELS[l.type]}</span>}
-                    {l._isHotel && l.guests?.length > 0 && (
-                      <div style={{ display:'flex', flexWrap:'wrap', gap:4, marginTop:5 }}>
-                        {l.guests.map(g => (
-                          <div key={g.id} style={{ fontSize:10, background:'var(--bg)', border:'1px solid var(--border)', borderRadius:5, padding:'2px 6px' }}>
-                            <span style={{ fontWeight:500 }}>{g.guest_name}</span>
-                            <span style={{ color:'var(--muted)', marginLeft:4 }}>
-                              {g.check_in ? new Date(g.check_in.slice(0,10)+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}) : ''}
-                              {g.check_out ? ` – ${new Date(g.check_out.slice(0,10)+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})}` : ''}
-                            </span>
-                            {g.confirmation && <span style={{ color:'var(--tan)', marginLeft:4 }}>#{g.confirmation}</span>}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  {!l._isHotel && (
-                    <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11, flexShrink:0 }} onClick={() => deleteLocation(l.id)}>✕</button>
-                  )}
-                </div>
-              ))}
-            </div>
-          );
-        })}
+      <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden', marginBottom:20 }}>
+        {!(project.locations?.length) && (
+          <div style={{ padding:'12px 16px', fontSize:12, color:'var(--muted)', fontStyle:'italic' }}>No locations added yet.</div>
+        )}
+        {(project.locations || []).map((l, i) => (
+          <div key={l.id} style={{ display:'grid', gridTemplateColumns:'160px 1fr 1fr auto', alignItems:'center', gap:12, padding:'10px 16px', borderBottom: i < project.locations.length - 1 ? '1px solid var(--border)' : 'none' }}>
+            <span className={`tag ${LOC_TAG[l.type]}`} style={{ justifySelf:'start' }}>{LOC_LABELS[l.type]}</span>
+            <span style={{ fontWeight:600, fontSize:13 }}>{l.name}</span>
+            {l.address
+              ? <a href={`https://maps.google.com/?q=${encodeURIComponent(l.address)}`} target="_blank" rel="noreferrer" style={{ fontSize:12, color:'var(--tan)', textDecoration:'none' }}>{l.address}</a>
+              : <span style={{ fontSize:12, color:'var(--muted)' }}>—</span>
+            }
+            <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => deleteLocation(l.id)}>✕</button>
+          </div>
+        ))}
       </div>
 
 
