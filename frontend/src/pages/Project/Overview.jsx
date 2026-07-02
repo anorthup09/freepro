@@ -301,8 +301,10 @@ export default function Overview({ project, setProject, onTabChange }) {
           {sharePwSaved ? 'Saved!' : sharePwSaving ? 'Saving…' : 'Save'}
         </button>
         {sharePw && <button type="button" className="btn btn-ghost btn-sm" style={{ color:'#fff' }} onClick={() => { setSharePw(''); }}>Clear</button>}
-        <span style={{ color:'rgba(255,255,255,0.3)', fontSize:14, userSelect:'none' }}>|</span>
-        <div style={{ marginLeft:'auto', display:'flex', gap:4 }}>
+        <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center' }}>
+          <span style={{ color:'rgba(255,255,255,0.3)', fontSize:14, userSelect:'none' }}>|</span>
+        </div>
+        <div style={{ display:'flex', gap:4 }}>
           {['producer','crew','client'].map(vt => (
             <button key={vt} type="button" className="btn btn-ghost btn-sm" style={{ color:'#fff' }} onClick={() => copyShareLink(vt)}>
               {copyToast === vt ? '✓ Copied!' : `${vt.charAt(0).toUpperCase() + vt.slice(1)} View`}
