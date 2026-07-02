@@ -162,6 +162,15 @@ export const api = {
     if (!r.ok) throw new Error(data.error || 'Failed');
     return data;
   },
+  // Shot List
+  getShotList: (projectId) => req('GET', `/projects/${projectId}/shot-list`),
+  createScene: (projectId, data) => req('POST', `/projects/${projectId}/shot-list/scenes`, data),
+  updateScene: (projectId, sceneId, data) => req('PATCH', `/projects/${projectId}/shot-list/scenes/${sceneId}`, data),
+  deleteScene: (projectId, sceneId) => req('DELETE', `/projects/${projectId}/shot-list/scenes/${sceneId}`),
+  createShot: (projectId, sceneId, data) => req('POST', `/projects/${projectId}/shot-list/scenes/${sceneId}/shots`, data),
+  updateShot: (projectId, shotId, data) => req('PATCH', `/projects/${projectId}/shot-list/shots/${shotId}`, data),
+  deleteShot: (projectId, shotId) => req('DELETE', `/projects/${projectId}/shot-list/shots/${shotId}`),
+
   answerShareQuestion: async (token, pw, qid, answer) => {
     const url = `${BACKEND}/api/share/${token}/questions/${qid}${pw ? `?pw=${encodeURIComponent(pw)}` : ''}`;
     const r = await fetch(url, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ answer }) });

@@ -11,6 +11,7 @@ const deliverableRoutes = require('./routes/deliverables');
 const travelRoutes = require('./routes/travel');
 const shareRoutes = require('./routes/share');
 const utilRoutes = require('./routes/util');
+const shotListRoutes = require('./routes/shotlist');
 
 const path = require('path');
 
@@ -60,6 +61,7 @@ app.use('/api/projects', projectRoutes);
 app.use('/api/projects', scheduleRoutes);
 app.use('/api/projects', deliverableRoutes);
 app.use('/api/projects', travelRoutes);
+app.use('/api/projects', shotListRoutes);
 app.use('/api/util', utilRoutes);
 
 // Fallback: serve index.html for client-side routing (React Router)

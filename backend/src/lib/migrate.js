@@ -500,6 +500,33 @@ async function migrate() {
     )
   `;
 
+  await sql`
+    CREATE TABLE IF NOT EXISTS shot_list_scenes (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      scene_number INT NOT NULL,
+      name TEXT NOT NULL,
+      description TEXT,
+      sort_order INT DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS shot_list_shots (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      scene_id TEXT NOT NULL REFERENCES shot_list_scenes(id) ON DELETE CASCADE,
+      description TEXT,
+      distance TEXT,
+      movement TEXT,
+      priority TEXT DEFAULT 'Important',
+      est_minutes INT DEFAULT 9,
+      status TEXT DEFAULT 'not_captured',
+      sort_order INT DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+
   console.log('Migration complete.');
 }
 

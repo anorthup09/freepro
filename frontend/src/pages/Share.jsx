@@ -951,6 +951,69 @@ function QuestionsView({ shareToken, pw, canAnswer }) {
   );
 }
 
+// ── Shot List Share View ──────────────────────────────────────────────────────
+const SHOT_PRIORITY_COLOR = { Essential: '#f97316', Important: '#f59e0b', 'Nice to Have': 'var(--muted)' };
+function shotLbl(sceneNumber, index) {
+  const L = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  return `${sceneNumber}${L[index] || index}`;
+}
+function ShotListShareView({ scenes }) {
+  const [activeId, setActiveId] = React.useState(scenes[0]?.id || null);
+  const totalShots = scenes.reduce((s, sc) => s + (sc.shots || []).length, 0);
+  const totalMinutes = scenes.reduce((s, sc) => s + (sc.shots || []).reduce((a, sh) => a + (sh.est_minutes || 0), 0), 0);
+  const activeScene = scenes.find(s => s.id === activeId);
+  return (
+    <div>
+      <div style={{ display:'flex', gap:12, marginBottom:24 }}>
+        {[{ label:'Total Shots', val: totalShots }, { label:'Scenes', val: scenes.length }, { label:'Est. Hours', val:(totalMinutes/60).toFixed(1) }].map(s => (
+          <div key={s.label} style={{ flex:1, background:'var(--bg2)', borderRadius:10, padding:'14px 18px', border:'1px solid var(--border)' }}>
+            <div style={{ fontSize:22, fontWeight:800, color:'var(--orange)' }}>{s.val}</div>
+            <div style={{ fontSize:11, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.06em', marginTop:2 }}>{s.label}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:10, marginBottom:24 }}>
+        {scenes.map(sc => (
+          <div key={sc.id} onClick={() => setActiveId(sc.id)}
+            style={{ background: sc.id === activeId ? 'rgba(251,146,60,0.1)' : 'var(--bg2)', border:`1px solid ${sc.id === activeId ? 'var(--orange)' : 'var(--border)'}`, borderRadius:10, padding:'12px 14px', cursor:'pointer' }}>
+            <div style={{ fontSize:10, color:'var(--orange)', fontWeight:700, letterSpacing:'.06em', marginBottom:4 }}>SCENE {sc.scene_number}</div>
+            <div style={{ fontSize:14, fontWeight:700, color:'var(--text)', marginBottom:4 }}>{sc.name}</div>
+            <div style={{ fontSize:11, color:'var(--muted)' }}>{(sc.shots||[]).length} shots</div>
+          </div>
+        ))}
+      </div>
+      {activeScene && (
+        <div>
+          <div style={{ fontSize:13, fontWeight:700, color:'var(--text)', marginBottom:12 }}>Scene {activeScene.scene_number} — {activeScene.name}</div>
+          {activeScene.description && <div style={{ fontSize:12, color:'var(--muted)', marginBottom:12 }}>{activeScene.description}</div>}
+          <table className="share-table">
+            <thead><tr>
+              <th>Shot</th><th>Description</th><th>Distance</th><th>Movement</th><th>Priority</th><th>Est.</th><th>Status</th>
+            </tr></thead>
+            <tbody>
+              {(activeScene.shots || []).map((sh, i) => (
+                <tr key={sh.id}>
+                  <td style={{ fontWeight:700, color:'var(--orange)', whiteSpace:'nowrap' }}>{shotLbl(activeScene.scene_number, i)}</td>
+                  <td>{sh.description || '—'}</td>
+                  <td>{sh.distance || '—'}</td>
+                  <td>{sh.movement || '—'}</td>
+                  <td style={{ color: SHOT_PRIORITY_COLOR[sh.priority] || 'var(--muted)', fontWeight:600, fontSize:11 }}>{sh.priority}</td>
+                  <td style={{ whiteSpace:'nowrap' }}>{sh.est_minutes ? `${sh.est_minutes}m` : '—'}</td>
+                  <td>
+                    <span style={{ fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:100, background: sh.status === 'captured' ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.06)', color: sh.status === 'captured' ? '#22c55e' : 'var(--muted)', border:`1px solid ${sh.status === 'captured' ? 'rgba(34,197,94,0.3)' : 'var(--border)'}` }}>
+                      {sh.status === 'captured' ? 'Captured' : 'Pending'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Client View ──────────────────────────────────────────────────────────────
 function ClientView({ data }) {
   const { project, locations, clientContacts, keyTalent, schedule } = data;
@@ -1610,6 +1673,7 @@ export default function Share() {
 
   const hasQuestions = view_type === 'producer' || view_type === 'crew';
   const hasGearTab = view_type === 'producer' || view_type === 'crew';
+  const hasShotList = (view_type === 'producer' || view_type === 'crew' || view_type === 'client') && (data.shotList || []).length > 0;
 
   return (
     <>
@@ -1621,11 +1685,12 @@ export default function Share() {
           <div className="logo">Free<em>Pro</em></div>
           <span style={{ fontSize:9, color:'var(--muted)', letterSpacing:'0.06em', paddingLeft:1 }}>Powered by Unbridled Media</span>
         </div>
-        {hasQuestions ? (
+        {(hasQuestions || (hasShotList && view_type === 'client')) ? (
           <div className="tabs">
             <button className={`tab${sharePage === 'callsheet' ? ' on' : ''}`} onClick={() => setSharePage('callsheet')}>Call Sheet</button>
-            <button className={`tab${sharePage === 'gear' ? ' on' : ''}`} onClick={() => setSharePage('gear')}>Gear</button>
-            <button className={`tab${sharePage === 'questions' ? ' on' : ''}`} onClick={() => setSharePage('questions')}>Questions</button>
+            {hasGearTab && <button className={`tab${sharePage === 'gear' ? ' on' : ''}`} onClick={() => setSharePage('gear')}>Gear</button>}
+            {hasShotList && <button className={`tab${sharePage === 'shot-list' ? ' on' : ''}`} onClick={() => setSharePage('shot-list')}>Shot List</button>}
+            {hasQuestions && <button className={`tab${sharePage === 'questions' ? ' on' : ''}`} onClick={() => setSharePage('questions')}>Questions</button>}
           </div>
         ) : (
           view_type === 'talent' ? (
@@ -1661,6 +1726,8 @@ export default function Share() {
             producerView={view_type === 'producer'}
             shareToken={token}
           />
+        ) : hasShotList && sharePage === 'shot-list' ? (
+          <ShotListShareView scenes={data.shotList || []} />
         ) : (
           <>
             {view_type === 'producer' && <ProducerView data={data} hideGear />}
