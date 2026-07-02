@@ -217,7 +217,7 @@ export default function Crew({ project, onProjectUpdate }) {
           <div className="page-title">Crew</div>
           <div className="page-sub">{assignments.length} position{assignments.length !== 1 ? 's' : ''} assigned</div>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowAddSlot(true)}>+ Add Position</button>
+        <button className="btn btn-primary btn-sm" onClick={() => setShowAddSlot(true)}>+ Add Position</button>
       </div>
 
       {assignments.length === 0 && <div className="empty">No crew assigned yet. Add a position to get started.</div>}
