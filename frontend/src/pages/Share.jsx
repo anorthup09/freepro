@@ -573,14 +573,14 @@ function ProducerView({ data, hideGear }) {
       {keyTalent?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Talent</div>
-          <ShareTable cols={['Role','Name','Phone','Email','Dietary']} colClasses={['','','nowrap','','']} rows={keyTalent.map(t => [t.role||'—', t.name, t.phone||'—', t.email||'—', t.dietary_restrictions && t.dietary_restrictions !== 'N/A' ? `⚠️ ${t.dietary_restrictions}` : '—'])} />
+          <ShareTable cols={['Name','Role','Phone','Email','Dietary']} colClasses={['','','nowrap','','']} rows={keyTalent.map(t => [t.name, t.role||'—', t.phone||'—', t.email||'—', t.dietary_restrictions && t.dietary_restrictions !== 'N/A' ? `⚠️ ${t.dietary_restrictions}` : '—'])} />
         </section>
       )}
 
       {crewAssignments?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Crew</div>
-          <ShareTable cols={['Position','Name','Phone','Email','Dietary']} colClasses={['','','nowrap','','']} rows={crewAssignments.map(a => [a.position.name, a.crewMember ? displayName(a.crewMember)||'TBD' : 'TBD', a.crewMember?.phone||'—', a.crewMember?.email||'—', <DietaryCell key={a.id} value={a.crewMember?.dietaryRestrictions} />])} />
+          <ShareTable cols={['Name','Position','Phone','Email','Dietary']} colClasses={['','','nowrap','','']} rows={crewAssignments.map(a => [a.crewMember ? displayName(a.crewMember)||'TBD' : 'TBD', a.position.name, a.crewMember?.phone||'—', a.crewMember?.email||'—', <DietaryCell key={a.id} value={a.crewMember?.dietaryRestrictions} />])} />
         </section>
       )}
 
@@ -616,7 +616,7 @@ function ProducerView({ data, hideGear }) {
             <div style={{ fontSize:16, fontWeight:700, color:'var(--text)', letterSpacing:'-0.01em', flex:1 }}>Schedule</div>
             {['VIDEO','PHOTO'].map(tag => (
               <button key={tag} onClick={() => setTagFilter(f => f === tag ? null : tag)}
-                style={{ fontSize:11, fontWeight:600, padding:'4px 12px', borderRadius:20, border:'1px solid var(--border)', background: tagFilter === tag ? 'var(--orange)' : 'var(--bg2)', color: tagFilter === tag ? '#fff' : 'var(--muted)', cursor:'pointer', letterSpacing:'.04em' }}>
+                style={{ fontSize:11, fontWeight:700, padding:'5px 16px', borderRadius:100, border: tagFilter === tag ? 'none' : '1px solid rgba(255,255,255,0.12)', background: tagFilter === tag ? 'var(--orange)' : 'rgba(255,255,255,0.06)', color: tagFilter === tag ? '#fff' : 'rgba(255,255,255,0.5)', cursor:'pointer', letterSpacing:'.06em', transition:'all 0.15s' }}>
                 {tag}
               </button>
             ))}
@@ -712,6 +712,16 @@ function CrewView({ data, shareToken, hideGear }) {
         </section>
       )}
 
+      {rentalCars?.length > 0 && (
+        <section className="share-section">
+          <div className="sec-lbl">Rental Cars</div>
+          <ShareTable
+            cols={['Vendor','Pick-up','Drop-off','Pick-up Date','Drop-off Date','Confirmation']}
+            rows={rentalCars.map(r => [r.vendor, r.pickup_location||'—', r.dropoff_location||'—', fmtDT(r.pickup_date), fmtDT(r.dropoff_date), r.confirmation||'—'])}
+          />
+        </section>
+      )}
+
       {locations?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Locations</div>
@@ -761,24 +771,14 @@ function CrewView({ data, shareToken, hideGear }) {
       {keyTalent?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Talent</div>
-          <ShareTable cols={['Role','Name','Phone','Email','Dietary']} colClasses={['','','nowrap','','']} rows={keyTalent.map(t => [t.role||'—', t.name, t.phone||'—', t.email||'—', t.dietary_restrictions && t.dietary_restrictions !== 'N/A' ? `⚠️ ${t.dietary_restrictions}` : '—'])} />
+          <ShareTable cols={['Name','Role','Phone','Email','Dietary']} colClasses={['','','nowrap','','']} rows={keyTalent.map(t => [t.name, t.role||'—', t.phone||'—', t.email||'—', t.dietary_restrictions && t.dietary_restrictions !== 'N/A' ? `⚠️ ${t.dietary_restrictions}` : '—'])} />
         </section>
       )}
 
       {crewAssignments?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Crew</div>
-          <ShareTable cols={['Position','Name','Phone','Email','Dietary']} colClasses={['','','nowrap','','']} rows={crewAssignments.map(a => [a.position.name, a.crewMember ? shortName(displayName(a.crewMember))||'TBD' : 'TBD', a.crewMember?.phone||'—', a.crewMember?.email||'—', <DietaryCell key={a.id} value={a.crewMember?.dietaryRestrictions} />])} />
-        </section>
-      )}
-
-      {rentalCars?.length > 0 && (
-        <section className="share-section">
-          <div className="sec-lbl">Rental Cars</div>
-          <ShareTable
-            cols={['Vendor','Pick-up','Drop-off','Pick-up Date','Drop-off Date','Confirmation']}
-            rows={rentalCars.map(r => [r.vendor, r.pickup_location||'—', r.dropoff_location||'—', fmtDT(r.pickup_date), fmtDT(r.dropoff_date), r.confirmation||'—'])}
-          />
+          <ShareTable cols={['Name','Position','Phone','Email','Dietary']} colClasses={['','','nowrap','','']} rows={crewAssignments.map(a => [a.crewMember ? shortName(displayName(a.crewMember))||'TBD' : 'TBD', a.position.name, a.crewMember?.phone||'—', a.crewMember?.email||'—', <DietaryCell key={a.id} value={a.crewMember?.dietaryRestrictions} />])} />
         </section>
       )}
 
@@ -812,7 +812,7 @@ function CrewView({ data, shareToken, hideGear }) {
             <div style={{ fontSize:16, fontWeight:700, color:'var(--text)', letterSpacing:'-0.01em', flex:1 }}>Schedule</div>
             {['VIDEO','PHOTO'].map(tag => (
               <button key={tag} onClick={() => setTagFilter(f => f === tag ? null : tag)}
-                style={{ fontSize:11, fontWeight:600, padding:'4px 12px', borderRadius:20, border:'1px solid var(--border)', background: tagFilter === tag ? 'var(--orange)' : 'var(--bg2)', color: tagFilter === tag ? '#fff' : 'var(--muted)', cursor:'pointer', letterSpacing:'.04em' }}>
+                style={{ fontSize:11, fontWeight:700, padding:'5px 16px', borderRadius:100, border: tagFilter === tag ? 'none' : '1px solid rgba(255,255,255,0.12)', background: tagFilter === tag ? 'var(--orange)' : 'rgba(255,255,255,0.06)', color: tagFilter === tag ? '#fff' : 'rgba(255,255,255,0.5)', cursor:'pointer', letterSpacing:'.06em', transition:'all 0.15s' }}>
                 {tag}
               </button>
             ))}
@@ -988,7 +988,7 @@ function ClientView({ data }) {
       {keyTalent?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Talent</div>
-          <ShareTable cols={['Role','Name','Phone','Email']} colClasses={['','','nowrap','']} rows={keyTalent.map(t => [t.role||'—', t.name, t.phone||'—', t.email||'—'])} />
+          <ShareTable cols={['Name','Role','Phone','Email']} colClasses={['','','nowrap','']} rows={keyTalent.map(t => [t.name, t.role||'—', t.phone||'—', t.email||'—'])} />
         </section>
       )}
       {[...(schedule||[])].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map((day, i) => (
@@ -1413,12 +1413,12 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
                             {item._leg === 'depart' ? 'Departure' : 'Arrival'} — {item.crew_name || item.passenger_name}
                           </div>
                         </div>
-                        {item._leg === 'depart' && (() => { return fs ? (
+                        {item._leg === 'depart' && fs && fs.dot && (() => (
                           <div style={{ display:'flex', alignItems:'center', gap:5, flexShrink:0, background:'rgba(0,0,0,0.25)', borderRadius:20, padding:'3px 10px' }}>
-                            {fs.alert ? <span style={{ fontSize:11 }}>❗</span> : <div style={{ width:6, height:6, borderRadius:'50%', background: fs.dot || 'transparent', border: fs.dot ? 'none' : '1.5px solid var(--orange)', flexShrink:0 }} />}
-                            <span style={{ fontSize: fs.dot ? 10 : 9, fontWeight: fs.dot ? 600 : 400, color:fs.color, textTransform:'uppercase', letterSpacing: fs.dot ? '0.06em' : '0.03em', fontStyle: fs.dot ? 'normal' : 'italic' }}>{fs.label}</span>
+                            {fs.alert ? <span style={{ fontSize:11 }}>❗</span> : <div style={{ width:6, height:6, borderRadius:'50%', background: fs.dot, flexShrink:0 }} />}
+                            <span style={{ fontSize:10, fontWeight:600, color:fs.color, textTransform:'uppercase', letterSpacing:'0.06em' }}>{fs.label}</span>
                           </div>
-                        ) : null; })()}
+                        ))()}
                       </div>
                       <div className="ev-detail">
                         {item.origin} → {item.destination}
