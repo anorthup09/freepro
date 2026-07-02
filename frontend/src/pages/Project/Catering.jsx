@@ -50,11 +50,8 @@ export default function Catering({ project }) {
     setCateringModal(dayId);
   }
 
-  function toggleMealType(mt) {
-    setCateringForm(f => ({
-      ...f,
-      mealTypes: f.mealTypes.includes(mt) ? f.mealTypes.filter(x => x !== mt) : [...f.mealTypes, mt],
-    }));
+  function selectMealType(mt) {
+    setCateringForm(f => ({ ...f, mealTypes: [mt] }));
   }
 
   async function saveCatering(e) {
@@ -149,7 +146,7 @@ export default function Catering({ project }) {
                     const sel = cateringForm.mealTypes.includes(mt);
                     return (
                       <button key={mt} type="button"
-                        onClick={() => toggleMealType(mt)}
+                        onClick={() => selectMealType(mt)}
                         style={{ flex:1, padding:'8px 6px', borderRadius:8, border:`2px solid ${sel ? mc.color : 'var(--border)'}`, background: sel ? mc.bg : 'var(--bg)', color: sel ? mc.color : 'var(--muted)', fontWeight:700, fontSize:12, cursor:'pointer', transition:'all .12s' }}>
                         {mc.emoji} {mc.label}
                       </button>
