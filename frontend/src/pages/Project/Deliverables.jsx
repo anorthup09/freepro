@@ -117,7 +117,7 @@ export default function Deliverables({ project }) {
       <div className="page-sub">{project.client} · {project.code}</div>
 
       {/* ── Tech Specs ── */}
-      <div className="spec-tiles" style={{ marginBottom:20 }}>
+      <div className="spec-tiles" style={{ marginBottom:20, gridTemplateColumns:'repeat(4, 1fr)' }}>
         <div className="spec-tile">
           <div className="spec-tile-label">Aspect Ratio</div>
           <input className="spec-tile-input" value={aspectRatio} onChange={e => setAspectRatio(e.target.value)} onBlur={e => saveAspectRatio(e.target.value)} placeholder="16:9" />
