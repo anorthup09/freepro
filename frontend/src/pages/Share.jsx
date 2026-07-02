@@ -526,6 +526,16 @@ function ProducerView({ data, hideGear }) {
         </section>
       )}
 
+      {rentalCars?.length > 0 && (
+        <section className="share-section">
+          <div className="sec-lbl">Rental Cars</div>
+          <ShareTable
+            cols={['Vendor','Pick-up','Drop-off','Pick-up Date','Drop-off Date','Confirmation']}
+            rows={rentalCars.map(r => [r.vendor, r.pickup_location||'—', r.dropoff_location||'—', fmtDT(r.pickup_date), fmtDT(r.dropoff_date), r.confirmation||'—'])}
+          />
+        </section>
+      )}
+
       {locations?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Locations</div>
@@ -549,38 +559,28 @@ function ProducerView({ data, hideGear }) {
       {clientContacts?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Client Contacts</div>
-          <ShareTable cols={['Name','Title','Email','Phone']} colClasses={['','','','nowrap']} rows={clientContacts.map(c => [c.name, c.title, c.email||'—', c.phone||'—'])} />
+          <ShareTable cols={['Name','Title','Phone','Email']} colClasses={['','','nowrap','']} rows={clientContacts.map(c => [c.name, c.title, c.phone||'—', c.email||'—'])} />
         </section>
       )}
 
       {agencyContacts?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Agency Contacts</div>
-          <ShareTable cols={['Name','Title','Email','Phone']} colClasses={['','','','nowrap']} rows={agencyContacts.map(c => [c.name, c.title, c.email||'—', c.phone||'—'])} />
+          <ShareTable cols={['Name','Title','Phone','Email']} colClasses={['','','nowrap','']} rows={agencyContacts.map(c => [c.name, c.title, c.phone||'—', c.email||'—'])} />
         </section>
       )}
 
       {keyTalent?.length > 0 && (
         <section className="share-section">
-          <div className="sec-lbl">Key Talent</div>
-          <ShareTable cols={['Name','Role','Phone','Email','Dietary','Notes']} colClasses={['','','nowrap','','','']} rows={keyTalent.map(t => [t.name, t.role, t.phone||'—', t.email||'—', t.dietary_restrictions && t.dietary_restrictions !== 'N/A' ? `⚠️ ${t.dietary_restrictions}` : '—', t.notes||'—'])} />
+          <div className="sec-lbl">Talent</div>
+          <ShareTable cols={['Role','Name','Phone','Email','Dietary']} colClasses={['','','nowrap','','']} rows={keyTalent.map(t => [t.role||'—', t.name, t.phone||'—', t.email||'—', t.dietary_restrictions && t.dietary_restrictions !== 'N/A' ? `⚠️ ${t.dietary_restrictions}` : '—'])} />
         </section>
       )}
 
       {crewAssignments?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Crew</div>
-          <ShareTable cols={['Position','Name','Email','Phone','Dietary']} colClasses={['','','','nowrap','']} rows={crewAssignments.map(a => [a.position.name, a.crewMember ? displayName(a.crewMember)||'TBD' : 'TBD', a.crewMember?.email||'—', a.crewMember?.phone||'—', <DietaryCell key={a.id} value={a.crewMember?.dietaryRestrictions} />])} />
-        </section>
-      )}
-
-      {rentalCars?.length > 0 && (
-        <section className="share-section">
-          <div className="sec-lbl">Rental Cars</div>
-          <ShareTable
-            cols={['Vendor','Pick-up','Drop-off','Pick-up Date','Drop-off Date','Confirmation']}
-            rows={rentalCars.map(r => [r.vendor, r.pickup_location||'—', r.dropoff_location||'—', fmtDT(r.pickup_date), fmtDT(r.dropoff_date), r.confirmation||'—'])}
-          />
+          <ShareTable cols={['Position','Name','Phone','Email','Dietary']} colClasses={['','','nowrap','','']} rows={crewAssignments.map(a => [a.position.name, a.crewMember ? displayName(a.crewMember)||'TBD' : 'TBD', a.crewMember?.phone||'—', a.crewMember?.email||'—', <DietaryCell key={a.id} value={a.crewMember?.dietaryRestrictions} />])} />
         </section>
       )}
 
@@ -747,28 +747,28 @@ function CrewView({ data, shareToken, hideGear }) {
       {clientContacts?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Client Contacts</div>
-          <ShareTable cols={['Name','Title','Email','Phone']} colClasses={['','','','nowrap']} rows={clientContacts.map(c => [c.name, c.title, c.email||'—', c.phone||'—'])} />
+          <ShareTable cols={['Name','Title','Phone','Email']} colClasses={['','','nowrap','']} rows={clientContacts.map(c => [c.name, c.title, c.phone||'—', c.email||'—'])} />
         </section>
       )}
 
       {agencyContacts?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Agency Contacts</div>
-          <ShareTable cols={['Name','Title','Email','Phone']} colClasses={['','','','nowrap']} rows={agencyContacts.map(c => [c.name, c.title, c.email||'—', c.phone||'—'])} />
+          <ShareTable cols={['Name','Title','Phone','Email']} colClasses={['','','nowrap','']} rows={agencyContacts.map(c => [c.name, c.title, c.phone||'—', c.email||'—'])} />
         </section>
       )}
 
       {keyTalent?.length > 0 && (
         <section className="share-section">
-          <div className="sec-lbl">Key Talent</div>
-          <ShareTable cols={['Name','Role','Phone','Email','Dietary','Notes']} colClasses={['','','nowrap','','','']} rows={keyTalent.map(t => [t.name, t.role, t.phone||'—', t.email||'—', t.dietary_restrictions && t.dietary_restrictions !== 'N/A' ? `⚠️ ${t.dietary_restrictions}` : '—', t.notes||'—'])} />
+          <div className="sec-lbl">Talent</div>
+          <ShareTable cols={['Role','Name','Phone','Email','Dietary']} colClasses={['','','nowrap','','']} rows={keyTalent.map(t => [t.role||'—', t.name, t.phone||'—', t.email||'—', t.dietary_restrictions && t.dietary_restrictions !== 'N/A' ? `⚠️ ${t.dietary_restrictions}` : '—'])} />
         </section>
       )}
 
       {crewAssignments?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Crew</div>
-          <ShareTable cols={['Position','Name','Email','Phone']} colClasses={['','','','nowrap']} rows={crewAssignments.map(a => [a.position.name, a.crewMember ? shortName(displayName(a.crewMember))||'TBD' : 'TBD', a.crewMember?.email||'—', a.crewMember?.phone||'—'])} />
+          <ShareTable cols={['Position','Name','Phone','Email','Dietary']} colClasses={['','','nowrap','','']} rows={crewAssignments.map(a => [a.position.name, a.crewMember ? shortName(displayName(a.crewMember))||'TBD' : 'TBD', a.crewMember?.phone||'—', a.crewMember?.email||'—', <DietaryCell key={a.id} value={a.crewMember?.dietaryRestrictions} />])} />
         </section>
       )}
 
@@ -982,13 +982,13 @@ function ClientView({ data }) {
       {clientContacts?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Client Contacts</div>
-          <ShareTable cols={['Name','Title','Email','Phone']} colClasses={['','','','nowrap']} rows={clientContacts.map(c => [c.name, c.title, c.email||'—', c.phone||'—'])} />
+          <ShareTable cols={['Name','Title','Phone','Email']} colClasses={['','','nowrap','']} rows={clientContacts.map(c => [c.name, c.title, c.phone||'—', c.email||'—'])} />
         </section>
       )}
       {keyTalent?.length > 0 && (
         <section className="share-section">
-          <div className="sec-lbl">Key Talent</div>
-          <ShareTable cols={['Name','Role']} rows={keyTalent.map(t => [t.name, t.role])} />
+          <div className="sec-lbl">Talent</div>
+          <ShareTable cols={['Role','Name','Phone','Email']} colClasses={['','','nowrap','']} rows={keyTalent.map(t => [t.role||'—', t.name, t.phone||'—', t.email||'—'])} />
         </section>
       )}
       {[...(schedule||[])].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map((day, i) => (
