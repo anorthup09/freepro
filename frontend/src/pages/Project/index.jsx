@@ -21,7 +21,6 @@ const BASE_TABS = [
 const BASE_LOGISTICS_TABS = [
   { id: 'schedule',    label: 'Schedule' },
   { id: 'crew',        label: 'Crew' },
-  { id: 'travel',      label: 'Travel' },
   { id: 'space-info',  label: 'Room / Space Info' },
 ];
 
@@ -155,6 +154,9 @@ export default function Project() {
   const [showShotList, setShowShotList] = useState(() => {
     try { return localStorage.getItem(`shotlist-${id}`) === 'true'; } catch { return false; }
   });
+  const [showTravel, setShowTravel] = useState(() => {
+    try { return localStorage.getItem(`travel-${id}`) === 'true'; } catch { return false; }
+  });
 
   function toggleCateringGrid(val) {
     setShowCateringGrid(val);
@@ -164,6 +166,11 @@ export default function Project() {
   function toggleShotList(val) {
     setShowShotList(val);
     try { localStorage.setItem(`shotlist-${id}`, String(val)); } catch {}
+  }
+
+  function toggleTravel(val) {
+    setShowTravel(val);
+    try { localStorage.setItem(`travel-${id}`, String(val)); } catch {}
   }
 
   useEffect(() => {
@@ -250,7 +257,7 @@ export default function Project() {
         </div>
         <div className="tabs">
           <button className={`tab${tab === 'overview' ? ' on' : ''}`} onClick={() => setTab('overview')}>Overview</button>
-          <DropdownTab label="Logistics" subtabs={[...BASE_LOGISTICS_TABS, ...(showCateringGrid ? [{ id:'catering', label:'Catering/Meals' }] : [])]} tab={tab} setTab={setTab} />
+          <DropdownTab label="Logistics" subtabs={[...BASE_LOGISTICS_TABS, ...(showTravel ? [{ id:'travel', label:'Travel' }] : []), ...(showCateringGrid ? [{ id:'catering', label:'Catering/Meals' }] : [])]} tab={tab} setTab={setTab} />
           <DropdownTab label="Gear" subtabs={GEAR_TABS} tab={tab} setTab={setTab} />
           <button className={`tab${tab === 'deliverable-overview' ? ' on' : ''}`} onClick={() => setTab('deliverable-overview')}>Deliverable Overview</button>
           {showShotList && (
@@ -270,7 +277,7 @@ export default function Project() {
 
       <div className="wrap">
         {tab === 'overview'             && <Overview     project={project} setProject={setProject} onTabChange={setTab} />}
-        {tab === 'schedule'             && <Schedule     project={project} showCateringGrid={showCateringGrid} setShowCateringGrid={toggleCateringGrid} onCateringTabChange={() => setTab('catering')} showShotList={showShotList} setShowShotList={toggleShotList} onShotListTabChange={() => setTab('shot-list')} />}
+        {tab === 'schedule'             && <Schedule     project={project} showCateringGrid={showCateringGrid} setShowCateringGrid={toggleCateringGrid} onCateringTabChange={() => setTab('catering')} showShotList={showShotList} setShowShotList={toggleShotList} onShotListTabChange={() => setTab('shot-list')} showTravel={showTravel} setShowTravel={toggleTravel} onTravelTabChange={() => setTab('travel')} />}
         {tab === 'catering'             && <Catering     project={project} />}
         {tab === 'shot-list'            && <ShotList     project={project} />}
         {tab === 'crew'                 && <Crew         project={project} onProjectUpdate={setProject} />}

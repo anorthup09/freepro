@@ -135,7 +135,7 @@ const SYNTHETIC_META = {
   wt:  { color:'#a78bfa', bg:'rgba(167,139,250,0.08)', notesKey:'wrapTimeNotes',      tagsKey:'wrapTimeTags',      locationKey:'wrapTimeLocationId' },
 };
 
-export default function Schedule({ project, showCateringGrid, setShowCateringGrid, onCateringTabChange, showShotList, setShowShotList, onShotListTabChange }) {
+export default function Schedule({ project, showCateringGrid, setShowCateringGrid, onCateringTabChange, showShotList, setShowShotList, onShotListTabChange, showTravel, setShowTravel, onTravelTabChange }) {
   const [days, setDays] = useState([]);
   const [activeDay, setActiveDay] = useState(null);
   const [showAddDay, setShowAddDay] = useState(false);
@@ -413,29 +413,21 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
         </div>
         <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:6 }}>
           <button className="btn btn-primary" onClick={() => setShowAddDay(true)}>+ Add Day</button>
-          <div style={{ display:'flex', gap:6 }}>
+          <div style={{ display:'flex', gap:6, flexWrap:'wrap', justifyContent:'flex-end' }}>
             <button
-              onClick={() => {
-                if (!showCateringGrid) {
-                  setShowCateringGrid(true);
-                  onCateringTabChange?.();
-                } else {
-                  setShowCateringGrid(false);
-                }
-              }}
+              onClick={() => { if (!showTravel) { setShowTravel(true); onTravelTabChange?.(); } else { setShowTravel(false); } }}
+              style={{ fontSize:11, fontWeight:600, padding:'4px 12px', borderRadius:6, border:`1px solid ${showTravel ? '#a78bfa' : 'var(--border2)'}`, background: showTravel ? 'rgba(167,139,250,0.15)' : 'var(--bg2)', color: showTravel ? '#a78bfa' : 'var(--muted)', cursor:'pointer', transition:'all .15s', whiteSpace:'nowrap' }}
+            >
+              {showTravel ? '✓ Travel' : '+ Travel'}
+            </button>
+            <button
+              onClick={() => { if (!showCateringGrid) { setShowCateringGrid(true); onCateringTabChange?.(); } else { setShowCateringGrid(false); } }}
               style={{ fontSize:11, fontWeight:600, padding:'4px 12px', borderRadius:6, border:`1px solid ${showCateringGrid ? '#22c55e' : 'var(--border2)'}`, background: showCateringGrid ? 'rgba(34,197,94,0.15)' : 'var(--bg2)', color: showCateringGrid ? '#22c55e' : 'var(--muted)', cursor:'pointer', transition:'all .15s', whiteSpace:'nowrap' }}
             >
               {showCateringGrid ? '✓ Catering/Meals Grid' : '+ Catering/Meals Grid'}
             </button>
             <button
-              onClick={() => {
-                if (!showShotList) {
-                  setShowShotList(true);
-                  onShotListTabChange?.();
-                } else {
-                  setShowShotList(false);
-                }
-              }}
+              onClick={() => { if (!showShotList) { setShowShotList(true); onShotListTabChange?.(); } else { setShowShotList(false); } }}
               style={{ fontSize:11, fontWeight:600, padding:'4px 12px', borderRadius:6, border:`1px solid ${showShotList ? '#60a5fa' : 'var(--border2)'}`, background: showShotList ? 'rgba(96,165,250,0.15)' : 'var(--bg2)', color: showShotList ? '#60a5fa' : 'var(--muted)', cursor:'pointer', transition:'all .15s', whiteSpace:'nowrap' }}
             >
               {showShotList ? '✓ Shot List' : '+ Shot List'}
