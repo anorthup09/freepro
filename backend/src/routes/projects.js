@@ -64,8 +64,8 @@ async function maybeAutoStatus(project) {
   const { id, status, start_date, end_date } = project;
   if (!start_date || !end_date) return project;
   const today = new Date().toISOString().slice(0, 10);
-  const start = start_date.slice(0, 10);
-  const end = end_date.slice(0, 10);
+  const start = new Date(start_date).toISOString().slice(0, 10);
+  const end = new Date(end_date).toISOString().slice(0, 10);
   let next = null;
   if (status === 'PLANNING' && today >= start) next = 'ACTIVE';
   else if (status === 'ACTIVE' && today > end) next = 'WRAPPED';
