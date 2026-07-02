@@ -54,11 +54,11 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
 .tag.main { background: var(--amber-bg); color: var(--amber-text); }
 .tag.crew { background: var(--green-bg); color: var(--green-text); }
 .tag.sec { background: var(--purple-bg); color: var(--purple-text); }
-.etag { font-size: 10px; padding: 1px 6px; border-radius: 3px; font-weight: 500; }
-.etag.v { background: var(--purple-bg); color: var(--purple-text); }
-.etag.p { background: var(--amber-bg); color: var(--amber-text); }
-.etag.a { background: var(--green-bg); color: var(--green-text); }
-.etag.t { background: var(--red-bg); color: var(--red-text); }
+.etag { font-size: 10px; padding: 3px 10px; border-radius: 100px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.etag.v { background: rgba(167,139,250,0.15); color: var(--purple-text); border: 1px solid rgba(167,139,250,0.3); }
+.etag.p { background: rgba(251,191,36,0.12); color: var(--amber-text); border: 1px solid rgba(251,191,36,0.25); }
+.etag.a { background: rgba(74,222,128,0.12); color: var(--green-text); border: 1px solid rgba(74,222,128,0.25); }
+.etag.t { background: rgba(248,113,113,0.12); color: var(--red-text); border: 1px solid rgba(248,113,113,0.25); }
 
 /* ── Stats ── */
 .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 20px 0; }

@@ -1475,7 +1475,7 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
 }
 
 // ── Liquid Glass Sticky Header ───────────────────────────────────────────────
-function GlassHeader({ project, headerRef, showCode }) {
+function GlassHeader({ project, headerRef }) {
   const [visible, setVisible] = React.useState(false);
   React.useEffect(() => {
     function onScroll() {
@@ -1506,7 +1506,7 @@ function GlassHeader({ project, headerRef, showCode }) {
       alignItems: 'center',
     }}>
       <div>
-        {showCode && <div style={{ fontSize:11, color:'#fff', textTransform:'uppercase', letterSpacing:'0.12em', fontWeight:700, marginBottom:2 }}>{project.code}</div>}
+        <div style={{ fontSize:11, color:'rgba(255,255,255,0.7)', textTransform:'uppercase', letterSpacing:'0.12em', fontWeight:700, marginBottom:2 }}>{project.code}</div>
         <div style={{ fontFamily:"'Syne', sans-serif", fontWeight:800, fontSize:16, letterSpacing:'-0.3px', color:'#fff', lineHeight:1 }}>{project.title}</div>
       </div>
     </div>
@@ -1606,7 +1606,7 @@ export default function Share() {
   return (
     <>
       {(view_type === 'producer' || view_type === 'crew' || view_type === 'client') && (
-        <GlassHeader project={data.project} headerRef={shareHeaderRef} showCode={view_type !== 'client'} />
+        <GlassHeader project={data.project} headerRef={shareHeaderRef} />
       )}
       <nav className="nav" style={{ justifyContent:'space-between' }}>
         <div style={{ display:'flex', flexDirection:'column', gap:1 }}>

@@ -225,7 +225,7 @@ export default function Project() {
           <div style={{ fontFamily:"'Syne', sans-serif", fontWeight:800, fontSize:16, letterSpacing:'-0.3px', color:'#fff', lineHeight:1 }}>{project.title}</div>
         </div>
         {daysUntil != null && daysUntil > 0 && (
-          <div style={{ display:'flex', alignItems:'baseline', gap:5 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:5 }}>
             <span style={{ fontSize:20, fontWeight:700, color:'var(--orange)', lineHeight:1 }}>{daysUntil}</span>
             <span style={{ fontSize:10, color:'rgba(255,255,255,0.45)', textTransform:'uppercase', letterSpacing:'0.06em' }}>days until {project.title}</span>
           </div>
