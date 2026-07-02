@@ -16,11 +16,51 @@ const BASE_TABS = [
   { id: 'schedule',         label: 'Schedule' },
   { id: 'crew',             label: 'Crew' },
   { id: 'travel',           label: 'Travel' },
-  { id: 'gear',             label: 'Gear Management' },
-  { id: 'gear-list',        label: 'Gear List' },
   { id: 'post-production',  label: 'Post-Production' },
   { id: 'space-info',       label: 'Room / Space Info' },
 ];
+
+const GEAR_TABS = [
+  { id: 'gear',      label: 'Gear Management' },
+  { id: 'gear-list', label: 'Gear List' },
+];
+
+function GearDropdownTab({ tab, setTab }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const isGearActive = tab === 'gear' || tab === 'gear-list';
+
+  useEffect(() => {
+    function handleClick(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  return (
+    <div ref={ref} style={{ position:'relative' }} onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
+      <button className={`tab${isGearActive ? ' on' : ''}`} onClick={() => !isGearActive && setTab('gear')}>
+        Gear ▾
+      </button>
+      {open && (
+        <div style={{ position:'absolute', top:'100%', left:0, zIndex:200, background:'var(--bg)', border:'1px solid var(--border)', borderRadius:6, boxShadow:'0 4px 12px rgba(0,0,0,0.3)', minWidth:150, overflow:'hidden' }}>
+          {GEAR_TABS.map(t => (
+            <div
+              key={t.id}
+              onClick={() => { setTab(t.id); setOpen(false); }}
+              style={{ padding:'8px 14px', fontSize:12, fontWeight: tab === t.id ? 700 : 400, color: tab === t.id ? 'var(--orange)' : 'var(--text)', cursor:'pointer', background: tab === t.id ? 'var(--bg2)' : 'transparent' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--bg2)'}
+              onMouseLeave={e => e.currentTarget.style.background = tab === t.id ? 'var(--bg2)' : 'transparent'}
+            >
+              {t.label}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 const FRONTEND_BASE = window.location.origin;
 
@@ -143,11 +183,15 @@ export default function Project() {
           <span style={{ fontSize:9, color:'var(--muted)', letterSpacing:'0.06em', paddingLeft:1 }}>Powered by Unbridled Media</span>
         </div>
         <div className="tabs">
-          {[...BASE_TABS, ...(showCateringGrid ? [{ id:'catering', label:'Catering' }] : [])].map(t => (
+          {BASE_TABS.map(t => (
             <button key={t.id} className={`tab${tab === t.id ? ' on' : ''}`} onClick={() => setTab(t.id)}>
               {t.label}
             </button>
           ))}
+          <GearDropdownTab tab={tab} setTab={setTab} />
+          {showCateringGrid && (
+            <button className={`tab${tab === 'catering' ? ' on' : ''}`} onClick={() => setTab('catering')}>Catering</button>
+          )}
         </div>
         <div style={{ marginLeft:'auto', position:'relative' }}>
           <select
