@@ -194,13 +194,13 @@ export default function Project() {
           {showCateringGrid && (
             <button className={`tab${tab === 'catering' ? ' on' : ''}`} onClick={() => setTab('catering')}>Catering</button>
           )}
-          <button
-            className={`tab${tab === 'questions' ? ' on' : ''}`}
-            onClick={() => setTab('questions')}
-            style={{ border: '1.5px solid var(--orange)', borderRadius:6, color: tab === 'questions' ? '#fff' : 'var(--orange)' }}
-          >Questions</button>
         </div>
-        <div style={{ marginLeft:'auto', position:'relative' }}>
+        <button
+          className={`tab${tab === 'questions' ? ' on' : ''}`}
+          onClick={() => setTab('questions')}
+          style={{ marginLeft:'auto', border:'1px solid var(--orange)', borderRadius:6, color:'#fff', flexShrink:0 }}
+        >Questions</button>
+        <div style={{ position:'relative' }}>
           <select
             value={project.status}
             onChange={e => changeStatus(e.target.value)}
