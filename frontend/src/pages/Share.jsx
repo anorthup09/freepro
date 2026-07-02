@@ -1472,6 +1472,45 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
   );
 }
 
+// ── Liquid Glass Sticky Header ───────────────────────────────────────────────
+function GlassHeader({ project, headerRef }) {
+  const [visible, setVisible] = React.useState(false);
+  React.useEffect(() => {
+    function onScroll() {
+      if (!headerRef.current) return;
+      setVisible(headerRef.current.getBoundingClientRect().bottom < 56);
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 48,
+      left: 0,
+      right: 0,
+      zIndex: 90,
+      pointerEvents: visible ? 'auto' : 'none',
+      opacity: visible ? 1 : 0,
+      transform: visible ? 'translateY(0)' : 'translateY(-6px)',
+      transition: 'opacity 0.25s ease, transform 0.25s ease',
+      backdropFilter: 'blur(20px) saturate(160%)',
+      WebkitBackdropFilter: 'blur(20px) saturate(160%)',
+      background: 'rgba(10,10,8,0.55)',
+      borderBottom: '1px solid rgba(255,255,255,0.07)',
+      boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
+      padding: '10px 20px',
+      display: 'flex',
+      alignItems: 'center',
+    }}>
+      <div>
+        <div style={{ fontSize:9, color:'rgba(255,255,255,0.4)', textTransform:'uppercase', letterSpacing:'0.12em', fontWeight:600, marginBottom:1 }}>{project.code}</div>
+        <div style={{ fontFamily:"'Syne', sans-serif", fontWeight:800, fontSize:16, letterSpacing:'-0.3px', color:'#fff', lineHeight:1 }}>{project.title}</div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main Share Page ──────────────────────────────────────────────────────────
 export default function Share() {
   const { token } = useParams();
@@ -1485,6 +1524,7 @@ export default function Share() {
   const [pwLoading, setPwLoading] = useState(false);
   const [sharePage, setSharePage] = useState('callsheet');
   const [resolvedPw, setResolvedPw] = useState(null);
+  const shareHeaderRef = useRef(null);
 
   async function fetchShare(pw) {
     try {
@@ -1562,6 +1602,9 @@ export default function Share() {
 
   return (
     <>
+      {(view_type === 'producer' || view_type === 'crew' || view_type === 'client') && (
+        <GlassHeader project={data.project} headerRef={shareHeaderRef} />
+      )}
       <nav className="nav" style={{ justifyContent:'space-between' }}>
         <div style={{ display:'flex', flexDirection:'column', gap:1 }}>
           <div className="logo">Free<em>Pro</em></div>
@@ -1590,6 +1633,7 @@ export default function Share() {
         </div>
       </nav>
       <div className="wrap">
+        <div ref={shareHeaderRef} style={{ height:0 }} />
         {hasQuestions && sharePage === 'questions' ? (
           <QuestionsView shareToken={token} pw={resolvedPw} canAnswer={view_type === 'producer'} />
         ) : (
