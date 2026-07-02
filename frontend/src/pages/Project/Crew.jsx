@@ -290,7 +290,7 @@ export default function Crew({ project, onProjectUpdate }) {
                       </div>
                     ) : (
                       <div style={{ display:'flex', gap:6, justifyContent:'flex-end' }}>
-                        <button className="btn btn-ghost btn-sm" onClick={() => { setEditId(a.id); const dates = flightDatesFor(a.crewMemberId); setEditForm({ crewMemberId: a.crewMemberId||'', startDate: a.start_date || dates.startDate, endDate: a.end_date || dates.endDate }); }}>Edit</button>
+                        <button className="btn btn-ghost btn-sm" onClick={() => { setEditId(a.id); const cmId = a.crewMember?.id || a.crew_member_id || ''; const dates = flightDatesFor(cmId); setEditForm({ crewMemberId: cmId, startDate: a.start_date || dates.startDate, endDate: a.end_date || dates.endDate }); }}>Edit</button>
                         <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text)' }} onClick={() => removeSlot(a.id)}>✕</button>
                       </div>
                     )}
