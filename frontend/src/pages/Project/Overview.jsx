@@ -289,7 +289,7 @@ export default function Overview({ project, setProject, onTabChange }) {
       </div>
 
       {/* Public View Password */}
-      <form onSubmit={saveSharePw} style={{ display:'flex', alignItems:'center', gap:12, background:'rgba(232,80,10,0.90)', border:'1px solid rgba(255,255,255,0.15)', borderRadius:8, padding:'12px 16px', margin:'20px 0 10px' }}>
+      <form onSubmit={saveSharePw} style={{ display:'flex', alignItems:'center', gap:12, background:'rgba(232,80,10,0.80)', border:'1px solid rgba(255,255,255,0.35)', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.25), inset -1px 0 0 rgba(0,0,0,0.4), 0 3px 10px rgba(0,0,0,0.5)', borderRadius:8, padding:'12px 16px', margin:'20px 0 10px' }}>
         <span style={{ fontSize:13, fontWeight:700, whiteSpace:'nowrap', color:'#fff', width:160, flexShrink:0 }}>Public View Password</span>
         <input
           value={sharePw}
@@ -379,7 +379,7 @@ export default function Overview({ project, setProject, onTabChange }) {
       {(project.crewAssignments||[]).length > 0 && (
         <>
           <div className="sec-lbl" style={{ fontWeight:700, fontSize:12, color:'var(--text)' }}>Crew</div>
-          <div style={{ background:'rgba(232,80,10,0.90)', border:'1px solid rgba(255,255,255,0.15)', borderRadius:8, overflow:'hidden', marginBottom:20 }}>
+          <div style={{ background:'rgba(232,80,10,0.80)', border:'1px solid rgba(255,255,255,0.35)', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.25), inset -1px 0 0 rgba(0,0,0,0.4), 0 3px 10px rgba(0,0,0,0.5)', borderRadius:8, overflow:'hidden', marginBottom:20 }}>
             <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))' }}>
               {(project.crewAssignments||[]).map((a, i) => (
                 <div key={a.id} style={{ padding:'10px 16px', borderRight:'1px solid rgba(255,255,255,0.10)', borderBottom:'1px solid rgba(255,255,255,0.10)', display:'flex', flexDirection:'column', gap:2 }}>
