@@ -533,6 +533,71 @@ function SceneBlock({ scene, projectId, talent, onShotUpdate, onShotAdded, onSho
   );
 }
 
+// ── Break Block (yellow tile) ──────────────────────────────────────────────────
+const BREAK_STYLE = { bg:'rgba(234,179,8,0.10)', border:'rgba(234,179,8,0.45)', badge:'rgba(234,179,8,0.20)', badgeText:'#eab308' };
+
+function BreakBlock({ scene, projectId, onSceneUpdate, onShotUpdate, onShotAdded, onDelete }) {
+  const st = BREAK_STYLE;
+  const durationShot = (scene.shots || [])[0];
+  const [name, setName] = useState(scene.name || 'Break');
+  const [startTime, setStartTime] = useState(scene.est_start_time || '');
+  const [duration, setDuration] = useState(durationShot?.est_minutes ?? 30);
+
+  useEffect(() => { setName(scene.name || 'Break'); }, [scene.name]);
+  useEffect(() => { setStartTime(scene.est_start_time || ''); }, [scene.est_start_time]);
+  useEffect(() => { setDuration((scene.shots || [])[0]?.est_minutes ?? 30); }, [scene.id]);
+
+  async function saveName() {
+    if (name === (scene.name || '')) return;
+    try { const u = await api.updateScene(projectId, scene.id, { name: name || 'Break' }); onSceneUpdate(scene.id, u); } catch {}
+  }
+  async function saveStart(val) {
+    try { const u = await api.updateScene(projectId, scene.id, { estStartTime: val || null }); onSceneUpdate(scene.id, u); } catch {}
+  }
+  async function saveDuration(val) {
+    const mins = Math.max(0, parseInt(val) || 0);
+    try {
+      if (durationShot) {
+        const u = await api.updateShot(projectId, durationShot.id, { estMinutes: mins });
+        onShotUpdate(u);
+      } else {
+        const shot = await api.createShot(projectId, scene.id, { description:'Break', estMinutes: mins, setupMinutes:0, takesCount:1, takeMinutes:0, bufferMinutes:0 });
+        onShotAdded(scene.id, shot);
+      }
+    } catch {}
+  }
+
+  const endTime = calcWrapTime(startTime, [{ est_minutes: Number(duration) || 0 }]);
+
+  return (
+    <div style={{ background: st.bg, border:`1px solid ${st.border}`, borderRadius:10, marginBottom:16, padding:'12px 20px', display:'flex', alignItems:'center', gap:14, flexWrap:'wrap' }}>
+      <span style={{ fontSize:10, fontWeight:800, color: st.badgeText, textTransform:'uppercase', letterSpacing:'.1em', background: st.badge, border:`1px solid ${st.border}`, borderRadius:4, padding:'2px 8px', whiteSpace:'nowrap', lineHeight:'20px' }}>☕ Break</span>
+      <input value={name} onChange={e => setName(e.target.value)} onBlur={saveName}
+        onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+        placeholder="Break label…"
+        style={{ flex:1, minWidth:120, fontSize:15, fontWeight:700, background:'transparent', border:'none', color:'var(--text)', fontFamily:'inherit', outline:'none', padding:'2px 0' }} />
+      <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+        <span style={{ fontSize:10, fontWeight:700, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em' }}>Start</span>
+        <input value={startTime} onChange={e => setStartTime(e.target.value)} onBlur={() => saveStart(startTime)}
+          placeholder="12:30 PM"
+          style={{ width:78, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.12)', borderRadius:5, padding:'3px 7px', fontSize:12, color:'var(--text)', fontFamily:'inherit', outline:'none' }} />
+      </div>
+      <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+        <span style={{ fontSize:10, fontWeight:700, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em' }}>Duration</span>
+        <input type="number" min="0" step="5" value={duration}
+          onChange={e => setDuration(e.target.value)} onBlur={() => saveDuration(duration)}
+          style={{ width:56, textAlign:'center', background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.12)', borderRadius:5, padding:'3px 7px', fontSize:12, color:'var(--text)', fontFamily:'inherit', outline:'none' }} />
+        <span style={{ fontSize:11, color:'var(--muted)' }}>min</span>
+      </div>
+      <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+        <span style={{ fontSize:10, fontWeight:700, color: st.badgeText, textTransform:'uppercase', letterSpacing:'.08em', opacity:0.7 }}>Ends</span>
+        <span style={{ fontSize:13, fontWeight:800, color: st.badgeText, fontVariantNumeric:'tabular-nums' }}>{endTime || (startTime ? 'Invalid time' : '—')}</span>
+      </div>
+      <button className="btn btn-ghost btn-sm" style={{ color:'var(--muted)', fontSize:11 }} onClick={() => { if (confirm('Delete this break?')) onDelete(scene.id); }}>Delete</button>
+    </div>
+  );
+}
+
 // ── Live Clock ────────────────────────────────────────────────────────────────
 function LiveClock() {
   const [time, setTime] = useState(new Date());
@@ -581,9 +646,12 @@ export default function ShotList({ project, onScenesChange }) {
     api.getTalent(project.id).then(setTalent).catch(() => {});
   }, [project.id]);
 
-  const totalShots = scenes.reduce((s, sc) => s + sc.shots.length, 0);
+  // Breaks are stored as scenes with scene_type 'break' — exclude them from shot
+  // counts, but their duration still counts toward the day's estimated time.
+  const shotScenes = scenes.filter(sc => sc.scene_type !== 'break');
+  const totalShots = shotScenes.reduce((s, sc) => s + sc.shots.length, 0);
   const totalMinutes = scenes.reduce((s, sc) => s + sc.shots.reduce((a, sh) => a + (sh.est_minutes || 0), 0), 0);
-  const capturedShots = scenes.reduce((s, sc) => s + sc.shots.filter(sh => sh.status === 'captured').length, 0);
+  const capturedShots = shotScenes.reduce((s, sc) => s + sc.shots.filter(sh => sh.status === 'captured').length, 0);
 
   async function addScene(e) {
     e.preventDefault();
@@ -592,6 +660,14 @@ export default function ShotList({ project, onScenesChange }) {
       updateScenes(prev => [...prev, scene]);
       setShowAddScene(false);
       setSceneForm({ name: '', description: '', sceneType: 'interior' });
+    } catch(err) { alert(err.message); }
+  }
+
+  async function addBreak() {
+    try {
+      const scene = await api.createScene(project.id, { name: 'Break', sceneType: 'break' });
+      const shot = await api.createShot(project.id, scene.id, { description: 'Break', estMinutes: 30, setupMinutes: 0, takesCount: 1, takeMinutes: 0, bufferMinutes: 0 });
+      updateScenes(prev => [...prev, { ...scene, shots: [shot] }]);
     } catch(err) { alert(err.message); }
   }
 
@@ -655,6 +731,7 @@ export default function ShotList({ project, onScenesChange }) {
               <div style={{ width:1, height:28, background:'var(--border)' }} />
             </div>
           )}
+          <button className="btn btn-ghost btn-sm" style={{ borderColor: BREAK_STYLE.border, color: BREAK_STYLE.badgeText }} onClick={addBreak}>+ Add Break</button>
           <button className="btn btn-primary btn-sm" onClick={() => setShowAddScene(true)}>+ Add Scene</button>
         </div>
       </div>
@@ -678,7 +755,11 @@ export default function ShotList({ project, onScenesChange }) {
 
       {scenes.length === 0 && <div className="empty">No scenes yet — add one to get started.</div>}
 
-      {scenes.map(scene => (
+      {scenes.map(scene => scene.scene_type === 'break' ? (
+        <BreakBlock key={scene.id} scene={scene} projectId={project.id}
+          onSceneUpdate={handleSceneUpdate} onShotUpdate={handleShotUpdate}
+          onShotAdded={handleShotAdded} onDelete={deleteScene} />
+      ) : (
         <SceneBlock key={scene.id} scene={scene} projectId={project.id} talent={talent}
           onShotUpdate={handleShotUpdate} onShotAdded={handleShotAdded} onShotDelete={handleShotDelete}
           onDeleteScene={deleteScene} onStartTimeChange={handleStartTimeChange}

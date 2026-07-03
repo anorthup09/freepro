@@ -1201,6 +1201,21 @@ function SlSceneBlock({ scene, shareToken, talent, onShotUpdate, onStartTimeChan
   );
 }
 
+const SL_BREAK_STYLE = { bg:'rgba(234,179,8,0.10)', border:'rgba(234,179,8,0.45)', badge:'rgba(234,179,8,0.20)', badgeText:'#eab308' };
+function SlBreakBlock({ scene }) {
+  const st = SL_BREAK_STYLE;
+  const duration = (scene.shots || [])[0]?.est_minutes ?? 0;
+  const endTime = slCalcWrap(scene.est_start_time || '', [{ est_minutes: duration }]);
+  return (
+    <div style={{ background:st.bg, border:`1px solid ${st.border}`, borderRadius:10, marginBottom:16, padding:'12px 20px', display:'flex', alignItems:'center', gap:14, flexWrap:'wrap' }}>
+      <span style={{ fontSize:10, fontWeight:800, color:st.badgeText, textTransform:'uppercase', letterSpacing:'.1em', background:st.badge, border:`1px solid ${st.border}`, borderRadius:4, padding:'2px 8px', whiteSpace:'nowrap', lineHeight:'20px' }}>☕ Break</span>
+      <span style={{ fontSize:15, fontWeight:700, color:'var(--text)', flex:1, minWidth:120 }}>{scene.name}</span>
+      {scene.est_start_time && <span style={{ fontSize:12, color:'var(--muted)', fontVariantNumeric:'tabular-nums' }}>{scene.est_start_time}{endTime ? ` – ${endTime}` : ''}</span>}
+      <span style={{ fontSize:12, fontWeight:700, color:st.badgeText }}>{duration} min</span>
+    </div>
+  );
+}
+
 function SlLiveClock() {
   const [time, setTime] = useState(new Date());
   useEffect(()=>{ const id=setInterval(()=>setTime(new Date()),1000); return ()=>clearInterval(id); },[]);
@@ -1224,9 +1239,10 @@ function ShotListShareView({ scenes: initialScenes, shareToken, talent }) {
     setScenes(prev => prev.map(s => s.id===sceneId ? { ...s, est_start_time:val } : s));
   }
 
-  const totalShots = scenes.reduce((s,sc)=>s+(sc.shots||[]).length,0);
+  const shotScenes = scenes.filter(sc => sc.scene_type !== 'break');
+  const totalShots = shotScenes.reduce((s,sc)=>s+(sc.shots||[]).length,0);
   const totalMinutes = scenes.reduce((s,sc)=>s+(sc.shots||[]).reduce((a,sh)=>a+(sh.est_minutes||0),0),0);
-  const capturedShots = scenes.reduce((s,sc)=>s+(sc.shots||[]).filter(sh=>sh.status==='captured').length,0);
+  const capturedShots = shotScenes.reduce((s,sc)=>s+(sc.shots||[]).filter(sh=>sh.status==='captured').length,0);
   const shootingCall = scenes.length>0 ? scenes[0].est_start_time||null : null;
   const lastScene = scenes.length>0 ? scenes[scenes.length-1] : null;
   const shootingWrap = lastScene ? slCalcWrap(lastScene.est_start_time, lastScene.shots||[]) : null;
@@ -1265,7 +1281,9 @@ function ShotListShareView({ scenes: initialScenes, shareToken, talent }) {
       </div>
 
       {scenes.length===0 && <div className="empty">No scenes added yet.</div>}
-      {scenes.map(scene=>(
+      {scenes.map(scene => scene.scene_type === 'break' ? (
+        <SlBreakBlock key={scene.id} scene={scene} />
+      ) : (
         <SlSceneBlock key={scene.id} scene={scene} shareToken={shareToken} talent={talent}
           onShotUpdate={handleShotUpdate} onStartTimeChange={handleStartTimeChange} />
       ))}
