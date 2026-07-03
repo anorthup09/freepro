@@ -250,29 +250,88 @@ textarea { resize: vertical; min-height: 70px; }
 .cs-table tr:nth-child(even) td { background: #f8fafc; }
 .cs-table tr:last-child td { border-bottom: none; }
 
+/* ── Responsive: tablet ── */
+@media (max-width: 860px) {
+  /* Dense dashboard grids reflow early so tiles stay legible */
+  .stats { grid-template-columns: repeat(2, 1fr); }
+  .guests { grid-template-columns: repeat(2, 1fr); }
+  .spec-tiles { grid-template-columns: repeat(2, 1fr); }
+  .loc-grid { grid-template-columns: 1fr; }
+  .crew-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Responsive: phone ── */
 @media (max-width: 640px) {
-  /* Make wide tables scroll horizontally on mobile */
+  /* Page container: tighter gutters reclaim width */
+  .wrap { padding: 14px; }
+
+  /* Nav: compact and wrapping (dropdowns stay visible — no scroll clip) */
+  .nav { padding: 8px 14px; gap: 8px; }
+  .logo { margin-right: 0; font-size: 16px; }
+  .tabs { gap: 4px; }
+
+  /* Typography */
+  .proj-title { font-size: 20px; }
+  .page-title { font-size: 16px; }
+  .proj-meta { gap: 8px 12px; }
+
+  /* Dashboard grids collapse */
+  .stats { grid-template-columns: repeat(2, 1fr) !important; }
+  .spec-tiles { grid-template-columns: repeat(2, 1fr) !important; }
+  .guests { grid-template-columns: repeat(2, 1fr) !important; }
+  .loc-grid, .crew-grid { grid-template-columns: 1fr !important; }
+
+  /* Forms: single column; spans collapse to full width */
+  .form-grid, .form-grid.cols3, .form-grid.cols1 { grid-template-columns: 1fr; }
+  .field.span2, .field.span3 { grid-column: span 1; }
+
+  /* Modals use nearly the full screen */
+  .modal-bg { padding: 10px; }
+  .modal { padding: 18px 16px; max-height: 92vh; }
+
+  /* Project cards: stack info above the meta/controls row */
+  .proj-card { flex-wrap: wrap; gap: 8px 12px; padding: 12px 14px; }
+  .proj-card-info { flex-basis: 100%; }
+
+  /* Make wide share tables scroll horizontally */
   .share-section { overflow-x: auto; }
   .share-table { min-width: 480px; }
   .share-table th, .share-table td { padding: 6px 8px; font-size: 11px; }
-
-  /* Flight table: hide less-critical columns */
   .share-table .hide-mobile { display: none; }
 
-  /* Crew cards: single column on mobile */
-  .crew-grid { grid-template-columns: 1fr !important; }
+  /* Internal tables: tighten padding/font so few-column tables fit */
+  .dtable, .pos-table { font-size: 11px; }
+  .dtable th, .dtable td { padding: 8px 6px; }
+  .dtable th:first-child, .dtable td:first-child { padding-left: 8px; }
+  .pos-table th, .pos-table td { padding: 7px 6px; }
 
-  /* Spec tiles: 2-col on mobile */
-  .spec-tiles { grid-template-columns: repeat(2, 1fr) !important; }
+  /* Chips become full-width for easier tapping */
+  .chip { flex: 1 1 100%; }
 
-  /* Event tile: tighten layout */
+  /* Flight / rental rows wrap instead of forcing a fixed name column */
+  .fname { min-width: 0; width: 100%; }
+  .froute { min-width: 0; }
+
+  /* Login card fits small screens */
+  .login-box { width: 100%; max-width: 340px; padding: 28px 22px; }
+
+  /* Schedule event tile: tighten layout, shrink time gutter */
   .ev { gap: 6px; }
-  .ev-time { font-size: 10px !important; }
-  .ev-body { padding: 7px 10px !important; }
+  .ev-time { width: 74px; min-width: 74px; max-width: 74px; font-size: 10px !important; }
+  .ev-body { padding: 8px 10px !important; }
   .ev-title { font-size: 12px !important; }
 
   /* Day header: wrap gracefully */
   .day-header { flex-wrap: wrap; gap: 6px; }
+
+  /* Overview reflow hooks (classes added in Overview.jsx) */
+  .ov-split { grid-template-columns: 1fr !important; gap: 16px !important; }
+  .ov-inline-row { flex-wrap: wrap; }
+  .ov-inline-row .ov-fixed { width: auto !important; flex: 1 1 auto; }
+  .ov-stats-3 { overflow-x: auto; }
+
+  /* Call sheets: let wide tables scroll within their card */
+  .callsheet-day { overflow-x: auto; }
 }
 
 @media print {
