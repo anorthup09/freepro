@@ -789,7 +789,7 @@ export default function ShotList({ project, onScenesChange }) {
   const [talent, setTalent] = useState([]);
   const [days, setDays] = useState([]);
   const [showAddScene, setShowAddScene] = useState(false);
-  const [sceneForm, setSceneForm] = useState({ name: '', description: '', sceneType: 'interior' });
+  const [sceneForm, setSceneForm] = useState({ name: '', description: '', sceneType: 'interior', dayId: '', estStartTime: '' });
   const [showAddDay, setShowAddDay] = useState(false);
   const [dayForm, setDayForm] = useState({ month: '', day: '', year: String(new Date().getFullYear()), callTime: '', shootingCall: '', lunchTime: '', estWrap: '' });
   const [editingDay, setEditingDay] = useState(null);
@@ -828,7 +828,7 @@ export default function ShotList({ project, onScenesChange }) {
       const scene = await api.createScene(project.id, sceneForm);
       updateScenes(prev => [...prev, scene]);
       setShowAddScene(false);
-      setSceneForm({ name: '', description: '', sceneType: 'interior' });
+      setSceneForm({ name: '', description: '', sceneType: 'interior', dayId: '', estStartTime: '' });
     } catch(err) { alert(err.message); }
   }
 
@@ -1031,7 +1031,18 @@ export default function ShotList({ project, onScenesChange }) {
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
           <button className="btn btn-ghost btn-sm" onClick={() => setShowAddDay(true)} style={{ border:'1px solid var(--border)' }}>+ Add Day</button>
-          <button className="btn btn-primary btn-sm" onClick={() => setShowAddScene(true)}>+ Add Scene</button>
+          <button className="btn btn-primary btn-sm" onClick={() => {
+            // Default start time = wrap time of last scene across all days
+            let defaultStart = '';
+            const allWithTime = scenes.filter(s => s.est_start_time);
+            if (allWithTime.length > 0) {
+              const sorted = [...allWithTime].sort((a, b) => (timeToMins(a.est_start_time) ?? 0) - (timeToMins(b.est_start_time) ?? 0));
+              const last = sorted[sorted.length - 1];
+              defaultStart = calcWrapTime(last.est_start_time, last.shots || '') || '';
+            }
+            setSceneForm({ name: '', description: '', sceneType: 'interior', dayId: '', estStartTime: defaultStart });
+            setShowAddScene(true);
+          }}>+ Add Scene</button>
         </div>
       </div>
 
@@ -1219,6 +1230,28 @@ export default function ShotList({ project, onScenesChange }) {
                     </button>
                   ))}
                 </div>
+              </div>
+              <div className="field">
+                <label>Day</label>
+                <select value={sceneForm.dayId} onChange={e => {
+                  const dayId = e.target.value;
+                  let defaultStart = sceneForm.estStartTime;
+                  if (dayId) {
+                    const dayScenes = scenes.filter(s => s.day_id === dayId && s.est_start_time).sort((a, b) => (timeToMins(a.est_start_time) ?? 0) - (timeToMins(b.est_start_time) ?? 0));
+                    if (dayScenes.length > 0) {
+                      const last = dayScenes[dayScenes.length - 1];
+                      defaultStart = calcWrapTime(last.est_start_time, last.shots || []) || defaultStart;
+                    }
+                  }
+                  setSceneForm(f => ({...f, dayId, estStartTime: defaultStart}));
+                }} style={{ width:'100%', background:'var(--surface)', border:'1px solid var(--border)', borderRadius:6, padding:'7px 10px', color:'var(--text)', fontSize:13, fontFamily:'inherit', outline:'none' }}>
+                  <option value="">— Unassigned —</option>
+                  {days.map(d => <option key={d.id} value={d.id}>{d.date || `Day ${d.day_number}`}</option>)}
+                </select>
+              </div>
+              <div className="field">
+                <label>Est. Start Time</label>
+                <input value={sceneForm.estStartTime} onChange={e => setSceneForm(f => ({...f, estStartTime: e.target.value}))} placeholder="9:00 AM" style={{ width:'100%' }} />
               </div>
               <div style={{ display:'flex', gap:8, marginTop:16 }}>
                 <button type="submit" className="btn btn-primary btn-sm">Add Scene</button>
