@@ -44,7 +44,7 @@ function DropdownTab({ label, subtabs, tab, setTab }) {
 
   return (
     <div ref={ref} style={{ position:'relative' }} onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
-      <button className={`tab${isActive ? ' on' : ''}`} onClick={() => setTab(subtabs[0].id)}>
+      <button className={`tab${isActive ? ' on' : ''}`} onClick={() => setOpen(o => !o)}>
         {label} ▾
       </button>
       {open && (

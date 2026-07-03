@@ -259,7 +259,7 @@ function ShotRow({ shot, index, sceneNumber, projectId, onUpdate, onDelete, acce
       {isOpen && (
         <tr style={{ borderBottom:'1px solid var(--border)', background:'rgba(255,255,255,0.025)' }}>
           <td colSpan={9} style={{ padding:'12px 14px 16px 76px' }}>
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr', gap:'10px 14px', marginBottom:12 }}>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(130px, 1fr))', gap:'10px 14px', marginBottom:12 }}>
               <div className="field" style={{ margin:0 }}>
                 <label style={{ fontSize:10 }}>Angle</label>
                 <input value={detail.angle} onChange={e => setDetail(f => ({...f, angle: e.target.value}))} placeholder="e.g. Eye level" />
@@ -431,7 +431,7 @@ function DaySynopsisCard({ day, onDelete, scenes, scheduleDays, onDateSelect }) 
 
   return (
     <div style={{ marginBottom: 16, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, overflow: 'hidden' }}>
-      <div style={{ padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)', letterSpacing: '.04em' }}>
             DAY {day.day_number}
@@ -460,7 +460,7 @@ function DaySynopsisCard({ day, onDelete, scenes, scheduleDays, onDateSelect }) 
         </div>
       </div>
       <div style={{ padding: '0 16px 10px' }}>
-        <div style={{ background: 'rgba(0,0,0,0.35)', borderRadius: 10, display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.07)' }}>
+        <div style={{ background: 'rgba(0,0,0,0.35)', borderRadius: 10, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.07)' }}>
           {tiles.map((t, i) => (
             <div key={t.label} style={{ padding: '7px 12px', borderRight: i < 3 ? '1px solid rgba(255,255,255,0.07)' : 'none', textAlign: 'center' }}>
               <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '.12em', marginBottom: 2 }}>{t.label}</div>
@@ -474,7 +474,7 @@ function DaySynopsisCard({ day, onDelete, scenes, scheduleDays, onDateSelect }) 
 }
 
 // ── Scene Block ───────────────────────────────────────────────────────────────
-function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded, onShotDelete, onDeleteScene, onStartTimeChange, onShotsReorder, onSceneUpdate }) {
+function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded, onShotDelete, onDeleteScene, onStartTimeChange, onShotsReorder, onSceneUpdate, onAddBreak }) {
   const st = SCENE_TYPE_STYLES[scene.scene_type] || SCENE_TYPE_STYLES.interior;
   const [startTime, setStartTime] = useState(scene.est_start_time || '');
   const [allExpanded, setAllExpanded] = useState(false);
@@ -559,6 +559,17 @@ function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded,
 
   const wrapTime = calcWrapTime(startTime, scene.shots);
 
+  const [showBreakForm, setShowBreakForm] = useState(false);
+  const [breakEndTime, setBreakEndTime] = useState('');
+
+  function handleAddBreak(e) {
+    e.preventDefault();
+    if (!wrapTime || !breakEndTime) return;
+    onAddBreak?.({ dayId: scene.day_id || null, startTime: wrapTime, endTime: breakEndTime });
+    setBreakEndTime('');
+    setShowBreakForm(false);
+  }
+
   return (
     <div style={{ background:'var(--bg2)', border:`1px solid ${st.border}`, borderRadius:10, overflow:'hidden', marginBottom:16 }}>
       {/* Scene header */}
@@ -618,7 +629,8 @@ function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded,
       </div>
 
       {/* Shot table */}
-      <table style={{ width:'100%', borderCollapse:'collapse' }}>
+      <div style={{ overflowX:'auto', WebkitOverflowScrolling:'touch' }}>
+      <table style={{ width:'100%', minWidth:520, borderCollapse:'collapse' }}>
         <thead>
           <tr style={{ borderBottom:'1px solid var(--border)' }}>
             <th style={{ width:20 }} />
@@ -656,6 +668,7 @@ function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded,
             onAdded={shot => onShotAdded(scene.id, shot)} accentColor={st.badgeText} />
         </tbody>
       </table>
+      </div>
 
       {/* Footer */}
       <div style={{ padding:'10px 20px', background: st.bg, borderTop:`1px solid ${st.border}`, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
@@ -664,11 +677,26 @@ function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded,
           <span style={{ fontSize:12 }}>{allExpanded ? '▲' : '▼'}</span>
           {allExpanded ? 'Collapse All' : 'Expand All Shots'}
         </button>
-        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-          <span style={{ fontSize:11, fontWeight:700, color: st.badgeText, textTransform:'uppercase', letterSpacing:'.08em', opacity:0.7 }}>Est. Scene Wrap:</span>
-          <span style={{ fontSize:13, fontWeight:800, color: st.badgeText, fontVariantNumeric:'tabular-nums' }}>
-            {wrapTime || (startTime ? 'Invalid time' : '—')}
-          </span>
+        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+            <span style={{ fontSize:11, fontWeight:700, color: st.badgeText, textTransform:'uppercase', letterSpacing:'.08em', opacity:0.7 }}>Est. Scene Wrap:</span>
+            <span style={{ fontSize:13, fontWeight:800, color: st.badgeText, fontVariantNumeric:'tabular-nums' }}>
+              {wrapTime || (startTime ? 'Invalid time' : '—')}
+            </span>
+          </div>
+          {wrapTime && !showBreakForm && (
+            <button onClick={() => setShowBreakForm(true)} style={{ fontSize:10, fontWeight:700, color:'rgba(234,179,8,0.8)', background:'rgba(234,179,8,0.08)', border:'1px solid rgba(234,179,8,0.25)', borderRadius:5, padding:'3px 8px', cursor:'pointer', letterSpacing:'.06em', textTransform:'uppercase' }}>+ Break</button>
+          )}
+          {showBreakForm && (
+            <form onSubmit={handleAddBreak} style={{ display:'flex', alignItems:'center', gap:6 }}>
+              <span style={{ fontSize:11, color:'rgba(234,179,8,0.7)', fontVariantNumeric:'tabular-nums', fontWeight:600 }}>{wrapTime}</span>
+              <span style={{ fontSize:11, color:'var(--muted)' }}>→</span>
+              <input value={breakEndTime} onChange={e => setBreakEndTime(e.target.value)} placeholder="1:00 PM" autoFocus
+                style={{ width:82, background:'rgba(234,179,8,0.08)', border:'1px solid rgba(234,179,8,0.3)', borderRadius:5, padding:'3px 7px', fontSize:12, color:'var(--text)', fontFamily:'inherit', outline:'none' }} />
+              <button type="submit" style={{ fontSize:10, fontWeight:700, color:'rgba(234,179,8,0.9)', background:'rgba(234,179,8,0.12)', border:'1px solid rgba(234,179,8,0.3)', borderRadius:5, padding:'3px 8px', cursor:'pointer' }}>Add</button>
+              <button type="button" onClick={() => { setShowBreakForm(false); setBreakEndTime(''); }} style={{ fontSize:10, color:'var(--muted)', background:'none', border:'none', cursor:'pointer', padding:'3px 4px' }}>✕</button>
+            </form>
+          )}
         </div>
       </div>
 
@@ -833,17 +861,30 @@ export default function ShotList({ project, onScenesChange }) {
     try {
       const b = await api.createBreak(project.id, { dayId: breakForm.dayId || null, startTime: breakForm.startTime, endTime: breakForm.endTime });
       setBreaks(prev => [...prev, b]);
-      // Auto-set next scene start time to break end time
-      if (breakForm.endTime && breakForm.dayId) {
-        const dayScenesAfterBreak = scenes.filter(s => s.day_id === breakForm.dayId && (!s.est_start_time || timeToMins(s.est_start_time) >= timeToMins(breakForm.startTime)));
-        if (dayScenesAfterBreak.length > 0) {
-          const firstAfter = dayScenesAfterBreak.sort((a,b2) => (timeToMins(a.est_start_time)||0) - (timeToMins(b2.est_start_time)||0))[0];
-          await api.updateScene(project.id, firstAfter.id, { estStartTime: breakForm.endTime });
-          updateScenes(prev => prev.map(s => s.id === firstAfter.id ? { ...s, est_start_time: breakForm.endTime } : s));
-        }
-      }
+      await propagateBreakEnd(breakForm.dayId, breakForm.startTime, breakForm.endTime);
       setShowAddBreak(false);
       setBreakForm({ dayId: '', startTime: '', endTime: '' });
+    } catch(err) { alert(err.message); }
+  }
+
+  async function propagateBreakEnd(dayId, breakStart, breakEnd) {
+    if (!breakEnd || !dayId) return;
+    const startMins = timeToMins(breakStart);
+    const dayScenesAfter = scenes
+      .filter(s => s.day_id === dayId && timeToMins(s.est_start_time) != null && timeToMins(s.est_start_time) >= (startMins ?? 0))
+      .sort((a, b2) => (timeToMins(a.est_start_time)||0) - (timeToMins(b2.est_start_time)||0));
+    if (dayScenesAfter.length > 0) {
+      const next = dayScenesAfter[0];
+      await api.updateScene(project.id, next.id, { estStartTime: breakEnd });
+      updateScenes(prev => prev.map(s => s.id === next.id ? { ...s, est_start_time: breakEnd } : s));
+    }
+  }
+
+  async function handleSceneBreakAdd({ dayId, startTime, endTime }) {
+    try {
+      const b = await api.createBreak(project.id, { dayId: dayId || null, startTime, endTime });
+      setBreaks(prev => [...prev, b]);
+      await propagateBreakEnd(dayId, startTime, endTime);
     } catch(err) { alert(err.message); }
   }
 
@@ -923,14 +964,13 @@ export default function ShotList({ project, onScenesChange }) {
 
   return (
     <div>
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4 }}>
+      <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:4, gap:10, flexWrap:'wrap' }}>
         <div>
           <div className="page-title" style={{ marginBottom:0 }}>Shot List</div>
           <div className="page-sub">{project.client} · {project.code}</div>
         </div>
-        <div style={{ display:'flex', alignItems:'center', gap:16 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
           <button className="btn btn-ghost btn-sm" onClick={() => setShowAddDay(true)} style={{ border:'1px solid var(--border)' }}>+ Add Day</button>
-          <button className="btn btn-ghost btn-sm" onClick={() => setShowAddBreak(true)} style={{ border:'1px solid rgba(234,179,8,0.4)', color:'rgba(234,179,8,0.9)' }}>+ Add Break</button>
           <button className="btn btn-primary btn-sm" onClick={() => setShowAddScene(true)}>+ Add Scene</button>
         </div>
       </div>
@@ -955,7 +995,7 @@ export default function ShotList({ project, onScenesChange }) {
               <SceneBlock key={item.data.id} scene={item.data} projectId={project.id} talent={talent} days={days}
                 onShotUpdate={handleShotUpdate} onShotAdded={handleShotAdded} onShotDelete={handleShotDelete}
                 onDeleteScene={deleteScene} onStartTimeChange={handleStartTimeChange}
-                onShotsReorder={handleShotsReorder} onSceneUpdate={handleSceneUpdate} />
+                onShotsReorder={handleShotsReorder} onSceneUpdate={handleSceneUpdate} onAddBreak={handleSceneBreakAdd} />
             ) : (
               <div key={item.data.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', margin:'8px 0', padding:'10px 16px', background:'rgba(234,179,8,0.08)', border:'1px solid rgba(234,179,8,0.3)', borderRadius:8 }}>
                 <div style={{ display:'flex', alignItems:'center', gap:10 }}>
@@ -990,7 +1030,7 @@ export default function ShotList({ project, onScenesChange }) {
               <SceneBlock key={scene.id} scene={scene} projectId={project.id} talent={talent} days={days}
                 onShotUpdate={handleShotUpdate} onShotAdded={handleShotAdded} onShotDelete={handleShotDelete}
                 onDeleteScene={deleteScene} onStartTimeChange={handleStartTimeChange}
-                onShotsReorder={handleShotsReorder} onSceneUpdate={handleSceneUpdate} />
+                onShotsReorder={handleShotsReorder} onSceneUpdate={handleSceneUpdate} onAddBreak={handleSceneBreakAdd} />
             ))}
           </div>
         );

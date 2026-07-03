@@ -1167,7 +1167,8 @@ function SlSceneBlock({ scene, shareToken, talent, onShotUpdate, onStartTimeChan
             style={{ width:78, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.12)', borderRadius:5, padding:'3px 7px', fontSize:12, color:'var(--text)', fontFamily:'inherit', outline:'none' }} />
         </div>
       </div>
-      <table style={{ width:'100%', borderCollapse:'collapse' }}>
+      <div style={{ overflowX:'auto', WebkitOverflowScrolling:'touch' }}>
+      <table style={{ width:'100%', minWidth:480, borderCollapse:'collapse' }}>
         <thead>
           <tr style={{ borderBottom:'1px solid var(--border)' }}>
             <th style={{ width:28 }} />
@@ -1187,6 +1188,7 @@ function SlSceneBlock({ scene, shareToken, talent, onShotUpdate, onStartTimeChan
           ))}
         </tbody>
       </table>
+      </div>
       <div style={{ padding:'10px 20px', background:st.bg, borderTop:`1px solid ${st.border}`, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
         <button onClick={()=>setAllExpanded(e=>!e)} style={{ background:'none', border:'none', fontSize:11, fontWeight:700, color:st.badgeText, cursor:'pointer', padding:0, textTransform:'uppercase', letterSpacing:'.08em', opacity:0.8, display:'flex', alignItems:'center', gap:5 }}>
           <span style={{ fontSize:12 }}>{allExpanded?'▲':'▼'}</span>
@@ -1255,7 +1257,7 @@ function ShotListShareView({ scenes: initialScenes, shareToken, talent }) {
 
       <SlLiveClock />
 
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:10, marginBottom:20 }}>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(130px, 1fr))', gap:10, marginBottom:20 }}>
         {[{label:'Total Shots',val:totalShots},{label:'Captured',val:capturedShots},{label:'Remaining',val:totalShots-capturedShots},{label:'Est. Time',val:`${Math.floor(totalMinutes/60)}h ${totalMinutes%60}m`}].map(s=>(
           <div key={s.label} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding:'16px 20px' }}>
             <div style={{ fontSize:26, fontWeight:800, color:'var(--text)', fontFamily:"'Syne',sans-serif", letterSpacing:'-0.5px', lineHeight:1 }}>{s.val}</div>
@@ -1964,8 +1966,8 @@ export default function Share() {
   }
 
   if (passwordRequired && !data) return (
-    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:'100vh', background:'var(--bg)', color:'var(--text)' }}>
-      <div style={{ background:'rgba(232,80,10,0.80)', border:'1px solid rgba(255,255,255,0.35)', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.25), inset -1px 0 0 rgba(0,0,0,0.4), 0 3px 10px rgba(0,0,0,0.5)', borderRadius:12, padding:'36px 40px', width:320, textAlign:'center' }}>
+    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:'100vh', background:'var(--bg)', color:'var(--text)', padding:16 }}>
+      <div style={{ background:'rgba(232,80,10,0.80)', border:'1px solid rgba(255,255,255,0.35)', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.25), inset -1px 0 0 rgba(0,0,0,0.4), 0 3px 10px rgba(0,0,0,0.5)', borderRadius:12, padding:'36px 40px', width:'100%', maxWidth:320, textAlign:'center' }}>
         <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:2, marginBottom:20 }}>
           <div className="logo" style={{ justifyContent:'center', color:'#fff' }}>Free<em style={{ color:'#fff' }}>Pro</em></div>
           <span style={{ fontSize:9, color:'rgba(255,255,255,0.6)', letterSpacing:'0.06em' }}>Powered by Unbridled Media</span>
@@ -2012,7 +2014,7 @@ export default function Share() {
       {(view_type === 'producer' || view_type === 'crew' || view_type === 'client') && (
         <GlassHeader project={data.project} headerRef={shareHeaderRef} />
       )}
-      <nav className="nav" style={{ justifyContent:'space-between' }}>
+      <nav className="nav" style={{ justifyContent:'space-between', flexWrap:'wrap', rowGap:6 }}>
         <div style={{ display:'flex', flexDirection:'column', gap:1 }}>
           <div className="logo">Free<em>Pro</em></div>
           <span style={{ fontSize:9, color:'var(--muted)', letterSpacing:'0.06em', paddingLeft:1 }}>Powered by Unbridled Media</span>

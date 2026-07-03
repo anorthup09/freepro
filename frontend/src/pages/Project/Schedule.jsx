@@ -442,7 +442,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
           ✓ Saved
         </div>
       )}
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
+      <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:14, flexWrap:'wrap', gap:10 }}>
         <div>
           <div className="page-title">Schedule</div>
           <div className="page-sub">{project.city}, {project.state} · {parseDay(project.start_date||project.startDate).toLocaleDateString()} – {parseDay(project.end_date||project.endDate).toLocaleDateString()}</div>
