@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../api.js';
 import { displayName } from '../utils/displayName.js';
+import { orderShotBlocks } from '../utils/shotOrder.js';
 
 function useNow() {
   const [now, setNow] = useState(() => new Date());
@@ -1151,8 +1152,8 @@ function SlSceneBlock({ scene, shareToken, talent, onShotUpdate, onStartTimeChan
 
   return (
     <div style={{ background:'var(--bg2)', border:`1px solid ${st.border}`, borderRadius:10, overflow:'hidden', marginBottom:16 }}>
-      <div style={{ padding:'12px 20px', background:st.bg, borderBottom:`1px solid ${st.border}`, display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap' }}>
-        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+      <div className="sl-scene-header" style={{ padding:'12px 20px', background:st.bg, borderBottom:`1px solid ${st.border}`, display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap' }}>
+        <div className="sl-scene-main" style={{ display:'flex', alignItems:'center', gap:10 }}>
           <span style={{ fontSize:10, fontWeight:800, color:st.badgeText, textTransform:'uppercase', letterSpacing:'.1em', background:st.badge, border:`1px solid ${st.border}`, borderRadius:4, padding:'2px 8px' }}>
             {st.label} · Scene {scene.scene_number}
           </span>
@@ -1160,13 +1161,14 @@ function SlSceneBlock({ scene, shareToken, talent, onShotUpdate, onStartTimeChan
           {scene.description && <span style={{ fontSize:12, color:'var(--muted)' }}>· {scene.description}</span>}
           <span style={{ fontSize:12, color:'var(--muted)' }}>{(scene.shots||[]).length} shot{(scene.shots||[]).length!==1?'s':''}</span>
         </div>
-        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+        <div className="sl-scene-ctrl" style={{ display:'flex', alignItems:'center', gap:8 }}>
           <span style={{ fontSize:10, fontWeight:700, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em' }}>Est. Start</span>
           <input value={startTime} onChange={e=>setStartTime(e.target.value)} onBlur={()=>saveStartTime(startTime)}
             placeholder="9:00 AM"
             style={{ width:78, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.12)', borderRadius:5, padding:'3px 7px', fontSize:12, color:'var(--text)', fontFamily:'inherit', outline:'none' }} />
         </div>
       </div>
+      <div className="sl-table-wrap">
       <table style={{ width:'100%', borderCollapse:'collapse' }}>
         <thead>
           <tr style={{ borderBottom:'1px solid var(--border)' }}>
@@ -1187,6 +1189,7 @@ function SlSceneBlock({ scene, shareToken, talent, onShotUpdate, onStartTimeChan
           ))}
         </tbody>
       </table>
+      </div>
       <div style={{ padding:'10px 20px', background:st.bg, borderTop:`1px solid ${st.border}`, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
         <button onClick={()=>setAllExpanded(e=>!e)} style={{ background:'none', border:'none', fontSize:11, fontWeight:700, color:st.badgeText, cursor:'pointer', padding:0, textTransform:'uppercase', letterSpacing:'.08em', opacity:0.8, display:'flex', alignItems:'center', gap:5 }}>
           <span style={{ fontSize:12 }}>{allExpanded?'▲':'▼'}</span>
@@ -1197,6 +1200,21 @@ function SlSceneBlock({ scene, shareToken, talent, onShotUpdate, onStartTimeChan
           <span style={{ fontSize:13, fontWeight:800, color:st.badgeText, fontVariantNumeric:'tabular-nums' }}>{wrapTime||(startTime?'Invalid time':'—')}</span>
         </div>
       </div>
+    </div>
+  );
+}
+
+const SL_BREAK_STYLE = { bg:'rgba(234,179,8,0.10)', border:'rgba(234,179,8,0.45)', badge:'rgba(234,179,8,0.20)', badgeText:'#eab308' };
+function SlBreakBlock({ scene }) {
+  const st = SL_BREAK_STYLE;
+  const duration = (scene.shots || [])[0]?.est_minutes ?? 0;
+  const endTime = slCalcWrap(scene.est_start_time || '', [{ est_minutes: duration }]);
+  return (
+    <div style={{ background:st.bg, border:`1px solid ${st.border}`, borderRadius:10, marginBottom:16, padding:'12px 20px', display:'flex', alignItems:'center', gap:14, flexWrap:'wrap' }}>
+      <span style={{ fontSize:10, fontWeight:800, color:st.badgeText, textTransform:'uppercase', letterSpacing:'.1em', background:st.badge, border:`1px solid ${st.border}`, borderRadius:4, padding:'2px 8px', whiteSpace:'nowrap', lineHeight:'20px' }}>☕ Break</span>
+      <span style={{ fontSize:15, fontWeight:700, color:'var(--text)', flex:1, minWidth:120 }}>{scene.name}</span>
+      {scene.est_start_time && <span style={{ fontSize:12, color:'var(--muted)', fontVariantNumeric:'tabular-nums' }}>{scene.est_start_time}{endTime ? ` – ${endTime}` : ''}</span>}
+      <span style={{ fontSize:12, fontWeight:700, color:st.badgeText }}>{duration} min</span>
     </div>
   );
 }
@@ -1224,11 +1242,13 @@ function ShotListShareView({ scenes: initialScenes, shareToken, talent }) {
     setScenes(prev => prev.map(s => s.id===sceneId ? { ...s, est_start_time:val } : s));
   }
 
-  const totalShots = scenes.reduce((s,sc)=>s+(sc.shots||[]).length,0);
+  const orderedScenes = orderShotBlocks(scenes);
+  const shotScenes = scenes.filter(sc => sc.scene_type !== 'break');
+  const totalShots = shotScenes.reduce((s,sc)=>s+(sc.shots||[]).length,0);
   const totalMinutes = scenes.reduce((s,sc)=>s+(sc.shots||[]).reduce((a,sh)=>a+(sh.est_minutes||0),0),0);
-  const capturedShots = scenes.reduce((s,sc)=>s+(sc.shots||[]).filter(sh=>sh.status==='captured').length,0);
-  const shootingCall = scenes.length>0 ? scenes[0].est_start_time||null : null;
-  const lastScene = scenes.length>0 ? scenes[scenes.length-1] : null;
+  const capturedShots = shotScenes.reduce((s,sc)=>s+(sc.shots||[]).filter(sh=>sh.status==='captured').length,0);
+  const shootingCall = orderedScenes.length>0 ? orderedScenes[0].est_start_time||null : null;
+  const lastScene = orderedScenes.length>0 ? orderedScenes[orderedScenes.length-1] : null;
   const shootingWrap = lastScene ? slCalcWrap(lastScene.est_start_time, lastScene.shots||[]) : null;
 
   return (
@@ -1265,7 +1285,9 @@ function ShotListShareView({ scenes: initialScenes, shareToken, talent }) {
       </div>
 
       {scenes.length===0 && <div className="empty">No scenes added yet.</div>}
-      {scenes.map(scene=>(
+      {orderedScenes.map(scene => scene.scene_type === 'break' ? (
+        <SlBreakBlock key={scene.id} scene={scene} />
+      ) : (
         <SlSceneBlock key={scene.id} scene={scene} shareToken={shareToken} talent={talent}
           onShotUpdate={handleShotUpdate} onStartTimeChange={handleStartTimeChange} />
       ))}

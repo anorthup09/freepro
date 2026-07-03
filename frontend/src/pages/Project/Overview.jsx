@@ -318,9 +318,10 @@ export default function Overview({ project, setProject, onTabChange }) {
       </div>
 
       {/* Public View Password */}
-      <form onSubmit={saveSharePw} style={{ display:'flex', alignItems:'center', gap:12, background:'rgba(232,80,10,0.80)', border:'1px solid rgba(255,255,255,0.35)', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.25), inset -1px 0 0 rgba(0,0,0,0.4), 0 3px 10px rgba(0,0,0,0.5)', borderRadius:8, padding:'12px 16px', margin:'20px 0 10px' }}>
+      <form onSubmit={saveSharePw} className="ov-inline-row" style={{ display:'flex', alignItems:'center', gap:12, background:'rgba(232,80,10,0.80)', border:'1px solid rgba(255,255,255,0.35)', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.25), inset -1px 0 0 rgba(0,0,0,0.4), 0 3px 10px rgba(0,0,0,0.5)', borderRadius:8, padding:'12px 16px', margin:'20px 0 10px' }}>
         <span style={{ fontSize:13, fontWeight:700, whiteSpace:'nowrap', color:'#fff', width:160, flexShrink:0 }}>Public View Password</span>
         <input
+          className="ov-fixed"
           value={sharePw}
           onChange={e => { setSharePw(e.target.value.replace(/[^a-zA-Z0-9]/g, '')); setSharePwSaved(false); }}
           placeholder="No password set"
@@ -346,9 +347,9 @@ export default function Overview({ project, setProject, onTabChange }) {
       </form>
 
       {/* Main POC + Gear Contact */}
-      <div style={{ display:'flex', alignItems:'center', gap:12, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'12px 16px', marginBottom: gearPerson ? 0 : 10, borderBottomLeftRadius: gearPerson ? 0 : 8, borderBottomRightRadius: gearPerson ? 0 : 8, borderBottom: gearPerson ? 'none' : undefined }}>
+      <div className="ov-inline-row" style={{ display:'flex', alignItems:'center', gap:12, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'12px 16px', marginBottom: gearPerson ? 0 : 10, borderBottomLeftRadius: gearPerson ? 0 : 8, borderBottomRightRadius: gearPerson ? 0 : 8, borderBottom: gearPerson ? 'none' : undefined }}>
         <span style={{ fontSize:13, fontWeight:700, color:'var(--text)', whiteSpace:'nowrap', width:160, flexShrink:0 }}>Main POC</span>
-        <select value={pocId} onChange={e => savePoc(e.target.value)} style={{ width:200, flexShrink:0 }}>
+        <select className="ov-fixed" value={pocId} onChange={e => savePoc(e.target.value)} style={{ width:200, flexShrink:0 }}>
           <option value="">— Unassigned —</option>
           {assignedCrew.map(a => (
             <option key={a.crewMember.id} value={a.crewMember.id}>
@@ -367,17 +368,18 @@ export default function Overview({ project, setProject, onTabChange }) {
       {gearPerson && (
         <div
           onClick={() => onTabChange?.('gear')}
+          className="ov-inline-row"
           style={{ display:'flex', alignItems:'center', gap:12, background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'1px solid var(--border2)', borderRadius:8, borderTopLeftRadius:0, borderTopRightRadius:0, padding:'10px 16px', marginBottom:10, cursor:'pointer' }}
         >
           <span style={{ fontSize:13, fontWeight:700, color:'var(--text)', whiteSpace:'nowrap', width:160, flexShrink:0 }}>Gear Contact</span>
-          <span style={{ fontWeight:500, fontSize:13, width:200, flexShrink:0 }}>{gearPerson.name}</span>
+          <span className="ov-fixed" style={{ fontWeight:500, fontSize:13, width:200, flexShrink:0 }}>{gearPerson.name}</span>
           {gearPerson.phone && <span style={{ fontSize:12, color:'var(--tan)' }}>{gearPerson.phone}</span>}
           {gearPerson.email && <span style={{ fontSize:12, color:'var(--muted)' }}>{gearPerson.email}</span>}
         </div>
       )}
 
       {/* Stats */}
-      <div style={{
+      <div className="ov-stats-3" style={{
         display:'grid', gridTemplateColumns:'repeat(3,1fr)',
         margin:'10px 0 20px',
         borderRadius:10,
@@ -429,7 +431,7 @@ export default function Overview({ project, setProject, onTabChange }) {
       )}
 
       {/* Key Dates (left) + Contacts (right) */}
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20, marginBottom:20 }}>
+      <div className="ov-split" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20, marginBottom:20 }}>
         {/* Left: Key Dates */}
         <div>
           {scheduleDays.length > 0 && (
