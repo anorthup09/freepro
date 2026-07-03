@@ -1032,14 +1032,21 @@ export default function ShotList({ project, onScenesChange }) {
         <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
           <button className="btn btn-ghost btn-sm" onClick={() => setShowAddDay(true)} style={{ border:'1px solid var(--border)' }}>+ Add Day</button>
           <button className="btn btn-primary btn-sm" onClick={() => {
-            // Default start time = wrap time of last scene across all days
+            // Default start time = latest of (last scene wrap, last break end) across all days
+            let defaultMins = -1;
             let defaultStart = '';
             const allWithTime = scenes.filter(s => s.est_start_time);
             if (allWithTime.length > 0) {
               const sorted = [...allWithTime].sort((a, b) => (timeToMins(a.est_start_time) ?? 0) - (timeToMins(b.est_start_time) ?? 0));
               const last = sorted[sorted.length - 1];
-              defaultStart = calcWrapTime(last.est_start_time, last.shots || '') || '';
+              const wrap = calcWrapTime(last.est_start_time, last.shots || []);
+              if (wrap) { defaultStart = wrap; defaultMins = timeToMins(wrap) ?? -1; }
             }
+            breaks.forEach(b => {
+              if (!b.end_time) return;
+              const m = timeToMins(b.end_time);
+              if (m != null && m > defaultMins) { defaultMins = m; defaultStart = b.end_time; }
+            });
             setSceneForm({ name: '', description: '', sceneType: 'interior', dayId: '', estStartTime: defaultStart });
             setShowAddScene(true);
           }}>+ Add Scene</button>
@@ -1236,12 +1243,18 @@ export default function ShotList({ project, onScenesChange }) {
                 <select value={sceneForm.dayId} onChange={e => {
                   const dayId = e.target.value;
                   let defaultStart = sceneForm.estStartTime;
+                  let defaultMins = defaultStart ? (timeToMins(defaultStart) ?? -1) : -1;
                   if (dayId) {
                     const dayScenes = scenes.filter(s => s.day_id === dayId && s.est_start_time).sort((a, b) => (timeToMins(a.est_start_time) ?? 0) - (timeToMins(b.est_start_time) ?? 0));
                     if (dayScenes.length > 0) {
                       const last = dayScenes[dayScenes.length - 1];
-                      defaultStart = calcWrapTime(last.est_start_time, last.shots || []) || defaultStart;
+                      const wrap = calcWrapTime(last.est_start_time, last.shots || []);
+                      if (wrap) { const m = timeToMins(wrap) ?? -1; if (m > defaultMins) { defaultMins = m; defaultStart = wrap; } }
                     }
+                    breaks.filter(b => b.day_id === dayId && b.end_time).forEach(b => {
+                      const m = timeToMins(b.end_time);
+                      if (m != null && m > defaultMins) { defaultMins = m; defaultStart = b.end_time; }
+                    });
                   }
                   setSceneForm(f => ({...f, dayId, estStartTime: defaultStart}));
                 }} style={{ width:'100%', background:'var(--surface)', border:'1px solid var(--border)', borderRadius:6, padding:'7px 10px', color:'var(--text)', fontSize:13, fontFamily:'inherit', outline:'none' }}>
