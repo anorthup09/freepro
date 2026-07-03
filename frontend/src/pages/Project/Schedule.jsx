@@ -621,19 +621,15 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
               .map(c => ({ _type:'catering', _sort: timeToMinutes(c.delivery_time) || 9997, _key:`cat-${c.id}`, ...c }));
             const lunchCateringRaw = (currentDay.catering || []).find(c => c.meal_type === 'LUNCH');
             const lunchCatering = lunchCateringRaw && (lunchCateringRaw.name || lunchCateringRaw.address || lunchCateringRaw.delivery_time) ? lunchCateringRaw : null;
-            // Shot list scenes: match by date when possible, otherwise show all on every day
+            // Shot list scenes: only show scenes whose shot list day matches this schedule day by date
             const currentDayISO = currentDay.date?.slice(0, 10);
             const matchingSlDayIds = new Set(
               slDays.filter(sd => slDateToISO(sd.date) === currentDayISO).map(sd => sd.id)
             );
-            const hasAnyDatedSlDay = slDays.some(sd => slDateToISO(sd.date) === currentDayISO);
             const sceneItems = shotListScenes
               .filter(s => {
                 if (!s.est_start_time) return false;
-                // If this schedule day has matching shot list days, show only assigned scenes
-                if (hasAnyDatedSlDay) return matchingSlDayIds.has(s.day_id);
-                // No date match configured — show all scenes on every schedule day
-                return true;
+                return matchingSlDayIds.has(s.day_id);
               })
               .map(s => ({ _type: 'scene', _sort: timeToMinutes(s.est_start_time), _key: `scene-${s.id}`, ...s }));
             const items = [...syntheticItems, ...eventItems, ...flightItems, ...cateringItems, ...previewItems, ...sceneItems].sort((a, b) => a._sort - b._sort);
