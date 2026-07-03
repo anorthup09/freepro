@@ -416,12 +416,24 @@ function NewShotRow({ sceneNumber, nextIndex, projectId, sceneId, onAdded, accen
 }
 
 // ── Day Synopsis Card ─────────────────────────────────────────────────────────
+function fmt12(t) {
+  if (!t) return t;
+  const m = t.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?(?:\s*(AM|PM))?$/i);
+  if (!m) return t;
+  let h = parseInt(m[1]), min = parseInt(m[2]);
+  const meridiem = m[4];
+  if (meridiem) return t; // already 12-hour
+  const period = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  return `${h}:${String(min).padStart(2, '0')} ${period}`;
+}
+
 function DaySynopsisCard({ day, onDelete, onAddScene, scenes, scheduleDays, onDateSelect }) {
   const tiles = [
-    { label: 'Call Time', val: day.call_time },
-    { label: 'Shooting Call', val: day.shooting_call },
-    { label: 'Lunch', val: day.lunch_time },
-    { label: 'Est. Wrap', val: day.est_wrap },
+    { label: 'Call Time', val: fmt12(day.call_time) },
+    { label: 'Shooting Call', val: fmt12(day.shooting_call) },
+    { label: 'Lunch', val: fmt12(day.lunch_time) },
+    { label: 'Est. Wrap', val: fmt12(day.est_wrap) },
   ];
   const dayScenes = scenes || [];
   const totalShots = dayScenes.reduce((s, sc) => s + sc.shots.length, 0);
@@ -1233,7 +1245,7 @@ export default function ShotList({ project, onScenesChange }) {
                 onDeleteScene={deleteScene} onStartTimeChange={handleStartTimeChange}
                 onShotsReorder={handleShotsReorder} onSceneUpdate={handleSceneUpdate} onAddBreak={handleSceneBreakAdd}
                 isFirstScene={items.filter(i => i._type === 'scene').indexOf(item) === 0}
-                shootingCall={items.filter(i => i._type === 'scene').indexOf(item) === 0 ? (day.shooting_call || '') : undefined} />
+                shootingCall={items.filter(i => i._type === 'scene').indexOf(item) === 0 ? (fmt12(day.shooting_call) || '') : undefined} />
             ) : (
               <div key={item.data.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', margin:'8px 0', padding:'10px 16px', background:'rgba(234,179,8,0.08)', border:'1px solid rgba(234,179,8,0.3)', borderRadius:8 }}>
                 <div style={{ display:'flex', alignItems:'center', gap:10 }}>
