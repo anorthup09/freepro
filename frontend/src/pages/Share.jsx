@@ -446,7 +446,7 @@ function FlightsTable({ flights }) {
 
 // ── Producer View ────────────────────────────────────────────────────────────
 function ProducerView({ data, hideGear }) {
-  const { project, locations, techSpecs, clientContacts, agencyContacts = [], keyTalent, crewAssignments, schedule, flights, hotelBlocks, rentalCars, deliverables, gear, onlineRentals = [], shotList = [], slDays = [] } = data;
+  const { project, locations, techSpecs, clientContacts, agencyContacts = [], keyTalent, crewAssignments, schedule, flights, hotelBlocks, rentalCars, deliverables, gear, onlineRentals = [], shotList = [], slDays = [], slBreaks = [] } = data;
   const scheduleRef = useRef(null);
   const [tagFilter, setTagFilter] = useState(null);
   return (
@@ -631,7 +631,7 @@ function ProducerView({ data, hideGear }) {
           return [day.call_time_tags, day.shooting_call_tags, day.lunch_tags, day.wrap_time_tags]
             .some(tags => Array.isArray(tags) && tags.includes(tagFilter));
         }).map((day, i) => (
-          <DaySection key={day.id} day={day} showCalls flights={flights} dayIndex={i} tagFilter={tagFilter} cateringDetail="full" shotList={shotList} slDays={slDays} />
+          <DaySection key={day.id} day={day} showCalls flights={flights} dayIndex={i} tagFilter={tagFilter} cateringDetail="full" shotList={shotList} slDays={slDays} slBreaks={slBreaks} />
         ))}
       </div>
     </div>
@@ -640,7 +640,7 @@ function ProducerView({ data, hideGear }) {
 
 // ── Crew View ────────────────────────────────────────────────────────────────
 function CrewView({ data, shareToken, hideGear }) {
-  const { project, locations, techSpecs, clientContacts, agencyContacts = [], keyTalent, crewAssignments, schedule, flights, hotelBlocks, rentalCars, deliverables, gear, onlineRentals = [], shotList = [], slDays = [] } = data;
+  const { project, locations, techSpecs, clientContacts, agencyContacts = [], keyTalent, crewAssignments, schedule, flights, hotelBlocks, rentalCars, deliverables, gear, onlineRentals = [], shotList = [], slDays = [], slBreaks = [] } = data;
   const sortedSchedule = [...(schedule || [])].sort((a,b) => (a.date||'').localeCompare(b.date||''));
   const scheduleRef = useRef(null);
   const [tagFilter, setTagFilter] = useState(null);
@@ -742,18 +742,6 @@ function CrewView({ data, shareToken, hideGear }) {
               </div>
             ))}
           </div>
-          {locations.some(l => l.space_map) && (
-            <div style={{ marginTop:16, display:'flex', flexDirection:'column', gap:16 }}>
-              {locations.filter(l => l.space_map).map(l => (
-                <div key={l.id}>
-                  <div style={{ fontSize:11, fontWeight:600, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:6 }}>
-                    {l.emoji || '📍'} {l.name} — Space Map
-                  </div>
-                  <img src={l.space_map} alt={`Space map for ${l.name}`} style={{ maxWidth:'100%', borderRadius:8, display:'block', border:'1px solid var(--border)' }} />
-                </div>
-              ))}
-            </div>
-          )}
         </section>
       )}
 
@@ -827,7 +815,7 @@ function CrewView({ data, shareToken, hideGear }) {
           return [day.call_time_tags, day.shooting_call_tags, day.lunch_tags, day.wrap_time_tags]
             .some(tags => Array.isArray(tags) && tags.includes(tagFilter));
         }).map((day, i) => (
-          <DaySection key={day.id} day={day} showCalls flights={flights} dayIndex={i} tagFilter={tagFilter} cateringDetail="name" shotList={shotList} slDays={slDays} />
+          <DaySection key={day.id} day={day} showCalls flights={flights} dayIndex={i} tagFilter={tagFilter} cateringDetail="name" shotList={shotList} slDays={slDays} slBreaks={slBreaks} />
         ))}
       </div>
     </div>
@@ -1141,13 +1129,9 @@ function SlShotRow({ shot, index, sceneNum, shareToken, onUpdate, accentColor, a
 
 function SlSceneBlock({ scene, shareToken, talent, onShotUpdate, onStartTimeChange }) {
   const st = SL_SCENE_STYLES[scene.scene_type] || SL_SCENE_STYLES.interior;
-  const [startTime, setStartTime] = useState(scene.est_start_time||'');
+  const startTime = scene.est_start_time || '';
   const [allExpanded, setAllExpanded] = useState(false);
   const wrapTime = slCalcWrap(startTime, scene.shots||[]);
-
-  async function saveStartTime(val) {
-    try { await api.updateShareScene(shareToken, scene.id, {estStartTime: val||null}); onStartTimeChange(scene.id, val); } catch {}
-  }
 
   return (
     <div style={{ background:'var(--bg2)', border:`1px solid ${st.border}`, borderRadius:10, overflow:'hidden', marginBottom:16 }}>
@@ -1160,12 +1144,12 @@ function SlSceneBlock({ scene, shareToken, talent, onShotUpdate, onStartTimeChan
           {scene.description && <span style={{ fontSize:12, color:'var(--muted)' }}>· {scene.description}</span>}
           <span style={{ fontSize:12, color:'var(--muted)' }}>{(scene.shots||[]).length} shot{(scene.shots||[]).length!==1?'s':''}</span>
         </div>
-        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-          <span style={{ fontSize:10, fontWeight:700, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em' }}>Est. Start</span>
-          <input value={startTime} onChange={e=>setStartTime(e.target.value)} onBlur={()=>saveStartTime(startTime)}
-            placeholder="9:00 AM"
-            style={{ width:78, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.12)', borderRadius:5, padding:'3px 7px', fontSize:12, color:'var(--text)', fontFamily:'inherit', outline:'none' }} />
-        </div>
+        {startTime && (
+          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+            <span style={{ fontSize:10, fontWeight:700, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em' }}>Est. Start</span>
+            <span style={{ fontSize:13, fontWeight:700, color:st.badgeText, fontVariantNumeric:'tabular-nums' }}>{startTime}</span>
+          </div>
+        )}
       </div>
       <div style={{ overflowX:'auto', WebkitOverflowScrolling:'touch' }}>
       <table style={{ width:'100%', minWidth:480, borderCollapse:'collapse' }}>
@@ -1258,7 +1242,8 @@ function slBreakDuration(brk) {
 }
 
 function SlDayHeader({ day }) {
-  const dateStr = day.date ? new Date(day.date + 'T12:00:00').toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric' }) : null;
+  const rawDate = day.date ? String(day.date).slice(0, 10) : null;
+  const dateStr = rawDate ? new Date(rawDate + 'T12:00:00').toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric' }) : null;
   return (
     <div style={{ background:'var(--bg3)', border:'1px solid var(--border)', borderRadius:10, padding:'14px 20px', marginBottom:12, display:'flex', alignItems:'center', gap:20, flexWrap:'wrap' }}>
       <div style={{ display:'flex', alignItems:'center', gap:10 }}>
@@ -1386,7 +1371,7 @@ function ShotListShareView({ scenes: initialScenes, days: initialDays = [], brea
 
 // ── Client View ──────────────────────────────────────────────────────────────
 function ClientView({ data }) {
-  const { project, locations, clientContacts, keyTalent, schedule, shotList = [], slDays = [] } = data;
+  const { project, locations, clientContacts, keyTalent, schedule, shotList = [], slDays = [], slBreaks = [] } = data;
   return (
     <div className="share-view">
       <div className="share-header">
@@ -1428,7 +1413,7 @@ function ClientView({ data }) {
         </section>
       )}
       {[...(schedule||[])].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map((day, i) => (
-        <DaySection key={day.id} day={day} showCalls={false} dayIndex={i} cateringDetail="name" shotList={shotList} slDays={slDays} />
+        <DaySection key={day.id} day={day} showCalls={false} dayIndex={i} cateringDetail="name" shotList={shotList} slDays={slDays} slBreaks={slBreaks} />
       ))}
     </div>
   );
@@ -1666,7 +1651,7 @@ function CateringBadge({ catering, detail }) {
   );
 }
 
-function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCallWrap, tagFilter, cateringDetail, shotList, slDays }) {
+function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCallWrap, tagFilter, cateringDetail, shotList, slDays, slBreaks }) {
   const [open, setOpen] = useState(true);
   const now = useNow();
   const [driveTimes, setDriveTimes] = useState({});
@@ -1727,12 +1712,17 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
     })
     .map(s => ({ _type:'scene', _sort: timeToMins(s.est_start_time), _key:`scene-${s.id}`, ...s }));
 
+  const breakItems = tagFilter ? [] : (slBreaks || [])
+    .filter(b => b.day_id && matchingSlDayIds.has(b.day_id))
+    .map(b => ({ _type:'slbreak', _sort: timeToMins(b.start_time) + 0.5, _key:`brk-${b.id}`, ...b }));
+
   const allItems = [
     ...syntheticDayItems,
     ...cateringItems,
     ...filteredDay.events.map(e => ({ _type:'event', _sort: timeToMins(e.start_time), ...e })),
     ...(tagFilter ? [] : flightLegs.map(f => ({ _type:'flight', _sort: timeToMins(f._time), ...f }))),
     ...sceneItems,
+    ...breakItems,
   ].sort((a, b) => a._sort - b._sort);
 
   // Compute driving times between consecutive events with different locations
@@ -1879,6 +1869,18 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
                     </div>
                   </div>
                 );
+              })() : item._type === 'slbreak' ? (() => {
+                return (
+                  <div key={item._key} className="ev">
+                    <div className="ev-time" style={{ color:'#fbbf24' }}>{item.start_time ? fmtTime(item.start_time) : '—'}</div>
+                    <div className="ev-body" style={{ borderLeft:'2px solid #fbbf24', background:'rgba(251,191,36,0.07)' }}>
+                      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
+                        <div className="ev-title" style={{ color:'#fbbf24' }}>☕ Break</div>
+                        {item.end_time && <div style={{ fontSize:11, color:'var(--muted)', fontVariantNumeric:'tabular-nums' }}>Until {fmtTime(item.end_time)}</div>}
+                      </div>
+                    </div>
+                  </div>
+                );
               })() : item._type === 'scene' ? (() => {
                 const st = SL_SCENE_STYLES_SHARE[item.scene_type] || SL_SCENE_STYLES_SHARE.interior;
                 const wrapTime = slCalcWrapShare(item.est_start_time, item.shots || []);
@@ -1980,23 +1982,13 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
 }
 
 // ── Liquid Glass Sticky Header ───────────────────────────────────────────────
-function GlassHeader({ project, headerRef }) {
-  const [visible, setVisible] = React.useState(false);
+function GlassHeader({ project }) {
   const [navH, setNavH] = React.useState(64);
 
   React.useEffect(() => {
     const nav = document.querySelector('nav.nav');
     if (nav) setNavH(nav.getBoundingClientRect().height);
   }, []);
-
-  React.useEffect(() => {
-    function onScroll() {
-      if (!headerRef.current) return;
-      setVisible(headerRef.current.getBoundingClientRect().bottom < navH + 10);
-    }
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, [navH]);
 
   return (
     <div style={{
@@ -2005,16 +1997,12 @@ function GlassHeader({ project, headerRef }) {
       left: 0,
       right: 0,
       zIndex: 90,
-      pointerEvents: visible ? 'auto' : 'none',
-      opacity: visible ? 1 : 0,
-      transform: visible ? 'translateY(0)' : 'translateY(-6px)',
-      transition: 'opacity 0.25s ease, transform 0.25s ease',
       backdropFilter: 'blur(20px) saturate(160%)',
       WebkitBackdropFilter: 'blur(20px) saturate(160%)',
-      background: 'rgba(10,10,8,0.25)',
+      background: 'rgba(10,10,8,0.55)',
       borderBottom: '1px solid rgba(255,255,255,0.07)',
       boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
-      padding: '16px 24px',
+      padding: '12px 24px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
@@ -2040,7 +2028,6 @@ export default function Share() {
   const initialPage = searchParams.get('tab') || 'callsheet';
   const [sharePage, setSharePage] = useState(initialPage);
   const [resolvedPw, setResolvedPw] = useState(null);
-  const shareHeaderRef = useRef(null);
 
   async function fetchShare(pw) {
     try {
@@ -2121,7 +2108,7 @@ export default function Share() {
   return (
     <>
       {(view_type === 'producer' || view_type === 'crew' || view_type === 'client') && (
-        <GlassHeader project={data.project} headerRef={shareHeaderRef} />
+        <GlassHeader project={data.project} />
       )}
       <nav className="nav" style={{ justifyContent:'space-between', flexWrap:'wrap', rowGap:6 }}>
         <div style={{ display:'flex', flexDirection:'column', gap:1 }}>
@@ -2147,9 +2134,9 @@ export default function Share() {
           )
         )}
         <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4 }}>
-          {(view_type === 'producer' || view_type === 'crew') && (
+          {(view_type === 'producer' || view_type === 'crew' || view_type === 'client') && (
             <span style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', fontWeight:600 }}>
-              {view_type === 'producer' ? 'Producer View' : 'Crew View'}
+              {view_type === 'producer' ? 'Producer View' : view_type === 'crew' ? 'Crew View' : 'Client View'}
             </span>
           )}
           <button
@@ -2159,7 +2146,6 @@ export default function Share() {
         </div>
       </nav>
       <div className="wrap">
-        <div ref={shareHeaderRef} style={{ height:0 }} />
         {hasQuestions && sharePage === 'questions' ? (
           <QuestionsView shareToken={token} pw={resolvedPw} canAnswer={view_type === 'producer'} />
         ) : hasGearTab && sharePage === 'gear' ? (

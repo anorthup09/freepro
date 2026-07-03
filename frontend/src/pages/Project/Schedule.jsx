@@ -352,9 +352,8 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
     try {
       const sorted = [...days].sort((a, b) => (a.date||'').localeCompare(b.date||''));
       const day = await api.createDay(project.id, {
-        ...dayForm,
+        notes: dayForm.notes,
         dayNumber: sorted.length + 1,
-        date: new Date(dayForm.date + 'T12:00:00').toISOString(),
       });
       const newDays = [...days, { ...day, events: [], crewCalls: [] }].sort((a, b) => (a.date||'').localeCompare(b.date||''));
       setDays(newDays);
@@ -868,11 +867,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
             <div className="modal-title">Add Shoot Day</div>
             <form onSubmit={addDay}>
               <div className="form-grid" style={{ marginBottom:12 }}>
-                <div className="field span2"><label>Date</label><input type="date" value={dayForm.date} onChange={e => setDayForm(f=>({...f,date:e.target.value}))} required /></div>
-                <div className="field"><label>General Call Time</label><input value={dayForm.callTime} onChange={e => setDayForm(f=>({...f,callTime:e.target.value}))} placeholder="7:30 AM" /></div>
-                <div className="field"><label>Wrap Time</label><input value={dayForm.wrapTime} onChange={e => setDayForm(f=>({...f,wrapTime:e.target.value}))} placeholder="10:00 PM" /></div>
-                <div className="field"><label>Weather</label><input value={dayForm.weather} onChange={e => setDayForm(f=>({...f,weather:e.target.value}))} placeholder="80° ☀️" /></div>
-                <div className="field"><label>Notes</label><input value={dayForm.notes} onChange={e => setDayForm(f=>({...f,notes:e.target.value}))} placeholder="Long day" /></div>
+                <div className="field span2"><label>Notes</label><input value={dayForm.notes} onChange={e => setDayForm(f=>({...f,notes:e.target.value}))} placeholder="Long day" autoFocus /></div>
               </div>
               <div className="btn-row"><button className="btn btn-primary">Add Day</button><button type="button" className="btn btn-ghost" onClick={() => setShowAddDay(false)}>Cancel</button></div>
             </form>
