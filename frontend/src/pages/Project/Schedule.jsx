@@ -350,10 +350,10 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
   async function addDay(e) {
     e.preventDefault();
     try {
-      const sorted = [...days].sort((a, b) => (a.date||'').localeCompare(b.date||''));
+      if (!dayForm.date) return alert('Please select a date.');
       const day = await api.createDay(project.id, {
         notes: dayForm.notes,
-        dayNumber: sorted.length + 1,
+        dayNumber: Math.max(0, ...days.map(d => d.day_number || 0)) + 1,
         date: new Date(dayForm.date + 'T12:00:00').toISOString(),
       });
       const newDays = [...days, { ...day, events: [], crewCalls: [] }].sort((a, b) => (a.date||'').localeCompare(b.date||''));

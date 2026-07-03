@@ -1952,6 +1952,11 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
                         <div style={{ flex:1, minWidth:0 }}>
                           <div className={`ev-title${item.is_alert ? ' alert' : ''}`} style={item.is_filming ? { color:'var(--orange)' } : {}}>{item.is_filming ? '🎬 ' : ''}{item.title}</div>
                           {item.detail && <div className="ev-detail">{item.detail}</div>}
+                          {item.room_space && (
+                            <div style={{ fontSize:12, fontWeight:700, color:'var(--text)', marginTop:2 }}>
+                              <span style={{ fontWeight:400, color:'var(--muted)', fontSize:11 }}>Room/Space: </span>{item.room_space}
+                            </div>
+                          )}
                         </div>
                         {loc && (
                           <div style={{ flexShrink:0, textAlign:'right', fontSize:11, color:'var(--muted)', maxWidth:160 }}>

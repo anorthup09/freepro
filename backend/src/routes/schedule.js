@@ -162,6 +162,8 @@ router.delete('/:id/schedule/days/:dayId', requireAuth, requireRole('ADMIN','PRO
 router.post('/:id/schedule/days/:dayId/events', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
     const { startTime, endTime, title, detail, roomSpace, locationId, isAlert, alertMessage, isFilming, isShootingCall, isLunch, tags=[], audience=[] } = req.body;
+    const [dayExists] = await sql`SELECT id FROM shoot_days WHERE id = ${req.params.dayId}`;
+    if (!dayExists) return res.status(404).json({ error: 'Shoot day not found — please refresh the page and try again.' });
     const [ev] = await sql`
       INSERT INTO schedule_events (id, shoot_day_id, start_time, end_time, title, detail, room_space, location_id, is_alert, alert_message, is_filming, is_shooting_call, is_lunch, audience)
       VALUES (gen_random_uuid()::text, ${req.params.dayId}, ${startTime}, ${endTime||null}, ${title}, ${detail||null}, ${roomSpace||null}, ${locationId||null}, ${isAlert||false}, ${alertMessage||null}, ${isFilming||false}, ${isShootingCall||false}, ${isLunch||false}, ${sql.array(audience)})
