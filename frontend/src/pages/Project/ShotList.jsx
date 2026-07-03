@@ -41,7 +41,10 @@ function calcWrapTime(startTime, shots) {
   if (meridiem.toUpperCase() === 'PM' && h !== 12) h += 12;
   if (meridiem.toUpperCase() === 'AM' && h === 12) h = 0;
   const totalStart = h * 60 + m;
-  const shotMins = shots.reduce((s, sh) => s + (sh.est_minutes || 0), 0);
+  const shotMins = shots.reduce((s, sh) => {
+    const m = (sh.setup_minutes ?? 5) + ((sh.takes_count ?? 1) * (sh.take_minutes ?? 5)) + (sh.buffer_minutes ?? 5);
+    return s + m;
+  }, 0);
   const totalEnd = totalStart + shotMins;
   const endH = Math.floor(totalEnd / 60) % 24;
   const endM = totalEnd % 60;
@@ -71,7 +74,10 @@ function minsToTime(mins) {
 function calcShotEstTime(sceneStartTime, shots, shotIndex) {
   const startMins = timeToMins(sceneStartTime);
   if (startMins === null) return null;
-  const offset = shots.slice(0, shotIndex).reduce((s, sh) => s + (sh.est_minutes || 0), 0);
+  const offset = shots.slice(0, shotIndex).reduce((s, sh) => {
+    const m = (sh.setup_minutes ?? 5) + ((sh.takes_count ?? 1) * (sh.take_minutes ?? 5)) + (sh.buffer_minutes ?? 5);
+    return s + m;
+  }, 0);
   return minsToTime(startMins + offset);
 }
 
@@ -810,7 +816,10 @@ export default function ShotList({ project, onScenesChange }) {
   }, [project.id]);
 
   const totalShots = scenes.reduce((s, sc) => s + sc.shots.length, 0);
-  const totalMinutes = scenes.reduce((s, sc) => s + sc.shots.reduce((a, sh) => a + (sh.est_minutes || 0), 0), 0);
+  const totalMinutes = scenes.reduce((s, sc) => s + sc.shots.reduce((a, sh) => {
+    const m = (sh.setup_minutes ?? 5) + ((sh.takes_count ?? 1) * (sh.take_minutes ?? 5)) + (sh.buffer_minutes ?? 5);
+    return a + m;
+  }, 0), 0);
   const capturedShots = scenes.reduce((s, sc) => s + sc.shots.filter(sh => sh.status === 'captured').length, 0);
 
   async function addScene(e) {
