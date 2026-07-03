@@ -480,7 +480,7 @@ function DaySynopsisCard({ day, onDelete, onAddScene, scenes, scheduleDays, onDa
 }
 
 // ── Scene Block ───────────────────────────────────────────────────────────────
-function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded, onShotDelete, onDeleteScene, onStartTimeChange, onShotsReorder, onSceneUpdate, onAddBreak }) {
+function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded, onShotDelete, onDeleteScene, onStartTimeChange, onShotsReorder, onSceneUpdate, onAddBreak, isFirstScene }) {
   const st = SCENE_TYPE_STYLES[scene.scene_type] || SCENE_TYPE_STYLES.interior;
   const [startTime, setStartTime] = useState(scene.est_start_time || '');
   const [allExpanded, setAllExpanded] = useState(false);
@@ -620,9 +620,13 @@ function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded,
           )}
           <div style={{ display:'flex', alignItems:'center', gap:6 }}>
             <span style={{ fontSize:10, fontWeight:700, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', whiteSpace:'nowrap' }}>Est. Start</span>
-            <input value={startTime} onChange={e => setStartTime(e.target.value)} onBlur={() => saveStartTime(startTime)}
-              placeholder="9:00 AM"
-              style={{ width:78, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.12)', borderRadius:5, padding:'3px 7px', fontSize:12, color:'var(--text)', fontFamily:'inherit', outline:'none' }} />
+            {isFirstScene ? (
+              <input value={startTime} onChange={e => setStartTime(e.target.value)} onBlur={() => saveStartTime(startTime)}
+                placeholder="9:00 AM"
+                style={{ width:78, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.12)', borderRadius:5, padding:'3px 7px', fontSize:12, color:'var(--text)', fontFamily:'inherit', outline:'none' }} />
+            ) : (
+              <span style={{ fontSize:12, fontVariantNumeric:'tabular-nums', color: startTime ? 'var(--text)' : 'var(--muted)', opacity: startTime ? 1 : 0.4, fontWeight:600 }}>{startTime || '—'}</span>
+            )}
           </div>
           <button className="btn btn-ghost btn-sm" style={{ color:'var(--text)', fontSize:11 }} onClick={() => {
             setEditForm({ name: scene.name, description: scene.description || '', sceneType: scene.scene_type || 'interior', dayId: scene.day_id || '' });
@@ -852,8 +856,39 @@ export default function ShotList({ project, onScenesChange }) {
   }
 
   async function deleteScene(sceneId) {
+    const deleted = scenes.find(s => s.id === sceneId);
     await api.deleteScene(project.id, sceneId);
-    updateScenes(prev => prev.filter(s => s.id !== sceneId));
+    const remaining = scenes.filter(s => s.id !== sceneId);
+    updateScenes(() => remaining);
+    // Cascade: find the scene that came right after the deleted one and update its start time
+    if (deleted) {
+      const dayId = deleted.day_id;
+      const dayScenes = remaining
+        .filter(s => dayId ? s.day_id === dayId : !s.day_id)
+        .sort((a, b) => (timeToMins(a.est_start_time) ?? Infinity) - (timeToMins(b.est_start_time) ?? Infinity));
+      // Find first scene whose start time >= deleted scene's start time
+      const deletedStart = timeToMins(deleted.est_start_time);
+      const nextScene = deletedStart != null
+        ? dayScenes.find(s => (timeToMins(s.est_start_time) ?? Infinity) >= deletedStart)
+        : null;
+      if (nextScene) {
+        // Find the scene before nextScene to get the new start time
+        const idx = dayScenes.findIndex(s => s.id === nextScene.id);
+        const prevScene = idx > 0 ? dayScenes[idx - 1] : null;
+        const newStart = prevScene ? calcWrapTime(prevScene.est_start_time, prevScene.shots || []) : null;
+        // Also check if a break ends right before nextScene
+        const dayBreaks = breaks.filter(b => dayId ? b.day_id === dayId : !b.day_id);
+        const relevantBreak = prevScene
+          ? dayBreaks.find(b => b.end_time === nextScene.est_start_time)
+          : null;
+        if (!relevantBreak && newStart) {
+          await api.updateScene(project.id, nextScene.id, { estStartTime: newStart });
+          const updated = remaining.map(s => s.id === nextScene.id ? { ...s, est_start_time: newStart } : s);
+          updateScenes(() => updated);
+          await cascadeWrap(updated, nextScene.id).then(final => updateScenes(() => final));
+        }
+      }
+    }
   }
 
   async function addDay(e) {
@@ -1189,11 +1224,12 @@ export default function ShotList({ project, onScenesChange }) {
         return (
           <div key={day.id}>
             <DaySynopsisCard day={day} onDelete={deleteDay} onAddScene={openAddSceneForDay} scenes={dayScenes} scheduleDays={scheduleDays} onDateSelect={handleDayDateSelect} />
-            {items.map(item => item._type === 'scene' ? (
+            {items.map((item, itemIdx) => item._type === 'scene' ? (
               <SceneBlock key={item.data.id} scene={item.data} projectId={project.id} talent={talent} days={days}
                 onShotUpdate={handleShotUpdate} onShotAdded={handleShotAdded} onShotDelete={handleShotDelete}
                 onDeleteScene={deleteScene} onStartTimeChange={handleStartTimeChange}
-                onShotsReorder={handleShotsReorder} onSceneUpdate={handleSceneUpdate} onAddBreak={handleSceneBreakAdd} />
+                onShotsReorder={handleShotsReorder} onSceneUpdate={handleSceneUpdate} onAddBreak={handleSceneBreakAdd}
+                isFirstScene={items.filter(i => i._type === 'scene').indexOf(item) === 0} />
             ) : (
               <div key={item.data.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', margin:'8px 0', padding:'10px 16px', background:'rgba(234,179,8,0.08)', border:'1px solid rgba(234,179,8,0.3)', borderRadius:8 }}>
                 <div style={{ display:'flex', alignItems:'center', gap:10 }}>
@@ -1224,11 +1260,12 @@ export default function ShotList({ project, onScenesChange }) {
             {days.length > 0 && (
               <div style={{ fontSize:10, fontWeight:700, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.12em', marginBottom:10, marginTop:4, opacity:0.6 }}>Unassigned Scenes</div>
             )}
-            {unassigned.map(scene => (
+            {unassigned.map((scene, ui) => (
               <SceneBlock key={scene.id} scene={scene} projectId={project.id} talent={talent} days={days}
                 onShotUpdate={handleShotUpdate} onShotAdded={handleShotAdded} onShotDelete={handleShotDelete}
                 onDeleteScene={deleteScene} onStartTimeChange={handleStartTimeChange}
-                onShotsReorder={handleShotsReorder} onSceneUpdate={handleSceneUpdate} onAddBreak={handleSceneBreakAdd} />
+                onShotsReorder={handleShotsReorder} onSceneUpdate={handleSceneUpdate} onAddBreak={handleSceneBreakAdd}
+                isFirstScene={ui === 0} />
             ))}
           </div>
         );
