@@ -565,7 +565,7 @@ function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded,
   function handleAddBreak(e) {
     e.preventDefault();
     if (!wrapTime || !breakEndTime) return;
-    onAddBreak?.({ dayId: scene.day_id || null, startTime: wrapTime, endTime: breakEndTime });
+    onAddBreak?.({ dayId: scene.day_id || null, startTime: wrapTime, endTime: breakEndTime, sceneId: scene.id });
     setBreakEndTime('');
     setShowBreakForm(false);
   }
@@ -867,24 +867,24 @@ export default function ShotList({ project, onScenesChange }) {
     } catch(err) { alert(err.message); }
   }
 
-  async function propagateBreakEnd(dayId, breakStart, breakEnd) {
-    if (!breakEnd || !dayId) return;
-    const startMins = timeToMins(breakStart);
-    const dayScenesAfter = scenes
-      .filter(s => s.day_id === dayId && timeToMins(s.est_start_time) != null && timeToMins(s.est_start_time) >= (startMins ?? 0))
-      .sort((a, b2) => (timeToMins(a.est_start_time)||0) - (timeToMins(b2.est_start_time)||0));
-    if (dayScenesAfter.length > 0) {
-      const next = dayScenesAfter[0];
+  async function propagateBreakEnd(dayId, breakEnd, sceneId) {
+    if (!breakEnd) return;
+    const dayScenes = scenes
+      .filter(s => dayId ? s.day_id === dayId : !s.day_id)
+      .sort((a, b2) => (timeToMins(a.est_start_time) ?? Infinity) - (timeToMins(b2.est_start_time) ?? Infinity));
+    const idx = dayScenes.findIndex(s => s.id === sceneId);
+    const next = idx >= 0 && idx + 1 < dayScenes.length ? dayScenes[idx + 1] : null;
+    if (next) {
       await api.updateScene(project.id, next.id, { estStartTime: breakEnd });
       updateScenes(prev => prev.map(s => s.id === next.id ? { ...s, est_start_time: breakEnd } : s));
     }
   }
 
-  async function handleSceneBreakAdd({ dayId, startTime, endTime }) {
+  async function handleSceneBreakAdd({ dayId, startTime, endTime, sceneId }) {
     try {
       const b = await api.createBreak(project.id, { dayId: dayId || null, startTime, endTime });
       setBreaks(prev => [...prev, b]);
-      await propagateBreakEnd(dayId, startTime, endTime);
+      await propagateBreakEnd(dayId, endTime, sceneId);
     } catch(err) { alert(err.message); }
   }
 
