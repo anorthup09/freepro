@@ -446,7 +446,7 @@ function FlightsTable({ flights }) {
 
 // ── Producer View ────────────────────────────────────────────────────────────
 function ProducerView({ data, hideGear }) {
-  const { project, locations, techSpecs, clientContacts, agencyContacts = [], keyTalent, crewAssignments, schedule, flights, hotelBlocks, rentalCars, deliverables, gear, onlineRentals = [] } = data;
+  const { project, locations, techSpecs, clientContacts, agencyContacts = [], keyTalent, crewAssignments, schedule, flights, hotelBlocks, rentalCars, deliverables, gear, onlineRentals = [], shotList = [], slDays = [] } = data;
   const scheduleRef = useRef(null);
   const [tagFilter, setTagFilter] = useState(null);
   return (
@@ -631,7 +631,7 @@ function ProducerView({ data, hideGear }) {
           return [day.call_time_tags, day.shooting_call_tags, day.lunch_tags, day.wrap_time_tags]
             .some(tags => Array.isArray(tags) && tags.includes(tagFilter));
         }).map((day, i) => (
-          <DaySection key={day.id} day={day} showCalls flights={flights} dayIndex={i} tagFilter={tagFilter} cateringDetail="full" />
+          <DaySection key={day.id} day={day} showCalls flights={flights} dayIndex={i} tagFilter={tagFilter} cateringDetail="full" shotList={shotList} slDays={slDays} />
         ))}
       </div>
     </div>
@@ -640,7 +640,7 @@ function ProducerView({ data, hideGear }) {
 
 // ── Crew View ────────────────────────────────────────────────────────────────
 function CrewView({ data, shareToken, hideGear }) {
-  const { project, locations, techSpecs, clientContacts, agencyContacts = [], keyTalent, crewAssignments, schedule, flights, hotelBlocks, rentalCars, deliverables, gear, onlineRentals = [] } = data;
+  const { project, locations, techSpecs, clientContacts, agencyContacts = [], keyTalent, crewAssignments, schedule, flights, hotelBlocks, rentalCars, deliverables, gear, onlineRentals = [], shotList = [], slDays = [] } = data;
   const sortedSchedule = [...(schedule || [])].sort((a,b) => (a.date||'').localeCompare(b.date||''));
   const scheduleRef = useRef(null);
   const [tagFilter, setTagFilter] = useState(null);
@@ -827,7 +827,7 @@ function CrewView({ data, shareToken, hideGear }) {
           return [day.call_time_tags, day.shooting_call_tags, day.lunch_tags, day.wrap_time_tags]
             .some(tags => Array.isArray(tags) && tags.includes(tagFilter));
         }).map((day, i) => (
-          <DaySection key={day.id} day={day} showCalls flights={flights} dayIndex={i} tagFilter={tagFilter} cateringDetail="name" />
+          <DaySection key={day.id} day={day} showCalls flights={flights} dayIndex={i} tagFilter={tagFilter} cateringDetail="name" shotList={shotList} slDays={slDays} />
         ))}
       </div>
     </div>
@@ -1275,7 +1275,7 @@ function ShotListShareView({ scenes: initialScenes, shareToken, talent }) {
 
 // ── Client View ──────────────────────────────────────────────────────────────
 function ClientView({ data }) {
-  const { project, locations, clientContacts, keyTalent, schedule } = data;
+  const { project, locations, clientContacts, keyTalent, schedule, shotList = [], slDays = [] } = data;
   return (
     <div className="share-view">
       <div className="share-header">
@@ -1317,7 +1317,7 @@ function ClientView({ data }) {
         </section>
       )}
       {[...(schedule||[])].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map((day, i) => (
-        <DaySection key={day.id} day={day} showCalls={false} dayIndex={i} cateringDetail="name" />
+        <DaySection key={day.id} day={day} showCalls={false} dayIndex={i} cateringDetail="name" shotList={shotList} slDays={slDays} />
       ))}
     </div>
   );
@@ -1457,6 +1457,35 @@ function ShareTable({ cols, rows, colClasses = [] }) {
   );
 }
 
+const SL_SCENE_STYLES_SHARE = {
+  interior: { bg:'rgba(96,165,250,0.10)', border:'rgba(96,165,250,0.35)', badge:'rgba(96,165,250,0.18)', color:'#60a5fa', label:'INT.' },
+  exterior: { bg:'rgba(74,222,128,0.08)', border:'rgba(74,222,128,0.35)', badge:'rgba(74,222,128,0.14)', color:'#4ade80', label:'EXT.' },
+};
+
+function slCalcWrapShare(startTime, shots) {
+  if (!startTime) return null;
+  const match = startTime.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!match) return null;
+  let [, h, m, mer] = match;
+  h = parseInt(h); m = parseInt(m);
+  if (mer.toUpperCase() === 'PM' && h !== 12) h += 12;
+  if (mer.toUpperCase() === 'AM' && h === 12) h = 0;
+  const total = h * 60 + m + (shots || []).reduce((s, sh) => s + (sh.est_minutes || 0), 0);
+  const endH = Math.floor(total / 60) % 24;
+  const endM = total % 60;
+  return `${endH % 12 || 12}:${String(endM).padStart(2, '0')} ${endH >= 12 ? 'PM' : 'AM'}`;
+}
+
+const _SL_MO = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+function slDateToISOShare(str) {
+  if (!str) return null;
+  const m = str.match(/\w+,\s+(\w+)\s+(\d+),\s+(\d{4})/);
+  if (!m) return null;
+  const mi = _SL_MO.indexOf(m[1].toLowerCase()) + 1;
+  if (!mi) return null;
+  return `${m[3]}-${String(mi).padStart(2,'0')}-${String(parseInt(m[2])).padStart(2,'0')}`;
+}
+
 function timeToMins(str) {
   if (!str) return 9999;
   const ampm = /([0-9]{1,2}):([0-9]{2})\s*(AM|PM)/i.exec(str);
@@ -1526,7 +1555,7 @@ function CateringBadge({ catering, detail }) {
   );
 }
 
-function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCallWrap, tagFilter, cateringDetail }) {
+function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCallWrap, tagFilter, cateringDetail, shotList, slDays }) {
   const [open, setOpen] = useState(true);
   const now = useNow();
   const [driveTimes, setDriveTimes] = useState({});
@@ -1573,11 +1602,26 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
     .filter(c => c.meal_type !== 'LUNCH' && (c.name || c.address || c.delivery_time))
     .map(c => ({ _type:'catering', _sort: timeToMins(c.delivery_time) || 9997, _key:`cat-${c.id}`, ...c }));
 
+  // Shot list scene tiles
+  const dayISO = dayStr; // "YYYY-MM-DD"
+  const matchingSlDayIds = new Set(
+    (slDays || []).filter(sd => slDateToISOShare(sd.date) === dayISO).map(sd => sd.id)
+  );
+  const hasMatchingSlDay = matchingSlDayIds.size > 0;
+  const sceneItems = tagFilter ? [] : (shotList || [])
+    .filter(s => {
+      if (!s.est_start_time) return false;
+      if (hasMatchingSlDay) return matchingSlDayIds.has(s.day_id);
+      return true; // no date configured — show all scenes
+    })
+    .map(s => ({ _type:'scene', _sort: timeToMins(s.est_start_time), _key:`scene-${s.id}`, ...s }));
+
   const allItems = [
     ...syntheticDayItems,
     ...cateringItems,
     ...filteredDay.events.map(e => ({ _type:'event', _sort: timeToMins(e.start_time), ...e })),
     ...(tagFilter ? [] : flightLegs.map(f => ({ _type:'flight', _sort: timeToMins(f._time), ...f }))),
+    ...sceneItems,
   ].sort((a, b) => a._sort - b._sort);
 
   // Compute driving times between consecutive events with different locations
@@ -1718,6 +1762,34 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
                             {cateringDetail === 'full' && lunchCatering.address && <div style={{ fontSize:10, color:'var(--muted)' }}>{lunchCatering.address}</div>}
                             {cateringDetail === 'full' && lunchCatering.order_number && <div style={{ fontSize:10, color:'var(--muted)' }}>Order #{lunchCatering.order_number}</div>}
                             {cateringDetail === 'full' && lunchCatering.delivery_time && <div style={{ fontSize:10, color:'#4ade80' }}>🚚 {fmtTime(lunchCatering.delivery_time)}</div>}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })() : item._type === 'scene' ? (() => {
+                const st = SL_SCENE_STYLES_SHARE[item.scene_type] || SL_SCENE_STYLES_SHARE.interior;
+                const wrapTime = slCalcWrapShare(item.est_start_time, item.shots || []);
+                return (
+                  <div key={item._key} className="ev">
+                    <div className="ev-time" style={{ color: st.color }}>{item.est_start_time}</div>
+                    <div className="ev-body" style={{ borderLeft:`2px solid ${st.border}`, background: st.bg, padding:'10px 14px' }}>
+                      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12 }}>
+                        <div style={{ display:'flex', alignItems:'center', gap:8, minWidth:0, flex:1, flexWrap:'wrap' }}>
+                          <span style={{ fontSize:10, fontWeight:800, color: st.color, background: st.badge, border:`1px solid ${st.border}`, borderRadius:4, padding:'2px 7px', whiteSpace:'nowrap', letterSpacing:'.08em', flexShrink:0 }}>
+                            {st.label} · Scene {item.scene_number}
+                          </span>
+                          <span style={{ fontSize:13, fontWeight:700, color:'var(--text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{item.name}</span>
+                          {item.description && <span style={{ fontSize:11, color:'var(--muted)', whiteSpace:'nowrap' }}>· {item.description}</span>}
+                          <span style={{ fontSize:11, fontWeight:600, color: st.color, background: st.badge, border:`1px solid ${st.border}`, borderRadius:100, padding:'1px 8px', whiteSpace:'nowrap', flexShrink:0 }}>
+                            {(item.shots||[]).length} shots
+                          </span>
+                        </div>
+                        {wrapTime && (
+                          <div style={{ textAlign:'right', flexShrink:0 }}>
+                            <div style={{ fontSize:9, fontWeight:700, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.1em' }}>Est. Wrap</div>
+                            <div style={{ fontSize:13, fontWeight:800, color: st.color, fontVariantNumeric:'tabular-nums' }}>{wrapTime}</div>
                           </div>
                         )}
                       </div>

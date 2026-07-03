@@ -379,35 +379,43 @@ function NewShotRow({ sceneNumber, nextIndex, projectId, sceneId, onAdded, accen
 }
 
 // ── Day Synopsis Card ─────────────────────────────────────────────────────────
-function DaySynopsisCard({ day, onEdit, onDelete }) {
+function DaySynopsisCard({ day, onEdit, onDelete, scenes }) {
   const tiles = [
     { label: 'Call Time', val: day.call_time },
     { label: 'Shooting Call', val: day.shooting_call },
     { label: 'Lunch', val: day.lunch_time },
     { label: 'Est. Wrap', val: day.est_wrap },
   ];
+  const dayScenes = scenes || [];
+  const totalShots = dayScenes.reduce((s, sc) => s + sc.shots.length, 0);
+  const capturedShots = dayScenes.reduce((s, sc) => s + sc.shots.filter(sh => sh.status === 'captured').length, 0);
+  const remaining = totalShots - capturedShots;
   return (
     <div style={{ marginBottom: 16, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, overflow: 'hidden' }}>
-      <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
           <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)', letterSpacing: '.04em' }}>
             DAY {day.day_number}{day.date ? ` — ${day.date}` : ''}
           </div>
-          <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>Weather coming soon</div>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {totalShots > 0 && (
+            <div style={{ fontSize: 11, color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+              <span style={{ color: 'var(--text)', fontWeight: 700 }}>{totalShots}</span> total shots &nbsp;·&nbsp; <span style={{ color: 'var(--text)', fontWeight: 700 }}>{capturedShots}</span> captured &nbsp;·&nbsp; <span style={{ color: 'var(--text)', fontWeight: 700 }}>{remaining}</span> remaining
+            </div>
+          )}
           <button className="btn btn-ghost btn-sm" style={{ fontSize: 11 }} onClick={() => onEdit(day)}>Edit</button>
           <button className="btn btn-ghost btn-sm" style={{ fontSize: 11, color: 'var(--muted)' }} onClick={() => {
             if (confirm(`Delete Day ${day.day_number}?`)) onDelete(day.id);
           }}>Delete</button>
         </div>
       </div>
-      <div style={{ padding: '0 16px 14px' }}>
+      <div style={{ padding: '0 16px 10px' }}>
         <div style={{ background: 'rgba(0,0,0,0.35)', borderRadius: 10, display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.07)' }}>
           {tiles.map((t, i) => (
-            <div key={t.label} style={{ padding: '12px 16px', borderRight: i < 3 ? '1px solid rgba(255,255,255,0.07)' : 'none', textAlign: 'center' }}>
-              <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '.12em', marginBottom: 4 }}>{t.label}</div>
-              <div style={{ fontSize: 14, fontWeight: 800, color: t.val ? 'var(--text)' : 'rgba(255,255,255,0.2)', fontVariantNumeric: 'tabular-nums' }}>{t.val || '—'}</div>
+            <div key={t.label} style={{ padding: '7px 12px', borderRight: i < 3 ? '1px solid rgba(255,255,255,0.07)' : 'none', textAlign: 'center' }}>
+              <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '.12em', marginBottom: 2 }}>{t.label}</div>
+              <div style={{ fontSize: 12, fontWeight: 800, color: t.val ? 'var(--text)' : 'rgba(255,255,255,0.2)', fontVariantNumeric: 'tabular-nums' }}>{t.val || '—'}</div>
             </div>
           ))}
         </div>
@@ -807,45 +815,12 @@ export default function ShotList({ project, onScenesChange }) {
           <div className="page-sub">{project.client} · {project.code}</div>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:16 }}>
-          {(shootingCall || shootingWrap) && (
-            <div style={{ display:'flex', alignItems:'center', gap:16 }}>
-              {shootingCall && (
-                <div style={{ textAlign:'center' }}>
-                  <div style={{ fontSize:9, fontWeight:700, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.12em', marginBottom:2 }}>Shooting Call</div>
-                  <div style={{ fontSize:15, fontWeight:800, color:'var(--text)', fontVariantNumeric:'tabular-nums' }}>{shootingCall}</div>
-                </div>
-              )}
-              {shootingCall && shootingWrap && <div style={{ width:1, height:28, background:'var(--border)' }} />}
-              {shootingWrap && (
-                <div style={{ textAlign:'center' }}>
-                  <div style={{ fontSize:9, fontWeight:700, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.12em', marginBottom:2 }}>Shooting Wrap</div>
-                  <div style={{ fontSize:15, fontWeight:800, color:'var(--text)', fontVariantNumeric:'tabular-nums' }}>{shootingWrap}</div>
-                </div>
-              )}
-              <div style={{ width:1, height:28, background:'var(--border)' }} />
-            </div>
-          )}
           <button className="btn btn-ghost btn-sm" onClick={() => setShowAddDay(true)} style={{ border:'1px solid var(--border)' }}>+ Add Day</button>
           <button className="btn btn-primary btn-sm" onClick={() => setShowAddScene(true)}>+ Add Scene</button>
         </div>
       </div>
 
       <LiveClock />
-
-      {/* Stats */}
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:10, marginBottom:20 }}>
-        {[
-          { label:'Total Shots', val: totalShots },
-          { label:'Captured', val: capturedShots },
-          { label:'Remaining', val: totalShots - capturedShots },
-          { label:'Est. Time', val: `${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m` },
-        ].map(s => (
-          <div key={s.label} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding:'16px 20px' }}>
-            <div style={{ fontSize:26, fontWeight:800, color:'var(--text)', fontFamily:"'Syne',sans-serif", letterSpacing:'-0.5px', lineHeight:1 }}>{s.val}</div>
-            <div style={{ fontSize:11, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', fontWeight:500, marginTop:4 }}>{s.label}</div>
-          </div>
-        ))}
-      </div>
 
       {/* Scenes grouped by day, then unassigned */}
       {scenes.length === 0 && days.length === 0 && <div className="empty">No scenes yet — add one to get started.</div>}
@@ -854,7 +829,7 @@ export default function ShotList({ project, onScenesChange }) {
         const dayScenes = scenes.filter(s => s.day_id === day.id);
         return (
           <div key={day.id}>
-            <DaySynopsisCard day={day} onEdit={openEditDay} onDelete={deleteDay} />
+            <DaySynopsisCard day={day} onEdit={openEditDay} onDelete={deleteDay} scenes={dayScenes} />
             {dayScenes.map(scene => (
               <SceneBlock key={scene.id} scene={scene} projectId={project.id} talent={talent} days={days}
                 onShotUpdate={handleShotUpdate} onShotAdded={handleShotAdded} onShotDelete={handleShotDelete}
