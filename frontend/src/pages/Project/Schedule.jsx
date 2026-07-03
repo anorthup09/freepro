@@ -111,6 +111,38 @@ function flightStatusLabel(f) {
   return { label:'Arrived', color:'#22c55e', dot:'#22c55e' };
 }
 
+// Shot list scene styling — mirrors ShotList.jsx
+const SL_SCENE_STYLES = {
+  interior: { bg: 'rgba(96,165,250,0.10)', border: 'rgba(96,165,250,0.35)', badge: 'rgba(96,165,250,0.18)', color: '#60a5fa', label: 'INT.' },
+  exterior: { bg: 'rgba(74,222,128,0.08)', border: 'rgba(74,222,128,0.35)', badge: 'rgba(74,222,128,0.14)', color: '#4ade80', label: 'EXT.' },
+};
+
+function slCalcWrap(startTime, shots) {
+  if (!startTime) return null;
+  const match = startTime.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!match) return null;
+  let [, h, m, meridiem] = match;
+  h = parseInt(h); m = parseInt(m);
+  if (meridiem.toUpperCase() === 'PM' && h !== 12) h += 12;
+  if (meridiem.toUpperCase() === 'AM' && h === 12) h = 0;
+  const total = h * 60 + m + shots.reduce((s, sh) => s + (sh.est_minutes || 0), 0);
+  const endH = Math.floor(total / 60) % 24;
+  const endM = total % 60;
+  const period = endH >= 12 ? 'PM' : 'AM';
+  return `${endH % 12 || 12}:${String(endM).padStart(2, '0')} ${period}`;
+}
+
+// "THU, AUG 6, 2026" → "2026-08-06" for date comparison
+const _SL_MONTHS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+function slDateToISO(str) {
+  if (!str) return null;
+  const m = str.match(/\w+,\s+(\w+)\s+(\d+),\s+(\d{4})/);
+  if (!m) return null;
+  const mi = _SL_MONTHS.indexOf(m[1].toLowerCase()) + 1;
+  if (!mi) return null;
+  return `${m[3]}-${String(mi).padStart(2,'0')}-${String(parseInt(m[2])).padStart(2,'0')}`;
+}
+
 const DAY_TYPES = [
   { value:'SHOOT',        label:'🎬 Shoot Day' },
   { value:'TRAVEL',       label:'✈️ Travel Day' },
@@ -155,6 +187,8 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
   const [weatherByDate, setWeatherByDate] = useState({});
   const [cateringModal, setCateringModal] = useState(null);
   const [cateringForm, setCateringForm] = useState({ mealTypes:[], name:'', address:'', orderNumber:'', deliveryTime:'' });
+  const [shotListScenes, setShotListScenes] = useState([]);
+  const [slDays, setSlDays] = useState([]);
   const [savedToast, setSavedToast] = useState(false);
   const savedToastTimer = React.useRef(null);
   function flashSaved() {
@@ -169,6 +203,8 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
 
   useEffect(() => {
     api.getTalent(project.id).then(setKeyTalent).catch(() => {});
+    api.getShotList(project.id).then(setShotListScenes).catch(() => {});
+    api.getDays(project.id).then(setSlDays).catch(() => {});
   }, [project.id]);
 
   useEffect(() => {
@@ -585,7 +621,16 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
               .map(c => ({ _type:'catering', _sort: timeToMinutes(c.delivery_time) || 9997, _key:`cat-${c.id}`, ...c }));
             const lunchCateringRaw = (currentDay.catering || []).find(c => c.meal_type === 'LUNCH');
             const lunchCatering = lunchCateringRaw && (lunchCateringRaw.name || lunchCateringRaw.address || lunchCateringRaw.delivery_time) ? lunchCateringRaw : null;
-            const items = [...syntheticItems, ...eventItems, ...flightItems, ...cateringItems, ...previewItems].sort((a, b) => a._sort - b._sort);
+            // Shot list scenes: find slDays whose date matches currentDay.date, then gather assigned scenes
+            const currentDayISO = currentDay.date?.slice(0, 10);
+            const matchingSlDayIds = new Set(
+              slDays.filter(sd => slDateToISO(sd.date) === currentDayISO).map(sd => sd.id)
+            );
+            // Also include scenes with no day_id if there's only one schedule day (fallback)
+            const sceneItems = shotListScenes
+              .filter(s => s.est_start_time && (matchingSlDayIds.has(s.day_id) || (!s.day_id && days.length === 1)))
+              .map(s => ({ _type: 'scene', _sort: timeToMinutes(s.est_start_time), _key: `scene-${s.id}`, ...s }));
+            const items = [...syntheticItems, ...eventItems, ...flightItems, ...cateringItems, ...previewItems, ...sceneItems].sort((a, b) => a._sort - b._sort);
 
             return (
               <>
@@ -693,7 +738,35 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                           )}
                         </div>
                       </div>
-                    ) : item._type === 'catering' ? (() => {
+                    ) : item._type === 'scene' ? (() => {
+                      const st = SL_SCENE_STYLES[item.scene_type] || SL_SCENE_STYLES.interior;
+                      const wrapTime = slCalcWrap(item.est_start_time, item.shots || []);
+                      return (
+                        <div key={item._key} className="ev">
+                          <div className="ev-time" style={{ color: st.color }}>{item.est_start_time}</div>
+                          <div className="ev-body" style={{ borderLeft: `2px solid ${st.border}`, background: st.bg, padding: '10px 14px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
+                                <span style={{ fontSize: 10, fontWeight: 800, color: st.color, background: st.badge, border: `1px solid ${st.border}`, borderRadius: 4, padding: '2px 7px', whiteSpace: 'nowrap', letterSpacing: '.08em', flexShrink: 0 }}>
+                                  {st.label} · Scene {item.scene_number}
+                                </span>
+                                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.name}</span>
+                                {item.description && <span style={{ fontSize: 11, color: 'var(--muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>· {item.description}</span>}
+                                <span style={{ fontSize: 11, fontWeight: 600, color: st.color, background: `${st.badge}`, border: `1px solid ${st.border}`, borderRadius: 100, padding: '1px 8px', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                                  {item.shots?.length || 0} shots
+                                </span>
+                              </div>
+                              {wrapTime && (
+                                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                  <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.1em' }}>Est. Wrap</div>
+                                  <div style={{ fontSize: 13, fontWeight: 800, color: st.color, fontVariantNumeric: 'tabular-nums' }}>{wrapTime}</div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })() : item._type === 'catering' ? (() => {
                       const mc = MEAL_COLORS[item.meal_type] || MEAL_COLORS.BREAKFAST;
                       return (
                         <div key={item._key} className="ev">
