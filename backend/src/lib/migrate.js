@@ -501,6 +501,23 @@ async function migrate() {
   `;
 
   await sql`ALTER TABLE projects ADD COLUMN IF NOT EXISTS show_shot_list BOOLEAN DEFAULT FALSE`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS shot_list_days (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      day_number INT NOT NULL,
+      date TEXT,
+      call_time TEXT,
+      shooting_call TEXT,
+      lunch_time TEXT,
+      est_wrap TEXT,
+      sort_order INT DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+
+  await sql`ALTER TABLE shot_list_scenes ADD COLUMN IF NOT EXISTS day_id TEXT REFERENCES shot_list_days(id)`;
   await sql`ALTER TABLE shot_list_scenes ADD COLUMN IF NOT EXISTS scene_type TEXT DEFAULT 'interior'`;
   await sql`ALTER TABLE shot_list_scenes ADD COLUMN IF NOT EXISTS est_start_time TEXT`;
   await sql`ALTER TABLE shot_list_shots ADD COLUMN IF NOT EXISTS angle TEXT`;

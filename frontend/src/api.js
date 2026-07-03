@@ -162,6 +162,12 @@ export const api = {
     if (!r.ok) throw new Error(data.error || 'Failed');
     return data;
   },
+  // Shot List Days
+  getDays: (projectId) => req('GET', `/projects/${projectId}/shot-list/days`),
+  createDay: (projectId, data) => req('POST', `/projects/${projectId}/shot-list/days`, data),
+  updateDay: (projectId, id, data) => req('PATCH', `/projects/${projectId}/shot-list/days/${id}`, data),
+  deleteDay: (projectId, id) => req('DELETE', `/projects/${projectId}/shot-list/days/${id}`),
+
   // Shot List
   updateShareShot: (token, shotId, data) => req('PATCH', `/share/${token}/shots/${shotId}`, data),
   updateShareScene: (token, sceneId, data) => req('PATCH', `/share/${token}/scenes/${sceneId}`, data),

@@ -33,13 +33,14 @@ router.post('/:id/shot-list/scenes', requireAuth, requireRole('ADMIN','PRODUCER'
 // PATCH /api/projects/:id/shot-list/scenes/:sceneId
 router.patch('/:id/shot-list/scenes/:sceneId', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const { name, description, sceneType, estStartTime } = req.body;
+    const { name, description, sceneType, estStartTime, dayId } = req.body;
     const [scene] = await sql`
       UPDATE shot_list_scenes SET
         name = COALESCE(${name??null}, name),
         description = ${description !== undefined ? (description||null) : sql`description`},
         scene_type = COALESCE(${sceneType??null}, scene_type),
-        est_start_time = ${estStartTime !== undefined ? (estStartTime||null) : sql`est_start_time`}
+        est_start_time = ${estStartTime !== undefined ? (estStartTime||null) : sql`est_start_time`},
+        day_id = ${dayId !== undefined ? (dayId||null) : sql`day_id`}
       WHERE id = ${req.params.sceneId} RETURNING *`;
     res.json(scene);
   } catch(e) { next(e); }
@@ -102,6 +103,53 @@ router.patch('/:id/shot-list/shots/:shotId', requireAuth, requireRole('ADMIN','P
 router.delete('/:id/shot-list/shots/:shotId', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
     await sql`DELETE FROM shot_list_shots WHERE id = ${req.params.shotId}`;
+    res.json({ ok: true });
+  } catch(e) { next(e); }
+});
+
+// GET /api/projects/:id/shot-list/days
+router.get('/:id/shot-list/days', requireAuth, async (req, res, next) => {
+  try {
+    const days = await sql`SELECT * FROM shot_list_days WHERE project_id = ${req.params.id} ORDER BY sort_order, day_number`;
+    res.json(days);
+  } catch(e) { next(e); }
+});
+
+// POST /api/projects/:id/shot-list/days
+router.post('/:id/shot-list/days', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try {
+    const { date, callTime, shootingCall, lunchTime, estWrap } = req.body;
+    const [{ max_num }] = await sql`SELECT COALESCE(MAX(day_number), 0) as max_num FROM shot_list_days WHERE project_id = ${req.params.id}`;
+    const [{ n }] = await sql`SELECT COALESCE(MAX(sort_order), 0) + 1 as n FROM shot_list_days WHERE project_id = ${req.params.id}`;
+    const [day] = await sql`
+      INSERT INTO shot_list_days (id, project_id, day_number, date, call_time, shooting_call, lunch_time, est_wrap, sort_order)
+      VALUES (gen_random_uuid()::text, ${req.params.id}, ${Number(max_num)+1}, ${date||null}, ${callTime||null}, ${shootingCall||null}, ${lunchTime||null}, ${estWrap||null}, ${Number(n)})
+      RETURNING *`;
+    res.status(201).json(day);
+  } catch(e) { next(e); }
+});
+
+// PATCH /api/projects/:id/shot-list/days/:dayId
+router.patch('/:id/shot-list/days/:dayId', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try {
+    const { date, callTime, shootingCall, lunchTime, estWrap } = req.body;
+    const [day] = await sql`
+      UPDATE shot_list_days SET
+        date = ${date !== undefined ? (date||null) : sql`date`},
+        call_time = ${callTime !== undefined ? (callTime||null) : sql`call_time`},
+        shooting_call = ${shootingCall !== undefined ? (shootingCall||null) : sql`shooting_call`},
+        lunch_time = ${lunchTime !== undefined ? (lunchTime||null) : sql`lunch_time`},
+        est_wrap = ${estWrap !== undefined ? (estWrap||null) : sql`est_wrap`}
+      WHERE id = ${req.params.dayId} RETURNING *`;
+    res.json(day);
+  } catch(e) { next(e); }
+});
+
+// DELETE /api/projects/:id/shot-list/days/:dayId
+router.delete('/:id/shot-list/days/:dayId', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try {
+    await sql`UPDATE shot_list_scenes SET day_id = NULL WHERE day_id = ${req.params.dayId}`;
+    await sql`DELETE FROM shot_list_days WHERE id = ${req.params.dayId}`;
     res.json({ ok: true });
   } catch(e) { next(e); }
 });

@@ -360,8 +360,46 @@ function NewShotRow({ sceneNumber, nextIndex, projectId, sceneId, onAdded, accen
   );
 }
 
+// ── Day Synopsis Card ─────────────────────────────────────────────────────────
+function DaySynopsisCard({ day, onEdit, onDelete }) {
+  const tiles = [
+    { label: 'Call Time', val: day.call_time },
+    { label: 'Shooting Call', val: day.shooting_call },
+    { label: 'Lunch', val: day.lunch_time },
+    { label: 'Est. Wrap', val: day.est_wrap },
+  ];
+  return (
+    <div style={{ marginBottom: 16, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, overflow: 'hidden' }}>
+      <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)', letterSpacing: '.04em' }}>
+            DAY {day.day_number}{day.date ? ` — ${day.date}` : ''}
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>Weather coming soon</div>
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn btn-ghost btn-sm" style={{ fontSize: 11 }} onClick={() => onEdit(day)}>Edit</button>
+          <button className="btn btn-ghost btn-sm" style={{ fontSize: 11, color: 'var(--muted)' }} onClick={() => {
+            if (confirm(`Delete Day ${day.day_number}?`)) onDelete(day.id);
+          }}>Delete</button>
+        </div>
+      </div>
+      <div style={{ padding: '0 16px 14px' }}>
+        <div style={{ background: 'rgba(0,0,0,0.35)', borderRadius: 10, display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.07)' }}>
+          {tiles.map((t, i) => (
+            <div key={t.label} style={{ padding: '12px 16px', borderRight: i < 3 ? '1px solid rgba(255,255,255,0.07)' : 'none', textAlign: 'center' }}>
+              <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '.12em', marginBottom: 4 }}>{t.label}</div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: t.val ? 'var(--text)' : 'rgba(255,255,255,0.2)', fontVariantNumeric: 'tabular-nums' }}>{t.val || '—'}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Scene Block ───────────────────────────────────────────────────────────────
-function SceneBlock({ scene, projectId, talent, onShotUpdate, onShotAdded, onShotDelete, onDeleteScene, onStartTimeChange, onShotsReorder, onSceneUpdate }) {
+function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded, onShotDelete, onDeleteScene, onStartTimeChange, onShotsReorder, onSceneUpdate }) {
   const st = SCENE_TYPE_STYLES[scene.scene_type] || SCENE_TYPE_STYLES.interior;
   const [startTime, setStartTime] = useState(scene.est_start_time || '');
   const [allExpanded, setAllExpanded] = useState(false);
@@ -372,6 +410,10 @@ function SceneBlock({ scene, projectId, talent, onShotUpdate, onShotAdded, onSho
   const [editingName, setEditingName] = useState(false);
   const [nameVal, setNameVal] = useState(scene.name);
   const [descVal, setDescVal] = useState(scene.description || '');
+
+  // Scene Edit modal
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editForm, setEditForm] = useState({ name: scene.name, description: scene.description || '', sceneType: scene.scene_type || 'interior', dayId: scene.day_id || '' });
 
   async function saveStartTime(val) {
     try {
@@ -387,6 +429,20 @@ function SceneBlock({ scene, projectId, talent, onShotUpdate, onShotAdded, onSho
       onSceneUpdate(scene.id, updated);
     } catch {}
     setEditingName(false);
+  }
+
+  async function saveSceneEdit(e) {
+    e.preventDefault();
+    try {
+      const updated = await api.updateScene(projectId, scene.id, {
+        name: editForm.name,
+        description: editForm.description,
+        sceneType: editForm.sceneType,
+        dayId: editForm.dayId || null,
+      });
+      onSceneUpdate(scene.id, updated);
+      setShowEditModal(false);
+    } catch(err) { alert(err.message); }
   }
 
   async function toggleSceneType() {
@@ -465,12 +521,21 @@ function SceneBlock({ scene, projectId, talent, onShotUpdate, onShotAdded, onSho
         </div>
 
         <div style={{ display:'flex', alignItems:'center', gap:10, flexShrink:0 }}>
+          {scene.day_id && days.find(d => d.id === scene.day_id) && (
+            <span style={{ fontSize:10, fontWeight:700, color:'rgba(251,146,60,0.9)', background:'rgba(251,146,60,0.12)', border:'1px solid rgba(251,146,60,0.3)', borderRadius:4, padding:'2px 8px', whiteSpace:'nowrap', letterSpacing:'.06em' }}>
+              DAY {days.find(d => d.id === scene.day_id).day_number}
+            </span>
+          )}
           <div style={{ display:'flex', alignItems:'center', gap:6 }}>
             <span style={{ fontSize:10, fontWeight:700, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', whiteSpace:'nowrap' }}>Est. Start</span>
             <input value={startTime} onChange={e => setStartTime(e.target.value)} onBlur={() => saveStartTime(startTime)}
               placeholder="9:00 AM"
               style={{ width:78, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.12)', borderRadius:5, padding:'3px 7px', fontSize:12, color:'var(--text)', fontFamily:'inherit', outline:'none' }} />
           </div>
+          <button className="btn btn-ghost btn-sm" style={{ color:'var(--text)', fontSize:11 }} onClick={() => {
+            setEditForm({ name: scene.name, description: scene.description || '', sceneType: scene.scene_type || 'interior', dayId: scene.day_id || '' });
+            setShowEditModal(true);
+          }}>Edit</button>
           <button className="btn btn-ghost btn-sm" style={{ color:'var(--muted)', fontSize:11 }} onClick={() => {
             if (confirm('Delete this scene and all its shots?')) onDeleteScene(scene.id);
           }}>Delete</button>
@@ -529,6 +594,52 @@ function SceneBlock({ scene, projectId, talent, onShotUpdate, onShotAdded, onSho
           </span>
         </div>
       </div>
+
+      {/* Scene Edit Modal */}
+      {showEditModal && (
+        <div className="modal-backdrop" onClick={() => setShowEditModal(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-title">Edit Scene</div>
+            <form onSubmit={saveSceneEdit}>
+              <div className="field">
+                <label>Scene Name *</label>
+                <input value={editForm.name} onChange={e => setEditForm(f => ({...f, name: e.target.value}))} required autoFocus />
+              </div>
+              <div className="field">
+                <label>Description</label>
+                <input value={editForm.description} onChange={e => setEditForm(f => ({...f, description: e.target.value}))} placeholder="Brief scene description" />
+              </div>
+              <div className="field">
+                <label>Interior / Exterior</label>
+                <div style={{ display:'flex', gap:8, marginTop:4 }}>
+                  {['interior','exterior'].map(t => (
+                    <button key={t} type="button" onClick={() => setEditForm(f => ({...f, sceneType: t}))}
+                      style={{ flex:1, padding:'8px 0', borderRadius:6, border:`1px solid ${editForm.sceneType === t ? (t === 'interior' ? '#60a5fa' : '#4ade80') : 'var(--border)'}`, background: editForm.sceneType === t ? (t === 'interior' ? 'rgba(96,165,250,0.15)' : 'rgba(74,222,128,0.12)') : 'var(--bg2)', color: editForm.sceneType === t ? (t === 'interior' ? '#60a5fa' : '#4ade80') : 'var(--muted)', fontSize:12, fontWeight:700, cursor:'pointer', textTransform:'uppercase', letterSpacing:'.06em', transition:'all 0.15s' }}>
+                      {t === 'interior' ? 'INT.' : 'EXT.'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {days.length > 0 && (
+                <div className="field">
+                  <label>Assign to Day</label>
+                  <select value={editForm.dayId} onChange={e => setEditForm(f => ({...f, dayId: e.target.value}))}
+                    style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:6, padding:'6px 10px', color:'var(--text)', fontFamily:'inherit', fontSize:13 }}>
+                    <option value="">— No Day —</option>
+                    {days.map(d => (
+                      <option key={d.id} value={d.id}>Day {d.day_number}{d.date ? ` — ${d.date}` : ''}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <div style={{ display:'flex', gap:8, marginTop:16 }}>
+                <button type="submit" className="btn btn-primary btn-sm">Save</button>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowEditModal(false)}>Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -565,8 +676,12 @@ function LiveClock() {
 export default function ShotList({ project, onScenesChange }) {
   const [scenes, setScenes] = useState([]);
   const [talent, setTalent] = useState([]);
+  const [days, setDays] = useState([]);
   const [showAddScene, setShowAddScene] = useState(false);
   const [sceneForm, setSceneForm] = useState({ name: '', description: '', sceneType: 'interior' });
+  const [showAddDay, setShowAddDay] = useState(false);
+  const [dayForm, setDayForm] = useState({ date: '', callTime: '', shootingCall: '', lunchTime: '', estWrap: '' });
+  const [editingDay, setEditingDay] = useState(null);
 
   function updateScenes(updater) {
     setScenes(prev => {
@@ -579,6 +694,7 @@ export default function ShotList({ project, onScenesChange }) {
   useEffect(() => {
     api.getShotList(project.id).then(s => { setScenes(s); onScenesChange?.(s); }).catch(() => {});
     api.getTalent(project.id).then(setTalent).catch(() => {});
+    api.getDays(project.id).then(setDays).catch(() => {});
   }, [project.id]);
 
   const totalShots = scenes.reduce((s, sc) => s + sc.shots.length, 0);
@@ -598,6 +714,36 @@ export default function ShotList({ project, onScenesChange }) {
   async function deleteScene(sceneId) {
     await api.deleteScene(project.id, sceneId);
     updateScenes(prev => prev.filter(s => s.id !== sceneId));
+  }
+
+  async function addDay(e) {
+    e.preventDefault();
+    try {
+      const day = await api.createDay(project.id, dayForm);
+      setDays(prev => [...prev, day]);
+      setShowAddDay(false);
+      setDayForm({ date: '', callTime: '', shootingCall: '', lunchTime: '', estWrap: '' });
+    } catch(err) { alert(err.message); }
+  }
+
+  async function saveEditDay(e) {
+    e.preventDefault();
+    try {
+      const updated = await api.updateDay(project.id, editingDay.id, dayForm);
+      setDays(prev => prev.map(d => d.id === updated.id ? updated : d));
+      setEditingDay(null);
+    } catch(err) { alert(err.message); }
+  }
+
+  async function deleteDay(dayId) {
+    await api.deleteDay(project.id, dayId);
+    setDays(prev => prev.filter(d => d.id !== dayId));
+    updateScenes(prev => prev.map(s => s.day_id === dayId ? { ...s, day_id: null } : s));
+  }
+
+  function openEditDay(day) {
+    setDayForm({ date: day.date || '', callTime: day.call_time || '', shootingCall: day.shooting_call || '', lunchTime: day.lunch_time || '', estWrap: day.est_wrap || '' });
+    setEditingDay(day);
   }
 
   function handleShotUpdate(updated) {
@@ -655,6 +801,7 @@ export default function ShotList({ project, onScenesChange }) {
               <div style={{ width:1, height:28, background:'var(--border)' }} />
             </div>
           )}
+          <button className="btn btn-ghost btn-sm" onClick={() => setShowAddDay(true)} style={{ border:'1px solid var(--border)' }}>+ Add Day</button>
           <button className="btn btn-primary btn-sm" onClick={() => setShowAddScene(true)}>+ Add Scene</button>
         </div>
       </div>
@@ -676,14 +823,45 @@ export default function ShotList({ project, onScenesChange }) {
         ))}
       </div>
 
+      {/* Day synopsis cards */}
+      {days.length > 0 && (
+        <div style={{ marginBottom: 16 }}>
+          {days.map(day => (
+            <DaySynopsisCard key={day.id} day={day} onEdit={openEditDay} onDelete={deleteDay} />
+          ))}
+        </div>
+      )}
+
       {scenes.length === 0 && <div className="empty">No scenes yet — add one to get started.</div>}
 
       {scenes.map(scene => (
-        <SceneBlock key={scene.id} scene={scene} projectId={project.id} talent={talent}
+        <SceneBlock key={scene.id} scene={scene} projectId={project.id} talent={talent} days={days}
           onShotUpdate={handleShotUpdate} onShotAdded={handleShotAdded} onShotDelete={handleShotDelete}
           onDeleteScene={deleteScene} onStartTimeChange={handleStartTimeChange}
           onShotsReorder={handleShotsReorder} onSceneUpdate={handleSceneUpdate} />
       ))}
+
+      {/* Add Day Modal */}
+      {(showAddDay || editingDay) && (
+        <div className="modal-backdrop" onClick={() => { setShowAddDay(false); setEditingDay(null); }}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-title">{editingDay ? `Edit Day ${editingDay.day_number}` : 'Add Shoot Day'}</div>
+            <form onSubmit={editingDay ? saveEditDay : addDay}>
+              <div className="field"><label>Date</label><input value={dayForm.date} onChange={e => setDayForm(f => ({...f, date: e.target.value}))} placeholder="THU, AUG 6" autoFocus /></div>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+                <div className="field" style={{ margin:0 }}><label>Call Time</label><input value={dayForm.callTime} onChange={e => setDayForm(f => ({...f, callTime: e.target.value}))} placeholder="8:00 AM" /></div>
+                <div className="field" style={{ margin:0 }}><label>Shooting Call</label><input value={dayForm.shootingCall} onChange={e => setDayForm(f => ({...f, shootingCall: e.target.value}))} placeholder="9:00 AM" /></div>
+                <div className="field" style={{ margin:0 }}><label>Lunch</label><input value={dayForm.lunchTime} onChange={e => setDayForm(f => ({...f, lunchTime: e.target.value}))} placeholder="12:00 PM" /></div>
+                <div className="field" style={{ margin:0 }}><label>Est. Wrap</label><input value={dayForm.estWrap} onChange={e => setDayForm(f => ({...f, estWrap: e.target.value}))} placeholder="6:00 PM" /></div>
+              </div>
+              <div style={{ display:'flex', gap:8, marginTop:16 }}>
+                <button type="submit" className="btn btn-primary btn-sm">{editingDay ? 'Save' : 'Add Day'}</button>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setShowAddDay(false); setEditingDay(null); }}>Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Add Scene Modal */}
       {showAddScene && (
