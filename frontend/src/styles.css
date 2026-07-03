@@ -301,7 +301,25 @@ textarea { resize: vertical; min-height: 70px; }
 
   /* Project page header actions: stack on small screens */
   .proj-actions { flex-wrap: wrap; gap: 6px; }
+
+  /* Overview: password bar stacks vertically */
+  .ov-pw-form { flex-wrap: wrap; }
+  .ov-pw-form input { width: 140px !important; flex: 1 1 auto; }
+  .ov-pw-divider { display: none !important; }
+  .ov-quick-links { align-items: flex-start !important; width: 100%; }
+
+  /* Overview: POC / Gear Contact rows wrap */
+  .ov-poc-row { flex-wrap: wrap; }
+
+  /* Overview: stack Key Dates below Client/Agency Contacts */
+  .ov-kd-grid { grid-template-columns: 1fr !important; }
+  .ov-kd-dates { order: 2; }
+  .ov-kd-contacts { order: 1; }
 }
+
+/* Overview: Key Dates + Contacts side by side on desktop */
+.ov-kd-grid { grid-template-columns: 1fr 1fr; }
+@media (max-width: 640px) { .ov-kd-grid { grid-template-columns: 1fr; } }
 
 @media print {
   .callsheet { max-width: 100%; }

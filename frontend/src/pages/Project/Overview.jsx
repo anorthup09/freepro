@@ -318,22 +318,22 @@ export default function Overview({ project, setProject, onTabChange }) {
       </div>
 
       {/* Public View Password */}
-      <form onSubmit={saveSharePw} style={{ display:'flex', alignItems:'center', gap:12, background:'rgba(232,80,10,0.80)', border:'1px solid rgba(255,255,255,0.35)', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.25), inset -1px 0 0 rgba(0,0,0,0.4), 0 3px 10px rgba(0,0,0,0.5)', borderRadius:8, padding:'12px 16px', margin:'20px 0 10px' }}>
+      <form onSubmit={saveSharePw} className="ov-pw-form" style={{ display:'flex', alignItems:'center', gap:12, background:'rgba(232,80,10,0.80)', border:'1px solid rgba(255,255,255,0.35)', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.25), inset -1px 0 0 rgba(0,0,0,0.4), 0 3px 10px rgba(0,0,0,0.5)', borderRadius:8, padding:'12px 16px', margin:'20px 0 10px' }}>
         <span style={{ fontSize:13, fontWeight:700, whiteSpace:'nowrap', color:'#fff', width:160, flexShrink:0 }}>Public View Password</span>
         <input
           value={sharePw}
           onChange={e => { setSharePw(e.target.value.replace(/[^a-zA-Z0-9]/g, '')); setSharePwSaved(false); }}
           placeholder="No password set"
-          style={{ width:200, flexShrink:0 }}
+          style={{ width:140, flexShrink:0 }}
         />
         <button className="btn btn-ghost btn-sm" type="submit" disabled={sharePwSaving} style={{ color:'#fff' }}>
           {sharePwSaved ? 'Saved!' : sharePwSaving ? 'Saving…' : 'Save'}
         </button>
         {sharePw && <button type="button" className="btn btn-ghost btn-sm" style={{ color:'#fff' }} onClick={() => { setSharePw(''); }}>Clear</button>}
-        <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center' }}>
+        <div className="ov-pw-divider" style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center' }}>
           <span style={{ color:'rgba(255,255,255,0.3)', fontSize:14, userSelect:'none' }}>|</span>
         </div>
-        <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4 }}>
+        <div className="ov-quick-links" style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4 }}>
           <span style={{ fontSize:9, color:'rgba(255,255,255,0.55)', textTransform:'uppercase', letterSpacing:'0.08em', fontWeight:600 }}>Quick Copy Links</span>
           <div style={{ display:'flex', gap:4 }}>
           {['producer','crew','client'].map(vt => (
@@ -346,7 +346,7 @@ export default function Overview({ project, setProject, onTabChange }) {
       </form>
 
       {/* Main POC + Gear Contact */}
-      <div style={{ display:'flex', alignItems:'center', gap:12, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'12px 16px', marginBottom: gearPerson ? 0 : 10, borderBottomLeftRadius: gearPerson ? 0 : 8, borderBottomRightRadius: gearPerson ? 0 : 8, borderBottom: gearPerson ? 'none' : undefined }}>
+      <div className="ov-poc-row" style={{ display:'flex', alignItems:'center', gap:12, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'12px 16px', marginBottom: gearPerson ? 0 : 10, borderBottomLeftRadius: gearPerson ? 0 : 8, borderBottomRightRadius: gearPerson ? 0 : 8, borderBottom: gearPerson ? 'none' : undefined }}>
         <span style={{ fontSize:13, fontWeight:700, color:'var(--text)', whiteSpace:'nowrap', width:160, flexShrink:0 }}>Main POC</span>
         <select value={pocId} onChange={e => savePoc(e.target.value)} style={{ width:200, flexShrink:0 }}>
           <option value="">— Unassigned —</option>
@@ -367,6 +367,7 @@ export default function Overview({ project, setProject, onTabChange }) {
       {gearPerson && (
         <div
           onClick={() => onTabChange?.('gear')}
+          className="ov-poc-row"
           style={{ display:'flex', alignItems:'center', gap:12, background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'1px solid var(--border2)', borderRadius:8, borderTopLeftRadius:0, borderTopRightRadius:0, padding:'10px 16px', marginBottom:10, cursor:'pointer' }}
         >
           <span style={{ fontSize:13, fontWeight:700, color:'var(--text)', whiteSpace:'nowrap', width:160, flexShrink:0 }}>Gear Contact</span>
@@ -429,9 +430,9 @@ export default function Overview({ project, setProject, onTabChange }) {
       )}
 
       {/* Key Dates (left) + Contacts (right) */}
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20, marginBottom:20 }}>
+      <div className="ov-kd-grid" style={{ display:'grid', gap:20, marginBottom:20 }}>
         {/* Left: Key Dates */}
-        <div>
+        <div className="ov-kd-dates">
           {scheduleDays.length > 0 && (
             <>
               <div className="sec-lbl" style={{ fontWeight:700, fontSize:12, color:'var(--text)' }}>Key Dates</div>
@@ -456,7 +457,7 @@ export default function Overview({ project, setProject, onTabChange }) {
         </div>
 
         {/* Right: Client Contacts + Agency Contacts stacked */}
-        <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
+        <div className="ov-kd-contacts" style={{ display:'flex', flexDirection:'column', gap:20 }}>
           {/* Client Contacts */}
           <div>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
