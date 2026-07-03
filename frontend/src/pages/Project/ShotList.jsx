@@ -782,7 +782,7 @@ function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded,
 }
 
 // ── Live Clock ────────────────────────────────────────────────────────────────
-function LiveClock() {
+function LiveClock({ currentDay }) {
   const [time, setTime] = useState(new Date());
   useEffect(() => {
     const id = setInterval(() => setTime(new Date()), 1000);
@@ -798,13 +798,40 @@ function LiveClock() {
       borderBottom: '1px solid rgba(255,255,255,0.08)',
       borderTop: '1px solid rgba(255,255,255,0.06)',
       boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
-      padding: '10px 20px',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+      padding: '8px 20px',
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
       marginBottom: 14, marginLeft: -20, marginRight: -20,
     }}>
-      <span style={{ fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.4)', textTransform:'uppercase', letterSpacing:'.18em' }}>Current Time</span>
-      <span style={{ fontSize:11, color:'rgba(255,255,255,0.2)' }}>·</span>
-      <span style={{ fontSize:14, fontWeight:700, color:'rgba(255,255,255,0.85)', letterSpacing:'.06em', fontVariantNumeric:'tabular-nums' }}>{fmt}</span>
+      <div style={{ display:'flex', alignItems:'center', gap: 8 }}>
+        <span style={{ fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.4)', textTransform:'uppercase', letterSpacing:'.18em' }}>Current Time</span>
+        <span style={{ fontSize:11, color:'rgba(255,255,255,0.2)' }}>·</span>
+        <span style={{ fontSize:14, fontWeight:700, color:'rgba(255,255,255,0.85)', letterSpacing:'.06em', fontVariantNumeric:'tabular-nums' }}>{fmt}</span>
+      </div>
+      {currentDay && (
+        <div style={{ display:'flex', alignItems:'center', gap: 20 }}>
+          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:1 }}>
+            <span style={{ fontSize:9, fontWeight:700, color:'rgba(255,255,255,0.35)', textTransform:'uppercase', letterSpacing:'.12em' }}>Day {currentDay.day_number}</span>
+          </div>
+          {(currentDay.shooting_call || currentDay.est_wrap) && (
+            <div style={{ width:1, height:28, background:'rgba(255,255,255,0.1)' }} />
+          )}
+          {currentDay.shooting_call && (
+            <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:1 }}>
+              <span style={{ fontSize:9, fontWeight:700, color:'rgba(255,255,255,0.35)', textTransform:'uppercase', letterSpacing:'.12em' }}>Shooting Call</span>
+              <span style={{ fontSize:13, fontWeight:700, color:'rgba(255,255,255,0.85)', fontVariantNumeric:'tabular-nums' }}>{fmt12(currentDay.shooting_call)}</span>
+            </div>
+          )}
+          {currentDay.shooting_call && currentDay.est_wrap && (
+            <div style={{ width:1, height:28, background:'rgba(255,255,255,0.1)' }} />
+          )}
+          {currentDay.est_wrap && (
+            <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:1 }}>
+              <span style={{ fontSize:9, fontWeight:700, color:'rgba(255,255,255,0.35)', textTransform:'uppercase', letterSpacing:'.12em' }}>Est. Wrap</span>
+              <span style={{ fontSize:13, fontWeight:700, color:'rgba(255,255,255,0.85)', fontVariantNumeric:'tabular-nums' }}>{fmt12(currentDay.est_wrap)}</span>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -824,6 +851,28 @@ export default function ShotList({ project, onScenesChange }) {
   const [showAddBreak, setShowAddBreak] = useState(false);
   const [breakForm, setBreakForm] = useState({ dayId: '', startTime: '', endTime: '' });
   const [editingBreak, setEditingBreak] = useState(null);
+  const [currentDayId, setCurrentDayId] = useState(null);
+  const dayRefs = useRef({});
+
+  useEffect(() => {
+    const observers = [];
+    const visibleDays = new Map();
+    Object.entries(dayRefs.current).forEach(([id, el]) => {
+      if (!el) return;
+      const obs = new IntersectionObserver(([entry]) => {
+        visibleDays.set(id, entry.isIntersecting ? entry.boundingClientRect.top : Infinity);
+        // Pick the day whose top is closest to (and above) the viewport center
+        let best = null, bestTop = Infinity;
+        visibleDays.forEach((top, dayId) => {
+          if (top < bestTop) { bestTop = top; best = dayId; }
+        });
+        if (best) setCurrentDayId(best);
+      }, { threshold: 0, rootMargin: '0px 0px -80% 0px' });
+      obs.observe(el);
+      observers.push(obs);
+    });
+    return () => observers.forEach(o => o.disconnect());
+  }, [days]);
 
   function updateScenes(updater) {
     setScenes(prev => {
@@ -1174,7 +1223,7 @@ export default function ShotList({ project, onScenesChange }) {
         </div>
       )}
 
-      <LiveClock />
+      <LiveClock currentDay={days.find(d => d.id === currentDayId) || days[0]} />
 
       {/* Scenes grouped by day, then unassigned */}
       {scenes.length === 0 && days.length === 0 && <div className="empty">No scenes yet — add one to get started.</div>}
@@ -1199,7 +1248,7 @@ export default function ShotList({ project, onScenesChange }) {
         }));
         const items = [...sceneItems, ...breakItems].sort((a, b) => a._sort - b._sort);
         return (
-          <div key={day.id} style={{ marginBottom: 32 }}>
+          <div key={day.id} style={{ marginBottom: 32 }} ref={el => { dayRefs.current[day.id] = el; }}>
             {dayIdx > 0 && <div style={{ height: 1, background: 'rgba(255,255,255,0.15)', borderRadius: 1, marginBottom: 24 }} />}
             <DaySynopsisCard day={day} onDelete={deleteDay} onAddScene={openAddSceneForDay} scenes={dayScenes} scheduleDays={scheduleDays} onDateSelect={handleDayDateSelect} />
             {items.map((item, itemIdx) => item._type === 'scene' ? (
