@@ -1216,45 +1216,133 @@ function SlLiveClock() {
   );
 }
 
-function ShotListShareView({ scenes: initialScenes, shareToken, talent }) {
+function slFmt12(t) {
+  if (!t) return null;
+  const m24 = /^(\d{1,2}):(\d{2})$/.exec(t);
+  if (m24) {
+    let h = parseInt(m24[1], 10), mn = parseInt(m24[2], 10);
+    const mer = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12;
+    return `${h}:${String(mn).padStart(2,'0')} ${mer}`;
+  }
+  return t;
+}
+
+function slAddMins(time12, mins) {
+  if (!time12 || mins == null) return time12;
+  const m = /^(\d{1,2}):(\d{2})\s*(AM|PM)$/i.exec(time12);
+  if (!m) return time12;
+  let h = parseInt(m[1]), mn = parseInt(m[2]);
+  if (m[3].toUpperCase() === 'PM' && h !== 12) h += 12;
+  if (m[3].toUpperCase() === 'AM' && h === 12) h = 0;
+  const total = h * 60 + mn + mins;
+  const eh = Math.floor(total / 60) % 24, em = total % 60;
+  return `${eh % 12 || 12}:${String(em).padStart(2,'0')} ${eh >= 12 ? 'PM' : 'AM'}`;
+}
+
+function slSceneDuration(shots) {
+  return (shots || []).reduce((s, sh) => s + (sh.setup_minutes ?? 5) + ((sh.takes_count ?? 1) * (sh.take_minutes ?? 5)) + (sh.buffer_minutes ?? 5), 0);
+}
+
+function slBreakDuration(brk) {
+  const toMins = (t) => {
+    if (!t) return null;
+    const m12 = /^(\d{1,2}):(\d{2})\s*(AM|PM)$/i.exec(t);
+    if (m12) { let h = parseInt(m12[1]); if (m12[3].toUpperCase()==='PM'&&h!==12) h+=12; if (m12[3].toUpperCase()==='AM'&&h===12) h=0; return h*60+parseInt(m12[2]); }
+    const m24 = /^(\d{1,2}):(\d{2})$/.exec(t);
+    if (m24) return parseInt(m24[1])*60+parseInt(m24[2]);
+    return null;
+  };
+  const s = toMins(brk.start_time), e = toMins(brk.end_time);
+  if (s == null || e == null) return 0;
+  return Math.max(0, e - s);
+}
+
+function SlDayHeader({ day }) {
+  const dateStr = day.date ? new Date(day.date + 'T12:00:00').toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric' }) : null;
+  return (
+    <div style={{ background:'var(--bg3)', border:'1px solid var(--border)', borderRadius:10, padding:'14px 20px', marginBottom:12, display:'flex', alignItems:'center', gap:20, flexWrap:'wrap' }}>
+      <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+        <span style={{ fontSize:11, fontWeight:800, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.15em' }}>Day {day.day_number}</span>
+        {dateStr && <span style={{ fontSize:13, fontWeight:600, color:'var(--text)' }}>{dateStr}</span>}
+      </div>
+      {(day.shooting_call || day.est_wrap) && <div style={{ width:1, height:20, background:'var(--border)' }} />}
+      {day.shooting_call && (
+        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+          <span style={{ fontSize:10, fontWeight:700, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.1em' }}>Call</span>
+          <span style={{ fontSize:13, fontWeight:700, color:'var(--text)', fontVariantNumeric:'tabular-nums' }}>{slFmt12(day.shooting_call) || day.shooting_call}</span>
+        </div>
+      )}
+      {day.est_wrap && (
+        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+          <span style={{ fontSize:10, fontWeight:700, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.1em' }}>Est. Wrap</span>
+          <span style={{ fontSize:13, fontWeight:700, color:'var(--text)', fontVariantNumeric:'tabular-nums' }}>{slFmt12(day.est_wrap) || day.est_wrap}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SlBreakCard({ brk }) {
+  return (
+    <div style={{ background:'rgba(251,191,36,0.08)', border:'1px solid rgba(251,191,36,0.3)', borderRadius:10, padding:'12px 20px', marginBottom:16, display:'flex', alignItems:'center', gap:12 }}>
+      <span style={{ fontSize:18 }}>☕</span>
+      <div>
+        <div style={{ fontSize:11, fontWeight:800, color:'#fbbf24', textTransform:'uppercase', letterSpacing:'.12em', marginBottom:2 }}>Break</div>
+        {(brk.start_time || brk.end_time) && (
+          <div style={{ fontSize:13, fontWeight:600, color:'var(--text)', fontVariantNumeric:'tabular-nums' }}>
+            {slFmt12(brk.start_time) || brk.start_time}
+            {brk.start_time && brk.end_time && ' → '}
+            {slFmt12(brk.end_time) || brk.end_time}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ShotListShareView({ scenes: initialScenes, days: initialDays = [], breaks: initialBreaks = [], shareToken, talent }) {
   const [scenes, setScenes] = useState(initialScenes);
 
   function handleShotUpdate(updated) {
     setScenes(prev => prev.map(s => ({ ...s, shots:(s.shots||[]).map(sh => sh.id===updated.id ? updated : sh) })));
   }
-  function handleStartTimeChange(sceneId, val) {
-    setScenes(prev => prev.map(s => s.id===sceneId ? { ...s, est_start_time:val } : s));
-  }
 
   const totalShots = scenes.reduce((s,sc)=>s+(sc.shots||[]).length,0);
-  const totalMinutes = scenes.reduce((s,sc)=>s+(sc.shots||[]).reduce((a,sh)=>a+(sh.est_minutes||0),0),0);
+  const totalMinutes = scenes.reduce((s,sc)=>s+slSceneDuration(sc.shots),0);
   const capturedShots = scenes.reduce((s,sc)=>s+(sc.shots||[]).filter(sh=>sh.status==='captured').length,0);
-  const shootingCall = scenes.length>0 ? scenes[0].est_start_time||null : null;
-  const lastScene = scenes.length>0 ? scenes[scenes.length-1] : null;
-  const shootingWrap = lastScene ? slCalcWrap(lastScene.est_start_time, lastScene.shots||[]) : null;
+
+  // Build day groups with scenes and breaks interleaved, times cascaded
+  const unassignedScenes = scenes.filter(s => !s.day_id);
+  const dayGroups = initialDays.map(day => {
+    const dayScenes = scenes.filter(s => s.day_id === day.id).sort((a,b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+    const dayBreaks = initialBreaks.filter(b => b.day_id === day.id);
+    // Cascade times: start from day's shooting_call
+    let cursor = slFmt12(day.shooting_call) || (dayScenes[0]?.est_start_time ?? null);
+    const items = [];
+    for (let i = 0; i < dayScenes.length; i++) {
+      const scene = { ...dayScenes[i], est_start_time: cursor };
+      const wrap = cursor ? slAddMins(cursor, slSceneDuration(scene.shots)) : null;
+      items.push({ type: 'scene', scene, wrap });
+      // Find breaks that follow this scene (by sort_order proximity or start_time)
+      const nextSceneSortOrder = dayScenes[i+1]?.sort_order ?? Infinity;
+      const sceneBreaks = dayBreaks.filter(b => {
+        const bMins = timeToMins(b.start_time);
+        const wrapMins = wrap ? timeToMins(wrap) : Infinity;
+        return bMins >= (cursor ? timeToMins(cursor) : 0) && bMins < (nextSceneSortOrder < Infinity ? timeToMins(dayScenes[i+1]?.est_start_time ?? '23:59 PM') : Infinity)
+          || (i === dayScenes.length - 1 && !items.some(x => x.type === 'break' && x.brk.id === b.id));
+      }).filter(b => !items.some(x => x.type === 'break' && x.brk.id === b.id));
+      for (const brk of sceneBreaks) {
+        const brkWithTime = { ...brk, start_time: wrap };
+        items.push({ type: 'break', brk: brkWithTime });
+        cursor = slFmt12(brk.end_time) || slAddMins(wrap, slBreakDuration(brk));
+      }
+      if (sceneBreaks.length === 0) cursor = wrap;
+    }
+    return { day, items };
+  });
 
   return (
     <div>
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'flex-end', marginBottom:4 }}>
-        {(shootingCall||shootingWrap) && (
-          <div style={{ display:'flex', alignItems:'center', gap:16 }}>
-            {shootingCall && (
-              <div style={{ textAlign:'center' }}>
-                <div style={{ fontSize:9, fontWeight:700, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.12em', marginBottom:2 }}>Shooting Call</div>
-                <div style={{ fontSize:15, fontWeight:800, color:'var(--text)', fontVariantNumeric:'tabular-nums' }}>{shootingCall}</div>
-              </div>
-            )}
-            {shootingCall && shootingWrap && <div style={{ width:1, height:28, background:'var(--border)' }} />}
-            {shootingWrap && (
-              <div style={{ textAlign:'center' }}>
-                <div style={{ fontSize:9, fontWeight:700, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.12em', marginBottom:2 }}>Shooting Wrap</div>
-                <div style={{ fontSize:15, fontWeight:800, color:'var(--text)', fontVariantNumeric:'tabular-nums' }}>{shootingWrap}</div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
       <SlLiveClock />
 
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(130px, 1fr))', gap:10, marginBottom:20 }}>
@@ -1266,11 +1354,32 @@ function ShotListShareView({ scenes: initialScenes, shareToken, talent }) {
         ))}
       </div>
 
-      {scenes.length===0 && <div className="empty">No scenes added yet.</div>}
-      {scenes.map(scene=>(
-        <SlSceneBlock key={scene.id} scene={scene} shareToken={shareToken} talent={talent}
-          onShotUpdate={handleShotUpdate} onStartTimeChange={handleStartTimeChange} />
+      {scenes.length === 0 && <div className="empty">No scenes added yet.</div>}
+
+      {dayGroups.map(({ day, items }, di) => (
+        <div key={day.id}>
+          {di > 0 && <div style={{ height:1, background:'rgba(255,255,255,0.07)', margin:'20px 0' }} />}
+          <SlDayHeader day={day} />
+          {items.map((item, ii) =>
+            item.type === 'scene' ? (
+              <SlSceneBlock key={item.scene.id} scene={item.scene} shareToken={shareToken} talent={talent}
+                onShotUpdate={handleShotUpdate} onStartTimeChange={() => {}} />
+            ) : (
+              <SlBreakCard key={item.brk.id + '-' + ii} brk={item.brk} />
+            )
+          )}
+        </div>
       ))}
+
+      {unassignedScenes.length > 0 && (
+        <div>
+          {dayGroups.length > 0 && <div style={{ height:1, background:'rgba(255,255,255,0.07)', margin:'20px 0' }} />}
+          {unassignedScenes.map(scene => (
+            <SlSceneBlock key={scene.id} scene={scene} shareToken={shareToken} talent={talent}
+              onShotUpdate={handleShotUpdate} onStartTimeChange={() => {}} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -2061,7 +2170,7 @@ export default function Share() {
             shareToken={token}
           />
         ) : hasShotList && sharePage === 'shot-list' ? (
-          <ShotListShareView scenes={data.shotList || []} shareToken={token} talent={[...(data.keyTalent||[]), ...(data.crewAssignments||[]).filter(a=>a.crewMember).map(a=>({name: a.crewMember.first_name ? `${a.crewMember.first_name} ${a.crewMember.last_name||''}`.trim() : a.crewMember.name || ''}))] .filter(t=>t.name)} />
+          <ShotListShareView scenes={data.shotList || []} days={data.slDays || []} breaks={data.slBreaks || []} shareToken={token} talent={[...(data.keyTalent||[]), ...(data.crewAssignments||[]).filter(a=>a.crewMember).map(a=>({name: a.crewMember.first_name ? `${a.crewMember.first_name} ${a.crewMember.last_name||''}`.trim() : a.crewMember.name || ''}))] .filter(t=>t.name)} />
         ) : (
           <>
             {view_type === 'producer' && <ProducerView data={data} hideGear />}
