@@ -764,6 +764,7 @@ export default function ShotList({ project, onScenesChange }) {
   const [breaks, setBreaks] = useState([]);
   const [showAddBreak, setShowAddBreak] = useState(false);
   const [breakForm, setBreakForm] = useState({ dayId: '', startTime: '', endTime: '' });
+  const [editingBreak, setEditingBreak] = useState(null);
 
   function updateScenes(updater) {
     setScenes(prev => {
@@ -849,6 +850,21 @@ export default function ShotList({ project, onScenesChange }) {
   async function deleteBreak(breakId) {
     await api.deleteBreak(project.id, breakId);
     setBreaks(prev => prev.filter(b => b.id !== breakId));
+  }
+
+  async function saveEditBreak(e) {
+    e.preventDefault();
+    try {
+      const updated = await api.updateBreak(project.id, editingBreak.id, { dayId: breakForm.dayId || null, startTime: breakForm.startTime, endTime: breakForm.endTime });
+      setBreaks(prev => prev.map(b => b.id === updated.id ? updated : b));
+      setEditingBreak(null);
+      setBreakForm({ dayId: '', startTime: '', endTime: '' });
+    } catch(err) { alert(err.message); }
+  }
+
+  function openEditBreak(b) {
+    setBreakForm({ dayId: b.day_id || '', startTime: b.start_time || '', endTime: b.end_time || '' });
+    setEditingBreak(b);
   }
 
   function openEditDay(day) {
@@ -948,7 +964,10 @@ export default function ShotList({ project, onScenesChange }) {
                     {item.data.start_time}{item.data.end_time ? ` – ${item.data.end_time}` : ''}
                   </span>
                 </div>
-                <button onClick={() => deleteBreak(item.data.id)} style={{ background:'none', border:'none', color:'rgba(234,179,8,0.4)', cursor:'pointer', fontSize:13, padding:0, lineHeight:1 }}>✕</button>
+                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                  <button onClick={() => openEditBreak(item.data)} className="btn btn-ghost btn-sm" style={{ fontSize:11, color:'rgba(234,179,8,0.7)', border:'1px solid rgba(234,179,8,0.25)' }}>Edit</button>
+                  <button onClick={() => deleteBreak(item.data.id)} style={{ background:'none', border:'none', color:'rgba(234,179,8,0.4)', cursor:'pointer', fontSize:13, padding:0, lineHeight:1 }}>✕</button>
+                </div>
               </div>
             ))}
             {items.length === 0 && (
@@ -1047,12 +1066,12 @@ export default function ShotList({ project, onScenesChange }) {
         </div>
       )}
 
-      {/* Add Break Modal */}
-      {showAddBreak && (
-        <div className="modal-backdrop" onClick={() => setShowAddBreak(false)}>
+      {/* Add / Edit Break Modal */}
+      {(showAddBreak || editingBreak) && (
+        <div className="modal-backdrop" onClick={() => { setShowAddBreak(false); setEditingBreak(null); setBreakForm({ dayId: '', startTime: '', endTime: '' }); }}>
           <div className="modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-title">Add Break</div>
-            <form onSubmit={addBreak}>
+            <div className="modal-title">{editingBreak ? 'Edit Break' : 'Add Break'}</div>
+            <form onSubmit={editingBreak ? saveEditBreak : addBreak}>
               {days.length > 0 && (
                 <div className="field">
                   <label>Day</label>
@@ -1074,8 +1093,8 @@ export default function ShotList({ project, onScenesChange }) {
                 </div>
               </div>
               <div style={{ display:'flex', gap:8, marginTop:16 }}>
-                <button type="submit" className="btn btn-primary" style={{ flex:1 }}>Add Break</button>
-                <button type="button" className="btn btn-ghost" onClick={() => setShowAddBreak(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" style={{ flex:1 }}>{editingBreak ? 'Save Break' : 'Add Break'}</button>
+                <button type="button" className="btn btn-ghost" onClick={() => { setShowAddBreak(false); setEditingBreak(null); setBreakForm({ dayId: '', startTime: '', endTime: '' }); }}>Cancel</button>
               </div>
             </form>
           </div>

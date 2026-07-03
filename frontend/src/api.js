@@ -182,6 +182,7 @@ export const api = {
   // Shot List Breaks
   getBreaks: (projectId) => req('GET', `/projects/${projectId}/shot-list/breaks`),
   createBreak: (projectId, data) => req('POST', `/projects/${projectId}/shot-list/breaks`, data),
+  updateBreak: (projectId, id, data) => req('PATCH', `/projects/${projectId}/shot-list/breaks/${id}`, data),
   deleteBreak: (projectId, id) => req('DELETE', `/projects/${projectId}/shot-list/breaks/${id}`),
 
   answerShareQuestion: async (token, pw, qid, answer) => {

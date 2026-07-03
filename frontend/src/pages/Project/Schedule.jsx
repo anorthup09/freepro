@@ -748,7 +748,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                       const st = SL_SCENE_STYLES[item.scene_type] || SL_SCENE_STYLES.interior;
                       const wrapTime = slCalcWrap(item.est_start_time, item.shots || []);
                       return (
-                        <div key={item._key} className="ev">
+                        <div key={item._key} className="ev" style={{ cursor: 'pointer' }} onClick={() => onShotListTabChange?.()}>
                           <div className="ev-time" style={{ color: st.color }}>{item.est_start_time}</div>
                           <div className="ev-body" style={{ borderLeft: `2px solid ${st.border}`, background: st.bg, padding: '10px 14px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
@@ -762,12 +762,15 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                                   {item.shots?.length || 0} shots
                                 </span>
                               </div>
-                              {wrapTime && (
-                                <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                                  <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.1em' }}>Est. Wrap</div>
-                                  <div style={{ fontSize: 13, fontWeight: 800, color: st.color, fontVariantNumeric: 'tabular-nums' }}>{wrapTime}</div>
-                                </div>
-                              )}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+                                {wrapTime && (
+                                  <div style={{ textAlign: 'right' }}>
+                                    <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.1em' }}>Est. Wrap</div>
+                                    <div style={{ fontSize: 13, fontWeight: 800, color: st.color, fontVariantNumeric: 'tabular-nums' }}>{wrapTime}</div>
+                                  </div>
+                                )}
+                                <span style={{ fontSize: 10, color: st.color, opacity: 0.6 }}>→ Shot List</span>
+                              </div>
                             </div>
                           </div>
                         </div>
