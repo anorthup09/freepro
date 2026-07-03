@@ -1,5 +1,6 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { api } from '../../api.js';
+import { orderShotBlocks } from '../../utils/shotOrder.js';
 
 const MOVEMENTS = ['Static', 'Pan', 'Tilt', 'Dolly', 'Handheld', 'Crane', 'Zoom', 'Gimbal'];
 const COVERAGES = ['Interview', 'B-Roll'];
@@ -431,8 +432,8 @@ function SceneBlock({ scene, projectId, talent, onShotUpdate, onShotAdded, onSho
   return (
     <div style={{ background:'var(--bg2)', border:`1px solid ${st.border}`, borderRadius:10, overflow:'hidden', marginBottom:16 }}>
       {/* Scene header */}
-      <div style={{ padding:'12px 20px', background: st.bg, borderBottom:`1px solid ${st.border}`, display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap' }}>
-        <div style={{ display:'flex', alignItems:'center', gap:10, flex:1, minWidth:0 }}>
+      <div className="sl-scene-header" style={{ padding:'12px 20px', background: st.bg, borderBottom:`1px solid ${st.border}`, display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap' }}>
+        <div className="sl-scene-main" style={{ display:'flex', alignItems:'center', gap:10, flex:1, minWidth:0 }}>
           {/* INT/EXT toggle badge */}
           <button onClick={toggleSceneType}
             title="Click to toggle INT/EXT"
@@ -464,7 +465,7 @@ function SceneBlock({ scene, projectId, talent, onShotUpdate, onShotAdded, onSho
           <span style={{ fontSize:12, color:'var(--muted)', whiteSpace:'nowrap' }}>{scene.shots.length} shot{scene.shots.length !== 1 ? 's' : ''}</span>
         </div>
 
-        <div style={{ display:'flex', alignItems:'center', gap:10, flexShrink:0 }}>
+        <div className="sl-scene-ctrl" style={{ display:'flex', alignItems:'center', gap:10, flexShrink:0 }}>
           <div style={{ display:'flex', alignItems:'center', gap:6 }}>
             <span style={{ fontSize:10, fontWeight:700, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', whiteSpace:'nowrap' }}>Est. Start</span>
             <input value={startTime} onChange={e => setStartTime(e.target.value)} onBlur={() => saveStartTime(startTime)}
@@ -478,6 +479,7 @@ function SceneBlock({ scene, projectId, talent, onShotUpdate, onShotAdded, onSho
       </div>
 
       {/* Shot table */}
+      <div className="sl-table-wrap">
       <table style={{ width:'100%', borderCollapse:'collapse' }}>
         <thead>
           <tr style={{ borderBottom:'1px solid var(--border)' }}>
@@ -514,6 +516,7 @@ function SceneBlock({ scene, projectId, talent, onShotUpdate, onShotAdded, onSho
             onAdded={shot => onShotAdded(scene.id, shot)} accentColor={st.badgeText} />
         </tbody>
       </table>
+      </div>
 
       {/* Footer */}
       <div style={{ padding:'10px 20px', background: st.bg, borderTop:`1px solid ${st.border}`, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
@@ -634,15 +637,15 @@ export default function ShotList({ project, onScenesChange }) {
   const [sceneForm, setSceneForm] = useState({ name: '', description: '', sceneType: 'interior' });
 
   function updateScenes(updater) {
-    setScenes(prev => {
-      const next = typeof updater === 'function' ? updater(prev) : updater;
-      onScenesChange?.(next);
-      return next;
-    });
+    setScenes(prev => (typeof updater === 'function' ? updater(prev) : updater));
   }
 
+  // Display blocks (scenes + breaks) ordered by their estimated start time.
+  const orderedScenes = useMemo(() => orderShotBlocks(scenes), [scenes]);
+  useEffect(() => { onScenesChange?.(orderedScenes); }, [orderedScenes]);
+
   useEffect(() => {
-    api.getShotList(project.id).then(s => { setScenes(s); onScenesChange?.(s); }).catch(() => {});
+    api.getShotList(project.id).then(setScenes).catch(() => {});
     api.getTalent(project.id).then(setTalent).catch(() => {});
   }, [project.id]);
 
@@ -701,13 +704,13 @@ export default function ShotList({ project, onScenesChange }) {
     updateScenes(prev => prev.map(s => s.id === sceneId ? { ...s, ...updated } : s));
   }
 
-  const shootingCall = scenes.length > 0 ? scenes[0].est_start_time || null : null;
-  const lastScene = scenes.length > 0 ? scenes[scenes.length - 1] : null;
+  const shootingCall = orderedScenes.length > 0 ? orderedScenes[0].est_start_time || null : null;
+  const lastScene = orderedScenes.length > 0 ? orderedScenes[orderedScenes.length - 1] : null;
   const shootingWrap = lastScene ? calcWrapTime(lastScene.est_start_time, lastScene.shots || []) : null;
 
   return (
     <div>
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4 }}>
+      <div className="sl-top" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4 }}>
         <div>
           <div className="page-title" style={{ marginBottom:0 }}>Shot List</div>
           <div className="page-sub">{project.client} · {project.code}</div>
@@ -739,7 +742,7 @@ export default function ShotList({ project, onScenesChange }) {
       <LiveClock />
 
       {/* Stats */}
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:10, marginBottom:20 }}>
+      <div className="sl-stats" style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:10, marginBottom:20 }}>
         {[
           { label:'Total Shots', val: totalShots },
           { label:'Captured', val: capturedShots },
@@ -755,7 +758,7 @@ export default function ShotList({ project, onScenesChange }) {
 
       {scenes.length === 0 && <div className="empty">No scenes yet — add one to get started.</div>}
 
-      {scenes.map(scene => scene.scene_type === 'break' ? (
+      {orderedScenes.map(scene => scene.scene_type === 'break' ? (
         <BreakBlock key={scene.id} scene={scene} projectId={project.id}
           onSceneUpdate={handleSceneUpdate} onShotUpdate={handleShotUpdate}
           onShotAdded={handleShotAdded} onDelete={deleteScene} />

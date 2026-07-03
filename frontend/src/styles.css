@@ -332,6 +332,18 @@ textarea { resize: vertical; min-height: 70px; }
 
   /* Call sheets: let wide tables scroll within their card */
   .callsheet-day { overflow-x: auto; }
+
+  /* Shot list builder / shared view */
+  .sl-top { flex-wrap: wrap; gap: 12px; }
+  .sl-stats { grid-template-columns: repeat(2, 1fr) !important; }
+  /* Stack the scene header so the title and the start-time / delete controls
+     don't collide on a narrow screen */
+  .sl-scene-header { flex-direction: column; align-items: stretch !important; gap: 8px !important; }
+  .sl-scene-main { flex-wrap: wrap; width: 100%; }
+  .sl-scene-ctrl { width: 100%; justify-content: space-between; }
+  /* Wide shot table scrolls horizontally within the scene card */
+  .sl-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .sl-table-wrap table { min-width: 540px; }
 }
 
 @media print {
