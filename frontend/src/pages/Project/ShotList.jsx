@@ -34,13 +34,8 @@ function shotLabel(sceneNumber, index) {
 
 function calcWrapTime(startTime, shots) {
   if (!startTime) return null;
-  const match = startTime.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
-  if (!match) return null;
-  let [, h, m, meridiem] = match;
-  h = parseInt(h); m = parseInt(m);
-  if (meridiem.toUpperCase() === 'PM' && h !== 12) h += 12;
-  if (meridiem.toUpperCase() === 'AM' && h === 12) h = 0;
-  const totalStart = h * 60 + m;
+  const totalStart = timeToMins(startTime);
+  if (totalStart === null) return null;
   const shotMins = shots.reduce((s, sh) => {
     const m = (sh.setup_minutes ?? 5) + ((sh.takes_count ?? 1) * (sh.take_minutes ?? 5)) + (sh.buffer_minutes ?? 5);
     return s + m;
@@ -55,13 +50,19 @@ function calcWrapTime(startTime, shots) {
 
 function timeToMins(t) {
   if (!t) return null;
-  const m = t.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
-  if (!m) return null;
-  let h = parseInt(m[1]), min = parseInt(m[2]);
-  const mer = m[3].toUpperCase();
-  if (mer === 'PM' && h !== 12) h += 12;
-  if (mer === 'AM' && h === 12) h = 0;
-  return h * 60 + min;
+  // 12-hour: "9:00 AM" / "12:30 PM"
+  const m12 = t.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (m12) {
+    let h = parseInt(m12[1]), min = parseInt(m12[2]);
+    const mer = m12[3].toUpperCase();
+    if (mer === 'PM' && h !== 12) h += 12;
+    if (mer === 'AM' && h === 12) h = 0;
+    return h * 60 + min;
+  }
+  // 24-hour: "09:00" / "13:30"
+  const m24 = t.match(/^(\d{1,2}):(\d{2})$/);
+  if (m24) return parseInt(m24[1]) * 60 + parseInt(m24[2]);
+  return null;
 }
 
 function minsToTime(mins) {
