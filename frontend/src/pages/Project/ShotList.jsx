@@ -395,10 +395,13 @@ function DaySynopsisCard({ day, onEdit, onDelete, scenes }) {
       <div style={{ padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
           <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)', letterSpacing: '.04em' }}>
-            DAY {day.day_number}{day.date ? ` — ${day.date}` : ''}
+            DAY {day.day_number}
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {day.date && (
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', letterSpacing: '.06em', textTransform: 'uppercase' }}>{day.date}</div>
+          )}
           {totalShots > 0 && (
             <div style={{ fontSize: 11, color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
               <span style={{ color: 'var(--text)', fontWeight: 700 }}>{totalShots}</span> total shots &nbsp;·&nbsp; <span style={{ color: 'var(--text)', fontWeight: 700 }}>{capturedShots}</span> captured &nbsp;·&nbsp; <span style={{ color: 'var(--text)', fontWeight: 700 }}>{remaining}</span> remaining
