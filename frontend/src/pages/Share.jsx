@@ -1242,8 +1242,7 @@ function slBreakDuration(brk) {
 }
 
 function SlDayHeader({ day }) {
-  const rawDate = day.date ? String(day.date).slice(0, 10) : null;
-  const dateStr = rawDate ? new Date(rawDate + 'T12:00:00').toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric' }) : null;
+  const dateStr = day.date || null;
   return (
     <div style={{ background:'var(--bg3)', border:'1px solid var(--border)', borderRadius:10, padding:'14px 20px', marginBottom:12, display:'flex', alignItems:'center', gap:20, flexWrap:'wrap' }}>
       <div style={{ display:'flex', alignItems:'center', gap:10 }}>

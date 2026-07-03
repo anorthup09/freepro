@@ -375,12 +375,19 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
 
   async function addEvent(e) {
     e.preventDefault();
+    if (!activeDay) return alert('No shoot day selected.');
     try {
       const ev = await api.createEvent(project.id, activeDay, eventForm);
       setDays(ds => ds.map(d => d.id === activeDay ? { ...d, events: [...d.events, ev].sort((a,b) => (a.start_time||'').localeCompare(b.start_time||'')) } : d));
       setShowAddEvent(false);
       setEventForm({ startTime:'', endTime:'', title:'', detail:'', isAlert:false, isFilming:false, tags:[], audience:[] });
-    } catch(e) { alert(e.message); }
+    } catch(e) {
+      if (e.message?.includes('foreign key') || e.message?.includes('fkey')) {
+        alert('This shoot day no longer exists. Please refresh the page and try again.');
+      } else {
+        alert(e.message);
+      }
+    }
   }
 
   async function deleteEvent(eventId) {
