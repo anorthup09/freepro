@@ -1241,7 +1241,7 @@ export default function ShotList({ project, onScenesChange }) {
       {/* Scenes grouped by day, then unassigned */}
       {scenes.length === 0 && days.length === 0 && <div className="empty">No scenes yet — add one to get started.</div>}
 
-      {days.map(day => {
+      {days.map((day, dayIdx) => {
         const dayScenes = scenes.filter(s => s.day_id === day.id);
         const dayBreaks = breaks.filter(b => b.day_id === day.id);
         // Interleave scenes and breaks sorted by start time
@@ -1250,7 +1250,8 @@ export default function ShotList({ project, onScenesChange }) {
           ...dayBreaks.map(b => ({ _type: 'break', _sort: timeToMins(b.start_time) ?? Infinity, data: b })),
         ].sort((a, b2) => a._sort - b2._sort);
         return (
-          <div key={day.id}>
+          <div key={day.id} style={{ marginBottom: 32 }}>
+            {dayIdx > 0 && <div style={{ height: 1, background: 'rgba(255,255,255,0.15)', borderRadius: 1, marginBottom: 24 }} />}
             <DaySynopsisCard day={day} onDelete={deleteDay} onAddScene={openAddSceneForDay} scenes={dayScenes} scheduleDays={scheduleDays} onDateSelect={handleDayDateSelect} />
             {items.map((item, itemIdx) => item._type === 'scene' ? (
               <SceneBlock key={item.data.id} scene={item.data} projectId={project.id} talent={talent} days={days}
