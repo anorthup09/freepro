@@ -354,6 +354,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
       const day = await api.createDay(project.id, {
         notes: dayForm.notes,
         dayNumber: sorted.length + 1,
+        date: new Date(dayForm.date + 'T12:00:00').toISOString(),
       });
       const newDays = [...days, { ...day, events: [], crewCalls: [] }].sort((a, b) => (a.date||'').localeCompare(b.date||''));
       setDays(newDays);
@@ -867,7 +868,8 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
             <div className="modal-title">Add Shoot Day</div>
             <form onSubmit={addDay}>
               <div className="form-grid" style={{ marginBottom:12 }}>
-                <div className="field span2"><label>Notes</label><input value={dayForm.notes} onChange={e => setDayForm(f=>({...f,notes:e.target.value}))} placeholder="Long day" autoFocus /></div>
+                <div className="field span2"><label>Date</label><input type="date" value={dayForm.date} onChange={e => setDayForm(f=>({...f,date:e.target.value}))} required autoFocus /></div>
+                <div className="field span2"><label>Notes</label><input value={dayForm.notes} onChange={e => setDayForm(f=>({...f,notes:e.target.value}))} placeholder="Long day" /></div>
               </div>
               <div className="btn-row"><button className="btn btn-primary">Add Day</button><button type="button" className="btn btn-ghost" onClick={() => setShowAddDay(false)}>Cancel</button></div>
             </form>
