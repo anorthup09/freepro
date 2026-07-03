@@ -206,6 +206,7 @@ export default function Project() {
   const [glassVisible, setGlassVisible] = useState(false);
   const [clockTime, setClockTime] = useState(new Date());
   const [shotListScenes, setShotListScenes] = useState([]);
+  const [currentShotListDay, setCurrentShotListDay] = useState(null);
 
   useEffect(() => {
     function onScroll() { setGlassVisible(window.scrollY > 60); }
@@ -291,19 +292,24 @@ export default function Project() {
             </div>
           )}
         </div>
-        {tab === 'shot-list' && (shootingCall || shootingWrap) ? (
+        {tab === 'shot-list' && currentShotListDay ? (
           <div style={{ display:'flex', alignItems:'center', gap:20 }}>
-            {shootingCall && (
+            <div style={{ textAlign:'center' }}>
+              <div style={{ fontSize:9, fontWeight:700, color:'rgba(255,255,255,0.35)', textTransform:'uppercase', letterSpacing:'.12em', marginBottom:2 }}>Day</div>
+              <div style={{ fontSize:15, fontWeight:800, color:'rgba(255,255,255,0.9)', fontVariantNumeric:'tabular-nums', letterSpacing:'.02em' }}>{currentShotListDay.day_number}</div>
+            </div>
+            {(currentShotListDay.shooting_call || currentShotListDay.est_wrap) && <div style={{ width:1, height:28, background:'rgba(255,255,255,0.12)' }} />}
+            {currentShotListDay.shooting_call && (
               <div style={{ textAlign:'center' }}>
                 <div style={{ fontSize:9, fontWeight:700, color:'rgba(255,255,255,0.35)', textTransform:'uppercase', letterSpacing:'.12em', marginBottom:2 }}>Shooting Call</div>
-                <div style={{ fontSize:15, fontWeight:800, color:'rgba(255,255,255,0.9)', fontVariantNumeric:'tabular-nums', letterSpacing:'.02em' }}>{shootingCall}</div>
+                <div style={{ fontSize:15, fontWeight:800, color:'rgba(255,255,255,0.9)', fontVariantNumeric:'tabular-nums', letterSpacing:'.02em' }}>{currentShotListDay.shooting_call}</div>
               </div>
             )}
-            {shootingCall && shootingWrap && <div style={{ width:1, height:28, background:'rgba(255,255,255,0.12)' }} />}
-            {shootingWrap && (
+            {currentShotListDay.shooting_call && currentShotListDay.est_wrap && <div style={{ width:1, height:28, background:'rgba(255,255,255,0.12)' }} />}
+            {currentShotListDay.est_wrap && (
               <div style={{ textAlign:'center' }}>
-                <div style={{ fontSize:9, fontWeight:700, color:'rgba(255,255,255,0.35)', textTransform:'uppercase', letterSpacing:'.12em', marginBottom:2 }}>Shooting Wrap</div>
-                <div style={{ fontSize:15, fontWeight:800, color:'rgba(255,255,255,0.9)', fontVariantNumeric:'tabular-nums', letterSpacing:'.02em' }}>{shootingWrap}</div>
+                <div style={{ fontSize:9, fontWeight:700, color:'rgba(255,255,255,0.35)', textTransform:'uppercase', letterSpacing:'.12em', marginBottom:2 }}>Est. Wrap</div>
+                <div style={{ fontSize:15, fontWeight:800, color:'rgba(255,255,255,0.9)', fontVariantNumeric:'tabular-nums', letterSpacing:'.02em' }}>{currentShotListDay.est_wrap}</div>
               </div>
             )}
           </div>
@@ -342,7 +348,7 @@ export default function Project() {
         {tab === 'overview'             && <Overview     project={project} setProject={setProject} onTabChange={setTab} />}
         {tab === 'schedule'             && <Schedule     project={project} showCateringGrid={showCateringGrid} setShowCateringGrid={toggleCateringGrid} onCateringTabChange={() => setTab('catering')} showShotList={showShotList} setShowShotList={toggleShotList} onShotListTabChange={() => setTab('shot-list')} showTravel={showTravel} setShowTravel={toggleTravel} onTravelTabChange={() => setTab('travel')} />}
         {tab === 'catering'             && <Catering     project={project} />}
-        {tab === 'shot-list'            && <ShotList     project={project} onScenesChange={setShotListScenes} />}
+        {tab === 'shot-list'            && <ShotList     project={project} onScenesChange={setShotListScenes} onCurrentDayChange={setCurrentShotListDay} />}
         {tab === 'crew'                 && <Crew         project={project} onProjectUpdate={setProject} />}
         {tab === 'travel'               && <Travel       project={project} />}
         {tab === 'gear'                 && <Gear         project={project} setProject={setProject} />}

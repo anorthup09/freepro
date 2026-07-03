@@ -837,7 +837,7 @@ function LiveClock({ currentDay }) {
 }
 
 // ── Main Component ────────────────────────────────────────────────────────────
-export default function ShotList({ project, onScenesChange }) {
+export default function ShotList({ project, onScenesChange, onCurrentDayChange }) {
   const [scenes, setScenes] = useState([]);
   const [talent, setTalent] = useState([]);
   const [days, setDays] = useState([]);
@@ -867,7 +867,11 @@ export default function ShotList({ project, onScenesChange }) {
         visibleDays.forEach((top, dayId) => {
           if (top < bestTop) { bestTop = top; best = dayId; }
         });
-        if (best) setCurrentDayId(best);
+        if (best) {
+          setCurrentDayId(best);
+          const d = days.find(x => x.id === best);
+          if (d) onCurrentDayChange?.(d);
+        }
       }, { threshold: 0, rootMargin: '0px 0px -80% 0px' });
       obs.observe(el);
       observers.push(obs);
@@ -886,7 +890,7 @@ export default function ShotList({ project, onScenesChange }) {
   useEffect(() => {
     api.getShotList(project.id).then(s => { setScenes(s); onScenesChange?.(s); }).catch(() => {});
     api.getTalent(project.id).then(setTalent).catch(() => {});
-    api.getDays(project.id).then(setDays).catch(() => {});
+    api.getDays(project.id).then(d => { setDays(d); if (d.length) onCurrentDayChange?.(d[0]); }).catch(() => {});
     api.getSchedule(project.id).then(d => setScheduleDays(d || [])).catch(() => {});
     api.getBreaks(project.id).then(setBreaks).catch(() => {});
   }, [project.id]);
@@ -1229,7 +1233,6 @@ export default function ShotList({ project, onScenesChange }) {
         </div>
       )}
 
-      <LiveClock currentDay={days.find(d => d.id === currentDayId) || days[0]} />
 
       {/* Scenes grouped by day, then unassigned */}
       {scenes.length === 0 && days.length === 0 && <div className="empty">No scenes yet — add one to get started.</div>}
