@@ -888,8 +888,10 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
             <form onSubmit={addEvent}>
               <div className="form-grid" style={{ marginBottom:12 }}>
                 <div className="field span2" style={{ flexDirection:'row', alignItems:'center', gap:6 }}>
-                  <input type="checkbox" id="isFilming" checked={eventForm.isFilming} onChange={e => setEventForm(f=>({...f,isFilming:e.target.checked}))} style={{ width:'auto' }} />
-                  <label htmlFor="isFilming" style={{ textTransform:'none', letterSpacing:0, fontSize:12, color:'var(--orange)', fontWeight:600 }}>🎬 Filming</label>
+                  <button type="button" onClick={() => setEventForm(f=>({...f,isFilming:!f.isFilming}))}
+                    style={{ padding:'5px 14px', borderRadius:6, border: eventForm.isFilming ? '1.5px solid var(--orange)' : '1px solid var(--border)', background: eventForm.isFilming ? 'rgba(255,140,0,0.15)' : 'transparent', color: eventForm.isFilming ? 'var(--orange)' : 'var(--muted)', fontSize:12, fontWeight:700, cursor:'pointer', letterSpacing:'.04em', textTransform:'uppercase' }}>
+                    Filming
+                  </button>
                 </div>
                 <div className="field"><label>Start Time</label><input type="time" value={eventForm.startTime} onChange={e => setEventForm(f=>({...f,startTime:e.target.value}))} required /></div>
                 <div className="field"><label>End Time</label><input type="time" value={eventForm.endTime} onChange={e => setEventForm(f=>({...f,endTime:e.target.value}))} /></div>
@@ -989,8 +991,10 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
             <form onSubmit={saveEditEvent}>
               <div className="form-grid" style={{ marginBottom:12 }}>
                 <div className="field span2" style={{ flexDirection:'row', alignItems:'center', gap:6 }}>
-                  <input type="checkbox" id="editIsFilming" checked={editEventForm.isFilming} onChange={e => setEditEventForm(f=>({...f,isFilming:e.target.checked}))} style={{ width:'auto' }} />
-                  <label htmlFor="editIsFilming" style={{ textTransform:'none', letterSpacing:0, fontSize:12, color:'var(--orange)', fontWeight:600 }}>🎬 Filming</label>
+                  <button type="button" onClick={() => setEditEventForm(f=>({...f,isFilming:!f.isFilming}))}
+                    style={{ padding:'5px 14px', borderRadius:6, border: editEventForm.isFilming ? '1.5px solid var(--orange)' : '1px solid var(--border)', background: editEventForm.isFilming ? 'rgba(255,140,0,0.15)' : 'transparent', color: editEventForm.isFilming ? 'var(--orange)' : 'var(--muted)', fontSize:12, fontWeight:700, cursor:'pointer', letterSpacing:'.04em', textTransform:'uppercase' }}>
+                    Filming
+                  </button>
                 </div>
                 <div className="field"><label>Start Time</label><input type="time" value={editEventForm.startTime} onChange={e => setEditEventForm(f=>({...f,startTime:e.target.value}))} required /></div>
                 <div className="field"><label>End Time</label><input type="time" value={editEventForm.endTime} onChange={e => setEditEventForm(f=>({...f,endTime:e.target.value}))} /></div>
