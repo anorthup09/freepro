@@ -379,7 +379,7 @@ function NewShotRow({ sceneNumber, nextIndex, projectId, sceneId, onAdded, accen
 }
 
 // ── Day Synopsis Card ─────────────────────────────────────────────────────────
-function DaySynopsisCard({ day, onEdit, onDelete, scenes }) {
+function DaySynopsisCard({ day, onDelete, scenes, scheduleDays, onDateSelect }) {
   const tiles = [
     { label: 'Call Time', val: day.call_time },
     { label: 'Shooting Call', val: day.shooting_call },
@@ -390,24 +390,38 @@ function DaySynopsisCard({ day, onEdit, onDelete, scenes }) {
   const totalShots = dayScenes.reduce((s, sc) => s + sc.shots.length, 0);
   const capturedShots = dayScenes.reduce((s, sc) => s + sc.shots.filter(sh => sh.status === 'captured').length, 0);
   const remaining = totalShots - capturedShots;
+
+  function fmtSchedDate(isoStr) {
+    if (!isoStr) return '';
+    const d = new Date(isoStr);
+    return d.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric', timeZone:'UTC' }).toUpperCase();
+  }
+
   return (
     <div style={{ marginBottom: 16, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, overflow: 'hidden' }}>
       <div style={{ padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)', letterSpacing: '.04em' }}>
             DAY {day.day_number}
           </div>
+          <select
+            value={day.date || ''}
+            onChange={e => onDateSelect(day, e.target.value)}
+            style={{ fontSize: 11, fontWeight: 700, color: day.date ? 'var(--text)' : 'var(--muted)', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', outline: 'none' }}
+          >
+            <option value="">— Select Date —</option>
+            {(scheduleDays || []).map(sd => {
+              const label = fmtSchedDate(sd.date);
+              return <option key={sd.id} value={label}>{label}</option>;
+            })}
+          </select>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          {day.date && (
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', letterSpacing: '.06em', textTransform: 'uppercase' }}>{day.date}</div>
-          )}
           {totalShots > 0 && (
             <div style={{ fontSize: 11, color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
               <span style={{ color: 'var(--text)', fontWeight: 700 }}>{totalShots}</span> total shots &nbsp;·&nbsp; <span style={{ color: 'var(--text)', fontWeight: 700 }}>{capturedShots}</span> captured &nbsp;·&nbsp; <span style={{ color: 'var(--text)', fontWeight: 700 }}>{remaining}</span> remaining
             </div>
           )}
-          <button className="btn btn-ghost btn-sm" style={{ fontSize: 11 }} onClick={() => onEdit(day)}>Edit</button>
           <button className="btn btn-ghost btn-sm" style={{ fontSize: 11, color: 'var(--muted)' }} onClick={() => {
             if (confirm(`Delete Day ${day.day_number}?`)) onDelete(day.id);
           }}>Delete</button>
@@ -781,6 +795,25 @@ export default function ShotList({ project, onScenesChange }) {
     setEditingDay(day);
   }
 
+  async function handleDayDateSelect(day, dateLabel) {
+    const matched = scheduleDays.find(sd => {
+      const d = new Date(sd.date);
+      const label = d.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric', timeZone:'UTC' }).toUpperCase();
+      return label === dateLabel;
+    });
+    const payload = {
+      date: dateLabel || null,
+      callTime: matched?.call_time || day.call_time || '',
+      shootingCall: matched?.shooting_call_time || day.shooting_call || '',
+      lunchTime: matched?.lunch_time || day.lunch_time || '',
+      estWrap: matched?.wrap_time || day.est_wrap || '',
+    };
+    try {
+      const updated = await api.updateDay(project.id, day.id, payload);
+      setDays(prev => prev.map(d => d.id === updated.id ? updated : d));
+    } catch(err) { alert(err.message); }
+  }
+
   function handleShotUpdate(updated) {
     updateScenes(prev => prev.map(s => ({ ...s, shots: s.shots.map(sh => sh.id === updated.id ? updated : sh) })));
   }
@@ -832,7 +865,7 @@ export default function ShotList({ project, onScenesChange }) {
         const dayScenes = scenes.filter(s => s.day_id === day.id);
         return (
           <div key={day.id}>
-            <DaySynopsisCard day={day} onEdit={openEditDay} onDelete={deleteDay} scenes={dayScenes} />
+            <DaySynopsisCard day={day} onDelete={deleteDay} scenes={dayScenes} scheduleDays={scheduleDays} onDateSelect={handleDayDateSelect} />
             {dayScenes.map(scene => (
               <SceneBlock key={scene.id} scene={scene} projectId={project.id} talent={talent} days={days}
                 onShotUpdate={handleShotUpdate} onShotAdded={handleShotAdded} onShotDelete={handleShotDelete}
