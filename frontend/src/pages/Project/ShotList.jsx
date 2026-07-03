@@ -1053,6 +1053,61 @@ export default function ShotList({ project, onScenesChange }) {
         </div>
       </div>
 
+      {showAddScene && (
+        <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:10, padding:'20px 20px 16px', marginBottom:16 }}>
+          <div style={{ fontSize:15, fontWeight:800, letterSpacing:'.04em', textTransform:'uppercase', marginBottom:14 }}>Add Scene</div>
+          <form onSubmit={addScene}>
+            <div className="form-grid" style={{ marginBottom:10 }}>
+              <div className="field span2"><label>Scene Name *</label><input value={sceneForm.name} onChange={e => setSceneForm(f => ({...f, name: e.target.value}))} placeholder="TEAM FLOOR - HERO SHOT" required autoFocus /></div>
+              <div className="field span2"><label>Description</label><input value={sceneForm.description} onChange={e => setSceneForm(f => ({...f, description: e.target.value}))} placeholder="Brief scene description" /></div>
+              <div className="field">
+                <label>Interior / Exterior</label>
+                <div style={{ display:'flex', gap:8, marginTop:4 }}>
+                  {['interior','exterior'].map(t => (
+                    <button key={t} type="button" onClick={() => setSceneForm(f => ({...f, sceneType: t}))}
+                      style={{ flex:1, padding:'8px 0', borderRadius:6, border:`1px solid ${sceneForm.sceneType === t ? (t === 'interior' ? '#60a5fa' : '#4ade80') : 'var(--border)'}`, background: sceneForm.sceneType === t ? (t === 'interior' ? 'rgba(96,165,250,0.15)' : 'rgba(74,222,128,0.12)') : 'var(--bg2)', color: sceneForm.sceneType === t ? (t === 'interior' ? '#60a5fa' : '#4ade80') : 'var(--muted)', fontSize:12, fontWeight:700, cursor:'pointer', textTransform:'uppercase', letterSpacing:'.06em', transition:'all 0.15s' }}>
+                      {t === 'interior' ? 'INT.' : 'EXT.'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="field">
+                <label>Day</label>
+                <select value={sceneForm.dayId} onChange={e => {
+                  const dayId = e.target.value;
+                  let defaultStart = sceneForm.estStartTime;
+                  let defaultMins = defaultStart ? (timeToMins(defaultStart) ?? -1) : -1;
+                  if (dayId) {
+                    const dayScenes = scenes.filter(s => s.day_id === dayId && s.est_start_time).sort((a, b) => (timeToMins(a.est_start_time) ?? 0) - (timeToMins(b.est_start_time) ?? 0));
+                    if (dayScenes.length > 0) {
+                      const last = dayScenes[dayScenes.length - 1];
+                      const wrap = calcWrapTime(last.est_start_time, last.shots || []);
+                      if (wrap) { const m = timeToMins(wrap) ?? -1; if (m > defaultMins) { defaultMins = m; defaultStart = wrap; } }
+                    }
+                    breaks.filter(b => b.day_id === dayId && b.end_time).forEach(b => {
+                      const m = timeToMins(b.end_time);
+                      if (m != null && m > defaultMins) { defaultMins = m; defaultStart = b.end_time; }
+                    });
+                  }
+                  setSceneForm(f => ({...f, dayId, estStartTime: defaultStart}));
+                }} style={{ width:'100%', background:'var(--surface)', border:'1px solid var(--border)', borderRadius:6, padding:'7px 10px', color:'var(--text)', fontSize:13, fontFamily:'inherit', outline:'none' }}>
+                  <option value="">— Unassigned —</option>
+                  {days.map(d => <option key={d.id} value={d.id}>{d.date || `Day ${d.day_number}`}</option>)}
+                </select>
+              </div>
+              <div className="field">
+                <label>Est. Start Time</label>
+                <input value={sceneForm.estStartTime} onChange={e => setSceneForm(f => ({...f, estStartTime: e.target.value}))} placeholder="9:00 AM" />
+              </div>
+            </div>
+            <div style={{ display:'flex', gap:8 }}>
+              <button type="submit" className="btn btn-primary btn-sm">Add Scene</button>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowAddScene(false)}>Cancel</button>
+            </div>
+          </form>
+        </div>
+      )}
+
       <LiveClock />
 
       {/* Scenes grouped by day, then unassigned */}
@@ -1219,61 +1274,6 @@ export default function ShotList({ project, onScenesChange }) {
         </div>
       )}
 
-      {/* Add Scene Modal */}
-      {showAddScene && (
-        <div className="modal-backdrop" onClick={() => setShowAddScene(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-title">Add Scene</div>
-            <form onSubmit={addScene}>
-              <div className="field"><label>Scene Name *</label><input value={sceneForm.name} onChange={e => setSceneForm(f => ({...f, name: e.target.value}))} placeholder="TEAM FLOOR - HERO SHOT" required autoFocus /></div>
-              <div className="field"><label>Description</label><input value={sceneForm.description} onChange={e => setSceneForm(f => ({...f, description: e.target.value}))} placeholder="Brief scene description" /></div>
-              <div className="field">
-                <label>Interior / Exterior</label>
-                <div style={{ display:'flex', gap:8, marginTop:4 }}>
-                  {['interior','exterior'].map(t => (
-                    <button key={t} type="button" onClick={() => setSceneForm(f => ({...f, sceneType: t}))}
-                      style={{ flex:1, padding:'8px 0', borderRadius:6, border:`1px solid ${sceneForm.sceneType === t ? (t === 'interior' ? '#60a5fa' : '#4ade80') : 'var(--border)'}`, background: sceneForm.sceneType === t ? (t === 'interior' ? 'rgba(96,165,250,0.15)' : 'rgba(74,222,128,0.12)') : 'var(--bg2)', color: sceneForm.sceneType === t ? (t === 'interior' ? '#60a5fa' : '#4ade80') : 'var(--muted)', fontSize:12, fontWeight:700, cursor:'pointer', textTransform:'uppercase', letterSpacing:'.06em', transition:'all 0.15s' }}>
-                      {t === 'interior' ? 'INT.' : 'EXT.'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="field">
-                <label>Day</label>
-                <select value={sceneForm.dayId} onChange={e => {
-                  const dayId = e.target.value;
-                  let defaultStart = sceneForm.estStartTime;
-                  let defaultMins = defaultStart ? (timeToMins(defaultStart) ?? -1) : -1;
-                  if (dayId) {
-                    const dayScenes = scenes.filter(s => s.day_id === dayId && s.est_start_time).sort((a, b) => (timeToMins(a.est_start_time) ?? 0) - (timeToMins(b.est_start_time) ?? 0));
-                    if (dayScenes.length > 0) {
-                      const last = dayScenes[dayScenes.length - 1];
-                      const wrap = calcWrapTime(last.est_start_time, last.shots || []);
-                      if (wrap) { const m = timeToMins(wrap) ?? -1; if (m > defaultMins) { defaultMins = m; defaultStart = wrap; } }
-                    }
-                    breaks.filter(b => b.day_id === dayId && b.end_time).forEach(b => {
-                      const m = timeToMins(b.end_time);
-                      if (m != null && m > defaultMins) { defaultMins = m; defaultStart = b.end_time; }
-                    });
-                  }
-                  setSceneForm(f => ({...f, dayId, estStartTime: defaultStart}));
-                }} style={{ width:'100%', background:'var(--surface)', border:'1px solid var(--border)', borderRadius:6, padding:'7px 10px', color:'var(--text)', fontSize:13, fontFamily:'inherit', outline:'none' }}>
-                  <option value="">— Unassigned —</option>
-                  {days.map(d => <option key={d.id} value={d.id}>{d.date || `Day ${d.day_number}`}</option>)}
-                </select>
-              </div>
-              <div className="field">
-                <label>Est. Start Time</label>
-                <input value={sceneForm.estStartTime} onChange={e => setSceneForm(f => ({...f, estStartTime: e.target.value}))} placeholder="9:00 AM" style={{ width:'100%' }} />
-              </div>
-              <div style={{ display:'flex', gap:8, marginTop:16 }}>
-                <button type="submit" className="btn btn-primary btn-sm">Add Scene</button>
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowAddScene(false)}>Cancel</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
