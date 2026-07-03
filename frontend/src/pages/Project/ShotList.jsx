@@ -1080,22 +1080,35 @@ export default function ShotList({ project, onScenesChange }) {
     if (!wrap) return updatedScenes;
 
     const dayId = scene.day_id;
+    const wrapMins = timeToMins(wrap);
+
+    // Find any break that immediately follows this scene (start_time closest to wrap)
+    const dayBreaks = breaks.filter(b => dayId ? b.day_id === dayId : !b.day_id);
+    const followingBreak = dayBreaks
+      .filter(b => { const m = timeToMins(b.start_time); return m != null && m >= (wrapMins ?? 0) - 1 && m <= (wrapMins ?? 0) + 1; })
+      .sort((a, b) => Math.abs(timeToMins(a.start_time) - wrapMins) - Math.abs(timeToMins(b.start_time) - wrapMins))[0]
+      || dayBreaks.find(b => b.start_time === scene._prevWrap);
+
+    if (followingBreak) {
+      // Update break start to new wrap; next scene start = break end (unchanged)
+      if (followingBreak.start_time !== wrap) {
+        try {
+          const updated = await api.updateBreak(project.id, followingBreak.id, {
+            dayId: followingBreak.day_id, startTime: wrap, endTime: followingBreak.end_time
+          });
+          setBreaks(prev => prev.map(b => b.id === followingBreak.id ? updated : b));
+        } catch {}
+      }
+      return updatedScenes;
+    }
+
+    // No break — update next scene's start time
     const dayScenes = updatedScenes
       .filter(s => dayId ? s.day_id === dayId : !s.day_id)
       .sort((a, b) => (timeToMins(a.est_start_time) ?? Infinity) - (timeToMins(b.est_start_time) ?? Infinity));
     const idx = dayScenes.findIndex(s => s.id === fromSceneId);
     if (idx < 0 || idx + 1 >= dayScenes.length) return updatedScenes;
     const next = dayScenes[idx + 1];
-
-    // Skip propagation if a break exists between this scene's wrap and the next scene's start
-    const wrapMins = timeToMins(wrap);
-    const nextStartMins = timeToMins(next.est_start_time) ?? Infinity;
-    const hasBreakBetween = breaks.some(b => {
-      if (dayId && b.day_id !== dayId) return false;
-      const bStart = timeToMins(b.start_time);
-      return bStart != null && bStart >= wrapMins && bStart <= nextStartMins;
-    });
-    if (hasBreakBetween) return updatedScenes;
 
     try {
       await api.updateScene(project.id, next.id, { estStartTime: wrap });
@@ -1214,30 +1227,6 @@ export default function ShotList({ project, onScenesChange }) {
                     </button>
                   ))}
                 </div>
-              </div>
-              <div className="field">
-                <label>Day</label>
-                <select value={sceneForm.dayId} onChange={e => {
-                  const dayId = e.target.value;
-                  let defaultStart = sceneForm.estStartTime;
-                  let defaultMins = defaultStart ? (timeToMins(defaultStart) ?? -1) : -1;
-                  if (dayId) {
-                    const dayScenes = scenes.filter(s => s.day_id === dayId && s.est_start_time).sort((a, b) => (timeToMins(a.est_start_time) ?? 0) - (timeToMins(b.est_start_time) ?? 0));
-                    if (dayScenes.length > 0) {
-                      const last = dayScenes[dayScenes.length - 1];
-                      const wrap = calcWrapTime(last.est_start_time, last.shots || []);
-                      if (wrap) { const m = timeToMins(wrap) ?? -1; if (m > defaultMins) { defaultMins = m; defaultStart = wrap; } }
-                    }
-                    breaks.filter(b => b.day_id === dayId && b.end_time).forEach(b => {
-                      const m = timeToMins(b.end_time);
-                      if (m != null && m > defaultMins) { defaultMins = m; defaultStart = b.end_time; }
-                    });
-                  }
-                  setSceneForm(f => ({...f, dayId, estStartTime: defaultStart}));
-                }} style={{ width:'100%', background:'var(--surface)', border:'1px solid var(--border)', borderRadius:6, padding:'7px 10px', color:'var(--text)', fontSize:13, fontFamily:'inherit', outline:'none' }}>
-                  <option value="">— Unassigned —</option>
-                  {days.map(d => <option key={d.id} value={d.id}>{d.date || `Day ${d.day_number}`}</option>)}
-                </select>
               </div>
               <div className="field">
                 <label>Est. Start Time</label>
@@ -1369,7 +1358,7 @@ export default function ShotList({ project, onScenesChange }) {
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
                 <div className="field" style={{ margin:0 }}>
                   <label>Start Time</label>
-                  <input value={breakForm.startTime} onChange={e => setBreakForm(f => ({...f, startTime: e.target.value}))} placeholder="12:00 PM" autoFocus />
+                  <span style={{ fontSize:13, color:'var(--text)', fontVariantNumeric:'tabular-nums', display:'block', padding:'7px 0' }}>{breakForm.startTime || '—'}</span>
                 </div>
                 <div className="field" style={{ margin:0 }}>
                   <label>End Time</label>
