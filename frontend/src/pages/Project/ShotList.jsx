@@ -994,20 +994,26 @@ export default function ShotList({ project, onScenesChange }) {
 
     if (!dayScenes.length) return;
 
-    // Build interleaved sequence: scenes in sort_order, breaks placed between
-    // scenes based on their stale start_time relative to scene start times
+    // Build interleaved sequence: scenes in sort_order, breaks sorted by start_time
+    // A break belongs after the scene whose wrap time is closest to the break's start_time
     const orderedItems = [];
     const usedBreakIds = new Set();
     for (let i = 0; i < dayScenes.length; i++) {
       const scene = dayScenes[i];
-      const nextScene = dayScenes[i + 1];
       orderedItems.push({ type: 'scene', data: scene });
-      const sm = timeToMins(scene.est_start_time) ?? 0;
-      const nm = nextScene ? (timeToMins(nextScene.est_start_time) ?? Infinity) : Infinity;
+      // Breaks that started at or after this scene's start and before the next scene's start
+      const sceneWrap = calcWrapTime(scene.est_start_time, scene.shots || []);
+      const sceneWrapMins = timeToMins(sceneWrap) ?? (timeToMins(scene.est_start_time) ?? (i * 1e6));
+      const nextScene = dayScenes[i + 1];
+      const nextStartMins = nextScene ? (timeToMins(nextScene.est_start_time) ?? Infinity) : Infinity;
       for (const b of dayBreaks) {
         if (usedBreakIds.has(b.id)) continue;
         const bm = timeToMins(b.start_time) ?? 0;
-        if (bm >= sm && bm < nm) { usedBreakIds.add(b.id); orderedItems.push({ type: 'break', data: b }); }
+        // Place break here if its start is at this scene's wrap or between wrap and next scene start
+        if (bm >= sceneWrapMins - 1 && bm < nextStartMins) {
+          usedBreakIds.add(b.id);
+          orderedItems.push({ type: 'break', data: b });
+        }
       }
     }
     for (const b of dayBreaks) {
@@ -1177,27 +1183,21 @@ export default function ShotList({ project, onScenesChange }) {
         const dayScenes = scenes.filter(s => s.day_id === day.id);
         const dayBreaks = breaks.filter(b => b.day_id === day.id);
         // Scenes ordered by sort_order (stable insertion order)
-        const orderedScenes = [...dayScenes].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
-        // Breaks ordered by start_time
-        const orderedBreaks = [...dayBreaks].sort((a, b) => (timeToMins(a.start_time) ?? 0) - (timeToMins(b.start_time) ?? 0));
-        // Interleave: after each scene, insert any break whose start_time falls between this scene's start and next scene's start
-        const usedBreakIds = new Set();
-        const items = [];
-        for (let i = 0; i < orderedScenes.length; i++) {
-          const sc = orderedScenes[i];
-          const nextSc = orderedScenes[i + 1];
-          items.push({ _type: 'scene', data: sc });
-          const sm = timeToMins(sc.est_start_time) ?? 0;
-          const nm = nextSc ? (timeToMins(nextSc.est_start_time) ?? Infinity) : Infinity;
-          for (const b of orderedBreaks) {
-            if (usedBreakIds.has(b.id)) continue;
-            const bm = timeToMins(b.start_time) ?? 0;
-            if (bm >= sm && bm < nm) { usedBreakIds.add(b.id); items.push({ _type: 'break', data: b }); }
-          }
-        }
-        for (const b of orderedBreaks) {
-          if (!usedBreakIds.has(b.id)) items.push({ _type: 'break', data: b });
-        }
+        // Sort scenes by sort_order; assign each a time-based sort key falling back to sort_order
+        const sortedScenes = [...dayScenes].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+        // Give each scene a numeric sort position: its est_start_time in mins, or (sort_order * 1e6) as fallback
+        const sceneItems = sortedScenes.map((s, idx) => ({
+          _type: 'scene',
+          _sort: timeToMins(s.est_start_time) ?? (idx * 1e6),
+          data: s,
+        }));
+        // Breaks sort after the scene at the same minute (+0.5 offset)
+        const breakItems = dayBreaks.map(b => ({
+          _type: 'break',
+          _sort: (timeToMins(b.start_time) ?? 0) + 0.5,
+          data: b,
+        }));
+        const items = [...sceneItems, ...breakItems].sort((a, b) => a._sort - b._sort);
         return (
           <div key={day.id} style={{ marginBottom: 32 }}>
             {dayIdx > 0 && <div style={{ height: 1, background: 'rgba(255,255,255,0.15)', borderRadius: 1, marginBottom: 24 }} />}
