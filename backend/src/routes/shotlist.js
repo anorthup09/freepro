@@ -154,4 +154,49 @@ router.delete('/:id/shot-list/days/:dayId', requireAuth, requireRole('ADMIN','PR
   } catch(e) { next(e); }
 });
 
+// GET /api/projects/:id/shot-list/breaks
+router.get('/:id/shot-list/breaks', requireAuth, async (req, res, next) => {
+  try {
+    const breaks = await sql`SELECT * FROM shot_list_breaks WHERE project_id = ${req.params.id} ORDER BY sort_order, created_at`;
+    res.json(breaks);
+  } catch(e) { next(e); }
+});
+
+// POST /api/projects/:id/shot-list/breaks
+router.post('/:id/shot-list/breaks', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try {
+    const { dayId, startTime, endTime } = req.body;
+    const [b] = await sql`
+      INSERT INTO shot_list_breaks (project_id, day_id, start_time, end_time)
+      VALUES (${req.params.id}, ${dayId||null}, ${startTime||null}, ${endTime||null})
+      RETURNING *
+    `;
+    res.json(b);
+  } catch(e) { next(e); }
+});
+
+// PATCH /api/projects/:id/shot-list/breaks/:breakId
+router.patch('/:id/shot-list/breaks/:breakId', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try {
+    const { dayId, startTime, endTime } = req.body;
+    const [b] = await sql`
+      UPDATE shot_list_breaks SET
+        day_id = ${dayId !== undefined ? (dayId||null) : sql`day_id`},
+        start_time = ${startTime !== undefined ? (startTime||null) : sql`start_time`},
+        end_time = ${endTime !== undefined ? (endTime||null) : sql`end_time`}
+      WHERE id = ${req.params.breakId} AND project_id = ${req.params.id}
+      RETURNING *
+    `;
+    res.json(b);
+  } catch(e) { next(e); }
+});
+
+// DELETE /api/projects/:id/shot-list/breaks/:breakId
+router.delete('/:id/shot-list/breaks/:breakId', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try {
+    await sql`DELETE FROM shot_list_breaks WHERE id = ${req.params.breakId} AND project_id = ${req.params.id}`;
+    res.json({ ok: true });
+  } catch(e) { next(e); }
+});
+
 module.exports = router;

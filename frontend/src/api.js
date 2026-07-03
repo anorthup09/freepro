@@ -179,6 +179,11 @@ export const api = {
   updateShot: (projectId, shotId, data) => req('PATCH', `/projects/${projectId}/shot-list/shots/${shotId}`, data),
   deleteShot: (projectId, shotId) => req('DELETE', `/projects/${projectId}/shot-list/shots/${shotId}`),
 
+  // Shot List Breaks
+  getBreaks: (projectId) => req('GET', `/projects/${projectId}/shot-list/breaks`),
+  createBreak: (projectId, data) => req('POST', `/projects/${projectId}/shot-list/breaks`, data),
+  deleteBreak: (projectId, id) => req('DELETE', `/projects/${projectId}/shot-list/breaks/${id}`),
+
   answerShareQuestion: async (token, pw, qid, answer) => {
     const url = `${BACKEND}/api/share/${token}/questions/${qid}${pw ? `?pw=${encodeURIComponent(pw)}` : ''}`;
     const r = await fetch(url, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ answer }) });

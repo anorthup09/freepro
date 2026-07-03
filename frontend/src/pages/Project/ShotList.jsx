@@ -50,9 +50,34 @@ function calcWrapTime(startTime, shots) {
   return `${displayH}:${String(endM).padStart(2, '0')} ${period}`;
 }
 
+function timeToMins(t) {
+  if (!t) return null;
+  const m = t.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!m) return null;
+  let h = parseInt(m[1]), min = parseInt(m[2]);
+  const mer = m[3].toUpperCase();
+  if (mer === 'PM' && h !== 12) h += 12;
+  if (mer === 'AM' && h === 12) h = 0;
+  return h * 60 + min;
+}
+
+function minsToTime(mins) {
+  const h = Math.floor(mins / 60) % 24;
+  const m = mins % 60;
+  const period = h >= 12 ? 'PM' : 'AM';
+  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${period}`;
+}
+
+function calcShotEstTime(sceneStartTime, shots, shotIndex) {
+  const startMins = timeToMins(sceneStartTime);
+  if (startMins === null) return null;
+  const offset = shots.slice(0, shotIndex).reduce((s, sh) => s + (sh.est_minutes || 0), 0);
+  return minsToTime(startMins + offset);
+}
+
 // ── Shot Row ──────────────────────────────────────────────────────────────────
 function ShotRow({ shot, index, sceneNumber, projectId, onUpdate, onDelete, accentColor, allExpanded, talent,
-                   dragHandleProps, isDragOver }) {
+                   dragHandleProps, isDragOver, sceneStartTime, allShots }) {
   const captured = shot.status === 'captured';
   const [desc, setDesc] = useState(shot.description || '');
   const [movement, setMovement] = useState(shot.movement || '');
@@ -213,9 +238,16 @@ function ShotRow({ shot, index, sceneNumber, projectId, onUpdate, onDelete, acce
             <span style={{ fontSize:12, color:'var(--muted)', opacity:0.4 }}>—</span>
           )}
         </td>
-        {/* Time (read-only, derived from breakdown) */}
+        {/* Allocation (read-only, derived from breakdown) */}
         <td style={{ padding:'6px 8px', width:60 }}>
           <span style={{ fontSize:13, color: captured ? 'var(--muted)' : 'var(--text)', fontVariantNumeric:'tabular-nums' }}>{displayMinutes}<span style={{ fontSize:10, color:'var(--muted)', marginLeft:2 }}>m</span></span>
+        </td>
+        {/* Est. Time */}
+        <td style={{ padding:'6px 8px', width:72 }}>
+          {(() => {
+            const t = calcShotEstTime(sceneStartTime, allShots || [], index);
+            return t ? <span style={{ fontSize:12, color: captured ? 'var(--muted)' : 'var(--muted)', fontVariantNumeric:'tabular-nums', fontWeight:600 }}>{t}</span> : <span style={{ color:'var(--muted)', opacity:0.3, fontSize:12 }}>—</span>;
+          })()}
         </td>
         {/* Delete */}
         <td style={{ padding:'10px 14px 10px 4px', width:28, textAlign:'right' }}>
@@ -596,7 +628,8 @@ function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded,
             <th style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left' }}>Description</th>
             <th style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:130 }}>Movement</th>
             <th style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:80 }}>Talent</th>
-            <th style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:60 }}>Time</th>
+            <th style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:60 }}>Allocation</th>
+            <th style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:72 }}>Est. Time</th>
             <th style={{ width:28 }} />
           </tr>
         </thead>
@@ -605,6 +638,7 @@ function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded,
             <ShotRow key={shot.id} shot={shot} index={i} sceneNumber={scene.scene_number}
               projectId={projectId} onUpdate={onShotUpdate} onDelete={onShotDelete}
               accentColor={st.badgeText} allExpanded={allExpanded} talent={talent}
+              sceneStartTime={startTime} allShots={scene.shots}
               isDragOver={dragOverIndex === i}
               dragHandleProps={{
                 draggable: true,
@@ -727,6 +761,9 @@ export default function ShotList({ project, onScenesChange }) {
   const [dayForm, setDayForm] = useState({ month: '', day: '', year: String(new Date().getFullYear()), callTime: '', shootingCall: '', lunchTime: '', estWrap: '' });
   const [editingDay, setEditingDay] = useState(null);
   const [scheduleDays, setScheduleDays] = useState([]);
+  const [breaks, setBreaks] = useState([]);
+  const [showAddBreak, setShowAddBreak] = useState(false);
+  const [breakForm, setBreakForm] = useState({ dayId: '', startTime: '', endTime: '' });
 
   function updateScenes(updater) {
     setScenes(prev => {
@@ -741,6 +778,7 @@ export default function ShotList({ project, onScenesChange }) {
     api.getTalent(project.id).then(setTalent).catch(() => {});
     api.getDays(project.id).then(setDays).catch(() => {});
     api.getSchedule(project.id).then(d => setScheduleDays(d || [])).catch(() => {});
+    api.getBreaks(project.id).then(setBreaks).catch(() => {});
   }, [project.id]);
 
   const totalShots = scenes.reduce((s, sc) => s + sc.shots.length, 0);
@@ -787,6 +825,30 @@ export default function ShotList({ project, onScenesChange }) {
     await api.deleteDay(project.id, dayId);
     setDays(prev => prev.filter(d => d.id !== dayId));
     updateScenes(prev => prev.map(s => s.day_id === dayId ? { ...s, day_id: null } : s));
+  }
+
+  async function addBreak(e) {
+    e.preventDefault();
+    try {
+      const b = await api.createBreak(project.id, { dayId: breakForm.dayId || null, startTime: breakForm.startTime, endTime: breakForm.endTime });
+      setBreaks(prev => [...prev, b]);
+      // Auto-set next scene start time to break end time
+      if (breakForm.endTime && breakForm.dayId) {
+        const dayScenesAfterBreak = scenes.filter(s => s.day_id === breakForm.dayId && (!s.est_start_time || timeToMins(s.est_start_time) >= timeToMins(breakForm.startTime)));
+        if (dayScenesAfterBreak.length > 0) {
+          const firstAfter = dayScenesAfterBreak.sort((a,b2) => (timeToMins(a.est_start_time)||0) - (timeToMins(b2.est_start_time)||0))[0];
+          await api.updateScene(project.id, firstAfter.id, { estStartTime: breakForm.endTime });
+          updateScenes(prev => prev.map(s => s.id === firstAfter.id ? { ...s, est_start_time: breakForm.endTime } : s));
+        }
+      }
+      setShowAddBreak(false);
+      setBreakForm({ dayId: '', startTime: '', endTime: '' });
+    } catch(err) { alert(err.message); }
+  }
+
+  async function deleteBreak(breakId) {
+    await api.deleteBreak(project.id, breakId);
+    setBreaks(prev => prev.filter(b => b.id !== breakId));
   }
 
   function openEditDay(day) {
@@ -852,6 +914,7 @@ export default function ShotList({ project, onScenesChange }) {
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:16 }}>
           <button className="btn btn-ghost btn-sm" onClick={() => setShowAddDay(true)} style={{ border:'1px solid var(--border)' }}>+ Add Day</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => setShowAddBreak(true)} style={{ border:'1px solid rgba(234,179,8,0.4)', color:'rgba(234,179,8,0.9)' }}>+ Add Break</button>
           <button className="btn btn-primary btn-sm" onClick={() => setShowAddScene(true)}>+ Add Scene</button>
         </div>
       </div>
@@ -863,16 +926,32 @@ export default function ShotList({ project, onScenesChange }) {
 
       {days.map(day => {
         const dayScenes = scenes.filter(s => s.day_id === day.id);
+        const dayBreaks = breaks.filter(b => b.day_id === day.id);
+        // Interleave scenes and breaks sorted by start time
+        const items = [
+          ...dayScenes.map(s => ({ _type: 'scene', _sort: timeToMins(s.est_start_time) ?? Infinity, data: s })),
+          ...dayBreaks.map(b => ({ _type: 'break', _sort: timeToMins(b.start_time) ?? Infinity, data: b })),
+        ].sort((a, b2) => a._sort - b2._sort);
         return (
           <div key={day.id}>
             <DaySynopsisCard day={day} onDelete={deleteDay} scenes={dayScenes} scheduleDays={scheduleDays} onDateSelect={handleDayDateSelect} />
-            {dayScenes.map(scene => (
-              <SceneBlock key={scene.id} scene={scene} projectId={project.id} talent={talent} days={days}
+            {items.map(item => item._type === 'scene' ? (
+              <SceneBlock key={item.data.id} scene={item.data} projectId={project.id} talent={talent} days={days}
                 onShotUpdate={handleShotUpdate} onShotAdded={handleShotAdded} onShotDelete={handleShotDelete}
                 onDeleteScene={deleteScene} onStartTimeChange={handleStartTimeChange}
                 onShotsReorder={handleShotsReorder} onSceneUpdate={handleSceneUpdate} />
+            ) : (
+              <div key={item.data.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', margin:'8px 0', padding:'10px 16px', background:'rgba(234,179,8,0.08)', border:'1px solid rgba(234,179,8,0.3)', borderRadius:8 }}>
+                <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                  <span style={{ fontSize:10, fontWeight:800, color:'rgba(234,179,8,0.9)', textTransform:'uppercase', letterSpacing:'.1em', background:'rgba(234,179,8,0.15)', border:'1px solid rgba(234,179,8,0.3)', borderRadius:4, padding:'2px 8px' }}>BREAK</span>
+                  <span style={{ fontSize:13, fontWeight:700, color:'rgba(234,179,8,0.9)', fontVariantNumeric:'tabular-nums' }}>
+                    {item.data.start_time}{item.data.end_time ? ` – ${item.data.end_time}` : ''}
+                  </span>
+                </div>
+                <button onClick={() => deleteBreak(item.data.id)} style={{ background:'none', border:'none', color:'rgba(234,179,8,0.4)', cursor:'pointer', fontSize:13, padding:0, lineHeight:1 }}>✕</button>
+              </div>
             ))}
-            {dayScenes.length === 0 && (
+            {items.length === 0 && (
               <div style={{ textAlign:'center', padding:'12px 0 20px', fontSize:12, color:'var(--muted)', opacity:0.5 }}>No scenes assigned to this day yet.</div>
             )}
           </div>
@@ -962,6 +1041,41 @@ export default function ShotList({ project, onScenesChange }) {
               <div style={{ display:'flex', gap:8, marginTop:16 }}>
                 <button type="submit" className="btn btn-primary btn-sm">{editingDay ? 'Save' : 'Add Day'}</button>
                 <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setShowAddDay(false); setEditingDay(null); }}>Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Break Modal */}
+      {showAddBreak && (
+        <div className="modal-backdrop" onClick={() => setShowAddBreak(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-title">Add Break</div>
+            <form onSubmit={addBreak}>
+              {days.length > 0 && (
+                <div className="field">
+                  <label>Day</label>
+                  <select value={breakForm.dayId} onChange={e => setBreakForm(f => ({...f, dayId: e.target.value}))}
+                    style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:6, padding:'7px 10px', color:'var(--text)', fontFamily:'inherit', fontSize:13 }}>
+                    <option value="">— No day —</option>
+                    {days.map(d => <option key={d.id} value={d.id}>Day {d.day_number}{d.date ? ` — ${d.date}` : ''}</option>)}
+                  </select>
+                </div>
+              )}
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+                <div className="field" style={{ margin:0 }}>
+                  <label>Start Time</label>
+                  <input value={breakForm.startTime} onChange={e => setBreakForm(f => ({...f, startTime: e.target.value}))} placeholder="12:00 PM" autoFocus />
+                </div>
+                <div className="field" style={{ margin:0 }}>
+                  <label>End Time</label>
+                  <input value={breakForm.endTime} onChange={e => setBreakForm(f => ({...f, endTime: e.target.value}))} placeholder="1:00 PM" />
+                </div>
+              </div>
+              <div style={{ display:'flex', gap:8, marginTop:16 }}>
+                <button type="submit" className="btn btn-primary" style={{ flex:1 }}>Add Break</button>
+                <button type="button" className="btn btn-ghost" onClick={() => setShowAddBreak(false)}>Cancel</button>
               </div>
             </form>
           </div>

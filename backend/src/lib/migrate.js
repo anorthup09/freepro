@@ -559,6 +559,18 @@ async function migrate() {
     )
   `;
 
+  await sql`
+    CREATE TABLE IF NOT EXISTS shot_list_breaks (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      day_id TEXT REFERENCES shot_list_days(id) ON DELETE SET NULL,
+      start_time TEXT,
+      end_time TEXT,
+      sort_order INT DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+
   console.log('Migration complete.');
 }
 
