@@ -1159,10 +1159,6 @@ export default function ShotList({ project, onScenesChange }) {
                   ))}
                 </div>
               </div>
-              <div className="field">
-                <label>Est. Start Time</label>
-                <input value={sceneForm.estStartTime} onChange={e => setSceneForm(f => ({...f, estStartTime: e.target.value}))} placeholder="9:00 AM" />
-              </div>
             </div>
             <div style={{ display:'flex', gap:8 }}>
               <button type="submit" className="btn btn-primary btn-sm">Add Scene</button>
