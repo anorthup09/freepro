@@ -480,9 +480,10 @@ function DaySynopsisCard({ day, onDelete, onAddScene, scenes, scheduleDays, onDa
 }
 
 // ── Scene Block ───────────────────────────────────────────────────────────────
-function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded, onShotDelete, onDeleteScene, onStartTimeChange, onShotsReorder, onSceneUpdate, onAddBreak, isFirstScene }) {
+function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded, onShotDelete, onDeleteScene, onStartTimeChange, onShotsReorder, onSceneUpdate, onAddBreak, isFirstScene, shootingCall }) {
   const st = SCENE_TYPE_STYLES[scene.scene_type] || SCENE_TYPE_STYLES.interior;
-  const [startTime, setStartTime] = useState(scene.est_start_time || '');
+  const effectiveStart = isFirstScene && shootingCall ? shootingCall : (scene.est_start_time || '');
+  const [startTime, setStartTime] = useState(effectiveStart);
   const [allExpanded, setAllExpanded] = useState(false);
   const [dragOverIndex, setDragOverIndex] = useState(null);
   const dragIndexRef = useRef(null);
@@ -495,6 +496,14 @@ function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded,
   // Scene Edit modal
   const [showEditModal, setShowEditModal] = useState(false);
   const [editForm, setEditForm] = useState({ name: scene.name, description: scene.description || '', sceneType: scene.scene_type || 'interior', dayId: scene.day_id || '' });
+
+  useEffect(() => {
+    if (isFirstScene && shootingCall && shootingCall !== startTime) {
+      setStartTime(shootingCall);
+      api.updateScene(projectId, scene.id, { estStartTime: shootingCall }).catch(() => {});
+      onStartTimeChange(scene.id, shootingCall);
+    }
+  }, [shootingCall]);
 
   async function saveStartTime(val) {
     try {
@@ -620,13 +629,7 @@ function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded,
           )}
           <div style={{ display:'flex', alignItems:'center', gap:6 }}>
             <span style={{ fontSize:10, fontWeight:700, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', whiteSpace:'nowrap' }}>Est. Start</span>
-            {isFirstScene ? (
-              <input value={startTime} onChange={e => setStartTime(e.target.value)} onBlur={() => saveStartTime(startTime)}
-                placeholder="9:00 AM"
-                style={{ width:78, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.12)', borderRadius:5, padding:'3px 7px', fontSize:12, color:'var(--text)', fontFamily:'inherit', outline:'none' }} />
-            ) : (
-              <span style={{ fontSize:12, fontVariantNumeric:'tabular-nums', color: startTime ? 'var(--text)' : 'var(--muted)', opacity: startTime ? 1 : 0.4, fontWeight:600 }}>{startTime || '—'}</span>
-            )}
+            <span style={{ fontSize:12, fontVariantNumeric:'tabular-nums', color: startTime ? 'var(--text)' : 'var(--muted)', opacity: startTime ? 1 : 0.4, fontWeight:600 }}>{startTime || '—'}</span>
           </div>
           <button className="btn btn-ghost btn-sm" style={{ color:'var(--text)', fontSize:11 }} onClick={() => {
             setEditForm({ name: scene.name, description: scene.description || '', sceneType: scene.scene_type || 'interior', dayId: scene.day_id || '' });
@@ -1229,7 +1232,8 @@ export default function ShotList({ project, onScenesChange }) {
                 onShotUpdate={handleShotUpdate} onShotAdded={handleShotAdded} onShotDelete={handleShotDelete}
                 onDeleteScene={deleteScene} onStartTimeChange={handleStartTimeChange}
                 onShotsReorder={handleShotsReorder} onSceneUpdate={handleSceneUpdate} onAddBreak={handleSceneBreakAdd}
-                isFirstScene={items.filter(i => i._type === 'scene').indexOf(item) === 0} />
+                isFirstScene={items.filter(i => i._type === 'scene').indexOf(item) === 0}
+                shootingCall={items.filter(i => i._type === 'scene').indexOf(item) === 0 ? (day.shooting_call || '') : undefined} />
             ) : (
               <div key={item.data.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', margin:'8px 0', padding:'10px 16px', background:'rgba(234,179,8,0.08)', border:'1px solid rgba(234,179,8,0.3)', borderRadius:8 }}>
                 <div style={{ display:'flex', alignItems:'center', gap:10 }}>
