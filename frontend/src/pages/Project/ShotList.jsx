@@ -897,8 +897,34 @@ export default function ShotList({ project, onScenesChange }) {
   }
 
   async function deleteBreak(breakId) {
+    const brk = breaks.find(b => b.id === breakId);
     await api.deleteBreak(project.id, breakId);
-    setBreaks(prev => prev.filter(b => b.id !== breakId));
+    const remaining = breaks.filter(b => b.id !== breakId);
+    setBreaks(remaining);
+    // Restore next scene's start time to the break's start (= prev scene's wrap)
+    if (brk?.start_time && brk?.day_id) {
+      const dayId = brk.day_id;
+      const bStartMins = timeToMins(brk.start_time);
+      // Find the scene whose start was set to the break end time
+      const dayScenes = scenes
+        .filter(s => s.day_id === dayId)
+        .sort((a, b2) => (timeToMins(a.est_start_time) ?? Infinity) - (timeToMins(b2.est_start_time) ?? Infinity));
+      // The "next" scene after the break: the one with start_time >= break end_time
+      const bEndMins = timeToMins(brk.end_time);
+      const nextScene = dayScenes.find(s => {
+        const m = timeToMins(s.est_start_time);
+        return m != null && bEndMins != null && m >= bEndMins;
+      });
+      if (nextScene && brk.start_time) {
+        await api.updateScene(project.id, nextScene.id, { estStartTime: brk.start_time });
+        updateScenes(prev => prev.map(s => s.id === nextScene.id ? { ...s, est_start_time: brk.start_time } : s));
+        // Cascade from that scene onward (no breaks remain between them)
+        await cascadeWrap(
+          scenes.map(s => s.id === nextScene.id ? { ...s, est_start_time: brk.start_time } : s),
+          nextScene.id
+        ).then(final => updateScenes(() => final));
+      }
+    }
   }
 
   async function saveEditBreak(e) {
@@ -906,6 +932,16 @@ export default function ShotList({ project, onScenesChange }) {
     try {
       const updated = await api.updateBreak(project.id, editingBreak.id, { dayId: breakForm.dayId || null, startTime: breakForm.startTime, endTime: breakForm.endTime });
       setBreaks(prev => prev.map(b => b.id === updated.id ? updated : b));
+      // Re-propagate: find the scene that was previously set to the old break end, update to new end
+      const oldEnd = editingBreak.end_time;
+      const dayId = updated.day_id;
+      const affectedScene = scenes.find(s => (dayId ? s.day_id === dayId : !s.day_id) && s.est_start_time === oldEnd);
+      if (affectedScene) {
+        await api.updateScene(project.id, affectedScene.id, { estStartTime: updated.end_time });
+        const nextScenes = scenes.map(s => s.id === affectedScene.id ? { ...s, est_start_time: updated.end_time } : s);
+        updateScenes(() => nextScenes);
+        await cascadeWrap(nextScenes, affectedScene.id).then(final => updateScenes(() => final));
+      }
       setEditingBreak(null);
       setBreakForm({ dayId: '', startTime: '', endTime: '' });
     } catch(err) { alert(err.message); }
