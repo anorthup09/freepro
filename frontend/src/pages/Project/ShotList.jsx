@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { api } from '../../api.js';
 
 const MOVEMENTS = ['Static', 'Pan', 'Tilt', 'Dolly', 'Handheld', 'Crane', 'Zoom', 'Gimbal'];
@@ -612,8 +613,8 @@ function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded,
         </div>
       </div>
 
-      {/* Scene Edit Modal */}
-      {showEditModal && (
+      {/* Scene Edit Modal — portalled to body so it escapes overflow:hidden */}
+      {showEditModal && createPortal(
         <div className="modal-backdrop" onClick={() => setShowEditModal(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-title">Edit Scene</div>
@@ -655,7 +656,8 @@ function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded,
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
