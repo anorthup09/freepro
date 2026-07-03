@@ -887,33 +887,50 @@ export default function ShotList({ project, onScenesChange }) {
     await api.deleteScene(project.id, sceneId);
     const remaining = scenes.filter(s => s.id !== sceneId);
     updateScenes(() => remaining);
-    // Cascade: find the scene that came right after the deleted one and update its start time
-    if (deleted) {
-      const dayId = deleted.day_id;
-      const dayScenes = remaining
-        .filter(s => dayId ? s.day_id === dayId : !s.day_id)
-        .sort((a, b) => (timeToMins(a.est_start_time) ?? Infinity) - (timeToMins(b.est_start_time) ?? Infinity));
-      // Find first scene whose start time >= deleted scene's start time
-      const deletedStart = timeToMins(deleted.est_start_time);
-      const nextScene = deletedStart != null
-        ? dayScenes.find(s => (timeToMins(s.est_start_time) ?? Infinity) >= deletedStart)
-        : null;
-      if (nextScene) {
-        // Find the scene before nextScene to get the new start time
-        const idx = dayScenes.findIndex(s => s.id === nextScene.id);
-        const prevScene = idx > 0 ? dayScenes[idx - 1] : null;
-        const newStart = prevScene ? calcWrapTime(prevScene.est_start_time, prevScene.shots || []) : null;
-        // Also check if a break ends right before nextScene
-        const dayBreaks = breaks.filter(b => dayId ? b.day_id === dayId : !b.day_id);
-        const relevantBreak = prevScene
-          ? dayBreaks.find(b => b.end_time === nextScene.est_start_time)
-          : null;
-        if (!relevantBreak && newStart) {
-          await api.updateScene(project.id, nextScene.id, { estStartTime: newStart });
-          const updated = remaining.map(s => s.id === nextScene.id ? { ...s, est_start_time: newStart } : s);
-          updateScenes(() => updated);
-          await cascadeWrap(updated, nextScene.id).then(final => updateScenes(() => final));
-        }
+    if (!deleted) return;
+
+    const dayId = deleted.day_id;
+    const dayBreaks = breaks.filter(b => dayId ? b.day_id === dayId : !b.day_id);
+
+    // The deleted scene's wrap time was the break start anchor
+    const deletedWrap = calcWrapTime(deleted.est_start_time, deleted.shots || []);
+
+    // Find the scene immediately before the deleted scene (new previous)
+    const dayScenes = remaining
+      .filter(s => dayId ? s.day_id === dayId : !s.day_id)
+      .sort((a, b) => (timeToMins(a.est_start_time) ?? Infinity) - (timeToMins(b.est_start_time) ?? Infinity));
+    const deletedStartMins = timeToMins(deleted.est_start_time);
+    const prevScene = deletedStartMins != null
+      ? [...dayScenes].reverse().find(s => (timeToMins(s.est_start_time) ?? Infinity) < deletedStartMins)
+      : null;
+    const newWrap = prevScene ? calcWrapTime(prevScene.est_start_time, prevScene.shots || []) : null;
+
+    // Update any break whose start_time matched the deleted scene's wrap → set to new wrap
+    const affectedBreak = deletedWrap
+      ? dayBreaks.find(b => b.start_time === deletedWrap)
+      : null;
+    if (affectedBreak && newWrap) {
+      const updatedBreak = await api.updateBreak(project.id, affectedBreak.id, {
+        dayId: affectedBreak.day_id, startTime: newWrap, endTime: affectedBreak.end_time
+      });
+      setBreaks(prev => prev.map(b => b.id === affectedBreak.id ? updatedBreak : b));
+    }
+
+    // Cascade scene start times after the deleted scene
+    const nextScene = deletedStartMins != null
+      ? dayScenes.find(s => (timeToMins(s.est_start_time) ?? Infinity) >= deletedStartMins)
+      : null;
+    if (nextScene) {
+      const idx = dayScenes.findIndex(s => s.id === nextScene.id);
+      const prevForNext = idx > 0 ? dayScenes[idx - 1] : null;
+      // If there's a break between prevForNext and nextScene, don't override nextScene's start
+      const breakBetween = affectedBreak; // already handled above
+      const newNextStart = breakBetween?.end_time || (prevForNext ? calcWrapTime(prevForNext.est_start_time, prevForNext.shots || []) : null);
+      if (newNextStart) {
+        await api.updateScene(project.id, nextScene.id, { estStartTime: newNextStart });
+        const updated = remaining.map(s => s.id === nextScene.id ? { ...s, est_start_time: newNextStart } : s);
+        updateScenes(() => updated);
+        await cascadeWrap(updated, nextScene.id).then(final => updateScenes(() => final));
       }
     }
   }
