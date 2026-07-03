@@ -416,7 +416,7 @@ function NewShotRow({ sceneNumber, nextIndex, projectId, sceneId, onAdded, accen
 }
 
 // ── Day Synopsis Card ─────────────────────────────────────────────────────────
-function DaySynopsisCard({ day, onDelete, scenes, scheduleDays, onDateSelect }) {
+function DaySynopsisCard({ day, onDelete, onAddScene, scenes, scheduleDays, onDateSelect }) {
   const tiles = [
     { label: 'Call Time', val: day.call_time },
     { label: 'Shooting Call', val: day.shooting_call },
@@ -459,6 +459,7 @@ function DaySynopsisCard({ day, onDelete, scenes, scheduleDays, onDateSelect }) 
               <span style={{ color: 'var(--text)', fontWeight: 700 }}>{totalShots}</span> total shots &nbsp;·&nbsp; <span style={{ color: 'var(--text)', fontWeight: 700 }}>{capturedShots}</span> captured &nbsp;·&nbsp; <span style={{ color: 'var(--text)', fontWeight: 700 }}>{remaining}</span> remaining
             </div>
           )}
+          <button className="btn btn-primary btn-sm" style={{ fontSize: 11 }} onClick={() => onAddScene?.(day.id)}>+ Add Scene</button>
           <button className="btn btn-ghost btn-sm" style={{ fontSize: 11, color: 'var(--muted)' }} onClick={() => {
             if (confirm(`Delete Day ${day.day_number}?`)) onDelete(day.id);
           }}>Delete</button>
@@ -822,6 +823,24 @@ export default function ShotList({ project, onScenesChange }) {
   }, 0), 0);
   const capturedShots = scenes.reduce((s, sc) => s + sc.shots.filter(sh => sh.status === 'captured').length, 0);
 
+  function openAddSceneForDay(dayId) {
+    let defaultMins = -1;
+    let defaultStart = '';
+    const dayScenes = scenes.filter(s => s.day_id === dayId && s.est_start_time)
+      .sort((a, b) => (timeToMins(a.est_start_time) ?? 0) - (timeToMins(b.est_start_time) ?? 0));
+    if (dayScenes.length > 0) {
+      const last = dayScenes[dayScenes.length - 1];
+      const wrap = calcWrapTime(last.est_start_time, last.shots || []);
+      if (wrap) { defaultStart = wrap; defaultMins = timeToMins(wrap) ?? -1; }
+    }
+    breaks.filter(b => b.day_id === dayId && b.end_time).forEach(b => {
+      const m = timeToMins(b.end_time);
+      if (m != null && m > defaultMins) { defaultMins = m; defaultStart = b.end_time; }
+    });
+    setSceneForm({ name: '', description: '', sceneType: 'interior', dayId, estStartTime: defaultStart });
+    setShowAddScene(true);
+  }
+
   async function addScene(e) {
     e.preventDefault();
     try {
@@ -1067,25 +1086,6 @@ export default function ShotList({ project, onScenesChange }) {
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
           <button className="btn btn-ghost btn-sm" onClick={() => setShowAddDay(true)} style={{ border:'1px solid var(--border)' }}>+ Add Day</button>
-          <button className="btn btn-primary btn-sm" onClick={() => {
-            // Default start time = latest of (last scene wrap, last break end) across all days
-            let defaultMins = -1;
-            let defaultStart = '';
-            const allWithTime = scenes.filter(s => s.est_start_time);
-            if (allWithTime.length > 0) {
-              const sorted = [...allWithTime].sort((a, b) => (timeToMins(a.est_start_time) ?? 0) - (timeToMins(b.est_start_time) ?? 0));
-              const last = sorted[sorted.length - 1];
-              const wrap = calcWrapTime(last.est_start_time, last.shots || []);
-              if (wrap) { defaultStart = wrap; defaultMins = timeToMins(wrap) ?? -1; }
-            }
-            breaks.forEach(b => {
-              if (!b.end_time) return;
-              const m = timeToMins(b.end_time);
-              if (m != null && m > defaultMins) { defaultMins = m; defaultStart = b.end_time; }
-            });
-            setSceneForm({ name: '', description: '', sceneType: 'interior', dayId: '', estStartTime: defaultStart });
-            setShowAddScene(true);
-          }}>+ Add Scene</button>
         </div>
       </div>
 
@@ -1159,7 +1159,7 @@ export default function ShotList({ project, onScenesChange }) {
         ].sort((a, b2) => a._sort - b2._sort);
         return (
           <div key={day.id}>
-            <DaySynopsisCard day={day} onDelete={deleteDay} scenes={dayScenes} scheduleDays={scheduleDays} onDateSelect={handleDayDateSelect} />
+            <DaySynopsisCard day={day} onDelete={deleteDay} onAddScene={openAddSceneForDay} scenes={dayScenes} scheduleDays={scheduleDays} onDateSelect={handleDayDateSelect} />
             {items.map(item => item._type === 'scene' ? (
               <SceneBlock key={item.data.id} scene={item.data} projectId={project.id} talent={talent} days={days}
                 onShotUpdate={handleShotUpdate} onShotAdded={handleShotAdded} onShotDelete={handleShotDelete}
