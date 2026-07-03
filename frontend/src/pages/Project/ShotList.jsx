@@ -402,9 +402,8 @@ function NewShotRow({ sceneNumber, nextIndex, projectId, sceneId, onAdded, accen
         </select>
       </td>
       <td style={{ width:80 }} />
-      <td style={{ padding:'6px 8px', width:60 }}>
-        <span style={{ fontSize:12, color:'var(--muted)' }}>15m</span>
-      </td>
+      <td style={{ padding:'6px 8px', width:60 }} />
+
       <td style={{ width:28 }} />
     </tr>
   );
