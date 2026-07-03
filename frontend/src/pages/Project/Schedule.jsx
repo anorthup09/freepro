@@ -144,10 +144,10 @@ function slDateToISO(str) {
 }
 
 const DAY_TYPES = [
-  { value:'SHOOT',        label:'🎬 Shoot Day' },
-  { value:'TRAVEL',       label:'✈️ Travel Day' },
-  { value:'TRAVEL_SHOOT', label:'✈️🎬 Travel/Shoot Day' },
-  { value:'SCOUT',        label:'👀🗺️ Scout Day' },
+  { value:'SHOOT',        label:'Shoot Day' },
+  { value:'TRAVEL',       label:'Travel Day' },
+  { value:'TRAVEL_SHOOT', label:'Travel/Shoot Day' },
+  { value:'SCOUT',        label:'Scout Day' },
 ];
 
 const MEAL_COLORS = {

@@ -7,10 +7,10 @@ const LOC_LABELS = { PRIMARY_VENUE:'Shooting Location', CREW_HOTEL:'Hotel', SECO
 const LOC_TAG = { PRIMARY_VENUE:'main', CREW_HOTEL:'crew', SECONDARY:'sec', AIRPORT:'sec', OTHER:'sec' };
 
 const DAY_TYPES = [
-  { value:'SHOOT',        label:'🎬 Shoot Day' },
-  { value:'TRAVEL',       label:'✈️ Travel Day' },
-  { value:'TRAVEL_SHOOT', label:'✈️🎬 Travel/Shoot Day' },
-  { value:'SCOUT',        label:'👀🗺️ Scout Day' },
+  { value:'SHOOT',        label:'Shoot Day' },
+  { value:'TRAVEL',       label:'Travel Day' },
+  { value:'TRAVEL_SHOOT', label:'Travel/Shoot Day' },
+  { value:'SCOUT',        label:'Scout Day' },
 ];
 const DAY_TYPE_LABEL = Object.fromEntries(DAY_TYPES.map(d => [d.value, d.label]));
 
