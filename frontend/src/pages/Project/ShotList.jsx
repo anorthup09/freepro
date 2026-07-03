@@ -941,25 +941,77 @@ export default function ShotList({ project, onScenesChange }) {
     } catch(err) { alert(err.message); }
   }
 
+  async function cascadeWrap(updatedScenes, fromSceneId) {
+    const scene = updatedScenes.find(s => s.id === fromSceneId);
+    if (!scene) return updatedScenes;
+    const wrap = calcWrapTime(scene.est_start_time, scene.shots || []);
+    if (!wrap) return updatedScenes;
+
+    const dayId = scene.day_id;
+    const dayScenes = updatedScenes
+      .filter(s => dayId ? s.day_id === dayId : !s.day_id)
+      .sort((a, b) => (timeToMins(a.est_start_time) ?? Infinity) - (timeToMins(b.est_start_time) ?? Infinity));
+    const idx = dayScenes.findIndex(s => s.id === fromSceneId);
+    if (idx < 0 || idx + 1 >= dayScenes.length) return updatedScenes;
+    const next = dayScenes[idx + 1];
+
+    // Skip propagation if a break exists between this scene's wrap and the next scene's start
+    const wrapMins = timeToMins(wrap);
+    const nextStartMins = timeToMins(next.est_start_time) ?? Infinity;
+    const hasBreakBetween = breaks.some(b => {
+      if (dayId && b.day_id !== dayId) return false;
+      const bStart = timeToMins(b.start_time);
+      return bStart != null && bStart >= wrapMins && bStart <= nextStartMins;
+    });
+    if (hasBreakBetween) return updatedScenes;
+
+    try {
+      await api.updateScene(project.id, next.id, { estStartTime: wrap });
+    } catch {}
+    return updatedScenes.map(s => s.id === next.id ? { ...s, est_start_time: wrap } : s);
+  }
+
   function handleShotUpdate(updated) {
-    updateScenes(prev => prev.map(s => ({ ...s, shots: s.shots.map(sh => sh.id === updated.id ? updated : sh) })));
+    updateScenes(prev => {
+      const next = prev.map(s => ({ ...s, shots: s.shots.map(sh => sh.id === updated.id ? updated : sh) }));
+      const scene = next.find(s => s.shots.some(sh => sh.id === updated.id));
+      if (scene) cascadeWrap(next, scene.id).then(final => updateScenes(() => final));
+      return next;
+    });
   }
 
   function handleShotAdded(sceneId, shot) {
-    updateScenes(prev => prev.map(s => s.id === sceneId ? { ...s, shots: [...s.shots, shot] } : s));
+    updateScenes(prev => {
+      const next = prev.map(s => s.id === sceneId ? { ...s, shots: [...s.shots, shot] } : s);
+      cascadeWrap(next, sceneId).then(final => updateScenes(() => final));
+      return next;
+    });
   }
 
   function handleShotDelete(shotId) {
     api.deleteShot(project.id, shotId).catch(() => {});
-    updateScenes(prev => prev.map(s => ({ ...s, shots: s.shots.filter(sh => sh.id !== shotId) })));
+    updateScenes(prev => {
+      const scene = prev.find(s => s.shots.some(sh => sh.id === shotId));
+      const next = prev.map(s => ({ ...s, shots: s.shots.filter(sh => sh.id !== shotId) }));
+      if (scene) cascadeWrap(next, scene.id).then(final => updateScenes(() => final));
+      return next;
+    });
   }
 
   function handleStartTimeChange(sceneId, val) {
-    updateScenes(prev => prev.map(s => s.id === sceneId ? { ...s, est_start_time: val } : s));
+    updateScenes(prev => {
+      const next = prev.map(s => s.id === sceneId ? { ...s, est_start_time: val } : s);
+      cascadeWrap(next, sceneId).then(final => updateScenes(() => final));
+      return next;
+    });
   }
 
   function handleShotsReorder(sceneId, newShots) {
-    updateScenes(prev => prev.map(s => s.id === sceneId ? { ...s, shots: newShots } : s));
+    updateScenes(prev => {
+      const next = prev.map(s => s.id === sceneId ? { ...s, shots: newShots } : s);
+      cascadeWrap(next, sceneId).then(final => updateScenes(() => final));
+      return next;
+    });
   }
 
   function handleSceneUpdate(sceneId, updated) {
