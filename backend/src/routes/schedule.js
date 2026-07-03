@@ -163,7 +163,11 @@ router.post('/:id/schedule/days/:dayId/events', requireAuth, requireRole('ADMIN'
   try {
     const { startTime, endTime, title, detail, roomSpace, locationId, isAlert, alertMessage, isFilming, isShootingCall, isLunch, tags=[], audience=[] } = req.body;
     const [dayExists] = await sql`SELECT id FROM shoot_days WHERE id = ${req.params.dayId}`;
-    if (!dayExists) return res.status(404).json({ error: 'Shoot day not found — please refresh the page and try again.' });
+    if (!dayExists) {
+      const existing = await sql`SELECT id, day_number FROM shoot_days WHERE project_id = ${req.params.id}`;
+      console.error('event create: day not found. requested:', req.params.dayId, 'project:', req.params.id, 'existing days:', JSON.stringify(existing.map(d => ({ id: d.id, n: d.day_number }))));
+      return res.status(404).json({ error: 'Shoot day not found — the schedule will refresh, please try again.' });
+    }
     const [ev] = await sql`
       INSERT INTO schedule_events (id, shoot_day_id, start_time, end_time, title, detail, room_space, location_id, is_alert, alert_message, is_filming, is_shooting_call, is_lunch, audience)
       VALUES (gen_random_uuid()::text, ${req.params.dayId}, ${startTime}, ${endTime||null}, ${title}, ${detail||null}, ${roomSpace||null}, ${locationId||null}, ${isAlert||false}, ${alertMessage||null}, ${isFilming||false}, ${isShootingCall||false}, ${isLunch||false}, ${sql.array(audience)})

@@ -382,8 +382,15 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
       setShowAddEvent(false);
       setEventForm({ startTime:'', endTime:'', title:'', detail:'', isAlert:false, isFilming:false, tags:[], audience:[] });
     } catch(e) {
-      if (e.message?.includes('foreign key') || e.message?.includes('fkey')) {
-        alert('This shoot day no longer exists. Please refresh the page and try again.');
+      if (e.message?.includes('not found') || e.message?.includes('foreign key') || e.message?.includes('fkey')) {
+        try {
+          const fresh = await api.getSchedule(project.id);
+          setDays(fresh.map(d => ({ events: [], crewCalls: [], ...d })));
+          if (fresh.length > 0) setActiveDay(fresh[0].id);
+          alert('The schedule was out of date and has been refreshed — please try adding the event again.');
+        } catch {
+          alert('This shoot day no longer exists. Please refresh the page and try again.');
+        }
       } else {
         alert(e.message);
       }
@@ -888,7 +895,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
       {showAddEvent && (
         <div className="modal-bg" onClick={e => e.target === e.currentTarget && setShowAddEvent(false)}>
           <div className="modal">
-            <div className="modal-title">Add Event — Day {currentDay?.dayNumber}</div>
+            <div className="modal-title">Add Event — Day {currentDay?.day_number || ''}</div>
             <form onSubmit={addEvent}>
               <div className="form-grid" style={{ marginBottom:12 }}>
                 <div className="field span2" style={{ flexDirection:'row', alignItems:'center', gap:6 }}>
