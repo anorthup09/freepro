@@ -4,6 +4,23 @@ import { api } from '../../api.js';
 const MOVEMENTS = ['Static', 'Pan', 'Tilt', 'Dolly', 'Handheld', 'Crane', 'Zoom', 'Gimbal'];
 const COVERAGES = ['Interview', 'B-Roll'];
 
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DOW = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+
+function formatDayDate(month, day, year) {
+  if (!month || !day || !year) return '';
+  const d = new Date(Number(year), Number(month) - 1, Number(day));
+  return `${DOW[d.getDay()]}, ${MONTHS[Number(month)-1].toUpperCase()} ${day}, ${year}`;
+}
+
+function parseDayDate(str) {
+  if (!str) return { month: '', day: '', year: new Date().getFullYear().toString() };
+  const m = str.match(/(\w+),\s+(\w+)\s+(\d+),\s+(\d{4})/);
+  if (!m) return { month: '', day: '', year: new Date().getFullYear().toString() };
+  const mi = MONTHS.findIndex(mo => mo.toUpperCase() === m[2].toUpperCase()) + 1;
+  return { month: String(mi || ''), day: m[3], year: m[4] };
+}
+
 const SCENE_TYPE_STYLES = {
   interior: { bg: 'rgba(96,165,250,0.12)', border: 'rgba(96,165,250,0.4)', badge: 'rgba(96,165,250,0.18)', badgeText: '#60a5fa', label: 'INT.' },
   exterior: { bg: 'rgba(74,222,128,0.10)', border: 'rgba(74,222,128,0.4)', badge: 'rgba(74,222,128,0.15)', badgeText: '#4ade80', label: 'EXT.' },
@@ -680,8 +697,9 @@ export default function ShotList({ project, onScenesChange }) {
   const [showAddScene, setShowAddScene] = useState(false);
   const [sceneForm, setSceneForm] = useState({ name: '', description: '', sceneType: 'interior' });
   const [showAddDay, setShowAddDay] = useState(false);
-  const [dayForm, setDayForm] = useState({ date: '', callTime: '', shootingCall: '', lunchTime: '', estWrap: '' });
+  const [dayForm, setDayForm] = useState({ month: '', day: '', year: String(new Date().getFullYear()), callTime: '', shootingCall: '', lunchTime: '', estWrap: '' });
   const [editingDay, setEditingDay] = useState(null);
+  const [scheduleDays, setScheduleDays] = useState([]);
 
   function updateScenes(updater) {
     setScenes(prev => {
@@ -695,6 +713,7 @@ export default function ShotList({ project, onScenesChange }) {
     api.getShotList(project.id).then(s => { setScenes(s); onScenesChange?.(s); }).catch(() => {});
     api.getTalent(project.id).then(setTalent).catch(() => {});
     api.getDays(project.id).then(setDays).catch(() => {});
+    api.getSchedule(project.id).then(d => setScheduleDays(d || [])).catch(() => {});
   }, [project.id]);
 
   const totalShots = scenes.reduce((s, sc) => s + sc.shots.length, 0);
@@ -719,17 +738,19 @@ export default function ShotList({ project, onScenesChange }) {
   async function addDay(e) {
     e.preventDefault();
     try {
-      const day = await api.createDay(project.id, dayForm);
+      const payload = { ...dayForm, date: formatDayDate(dayForm.month, dayForm.day, dayForm.year) };
+      const day = await api.createDay(project.id, payload);
       setDays(prev => [...prev, day]);
       setShowAddDay(false);
-      setDayForm({ date: '', callTime: '', shootingCall: '', lunchTime: '', estWrap: '' });
+      setDayForm({ month: '', day: '', year: String(new Date().getFullYear()), callTime: '', shootingCall: '', lunchTime: '', estWrap: '' });
     } catch(err) { alert(err.message); }
   }
 
   async function saveEditDay(e) {
     e.preventDefault();
     try {
-      const updated = await api.updateDay(project.id, editingDay.id, dayForm);
+      const payload = { ...dayForm, date: formatDayDate(dayForm.month, dayForm.day, dayForm.year) };
+      const updated = await api.updateDay(project.id, editingDay.id, payload);
       setDays(prev => prev.map(d => d.id === updated.id ? updated : d));
       setEditingDay(null);
     } catch(err) { alert(err.message); }
@@ -742,7 +763,8 @@ export default function ShotList({ project, onScenesChange }) {
   }
 
   function openEditDay(day) {
-    setDayForm({ date: day.date || '', callTime: day.call_time || '', shootingCall: day.shooting_call || '', lunchTime: day.lunch_time || '', estWrap: day.est_wrap || '' });
+    const parsed = parseDayDate(day.date);
+    setDayForm({ ...parsed, callTime: day.call_time || '', shootingCall: day.shooting_call || '', lunchTime: day.lunch_time || '', estWrap: day.est_wrap || '' });
     setEditingDay(day);
   }
 
@@ -823,37 +845,107 @@ export default function ShotList({ project, onScenesChange }) {
         ))}
       </div>
 
-      {/* Day synopsis cards */}
-      {days.length > 0 && (
-        <div style={{ marginBottom: 16 }}>
-          {days.map(day => (
-            <DaySynopsisCard key={day.id} day={day} onEdit={openEditDay} onDelete={deleteDay} />
-          ))}
-        </div>
-      )}
+      {/* Scenes grouped by day, then unassigned */}
+      {scenes.length === 0 && days.length === 0 && <div className="empty">No scenes yet — add one to get started.</div>}
 
-      {scenes.length === 0 && <div className="empty">No scenes yet — add one to get started.</div>}
+      {days.map(day => {
+        const dayScenes = scenes.filter(s => s.day_id === day.id);
+        return (
+          <div key={day.id}>
+            <DaySynopsisCard day={day} onEdit={openEditDay} onDelete={deleteDay} />
+            {dayScenes.map(scene => (
+              <SceneBlock key={scene.id} scene={scene} projectId={project.id} talent={talent} days={days}
+                onShotUpdate={handleShotUpdate} onShotAdded={handleShotAdded} onShotDelete={handleShotDelete}
+                onDeleteScene={deleteScene} onStartTimeChange={handleStartTimeChange}
+                onShotsReorder={handleShotsReorder} onSceneUpdate={handleSceneUpdate} />
+            ))}
+            {dayScenes.length === 0 && (
+              <div style={{ textAlign:'center', padding:'12px 0 20px', fontSize:12, color:'var(--muted)', opacity:0.5 }}>No scenes assigned to this day yet.</div>
+            )}
+          </div>
+        );
+      })}
 
-      {scenes.map(scene => (
-        <SceneBlock key={scene.id} scene={scene} projectId={project.id} talent={talent} days={days}
-          onShotUpdate={handleShotUpdate} onShotAdded={handleShotAdded} onShotDelete={handleShotDelete}
-          onDeleteScene={deleteScene} onStartTimeChange={handleStartTimeChange}
-          onShotsReorder={handleShotsReorder} onSceneUpdate={handleSceneUpdate} />
-      ))}
+      {/* Unassigned scenes */}
+      {(() => {
+        const unassigned = scenes.filter(s => !s.day_id);
+        if (!unassigned.length) return null;
+        return (
+          <div>
+            {days.length > 0 && (
+              <div style={{ fontSize:10, fontWeight:700, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.12em', marginBottom:10, marginTop:4, opacity:0.6 }}>Unassigned Scenes</div>
+            )}
+            {unassigned.map(scene => (
+              <SceneBlock key={scene.id} scene={scene} projectId={project.id} talent={talent} days={days}
+                onShotUpdate={handleShotUpdate} onShotAdded={handleShotAdded} onShotDelete={handleShotDelete}
+                onDeleteScene={deleteScene} onStartTimeChange={handleStartTimeChange}
+                onShotsReorder={handleShotsReorder} onSceneUpdate={handleSceneUpdate} />
+            ))}
+          </div>
+        );
+      })()}
 
-      {/* Add Day Modal */}
+      {/* Add / Edit Day Modal */}
       {(showAddDay || editingDay) && (
         <div className="modal-backdrop" onClick={() => { setShowAddDay(false); setEditingDay(null); }}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-title">{editingDay ? `Edit Day ${editingDay.day_number}` : 'Add Shoot Day'}</div>
             <form onSubmit={editingDay ? saveEditDay : addDay}>
-              <div className="field"><label>Date</label><input value={dayForm.date} onChange={e => setDayForm(f => ({...f, date: e.target.value}))} placeholder="THU, AUG 6" autoFocus /></div>
+
+              {/* Date: MO / DAY / YEAR */}
+              <div className="field">
+                <label>Date</label>
+                <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr 1.4fr', gap:8 }}>
+                  <select value={dayForm.month} onChange={e => setDayForm(f => ({...f, month: e.target.value}))} autoFocus
+                    style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:6, padding:'7px 10px', color: dayForm.month ? 'var(--text)' : 'var(--muted)', fontFamily:'inherit', fontSize:13 }}>
+                    <option value="">Month</option>
+                    {MONTHS.map((mo, i) => <option key={mo} value={String(i+1)}>{mo}</option>)}
+                  </select>
+                  <input type="number" min="1" max="31" placeholder="Day" value={dayForm.day} onChange={e => setDayForm(f => ({...f, day: e.target.value}))}
+                    style={{ textAlign:'center' }} />
+                  <input type="number" min="2020" max="2099" placeholder="Year" value={dayForm.year} onChange={e => setDayForm(f => ({...f, year: e.target.value}))}
+                    style={{ textAlign:'center' }} />
+                </div>
+                {dayForm.month && dayForm.day && dayForm.year && (
+                  <div style={{ fontSize:11, color:'var(--muted)', marginTop:4 }}>{formatDayDate(dayForm.month, dayForm.day, dayForm.year)}</div>
+                )}
+              </div>
+
+              {/* Import from Schedule */}
+              {scheduleDays.length > 0 && (
+                <div className="field">
+                  <label>Import Times from Schedule</label>
+                  <select defaultValue=""
+                    onChange={e => {
+                      const sd = scheduleDays.find(d => d.id === e.target.value);
+                      if (!sd) return;
+                      setDayForm(f => ({
+                        ...f,
+                        callTime: sd.call_time || f.callTime,
+                        shootingCall: sd.shooting_call_time || f.shootingCall,
+                        lunchTime: sd.lunch_time || f.lunchTime,
+                        estWrap: sd.wrap_time || f.estWrap,
+                      }));
+                    }}
+                    style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:6, padding:'7px 10px', color:'var(--text)', fontFamily:'inherit', fontSize:13 }}>
+                    <option value="">— Select a schedule day —</option>
+                    {scheduleDays.map((sd, i) => (
+                      <option key={sd.id} value={sd.id}>
+                        Day {sd.day_number}{sd.call_time ? ` · Call ${sd.call_time}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Times grid */}
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
                 <div className="field" style={{ margin:0 }}><label>Call Time</label><input value={dayForm.callTime} onChange={e => setDayForm(f => ({...f, callTime: e.target.value}))} placeholder="8:00 AM" /></div>
                 <div className="field" style={{ margin:0 }}><label>Shooting Call</label><input value={dayForm.shootingCall} onChange={e => setDayForm(f => ({...f, shootingCall: e.target.value}))} placeholder="9:00 AM" /></div>
                 <div className="field" style={{ margin:0 }}><label>Lunch</label><input value={dayForm.lunchTime} onChange={e => setDayForm(f => ({...f, lunchTime: e.target.value}))} placeholder="12:00 PM" /></div>
                 <div className="field" style={{ margin:0 }}><label>Est. Wrap</label><input value={dayForm.estWrap} onChange={e => setDayForm(f => ({...f, estWrap: e.target.value}))} placeholder="6:00 PM" /></div>
               </div>
+
               <div style={{ display:'flex', gap:8, marginTop:16 }}>
                 <button type="submit" className="btn btn-primary btn-sm">{editingDay ? 'Save' : 'Add Day'}</button>
                 <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setShowAddDay(false); setEditingDay(null); }}>Cancel</button>
