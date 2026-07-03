@@ -851,6 +851,7 @@ export default function ShotList({ project, onScenesChange }) {
   const [showAddBreak, setShowAddBreak] = useState(false);
   const [breakForm, setBreakForm] = useState({ dayId: '', startTime: '', endTime: '' });
   const [editingBreak, setEditingBreak] = useState(null);
+  const [breakAnchorMap, setBreakAnchorMap] = useState({}); // breakId -> sceneId (in-memory anchor)
   const [currentDayId, setCurrentDayId] = useState(null);
   const dayRefs = useRef({});
 
@@ -930,7 +931,7 @@ export default function ShotList({ project, onScenesChange }) {
     await api.deleteScene(project.id, sceneId);
     const remaining = scenes.filter(s => s.id !== sceneId);
     updateScenes(() => remaining);
-    if (deleted?.day_id) await recalcDay(deleted.day_id, remaining, breaks);
+    if (deleted?.day_id) await recalcDay(deleted.day_id, remaining, breaks, breakAnchorMap);
   }
 
   async function addDay(e) {
@@ -964,18 +965,20 @@ export default function ShotList({ project, onScenesChange }) {
       const b = await api.createBreak(project.id, { dayId: breakForm.dayId || null, startTime: breakForm.startTime, endTime: breakForm.endTime });
       const newBreaks = [...breaks, b];
       setBreaks(newBreaks);
-      await recalcDay(breakForm.dayId, scenes, newBreaks);
+      await recalcDay(breakForm.dayId, scenes, newBreaks, breakAnchorMap);
       setShowAddBreak(false);
       setBreakForm({ dayId: '', startTime: '', endTime: '' });
     } catch(err) { alert(err.message); }
   }
 
-  async function handleSceneBreakAdd({ dayId, startTime, endTime }) {
+  async function handleSceneBreakAdd({ dayId, startTime, endTime, sceneId }) {
     try {
       const b = await api.createBreak(project.id, { dayId: dayId || null, startTime, endTime });
       const newBreaks = [...breaks, b];
       setBreaks(newBreaks);
-      await recalcDay(dayId, scenes, newBreaks);
+      const newAnchorMap = { ...breakAnchorMap, [b.id]: sceneId };
+      setBreakAnchorMap(newAnchorMap);
+      await recalcDay(dayId, scenes, newBreaks, newAnchorMap);
     } catch(err) { alert(err.message); }
   }
 
@@ -984,7 +987,10 @@ export default function ShotList({ project, onScenesChange }) {
     await api.deleteBreak(project.id, breakId);
     const newBreaks = breaks.filter(b => b.id !== breakId);
     setBreaks(newBreaks);
-    if (brk?.day_id) await recalcDay(brk.day_id, scenes, newBreaks);
+    const newAnchorMap = { ...breakAnchorMap };
+    delete newAnchorMap[breakId];
+    setBreakAnchorMap(newAnchorMap);
+    if (brk?.day_id) await recalcDay(brk.day_id, scenes, newBreaks, newAnchorMap);
   }
 
   async function saveEditBreak(e) {
@@ -993,7 +999,7 @@ export default function ShotList({ project, onScenesChange }) {
       const updated = await api.updateBreak(project.id, editingBreak.id, { dayId: breakForm.dayId || null, startTime: breakForm.startTime, endTime: breakForm.endTime });
       const newBreaks = breaks.map(b => b.id === updated.id ? updated : b);
       setBreaks(newBreaks);
-      await recalcDay(updated.day_id, scenes, newBreaks);
+      await recalcDay(updated.day_id, scenes, newBreaks, breakAnchorMap);
       setEditingBreak(null);
       setBreakForm({ dayId: '', startTime: '', endTime: '' });
     } catch(err) { alert(err.message); }
@@ -1029,40 +1035,40 @@ export default function ShotList({ project, onScenesChange }) {
     } catch(err) { alert(err.message); }
   }
 
-  async function recalcDay(dayId, currentScenes, currentBreaks) {
+  async function recalcDay(dayId, currentScenes, currentBreaks, anchorMap = {}) {
     if (!dayId) return;
     const day = days.find(d => d.id === dayId);
-    // Stable scene order: by sort_order (insertion order)
     const dayScenes = [...currentScenes]
       .filter(s => s.day_id === dayId)
       .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
-    // Breaks ordered by current start_time (approximate position)
     const dayBreaks = [...currentBreaks]
       .filter(b => b.day_id === dayId)
       .sort((a, b) => (timeToMins(a.start_time) ?? 0) - (timeToMins(b.start_time) ?? 0));
 
     if (!dayScenes.length) return;
 
-    // Build interleaved sequence: scenes in sort_order, breaks sorted by start_time
-    // A break belongs after the scene whose wrap time is closest to the break's start_time
+    // Build interleaved sequence: scenes in sort_order, breaks placed after their anchor scene.
+    // If no anchor, fall back to time-based placement.
     const orderedItems = [];
     const usedBreakIds = new Set();
     for (let i = 0; i < dayScenes.length; i++) {
       const scene = dayScenes[i];
       orderedItems.push({ type: 'scene', data: scene });
-      // Breaks that started at or after this scene's start and before the next scene's start
+      // First: breaks with an explicit anchor pointing to this scene
+      for (const b of dayBreaks) {
+        if (usedBreakIds.has(b.id)) continue;
+        if (anchorMap[b.id] === scene.id) { usedBreakIds.add(b.id); orderedItems.push({ type: 'break', data: b }); }
+      }
+      // Second: unanchored breaks whose start_time falls near this scene's wrap
       const sceneWrap = calcWrapTime(scene.est_start_time, scene.shots || []);
       const sceneWrapMins = timeToMins(sceneWrap) ?? (timeToMins(scene.est_start_time) ?? (i * 1e6));
       const nextScene = dayScenes[i + 1];
       const nextStartMins = nextScene ? (timeToMins(nextScene.est_start_time) ?? Infinity) : Infinity;
       for (const b of dayBreaks) {
         if (usedBreakIds.has(b.id)) continue;
+        if (anchorMap[b.id]) continue; // has anchor but doesn't match this scene — skip
         const bm = timeToMins(b.start_time) ?? 0;
-        // Place break here if its start is at this scene's wrap or between wrap and next scene start
-        if (bm >= sceneWrapMins - 1 && bm < nextStartMins) {
-          usedBreakIds.add(b.id);
-          orderedItems.push({ type: 'break', data: b });
-        }
+        if (bm >= sceneWrapMins - 1 && bm < nextStartMins) { usedBreakIds.add(b.id); orderedItems.push({ type: 'break', data: b }); }
       }
     }
     for (const b of dayBreaks) {
@@ -1102,7 +1108,7 @@ export default function ShotList({ project, onScenesChange }) {
     updateScenes(prev => {
       const next = prev.map(s => ({ ...s, shots: s.shots.map(sh => sh.id === updated.id ? updated : sh) }));
       const scene = next.find(s => s.shots.some(sh => sh.id === updated.id));
-      if (scene?.day_id) recalcDay(scene.day_id, next, breaks);
+      if (scene?.day_id) recalcDay(scene.day_id, next, breaks, breakAnchorMap);
       return next;
     });
   }
@@ -1111,7 +1117,7 @@ export default function ShotList({ project, onScenesChange }) {
     updateScenes(prev => {
       const next = prev.map(s => s.id === sceneId ? { ...s, shots: [...s.shots, shot] } : s);
       const scene = next.find(s => s.id === sceneId);
-      if (scene?.day_id) recalcDay(scene.day_id, next, breaks);
+      if (scene?.day_id) recalcDay(scene.day_id, next, breaks, breakAnchorMap);
       return next;
     });
   }
@@ -1121,7 +1127,7 @@ export default function ShotList({ project, onScenesChange }) {
     updateScenes(prev => {
       const scene = prev.find(s => s.shots.some(sh => sh.id === shotId));
       const next = prev.map(s => ({ ...s, shots: s.shots.filter(sh => sh.id !== shotId) }));
-      if (scene?.day_id) recalcDay(scene.day_id, next, breaks);
+      if (scene?.day_id) recalcDay(scene.day_id, next, breaks, breakAnchorMap);
       return next;
     });
   }
@@ -1130,7 +1136,7 @@ export default function ShotList({ project, onScenesChange }) {
     updateScenes(prev => {
       const next = prev.map(s => s.id === sceneId ? { ...s, est_start_time: val } : s);
       const scene = next.find(s => s.id === sceneId);
-      if (scene?.day_id) recalcDay(scene.day_id, next, breaks);
+      if (scene?.day_id) recalcDay(scene.day_id, next, breaks, breakAnchorMap);
       return next;
     });
   }
@@ -1139,7 +1145,7 @@ export default function ShotList({ project, onScenesChange }) {
     updateScenes(prev => {
       const next = prev.map(s => s.id === sceneId ? { ...s, shots: newShots } : s);
       const scene = next.find(s => s.id === sceneId);
-      if (scene?.day_id) recalcDay(scene.day_id, next, breaks);
+      if (scene?.day_id) recalcDay(scene.day_id, next, breaks, breakAnchorMap);
       return next;
     });
   }
