@@ -454,17 +454,11 @@ function DaySynopsisCard({ day, onDelete, onAddScene, scenes, scheduleDays, onDa
           <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)', letterSpacing: '.04em' }}>
             DAY {day.day_number}
           </div>
-          <select
-            value={day.date || ''}
-            onChange={e => onDateSelect(day, e.target.value)}
-            style={{ fontSize: 11, fontWeight: 700, color: day.date ? 'var(--text)' : 'var(--muted)', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', outline: 'none' }}
-          >
-            <option value="">— Select Date —</option>
-            {(scheduleDays || []).map(sd => {
-              const label = fmtSchedDate(sd.date);
-              return <option key={sd.id} value={label}>{label}</option>;
-            })}
-          </select>
+          {day.date && (
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text)', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 6, padding: '4px 8px' }}>
+              {day.date}
+            </span>
+          )}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           {totalShots > 0 && (
@@ -823,7 +817,7 @@ export default function ShotList({ project, onScenesChange }) {
   const [showAddScene, setShowAddScene] = useState(false);
   const [sceneForm, setSceneForm] = useState({ name: '', description: '', sceneType: 'interior', dayId: '', estStartTime: '' });
   const [showAddDay, setShowAddDay] = useState(false);
-  const [dayForm, setDayForm] = useState({ callTime: '', shootingCall: '', lunchTime: '', estWrap: '' });
+  const [dayForm, setDayForm] = useState({ date: '', callTime: '', shootingCall: '', lunchTime: '', estWrap: '' });
   const [editingDay, setEditingDay] = useState(null);
   const [scheduleDays, setScheduleDays] = useState([]);
   const [breaks, setBreaks] = useState([]);
@@ -941,7 +935,7 @@ export default function ShotList({ project, onScenesChange }) {
       const day = await api.createDay(project.id, dayForm);
       setDays(prev => [...prev, day]);
       setShowAddDay(false);
-      setDayForm({ callTime: '', shootingCall: '', lunchTime: '', estWrap: '' });
+      setDayForm({ date: '', callTime: '', shootingCall: '', lunchTime: '', estWrap: '' });
     } catch(err) { alert(err.message); }
   }
 
@@ -1196,8 +1190,9 @@ export default function ShotList({ project, onScenesChange }) {
                 </select>
               </div>
             )}
+            <div className="field" style={{ marginBottom:10 }}><label>Date</label><input value={dayForm.date} onChange={e => setDayForm(f => ({...f, date: e.target.value}))} placeholder="FRI, AUG 7, 2026" autoFocus /></div>
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:14 }}>
-              <div className="field" style={{ margin:0 }}><label>Call Time</label><input value={dayForm.callTime} onChange={e => setDayForm(f => ({...f, callTime: e.target.value}))} placeholder="8:00 AM" autoFocus /></div>
+              <div className="field" style={{ margin:0 }}><label>Call Time</label><input value={dayForm.callTime} onChange={e => setDayForm(f => ({...f, callTime: e.target.value}))} placeholder="8:00 AM" /></div>
               <div className="field" style={{ margin:0 }}><label>Shooting Call</label><input value={dayForm.shootingCall} onChange={e => setDayForm(f => ({...f, shootingCall: e.target.value}))} placeholder="9:00 AM" /></div>
               <div className="field" style={{ margin:0 }}><label>Lunch</label><input value={dayForm.lunchTime} onChange={e => setDayForm(f => ({...f, lunchTime: e.target.value}))} placeholder="12:00 PM" /></div>
               <div className="field" style={{ margin:0 }}><label>Est. Wrap</label><input value={dayForm.estWrap} onChange={e => setDayForm(f => ({...f, estWrap: e.target.value}))} placeholder="6:00 PM" /></div>
