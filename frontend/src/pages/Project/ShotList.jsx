@@ -495,7 +495,7 @@ function DaySynopsisCard({ day, onDelete, onAddScene, scenes, scheduleDays, onDa
 // ── Scene Block ───────────────────────────────────────────────────────────────
 function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded, onShotDelete, onDeleteScene, onStartTimeChange, onShotsReorder, onSceneUpdate, onAddBreak, isFirstScene, shootingCall }) {
   const st = SCENE_TYPE_STYLES[scene.scene_type] || SCENE_TYPE_STYLES.interior;
-  const effectiveStart = isFirstScene && shootingCall ? shootingCall : (scene.est_start_time || '');
+  const effectiveStart = fmt12(isFirstScene && shootingCall ? shootingCall : (scene.est_start_time || '')) || '';
   const [startTime, setStartTime] = useState(effectiveStart);
   const [allExpanded, setAllExpanded] = useState(false);
   const [dragOverIndex, setDragOverIndex] = useState(null);
@@ -511,12 +511,23 @@ function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded,
   const [editForm, setEditForm] = useState({ name: scene.name, description: scene.description || '', sceneType: scene.scene_type || 'interior', dayId: scene.day_id || '' });
 
   useEffect(() => {
-    if (isFirstScene && shootingCall && shootingCall !== startTime) {
-      setStartTime(shootingCall);
-      api.updateScene(projectId, scene.id, { estStartTime: shootingCall }).catch(() => {});
-      onStartTimeChange(scene.id, shootingCall);
+    if (isFirstScene && shootingCall) {
+      const normalized = fmt12(shootingCall) || shootingCall;
+      if (normalized !== startTime) {
+        setStartTime(normalized);
+        api.updateScene(projectId, scene.id, { estStartTime: normalized }).catch(() => {});
+        onStartTimeChange(scene.id, normalized);
+      }
     }
   }, [shootingCall]);
+
+  // Sync start time when cascade updates scene.est_start_time externally
+  useEffect(() => {
+    if (!isFirstScene) {
+      const normalized = fmt12(scene.est_start_time || '') || '';
+      if (normalized !== startTime) setStartTime(normalized);
+    }
+  }, [scene.est_start_time]);
 
   async function saveStartTime(val) {
     try {
@@ -1252,7 +1263,7 @@ export default function ShotList({ project, onScenesChange }) {
                 <div style={{ display:'flex', alignItems:'center', gap:10 }}>
                   <span style={{ fontSize:10, fontWeight:800, color:'rgba(234,179,8,0.9)', textTransform:'uppercase', letterSpacing:'.1em', background:'rgba(234,179,8,0.15)', border:'1px solid rgba(234,179,8,0.3)', borderRadius:4, padding:'2px 8px' }}>BREAK</span>
                   <span style={{ fontSize:13, fontWeight:700, color:'rgba(234,179,8,0.9)', fontVariantNumeric:'tabular-nums' }}>
-                    {item.data.start_time}{item.data.end_time ? ` – ${item.data.end_time}` : ''}
+                    {fmt12(item.data.start_time)}{item.data.end_time ? ` – ${fmt12(item.data.end_time)}` : ''}
                   </span>
                 </div>
                 <div style={{ display:'flex', alignItems:'center', gap:8 }}>
