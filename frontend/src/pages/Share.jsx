@@ -154,7 +154,8 @@ function GearSection({ gear, onlineRentals = [], producerView, shareToken }) {
     allKeys.forEach(k => { body[k] = gear?.[k] || null; });
     body[dbKey] = gearDraft[label] || null;
     try {
-      const BACKEND = import.meta.env.VITE_API_URL || 'https://freepro-production.up.railway.app';
+      const BACKEND = import.meta.env.VITE_API_URL
+        || (window.location.hostname === 'localhost' ? 'https://freepro-production.up.railway.app' : '');
       await fetch(`${BACKEND}/api/share/${shareToken}/gear`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },

@@ -1,4 +1,10 @@
-const BACKEND = import.meta.env.VITE_API_URL || 'https://freepro-production.up.railway.app';
+// Same-origin by default: the backend serves this app, so API calls must go to
+// the host the page was loaded from — a hardcoded host splits reads/writes
+// across deployments with separate databases. VITE_API_URL overrides for dev.
+const BACKEND = import.meta.env.VITE_API_URL
+  || (typeof window !== 'undefined' && window.location.hostname === 'localhost'
+      ? 'https://freepro-production.up.railway.app'
+      : '');
 const BASE = BACKEND + '/api';
 
 function token() {
