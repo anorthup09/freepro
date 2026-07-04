@@ -48,8 +48,9 @@ export default function CrewViews() {
   const [projects, setProjects] = useState([]);
   const [showArchived, setShowArchived] = useState(false);
   const [openingId, setOpeningId] = useState(null);
+  const [loadError, setLoadError] = useState('');
 
-  useEffect(() => { api.getCrewViews().then(setProjects).catch(console.error); }, []);
+  useEffect(() => { api.getCrewViews().then(setProjects).catch(e => setLoadError(e.message)); }, []);
 
   function logout() {
     localStorage.removeItem('fp_token');
@@ -117,7 +118,8 @@ export default function CrewViews() {
           </div>
         </div>
 
-        {projects.length === 0 && <div className="empty">No projects yet.</div>}
+        {loadError && <div className="login-err" style={{ marginBottom:12 }}>{loadError}</div>}
+        {projects.length === 0 && !loadError && <div className="empty">No projects yet.</div>}
 
         <div className="proj-list">
           {activeProjects.map(p => card(p, true))}

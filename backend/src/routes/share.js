@@ -2,6 +2,7 @@ const router = require('express').Router();
 const sql = require('../lib/db');
 const { refreshWeather } = require('../lib/weather');
 const { sendQuestionNotification } = require('../lib/email');
+const jwt = require('jsonwebtoken');
 
 const KEY_PRODUCTION_POSITIONS = ['Director', 'Executive Producer', 'Field Producer', 'Producer', 'Line Producer'];
 
@@ -25,8 +26,17 @@ router.get('/:token', async (req, res, next) => {
     if (!project) return res.status(404).json({ error: 'Project not found' });
 
     if (project.share_password) {
+      // Logged-in app users (crew and up) skip the public password
+      let authed = false;
+      const h = req.headers.authorization;
+      if (h && h.startsWith('Bearer ')) {
+        try {
+          const u = jwt.verify(h.slice(7), process.env.JWT_SECRET);
+          authed = !!u.role && u.role !== 'PENDING';
+        } catch { /* invalid token -> fall back to password */ }
+      }
       const supplied = req.query.pw || '';
-      if (supplied !== project.share_password) {
+      if (!authed && supplied !== project.share_password) {
         return res.status(401).json({ passwordRequired: true });
       }
     }

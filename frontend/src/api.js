@@ -107,7 +107,8 @@ export const api = {
   deleteShare: (id, sid) => req('DELETE', `/projects/${id}/shares/${sid}`),
   getPublicShare: async (token, pw) => {
     const url = pw ? `${BACKEND}/api/share/${token}?pw=${encodeURIComponent(pw)}` : `${BACKEND}/api/share/${token}`;
-    const r = await fetch(url);
+    const t = localStorage.getItem('fp_token');
+    const r = await fetch(url, t ? { headers: { Authorization: `Bearer ${t}` } } : undefined);
     const data = await r.json();
     if (!r.ok) return { _status: r.status, ...data };
     return data;
