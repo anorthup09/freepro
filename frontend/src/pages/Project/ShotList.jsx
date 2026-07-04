@@ -593,9 +593,9 @@ function DaySynopsisCard({ day, onDelete, onAddScene, scenes, scheduleDays, onDa
             </div>
           )}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
           <button className="btn btn-primary btn-sm" style={{ fontSize: 11, whiteSpace: 'nowrap', padding: '2px 9px', minHeight: 0, height: 22, lineHeight: '18px' }} onClick={() => onAddScene?.(day.id)}>+ Add Scene</button>
-          <button className="btn btn-ghost btn-sm" style={{ fontSize: 11, color: 'var(--muted)', padding: '2px 8px', minHeight: 0, height: 22, lineHeight: '18px' }} onClick={() => {
+          <button className="btn btn-ghost btn-sm" style={{ fontSize: 11, color: 'var(--muted)', padding: '2px 8px', minHeight: 0, height: 22, lineHeight: '18px', marginLeft: 'auto' }} onClick={() => {
             if (confirm(`Delete Day ${day.day_number}?`)) onDelete(day.id);
           }}>Delete</button>
         </div>

@@ -2102,8 +2102,6 @@ function GlassHeader({ project, showTime }) {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  if (!visible) return null;
-
   return (
     <div style={{
       position: 'fixed',
@@ -2111,6 +2109,10 @@ function GlassHeader({ project, showTime }) {
       left: 0,
       right: 0,
       zIndex: 90,
+      pointerEvents: visible ? 'auto' : 'none',
+      opacity: visible ? 1 : 0,
+      transform: visible ? 'translateY(0)' : 'translateY(-8px)',
+      transition: 'opacity 0.3s ease, transform 0.3s ease',
       backdropFilter: 'blur(5px) saturate(140%)',
       WebkitBackdropFilter: 'blur(5px) saturate(140%)',
       background: 'rgba(10,10,8,0.18)',
