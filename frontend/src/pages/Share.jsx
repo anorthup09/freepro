@@ -822,7 +822,13 @@ function CrewView({ data, shareToken, hideGear }) {
 }
 
 // ── Questions View ────────────────────────────────────────────────────────────
-function QuestionsView({ shareToken, pw, canAnswer }) {
+function QuestionsView({ shareToken, pw, canAnswer, project }) {
+  // Once day 1 arrives (America/Chicago), new questions are closed
+  const projectStarted = (() => {
+    if (!project?.start_date) return false;
+    const today = new Date(new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' }) + 'T12:00:00');
+    return new Date(project.start_date.slice(0, 10) + 'T12:00:00') <= today;
+  })();
   const [questions, setQuestions] = useState([]);
   const [input, setInput] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -875,6 +881,20 @@ function QuestionsView({ shareToken, pw, canAnswer }) {
         </div>
       </div>
 
+      {projectStarted ? (
+        <div style={{ border:'1.5px solid rgba(239,68,68,0.7)', borderRadius:8, padding:'14px 16px', marginBottom:28, background:'var(--bg2)' }}>
+          <div style={{ fontSize:13, fontWeight:600, color:'#ef4444' }}>
+            Project has Started, question feature has been disabled. Please reach out to the Field Producer for any questions.
+          </div>
+          {(project?.poc_name || project?.poc_phone) && (
+            <div style={{ fontSize:13, color:'var(--text)', marginTop:8 }}>
+              {project.poc_name && <span style={{ fontWeight:600 }}>{project.poc_name}</span>}
+              {project.poc_name && project.poc_phone && ' · '}
+              {project.poc_phone && <a href={`tel:${project.poc_phone}`} style={{ color:'var(--orange)' }}>{project.poc_phone}</a>}
+            </div>
+          )}
+        </div>
+      ) : (
       <form onSubmit={submitQuestion} style={{ display:'flex', gap:10, marginBottom:28, alignItems:'flex-start' }}>
         <textarea
           value={input}
@@ -888,6 +908,7 @@ function QuestionsView({ shareToken, pw, canAnswer }) {
           {submitting ? 'Submitting…' : 'Submit'}
         </button>
       </form>
+      )}
 
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20 }}>
         <div>
@@ -2152,7 +2173,7 @@ export default function Share() {
       </nav>
       <div className="wrap">
         {hasQuestions && sharePage === 'questions' ? (
-          <QuestionsView shareToken={token} pw={resolvedPw} canAnswer={view_type === 'producer'} />
+          <QuestionsView shareToken={token} pw={resolvedPw} canAnswer={view_type === 'producer'} project={data.project} />
         ) : hasGearTab && sharePage === 'gear' ? (
           <GearSection
             gear={data.gear}
