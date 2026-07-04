@@ -40,6 +40,18 @@ function fmt12(t) {
   return `${h}:${m[2]} ${mer}`;
 }
 
+// Shot list day dates are free text (or occasionally ISO); show compactly
+// without the year, e.g. "FRI, AUG 7"
+function fmtSlHeaderDate(str) {
+  if (!str) return str;
+  const iso = /^(\d{4})-(\d{2})-(\d{2})/.exec(str);
+  if (iso) {
+    return new Date(`${iso[1]}-${iso[2]}-${iso[3]}T12:00:00`)
+      .toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' }).toUpperCase().replace(/,\s*$/, '');
+  }
+  return String(str).replace(/,?\s*\d{4}\s*$/, '');
+}
+
 function DropdownTab({ label, subtabs, tab, setTab }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -329,6 +341,15 @@ export default function Project() {
               <div style={{ fontSize:9, fontWeight:700, color:'rgba(255,255,255,0.35)', textTransform:'uppercase', letterSpacing:'.12em', marginBottom:2 }}>Day</div>
               <div style={{ fontSize:15, fontWeight:800, color:'rgba(255,255,255,0.9)', fontVariantNumeric:'tabular-nums', letterSpacing:'.02em' }}>{currentShotListDay.day_number}</div>
             </div>
+            {currentShotListDay.date && (
+              <>
+                <div style={{ width:1, height:28, background:'rgba(255,255,255,0.12)' }} />
+                <div style={{ textAlign:'center' }}>
+                  <div style={{ fontSize:9, fontWeight:700, color:'rgba(255,255,255,0.35)', textTransform:'uppercase', letterSpacing:'.12em', marginBottom:2 }}>Date</div>
+                  <div style={{ fontSize:15, fontWeight:800, color:'rgba(255,255,255,0.9)', letterSpacing:'.02em', whiteSpace:'nowrap' }}>{fmtSlHeaderDate(currentShotListDay.date)}</div>
+                </div>
+              </>
+            )}
             {(currentShotListDay.shooting_call || currentShotListDay.est_wrap) && <div style={{ width:1, height:28, background:'rgba(255,255,255,0.12)' }} />}
             {currentShotListDay.shooting_call && (
               <div style={{ textAlign:'center' }}>
