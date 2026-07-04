@@ -1,8 +1,12 @@
 const https = require('https');
 
-function get(url) {
+function get(url, headers = {}, timeout = 8000) {
   return new Promise((resolve, reject) => {
-    const req = https.get(url, { timeout: 5000, family: 4 }, res => {
+    const req = https.get(url, { timeout, family: 4, headers }, res => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        res.resume();
+        return get(res.headers.location, headers, timeout).then(resolve, reject);
+      }
       let data = '';
       res.on('data', d => data += d);
       res.on('end', () => { try { resolve(JSON.parse(data)); } catch(e) { reject(e); } });
@@ -68,12 +72,11 @@ function wmoLabel(code) {
   return null;
 }
 
-async function fetchWeatherForDay(lat, lon, dateStr) {
-  // dateStr: "YYYY-MM-DD"
+async function fetchOpenMeteo(lat, lon, dateStr) {
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_probability_max,weathercode&temperature_unit=fahrenheit&timezone=auto&start_date=${dateStr}&end_date=${dateStr}`;
   const data = await get(url);
   const d = data.daily;
-  if (!d || !d.time?.length) throw new Error('No weather data returned');
+  if (!d || !d.time?.length || d.temperature_2m_max[0] == null) throw new Error('No weather data returned');
   return {
     high: Math.round(d.temperature_2m_max[0]),
     low: Math.round(d.temperature_2m_min[0]),
@@ -82,6 +85,36 @@ async function fetchWeatherForDay(lat, lon, dateStr) {
     precip: d.precipitation_probability_max[0] ?? null,
     condition: wmoLabel(d.weathercode[0]),
   };
+}
+
+// Fallback: National Weather Service (US only, ~7-day range, no API key)
+const NWS_HEADERS = { 'User-Agent': 'FreePro/1.0 (production scheduling app)', 'Accept': 'application/geo+json' };
+async function fetchNWS(lat, lon, dateStr) {
+  const pt = await get(`https://api.weather.gov/points/${Number(lat).toFixed(4)},${Number(lon).toFixed(4)}`, NWS_HEADERS);
+  const fcUrl = pt.properties?.forecast;
+  if (!fcUrl) throw new Error('NWS: no forecast endpoint for location');
+  const fc = await get(fcUrl, NWS_HEADERS);
+  const periods = fc.properties?.periods || [];
+  const dayP = periods.find(p => p.startTime?.slice(0, 10) === dateStr && p.isDaytime);
+  const nightP = periods.find(p => p.startTime?.slice(0, 10) === dateStr && !p.isDaytime);
+  if (!dayP && !nightP) throw new Error('NWS: date outside forecast range');
+  return {
+    high: dayP?.temperature ?? null,
+    low: nightP?.temperature ?? null,
+    sunrise: null,
+    sunset: null,
+    precip: dayP?.probabilityOfPrecipitation?.value ?? nightP?.probabilityOfPrecipitation?.value ?? null,
+    condition: (dayP || nightP)?.shortForecast?.split(/ then /i)[0] || null,
+  };
+}
+
+async function fetchWeatherForDay(lat, lon, dateStr) {
+  try {
+    return await fetchOpenMeteo(lat, lon, dateStr);
+  } catch (e) {
+    // Primary forecast host can be unreachable from some hosts — fall back to NWS
+    return await fetchNWS(lat, lon, dateStr);
+  }
 }
 
 // Refresh weather for shoot days that are missing it or stale (>6h old).
@@ -94,7 +127,9 @@ async function refreshWeather(project, shootDays) {
   const stale = shootDays.filter(d => {
     if (!d.weather_fetched_at) return true;
     const age = Date.now() - new Date(d.weather_fetched_at).getTime();
-    return age > 6 * 60 * 60 * 1000;
+    // Successful fetches refresh every 6h; failed attempts retry after 15min
+    const hadData = d.weather_high != null || d.weather_condition;
+    return age > (hadData ? 6 * 60 * 60 * 1000 : 15 * 60 * 1000);
   });
   if (!stale.length) return;
   try {
