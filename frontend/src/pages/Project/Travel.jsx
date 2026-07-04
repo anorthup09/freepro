@@ -451,8 +451,6 @@ export default function Travel({ project }) {
           <div key={f.id} className="frow" style={{ flexDirection:'column', alignItems:'stretch', gap:5 }}>
             <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
               <div className="fname">{f.crew_name || f.passenger_name}</div>
-              {f.confirmation && <span style={{ fontSize:10, color:'var(--muted)' }}>Conf # {f.confirmation}</span>}
-              {f.is_return && <span className="badge">Return</span>}
               <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:6 }}>
                 {showLive && f.flight_number && (
                   <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:10 }} onClick={() => refreshFlightStatus(f)} title="Refresh live status">↻</button>
@@ -460,7 +458,10 @@ export default function Travel({ project }) {
                 <FlightStatusBadge f={f} />
               </div>
             </div>
-            {(f.depart_display || f.depart_time) && <div className="ftimes">{f.depart_display || fmtDT(f.depart_time)} → {f.arrive_display || (f.arrive_time ? fmtDT(f.arrive_time) : '?')}</div>}
+            <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
+              {(f.depart_display || f.depart_time) && <div className="ftimes">{f.depart_display || fmtDT(f.depart_time)} → {f.arrive_display || (f.arrive_time ? fmtDT(f.arrive_time) : '?')}</div>}
+              {f.is_return && <span className="badge" style={{ marginLeft:'auto' }}>Return</span>}
+            </div>
             <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
               {f.airline && <span className="abadge">{f.airline}</span>}
               {f.flight_number && <span className="abadge">{f.flight_number}</span>}
@@ -471,6 +472,7 @@ export default function Travel({ project }) {
                 <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => removeFlight(f.id)}>✕</button>
               </div>
             </div>
+            {f.confirmation && <div style={{ fontSize:10, color:'var(--muted)' }}>Conf # {f.confirmation}</div>}
           </div>
         );
       })}
