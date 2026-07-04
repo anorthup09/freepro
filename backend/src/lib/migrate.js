@@ -517,6 +517,36 @@ async function migrate() {
     )
   `;
 
+  await sql`
+    CREATE TABLE IF NOT EXISTS shot_list_scenes (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      scene_number INT NOT NULL DEFAULT 1,
+      name TEXT,
+      description TEXT,
+      sort_order INT DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS shot_list_shots (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      scene_id TEXT NOT NULL REFERENCES shot_list_scenes(id) ON DELETE CASCADE,
+      description TEXT,
+      distance TEXT,
+      movement TEXT,
+      priority TEXT DEFAULT 'Important',
+      est_minutes INT DEFAULT 15,
+      status TEXT DEFAULT 'not_captured',
+      sort_order INT DEFAULT 0,
+      setup_minutes INT DEFAULT 5,
+      takes_count INT DEFAULT 1,
+      take_minutes INT DEFAULT 5,
+      buffer_minutes INT DEFAULT 5,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+
   await sql`ALTER TABLE shot_list_scenes ADD COLUMN IF NOT EXISTS day_id TEXT REFERENCES shot_list_days(id)`;
   await sql`ALTER TABLE shot_list_scenes ADD COLUMN IF NOT EXISTS scene_type TEXT DEFAULT 'interior'`;
   await sql`ALTER TABLE shot_list_scenes ADD COLUMN IF NOT EXISTS est_start_time TEXT`;

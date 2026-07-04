@@ -61,8 +61,8 @@ router.get('/geo-search', requireAuth, async (req, res, next) => {
   try {
     const { q } = req.query;
     if (!q || q.trim().length < 2) return res.json([]);
-    const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q.trim())}&count=8&language=en&format=json`);
-    const data = await r.json();
+    const { getJson } = require('../lib/weather');
+    const data = await getJson(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q.trim())}&count=8&language=en&format=json`);
     res.json((data.results || []).map(p => ({
       name: p.name,
       admin1: p.admin1 || '',

@@ -2,11 +2,13 @@ const https = require('https');
 
 function get(url) {
   return new Promise((resolve, reject) => {
-    https.get(url, res => {
+    const req = https.get(url, { timeout: 5000, family: 4 }, res => {
       let data = '';
       res.on('data', d => data += d);
       res.on('end', () => { try { resolve(JSON.parse(data)); } catch(e) { reject(e); } });
-    }).on('error', reject);
+    });
+    req.on('timeout', () => { req.destroy(new Error('weather request timed out')); });
+    req.on('error', reject);
   });
 }
 
@@ -82,4 +84,4 @@ async function fetchWeatherForDay(lat, lon, dateStr) {
   };
 }
 
-module.exports = { geocode, fetchWeatherForDay };
+module.exports = { geocode, fetchWeatherForDay, getJson: get };

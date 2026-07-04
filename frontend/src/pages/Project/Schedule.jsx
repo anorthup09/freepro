@@ -736,7 +736,19 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
             return (
               <>
                 <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-                  <div className="sec-lbl" style={{ margin:0 }}>Timeline</div>
+                  <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                    <div className="sec-lbl" style={{ margin:0 }}>Timeline</div>
+                    {(() => {
+                      const w = weatherByDay[currentDay.id];
+                      if (!w) return null;
+                      return (
+                        <span style={{ fontSize:12, fontWeight:400, color:'var(--tan)', display:'flex', alignItems:'center', gap:5 }}>
+                          {wmoIcon(w.code)} {w.high}° / {w.low}°
+                          {w.precip > 0 && <span style={{ color:'var(--muted)', fontSize:11 }}>· {w.precip}% precip</span>}
+                        </span>
+                      );
+                    })()}
+                  </div>
                   <button className="btn btn-ghost btn-sm" onClick={() => setShowAddEvent(true)}>+ Add Event</button>
                 </div>
                 <div style={{ marginTop:10 }}>

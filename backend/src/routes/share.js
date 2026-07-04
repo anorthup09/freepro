@@ -101,8 +101,11 @@ router.get('/:token', async (req, res, next) => {
     const shootDays = await sql`SELECT * FROM shoot_days WHERE project_id = ${projectId} ORDER BY day_number`;
     const totalDays = shootDays.length;
 
-    // Fire-and-forget weather refresh (mutates shootDays rows in place)
-    await refreshWeather(project, shootDays);
+    // Weather refresh, capped so a slow weather API can never stall the share page
+    await Promise.race([
+      refreshWeather(project, shootDays),
+      new Promise(r => setTimeout(r, 4000)),
+    ]);
 
     // Bulk-load catering for all days
     const dayIds = shootDays.map(d => d.id);
