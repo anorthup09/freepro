@@ -317,8 +317,11 @@ textarea { resize: vertical; min-height: 70px; }
   .ov-kd-contacts { order: 1; }
 
   /* Schedule day card: 2-col times, stacked meta fields */
-  .sched-times-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  .sched-times-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 14px 12px !important; }
+  .sched-times-grid .field { min-width: 0; }
+  .sched-times-grid input { width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; padding: 8px 8px; font-size: 13px; }
   .sched-meta-grid { grid-template-columns: 1fr !important; }
+  .sched-meta-grid input { width: 100%; box-sizing: border-box; }
 }
 
 /* Overview: Key Dates + Contacts side by side on desktop */
