@@ -1,7 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../api.js';
 import { displayName } from '../utils/displayName.js';
+import ShineBorder from '../components/ShineBorder.jsx';
+
+const isMobileNow = () => typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches;
 
 function useNow() {
   const [now, setNow] = useState(() => new Date());
@@ -1045,51 +1049,16 @@ function SlShotRow({ shot, index, sceneNum, shareToken, onUpdate, accentColor, a
     setDetail(f => ({ ...f, talentTags: f.talentTags.includes(name) ? f.talentTags.filter(t=>t!==name) : [...f.talentTags, name] }));
   }
 
-  return (
+  const detailBody = (
     <>
-      <tr style={{ borderBottom: isOpen ? 'none' : '1px solid var(--border)', background: captured ? 'rgba(15,15,12,0.6)' : 'transparent', outline: captured ? 'none' : `1px solid ${accentColor}55`, outlineOffset:'-1px', opacity: captured ? 0.4 : 1, transition:'background 0.15s, opacity 0.2s' }}>
-        <td style={{ padding:'10px 8px 10px 14px', width:28 }}>
-          <div onClick={toggleCapture} style={{ width:16, height:16, borderRadius:4, border:`2px solid ${captured?'#4ade80':accentColor}`, background: captured?'#4ade80':'transparent', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, transition:'all 0.15s' }}>
-            {captured && <svg width="9" height="7" viewBox="0 0 9 7" fill="none"><path d="M1 3.5L3.5 6L8 1" stroke="#000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-          </div>
-        </td>
-        <td style={{ padding:'10px 6px', fontSize:13, fontWeight:700, color: captured?'var(--muted)':accentColor, width:40, whiteSpace:'nowrap' }}>{slLabel(sceneNum, index)}</td>
-        <td style={{ padding:'10px 4px', width:20 }}>
-          <button onClick={() => setOpen(o=>!o)} style={{ background:'none', border:'none', color: isOpen?accentColor:'var(--muted)', cursor:'pointer', fontSize:11, padding:0, lineHeight:1, opacity: isOpen?1:0.5 }}>{isOpen?'▼':'▶'}</button>
-        </td>
-        <td style={{ padding:'6px 8px' }}>
-          <input value={desc} onChange={e=>setDesc(e.target.value)} onBlur={()=>{if(desc!==(shot.description||'')) save('description',desc);}}
-            placeholder="Shot description…" style={{ width:'100%', background:'transparent', border:'none', outline:'none', color: captured?'var(--muted)':'var(--text)', fontSize:13, fontFamily:'inherit', padding:0 }} />
-        </td>
-        <td style={{ padding:'6px 8px', width:130 }}>
-          <select value={movement} onChange={e=>{setMovement(e.target.value); save('movement',e.target.value);}}
-            style={{ background:'transparent', border:'none', outline:'none', color: movement?(captured?'var(--muted)':'var(--text)'):'var(--muted)', fontSize:13, fontFamily:'inherit', cursor:'pointer', padding:0, width:'100%' }}>
-            <option value="">— Movement —</option>
-            {SL_MOVEMENTS.map(m=><option key={m} value={m}>{m}</option>)}
-          </select>
-        </td>
-        <td style={{ padding:'6px 8px', width:80 }} ref={talentRef}>
-          {(shot.talent_tags||[]).length > 0 ? (
-            <div style={{ position:'relative' }}>
-              <button onClick={()=>setTalentOpen(o=>!o)} style={{ background: talentOpen?`${accentColor}22`:'transparent', border:`1px solid ${accentColor}55`, borderRadius:100, padding:'2px 8px', fontSize:11, fontWeight:700, color: captured?'var(--muted)':accentColor, cursor:'pointer', lineHeight:'16px', whiteSpace:'nowrap' }}>
-                {shot.talent_tags.length} talent
-              </button>
-              {talentOpen && (
-                <div style={{ position:'absolute', top:'calc(100% + 4px)', left:0, zIndex:200, background:'var(--bg)', border:'1px solid var(--border)', borderRadius:8, boxShadow:'0 4px 16px rgba(0,0,0,0.4)', padding:'8px 12px', minWidth:120, whiteSpace:'nowrap' }}>
-                  {shot.talent_tags.map(name=><div key={name} style={{ fontSize:12, color:'var(--text)', padding:'3px 0', borderBottom:'1px solid var(--border)' }}>{name}</div>)}
-                </div>
-              )}
-            </div>
-          ) : <span style={{ fontSize:12, color:'var(--muted)', opacity:0.4 }}>—</span>}
-        </td>
-        <td style={{ padding:'6px 8px', width:60 }}>
-          <span style={{ fontSize:13, color: captured?'var(--muted)':'var(--text)', fontVariantNumeric:'tabular-nums' }}>{displayMinutes}<span style={{ fontSize:10, color:'var(--muted)', marginLeft:2 }}>m</span></span>
-        </td>
-      </tr>
-      {isOpen && (
-        <tr style={{ borderBottom:'1px solid var(--border)', background:'rgba(255,255,255,0.025)' }}>
-          <td colSpan={7} style={{ padding:'12px 14px 16px 60px' }}>
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr', gap:'10px 14px', marginBottom:12 }}>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr', gap:'10px 14px', marginBottom:12 }} className="sl-detail-grid">
+              <div className="field sl-detail-move" style={{ margin:0 }}>
+                <label style={{ fontSize:10 }}>Movement</label>
+                <select value={movement} onChange={e=>{setMovement(e.target.value); save('movement',e.target.value);}}>
+                  <option value="">— Movement —</option>
+                  {SL_MOVEMENTS.map(m=><option key={m} value={m}>{m}</option>)}
+                </select>
+              </div>
               {[['Angle','angle','e.g. Eye level'],['Lens','lens','e.g. 85mm'],['Frame Rate','frameRate','e.g. 24fps']].map(([lbl,key,ph])=>(
                 <div key={key} className="field" style={{ margin:0 }}>
                   <label style={{ fontSize:10 }}>{lbl}</label>
@@ -1151,8 +1120,68 @@ function SlShotRow({ shot, index, sceneNum, shareToken, onUpdate, accentColor, a
               <button className="btn btn-primary btn-sm" onClick={saveDetail} disabled={detailSaving}>{detailSaving?'Saving…':'Save Details'}</button>
               <button className="btn btn-ghost btn-sm" onClick={()=>setOpen(false)}>Close</button>
             </div>
+    </>
+  );
+
+  const mobileModal = isOpen && isMobileNow();
+
+  return (
+    <>
+      <tr onClick={() => { if (isMobileNow()) setOpen(true); }}
+        style={{ borderBottom: isOpen && !mobileModal ? 'none' : '1px solid var(--border)', background: captured ? 'rgba(15,15,12,0.6)' : 'transparent', outline: captured ? 'none' : `1px solid ${accentColor}55`, outlineOffset:'-1px', opacity: captured ? 0.4 : 1, transition:'background 0.15s, opacity 0.2s' }}>
+        <td style={{ padding:'10px 8px 10px 14px', width:28 }} onClick={e => e.stopPropagation()}>
+          <div onClick={toggleCapture} style={{ width:16, height:16, borderRadius:4, border:`2px solid ${captured?'#4ade80':accentColor}`, background: captured?'#4ade80':'transparent', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, transition:'all 0.15s' }}>
+            {captured && <svg width="9" height="7" viewBox="0 0 9 7" fill="none"><path d="M1 3.5L3.5 6L8 1" stroke="#000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+          </div>
+        </td>
+        <td style={{ padding:'10px 6px', fontSize:13, fontWeight:700, color: captured?'var(--muted)':accentColor, width:40, whiteSpace:'nowrap' }}>{slLabel(sceneNum, index)}</td>
+        <td style={{ padding:'10px 4px', width:20 }} onClick={e => e.stopPropagation()}>
+          <button onClick={() => setOpen(o=>!o)} style={{ background:'none', border:'none', color: isOpen?accentColor:'var(--muted)', cursor:'pointer', fontSize:11, padding:0, lineHeight:1, opacity: isOpen?1:0.5 }}>{isOpen?'▼':'▶'}</button>
+        </td>
+        <td style={{ padding:'6px 8px' }} onClick={e => e.stopPropagation()}>
+          <input value={desc} onChange={e=>setDesc(e.target.value)} onBlur={()=>{if(desc!==(shot.description||'')) save('description',desc);}}
+            placeholder="Shot description…" style={{ width:'100%', background:'transparent', border:'none', outline:'none', color: captured?'var(--muted)':'var(--text)', fontSize:13, fontFamily:'inherit', padding:0 }} />
+        </td>
+        <td className="sl-col-hide" style={{ padding:'6px 8px', width:130 }}>
+          <select value={movement} onChange={e=>{setMovement(e.target.value); save('movement',e.target.value);}}
+            style={{ background:'transparent', border:'none', outline:'none', color: movement?(captured?'var(--muted)':'var(--text)'):'var(--muted)', fontSize:13, fontFamily:'inherit', cursor:'pointer', padding:0, width:'100%' }}>
+            <option value="">— Movement —</option>
+            {SL_MOVEMENTS.map(m=><option key={m} value={m}>{m}</option>)}
+          </select>
+        </td>
+        <td className="sl-col-hide" style={{ padding:'6px 8px', width:80 }} ref={talentRef}>
+          {(shot.talent_tags||[]).length > 0 ? (
+            <div style={{ position:'relative' }}>
+              <button onClick={()=>setTalentOpen(o=>!o)} style={{ background: talentOpen?`${accentColor}22`:'transparent', border:`1px solid ${accentColor}55`, borderRadius:100, padding:'2px 8px', fontSize:11, fontWeight:700, color: captured?'var(--muted)':accentColor, cursor:'pointer', lineHeight:'16px', whiteSpace:'nowrap' }}>
+                {shot.talent_tags.length} talent
+              </button>
+              {talentOpen && (
+                <div style={{ position:'absolute', top:'calc(100% + 4px)', left:0, zIndex:200, background:'var(--bg)', border:'1px solid var(--border)', borderRadius:8, boxShadow:'0 4px 16px rgba(0,0,0,0.4)', padding:'8px 12px', minWidth:120, whiteSpace:'nowrap' }}>
+                  {shot.talent_tags.map(name=><div key={name} style={{ fontSize:12, color:'var(--text)', padding:'3px 0', borderBottom:'1px solid var(--border)' }}>{name}</div>)}
+                </div>
+              )}
+            </div>
+          ) : <span style={{ fontSize:12, color:'var(--muted)', opacity:0.4 }}>—</span>}
+        </td>
+        <td style={{ padding:'6px 8px', width:60 }}>
+          <span style={{ fontSize:13, color: captured?'var(--muted)':'var(--text)', fontVariantNumeric:'tabular-nums' }}>{displayMinutes}<span style={{ fontSize:10, color:'var(--muted)', marginLeft:2 }}>m</span></span>
+        </td>
+      </tr>
+      {isOpen && !mobileModal && (
+        <tr style={{ borderBottom:'1px solid var(--border)', background:'rgba(255,255,255,0.025)' }}>
+          <td colSpan={7} className="sl-detail-cell" style={{ padding:'12px 14px 16px 60px' }}>
+            {detailBody}
           </td>
         </tr>
+      )}
+      {mobileModal && createPortal(
+        <div className="modal-bg" onClick={() => setOpen(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 520 }}>
+            <div className="modal-title">Shot {slLabel(sceneNum, index)}{desc ? ` — ${desc}` : ''}</div>
+            {detailBody}
+          </div>
+        </div>,
+        document.body
       )}
     </>
   );
@@ -1166,32 +1195,35 @@ function SlSceneBlock({ scene, shareToken, talent, onShotUpdate, onStartTimeChan
 
   return (
     <div style={{ background:'var(--bg2)', border:`1px solid ${st.border}`, borderRadius:10, overflow:'hidden', marginBottom:16 }}>
-      <div style={{ padding:'12px 20px', background:st.bg, borderBottom:`1px solid ${st.border}`, display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap' }}>
-        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-          <span style={{ fontSize:10, fontWeight:800, color:st.badgeText, textTransform:'uppercase', letterSpacing:'.1em', background:st.badge, border:`1px solid ${st.border}`, borderRadius:4, padding:'2px 8px' }}>
+      <div className="sl-scene-head" style={{ padding:'12px 20px', background:st.bg, borderBottom:`1px solid ${st.border}`, display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:10, flex:1, minWidth:0 }}>
+          <span style={{ fontSize:10, fontWeight:800, color:st.badgeText, textTransform:'uppercase', letterSpacing:'.1em', background:st.badge, border:`1px solid ${st.border}`, borderRadius:4, padding:'2px 8px', whiteSpace:'nowrap' }}>
             {st.label} · Scene {scene.scene_number}
           </span>
           <span style={{ fontSize:15, fontWeight:700, color:'var(--text)' }}>{scene.name}</span>
           {scene.description && <span style={{ fontSize:12, color:'var(--muted)' }}>· {scene.description}</span>}
-          <span style={{ fontSize:12, color:'var(--muted)' }}>{(scene.shots||[]).length} shot{(scene.shots||[]).length!==1?'s':''}</span>
+          <span className="m-hide" style={{ fontSize:12, color:'var(--muted)', whiteSpace:'nowrap' }}>{(scene.shots||[]).length} shot{(scene.shots||[]).length!==1?'s':''}</span>
         </div>
-        {startTime && (
-          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-            <span style={{ fontSize:10, fontWeight:700, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em' }}>Est. Start</span>
-            <span style={{ fontSize:13, fontWeight:700, color:st.badgeText, fontVariantNumeric:'tabular-nums' }}>{startTime}</span>
-          </div>
-        )}
+        <div style={{ display:'flex', alignItems:'center', gap:10, flexShrink:0 }}>
+          <span className="m-only" style={{ fontSize:12, color:'var(--muted)', whiteSpace:'nowrap' }}>{(scene.shots||[]).length} shot{(scene.shots||[]).length!==1?'s':''}</span>
+          {startTime && (
+            <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+              <span style={{ fontSize:10, fontWeight:700, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', whiteSpace:'nowrap' }}>Est. Start</span>
+              <span style={{ fontSize:13, fontWeight:700, color:st.badgeText, fontVariantNumeric:'tabular-nums' }}>{startTime}</span>
+            </div>
+          )}
+        </div>
       </div>
       <div style={{ overflowX:'auto', WebkitOverflowScrolling:'touch' }}>
-      <table style={{ width:'100%', minWidth:480, borderCollapse:'collapse' }}>
+      <table className="sl-shot-table" style={{ width:'100%', minWidth:480, borderCollapse:'collapse' }}>
         <thead>
           <tr style={{ borderBottom:'1px solid var(--border)' }}>
             <th style={{ width:28 }} />
             <th style={{ padding:'8px 6px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:40 }}>Shot</th>
             <th style={{ width:20 }} />
             <th style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left' }}>Description</th>
-            <th style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:130 }}>Movement</th>
-            <th style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:80 }}>Talent</th>
+            <th className="sl-col-hide" style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:130 }}>Movement</th>
+            <th className="sl-col-hide" style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:80 }}>Talent</th>
             <th style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:60 }}>Time</th>
           </tr>
         </thead>
@@ -1204,7 +1236,7 @@ function SlSceneBlock({ scene, shareToken, talent, onShotUpdate, onStartTimeChan
         </tbody>
       </table>
       </div>
-      <div style={{ padding:'10px 20px', background:st.bg, borderTop:`1px solid ${st.border}`, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+      <div className="sl-scene-foot" style={{ padding:'10px 20px', background:st.bg, borderTop:`1px solid ${st.border}`, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
         <button onClick={()=>setAllExpanded(e=>!e)} style={{ background:'none', border:'none', fontSize:11, fontWeight:700, color:st.badgeText, cursor:'pointer', padding:0, textTransform:'uppercase', letterSpacing:'.08em', opacity:0.8, display:'flex', alignItems:'center', gap:5 }}>
           <span style={{ fontSize:12 }}>{allExpanded?'▲':'▼'}</span>
           {allExpanded?'Collapse All':'Expand All Shots'}
@@ -1278,25 +1310,34 @@ function SlDayHeader({ day }) {
   const dateStr = isoM
     ? new Date(`${isoM[1]}-${isoM[2]}-${isoM[3]}T12:00:00`).toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric' }).toUpperCase()
     : (day.date || null);
+  const tiles = [
+    { label:'Call Time', val: slFmt12(day.call_time) },
+    { label:'Shooting Call', val: slFmt12(day.shooting_call) },
+    { label:'Lunch', val: slFmt12(day.lunch_time) },
+    { label:'Est. Wrap', val: slFmt12(day.est_wrap) },
+  ];
   return (
-    <div style={{ background:'var(--bg3)', border:'1px solid var(--border)', borderRadius:10, padding:'14px 20px', marginBottom:12, display:'flex', alignItems:'center', gap:20, flexWrap:'wrap' }}>
-      <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-        <span style={{ fontSize:11, fontWeight:800, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.15em' }}>Day {day.day_number}</span>
-        {dateStr && <span style={{ fontSize:13, fontWeight:600, color:'var(--text)' }}>{dateStr}</span>}
+    <div style={{ marginBottom:12, background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:12, overflow:'hidden' }}>
+      <div style={{ padding:'10px 16px', display:'flex', alignItems:'center', gap:12, flexWrap:'wrap' }}>
+        <div style={{ fontSize:13, fontWeight:800, color:'var(--text)', letterSpacing:'.04em' }}>DAY {day.day_number}</div>
+        {dateStr && (
+          <span style={{ fontSize:11, fontWeight:700, color:'var(--text)', background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.12)', borderRadius:6, padding:'4px 8px' }}>
+            {dateStr}
+          </span>
+        )}
       </div>
-      {(day.shooting_call || day.est_wrap) && <div style={{ width:1, height:20, background:'var(--border)' }} />}
-      {day.shooting_call && (
-        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-          <span style={{ fontSize:10, fontWeight:700, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.1em' }}>Call</span>
-          <span style={{ fontSize:13, fontWeight:700, color:'var(--text)', fontVariantNumeric:'tabular-nums' }}>{slFmt12(day.shooting_call) || day.shooting_call}</span>
-        </div>
-      )}
-      {day.est_wrap && (
-        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-          <span style={{ fontSize:10, fontWeight:700, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.1em' }}>Est. Wrap</span>
-          <span style={{ fontSize:13, fontWeight:700, color:'var(--text)', fontVariantNumeric:'tabular-nums' }}>{slFmt12(day.est_wrap) || day.est_wrap}</span>
-        </div>
-      )}
+      <div style={{ padding:'0 16px 10px' }}>
+        <ShineBorder radius={10}>
+          <div className="sl-day-tiles" style={{ background:'rgba(10,10,8,0.92)', borderRadius:8, display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(100px, 1fr))', overflow:'hidden' }}>
+            {tiles.map((t, i) => (
+              <div key={t.label} style={{ padding:'3px 12px 4px', borderRight: i < 3 ? '1px solid rgba(255,255,255,0.07)' : 'none', textAlign:'center' }}>
+                <div style={{ fontSize:8, fontWeight:700, color:'rgba(255,255,255,0.35)', textTransform:'uppercase', letterSpacing:'.12em' }}>{t.label}</div>
+                <div style={{ fontSize:12, fontWeight:800, color: t.val ? 'var(--text)' : 'rgba(255,255,255,0.2)', fontVariantNumeric:'tabular-nums', lineHeight:1.2 }}>{t.val || '—'}</div>
+              </div>
+            ))}
+          </div>
+        </ShineBorder>
+      </div>
     </div>
   );
 }
@@ -1362,8 +1403,6 @@ function ShotListShareView({ scenes: initialScenes, days: initialDays = [], brea
 
   return (
     <div>
-      <SlLiveClock />
-
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(130px, 1fr))', gap:10, marginBottom:20 }}>
         {[{label:'Total Shots',val:totalShots},{label:'Captured',val:capturedShots},{label:'Remaining',val:totalShots-capturedShots},{label:'Est. Time',val:`${Math.floor(totalMinutes/60)}h ${totalMinutes%60}m`}].map(s=>(
           <div key={s.label} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding:'16px 20px' }}>
@@ -2021,9 +2060,15 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
 }
 
 // ── Liquid Glass Sticky Header ───────────────────────────────────────────────
-function GlassHeader({ project }) {
+function GlassHeader({ project, showTime }) {
   const [navH, setNavH] = React.useState(64);
   const [visible, setVisible] = React.useState(false);
+  const [now, setNow] = React.useState(new Date());
+
+  React.useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
 
   React.useEffect(() => {
     const nav = document.querySelector('nav.nav');
@@ -2063,7 +2108,14 @@ function GlassHeader({ project }) {
       justifyContent: 'space-between',
       gap: 20,
     }}>
-      <div style={{ fontSize:12, color:'rgba(255,255,255,0.6)', textTransform:'uppercase', letterSpacing:'0.14em', fontWeight:700, flexShrink:0 }}>{project.code}</div>
+      <div style={{ flexShrink:0 }}>
+        <div style={{ fontSize:12, color:'rgba(255,255,255,0.6)', textTransform:'uppercase', letterSpacing:'0.14em', fontWeight:700 }}>{project.code}</div>
+        {showTime && (
+          <div style={{ fontSize:11, fontWeight:600, color:'rgba(255,255,255,0.8)', fontVariantNumeric:'tabular-nums', letterSpacing:'0.04em', marginTop:2 }}>
+            {now.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit', second:'2-digit' })}
+          </div>
+        )}
+      </div>
       <div style={{ fontFamily:"'Syne', sans-serif", fontWeight:800, fontSize:18, letterSpacing:'-0.3px', color:'#fff', lineHeight:1, textAlign:'right' }}>{project.title}</div>
     </div>
   );
@@ -2163,7 +2215,7 @@ export default function Share() {
   return (
     <>
       {(view_type === 'producer' || view_type === 'crew' || view_type === 'client') && (
-        <GlassHeader project={data.project} />
+        <GlassHeader project={data.project} showTime={sharePage === 'shot-list'} />
       )}
       <nav className="nav" style={{ justifyContent:'space-between', flexWrap:'wrap', rowGap:6 }}>
         <div style={{ display:'flex', flexDirection:'column', gap:1 }}>
