@@ -633,7 +633,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
         <div className="day-tabs">
           {[...days].sort((a,b) => (a.date||'').localeCompare(b.date||'')).map((d, i) => (
             <button key={d.id} className={`day-tab${d.id === activeDay ? ' on' : ''}`} onClick={() => { setActiveDay(d.id); }}>
-              Day {i + 1} · {parseDay(d.date).toLocaleDateString('en-US', { month:'short', day:'numeric' })}
+              {parseDay(d.date).toLocaleDateString('en-US', { month:'short', day:'numeric' })}
             </button>
           ))}
         </div>
