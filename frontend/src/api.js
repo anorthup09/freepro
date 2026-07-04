@@ -21,8 +21,11 @@ async function req(method, path, body) {
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   });
   if (res.status === 204) return null;
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'Request failed');
+  const text = await res.text();
+  let data = null;
+  if (text) { try { data = JSON.parse(text); } catch { /* non-JSON body (proxy error page, etc.) */ } }
+  if (!res.ok) throw new Error(data?.error || `Request failed (${res.status}) — please try again`);
+  if (data === null) throw new Error('Server returned an unexpected response — please try again');
   return data;
 }
 
