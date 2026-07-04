@@ -34,9 +34,46 @@ async function getDayFull(dayId) {
   };
 }
 
+// Ensure shoot_days rows exist for every date in the project's start–end range,
+// numbered 1..N in date order. Days already present (matched by calendar date)
+// are kept along with their events; days outside the range are kept too.
+async function syncDaysToProjectRange(projectId) {
+  const [project] = await sql`SELECT start_date, end_date FROM projects WHERE id = ${projectId}`;
+  if (!project?.start_date || !project?.end_date) return;
+
+  const existing = await sql`SELECT id, day_number, date FROM shoot_days WHERE project_id = ${projectId} ORDER BY date`;
+  const have = new Set(existing.map(d => new Date(d.date).toISOString().slice(0, 10)));
+
+  const startISO = new Date(project.start_date).toISOString().slice(0, 10);
+  const endISO = new Date(project.end_date).toISOString().slice(0, 10);
+  const missing = [];
+  let cur = new Date(startISO + 'T12:00:00Z');
+  const end = new Date(endISO + 'T12:00:00Z');
+  for (let i = 0; cur <= end && i < 60; i++, cur = new Date(cur.getTime() + 86400000)) {
+    const iso = cur.toISOString().slice(0, 10);
+    if (!have.has(iso)) missing.push(iso);
+  }
+
+  const numberedByDate = existing.every((d, i) => Number(d.day_number) === i + 1);
+  if (missing.length === 0 && numberedByDate) return;
+
+  for (let i = 0; i < missing.length; i++) {
+    await sql`
+      INSERT INTO shoot_days (id, project_id, day_number, date)
+      VALUES (gen_random_uuid()::text, ${projectId}, ${20000 + i}, ${missing[i] + 'T12:00:00Z'})`;
+  }
+  // Renumber 1..N by date (two steps to dodge the unique constraint)
+  await sql`UPDATE shoot_days SET day_number = day_number + 10000 WHERE project_id = ${projectId} AND day_number < 10000`;
+  await sql`
+    UPDATE shoot_days sd SET day_number = t.rn
+    FROM (SELECT id, ROW_NUMBER() OVER (ORDER BY date, id) AS rn FROM shoot_days WHERE project_id = ${projectId}) t
+    WHERE sd.id = t.id`;
+}
+
 // GET /api/projects/:id/schedule — fetch all days in 3 parallel bulk queries instead of N×3
 router.get('/:id/schedule', requireAuth, async (req, res, next) => {
   try {
+    await syncDaysToProjectRange(req.params.id).catch(e => console.error('day sync failed:', e.message));
     const days = await sql`SELECT * FROM shoot_days WHERE project_id = ${req.params.id} ORDER BY day_number`;
     if (days.length === 0) return res.json([]);
     const dayIds = days.map(d => d.id);

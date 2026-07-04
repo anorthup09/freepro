@@ -170,8 +170,6 @@ const SYNTHETIC_META = {
 export default function Schedule({ project, showCateringGrid, setShowCateringGrid, onCateringTabChange, showShotList, setShowShotList, onShotListTabChange, showTravel, setShowTravel, onTravelTabChange }) {
   const [days, setDays] = useState([]);
   const [activeDay, setActiveDay] = useState(null);
-  const [showAddDay, setShowAddDay] = useState(false);
-  const [dayForm, setDayForm] = useState({ date:'', callTime:'', wrapTime:'', weather:'', notes:'' });
   const [showAddEvent, setShowAddEvent] = useState(false);
   const [eventForm, setEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', roomSpace:'', isAlert:false, isFilming:false, tags:[], audience:[], locationId:'' });
   const [editEventId, setEditEventId] = useState(null);
@@ -347,24 +345,6 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
 
   const currentDay = days.find(d => d.id === activeDay);
 
-  async function addDay(e) {
-    e.preventDefault();
-    try {
-      if (!dayForm.date) return alert('Please select a date.');
-      const day = await api.createDay(project.id, {
-        notes: dayForm.notes,
-        dayNumber: Math.max(0, ...days.map(d => d.day_number || 0)) + 1,
-        date: new Date(dayForm.date + 'T12:00:00').toISOString(),
-      });
-      const newDays = [...days, { ...day, events: [], crewCalls: [] }].sort((a, b) => (a.date||'').localeCompare(b.date||''));
-      setDays(newDays);
-      setActiveDay(day.id);
-      setShowAddDay(false);
-      setDayForm({ date:'', callTime:'', wrapTime:'', weather:'', notes:'' });
-      refreshFlights();
-    } catch(e) { alert(e.message); }
-  }
-
   async function deleteDay(dayId) {
     if (!confirm('Delete this shoot day and all its events?')) return;
     await api.deleteDay(project.id, dayId);
@@ -462,7 +442,6 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
           <div className="page-sub">{project.city}, {project.state} · {parseDay(project.start_date||project.startDate).toLocaleDateString()} – {parseDay(project.end_date||project.endDate).toLocaleDateString()}</div>
         </div>
         <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:6 }}>
-          <button className="btn btn-primary" onClick={() => setShowAddDay(true)}>+ Add Day</button>
           <div style={{ display:'flex', gap:6, flexWrap:'wrap', justifyContent:'flex-end' }}>
             <button
               onClick={() => { if (!showTravel) { setShowTravel(true); onTravelTabChange?.(); } else { setShowTravel(false); } }}
@@ -872,22 +851,6 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
               </>
             );
           })()}
-        </div>
-      )}
-
-      {/* Add Day Modal */}
-      {showAddDay && (
-        <div className="modal-bg" onClick={e => e.target === e.currentTarget && setShowAddDay(false)}>
-          <div className="modal">
-            <div className="modal-title">Add Shoot Day</div>
-            <form onSubmit={addDay}>
-              <div className="form-grid" style={{ marginBottom:12 }}>
-                <div className="field span2"><label>Date</label><input type="date" value={dayForm.date} onChange={e => setDayForm(f=>({...f,date:e.target.value}))} required autoFocus /></div>
-                <div className="field span2"><label>Notes</label><input value={dayForm.notes} onChange={e => setDayForm(f=>({...f,notes:e.target.value}))} placeholder="Long day" /></div>
-              </div>
-              <div className="btn-row"><button className="btn btn-primary">Add Day</button><button type="button" className="btn btn-ghost" onClick={() => setShowAddDay(false)}>Cancel</button></div>
-            </form>
-          </div>
         </div>
       )}
 
