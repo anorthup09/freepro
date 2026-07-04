@@ -10,8 +10,8 @@ router.post('/:id/deliverables', requireAuth, requireRole('ADMIN','PRODUCER'), a
   try {
     const d = req.body;
     const [item] = await sql`
-      INSERT INTO deliverables (id, project_id, title, description, editor_name, aspect_ratio, resolution, due_date, asset_ref, music_ref, is_urgent, notes)
-      VALUES (gen_random_uuid()::text, ${req.params.id}, ${d.title}, ${d.description||null}, ${d.editorName||null}, ${d.aspectRatio||null}, ${d.resolution||null}, ${d.dueDate||null}, ${d.assetRef||null}, ${d.musicRef||null}, ${d.isUrgent||false}, ${d.notes||null})
+      INSERT INTO deliverables (id, project_id, title, description, editor_name, aspect_ratio, resolution, due_date, asset_ref, music_ref, is_urgent, notes, category)
+      VALUES (gen_random_uuid()::text, ${req.params.id}, ${d.title}, ${d.description||null}, ${d.editorName||null}, ${d.aspectRatio||null}, ${d.resolution||null}, ${d.dueDate||null}, ${d.assetRef||null}, ${d.musicRef||null}, ${d.isUrgent||false}, ${d.notes||null}, ${d.category||'POST_SHOOT'})
       RETURNING *`;
     res.status(201).json(item);
   } catch(e){next(e);}
@@ -26,7 +26,7 @@ router.patch('/:id/deliverables/:did', requireAuth, requireRole('ADMIN','PRODUCE
         status=COALESCE(${d.status??null}::deliverable_status,status), editor_name=COALESCE(${d.editorName??null},editor_name),
         aspect_ratio=COALESCE(${d.aspectRatio??null},aspect_ratio), resolution=COALESCE(${d.resolution??null},resolution),
         due_date=COALESCE(${d.dueDate??null},due_date), music_ref=COALESCE(${d.musicRef??null},music_ref),
-        is_urgent=COALESCE(${d.isUrgent??null},is_urgent)
+        is_urgent=COALESCE(${d.isUrgent??null},is_urgent), category=COALESCE(${d.category??null},category)
       WHERE id=${req.params.did} RETURNING *`;
     res.json(item);
   } catch(e){next(e);}

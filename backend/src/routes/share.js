@@ -119,7 +119,7 @@ router.get('/:token', async (req, res, next) => {
             FROM hotel_blocks hb LEFT JOIN hotel_guests hg ON hg.hotel_block_id = hb.id
             WHERE hb.project_id = ${projectId} GROUP BY hb.id, hb.name, hb.address, hb.phone`),
         safe(sql`SELECT id, vendor, pickup_location, dropoff_location, pickup_date, dropoff_date, confirmation, notes FROM rental_cars WHERE project_id = ${projectId}`),
-        safe(sql`SELECT id, title, description, status, editor_name, aspect_ratio, resolution, due_date, is_urgent FROM deliverables WHERE project_id = ${projectId} ORDER BY created_at`),
+        safe(sql`SELECT id, title, description, status, editor_name, aspect_ratio, resolution, due_date, is_urgent, category FROM deliverables WHERE project_id = ${projectId} ORDER BY CASE category WHEN 'PRE_PRODUCED' THEN 0 WHEN 'ON_SITE' THEN 1 ELSE 2 END, created_at`),
         safe(sql`SELECT pg.*, cm.name as gear_person_name, cm.phone as gear_person_phone FROM project_gear pg LEFT JOIN crew_members cm ON cm.id = pg.gear_person_id WHERE pg.project_id = ${projectId}`),
         safe(sql`SELECT id, renter_name, confirmation, tracking_number, notes FROM online_rentals WHERE project_id = ${projectId} ORDER BY created_at`),
         safe(sql`SELECT s.*, json_agg(sh ORDER BY sh.sort_order, sh.created_at) FILTER (WHERE sh.id IS NOT NULL) as shots FROM shot_list_scenes s LEFT JOIN shot_list_shots sh ON sh.scene_id = s.id WHERE s.project_id = ${projectId} GROUP BY s.id ORDER BY s.sort_order, s.scene_number`),
@@ -162,7 +162,7 @@ router.get('/:token', async (req, res, next) => {
             FROM hotel_blocks hb LEFT JOIN hotel_guests hg ON hg.hotel_block_id = hb.id
             WHERE hb.project_id = ${projectId} GROUP BY hb.id, hb.name, hb.address, hb.phone`),
         safe2(sql`SELECT id, vendor, pickup_location, dropoff_location, pickup_date, dropoff_date, confirmation, notes FROM rental_cars WHERE project_id = ${projectId}`),
-        safe2(sql`SELECT id, title, description, status, editor_name, aspect_ratio, resolution, due_date, is_urgent FROM deliverables WHERE project_id = ${projectId} ORDER BY created_at`),
+        safe2(sql`SELECT id, title, description, status, editor_name, aspect_ratio, resolution, due_date, is_urgent, category FROM deliverables WHERE project_id = ${projectId} ORDER BY CASE category WHEN 'PRE_PRODUCED' THEN 0 WHEN 'ON_SITE' THEN 1 ELSE 2 END, created_at`),
         safe2(sql`SELECT pg.*, cm.name as gear_person_name, cm.phone as gear_person_phone FROM project_gear pg LEFT JOIN crew_members cm ON cm.id = pg.gear_person_id WHERE pg.project_id = ${projectId}`),
         safe2(sql`SELECT id, renter_name, confirmation, tracking_number, notes FROM online_rentals WHERE project_id = ${projectId} ORDER BY created_at`),
         safe2(sql`SELECT s.*, json_agg(sh ORDER BY sh.sort_order, sh.created_at) FILTER (WHERE sh.id IS NOT NULL) as shots FROM shot_list_scenes s LEFT JOIN shot_list_shots sh ON sh.scene_id = s.id WHERE s.project_id = ${projectId} GROUP BY s.id ORDER BY s.sort_order, s.scene_number`),

@@ -6,14 +6,21 @@ const STATUSES = ['WAITING_ON_ASSETS','IN_PROGRESS','ROUGH_CUT','IN_REVIEW','APP
 const STATUS_LABEL = { WAITING_ON_ASSETS:'Waiting on Assets', IN_PROGRESS:'In Progress', ROUGH_CUT:'Rough Cut', IN_REVIEW:'In Review', APPROVED:'Approved', DELIVERED:'Delivered' };
 const STATUS_DOT = { WAITING_ON_ASSETS:'wait', IN_PROGRESS:'prog', ROUGH_CUT:'prog', IN_REVIEW:'prog', APPROVED:'done', DELIVERED:'done' };
 
+const CATEGORIES = [
+  { value:'PRE_PRODUCED', label:'Pre-Produced Videos' },
+  { value:'ON_SITE',      label:'On-Site Videos' },
+  { value:'POST_SHOOT',   label:'Post-Shoot Videos' },
+];
+const CATEGORY_LABEL = Object.fromEntries(CATEGORIES.map(c => [c.value, c.label]));
+
 export default function Deliverables({ project }) {
   const [items, setItems] = useState([]);
   const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState({ title:'', description:'', editorName:'', aspectRatio:'', resolution:'', dueDate:'', assetRef:'', musicRef:'', isUrgent:false });
+  const [form, setForm] = useState({ title:'', description:'', editorName:'', aspectRatio:'', resolution:'', dueDate:'', assetRef:'', musicRef:'', isUrgent:false, category:'PRE_PRODUCED' });
   const [editId, setEditId] = useState(null);
   const [editStatus, setEditStatus] = useState('');
   const [editItemId, setEditItemId] = useState(null);
-  const [editForm, setEditForm] = useState({ title:'', description:'', editorName:'', aspectRatio:'', resolution:'', dueDate:'', assetRef:'', musicRef:'', isUrgent:false, status:'' });
+  const [editForm, setEditForm] = useState({ title:'', description:'', editorName:'', aspectRatio:'', resolution:'', dueDate:'', assetRef:'', musicRef:'', isUrgent:false, status:'', category:'PRE_PRODUCED' });
   const [detailItem, setDetailItem] = useState(null);
 
   const [ditId, setDitId] = useState(project.techSpecs?.dit_crew_member_id || '');
@@ -82,7 +89,7 @@ export default function Deliverables({ project }) {
       const item = await api.createDeliverable(project.id, form);
       setItems(d => [...d, item]);
       setShowAdd(false);
-      setForm({ title:'', description:'', editorName:'', aspectRatio:'', resolution:'', dueDate:'', assetRef:'', musicRef:'', isUrgent:false });
+      setForm({ title:'', description:'', editorName:'', aspectRatio:'', resolution:'', dueDate:'', assetRef:'', musicRef:'', isUrgent:false, category:'PRE_PRODUCED' });
     } catch(e) { alert(e.message); }
   }
 
@@ -94,7 +101,7 @@ export default function Deliverables({ project }) {
 
   function openEdit(item) {
     setEditItemId(item.id);
-    setEditForm({ title: item.title||'', description: item.description||'', editorName: item.editorName||'', aspectRatio: item.aspectRatio||'', resolution: item.resolution||'', dueDate: item.dueDate||'', assetRef: item.assetRef||'', musicRef: item.musicRef||'', isUrgent: item.isUrgent||false, status: item.status||'' });
+    setEditForm({ title: item.title||'', description: item.description||'', editorName: item.editorName||'', aspectRatio: item.aspectRatio||'', resolution: item.resolution||'', dueDate: item.dueDate||'', assetRef: item.assetRef||'', musicRef: item.musicRef||'', isUrgent: item.isUrgent||false, status: item.status||'', category: item.category||'POST_SHOOT' });
   }
 
   async function saveEdit(e) {
@@ -161,7 +168,13 @@ export default function Deliverables({ project }) {
             {items.length === 0 && (
               <tr><td colSpan={6} className="empty">No deliverables yet.</td></tr>
             )}
-            {items.map(item => (
+            {CATEGORIES.map(cat => {
+              const catItems = items.filter(i => (i.category || 'POST_SHOOT') === cat.value);
+              if (catItems.length === 0) return null;
+              return (
+                <React.Fragment key={cat.value}>
+                  <tr><td colSpan={6} style={{ padding:'8px 12px', fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'.12em', color:'var(--orange)', background:'rgba(232,80,10,0.08)' }}>{cat.label}</td></tr>
+                  {catItems.map(item => (
               <tr key={item.id} onClick={() => { if (window.matchMedia('(max-width: 640px)').matches) setDetailItem(item); }}>
                 <td>
                   <div style={{ fontWeight:500 }}>{item.isUrgent && <span style={{ color:'var(--orange)' }}>⚠ </span>}{item.title}</div>
@@ -192,7 +205,10 @@ export default function Deliverables({ project }) {
                   <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text)' }} onClick={() => remove(item.id)}>✕</button>
                 </td>
               </tr>
-            ))}
+                  ))}
+                </React.Fragment>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -205,6 +221,7 @@ export default function Deliverables({ project }) {
             {detailItem.description && <div style={{ fontSize:13, color:'var(--muted)', marginBottom:14, lineHeight:1.5 }}>{detailItem.description}</div>}
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px 14px', marginBottom:16 }}>
               {[
+                ['Category', CATEGORY_LABEL[detailItem.category] || 'Post-Shoot Videos'],
                 ['Status', STATUS_LABEL[detailItem.status] || detailItem.status],
                 ['Editor', detailItem.editorName || '—'],
                 ['Aspect Ratio', detailItem.aspectRatio || '—'],
@@ -243,6 +260,11 @@ export default function Deliverables({ project }) {
                 <div className="field"><label>Resolution</label><input value={editForm.resolution} onChange={e => setEditForm(f=>({...f,resolution:e.target.value}))} /></div>
                 <div className="field"><label>Asset Ref</label><input value={editForm.assetRef} onChange={e => setEditForm(f=>({...f,assetRef:e.target.value}))} /></div>
                 <div className="field"><label>Music Ref</label><input value={editForm.musicRef} onChange={e => setEditForm(f=>({...f,musicRef:e.target.value}))} /></div>
+                <div className="field span2"><label>Category</label>
+                  <select value={editForm.category} onChange={e => setEditForm(f=>({...f,category:e.target.value}))}>
+                    {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                  </select>
+                </div>
                 <div className="field span2"><label>Status</label>
                   <select value={editForm.status} onChange={e => setEditForm(f=>({...f,status:e.target.value}))}>
                     {STATUSES.map(s => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
@@ -273,6 +295,11 @@ export default function Deliverables({ project }) {
                 <div className="field"><label>Resolution</label><input value={form.resolution} onChange={e => setForm(f=>({...f,resolution:e.target.value}))} placeholder="1920×1080" /></div>
                 <div className="field"><label>Asset Ref</label><input value={form.assetRef} onChange={e => setForm(f=>({...f,assetRef:e.target.value}))} placeholder="Asset #801_" /></div>
                 <div className="field"><label>Music Ref</label><input value={form.musicRef} onChange={e => setForm(f=>({...f,musicRef:e.target.value}))} placeholder="C3 Recap Music" /></div>
+                <div className="field span2"><label>Category</label>
+                  <select value={form.category} onChange={e => setForm(f=>({...f,category:e.target.value}))}>
+                    {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                  </select>
+                </div>
                 <div className="field span2" style={{ flexDirection:'row', alignItems:'center', gap:10 }}>
                   <input type="checkbox" id="urgent" checked={form.isUrgent} onChange={e => setForm(f=>({...f,isUrgent:e.target.checked}))} style={{ width:'auto' }} />
                   <label htmlFor="urgent" style={{ textTransform:'none', letterSpacing:0, fontSize:12, color:'var(--text)' }}>Mark as urgent</label>

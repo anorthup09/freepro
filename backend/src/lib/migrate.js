@@ -601,6 +601,9 @@ async function migrate() {
     )
   `;
 
+  // Deliverable category (Pre-Produced / On-Site / Post-Shoot)
+  await sql`ALTER TABLE deliverables ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'POST_SHOOT'`;
+
   // Per-day weather location (searched city/zip; falls back to project city)
   await sql`ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS weather_location_name TEXT`;
   await sql`ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS weather_lat DOUBLE PRECISION`;
