@@ -244,7 +244,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
   const [eventForm, setEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', roomSpace:'', isAlert:false, isFilming:false, tags:[], audience:[], locationId:'' });
   const [editEventId, setEditEventId] = useState(null);
   const [editEventForm, setEditEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', roomSpace:'', isAlert:false, isFilming:false, tags:[], audience:[], locationId:'' });
-  const [dayCardCollapsed, setDayCardCollapsed] = useState(false);
+  const [dayCardCollapsed, setDayCardCollapsed] = useState(true);
   const [keyTalent, setKeyTalent] = useState([]);
   const [editCallId, setEditCallId] = useState(null);
   const [callTime, setCallTime] = useState('');
