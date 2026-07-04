@@ -520,8 +520,6 @@ function ProducerView({ data, hideGear }) {
         );
       })()}
 
-      <SpecTiles techSpecs={techSpecs} />
-
       {/* ── Hotels at top ── */}
       {hotelBlocks?.length > 0 && (
         <section className="share-section">
@@ -2049,9 +2047,9 @@ function GlassHeader({ project }) {
       left: 0,
       right: 0,
       zIndex: 90,
-      backdropFilter: 'blur(20px) saturate(160%)',
-      WebkitBackdropFilter: 'blur(20px) saturate(160%)',
-      background: 'rgba(10,10,8,0.28)',
+      backdropFilter: 'blur(5px) saturate(140%)',
+      WebkitBackdropFilter: 'blur(5px) saturate(140%)',
+      background: 'rgba(10,10,8,0.18)',
       maskImage: 'linear-gradient(to bottom, black 62%, transparent 100%)',
       WebkitMaskImage: 'linear-gradient(to bottom, black 62%, transparent 100%)',
       padding: '12px 24px 22px',
