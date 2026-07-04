@@ -601,6 +601,10 @@ async function migrate() {
     )
   `;
 
+  // Flights can be entered before times are known (lookup unavailable, etc.)
+  await sql`ALTER TABLE flights ALTER COLUMN depart_time DROP NOT NULL`;
+  await sql`ALTER TABLE flights ALTER COLUMN arrive_time DROP NOT NULL`;
+
   // No-access role for fresh signups until an admin promotes them
   try { await sql`ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'PENDING'`; } catch (e) { /* older PG without IF NOT EXISTS */ }
 
