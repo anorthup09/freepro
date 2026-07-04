@@ -223,7 +223,7 @@ export default function Crew({ project, onProjectUpdate }) {
       {assignments.length === 0 && <div className="empty">No crew assigned yet. Add a position to get started.</div>}
 
       {assignments.length > 0 && (
-        <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden' }}>
+        <div className="pos-table-wrap" style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden' }}>
           <table className="pos-table" style={{ width:'100%' }}>
             <thead>
               <tr>
@@ -312,7 +312,7 @@ export default function Crew({ project, onProjectUpdate }) {
       {(project.keyTalent||[]).length === 0
         ? <div className="empty" style={{ marginBottom:16 }}>No talent added yet.</div>
         : (
-          <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden', marginBottom:16 }}>
+          <div className="pos-table-wrap" style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden', marginBottom:16 }}>
             <table className="pos-table" style={{ width:'100%' }}>
               <thead>
                 <tr>
@@ -380,7 +380,7 @@ export default function Crew({ project, onProjectUpdate }) {
         style={{ marginBottom:8 }}
       />
       {rosterQuery.trim().length > 0 && (
-        <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden', marginBottom:12 }}>
+        <div className="pos-table-wrap" style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden', marginBottom:12 }}>
           {roster.filter(m => {
             const q = rosterQuery.toLowerCase();
             return m.name?.toLowerCase().includes(q) || m.email?.toLowerCase().includes(q) || m.company?.toLowerCase().includes(q);

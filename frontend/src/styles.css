@@ -316,6 +316,11 @@ textarea { resize: vertical; min-height: 70px; }
   .ov-kd-dates { order: 2; }
   .ov-kd-contacts { order: 1; }
 
+  /* Crew tables: horizontal scroll instead of clipping off-screen */
+  .pos-table-wrap { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
+  .pos-table { min-width: 560px; }
+  .pos-table th, .pos-table td { padding: 6px 8px !important; font-size: 12px; white-space: nowrap; }
+
   /* Schedule day card: 2-col times, stacked meta fields */
   .sched-times-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 14px 12px !important; }
   .sched-times-grid .field { min-width: 0; }
