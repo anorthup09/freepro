@@ -285,7 +285,7 @@ export default function Overview({ project, setProject, onTabChange }) {
   return (
     <div>
       {/* Header */}
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', paddingBottom:18, borderBottom:'1px solid var(--border)', marginBottom:4 }}>
+      <div className="ov-head" style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', paddingBottom:18, borderBottom:'1px solid var(--border)', marginBottom:4 }}>
         <div>
           <div className="proj-code">{project.code}</div>
           <div className="proj-title">{project.title}</div>
@@ -297,19 +297,19 @@ export default function Overview({ project, setProject, onTabChange }) {
             <div style={{ marginTop:10, fontSize:13, color:'var(--muted)', maxWidth:480, lineHeight:1.6, whiteSpace:'pre-wrap' }}>{project.notes}</div>
           )}
         </div>
-        <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:8 }}>
+        <div className="ov-head-actions" style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:8 }}>
           {daysUntil != null && daysUntil > 0 && (
-            <div style={{ textAlign:'right', background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'8px 14px' }}>
+            <div className="ov-head-count" style={{ textAlign:'right', background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'8px 14px' }}>
               <div style={{ fontSize:22, fontWeight:700, color:'var(--orange)', lineHeight:1 }}>{daysUntil}</div>
               <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginTop:2 }}>days until {project.title}</div>
             </div>
           )}
           {daysUntil != null && daysUntil === 0 && (
-            <div style={{ textAlign:'right', background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'8px 14px' }}>
+            <div className="ov-head-count" style={{ textAlign:'right', background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'8px 14px' }}>
               <div style={{ fontSize:13, fontWeight:700, color:'var(--orange)' }}>Day 1 is today!</div>
             </div>
           )}
-          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+          <div className="ov-head-btns" style={{ display:'flex', alignItems:'center', gap:8 }}>
             <StatusSelect project={project} setProject={setProject} />
             <button className="btn btn-ghost btn-sm" onClick={() => setEditInfo(true)}>Edit Info</button>
           </div>

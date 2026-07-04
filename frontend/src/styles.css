@@ -312,6 +312,17 @@ textarea { resize: vertical; min-height: 70px; }
   .tab-questions { margin-left: auto; }
   .share-wrap { margin-top: 2px; }
 
+  /* Overview header: countdown / status / edit info spread in one row under the meta */
+  .ov-head { flex-direction: column !important; gap: 12px; }
+  .ov-head-actions {
+    flex-direction: row !important;
+    align-items: center !important;
+    width: 100%;
+    justify-content: space-between !important;
+  }
+  .ov-head-btns { display: contents !important; }
+  .ov-head-count { text-align: left !important; padding: 6px 10px !important; }
+
   /* Overview: password bar stacks vertically */
   .ov-pw-form { flex-wrap: wrap; }
   .ov-pw-form input { width: 140px !important; flex: 1 1 auto; }
