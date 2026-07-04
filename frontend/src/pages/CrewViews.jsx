@@ -110,7 +110,7 @@ export default function CrewViews() {
       <MetallicFrame />
       <nav className="nav">
         <div style={{ display:'flex', flexDirection:'column', gap:1 }}>
-          <Link to="/" className="logo">Free<em>Pro</em></Link>
+          <span className="logo">Free<em>Pro</em></span>
           <span style={{ fontSize:9, color:'var(--muted)', letterSpacing:'0.06em', paddingLeft:1 }}>Powered by Unbridled Media</span>
         </div>
         <span style={{ color: 'var(--muted)', fontSize: 12 }}>{user?.name}</span>
@@ -122,7 +122,6 @@ export default function CrewViews() {
             <div className="page-title">Crew Views</div>
             <div className="page-sub">{projects.length} shoot{projects.length !== 1 ? 's' : ''} · opens the crew share view</div>
           </div>
-          <Link to="/" className="btn btn-ghost">‹ Projects</Link>
         </div>
 
         {projects.length === 0 && <div className="empty">No projects yet.</div>}
