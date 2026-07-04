@@ -37,6 +37,8 @@ const SCENE_TYPE_STYLES = {
   exterior: { bg: 'rgba(74,222,128,0.10)', border: 'rgba(74,222,128,0.4)', badge: 'rgba(74,222,128,0.15)', badgeText: '#4ade80', label: 'EXT.' },
 };
 
+const isMobileNow = () => typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches;
+
 function shotLabel(sceneNumber, index) {
   const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   return `${sceneNumber}${letters[index] || index}`;
@@ -186,6 +188,7 @@ function ShotRow({ shot, index, sceneNumber, projectId, onUpdate, onDelete, acce
     <>
       <tr
         {...dragHandleProps}
+        onClick={() => { if (isMobileNow()) setOpen(true); }}
         style={{
           borderBottom: isOpen ? 'none' : '1px solid var(--border)',
           background: rowBg,
@@ -203,7 +206,7 @@ function ShotRow({ shot, index, sceneNumber, projectId, onUpdate, onDelete, acce
         </td>
         {/* Checkbox */}
         <td style={{ padding:'10px 8px 10px 4px', width:28 }}>
-          <div onClick={toggleCapture} style={{ width:16, height:16, borderRadius:4, border:`2px solid ${captured ? '#4ade80' : accentColor}`, background: captured ? '#4ade80' : 'transparent', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, transition:'all 0.15s' }}>
+          <div onClick={e => { e.stopPropagation(); toggleCapture(); }} style={{ width:16, height:16, borderRadius:4, border:`2px solid ${captured ? '#4ade80' : accentColor}`, background: captured ? '#4ade80' : 'transparent', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, transition:'all 0.15s' }}>
             {captured && <svg width="9" height="7" viewBox="0 0 9 7" fill="none"><path d="M1 3.5L3.5 6L8 1" stroke="#000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
           </div>
         </td>
@@ -213,14 +216,14 @@ function ShotRow({ shot, index, sceneNumber, projectId, onUpdate, onDelete, acce
         </td>
         {/* Expand arrow */}
         <td style={{ padding:'10px 4px', width:20 }}>
-          <button onClick={() => setOpen(o => !o)}
+          <button onClick={e => { e.stopPropagation(); setOpen(o => !o); }}
             title={isOpen ? 'Collapse detail' : 'Expand detail'}
             style={{ background:'none', border:'none', color: isOpen ? accentColor : 'var(--muted)', cursor:'pointer', fontSize:11, padding:0, lineHeight:1, opacity: isOpen ? 1 : 0.5, transition:'all 0.15s' }}>
             {isOpen ? '▼' : '▶'}
           </button>
         </td>
         {/* Description */}
-        <td style={{ padding:'6px 8px' }}>
+        <td style={{ padding:'6px 8px' }} onClick={e => e.stopPropagation()}>
           <input value={desc} onChange={e => setDesc(e.target.value)}
             onBlur={() => { if (desc !== (shot.description || '')) save('description', desc); }}
             placeholder="Shot description…"
@@ -268,12 +271,110 @@ function ShotRow({ shot, index, sceneNumber, projectId, onUpdate, onDelete, acce
         </td>
         {/* Delete */}
         <td style={{ padding:'10px 14px 10px 4px', width:28, textAlign:'right' }}>
-          <button onClick={() => onDelete(shot.id)} style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:13, padding:0, lineHeight:1, opacity:0.35 }}>✕</button>
+          <button onClick={e => { e.stopPropagation(); onDelete(shot.id); }} style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:13, padding:0, lineHeight:1, opacity:0.35 }}>✕</button>
         </td>
       </tr>
 
       {/* Expanded detail row */}
-      {isOpen && (
+      {open && isMobileNow() && createPortal(
+        <div className="modal-bg" onClick={e => e.target === e.currentTarget && setOpen(false)}>
+          <div className="modal">
+            <div className="modal-title">Shot {shotLabel(sceneNumber, index)}</div>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(130px, 1fr))', gap:'10px 14px', marginBottom:12 }}>
+              <div className="field sl-detail-move" style={{ margin:0 }}>
+                <label style={{ fontSize:10 }}>Movement</label>
+                <select value={movement} onChange={e => { setMovement(e.target.value); save('movement', e.target.value); }}>
+                  <option value="">— Select —</option>
+                  {MOVEMENTS.map(m => <option key={m} value={m}>{m}</option>)}
+                </select>
+              </div>
+              <div className="field" style={{ margin:0 }}>
+                <label style={{ fontSize:10 }}>Angle</label>
+                <input value={detail.angle} onChange={e => setDetail(f => ({...f, angle: e.target.value}))} placeholder="e.g. Eye level" />
+              </div>
+              <div className="field" style={{ margin:0 }}>
+                <label style={{ fontSize:10 }}>Lens</label>
+                <input value={detail.lens} onChange={e => setDetail(f => ({...f, lens: e.target.value}))} placeholder="e.g. 85mm" />
+              </div>
+              <div className="field" style={{ margin:0 }}>
+                <label style={{ fontSize:10 }}>Frame Rate</label>
+                <input value={detail.frameRate} onChange={e => setDetail(f => ({...f, frameRate: e.target.value}))} placeholder="e.g. 24fps" />
+              </div>
+              <div className="field" style={{ margin:0 }}>
+                <label style={{ fontSize:10 }}>Coverage</label>
+                <select value={detail.coverage} onChange={e => setDetail(f => ({...f, coverage: e.target.value}))}>
+                  <option value="">— Select —</option>
+                  {COVERAGES.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div className="field" style={{ margin:0, gridColumn:'span 2' }}>
+                <label style={{ fontSize:10 }}>Special Equipment</label>
+                <input value={detail.specialEquipment} onChange={e => setDetail(f => ({...f, specialEquipment: e.target.value}))} placeholder="e.g. Gimbal, Drone, Slider" />
+              </div>
+              <div className="field" style={{ margin:0, gridColumn:'span 2' }}>
+                <label style={{ fontSize:10 }}>Audio</label>
+                <input value={detail.audioNotes} onChange={e => setDetail(f => ({...f, audioNotes: e.target.value}))} placeholder="e.g. Lav mic, Boom, No audio" />
+              </div>
+            </div>
+
+            {/* Talent tags */}
+            {talent.length > 0 && (
+              <div className="field" style={{ margin:'0 0 12px' }}>
+                <label style={{ fontSize:10 }}>Talent</label>
+                <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginTop:4 }}>
+                  {talent.map(t => {
+                    const active = detail.talentTags.includes(t.name);
+                    return (
+                      <button key={t.name} type="button" onClick={() => toggleTalent(t.name)}
+                        style={{ padding:'3px 10px', borderRadius:100, fontSize:11, fontWeight:600, cursor:'pointer', border:`1px solid ${active ? 'var(--orange)' : 'var(--border)'}`, background: active ? 'rgba(251,146,60,0.15)' : 'var(--bg2)', color: active ? 'var(--orange)' : 'var(--muted)', transition:'all 0.15s' }}>
+                        {t.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Timing */}
+            <div style={{ background:'var(--bg3)', border:'1px solid var(--border)', borderRadius:8, padding:'12px 14px', marginBottom:12 }}>
+              <div style={{ fontSize:10, fontWeight:700, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.1em', marginBottom:10 }}>Timing Breakdown</div>
+              <div style={{ display:'flex', alignItems:'center', gap:16, flexWrap:'wrap' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                  <span style={{ fontSize:11, color:'var(--muted)' }}>Setup</span>
+                  <input type="number" min="0" value={detail.setupMinutes} onChange={e => setDetail(f => ({...f, setupMinutes: e.target.value}))}
+                    style={{ width:48, textAlign:'center' }} />
+                  <span style={{ fontSize:11, color:'var(--muted)' }}>min</span>
+                </div>
+                <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                  <span style={{ fontSize:11, color:'var(--muted)' }}>Takes</span>
+                  <input type="number" min="1" value={detail.takesCount} onChange={e => setDetail(f => ({...f, takesCount: e.target.value}))}
+                    style={{ width:48, textAlign:'center' }} />
+                  <span style={{ fontSize:11, color:'var(--muted)' }}>×</span>
+                  <input type="number" min="0" value={detail.takeMinutes} onChange={e => setDetail(f => ({...f, takeMinutes: e.target.value}))}
+                    style={{ width:48, textAlign:'center' }} />
+                  <span style={{ fontSize:11, color:'var(--muted)' }}>min</span>
+                </div>
+                <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                  <span style={{ fontSize:11, color:'var(--muted)' }}>Buffer</span>
+                  <input type="number" min="0" value={detail.bufferMinutes} onChange={e => setDetail(f => ({...f, bufferMinutes: e.target.value}))}
+                    style={{ width:48, textAlign:'center' }} />
+                  <span style={{ fontSize:11, color:'var(--muted)' }}>min</span>
+                </div>
+                <div style={{ marginLeft:'auto', display:'flex', alignItems:'baseline', gap:5 }}>
+                  <span style={{ fontSize:11, fontWeight:700, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em' }}>Total</span>
+                  <span style={{ fontSize:18, fontWeight:800, color:'var(--text)', fontVariantNumeric:'tabular-nums' }}>{totalTime}</span>
+                  <span style={{ fontSize:11, color:'var(--muted)' }}>min</span>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display:'flex', gap:8 }}>
+              <button className="btn btn-primary btn-sm" onClick={saveDetail} disabled={detailSaving}>{detailSaving ? 'Saving…' : 'Save Details'}</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => setOpen(false)}>Close</button>
+            </div>
+          </div>
+        </div>, document.body)}
+      {isOpen && !(open && isMobileNow()) && (
         <tr style={{ borderBottom:'1px solid var(--border)', background:'rgba(255,255,255,0.025)' }}>
           <td colSpan={9} className="sl-detail-cell" style={{ padding:'12px 14px 16px 76px' }}>
             <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(130px, 1fr))', gap:'10px 14px', marginBottom:12 }}>
@@ -655,12 +756,13 @@ function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded,
               <span style={{ fontSize:10, color:'var(--muted)', opacity:0.5, marginLeft:2 }}>✏</span>
             </div>
           )}
-          <span style={{ fontSize:12, color:'var(--muted)', whiteSpace:'nowrap' }}>{scene.shots.length} shot{scene.shots.length !== 1 ? 's' : ''}</span>
+          <span className="m-hide" style={{ fontSize:12, color:'var(--muted)', whiteSpace:'nowrap' }}>{scene.shots.length} shot{scene.shots.length !== 1 ? 's' : ''}</span>
         </div>
 
         <div style={{ display:'flex', alignItems:'center', gap:10, flexShrink:0 }}>
+          <span className="m-only" style={{ fontSize:12, color:'var(--muted)', whiteSpace:'nowrap' }}>{scene.shots.length} shot{scene.shots.length !== 1 ? 's' : ''}</span>
           {scene.day_id && days.find(d => d.id === scene.day_id) && (
-            <span style={{ fontSize:10, fontWeight:700, color:'rgba(251,146,60,0.9)', background:'rgba(251,146,60,0.12)', border:'1px solid rgba(251,146,60,0.3)', borderRadius:4, padding:'2px 8px', whiteSpace:'nowrap', letterSpacing:'.06em' }}>
+            <span className="m-hide" style={{ fontSize:10, fontWeight:700, color:'rgba(251,146,60,0.9)', background:'rgba(251,146,60,0.12)', border:'1px solid rgba(251,146,60,0.3)', borderRadius:4, padding:'2px 8px', whiteSpace:'nowrap', letterSpacing:'.06em' }}>
               DAY {days.find(d => d.id === scene.day_id).day_number}
             </span>
           )}

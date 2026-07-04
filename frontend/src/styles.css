@@ -373,6 +373,13 @@ textarea { resize: vertical; min-height: 70px; }
    column on desktop) */
 .sl-detail-move { display: none; }
 
+/* Generic responsive visibility helpers */
+.m-only { display: none !important; }
+@media (max-width: 640px) {
+  .m-only { display: inline-flex !important; }
+  .m-hide { display: none !important; }
+}
+
 /* Overview: Key Dates + Contacts side by side on desktop */
 .ov-kd-grid { grid-template-columns: 1fr 1fr; }
 @media (max-width: 640px) { .ov-kd-grid { grid-template-columns: 1fr; } }
