@@ -974,7 +974,6 @@ export default function ShotList({ project, onScenesChange, onCurrentDayChange, 
   const [days, setDays] = useState([]);
   const [showAddScene, setShowAddScene] = useState(false);
   const [sceneForm, setSceneForm] = useState({ name: '', description: '', sceneType: 'interior', dayId: '', estStartTime: '' });
-  const [showAddDay, setShowAddDay] = useState(false);
   const [dayForm, setDayForm] = useState({ date: '', callTime: '', shootingCall: '', lunchTime: '', estWrap: '' });
   const [editingDay, setEditingDay] = useState(null);
   const [scheduleDays, setScheduleDays] = useState([]);
@@ -1067,16 +1066,6 @@ export default function ShotList({ project, onScenesChange, onCurrentDayChange, 
     const remaining = scenes.filter(s => s.id !== sceneId);
     updateScenes(() => remaining);
     if (deleted?.day_id) await recalcDay(deleted.day_id, remaining, breaks, breakAnchorMap);
-  }
-
-  async function addDay(e) {
-    e.preventDefault();
-    try {
-      const day = await api.createSlDay(project.id, dayForm);
-      setDays(prev => [...prev, day]);
-      setShowAddDay(false);
-      setDayForm({ date: '', callTime: '', shootingCall: '', lunchTime: '', estWrap: '' });
-    } catch(err) { alert(err.message); }
   }
 
   async function saveEditDay(e) {
@@ -1300,42 +1289,7 @@ export default function ShotList({ project, onScenesChange, onCurrentDayChange, 
           <div className="page-title" style={{ marginBottom:0 }}>Shot List</div>
           <div className="page-sub">{project.client} · {project.code}</div>
         </div>
-        <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
-          <button className="btn btn-ghost btn-sm" onClick={() => setShowAddDay(true)} style={{ border:'1px solid var(--border)' }}>+ Add Day</button>
-        </div>
       </div>
-
-      {showAddDay && (
-        <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:10, padding:'20px 20px 16px', marginBottom:16 }}>
-          <div style={{ fontSize:15, fontWeight:800, letterSpacing:'.04em', textTransform:'uppercase', marginBottom:14 }}>Add Shoot Day</div>
-          <form onSubmit={addDay}>
-            {scheduleDays.length > 0 && (
-              <div className="field">
-                <label>Import Times from Schedule</label>
-                <select defaultValue="" onChange={e => {
-                  const sd = scheduleDays.find(d => d.id === e.target.value);
-                  if (!sd) return;
-                  setDayForm(f => ({ ...f, callTime: sd.call_time || f.callTime, shootingCall: sd.shooting_call_time || f.shootingCall, lunchTime: sd.lunch_time || f.lunchTime, estWrap: sd.wrap_time || f.estWrap }));
-                }} style={{ width:'100%', background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:6, padding:'7px 10px', color:'var(--text)', fontFamily:'inherit', fontSize:13 }}>
-                  <option value="">— Select a schedule day —</option>
-                  {scheduleDays.map(sd => <option key={sd.id} value={sd.id}>Day {sd.day_number}{sd.call_time ? ` · Call ${sd.call_time}` : ''}</option>)}
-                </select>
-              </div>
-            )}
-            <div className="field" style={{ marginBottom:10 }}><label>Date</label><input value={dayForm.date} onChange={e => setDayForm(f => ({...f, date: e.target.value}))} placeholder="FRI, AUG 7, 2026" autoFocus /></div>
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:14 }}>
-              <div className="field" style={{ margin:0 }}><label>Call Time</label><input value={dayForm.callTime} onChange={e => setDayForm(f => ({...f, callTime: e.target.value}))} placeholder="8:00 AM" /></div>
-              <div className="field" style={{ margin:0 }}><label>Shooting Call</label><input value={dayForm.shootingCall} onChange={e => setDayForm(f => ({...f, shootingCall: e.target.value}))} placeholder="9:00 AM" /></div>
-              <div className="field" style={{ margin:0 }}><label>Lunch</label><input value={dayForm.lunchTime} onChange={e => setDayForm(f => ({...f, lunchTime: e.target.value}))} placeholder="12:00 PM" /></div>
-              <div className="field" style={{ margin:0 }}><label>Est. Wrap</label><input value={dayForm.estWrap} onChange={e => setDayForm(f => ({...f, estWrap: e.target.value}))} placeholder="6:00 PM" /></div>
-            </div>
-            <div style={{ display:'flex', gap:8 }}>
-              <button type="submit" className="btn btn-primary btn-sm">Add Day</button>
-              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowAddDay(false)}>Cancel</button>
-            </div>
-          </form>
-        </div>
-      )}
 
       {showAddScene && createPortal(
         <div className="modal-bg" onClick={e => e.target === e.currentTarget && setShowAddScene(false)}>
