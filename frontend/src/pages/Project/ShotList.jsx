@@ -1337,9 +1337,10 @@ export default function ShotList({ project, onScenesChange, onCurrentDayChange, 
         </div>
       )}
 
-      {showAddScene && (
-        <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:10, padding:'20px 20px 16px', marginBottom:16 }}>
-          <div style={{ fontSize:15, fontWeight:800, letterSpacing:'.04em', textTransform:'uppercase', marginBottom:14 }}>Add Scene</div>
+      {showAddScene && createPortal(
+        <div className="modal-bg" onClick={e => e.target === e.currentTarget && setShowAddScene(false)}>
+        <div className="modal">
+          <div className="modal-title">Add Scene</div>
           <form onSubmit={addScene}>
             <div className="form-grid" style={{ marginBottom:10 }}>
               <div className="field span2"><label>Scene Name *</label><input value={sceneForm.name} onChange={e => setSceneForm(f => ({...f, name: e.target.value}))} placeholder="TEAM FLOOR - HERO SHOT" required autoFocus /></div>
@@ -1362,7 +1363,7 @@ export default function ShotList({ project, onScenesChange, onCurrentDayChange, 
             </div>
           </form>
         </div>
-      )}
+        </div>, document.body)}
 
 
       {/* Scenes grouped by day, then unassigned */}

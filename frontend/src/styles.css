@@ -305,6 +305,12 @@ textarea { resize: vertical; min-height: 70px; }
   /* Project page header actions: stack on small screens */
   .proj-actions { flex-wrap: wrap; gap: 6px; }
 
+  /* Push Questions to the row's right edge so the Share button below
+     aligns directly under it */
+  .tabs { width: 100%; }
+  .tab-questions { margin-left: auto; }
+  .share-wrap { margin-top: 2px; }
+
   /* Overview: password bar stacks vertically */
   .ov-pw-form { flex-wrap: wrap; }
   .ov-pw-form input { width: 140px !important; flex: 1 1 auto; }

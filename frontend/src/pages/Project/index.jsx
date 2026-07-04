@@ -386,7 +386,7 @@ export default function Project() {
           <DropdownTab label="Gear" subtabs={GEAR_TABS} tab={tab} setTab={setTab} />
           <button className={`tab${tab === 'deliverable-overview' ? ' on' : ''}`} onClick={() => setTab('deliverable-overview')}>Deliverable</button>
           <button
-            className={`tab${tab === 'questions' ? ' on' : ''}`}
+            className={`tab tab-questions${tab === 'questions' ? ' on' : ''}`}
             onClick={() => setTab('questions')}
             style={{ border:'1px solid var(--orange)', borderRadius:6, color:'#fff', flexShrink:0, display:'flex', alignItems:'center', gap:5 }}
           >
