@@ -322,11 +322,15 @@ textarea { resize: vertical; min-height: 70px; }
   .pos-table th, .pos-table td { padding: 6px 8px !important; font-size: 12px; white-space: nowrap; }
 
   /* Schedule day card: 2-col times, stacked meta fields */
-  .sched-times-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 14px 12px !important; }
-  .sched-times-grid .field { min-width: 0; }
-  .sched-times-grid input { width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; padding: 8px 8px; font-size: 13px; }
+  .sched-times-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 14px 16px !important; padding: 0 2px; }
+  .sched-times-grid .field { min-width: 0 !important; overflow: hidden; }
+  .sched-times-grid input {
+    width: 100% !important; max-width: 100% !important; min-width: 0 !important;
+    box-sizing: border-box !important; padding: 8px 6px !important; font-size: 13px !important;
+    -webkit-appearance: none; appearance: none;
+  }
   .sched-meta-grid { grid-template-columns: 1fr !important; }
-  .sched-meta-grid input { width: 100%; box-sizing: border-box; }
+  .sched-meta-grid input { width: 100% !important; max-width: 100% !important; box-sizing: border-box !important; }
 }
 
 /* Overview: Key Dates + Contacts side by side on desktop */

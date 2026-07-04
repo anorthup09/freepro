@@ -326,7 +326,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
         const byDay = {};
         await Promise.all(Object.values(groups).map(async g => {
           const dates = g.days.map(x => x.date).sort();
-          const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${g.lat}&longitude=${g.lon}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weathercode&temperature_unit=fahrenheit&timezone=auto&start_date=${dates[0]}&end_date=${dates[dates.length-1]}&forecast_days=16`);
+          const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${g.lat}&longitude=${g.lon}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weathercode&temperature_unit=fahrenheit&timezone=auto&start_date=${dates[0]}&end_date=${dates[dates.length-1]}`);
           const w = await wRes.json();
           if (!w.daily?.time) return;
           const byDate = {};
