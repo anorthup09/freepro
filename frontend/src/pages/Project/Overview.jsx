@@ -317,8 +317,8 @@ export default function Overview({ project, setProject, onTabChange }) {
       </div>
 
       {/* Public View Password */}
-      <form onSubmit={saveSharePw} className="ov-pw-form" style={{ display:'flex', alignItems:'center', gap:12, background:'rgba(232,80,10,0.12)', border:'1px solid rgba(232,80,10,0.45)', borderRadius:8, padding:'12px 16px', margin:'20px 0 10px' }}>
-        <span style={{ fontSize:13, fontWeight:700, whiteSpace:'nowrap', color:'#fff', width:160, flexShrink:0 }}>Public View Password</span>
+      <form onSubmit={saveSharePw} className="ov-pw-form" style={{ display:'flex', alignItems:'center', gap:10, background:'rgba(232,80,10,0.12)', border:'1px solid rgba(232,80,10,0.45)', borderRadius:8, padding:'10px 14px', margin:'20px 0 10px' }}>
+        <span style={{ fontSize:13, fontWeight:700, whiteSpace:'nowrap', color:'#fff', flexShrink:0 }}>Public PW</span>
         <input
           value={sharePw}
           onChange={e => { setSharePw(e.target.value.replace(/[^a-zA-Z0-9]/g, '')); setSharePwSaved(false); }}
