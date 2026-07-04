@@ -75,6 +75,7 @@ async function syncDaysToProjectRange(projectId) {
 
   const numberedByDate = existing.every((d, i) => Number(d.day_number) === i + 1);
   if (missing.length === 0 && deleted === 0 && numberedByDate) return;
+  console.log(`day sync ${projectId}: +${missing.length} inserted, -${deleted} deleted, renumbering ${existing.length} existing`);
 
   for (let i = 0; i < missing.length; i++) {
     await sql`
@@ -209,7 +210,10 @@ router.patch('/:id/schedule/days/:dayId', requireAuth, requireRole('ADMIN','PROD
         weather_lon=${d.weatherLon !== undefined ? (d.weatherLon ?? null) : sql`weather_lon`},
         weather_fetched_at=${d.weatherLat !== undefined || d.weatherLon !== undefined ? null : sql`weather_fetched_at`}
       WHERE id=${req.params.dayId} RETURNING *`;
-    if (!day) return res.status(404).json({ error: 'Shoot day not found — the schedule will refresh, please try again.' });
+    if (!day) {
+      console.error('day patch: not found. requested:', req.params.dayId, 'project:', req.params.id);
+      return res.status(404).json({ error: 'Shoot day not found — the schedule will refresh, please try again.' });
+    }
     res.json(day);
   } catch(e){next(e);}
 });

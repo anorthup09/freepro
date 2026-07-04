@@ -381,7 +381,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
           applyUpdate(match.id, updated);
           setActiveDay(match.id);
           flashSaved();
-        } catch { alert('Please refresh the page and try again.'); }
+        } catch(e2) { alert(`Could not save weather location: ${e2.message}`); }
       } else {
         alert(e.message);
       }
