@@ -2051,10 +2051,10 @@ function GlassHeader({ project }) {
       zIndex: 90,
       backdropFilter: 'blur(20px) saturate(160%)',
       WebkitBackdropFilter: 'blur(20px) saturate(160%)',
-      background: 'rgba(10,10,8,0.55)',
-      borderBottom: '1px solid rgba(255,255,255,0.07)',
-      boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
-      padding: '12px 24px',
+      background: 'rgba(10,10,8,0.28)',
+      maskImage: 'linear-gradient(to bottom, black 62%, transparent 100%)',
+      WebkitMaskImage: 'linear-gradient(to bottom, black 62%, transparent 100%)',
+      padding: '12px 24px 22px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
@@ -2167,35 +2167,35 @@ export default function Share() {
           <div className="logo">Free<em>Pro</em></div>
           <span style={{ fontSize:9, color:'var(--muted)', letterSpacing:'0.06em', paddingLeft:1 }}>Powered by Unbridled Media</span>
         </div>
+        {(view_type === 'producer' || view_type === 'crew' || view_type === 'client') && (
+          <span style={{ marginLeft:'auto', fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', fontWeight:600 }}>
+            {view_type === 'producer' ? 'Producer View' : view_type === 'crew' ? 'Crew View' : 'Client View'}
+          </span>
+        )}
         {(hasQuestions || (hasShotList && view_type === 'client')) ? (
-          <div className="tabs">
+          <div className="tabs" style={{ flexBasis:'100%', display:'flex', alignItems:'center' }}>
             <button className={`tab${sharePage === 'callsheet' ? ' on' : ''}`} onClick={() => setSharePage('callsheet')}>Call Sheet</button>
             {hasGearTab && <button className={`tab${sharePage === 'gear' ? ' on' : ''}`} onClick={() => setSharePage('gear')}>Gear</button>}
             {hasShotList && <button className={`tab${sharePage === 'shot-list' ? ' on' : ''}`} onClick={() => setSharePage('shot-list')}>Shot List</button>}
             {hasQuestions && <button className={`tab${sharePage === 'questions' ? ' on' : ''}`} onClick={() => setSharePage('questions')}>Questions</button>}
+            <button
+              onClick={() => window.print()}
+              style={{ marginLeft:'auto', background:'var(--bg3)', border:'1px solid var(--border2)', color:'var(--tan)', borderRadius:6, padding:'5px 12px', fontSize:12, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}
+            >PDF</button>
           </div>
         ) : (
-          view_type === 'talent' ? (
-            <div style={{ fontSize:11, color:'#fff', textTransform:'uppercase', letterSpacing:'.08em', border:'1px solid rgba(255,255,255,0.6)', borderRadius:6, padding:'4px 10px' }}>
-              {data.talent_name} — Talent
-            </div>
-          ) : (
-            <div style={{ fontSize:11, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em' }}>
-              {view_type.charAt(0).toUpperCase() + view_type.slice(1)} View
-            </div>
-          )
+          <>
+            {view_type === 'talent' && (
+              <div style={{ fontSize:11, color:'#fff', textTransform:'uppercase', letterSpacing:'.08em', border:'1px solid rgba(255,255,255,0.6)', borderRadius:6, padding:'4px 10px' }}>
+                {data.talent_name} — Talent
+              </div>
+            )}
+            <button
+              onClick={() => window.print()}
+              style={{ background:'var(--bg3)', border:'1px solid var(--border2)', color:'var(--tan)', borderRadius:6, padding:'5px 12px', fontSize:12, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}
+            >PDF</button>
+          </>
         )}
-        <div className="share-nav-right" style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4 }}>
-          {(view_type === 'producer' || view_type === 'crew' || view_type === 'client') && (
-            <span style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', fontWeight:600 }}>
-              {view_type === 'producer' ? 'Producer View' : view_type === 'crew' ? 'Crew View' : 'Client View'}
-            </span>
-          )}
-          <button
-            onClick={() => window.print()}
-            style={{ background:'var(--bg3)', border:'1px solid var(--border2)', color:'var(--tan)', borderRadius:6, padding:'5px 12px', fontSize:12, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}
-          >Download PDF</button>
-        </div>
       </nav>
       <div className="wrap">
         {hasQuestions && sharePage === 'questions' ? (
