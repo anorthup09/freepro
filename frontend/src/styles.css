@@ -331,6 +331,11 @@ textarea { resize: vertical; min-height: 70px; }
   }
   .sched-meta-grid { grid-template-columns: 1fr !important; }
   .sched-meta-grid input { width: 100% !important; max-width: 100% !important; box-sizing: border-box !important; }
+
+  /* Shot list scene tiles in the schedule timeline: wrap instead of clipping */
+  .sl-tile-row { flex-wrap: wrap !important; gap: 6px 10px !important; }
+  .sl-tile-left { flex-wrap: wrap !important; }
+  .sl-tile-left span { white-space: normal !important; }
 }
 
 /* Overview: Key Dates + Contacts side by side on desktop */

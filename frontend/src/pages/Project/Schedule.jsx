@@ -889,8 +889,8 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                         <div key={item._key} className="ev" style={{ cursor: 'pointer' }} onClick={() => onShotListTabChange?.()}>
                           <div className="ev-time" style={{ color: st.color }}>{item.est_start_time}</div>
                           <div className="ev-body" style={{ borderLeft: `2px solid ${st.border}`, background: st.bg, padding: '10px 14px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
+                            <div className="sl-tile-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                              <div className="sl-tile-left" style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
                                 <span style={{ fontSize: 10, fontWeight: 800, color: st.color, background: st.badge, border: `1px solid ${st.border}`, borderRadius: 4, padding: '2px 7px', whiteSpace: 'nowrap', letterSpacing: '.08em', flexShrink: 0 }}>
                                   {st.label} · Scene {item.scene_number}
                                 </span>

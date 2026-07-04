@@ -264,7 +264,7 @@ export default function Project() {
 
   const startDate = project.start_date || project.startDate;
   const daysUntil = startDate
-    ? Math.ceil((new Date(startDate.slice(0,10)+'T12:00:00') - new Date(new Date().toISOString().slice(0,10)+'T12:00:00')) / 86400000)
+    ? Math.ceil((new Date(startDate.slice(0,10)+'T12:00:00') - new Date(new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' })+'T12:00:00')) / 86400000)
     : null;
 
   const STATUS_PILL = { PLANNING:'amber', ACTIVE:'green', WRAPPED:'purple', ARCHIVED:'' };
