@@ -289,13 +289,8 @@ export default function Overview({ project, setProject, onTabChange }) {
           <div className="proj-code">{project.code}</div>
           <div className="proj-title">{project.title}</div>
           <div className="proj-meta">
-            <div className="meta"><span className="dot6" />{project.city}, {project.state}</div>
             <div className="meta"><span className="dot6" />{fmtDate(startDate)} – {fmtDate(endDate)}</div>
-            <div className="meta" style={{ display:'flex', alignItems:'center', gap:6 }}>
-              <span className="dot6" />
-              {project.client}
-              <StatusSelect project={project} setProject={setProject} />
-            </div>
+            <div className="meta"><span className="dot6" />{project.client}</div>
           </div>
           {project.notes && (
             <div style={{ marginTop:10, fontSize:13, color:'var(--muted)', maxWidth:480, lineHeight:1.6, whiteSpace:'pre-wrap' }}>{project.notes}</div>
@@ -313,7 +308,10 @@ export default function Overview({ project, setProject, onTabChange }) {
               <div style={{ fontSize:13, fontWeight:700, color:'var(--orange)' }}>Day 1 is today!</div>
             </div>
           )}
-          <button className="btn btn-ghost btn-sm" onClick={() => setEditInfo(true)}>Edit Info</button>
+          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+            <StatusSelect project={project} setProject={setProject} />
+            <button className="btn btn-ghost btn-sm" onClick={() => setEditInfo(true)}>Edit Info</button>
+          </div>
         </div>
       </div>
 
