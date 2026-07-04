@@ -325,10 +325,12 @@ export default function Overview({ project, setProject, onTabChange }) {
           placeholder="No password set"
           style={{ width:140, flexShrink:0 }}
         />
-        <button className="btn btn-ghost btn-sm" type="submit" disabled={sharePwSaving} style={{ color:'#fff' }}>
-          {sharePwSaved ? 'Saved!' : sharePwSaving ? 'Saving…' : 'Save'}
-        </button>
-        {sharePw && <button type="button" className="btn btn-ghost btn-sm" style={{ color:'#fff' }} onClick={() => { setSharePw(''); }}>Clear</button>}
+        <div className="ov-pw-actions" style={{ display:'flex', alignItems:'center', gap:8 }}>
+          <button className="btn btn-ghost btn-sm" type="submit" disabled={sharePwSaving} style={{ color:'#fff' }}>
+            {sharePwSaved ? 'Saved!' : sharePwSaving ? 'Saving…' : 'Save'}
+          </button>
+          {sharePw && <button type="button" className="btn btn-ghost btn-sm" style={{ color:'#fff' }} onClick={() => { setSharePw(''); }}>Clear</button>}
+        </div>
         <div className="ov-pw-divider" style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center' }}>
           <span style={{ color:'rgba(255,255,255,0.3)', fontSize:14, userSelect:'none' }}>|</span>
         </div>

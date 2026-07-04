@@ -306,7 +306,10 @@ textarea { resize: vertical; min-height: 70px; }
   .ov-pw-form { flex-wrap: wrap; }
   .ov-pw-form input { width: 140px !important; flex: 1 1 auto; }
   .ov-pw-divider { display: none !important; }
+  .ov-pw-actions { margin-left: auto; }
   .ov-quick-links { align-items: flex-start !important; width: 100%; }
+  .ov-quick-links > div { display: flex !important; width: 100%; gap: 8px; }
+  .ov-quick-links > div .btn { flex: 1 1 0; text-align: center; justify-content: center; }
 
   /* Overview: POC / Gear Contact rows wrap */
   .ov-poc-row { flex-wrap: wrap; }
