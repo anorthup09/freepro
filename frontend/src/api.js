@@ -38,6 +38,9 @@ export const api = {
   // Projects
   getProjects: () => req('GET', '/projects'),
   getCrewViews: () => req('GET', '/crew-views'),
+  getUsers: () => req('GET', '/users'),
+  updateUserRole: (id, role) => req('PATCH', `/users/${id}`, { role }),
+  deleteUser: (id) => req('DELETE', `/users/${id}`),
   getProject: (id) => req('GET', `/projects/${id}`),
   createProject: (data) => req('POST', '/projects', data),
   updateProject: (id, data) => req('PATCH', `/projects/${id}`, data),

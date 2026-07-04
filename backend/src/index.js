@@ -104,6 +104,7 @@ app.get('/api/crew-views', requireAuthGlobal, async (req, res) => {
 app.use('/api/share', shareRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/crew', crewRoutes);
+app.use('/api/users', require('./routes/users'));
 app.use('/api/projects', projectRoutes);
 app.use('/api/projects', scheduleRoutes);
 app.use('/api/projects', deliverableRoutes);

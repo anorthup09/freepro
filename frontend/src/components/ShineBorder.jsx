@@ -3,7 +3,12 @@ import React, { useEffect, useRef } from 'react';
 // Gradient "shine" border that tilts with device orientation (where the
 // browser exposes it without a permission prompt) and drifts with scroll
 // as a fallback, echoing Apple's specular edge effect.
-export default function ShineBorder({ children, radius = 10, width = 2, style = {} }) {
+const TONES = {
+  silver: 'linear-gradient(var(--shine-angle), rgba(255,255,255,0.55), rgba(255,255,255,0.12) 35%, rgba(255,255,255,0.12) 65%, rgba(255,255,255,0.5))',
+  orange: 'linear-gradient(var(--shine-angle), #F7B58C, #E8500A 25%, #7A2A05 50%, #E8500A 75%, #F7B58C)',
+};
+
+export default function ShineBorder({ children, radius = 10, width = 2, tone = 'silver', style = {} }) {
   const ref = useRef(null);
   useEffect(() => {
     const el = ref.current;
@@ -31,7 +36,7 @@ export default function ShineBorder({ children, radius = 10, width = 2, style = 
       '--shine-angle': '115deg',
       padding: width,
       borderRadius: radius,
-      background: 'linear-gradient(var(--shine-angle), rgba(255,255,255,0.55), rgba(255,255,255,0.12) 35%, rgba(255,255,255,0.12) 65%, rgba(255,255,255,0.5))',
+      background: TONES[tone] || TONES.silver,
       ...style,
     }}>
       {children}
