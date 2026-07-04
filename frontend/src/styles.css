@@ -270,9 +270,11 @@ textarea { resize: vertical; min-height: 70px; }
   .tab { padding: 8px 10px; font-size: 11px; min-height: 36px; }
   .btn-sm { padding: 7px 10px; font-size: 11px; min-height: 36px; }
 
-  /* Make wide tables scroll horizontally on mobile */
+  /* Make wide tables scroll horizontally on mobile — columns hug their
+     content instead of spreading across a forced width */
   .share-section { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  .share-table { min-width: 480px; }
+  .share-table { width: max-content; min-width: 100%; }
+  .share-table th, .share-table td { white-space: nowrap; }
   .share-table th, .share-table td { padding: 6px 8px; font-size: 11px; }
 
   /* Flight table: hide less-critical columns */
@@ -315,7 +317,6 @@ textarea { resize: vertical; min-height: 70px; }
 
   /* Share views: wide tables scroll sideways instead of clipping */
   .share-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  .share-table { min-width: 560px; }
 
   /* Share nav: view label + Download PDF in one compact row */
   .share-nav-right {
