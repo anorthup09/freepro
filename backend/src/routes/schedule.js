@@ -209,6 +209,7 @@ router.patch('/:id/schedule/days/:dayId', requireAuth, requireRole('ADMIN','PROD
         weather_lon=${d.weatherLon !== undefined ? (d.weatherLon ?? null) : sql`weather_lon`},
         weather_fetched_at=${d.weatherLat !== undefined || d.weatherLon !== undefined ? null : sql`weather_fetched_at`}
       WHERE id=${req.params.dayId} RETURNING *`;
+    if (!day) return res.status(404).json({ error: 'Shoot day not found — the schedule will refresh, please try again.' });
     res.json(day);
   } catch(e){next(e);}
 });

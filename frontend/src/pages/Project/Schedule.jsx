@@ -350,6 +350,13 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
     try { await api.updateDay(project.id, dayId, { dayType: value }); flashSaved(); } catch(e) { alert(e.message); }
   }
 
+  async function resyncSchedule() {
+    const fresh = await api.getSchedule(project.id);
+    setDays(fresh.map(d => ({ events: [], crewCalls: [], ...d })));
+    if (fresh.length > 0) setActiveDay(prev => fresh.some(d => d.id === prev) ? prev : fresh[0].id);
+    return fresh;
+  }
+
   async function saveWeatherLocation(sel) {
     if (!currentDay) return;
     try {
@@ -360,7 +367,16 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
         ? { ...d, weather_location_name: updated.weather_location_name, weather_lat: updated.weather_lat, weather_lon: updated.weather_lon }
         : d));
       flashSaved();
-    } catch(e) { alert(e.message); }
+    } catch(e) {
+      if (e.message?.includes('not found') || e.message?.includes('unexpected response')) {
+        try {
+          await resyncSchedule();
+          alert('The schedule was out of date and has been refreshed — please try again.');
+        } catch { alert('Please refresh the page and try again.'); }
+      } else {
+        alert(e.message);
+      }
+    }
   }
 
   function openCateringModal(dayId) {
@@ -463,9 +479,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
     } catch(e) {
       if (e.message?.includes('not found') || e.message?.includes('foreign key') || e.message?.includes('fkey')) {
         try {
-          const fresh = await api.getSchedule(project.id);
-          setDays(fresh.map(d => ({ events: [], crewCalls: [], ...d })));
-          if (fresh.length > 0) setActiveDay(fresh[0].id);
+          await resyncSchedule();
           alert('The schedule was out of date and has been refreshed — please try adding the event again.');
         } catch {
           alert('This shoot day no longer exists. Please refresh the page and try again.');
