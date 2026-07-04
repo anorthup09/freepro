@@ -29,6 +29,17 @@ const GEAR_TABS = [
   { id: 'gear-list', label: 'Gear List' },
 ];
 
+// shooting_call / est_wrap may be stored as 24h "HH:MM" — display as 12h
+function fmt12(t) {
+  if (!t) return t;
+  const m = /^(\d{1,2}):(\d{2})$/.exec(t);
+  if (!m) return t;
+  let h = parseInt(m[1], 10);
+  const mer = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  return `${h}:${m[2]} ${mer}`;
+}
+
 function DropdownTab({ label, subtabs, tab, setTab }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -310,14 +321,14 @@ export default function Project() {
             {currentShotListDay.shooting_call && (
               <div style={{ textAlign:'center' }}>
                 <div style={{ fontSize:9, fontWeight:700, color:'rgba(255,255,255,0.35)', textTransform:'uppercase', letterSpacing:'.12em', marginBottom:2 }}>Shooting Call</div>
-                <div style={{ fontSize:15, fontWeight:800, color:'rgba(255,255,255,0.9)', fontVariantNumeric:'tabular-nums', letterSpacing:'.02em' }}>{currentShotListDay.shooting_call}</div>
+                <div style={{ fontSize:15, fontWeight:800, color:'rgba(255,255,255,0.9)', fontVariantNumeric:'tabular-nums', letterSpacing:'.02em' }}>{fmt12(currentShotListDay.shooting_call)}</div>
               </div>
             )}
             {currentShotListDay.shooting_call && currentShotListDay.est_wrap && <div style={{ width:1, height:28, background:'rgba(255,255,255,0.12)' }} />}
             {currentShotListDay.est_wrap && (
               <div style={{ textAlign:'center' }}>
                 <div style={{ fontSize:9, fontWeight:700, color:'rgba(255,255,255,0.35)', textTransform:'uppercase', letterSpacing:'.12em', marginBottom:2 }}>Est. Wrap</div>
-                <div style={{ fontSize:15, fontWeight:800, color:'rgba(255,255,255,0.9)', fontVariantNumeric:'tabular-nums', letterSpacing:'.02em' }}>{currentShotListDay.est_wrap}</div>
+                <div style={{ fontSize:15, fontWeight:800, color:'rgba(255,255,255,0.9)', fontVariantNumeric:'tabular-nums', letterSpacing:'.02em' }}>{fmt12(currentShotListDay.est_wrap)}</div>
               </div>
             )}
           </div>
