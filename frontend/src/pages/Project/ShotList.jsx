@@ -22,6 +22,15 @@ function parseDayDate(str) {
   return { month: String(mi || ''), day: m[3], year: m[4] };
 }
 
+// Day dates are stored as free text; some rows carry raw ISO timestamps.
+// Render those as "WED, AUG 13, 2026"; pass other text through unchanged.
+function displayDayDate(str) {
+  if (!str) return str;
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(str);
+  if (!m) return str;
+  return formatDayDate(Number(m[2]), Number(m[3]), m[1]);
+}
+
 const SCENE_TYPE_STYLES = {
   interior: { bg: 'rgba(96,165,250,0.12)', border: 'rgba(96,165,250,0.4)', badge: 'rgba(96,165,250,0.18)', badgeText: '#60a5fa', label: 'INT.' },
   exterior: { bg: 'rgba(74,222,128,0.10)', border: 'rgba(74,222,128,0.4)', badge: 'rgba(74,222,128,0.15)', badgeText: '#4ade80', label: 'EXT.' },
@@ -456,7 +465,7 @@ function DaySynopsisCard({ day, onDelete, onAddScene, scenes, scheduleDays, onDa
           </div>
           {day.date && (
             <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text)', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 6, padding: '4px 8px' }}>
-              {day.date}
+              {displayDayDate(day.date)}
             </span>
           )}
         </div>
@@ -763,7 +772,7 @@ function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded,
                     style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:6, padding:'6px 10px', color:'var(--text)', fontFamily:'inherit', fontSize:13 }}>
                     <option value="">— No Day —</option>
                     {days.map(d => (
-                      <option key={d.id} value={d.id}>Day {d.day_number}{d.date ? ` — ${d.date}` : ''}</option>
+                      <option key={d.id} value={d.id}>Day {d.day_number}{d.date ? ` — ${displayDayDate(d.date)}` : ''}</option>
                     ))}
                   </select>
                 </div>
@@ -1354,7 +1363,7 @@ export default function ShotList({ project, onScenesChange, onCurrentDayChange }
                   <select value={breakForm.dayId} onChange={e => setBreakForm(f => ({...f, dayId: e.target.value}))}
                     style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:6, padding:'7px 10px', color:'var(--text)', fontFamily:'inherit', fontSize:13 }}>
                     <option value="">— No day —</option>
-                    {days.map(d => <option key={d.id} value={d.id}>Day {d.day_number}{d.date ? ` — ${d.date}` : ''}</option>)}
+                    {days.map(d => <option key={d.id} value={d.id}>Day {d.day_number}{d.date ? ` — ${displayDayDate(d.date)}` : ''}</option>)}
                   </select>
                 </div>
               )}

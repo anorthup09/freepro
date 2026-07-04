@@ -1243,7 +1243,11 @@ function slBreakDuration(brk) {
 }
 
 function SlDayHeader({ day }) {
-  const dateStr = day.date || null;
+  // date is free text, but some rows carry raw ISO timestamps — format those
+  const isoM = day.date ? /^(\d{4})-(\d{2})-(\d{2})/.exec(day.date) : null;
+  const dateStr = isoM
+    ? new Date(`${isoM[1]}-${isoM[2]}-${isoM[3]}T12:00:00`).toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric' }).toUpperCase()
+    : (day.date || null);
   return (
     <div style={{ background:'var(--bg3)', border:'1px solid var(--border)', borderRadius:10, padding:'14px 20px', marginBottom:12, display:'flex', alignItems:'center', gap:20, flexWrap:'wrap' }}>
       <div style={{ display:'flex', alignItems:'center', gap:10 }}>
