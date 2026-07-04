@@ -630,13 +630,8 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
         <div>
           <div className="card" style={{ marginBottom:16 }}>
             <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', flexWrap:'wrap', gap:8, marginBottom: dayCardCollapsed ? 0 : 12 }}>
-              <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-start', gap:8 }}>
-                <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:15, display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
-                  Day {[...days].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).findIndex(d=>d.id===currentDay.id)+1} · {parseDay(currentDay.date).toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' })}
-                </div>
-                <button className="btn btn-ghost btn-sm" onClick={() => setDayCardCollapsed(c => !c)} style={{ color:'var(--muted)', fontSize:11, padding:'2px 8px', lineHeight:1.4 }}>
-                  {dayCardCollapsed ? '▸ Expand' : '▾ Collapse'}
-                </button>
+              <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:15, display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
+                Day {[...days].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).findIndex(d=>d.id===currentDay.id)+1} · {parseDay(currentDay.date).toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' })}
               </div>
               <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:8 }}>
                 <select
@@ -646,6 +641,10 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                 >
                   {DAY_TYPES.map(dt => <option key={dt.value} value={dt.value}>{dt.label}</option>)}
                 </select>
+                <button className="btn btn-ghost btn-sm" onClick={() => setDayCardCollapsed(c => !c)}
+                  style={{ color:'var(--muted)', fontSize:11, padding:'1px 8px', lineHeight:1.3, minHeight:0, height:22 }}>
+                  {dayCardCollapsed ? '▸ Expand' : '▾ Collapse'}
+                </button>
               </div>
             </div>
             {!dayCardCollapsed && <>
