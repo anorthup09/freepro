@@ -550,8 +550,6 @@ export default function Overview({ project, setProject, onTabChange }) {
                     {['PLANNING','ACTIVE','WRAPPED','ARCHIVED'].map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
-                <div className="field"><label>City</label><input value={info.city} onChange={e => setInfo(i=>({...i,city:e.target.value}))} /></div>
-                <div className="field"><label>State</label><input value={info.state} onChange={e => setInfo(i=>({...i,state:e.target.value}))} /></div>
                 <div className="field"><label>Start Date</label><input type="date" value={info.startDate} onChange={e => setInfo(i=>({...i,startDate:e.target.value}))} /></div>
                 <div className="field"><label>End Date</label><input type="date" value={info.endDate} onChange={e => setInfo(i=>({...i,endDate:e.target.value}))} /></div>
                 <div className="field span2"><label>Notes</label><textarea value={info.notes} onChange={e => setInfo(i=>({...i,notes:e.target.value}))} /></div>
