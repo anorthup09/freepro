@@ -1,4 +1,23 @@
 const router = require('express').Router();
+const https = require('https');
+
+// Timed, IPv4-forced JSON fetch — Node's global fetch can hang indefinitely
+// on some egress routes from the host (see the weather API saga).
+function fetchJson(url, headers = {}, timeout = 9000) {
+  return new Promise((resolve, reject) => {
+    const r = https.get(url, { timeout, family: 4, headers }, res => {
+      let data = '';
+      res.on('data', d => data += d);
+      res.on('end', () => {
+        let parsed = null;
+        try { parsed = JSON.parse(data); } catch { /* non-JSON body */ }
+        resolve({ status: res.statusCode, ok: res.statusCode >= 200 && res.statusCode < 300, data: parsed });
+      });
+    });
+    r.on('timeout', () => r.destroy(new Error('Flight data request timed out — please try again')));
+    r.on('error', reject);
+  });
+}
 const { requireAuth } = require('../middleware/auth');
 
 // ─── Hotel Search (OpenStreetMap Nominatim) ───────────────────────────────────
@@ -103,15 +122,14 @@ router.get('/flight-lookup', requireAuth, async (req, res, next) => {
 
     const targetDate = date || new Date().toISOString().slice(0, 10);
     const url = `https://aerodatabox.p.rapidapi.com/flights/number/${encodeURIComponent(flight.toUpperCase())}/${targetDate}`;
-    const r = await fetch(url, { headers: aeroHeaders(key) });
+    const r = await fetchJson(url, aeroHeaders(key));
 
     if (r.status === 404) return res.status(404).json({ error: `Flight ${flight.toUpperCase()} not found on ${targetDate}. Try entering details manually.` });
     if (!r.ok) {
-      const err = await r.json().catch(() => ({}));
-      return res.status(r.status).json({ error: err.message || 'AeroDataBox error' });
+      return res.status(r.status || 502).json({ error: r.data?.message || 'AeroDataBox error' });
     }
 
-    const data = await r.json();
+    const data = r.data;
     const f = Array.isArray(data) ? data[0] : data;
     if (!f) return res.status(404).json({ error: `No data found for ${flight.toUpperCase()} on ${targetDate}.` });
 
@@ -143,10 +161,10 @@ router.get('/flight-status', requireAuth, async (req, res, next) => {
 
     const targetDate = date || new Date().toISOString().slice(0, 10);
     const url = `https://aerodatabox.p.rapidapi.com/flights/number/${encodeURIComponent(flight.toUpperCase())}/${targetDate}`;
-    const r = await fetch(url, { headers: aeroHeaders(key) });
-    if (!r.ok) return res.status(r.status).json({ error: 'lookup failed' });
+    const r = await fetchJson(url, aeroHeaders(key));
+    if (!r.ok) return res.status(r.status || 502).json({ error: 'lookup failed' });
 
-    const data = await r.json();
+    const data = r.data;
     const f = Array.isArray(data) ? data[0] : data;
     if (!f) return res.json({ status: 'Unknown' });
 
