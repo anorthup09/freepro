@@ -3,6 +3,11 @@ import { api } from '../../api.js';
 import { displayName } from '../../utils/displayName.js';
 import ShineBorder from '../../components/ShineBorder.jsx';
 
+// Tap-to-contact links: phones dial, emails open the mail app
+const Tel = ({ v }) => v ? <a href={`tel:${String(v).replace(/[^+\d]/g, '')}`} style={{ color:'inherit', textDecoration:'none' }}>{v}</a> : null;
+const Mail = ({ v }) => v ? <a href={`mailto:${v}`} style={{ color:'inherit', textDecoration:'none' }}>{v}</a> : null;
+
+
 const LOC_TYPES = ['PRIMARY_VENUE','CREW_HOTEL','AIRPORT','OTHER'];
 const LOC_LABELS = { PRIMARY_VENUE:'Shooting Location', CREW_HOTEL:'Hotel', SECONDARY:'Rental Car Location', AIRPORT:'Airport', OTHER:'Other' };
 const LOC_TAG = { PRIMARY_VENUE:'main', CREW_HOTEL:'crew', SECONDARY:'sec', AIRPORT:'sec', OTHER:'sec' };
@@ -360,8 +365,8 @@ export default function Overview({ project, setProject, onTabChange }) {
         {pocSaving && <span style={{ fontSize:11, color:'var(--muted)' }}>Saving…</span>}
         {pocMember && !pocSaving && (
           <div style={{ fontSize:12, color:'var(--muted)', display:'flex', gap:16 }}>
-            {pocMember.phone && <span style={{ color:'var(--tan)' }}>{pocMember.phone}</span>}
-            {pocMember.email && <span>{pocMember.email}</span>}
+            {pocMember.phone && <span style={{ color:'var(--tan)' }}><Tel v={pocMember.phone} /></span>}
+            {pocMember.email && <span><Mail v={pocMember.email} /></span>}
           </div>
         )}
       </div>
@@ -373,8 +378,8 @@ export default function Overview({ project, setProject, onTabChange }) {
         >
           <span style={{ fontSize:13, fontWeight:700, color:'var(--text)', whiteSpace:'nowrap', width:160, flexShrink:0 }}>Gear Contact</span>
           <span style={{ fontWeight:500, fontSize:13, width:200, flexShrink:0 }}>{gearPerson.name}</span>
-          {gearPerson.phone && <span style={{ fontSize:12, color:'var(--tan)' }}>{gearPerson.phone}</span>}
-          {gearPerson.email && <span style={{ fontSize:12, color:'var(--muted)' }}>{gearPerson.email}</span>}
+          {gearPerson.phone && <span style={{ fontSize:12, color:'var(--tan)' }}><Tel v={gearPerson.phone} /></span>}
+          {gearPerson.email && <span style={{ fontSize:12, color:'var(--muted)' }}><Mail v={gearPerson.email} /></span>}
         </div>
       )}
 
@@ -468,8 +473,8 @@ export default function Overview({ project, setProject, onTabChange }) {
               {project.clientContacts?.map(c => (
                 <div key={c.id} className="chip" style={{ position:'relative', paddingRight:50 }}>
                   <strong>{c.title}</strong>
-                  {c.name} {c.phone && `· ${c.phone}`}
-                  {c.email && <><br /><span style={{ color:'var(--muted)' }}>{c.email}</span></>}
+                  {c.name} {c.phone && <>· <Tel v={c.phone} /></>}
+                  {c.email && <><br /><span style={{ color:'var(--muted)' }}><Mail v={c.email} /></span></>}
                   <div style={{ position:'absolute', top:4, right:6, display:'flex', gap:4 }}>
                     <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => { setEditContactId(c.id); setEditContactForm({ name:c.name, title:c.title, email:c.email||'', phone:c.phone||'' }); }}>✎</button>
                     <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => deleteContact(c.id)}>✕</button>
@@ -490,8 +495,8 @@ export default function Overview({ project, setProject, onTabChange }) {
               {(project.agencyContacts||[]).map(c => (
                 <div key={c.id} className="chip" style={{ position:'relative', paddingRight:50 }}>
                   <strong>{c.title}</strong>
-                  {c.name} {c.phone && `· ${c.phone}`}
-                  {c.email && <><br /><span style={{ color:'var(--muted)' }}>{c.email}</span></>}
+                  {c.name} {c.phone && <>· <Tel v={c.phone} /></>}
+                  {c.email && <><br /><span style={{ color:'var(--muted)' }}><Mail v={c.email} /></span></>}
                   <div style={{ position:'absolute', top:4, right:6, display:'flex', gap:4 }}>
                     <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => { setEditAgencyId(c.id); setEditAgencyForm({ name:c.name, title:c.title, email:c.email||'', phone:c.phone||'' }); }}>✎</button>
                     <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => deleteAgencyContact(c.id)}>✕</button>

@@ -12,6 +12,11 @@ function useNow() {
   return now;
 }
 
+
+// Tap-to-contact links: phones dial, emails open the mail app
+const Tel = ({ v }) => v ? <a href={`tel:${String(v).replace(/[^+\d]/g, '')}`} style={{ color:'inherit', textDecoration:'none' }}>{v}</a> : null;
+const Mail = ({ v }) => v ? <a href={`mailto:${v}`} style={{ color:'inherit', textDecoration:'none' }}>{v}</a> : null;
+
 function flightStatus(f, now) {
   // Live status from the flight API (refreshed server-side) wins over time math
   const st = (f.status || '').toUpperCase().replace(/[\s_-]/g, '');
@@ -200,8 +205,8 @@ function GearSection({ gear, onlineRentals = [], producerView, shareToken }) {
                 {(gear.rental_contact || gear.rental_phone || gear.rental_email) && (
                   <div style={{ fontSize:12, color:'var(--tan)', lineHeight:1.6 }}>
                     {gear.rental_contact && <div>{gear.rental_contact}</div>}
-                    {gear.rental_phone && <div>{gear.rental_phone}</div>}
-                    {gear.rental_email && <div>{gear.rental_email}</div>}
+                    {gear.rental_phone && <div><Tel v={gear.rental_phone} /></div>}
+                    {gear.rental_email && <div><Mail v={gear.rental_email} /></div>}
                   </div>
                 )}
                 {gear.rental_cost && <div style={{ fontSize:12, color:'var(--green,#4ade80)', fontWeight:600, marginTop:6 }}>Est. ${parseFloat(gear.rental_cost).toFixed(2)}</div>}
@@ -270,7 +275,7 @@ function GearSection({ gear, onlineRentals = [], producerView, shareToken }) {
             {gear.pickup_datetime && <div style={{ fontSize:12, color:'var(--text)', marginBottom:2 }}>🔄 Pickup: {gear.pickup_datetime}</div>}
             {gear.delivery_driver && (
               <div style={{ fontSize:12, color:'var(--tan)' }}>
-                Driver: {gear.delivery_driver}{gear.delivery_driver_phone ? ` · ${gear.delivery_driver_phone}` : ''}
+                Driver: {gear.delivery_driver}{gear.delivery_driver_phone && <> · <Tel v={gear.delivery_driver_phone} /></>}
               </div>
             )}
           </div>
@@ -333,7 +338,7 @@ function HotelRoster({ hotelBlocks, crewAssignments }) {
         <div key={hb.id} style={{ fontSize:12, color:'var(--tan)', marginBottom:6 }}>
           🏨 <span style={{ fontWeight:600, color:'var(--text)' }}>{hb.name}</span>
           {hb.address && <> · <a href={mapsUrl(hb.address)} target="_blank" rel="noreferrer" style={{ color:'var(--tan)', textDecoration:'underline' }}>{hb.address}</a></>}
-          {hb.phone && <> · {hb.phone}</>}
+          {hb.phone && <> · <Tel v={hb.phone} /></>}
         </div>
       ))}
 
@@ -487,15 +492,15 @@ function ProducerView({ data, hideGear }) {
               <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 14px', flex:1, minWidth:180 }}>
                 <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:4 }}>Main POC</div>
                 <div style={{ fontWeight:600, fontSize:13 }}>{shortName(project.poc_name)}</div>
-                {project.poc_phone && <div style={{ fontSize:12, color:'var(--tan)', marginTop:2 }}>{project.poc_phone}</div>}
-                {project.poc_email && <div style={{ fontSize:11, color:'var(--muted)' }}>{project.poc_email}</div>}
+                {project.poc_phone && <div style={{ fontSize:12, color:'var(--tan)', marginTop:2 }}><Tel v={project.poc_phone} /></div>}
+                {project.poc_email && <div style={{ fontSize:11, color:'var(--muted)' }}><Mail v={project.poc_email} /></div>}
               </div>
             )}
             {gear?.gear_person_name && (
               <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 14px', flex:1, minWidth:180 }}>
                 <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:4 }}>Gear Contact</div>
                 <div style={{ fontWeight:600, fontSize:13 }}>{shortName(gear.gear_person_name)}</div>
-                {gear.gear_person_phone && <div style={{ fontSize:12, color:'var(--tan)', marginTop:2 }}>{gear.gear_person_phone}</div>}
+                {gear.gear_person_phone && <div style={{ fontSize:12, color:'var(--tan)', marginTop:2 }}><Tel v={gear.gear_person_phone} /></div>}
               </div>
             )}
           </div>
@@ -568,28 +573,28 @@ function ProducerView({ data, hideGear }) {
       {clientContacts?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Client Contacts</div>
-          <ShareTable cols={['Name','Title','Phone','Email']} colClasses={['','','nowrap','']} rows={clientContacts.map(c => [c.name, c.title, c.phone||'—', c.email||'—'])} />
+          <ShareTable cols={['Name','Title','Phone','Email']} colClasses={['','','nowrap','']} rows={clientContacts.map(c => [c.name, c.title, (c.phone ? <Tel v={c.phone} /> : '—'), (c.email ? <Mail v={c.email} /> : '—')])} />
         </section>
       )}
 
       {agencyContacts?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Agency Contacts</div>
-          <ShareTable cols={['Name','Title','Phone','Email']} colClasses={['','','nowrap','']} rows={agencyContacts.map(c => [c.name, c.title, c.phone||'—', c.email||'—'])} />
+          <ShareTable cols={['Name','Title','Phone','Email']} colClasses={['','','nowrap','']} rows={agencyContacts.map(c => [c.name, c.title, (c.phone ? <Tel v={c.phone} /> : '—'), (c.email ? <Mail v={c.email} /> : '—')])} />
         </section>
       )}
 
       {keyTalent?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Talent</div>
-          <ShareTable cols={['Name','Role','Phone','Email','Dietary']} colClasses={['','','nowrap','','']} rows={keyTalent.map(t => [t.name, t.role||'—', t.phone||'—', t.email||'—', t.dietary_restrictions && t.dietary_restrictions !== 'N/A' ? `⚠️ ${t.dietary_restrictions}` : '—'])} />
+          <ShareTable cols={['Name','Role','Phone','Email','Dietary']} colClasses={['','','nowrap','','']} rows={keyTalent.map(t => [t.name, t.role||'—', (t.phone ? <Tel v={t.phone} /> : '—'), (t.email ? <Mail v={t.email} /> : '—'), t.dietary_restrictions && t.dietary_restrictions !== 'N/A' ? `⚠️ ${t.dietary_restrictions}` : '—'])} />
         </section>
       )}
 
       {crewAssignments?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Crew</div>
-          <ShareTable cols={['Name','Position','Phone','Email','Dietary']} colClasses={['','','nowrap','','']} rows={crewAssignments.map(a => [a.crewMember ? displayName(a.crewMember)||'TBD' : 'TBD', a.position.name, a.crewMember?.phone||'—', a.crewMember?.email||'—', <DietaryCell key={a.id} value={a.crewMember?.dietaryRestrictions} />])} />
+          <ShareTable cols={['Name','Position','Phone','Email','Dietary']} colClasses={['','','nowrap','','']} rows={crewAssignments.map(a => [a.crewMember ? displayName(a.crewMember)||'TBD' : 'TBD', a.position.name, (a.crewMember?.phone ? <Tel v={a.crewMember.phone} /> : '—'), (a.crewMember?.email ? <Mail v={a.crewMember.email} /> : '—'), <DietaryCell key={a.id} value={a.crewMember?.dietaryRestrictions} />])} />
         </section>
       )}
 
@@ -602,7 +607,7 @@ function ProducerView({ data, hideGear }) {
           {gear?.gear_person_name && (
             <div style={{ fontSize:12, color:'var(--muted)', marginBottom:8 }}>
               DIT: <span style={{ color:'var(--text)', fontWeight:500 }}>{gear.gear_person_name}</span>
-              {gear.gear_person_phone && <span style={{ marginLeft:8 }}>{gear.gear_person_phone}</span>}
+              {gear.gear_person_phone && <span style={{ marginLeft:8 }}><Tel v={gear.gear_person_phone} /></span>}
             </div>
           )}
           <ShareTable
@@ -678,15 +683,15 @@ function CrewView({ data, shareToken, hideGear }) {
               <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 14px', flex:1, minWidth:180 }}>
                 <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:4 }}>Main POC</div>
                 <div style={{ fontWeight:600, fontSize:13 }}>{shortName(project.poc_name)}</div>
-                {project.poc_phone && <div style={{ fontSize:12, color:'var(--tan)', marginTop:2 }}>{project.poc_phone}</div>}
-                {project.poc_email && <div style={{ fontSize:11, color:'var(--muted)' }}>{project.poc_email}</div>}
+                {project.poc_phone && <div style={{ fontSize:12, color:'var(--tan)', marginTop:2 }}><Tel v={project.poc_phone} /></div>}
+                {project.poc_email && <div style={{ fontSize:11, color:'var(--muted)' }}><Mail v={project.poc_email} /></div>}
               </div>
             )}
             {gear?.gear_person_name && (
               <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 14px', flex:1, minWidth:180 }}>
                 <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:4 }}>Gear Contact</div>
                 <div style={{ fontWeight:600, fontSize:13 }}>{shortName(gear.gear_person_name)}</div>
-                {gear.gear_person_phone && <div style={{ fontSize:12, color:'var(--tan)', marginTop:2 }}>{gear.gear_person_phone}</div>}
+                {gear.gear_person_phone && <div style={{ fontSize:12, color:'var(--tan)', marginTop:2 }}><Tel v={gear.gear_person_phone} /></div>}
               </div>
             )}
           </div>
@@ -753,28 +758,28 @@ function CrewView({ data, shareToken, hideGear }) {
       {clientContacts?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Client Contacts</div>
-          <ShareTable cols={['Name','Title','Phone','Email']} colClasses={['','','nowrap','']} rows={clientContacts.map(c => [c.name, c.title, c.phone||'—', c.email||'—'])} />
+          <ShareTable cols={['Name','Title','Phone','Email']} colClasses={['','','nowrap','']} rows={clientContacts.map(c => [c.name, c.title, (c.phone ? <Tel v={c.phone} /> : '—'), (c.email ? <Mail v={c.email} /> : '—')])} />
         </section>
       )}
 
       {agencyContacts?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Agency Contacts</div>
-          <ShareTable cols={['Name','Title','Phone','Email']} colClasses={['','','nowrap','']} rows={agencyContacts.map(c => [c.name, c.title, c.phone||'—', c.email||'—'])} />
+          <ShareTable cols={['Name','Title','Phone','Email']} colClasses={['','','nowrap','']} rows={agencyContacts.map(c => [c.name, c.title, (c.phone ? <Tel v={c.phone} /> : '—'), (c.email ? <Mail v={c.email} /> : '—')])} />
         </section>
       )}
 
       {keyTalent?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Talent</div>
-          <ShareTable cols={['Name','Role','Phone','Email','Dietary']} colClasses={['','','nowrap','','']} rows={keyTalent.map(t => [t.name, t.role||'—', t.phone||'—', t.email||'—', t.dietary_restrictions && t.dietary_restrictions !== 'N/A' ? `⚠️ ${t.dietary_restrictions}` : '—'])} />
+          <ShareTable cols={['Name','Role','Phone','Email','Dietary']} colClasses={['','','nowrap','','']} rows={keyTalent.map(t => [t.name, t.role||'—', (t.phone ? <Tel v={t.phone} /> : '—'), (t.email ? <Mail v={t.email} /> : '—'), t.dietary_restrictions && t.dietary_restrictions !== 'N/A' ? `⚠️ ${t.dietary_restrictions}` : '—'])} />
         </section>
       )}
 
       {crewAssignments?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Crew</div>
-          <ShareTable cols={['Name','Position','Phone','Email','Dietary']} colClasses={['','','nowrap','','']} rows={crewAssignments.map(a => [a.crewMember ? shortName(displayName(a.crewMember))||'TBD' : 'TBD', a.position.name, a.crewMember?.phone||'—', a.crewMember?.email||'—', <DietaryCell key={a.id} value={a.crewMember?.dietaryRestrictions} />])} />
+          <ShareTable cols={['Name','Position','Phone','Email','Dietary']} colClasses={['','','nowrap','','']} rows={crewAssignments.map(a => [a.crewMember ? shortName(displayName(a.crewMember))||'TBD' : 'TBD', a.position.name, (a.crewMember?.phone ? <Tel v={a.crewMember.phone} /> : '—'), (a.crewMember?.email ? <Mail v={a.crewMember.email} /> : '—'), <DietaryCell key={a.id} value={a.crewMember?.dietaryRestrictions} />])} />
         </section>
       )}
 
@@ -786,7 +791,7 @@ function CrewView({ data, shareToken, hideGear }) {
           {gear?.gear_person_name && (
             <div style={{ fontSize:12, color:'var(--muted)', marginBottom:8 }}>
               DIT: <span style={{ color:'var(--text)', fontWeight:500 }}>{gear.gear_person_name}</span>
-              {gear.gear_person_phone && <span style={{ marginLeft:8 }}>{gear.gear_person_phone}</span>}
+              {gear.gear_person_phone && <span style={{ marginLeft:8 }}><Tel v={gear.gear_person_phone} /></span>}
             </div>
           )}
           <ShareTable
@@ -1431,13 +1436,13 @@ function ClientView({ data }) {
       {clientContacts?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Client Contacts</div>
-          <ShareTable cols={['Name','Title','Phone','Email']} colClasses={['','','nowrap','']} rows={clientContacts.map(c => [c.name, c.title, c.phone||'—', c.email||'—'])} />
+          <ShareTable cols={['Name','Title','Phone','Email']} colClasses={['','','nowrap','']} rows={clientContacts.map(c => [c.name, c.title, (c.phone ? <Tel v={c.phone} /> : '—'), (c.email ? <Mail v={c.email} /> : '—')])} />
         </section>
       )}
       {keyTalent?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Talent</div>
-          <ShareTable cols={['Name','Role','Phone','Email']} colClasses={['','','nowrap','']} rows={keyTalent.map(t => [t.name, t.role||'—', t.phone||'—', t.email||'—'])} />
+          <ShareTable cols={['Name','Role','Phone','Email']} colClasses={['','','nowrap','']} rows={keyTalent.map(t => [t.name, t.role||'—', (t.phone ? <Tel v={t.phone} /> : '—'), (t.email ? <Mail v={t.email} /> : '—')])} />
         </section>
       )}
       {[...(schedule||[])].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map((day, i) => (
@@ -1503,8 +1508,8 @@ function TalentView({ data }) {
                 <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 14px', flex:1, minWidth:180 }}>
                   <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:4 }}>Main POC</div>
                   <div style={{ fontWeight:600, fontSize:13 }}>{shortName(project.poc_name)}</div>
-                  {project.poc_phone && <div style={{ fontSize:12, color:'var(--tan)', marginTop:2 }}>{project.poc_phone}</div>}
-                  {project.poc_email && <div style={{ fontSize:11, color:'var(--muted)' }}>{project.poc_email}</div>}
+                  {project.poc_phone && <div style={{ fontSize:12, color:'var(--tan)', marginTop:2 }}><Tel v={project.poc_phone} /></div>}
+                  {project.poc_email && <div style={{ fontSize:11, color:'var(--muted)' }}><Mail v={project.poc_email} /></div>}
                 </div>
               )}
               {wardrobeNotes && (
@@ -1532,15 +1537,15 @@ function TalentView({ data }) {
                 <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:2 }}>Client</div>
                 <div style={{ fontWeight:600, fontSize:13 }}>{c.name}</div>
                 <div style={{ fontSize:11, color:'var(--muted)', marginTop:1 }}>{c.title}</div>
-                {c.phone && <div style={{ fontSize:12, color:'var(--tan)', marginTop:3 }}>{c.phone}</div>}
-                {c.email && <div style={{ fontSize:11, color:'var(--muted)' }}>{c.email}</div>}
+                {c.phone && <div style={{ fontSize:12, color:'var(--tan)', marginTop:3 }}><Tel v={c.phone} /></div>}
+                {c.email && <div style={{ fontSize:11, color:'var(--muted)' }}><Mail v={c.email} /></div>}
               </div>
             ))}
             {(productionCrew || []).map(a => (
               <div key={a.id} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 14px', flex:'1 1 0', minWidth:0 }}>
                 <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:2 }}>{a.position.name}</div>
                 <div style={{ fontWeight:600, fontSize:13 }}>{a.crewMember ? shortName(displayName(a.crewMember)) || 'TBD' : 'TBD'}</div>
-                {a.crewMember?.phone && <div style={{ fontSize:12, color:'var(--tan)', marginTop:3 }}>{a.crewMember.phone}</div>}
+                {a.crewMember?.phone && <div style={{ fontSize:12, color:'var(--tan)', marginTop:3 }}><Tel v={a.crewMember.phone} /></div>}
               </div>
             ))}
           </div>
