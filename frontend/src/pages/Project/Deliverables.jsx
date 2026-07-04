@@ -14,6 +14,7 @@ export default function Deliverables({ project }) {
   const [editStatus, setEditStatus] = useState('');
   const [editItemId, setEditItemId] = useState(null);
   const [editForm, setEditForm] = useState({ title:'', description:'', editorName:'', aspectRatio:'', resolution:'', dueDate:'', assetRef:'', musicRef:'', isUrgent:false, status:'' });
+  const [detailItem, setDetailItem] = useState(null);
 
   const [ditId, setDitId] = useState(project.techSpecs?.dit_crew_member_id || '');
   const [ditSaving, setDitSaving] = useState(false);
@@ -116,27 +117,6 @@ export default function Deliverables({ project }) {
       <div className="page-title" style={{ marginBottom:3 }}>Post-Production</div>
       <div className="page-sub">{project.client} · {project.code}</div>
 
-      {/* ── Tech Specs ── */}
-      <div className="spec-tiles" style={{ marginBottom:20, gridTemplateColumns:'repeat(4, 1fr)' }}>
-        <div className="spec-tile">
-          <div className="spec-tile-label">Aspect Ratio</div>
-          <input className="spec-tile-input" value={aspectRatio} onChange={e => setAspectRatio(e.target.value)} onBlur={e => saveAspectRatio(e.target.value)} placeholder="16:9" />
-        </div>
-        <div className="spec-tile">
-          <div className="spec-tile-label">Resolution</div>
-          <input className="spec-tile-input" value={resolution} onChange={e => setResolution(e.target.value)} onBlur={e => saveResolution(e.target.value)} placeholder="1920×1080" />
-        </div>
-        <div className="spec-tile">
-          <div className="spec-tile-label">Interview Frame Rate</div>
-          <input className="spec-tile-input" value={frameRate} onChange={e => setFrameRate(e.target.value)} onBlur={e => saveFrameRate(e.target.value)} placeholder="23.976fps" />
-        </div>
-        <div className="spec-tile">
-          <div className="spec-tile-label">B-Roll Frame Rate</div>
-          <input className="spec-tile-input" value={brollFrameRate} onChange={e => setBrollFrameRate(e.target.value)} onBlur={e => saveBrollFrameRate(e.target.value)} placeholder="23.976fps" />
-        </div>
-
-      </div>
-
       {/* ── DIT ── */}
       <div style={{ display:'flex', alignItems:'center', gap:12, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'12px 16px', marginBottom:20 }}>
         <span style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)', whiteSpace:'nowrap' }}>DIT</span>
@@ -173,22 +153,22 @@ export default function Deliverables({ project }) {
             <th>Deliverable</th>
             <th>Status</th>
             <th>Editor</th>
-            <th>Specs</th>
-            <th>Due</th>
-            <th></th>
+            <th className="dv-hide-m">Specs</th>
+            <th className="dv-hide-m">Due</th>
+            <th className="dv-hide-m"></th>
           </tr></thead>
           <tbody>
             {items.length === 0 && (
               <tr><td colSpan={6} className="empty">No deliverables yet.</td></tr>
             )}
             {items.map(item => (
-              <tr key={item.id}>
+              <tr key={item.id} onClick={() => { if (window.matchMedia('(max-width: 640px)').matches) setDetailItem(item); }}>
                 <td>
                   <div style={{ fontWeight:500 }}>{item.isUrgent && <span style={{ color:'var(--orange)' }}>⚠ </span>}{item.title}</div>
                   {item.description && <div style={{ fontSize:10, color:'var(--muted)' }}>{item.description}</div>}
-                  {item.musicRef && <div style={{ fontSize:10, color:'var(--purple-text)', marginTop:2 }}>♪ {item.musicRef}</div>}
+                  {item.musicRef && <div className="dv-hide-m" style={{ fontSize:10, color:'var(--purple-text)', marginTop:2 }}>♪ {item.musicRef}</div>}
                 </td>
-                <td>
+                <td onClick={e => e.stopPropagation()}>
                   {editId === item.id ? (
                     <select value={editStatus} onChange={e => { setEditStatus(e.target.value); updateStatus(item.id, e.target.value); }} style={{ width:'auto' }} autoFocus>
                       {STATUSES.map(s => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
@@ -201,13 +181,13 @@ export default function Deliverables({ project }) {
                   )}
                 </td>
                 <td><span className="epill">{item.editorName || '—'}</span></td>
-                <td style={{ fontSize:11, color:'var(--tan)' }}>
+                <td className="dv-hide-m" style={{ fontSize:11, color:'var(--tan)' }}>
                   {item.aspectRatio}{item.resolution && ` · ${item.resolution}`}
                 </td>
-                <td style={{ fontSize:11, color: item.isUrgent ? 'var(--orange)' : 'var(--muted)', fontWeight: item.isUrgent ? 500 : 400 }}>
+                <td className="dv-hide-m" style={{ fontSize:11, color: item.isUrgent ? 'var(--orange)' : 'var(--muted)', fontWeight: item.isUrgent ? 500 : 400 }}>
                   {item.dueDate || '—'}
                 </td>
-                <td style={{ display:'flex', gap:4 }}>
+                <td className="dv-hide-m" style={{ display:'flex', gap:4 }}>
                   <button className="btn btn-ghost btn-sm" onClick={() => openEdit(item)}>✎</button>
                   <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text)' }} onClick={() => remove(item.id)}>✕</button>
                 </td>
@@ -216,6 +196,38 @@ export default function Deliverables({ project }) {
           </tbody>
         </table>
       </div>
+
+      {/* Mobile detail pop-out: tap a deliverable row to see everything */}
+      {detailItem && (
+        <div className="modal-bg" onClick={e => e.target === e.currentTarget && setDetailItem(null)}>
+          <div className="modal">
+            <div className="modal-title">{detailItem.isUrgent && <span style={{ color:'var(--orange)' }}>⚠ </span>}{detailItem.title}</div>
+            {detailItem.description && <div style={{ fontSize:13, color:'var(--muted)', marginBottom:14, lineHeight:1.5 }}>{detailItem.description}</div>}
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px 14px', marginBottom:16 }}>
+              {[
+                ['Status', STATUS_LABEL[detailItem.status] || detailItem.status],
+                ['Editor', detailItem.editorName || '—'],
+                ['Aspect Ratio', detailItem.aspectRatio || '—'],
+                ['Resolution', detailItem.resolution || '—'],
+                ['Due Date', detailItem.dueDate || '—'],
+                ['Asset Ref', detailItem.assetRef || '—'],
+                ['Music Ref', detailItem.musicRef || '—'],
+                ['Urgent', detailItem.isUrgent ? 'Yes' : 'No'],
+              ].map(([label, val]) => (
+                <div key={label}>
+                  <div style={{ fontSize:9, fontWeight:700, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.1em', marginBottom:2 }}>{label}</div>
+                  <div style={{ fontSize:13, color:'var(--text)', fontWeight:600 }}>{val}</div>
+                </div>
+              ))}
+            </div>
+            <div className="btn-row">
+              <button className="btn btn-primary" onClick={() => { openEdit(detailItem); setDetailItem(null); }}>Edit</button>
+              <button className="btn btn-ghost" style={{ color:'var(--red-text)' }} onClick={() => { setDetailItem(null); remove(detailItem.id); }}>Delete</button>
+              <button className="btn btn-ghost" onClick={() => setDetailItem(null)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {editItemId && (
         <div className="modal-bg" onClick={e => e.target === e.currentTarget && setEditItemId(null)}>

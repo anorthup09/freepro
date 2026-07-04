@@ -294,6 +294,9 @@ textarea { resize: vertical; min-height: 70px; }
   /* Deliverable table scrollable */
   .dtable-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
+  /* Deliverables: quick view shows Name / Status / Editor; tap for details */
+  .dv-hide-m { display: none !important; }
+
   /* Modal: full-width on mobile */
   .modal { padding: 16px; border-radius: 8px; }
   .modal-bg { padding: 10px; align-items: flex-end; }

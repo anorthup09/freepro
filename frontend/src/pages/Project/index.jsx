@@ -15,7 +15,7 @@ import ShotList from './ShotList.jsx';
 
 const BASE_TABS = [
   { id: 'overview',            label: 'Overview' },
-  { id: 'deliverable-overview', label: 'Deliverable Overview' },
+  { id: 'deliverable-overview', label: 'Deliverable' },
 ];
 
 const BASE_LOGISTICS_TABS = [
@@ -383,7 +383,7 @@ export default function Project() {
           <button className={`tab${tab === 'overview' ? ' on' : ''}`} onClick={() => setTab('overview')}>Overview</button>
           <DropdownTab label="Logistics" subtabs={[...BASE_LOGISTICS_TABS, ...(showTravel ? [{ id:'travel', label:'Travel' }] : []), ...(showCateringGrid ? [{ id:'catering', label:'Catering/Meals' }] : []), ...(showShotList ? [{ id:'shot-list', label:'Shot List' }] : [])]} tab={tab} setTab={setTab} />
           <DropdownTab label="Gear" subtabs={GEAR_TABS} tab={tab} setTab={setTab} />
-          <button className={`tab${tab === 'deliverable-overview' ? ' on' : ''}`} onClick={() => setTab('deliverable-overview')}>Deliverable Overview</button>
+          <button className={`tab${tab === 'deliverable-overview' ? ' on' : ''}`} onClick={() => setTab('deliverable-overview')}>Deliverable</button>
         </div>
         <button
           className={`tab${tab === 'questions' ? ' on' : ''}`}
