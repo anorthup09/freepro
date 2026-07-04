@@ -96,10 +96,12 @@ router.get('/:id/schedule', requireAuth, async (req, res, next) => {
   try {
     await syncDaysToProjectRange(req.params.id).catch(e => console.error('day sync failed:', e.message));
     const days = await sql`SELECT * FROM shoot_days WHERE project_id = ${req.params.id} ORDER BY day_number`;
-    // Server-side weather refresh (capped) so the schedule shows weather even
-    // when the browser can't reach the weather API directly
-    const [proj] = await sql`SELECT city, state FROM projects WHERE id = ${req.params.id}`;
-    if (proj) await Promise.race([refreshWeather(proj, days), new Promise(r => setTimeout(r, 4000))]);
+    // Server-side weather refresh in the background — never blocks the response;
+    // fetched weather lands in the DB and shows on the next load (the browser
+    // also fetches weather client-side for immediate display)
+    sql`SELECT city, state FROM projects WHERE id = ${req.params.id}`
+      .then(([proj]) => proj && refreshWeather(proj, days))
+      .catch(e => console.error('background weather refresh failed:', e.message));
     if (days.length === 0) return res.json([]);
     const dayIds = days.map(d => d.id);
 

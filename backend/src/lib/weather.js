@@ -123,7 +123,12 @@ async function refreshWeather(project, shootDays) {
           weather_sunrise: w.sunrise, weather_sunset: w.sunset,
           weather_precip: w.precip, weather_condition: w.condition,
         });
-      } catch(e) { console.error('weather fetch failed for day', day.id, e.message); }
+      } catch(e) {
+        console.error('weather fetch failed for day', day.id, e.message);
+        // Record the attempt so failing days (e.g. beyond the 16-day forecast
+        // window) are retried at most every 6h instead of on every page load
+        await sql`UPDATE shoot_days SET weather_fetched_at=NOW() WHERE id=${day.id}`.catch(() => {});
+      }
     }));
   } catch(e) { console.error('weather geocode failed:', project.city, project.state, '-', e.message); }
 }
