@@ -711,7 +711,7 @@ function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded,
       </div>
 
       {/* Footer */}
-      <div style={{ padding:'10px 20px', background: st.bg, borderTop:`1px solid ${st.border}`, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+      <div className="sl-scene-foot" style={{ padding:'10px 20px', background: st.bg, borderTop:`1px solid ${st.border}`, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
         <button onClick={() => setAllExpanded(e => !e)}
           style={{ background:'none', border:'none', fontSize:11, fontWeight:700, color: st.badgeText, cursor:'pointer', padding:0, textTransform:'uppercase', letterSpacing:'.08em', opacity:0.8, display:'flex', alignItems:'center', gap:5 }}>
           <span style={{ fontSize:12 }}>{allExpanded ? '▲' : '▼'}</span>

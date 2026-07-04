@@ -343,11 +343,13 @@ textarea { resize: vertical; min-height: 70px; }
   .sl-scene-head > div { flex-wrap: wrap !important; row-gap: 6px; justify-content: flex-start !important; }
   .sl-scene-head span { white-space: normal !important; }
 
-  /* Fixed glass header: wrap instead of crushing title/current time into
-     the day info columns */
-  .proj-glass-head { flex-wrap: wrap !important; row-gap: 4px; padding: 8px 14px !important; }
-  .proj-glass-head > div { min-width: 0; }
-  .proj-glass-head > div:last-child { flex-wrap: wrap !important; gap: 12px !important; }
+  /* Fixed glass header: stack title above day info so labels stay visible */
+  .proj-glass-head { flex-direction: column !important; align-items: stretch !important; row-gap: 6px; padding: 8px 14px !important; }
+  .proj-glass-head > div:last-child { flex-wrap: wrap !important; gap: 12px !important; justify-content: flex-start !important; }
+
+  /* Shot list scene footer: wrap instead of overlapping */
+  .sl-scene-foot { flex-wrap: wrap !important; gap: 8px 12px !important; padding: 10px 14px !important; }
+  .sl-scene-foot > div { flex-wrap: wrap !important; }
 }
 
 /* Overview: Key Dates + Contacts side by side on desktop */

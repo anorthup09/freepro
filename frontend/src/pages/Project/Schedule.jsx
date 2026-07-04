@@ -253,6 +253,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
   const [dayMeta, setDayMeta] = useState({});
   const [flights, setFlights] = useState([]);
   const [weatherByDay, setWeatherByDay] = useState({});
+  const weatherResyncDone = useRef(false);
   const [cateringModal, setCateringModal] = useState(null);
   const [cateringForm, setCateringForm] = useState({ mealTypes:[], name:'', address:'', orderNumber:'', deliveryTime:'' });
   const [shotListScenes, setShotListScenes] = useState([]);
@@ -305,26 +306,28 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
     // Per-day weather: each day can carry its own weather_lat/lon (set via the
     // city search under the day header); days without one use the project city.
     async function fetchWeather() {
-      try {
-        let defCoords = null;
-        if (project.city) {
+      let defCoords = null;
+      if (project.city) {
+        try {
           const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(project.city)}&count=1&language=en&format=json`);
           const geo = await geoRes.json();
           if (geo.results?.length) defCoords = { lat: geo.results[0].latitude, lon: geo.results[0].longitude };
-        }
-        // Group days by coordinates so each location is one forecast call
-        const groups = {};
-        days.forEach(d => {
-          const dateStr = d.date?.slice(0, 10);
-          if (!dateStr) return;
-          const lat = d.weather_lat != null ? Number(d.weather_lat) : defCoords?.lat;
-          const lon = d.weather_lon != null ? Number(d.weather_lon) : defCoords?.lon;
-          if (lat == null || lon == null) return;
-          const key = `${lat},${lon}`;
-          (groups[key] ||= { lat, lon, days: [] }).days.push({ id: d.id, date: dateStr });
-        });
-        const byDay = {};
-        await Promise.all(Object.values(groups).map(async g => {
+        } catch { /* pinned-location days can still fetch below */ }
+      }
+      // Group days by coordinates so each location is one forecast call
+      const groups = {};
+      days.forEach(d => {
+        const dateStr = d.date?.slice(0, 10);
+        if (!dateStr) return;
+        const lat = d.weather_lat != null ? Number(d.weather_lat) : defCoords?.lat;
+        const lon = d.weather_lon != null ? Number(d.weather_lon) : defCoords?.lon;
+        if (lat == null || lon == null) return;
+        const key = `${lat},${lon}`;
+        (groups[key] ||= { lat, lon, days: [] }).days.push({ id: d.id, date: dateStr });
+      });
+      const byDay = {};
+      await Promise.all(Object.values(groups).map(async g => {
+        try {
           const dates = g.days.map(x => x.date).sort();
           const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${g.lat}&longitude=${g.lon}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weathercode&temperature_unit=fahrenheit&timezone=auto&start_date=${dates[0]}&end_date=${dates[dates.length-1]}`);
           const w = await wRes.json();
@@ -339,9 +342,22 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
             };
           });
           g.days.forEach(x => { if (byDate[x.date]) byDay[x.id] = byDate[x.date]; });
-        }));
-        setWeatherByDay(byDay);
-      } catch(e) {}
+        } catch { /* other location groups still resolve */ }
+      }));
+      if (Object.keys(byDay).length > 0) setWeatherByDay(byDay);
+      // Browser couldn't fetch anything and the server hasn't stored weather
+      // yet — re-pull the schedule once to pick up the background refresh
+      else if (!weatherResyncDone.current && days.some(d => d.weather_high == null)) {
+        weatherResyncDone.current = true;
+        setTimeout(() => {
+          api.getSchedule(project.id)
+            .then(fresh => setDays(prev => prev.map(p => {
+              const f = fresh.find(x => x.id === p.id);
+              return f ? { ...p, weather_high: f.weather_high, weather_low: f.weather_low, weather_precip: f.weather_precip, weather_condition: f.weather_condition } : p;
+            })))
+            .catch(() => {});
+        }, 6000);
+      }
     }
     if (days.length) fetchWeather();
   }, [days, project.city]);
