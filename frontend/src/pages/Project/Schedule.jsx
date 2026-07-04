@@ -157,6 +157,7 @@ function WeatherLocationPicker({ day, projectCity, onSelect, onClear }) {
   const [results, setResults] = useState([]);
   const [open, setOpen] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
   const boxRef = useRef(null);
 
   useEffect(() => {
@@ -181,7 +182,6 @@ function WeatherLocationPicker({ day, projectCity, onSelect, onClear }) {
 
   return (
     <div ref={boxRef} style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap', marginBottom:12, position:'relative' }}>
-      <span style={{ fontSize:10, fontWeight:700, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em' }}>Weather Location</span>
       {day.weather_location_name ? (
         <span style={{ display:'inline-flex', alignItems:'center', gap:6, fontSize:12, color:'var(--tan)', background:'var(--bg3)', border:'1px solid var(--border2)', borderRadius:12, padding:'3px 10px' }}>
           📍 {day.weather_location_name}
@@ -191,7 +191,11 @@ function WeatherLocationPicker({ day, projectCity, onSelect, onClear }) {
       ) : (
         projectCity && <span style={{ fontSize:12, color:'var(--muted)' }}>📍 {projectCity} <span style={{ fontSize:10 }}>(project default)</span></span>
       )}
-      <div style={{ position:'relative' }}>
+      <button type="button" onClick={() => setShowSearch(s => !s)} title="Change weather location"
+        style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', padding:0, fontSize:12, lineHeight:1 }}>
+        {showSearch ? '▴' : '▾'}
+      </button>
+      {showSearch && <div style={{ position:'relative' }}>
         <input
           value={q}
           onChange={e => setQ(e.target.value)}
@@ -206,7 +210,7 @@ function WeatherLocationPicker({ day, projectCity, onSelect, onClear }) {
             )}
             {results.map((r, i) => (
               <button key={i} type="button"
-                onClick={() => { onSelect(r); setQ(''); setOpen(false); }}
+                onClick={() => { onSelect(r); setQ(''); setOpen(false); setShowSearch(false); }}
                 style={{ display:'block', width:'100%', textAlign:'left', padding:'8px 12px', background:'none', border:'none', borderBottom: i < results.length-1 ? '1px solid var(--border)' : 'none', color:'var(--text)', fontSize:12, cursor:'pointer' }}
                 onMouseEnter={e => e.currentTarget.style.background = 'var(--bg3)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'none'}>
@@ -215,7 +219,7 @@ function WeatherLocationPicker({ day, projectCity, onSelect, onClear }) {
             ))}
           </div>
         )}
-      </div>
+      </div>}
     </div>
   );
 }
