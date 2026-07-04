@@ -1417,15 +1417,6 @@ function ShotListShareView({ scenes: initialScenes, days: initialDays = [], brea
 
   return (
     <div>
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(130px, 1fr))', gap:10, marginBottom:20 }}>
-        {[{label:'Total Shots',val:totalShots},{label:'Captured',val:capturedShots},{label:'Remaining',val:totalShots-capturedShots},{label:'Est. Time',val:`${Math.floor(totalMinutes/60)}h ${totalMinutes%60}m`}].map(s=>(
-          <div key={s.label} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding:'16px 20px' }}>
-            <div style={{ fontSize:26, fontWeight:800, color:'var(--text)', fontFamily:"'Syne',sans-serif", letterSpacing:'-0.5px', lineHeight:1 }}>{s.val}</div>
-            <div style={{ fontSize:11, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', fontWeight:500, marginTop:4 }}>{s.label}</div>
-          </div>
-        ))}
-      </div>
-
       {scenes.length === 0 && <div className="empty">No scenes added yet.</div>}
 
       {dayGroups.map(({ day, items }, di) => (
