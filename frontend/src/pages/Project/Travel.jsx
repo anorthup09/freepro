@@ -166,6 +166,13 @@ export default function Travel({ project }) {
     setHotels(prev => prev.map(h => h.id === hotelId ? { ...h, guests: h.guests.filter(g => g.id !== guestId) } : h));
   }
 
+  // Safari rejects AeroDataBox's "YYYY-MM-DD HH:mm±TZ" strings; parse safely
+  function safeIso(t) {
+    if (!t) return null;
+    const d = new Date(String(t).replace(' ', 'T'));
+    return isNaN(d.getTime()) ? null : d.toISOString();
+  }
+
   // ── Flight lookup ──────────────────────────────────────────────────────────
   async function lookupFlight() {
     if (!flightLookupQuery) return;
@@ -178,8 +185,8 @@ export default function Travel({ project }) {
         airline: data.airline || f.airline,
         origin: data.origin || f.origin,
         destination: data.destination || f.destination,
-        departTime: data.departTime ? new Date(data.departTime).toISOString().slice(0,16) : f.departTime,
-        arriveTime: data.arriveTime ? new Date(data.arriveTime).toISOString().slice(0,16) : f.arriveTime,
+        departTime: safeIso(data.departTime)?.slice(0,16) || f.departTime,
+        arriveTime: safeIso(data.arriveTime)?.slice(0,16) || f.arriveTime,
         departDisplay: data.departDisplay || '',
         arriveDisplay: data.arriveDisplay || '',
         status: data.status || '',
@@ -196,10 +203,9 @@ export default function Travel({ project }) {
       const f = await api.createFlight(project.id, {
         ...flightForm,
         passengerName: flightForm.passengerName || 'Unknown',
-        departTime: flightForm.departTime
-          ? new Date(flightForm.departTime).toISOString()
-          : (flightLookupDate ? new Date(flightLookupDate + 'T12:00:00').toISOString() : null),
-        arriveTime: flightForm.arriveTime ? new Date(flightForm.arriveTime).toISOString() : null,
+        departTime: safeIso(flightForm.departTime)
+          || (flightLookupDate ? safeIso(flightLookupDate + 'T12:00:00') : null),
+        arriveTime: safeIso(flightForm.arriveTime),
         crewMemberId: flightForm.crewMemberId || null,
         departDisplay: flightForm.departDisplay || null,
         arriveDisplay: flightForm.arriveDisplay || null,

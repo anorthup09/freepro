@@ -6,6 +6,26 @@ import Project from './pages/Project/index.jsx';
 import TalentCallSheets from './pages/Project/TalentCallSheets.jsx';
 import CrewViews from './pages/CrewViews.jsx';
 
+class ErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { error: null }; }
+  static getDerivedStateFromError(error) { return { error }; }
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="login-wrap">
+          <div className="login-box" style={{ textAlign:'center' }}>
+            <div className="login-logo">Free<em>Pro</em></div>
+            <div style={{ fontSize:14, fontWeight:700, margin:'14px 0 6px' }}>Something went wrong</div>
+            <div style={{ fontSize:11, color:'var(--muted)', lineHeight:1.5, overflowWrap:'anywhere' }}>{String(this.state.error?.message || this.state.error)}</div>
+            <button className="btn btn-primary btn-sm" style={{ marginTop:16 }} onClick={() => window.location.reload()}>Reload</button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 function PendingApproval({ setUser }) {
   return (
     <div className="login-wrap">
@@ -42,6 +62,7 @@ export default function App() {
   if (user === undefined) return null; // splash
 
   return (
+    <ErrorBoundary>
     <AuthContext.Provider value={{ user, setUser }}>
       {user?.role === 'PENDING' ? <PendingApproval setUser={setUser} /> : (
       <Routes>
@@ -55,5 +76,6 @@ export default function App() {
       </Routes>
       )}
     </AuthContext.Provider>
+    </ErrorBoundary>
   );
 }
