@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../App.jsx';
@@ -10,6 +10,35 @@ const STATUS_PILL = {
   DELIVERED: 'green',
   ARCHIVED:  '',
 };
+
+// Metallic orange frame around the viewport — instant visual cue that
+// you're on the crew-views landing rather than the admin projects page.
+// The sheen angle follows device tilt (scroll as fallback), like ShineBorder.
+function MetallicFrame() {
+  const ref = useRef(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    let raf = null;
+    const setAngle = (deg) => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => { el.style.setProperty('--frame-angle', `${deg}deg`); raf = null; });
+    };
+    const onOrient = (e) => { if (e.gamma != null || e.beta != null) setAngle(115 + (e.gamma || 0) * 2 + (e.beta || 0)); };
+    const onScroll = () => setAngle(115 + (window.scrollY / 5) % 360);
+    window.addEventListener('deviceorientation', onOrient);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => { window.removeEventListener('deviceorientation', onOrient); window.removeEventListener('scroll', onScroll); if (raf) cancelAnimationFrame(raf); };
+  }, []);
+  return (
+    <div ref={ref} style={{
+      position: 'fixed', inset: 0, zIndex: 999, pointerEvents: 'none',
+      border: '5px solid transparent',
+      borderImage: 'linear-gradient(var(--frame-angle, 115deg), #F7B58C, #E8500A 25%, #7A2A05 50%, #E8500A 75%, #F7B58C) 1',
+      boxShadow: 'inset 0 0 18px rgba(232,80,10,0.25)',
+    }} />
+  );
+}
 
 // Same landing layout as the Projects page, but every card opens the
 // project's crew share view.
@@ -78,6 +107,7 @@ export default function CrewViews() {
 
   return (
     <>
+      <MetallicFrame />
       <nav className="nav">
         <div style={{ display:'flex', flexDirection:'column', gap:1 }}>
           <Link to="/" className="logo">Free<em>Pro</em></Link>
