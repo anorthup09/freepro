@@ -489,7 +489,7 @@ function DaySynopsisCard({ day, onDelete, onAddScene, scenes, scheduleDays, onDa
         </div>
       </div>
       <div style={{ padding: '0 16px 10px' }}>
-        <div style={{ background: 'rgba(0,0,0,0.35)', borderRadius: 10, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.07)' }}>
+        <div className="sl-day-tiles" style={{ background: 'rgba(0,0,0,0.35)', borderRadius: 10, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.07)' }}>
           {tiles.map((t, i) => (
             <div key={t.label} style={{ padding: '7px 12px', borderRight: i < 3 ? '1px solid rgba(255,255,255,0.07)' : 'none', textAlign: 'center' }}>
               <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '.12em', marginBottom: 2 }}>{t.label}</div>

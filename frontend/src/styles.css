@@ -352,6 +352,9 @@ textarea { resize: vertical; min-height: 70px; }
   .sl-scene-foot { flex-wrap: wrap !important; gap: 8px 12px !important; padding: 10px 14px !important; }
   .sl-scene-foot > div { flex-wrap: wrap !important; flex: 1 1 100%; justify-content: center !important; }
 
+  /* Day tile times: 2x2 grid so Est. Wrap sits centered under Shooting Call */
+  .sl-day-tiles { grid-template-columns: repeat(2, 1fr) !important; }
+
   /* Shot table: compact quick view (checkbox, shot, description, allocation,
      est. start) — Movement/Talent/drag live in the expanded detail instead */
   .sl-shot-table { min-width: 0 !important; }
