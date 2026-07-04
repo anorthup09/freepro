@@ -1569,6 +1569,7 @@ function TalentView({ data }) {
 // ── Shared helpers ───────────────────────────────────────────────────────────
 function ShareTable({ cols, rows, colClasses = [] }) {
   return (
+    <div className="share-table-wrap">
     <table className="share-table">
       <thead>
         <tr>{cols.map(c => <th key={c}>{c}</th>)}</tr>
@@ -1579,6 +1580,7 @@ function ShareTable({ cols, rows, colClasses = [] }) {
         ))}
       </tbody>
     </table>
+    </div>
   );
 }
 
@@ -2018,11 +2020,27 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
 // ── Liquid Glass Sticky Header ───────────────────────────────────────────────
 function GlassHeader({ project }) {
   const [navH, setNavH] = React.useState(64);
+  const [visible, setVisible] = React.useState(false);
 
   React.useEffect(() => {
     const nav = document.querySelector('nav.nav');
-    if (nav) setNavH(nav.getBoundingClientRect().height);
+    if (!nav) return;
+    const ro = new ResizeObserver(() => setNavH(nav.getBoundingClientRect().height));
+    ro.observe(nav);
+    setNavH(nav.getBoundingClientRect().height);
+    return () => ro.disconnect();
   }, []);
+
+  // Only pin once the hero title has scrolled out of view — otherwise the
+  // bar doubles the title right on top of it
+  React.useEffect(() => {
+    const onScroll = () => setVisible(window.scrollY > 140);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  if (!visible) return null;
 
   return (
     <div style={{
@@ -2167,7 +2185,7 @@ export default function Share() {
             </div>
           )
         )}
-        <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4 }}>
+        <div className="share-nav-right" style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4 }}>
           {(view_type === 'producer' || view_type === 'crew' || view_type === 'client') && (
             <span style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', fontWeight:600 }}>
               {view_type === 'producer' ? 'Producer View' : view_type === 'crew' ? 'Crew View' : 'Client View'}

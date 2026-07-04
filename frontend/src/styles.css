@@ -313,6 +313,18 @@ textarea { resize: vertical; min-height: 70px; }
   .tab-questions { margin-left: auto; }
   .share-wrap { margin-top: 2px; }
 
+  /* Share views: wide tables scroll sideways instead of clipping */
+  .share-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .share-table { min-width: 560px; }
+
+  /* Share nav: view label + Download PDF in one compact row */
+  .share-nav-right {
+    flex-direction: row !important;
+    align-items: center !important;
+    width: 100%;
+    justify-content: space-between;
+  }
+
   /* Overview header: countdown / status / edit info spread in one row under the meta */
   .ov-head { flex-direction: column !important; gap: 12px; }
   .ov-head-actions {
