@@ -52,9 +52,32 @@ export default function Questions({ project }) {
   const unanswered = questions.filter(q => !q.answer);
   const answered = questions.filter(q => q.answer);
 
+  // Once day 1 arrives (America/Chicago), new questions are closed
+  const projectStarted = (() => {
+    if (!project?.start_date) return false;
+    const today = new Date(new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' }) + 'T12:00:00');
+    return new Date(project.start_date.slice(0, 10) + 'T12:00:00') <= today;
+  })();
+  const pocMember = (project.crewAssignments || []).find(a => a.crewMember && a.crewMember.id === project.poc_crew_member_id)?.crewMember || null;
+  const pocName = pocMember ? [pocMember.preferred_first_name || pocMember.first_name, pocMember.preferred_last_name || pocMember.last_name].filter(Boolean).join(' ') || pocMember.name : null;
+
   return (
     <div style={{ maxWidth:1000 }}>
       {/* Ask field */}
+      {projectStarted ? (
+        <div style={{ border:'1.5px solid rgba(239,68,68,0.7)', borderRadius:8, padding:'14px 16px', marginBottom:28, background:'var(--bg2)' }}>
+          <div style={{ fontSize:13, fontWeight:600, color:'#ef4444' }}>
+            Project has Started, question feature has been disabled. Please reach out to the Field Producer for any questions.
+          </div>
+          {(pocName || pocMember?.phone) && (
+            <div style={{ fontSize:13, color:'var(--text)', marginTop:8 }}>
+              {pocName && <span style={{ fontWeight:600 }}>{pocName}</span>}
+              {pocName && pocMember?.phone && ' · '}
+              {pocMember?.phone && <a href={`tel:${pocMember.phone}`} style={{ color:'var(--orange)' }}>{pocMember.phone}</a>}
+            </div>
+          )}
+        </div>
+      ) : (
       <form onSubmit={submitQuestion} style={{ display:'flex', gap:10, marginBottom:28, alignItems:'flex-start' }}>
         <textarea
           ref={textareaRef}
@@ -69,6 +92,7 @@ export default function Questions({ project }) {
           {submitting ? 'Submitting…' : 'Submit'}
         </button>
       </form>
+      )}
 
       {/* Two-column layout */}
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20 }}>

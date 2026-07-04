@@ -349,7 +349,7 @@ export default function Overview({ project, setProject, onTabChange }) {
       {/* Main POC + Gear Contact */}
       <div className="ov-poc-row" style={{ display:'flex', alignItems:'center', gap:12, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'12px 16px', marginBottom: gearPerson ? 0 : 10, borderBottomLeftRadius: gearPerson ? 0 : 8, borderBottomRightRadius: gearPerson ? 0 : 8, borderBottom: gearPerson ? 'none' : undefined }}>
         <span style={{ fontSize:13, fontWeight:700, color:'var(--text)', whiteSpace:'nowrap', width:160, flexShrink:0 }}>Main POC</span>
-        <select value={pocId} onChange={e => savePoc(e.target.value)} style={{ width:200, flexShrink:0 }}>
+        <select value={pocId} onChange={e => savePoc(e.target.value)} style={{ width:'auto', minWidth:200, maxWidth:'100%', flexShrink:1 }}>
           <option value="">— Unassigned —</option>
           {assignedCrew.map(a => (
             <option key={a.crewMember.id} value={a.crewMember.id}>
