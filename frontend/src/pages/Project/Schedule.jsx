@@ -765,8 +765,13 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                     <div className="sec-lbl" style={{ margin:0 }}>Timeline</div>
                     {(() => {
                       const w = weatherByDay[currentDay.id]
-                    || (currentDay.weather_high != null ? { high: currentDay.weather_high, low: currentDay.weather_low, precip: currentDay.weather_precip, code: null } : null);
-                      if (!w) return null;
+                        || (currentDay.weather_high != null ? { high: currentDay.weather_high, low: currentDay.weather_low, precip: currentDay.weather_precip, code: null } : null);
+                      if (!w) {
+                        // Forecasts only exist ~16 days out — say so instead of showing nothing
+                        const daysOut = (parseDay(currentDay.date) - new Date()) / 86400000;
+                        if (daysOut > 15) return <span style={{ fontSize:11, color:'var(--muted)', fontWeight:400 }}>🌡️ Weather available ~16 days before shoot</span>;
+                        return null;
+                      }
                       return (
                         <span style={{ fontSize:12, fontWeight:400, color:'var(--tan)', display:'flex', alignItems:'center', gap:5 }}>
                           {wmoIcon(w.code)} {w.high}° / {w.low}°
