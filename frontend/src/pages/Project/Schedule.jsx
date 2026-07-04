@@ -502,14 +502,6 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
 
   const currentDay = days.find(d => d.id === activeDay);
 
-  async function deleteDay(dayId) {
-    if (!confirm('Delete this shoot day and all its events?')) return;
-    await api.deleteDay(project.id, dayId);
-    const remaining = days.filter(d => d.id !== dayId);
-    setDays(remaining);
-    setActiveDay(remaining[0]?.id || null);
-  }
-
   async function addEvent(e) {
     e.preventDefault();
     if (!activeDay) return alert('No shoot day selected.');
@@ -654,7 +646,6 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                 >
                   {DAY_TYPES.map(dt => <option key={dt.value} value={dt.value}>{dt.label}</option>)}
                 </select>
-                <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text)', fontSize:11, padding:'2px 8px', lineHeight:1.4 }} onClick={() => deleteDay(currentDay.id)}>Delete Day</button>
               </div>
             </div>
             {!dayCardCollapsed && <>
