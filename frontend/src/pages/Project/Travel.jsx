@@ -451,6 +451,7 @@ export default function Travel({ project }) {
           <div key={f.id} className="frow" style={{ flexDirection:'column', alignItems:'stretch', gap:5 }}>
             <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
               <div className="fname">{f.crew_name || f.passenger_name}</div>
+              {f.confirmation && <span style={{ fontSize:10, color:'var(--muted)' }}>Conf # {f.confirmation}</span>}
               {f.is_return && <span className="badge">Return</span>}
               <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:6 }}>
                 {showLive && f.flight_number && (
@@ -464,7 +465,6 @@ export default function Travel({ project }) {
               {f.airline && <span className="abadge">{f.airline}</span>}
               {f.flight_number && <span className="abadge">{f.flight_number}</span>}
               <div className="froute"><span>{f.origin}</span><span className="farrow">→</span><span>{f.destination}</span></div>
-              {f.confirmation && <span style={{ fontSize:10, color:'var(--muted)' }}># {f.confirmation}</span>}
               {f.cost && <span style={{ fontSize:10, color:'var(--green)', fontWeight:600 }}>{fmtCost(f.cost)}</span>}
               <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:10 }}>
                 <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => openEditFlight(f)}>Edit</button>
