@@ -196,7 +196,7 @@ function ShotRow({ shot, index, sceneNumber, projectId, onUpdate, onDelete, acce
         }}
       >
         {/* Drag handle */}
-        <td style={{ padding:'10px 4px 10px 10px', width:20, cursor:'grab', color:'var(--muted)', fontSize:13, userSelect:'none', opacity:0.4, lineHeight:1 }}
+        <td className="sl-col-hide" style={{ padding:'10px 4px 10px 10px', width:20, cursor:'grab', color:'var(--muted)', fontSize:13, userSelect:'none', opacity:0.4, lineHeight:1 }}
           title="Drag to reorder">
           ⠿
         </td>
@@ -226,7 +226,7 @@ function ShotRow({ shot, index, sceneNumber, projectId, onUpdate, onDelete, acce
             style={{ width:'100%', background:'transparent', border:'none', outline:'none', color: captured ? 'var(--muted)' : 'var(--text)', fontSize:13, fontFamily:'inherit', padding:0 }} />
         </td>
         {/* Movement */}
-        <td style={{ padding:'6px 8px', width:130 }}>
+        <td className="sl-col-hide" style={{ padding:'6px 8px', width:130 }}>
           <select value={movement} onChange={e => { setMovement(e.target.value); save('movement', e.target.value); }}
             style={{ background:'transparent', border:'none', outline:'none', color: movement ? (captured ? 'var(--muted)' : 'var(--text)') : 'var(--muted)', fontSize:13, fontFamily:'inherit', cursor:'pointer', padding:0, width:'100%' }}>
             <option value="">— Movement —</option>
@@ -234,7 +234,7 @@ function ShotRow({ shot, index, sceneNumber, projectId, onUpdate, onDelete, acce
           </select>
         </td>
         {/* Talent */}
-        <td style={{ padding:'6px 8px', width:80 }} ref={talentRef}>
+        <td className="sl-col-hide" style={{ padding:'6px 8px', width:80 }} ref={talentRef}>
           {(shot.talent_tags || []).length > 0 ? (
             <div style={{ position:'relative' }}>
               <button onClick={() => setTalentOpen(o => !o)}
@@ -274,8 +274,15 @@ function ShotRow({ shot, index, sceneNumber, projectId, onUpdate, onDelete, acce
       {/* Expanded detail row */}
       {isOpen && (
         <tr style={{ borderBottom:'1px solid var(--border)', background:'rgba(255,255,255,0.025)' }}>
-          <td colSpan={9} style={{ padding:'12px 14px 16px 76px' }}>
+          <td colSpan={9} className="sl-detail-cell" style={{ padding:'12px 14px 16px 76px' }}>
             <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(130px, 1fr))', gap:'10px 14px', marginBottom:12 }}>
+              <div className="field sl-detail-move" style={{ margin:0 }}>
+                <label style={{ fontSize:10 }}>Movement</label>
+                <select value={movement} onChange={e => { setMovement(e.target.value); save('movement', e.target.value); }}>
+                  <option value="">— Select —</option>
+                  {MOVEMENTS.map(m => <option key={m} value={m}>{m}</option>)}
+                </select>
+              </div>
               <div className="field" style={{ margin:0 }}>
                 <label style={{ fontSize:10 }}>Angle</label>
                 <input value={detail.angle} onChange={e => setDetail(f => ({...f, angle: e.target.value}))} placeholder="e.g. Eye level" />
@@ -396,7 +403,7 @@ function NewShotRow({ sceneNumber, nextIndex, projectId, sceneId, onAdded, accen
 
   return (
     <tr style={{ borderBottom:'1px solid var(--border)', opacity: saving ? 0.5 : 1 }}>
-      <td style={{ width:20 }} />
+      <td className="sl-col-hide" style={{ width:20 }} />
       <td style={{ padding:'10px 8px 10px 4px', width:28 }}>
         <div style={{ width:16, height:16, borderRadius:4, border:'2px solid var(--border)' }} />
       </td>
@@ -410,14 +417,14 @@ function NewShotRow({ sceneNumber, nextIndex, projectId, sceneId, onAdded, accen
           onBlur={submit} placeholder="Add a shot…"
           style={{ width:'100%', background:'transparent', border:'none', outline:'none', color:'var(--text)', fontSize:13, fontFamily:'inherit', padding:0 }} />
       </td>
-      <td style={{ padding:'6px 8px', width:130 }}>
+      <td className="sl-col-hide" style={{ padding:'6px 8px', width:130 }}>
         <select value={movement} onChange={e => setMovement(e.target.value)}
           style={{ background:'transparent', border:'none', outline:'none', color: movement ? 'var(--text)' : 'var(--muted)', fontSize:13, fontFamily:'inherit', cursor:'pointer', padding:0, width:'100%' }}>
           <option value="">— Movement —</option>
           {MOVEMENTS.map(m => <option key={m} value={m}>{m}</option>)}
         </select>
       </td>
-      <td style={{ width:80 }} />
+      <td className="sl-col-hide" style={{ width:80 }} />
       <td style={{ padding:'6px 8px', width:60 }} />
 
       <td style={{ width:28 }} />
@@ -670,16 +677,16 @@ function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded,
 
       {/* Shot table */}
       <div style={{ overflowX:'auto', WebkitOverflowScrolling:'touch' }}>
-      <table style={{ width:'100%', minWidth:520, borderCollapse:'collapse' }}>
+      <table className="sl-shot-table" style={{ width:'100%', minWidth:520, borderCollapse:'collapse' }}>
         <thead>
           <tr style={{ borderBottom:'1px solid var(--border)' }}>
-            <th style={{ width:20 }} />
+            <th className="sl-col-hide" style={{ width:20 }} />
             <th style={{ width:28 }} />
             <th style={{ padding:'8px 6px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:40 }}>Shot</th>
             <th style={{ width:20 }} />
             <th style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left' }}>Description</th>
-            <th style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:130 }}>Movement</th>
-            <th style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:80 }}>Talent</th>
+            <th className="sl-col-hide" style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:130 }}>Movement</th>
+            <th className="sl-col-hide" style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:80 }}>Talent</th>
             <th style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:60 }}>Allocation</th>
             <th style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:92 }}>Est. Start Time</th>
             <th style={{ width:28 }} />

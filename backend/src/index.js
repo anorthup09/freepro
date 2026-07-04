@@ -36,6 +36,19 @@ if (fs.existsSync(publicDir)) {
 
 app.get('/health', (req, res) => res.json({ status: 'ok', ts: new Date(), aerodatabox: !!process.env.AERODATABOX_API_KEY }));
 
+// Live probe: can this server reach the weather APIs? (diagnostic, public)
+app.get('/health/weather', async (req, res) => {
+  const { geocode, fetchWeatherForDay } = require('./lib/weather');
+  const out = { ts: new Date() };
+  try { out.geocode = await geocode('St. Louis', 'MO'); } catch(e) { out.geocodeError = e.message; }
+  try {
+    const d = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+    out.forecast = await fetchWeatherForDay(38.63, -90.2, d);
+    out.forecastDate = d;
+  } catch(e) { out.forecastError = e.message; }
+  res.json(out);
+});
+
 app.post('/admin/seed', async (req, res) => {
   if (req.headers['x-seed-key'] !== process.env.SEED_KEY) return res.status(403).json({ error: 'Forbidden' });
   try {

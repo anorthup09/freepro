@@ -350,7 +350,18 @@ textarea { resize: vertical; min-height: 70px; }
   /* Shot list scene footer: wrap instead of overlapping */
   .sl-scene-foot { flex-wrap: wrap !important; gap: 8px 12px !important; padding: 10px 14px !important; }
   .sl-scene-foot > div { flex-wrap: wrap !important; }
+
+  /* Shot table: compact quick view (checkbox, shot, description, allocation,
+     est. start) — Movement/Talent/drag live in the expanded detail instead */
+  .sl-shot-table { min-width: 0 !important; }
+  .sl-col-hide { display: none !important; }
+  .sl-detail-cell { padding: 12px 14px 16px 14px !important; }
+  .sl-detail-move { display: block !important; }
 }
+
+/* Movement duplicate in the shot detail panel is mobile-only (it's a table
+   column on desktop) */
+.sl-detail-move { display: none; }
 
 /* Overview: Key Dates + Contacts side by side on desktop */
 .ov-kd-grid { grid-template-columns: 1fr 1fr; }

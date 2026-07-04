@@ -174,6 +174,18 @@ export default function Project() {
     else url.searchParams.set('tab', tab);
     window.history.replaceState({}, '', url);
   }, [tab]);
+
+  // The sticky nav wraps taller on mobile; pin the glass bar just below it
+  const [navH, setNavH] = useState(48);
+  useEffect(() => {
+    const el = document.querySelector('nav.nav');
+    if (!el) return;
+    const update = () => setNavH(Math.round(el.getBoundingClientRect().height));
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [project]);
   const [hasUnanswered, setHasUnanswered] = useState(false);
   const [showCateringGrid, setShowCateringGrid] = useState(() => {
     try { return localStorage.getItem(`catering-${id}`) === 'true'; } catch { return false; }
@@ -282,7 +294,7 @@ export default function Project() {
       {/* Liquid glass sticky bar — shown on scroll across all tabs */}
       <div className="proj-glass-head" style={{
         position: 'fixed',
-        top: 48,
+        top: navH,
         left: 0,
         right: 0,
         zIndex: 90,
