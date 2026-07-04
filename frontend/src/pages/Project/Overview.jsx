@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { api } from '../../api.js';
 import { displayName } from '../../utils/displayName.js';
+import ShineBorder from '../../components/ShineBorder.jsx';
 
 const LOC_TYPES = ['PRIMARY_VENUE','CREW_HOTEL','AIRPORT','OTHER'];
 const LOC_LABELS = { PRIMARY_VENUE:'Shooting Location', CREW_HOTEL:'Hotel', SECONDARY:'Rental Car Location', AIRPORT:'Airport', OTHER:'Other' };
@@ -376,13 +377,11 @@ export default function Overview({ project, setProject, onTabChange }) {
       )}
 
       {/* Stats */}
+      <ShineBorder radius={12} width={2.5} style={{ margin:'10px 0 20px', boxShadow:'0 2px 16px rgba(0,0,0,0.35)' }}>
       <div style={{
         display:'grid', gridTemplateColumns:'repeat(3,1fr)',
-        margin:'10px 0 20px',
         borderRadius:10,
         overflow:'hidden',
-        border:'3px solid #ffffff',
-        boxShadow:'0 2px 16px rgba(0,0,0,0.35)',
         position:'relative',
         background:'#000',
       }}>
@@ -407,6 +406,7 @@ export default function Overview({ project, setProject, onTabChange }) {
           </div>
         ))}
       </div>
+      </ShineBorder>
 
       {/* Crew List */}
       {(project.crewAssignments||[]).length > 0 && (
