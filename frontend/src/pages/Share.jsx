@@ -459,7 +459,6 @@ function ProducerView({ data, hideGear }) {
             <div className="proj-title">{project.title}</div>
             <div className="proj-meta" style={{ marginTop: 6 }}>
               <span className="meta">{project.client}</span>
-              <span className="meta">{project.city}, {project.state}</span>
               <span className="meta">{fmt(project.start_date)} – {fmt(project.end_date)}</span>
             </div>
           </div>
@@ -654,7 +653,6 @@ function CrewView({ data, shareToken, hideGear }) {
             <div className="proj-title">{project.title}</div>
             <div className="proj-meta" style={{ marginTop: 6 }}>
               <span className="meta">{project.client}</span>
-              <span className="meta">{project.city}, {project.state}</span>
               <span className="meta">{fmt(project.start_date)} – {fmt(project.end_date)}</span>
             </div>
           </div>
@@ -1383,7 +1381,6 @@ function ClientView({ data }) {
         <div className="proj-title">{project.title}</div>
         <div className="proj-meta" style={{ marginTop: 6 }}>
           <span className="meta">{project.client}</span>
-          <span className="meta">{project.city}, {project.state}</span>
           <span className="meta">{fmt(project.start_date)} – {fmt(project.end_date)}</span>
         </div>
       </div>
@@ -1443,7 +1440,6 @@ function TalentView({ data }) {
             <div className="proj-title">{project.title}</div>
             <div className="proj-meta" style={{ marginTop: 6 }}>
               <span className="meta">{project.client}</span>
-              <span className="meta">{project.city}, {project.state}</span>
               <span className="meta">{fmt(project.start_date)} – {fmt(project.end_date)}</span>
             </div>
             {locations?.length > 0 && (
