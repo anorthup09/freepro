@@ -154,7 +154,15 @@ export default function Project() {
   const { id } = useParams();
   const nav = useNavigate();
   const [project, setProject] = useState(null);
-  const [tab, setTab] = useState('overview');
+  const [tab, setTab] = useState(() => new URLSearchParams(window.location.search).get('tab') || 'overview');
+
+  // Keep the active tab in the URL so a refresh returns to the same tab
+  useEffect(() => {
+    const url = new URL(window.location);
+    if (tab === 'overview') url.searchParams.delete('tab');
+    else url.searchParams.set('tab', tab);
+    window.history.replaceState({}, '', url);
+  }, [tab]);
   const [hasUnanswered, setHasUnanswered] = useState(false);
   const [showCateringGrid, setShowCateringGrid] = useState(() => {
     try { return localStorage.getItem(`catering-${id}`) === 'true'; } catch { return false; }
