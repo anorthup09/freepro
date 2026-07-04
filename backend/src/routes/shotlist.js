@@ -2,6 +2,73 @@ const router = require('express').Router();
 const sql = require('../lib/db');
 const { requireAuth, requireRole } = require('../middleware/auth');
 
+const SL_MONTHS = { jan:1, feb:2, mar:3, apr:4, may:5, jun:6, jul:7, aug:8, sep:9, oct:10, nov:11, dec:12 };
+// shot_list_days.date is free text — historical rows look like "FRI, AUG 7, 2026",
+// synced rows are ISO "YYYY-MM-DD"
+function slDateToISO(str) {
+  if (!str) return null;
+  const iso = /^(\d{4})-(\d{2})-(\d{2})/.exec(str);
+  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+  const t = /(\w+)\s+(\d+),?\s+(\d{4})/.exec(str);
+  if (!t) return null;
+  const mi = SL_MONTHS[t[1].slice(0, 3).toLowerCase()];
+  if (!mi) return null;
+  return `${t[3]}-${String(mi).padStart(2, '0')}-${String(parseInt(t[2], 10)).padStart(2, '0')}`;
+}
+
+// Keep shot list days in lockstep with the project date range (same policy as
+// the schedule): create missing days (seeding times from the matching schedule
+// day), drop empty out-of-range days, renumber by date.
+async function syncSlDaysToProjectRange(projectId) {
+  const [project] = await sql`SELECT start_date, end_date FROM projects WHERE id = ${projectId}`;
+  if (!project?.start_date || !project?.end_date) return;
+
+  const existing = await sql`SELECT id, date FROM shot_list_days WHERE project_id = ${projectId}`;
+  const have = new Map();
+  existing.forEach(d => { const iso = slDateToISO(d.date); if (iso && !have.has(iso)) have.set(iso, d.id); });
+
+  const startISO = new Date(project.start_date).toISOString().slice(0, 10);
+  const endISO = new Date(project.end_date).toISOString().slice(0, 10);
+  const wanted = [];
+  let cur = new Date(startISO + 'T12:00:00Z');
+  const end = new Date(endISO + 'T12:00:00Z');
+  while (cur <= end) { wanted.push(cur.toISOString().slice(0, 10)); cur = new Date(cur.getTime() + 86400000); }
+  const wantedSet = new Set(wanted);
+
+  const missing = wanted.filter(iso => !have.has(iso));
+  if (missing.length) {
+    const schedDays = await sql`SELECT date, call_time, shooting_call_time, lunch_time, wrap_time FROM shoot_days WHERE project_id = ${projectId}`;
+    const schedByISO = {};
+    schedDays.forEach(sd => { if (sd.date) schedByISO[new Date(sd.date).toISOString().slice(0, 10)] = sd; });
+    for (const iso of missing) {
+      const sd = schedByISO[iso] || {};
+      await sql`
+        INSERT INTO shot_list_days (id, project_id, day_number, date, call_time, shooting_call, lunch_time, est_wrap, sort_order)
+        VALUES (gen_random_uuid()::text, ${projectId}, ${20000 + wanted.indexOf(iso)}, ${iso}, ${sd.call_time || null}, ${sd.shooting_call_time || null}, ${sd.lunch_time || null}, ${sd.wrap_time || null}, ${wanted.indexOf(iso)})`;
+    }
+  }
+
+  // Drop out-of-range days that hold no scenes
+  const outOfRange = existing.filter(d => { const iso = slDateToISO(d.date); return iso && !wantedSet.has(iso); });
+  for (const d of outOfRange) {
+    const [{ count }] = await sql`SELECT count(*)::int as count FROM shot_list_scenes WHERE day_id = ${d.id}`;
+    if (count === 0) await sql`DELETE FROM shot_list_days WHERE id = ${d.id}`;
+  }
+
+  if (missing.length || outOfRange.length) {
+    // Renumber 1..N by date (two-phase to dodge any unique constraints)
+    const all = await sql`SELECT id, date FROM shot_list_days WHERE project_id = ${projectId}`;
+    const sorted = all.map(d => ({ ...d, iso: slDateToISO(d.date) || '9999-12-31' })).sort((a, b) => a.iso.localeCompare(b.iso));
+    for (let i = 0; i < sorted.length; i++) {
+      await sql`UPDATE shot_list_days SET day_number = ${10000 + i} WHERE id = ${sorted[i].id}`;
+    }
+    for (let i = 0; i < sorted.length; i++) {
+      await sql`UPDATE shot_list_days SET day_number = ${i + 1}, sort_order = ${i} WHERE id = ${sorted[i].id}`;
+    }
+    console.log(`shot list day sync: +${missing.length} / -${outOfRange.length} for project ${projectId}`);
+  }
+}
+
 // GET /api/projects/:id/shot-list
 router.get('/:id/shot-list', requireAuth, async (req, res, next) => {
   try {
@@ -110,6 +177,7 @@ router.delete('/:id/shot-list/shots/:shotId', requireAuth, requireRole('ADMIN','
 // GET /api/projects/:id/shot-list/days
 router.get('/:id/shot-list/days', requireAuth, async (req, res, next) => {
   try {
+    await syncSlDaysToProjectRange(req.params.id).catch(e => console.error('sl day sync failed:', e.message));
     const days = await sql`SELECT * FROM shot_list_days WHERE project_id = ${req.params.id} ORDER BY sort_order, day_number`;
     res.json(days);
   } catch(e) { next(e); }
