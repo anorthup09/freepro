@@ -142,7 +142,7 @@ function ShareDropdown({ projectId, showShotList }) {
   const talentShares = shares.filter(s => s.view_type === 'talent');
 
   return (
-    <div className="share-wrap" ref={ref} style={{ position: 'relative' }}>
+    <div className="share-wrap" ref={ref} style={{ position: 'relative', marginLeft: 'auto' }}>
       <button className="share-btn" onClick={() => setOpen(o => !o)}>
         Share ▾
       </button>
@@ -384,15 +384,15 @@ export default function Project() {
           <DropdownTab label="Logistics" subtabs={[...BASE_LOGISTICS_TABS, ...(showTravel ? [{ id:'travel', label:'Travel' }] : []), ...(showCateringGrid ? [{ id:'catering', label:'Catering/Meals' }] : []), ...(showShotList ? [{ id:'shot-list', label:'Shot List' }] : [])]} tab={tab} setTab={setTab} />
           <DropdownTab label="Gear" subtabs={GEAR_TABS} tab={tab} setTab={setTab} />
           <button className={`tab${tab === 'deliverable-overview' ? ' on' : ''}`} onClick={() => setTab('deliverable-overview')}>Deliverable</button>
+          <button
+            className={`tab${tab === 'questions' ? ' on' : ''}`}
+            onClick={() => setTab('questions')}
+            style={{ border:'1px solid var(--orange)', borderRadius:6, color:'#fff', flexShrink:0, display:'flex', alignItems:'center', gap:5 }}
+          >
+            {hasUnanswered && tab !== 'questions' && <span style={{ fontSize:11, color:'var(--orange)' }}>!</span>}
+            Questions
+          </button>
         </div>
-        <button
-          className={`tab${tab === 'questions' ? ' on' : ''}`}
-          onClick={() => setTab('questions')}
-          style={{ marginLeft:'auto', border:'1px solid var(--orange)', borderRadius:6, color:'#fff', flexShrink:0, display:'flex', alignItems:'center', gap:5 }}
-        >
-          {hasUnanswered && tab !== 'questions' && <span style={{ fontSize:11, color:'var(--orange)' }}>!</span>}
-          Questions
-        </button>
         <ShareDropdown projectId={id} showShotList={showShotList} />
       </nav>
 
