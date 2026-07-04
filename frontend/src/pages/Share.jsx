@@ -13,17 +13,25 @@ function useNow() {
 }
 
 function flightStatus(f, now) {
-  const st = (f.status || '').toUpperCase();
+  // Live status from the flight API (refreshed server-side) wins over time math
+  const st = (f.status || '').toUpperCase().replace(/[\s_-]/g, '');
   const delayed = st === 'DELAYED';
-  if (st === 'CANCELLED') return { label: 'Cancelled', color: '#ef4444', dot: '#ef4444', cancelled: true };
+  if (st.includes('CANCEL')) return { label: 'Cancelled', color: '#ef4444', dot: '#ef4444', cancelled: true };
+  if (st === 'DIVERTED') return { label: 'Diverted', color: '#ef4444', dot: '#ef4444', delayed };
+  if (st === 'DELAYED') return { label: 'Delayed', color: '#f59e0b', dot: '#f59e0b', delayed };
+  if (st === 'ENROUTE' || st === 'DEPARTED' || st === 'APPROACHING') return { label: 'In-Flight', color: '#60a5fa', dot: '#60a5fa', delayed };
+  if (st === 'ARRIVED' || st === 'LANDED') return { label: 'Arrived', color: '#22c55e', dot: '#22c55e', delayed };
+  if (st === 'BOARDING' || st === 'GATECLOSED') return { label: 'Boarding', color: '#60a5fa', dot: '#60a5fa', delayed };
+  if (st === 'CHECKIN' || st === 'EXPECTED' || st === 'SCHEDULED' || st === 'ONTIME') return { label: 'Pre-Flight', color: '#a78bfa', dot: '#a78bfa', delayed };
+  // No usable live status — fall back to scheduled-time math
   const depart = f.depart_time ? new Date(f.depart_time) : null;
   const arrive = f.arrive_time ? new Date(f.arrive_time) : null;
-  if (!depart) return { label: 'Status Coming Soon', color: 'var(--muted)', dot: null, delayed };
+  if (!depart || isNaN(depart)) return { label: 'Status Coming Soon', color: 'var(--muted)', dot: null, delayed };
   const todayStr = now.toISOString().slice(0, 10);
   const departStr = depart.toISOString().slice(0, 10);
   if (todayStr < departStr) return { label: 'Status Coming Soon', color: 'var(--muted)', dot: null, delayed };
   if (now < depart) return { label: 'Pre-Flight', color: '#a78bfa', dot: '#a78bfa', delayed };
-  if (arrive && now < arrive) return { label: 'In-Flight', color: '#60a5fa', dot: '#60a5fa', delayed };
+  if (arrive && !isNaN(arrive) && now < arrive) return { label: 'In-Flight', color: '#60a5fa', dot: '#60a5fa', delayed };
   return { label: 'Arrived', color: '#22c55e', dot: '#22c55e', delayed };
 }
 

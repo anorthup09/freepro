@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const sql = require('../lib/db');
 const { requireAuth, requireRole } = require('../middleware/auth');
+const { refreshFlightStatuses } = require('../lib/flightStatus');
 
 // ─── Hotels ──────────────────────────────────────────────────────────────────
 router.get('/:id/travel/hotels', requireAuth, async (req, res, next) => {
@@ -64,7 +65,11 @@ router.delete('/:id/travel/guests/:gid', requireAuth, requireRole('ADMIN','PRODU
 
 // ─── Flights ─────────────────────────────────────────────────────────────────
 router.get('/:id/travel/flights', requireAuth, async (req, res, next) => {
-  try { res.json(await sql`SELECT f.*, cm.name as crew_name FROM flights f LEFT JOIN crew_members cm ON cm.id=f.crew_member_id WHERE f.project_id=${req.params.id} ORDER BY f.depart_time`); } catch(e){next(e);}
+  try {
+    // Live status refresh in the background — next load shows the update
+    refreshFlightStatuses(req.params.id).catch(() => {});
+    res.json(await sql`SELECT f.*, cm.name as crew_name FROM flights f LEFT JOIN crew_members cm ON cm.id=f.crew_member_id WHERE f.project_id=${req.params.id} ORDER BY f.depart_time`);
+  } catch(e){next(e);}
 });
 
 router.post('/:id/travel/flights', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {

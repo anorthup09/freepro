@@ -114,15 +114,22 @@ function wmoLabel(code) {
 }
 
 function flightStatusLabel(f) {
-  const st = (f.status || '').toUpperCase();
-  if (st === 'CANCELLED') return { label:'Cancelled', color:'#ef4444', alert:true };
+  // Live status from the flight API (refreshed server-side) wins over time math
+  const st = (f.status || '').toUpperCase().replace(/[\s_-]/g, '');
+  if (st.includes('CANCEL')) return { label:'Cancelled', color:'#ef4444', alert:true };
+  if (st === 'DIVERTED')  return { label:'Diverted',  color:'#ef4444', alert:true };
   if (st === 'DELAYED')   return { label:'Delayed',   color:'#f59e0b', alert:true };
+  if (st === 'ENROUTE' || st === 'DEPARTED' || st === 'APPROACHING') return { label:'In-flight', color:'#60a5fa', dot:'#60a5fa' };
+  if (st === 'ARRIVED' || st === 'LANDED') return { label:'Arrived', color:'#22c55e', dot:'#22c55e' };
+  if (st === 'BOARDING' || st === 'GATECLOSED') return { label:'Boarding', color:'#60a5fa', dot:'#60a5fa' };
+  if (st === 'CHECKIN' || st === 'EXPECTED' || st === 'SCHEDULED' || st === 'ONTIME') return { label:'Pre-flight', color:'#6b7280', dot:'#6b7280' };
+  // No usable live status — fall back to scheduled-time math
   const depart = f.depart_time ? new Date(f.depart_time) : null;
   const arrive = f.arrive_time ? new Date(f.arrive_time) : null;
   const now = new Date();
-  if (!depart) return { label:'Status Coming Soon', color:'var(--orange)', dot:null };
+  if (!depart || isNaN(depart)) return { label:'Status Coming Soon', color:'var(--orange)', dot:null };
   if (now < depart) return { label:'Pre-flight', color:'#6b7280', dot:'#6b7280' };
-  if (arrive && now < arrive) return { label:'In-flight', color:'#60a5fa', dot:'#60a5fa' };
+  if (arrive && !isNaN(arrive) && now < arrive) return { label:'In-flight', color:'#60a5fa', dot:'#60a5fa' };
   return { label:'Arrived', color:'#22c55e', dot:'#22c55e' };
 }
 

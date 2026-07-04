@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const sql = require('../lib/db');
 const { refreshWeather } = require('../lib/weather');
+const { refreshFlightStatuses } = require('../lib/flightStatus');
 const { sendQuestionNotification } = require('../lib/email');
 const jwt = require('jsonwebtoken');
 
@@ -73,6 +74,9 @@ router.get('/:token', async (req, res, next) => {
       refreshWeather(project, shootDays),
       new Promise(r => setTimeout(r, 4000)),
     ]);
+
+    // Live flight status refresh in the background — next load shows the update
+    refreshFlightStatuses(projectId).catch(() => {});
 
     // Bulk-load catering for all days
     const dayIds = shootDays.map(d => d.id);
