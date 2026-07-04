@@ -9,6 +9,7 @@
   --red-bg: #1F0E0E; --red-border: #3A1A1A; --red-text: #E08080;
   --purple-bg: #16141F; --purple-border: #2A2440; --purple-text: #9A8AE0;
 }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); font-size: 13px; line-height: 1.5; min-height: 100vh; }
 
 /* ── Nav ── */
@@ -92,7 +93,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
 .ev { display: flex; gap: 8px; margin-bottom: 8px; position: relative; }
 .ev::before { content: ''; position: absolute; left: -12px; top: 10px; width: 5px; height: 5px; border-radius: 50%; background: var(--bg3); border: 1px solid var(--border2); }
 .ev-time { font-size: 11px; color: var(--muted); width: 100px; min-width: 100px; max-width: 100px; padding-top: 4px; font-variant-numeric: tabular-nums; flex-shrink: 0; overflow: hidden; }
-.ev-body { background: var(--bg2); border: 1px solid var(--border); border-radius: 6px; padding: 11px 14px; flex: 1; }
+.ev-body { background: var(--bg2); border: 1px solid var(--border); border-radius: 6px; padding: 11px 14px; flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .ev-body.warn { border-color: var(--red-border); }
 .ev-title { font-size: 13px; font-weight: 600; }
 .ev-title.alert { color: var(--orange); }

@@ -993,16 +993,16 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                                 </div>
                               )}
                             </div>
-                            <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4, flexShrink:0 }}>
+                            <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4, flexShrink:1, minWidth:0, maxWidth:'55%' }}>
                               {item.room_space && (
-                                <div style={{ fontSize:12, fontWeight:700, color:'var(--text)', whiteSpace:'nowrap' }}>
+                                <div style={{ fontSize:12, fontWeight:700, color:'var(--text)', overflowWrap:'anywhere', textAlign:'right' }}>
                                   <span style={{ fontWeight:400, color:'var(--muted)', fontSize:11 }}>Room/Space: </span>{item.room_space}
                                 </div>
                               )}
                               {item.location && (
-                                <div style={{ textAlign:'right' }}>
-                                  <div style={{ fontSize:10, color:'var(--tan)', fontWeight:600 }}>📍 {item.location.name}</div>
-                                  {item.location.address && <div style={{ fontSize:10, color:'var(--muted)' }}>{item.location.address}</div>}
+                                <div style={{ textAlign:'right', minWidth:0, maxWidth:'100%' }}>
+                                  <div style={{ fontSize:10, color:'var(--tan)', fontWeight:600, overflowWrap:'anywhere' }}>📍 {item.location.name}</div>
+                                  {item.location.address && <div style={{ fontSize:10, color:'var(--muted)', overflowWrap:'anywhere' }}>{item.location.address}</div>}
                                 </div>
                               )}
                               <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }}
