@@ -335,7 +335,7 @@ export default function Travel({ project }) {
   return (
     <div>
       <div className="page-title" style={{ marginBottom:3 }}>Travel & Logistics</div>
-      <div className="page-sub">{project.code} · {project.city}, {project.state} · {fmt(project.start_date || project.startDate)} – {fmt(project.end_date || project.endDate)}</div>
+      <div className="page-sub">{project.code} · {fmt(project.start_date || project.startDate)} – {fmt(project.end_date || project.endDate)}</div>
 
       {/* ── Hotels ── */}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
@@ -448,21 +448,29 @@ export default function Travel({ project }) {
         const hoursUntil = f.depart_time ? (new Date(f.depart_time) - Date.now()) / 3600000 : Infinity;
         const showLive = hoursUntil <= 24;
         return (
-          <div key={f.id} className="frow" style={{ flexWrap:'wrap', gap:6 }}>
-            <div className="fname">{f.crew_name || f.passenger_name}</div>
-            {f.flight_number && <span className="abadge">{f.flight_number}</span>}
-            <div className="froute"><span>{f.origin}</span><span className="farrow">→</span><span>{f.destination}</span></div>
+          <div key={f.id} className="frow" style={{ flexDirection:'column', alignItems:'stretch', gap:5 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
+              <div className="fname">{f.crew_name || f.passenger_name}</div>
+              {f.is_return && <span className="badge">Return</span>}
+              <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:6 }}>
+                {showLive && f.flight_number && (
+                  <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:10 }} onClick={() => refreshFlightStatus(f)} title="Refresh live status">↻</button>
+                )}
+                <FlightStatusBadge f={f} />
+              </div>
+            </div>
             {(f.depart_display || f.depart_time) && <div className="ftimes">{f.depart_display || fmtDT(f.depart_time)} → {f.arrive_display || (f.arrive_time ? fmtDT(f.arrive_time) : '?')}</div>}
-            {f.airline && <span className="abadge">{f.airline}</span>}
-            {f.confirmation && <span style={{ fontSize:10, color:'var(--muted)' }}># {f.confirmation}</span>}
-            {f.cost && <span style={{ fontSize:10, color:'var(--green)', fontWeight:600 }}>{fmtCost(f.cost)}</span>}
-            {f.is_return && <span className="badge">Return</span>}
-            {showLive && f.flight_number && (
-              <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:10 }} onClick={() => refreshFlightStatus(f)} title="Refresh live status">↻</button>
-            )}
-            <FlightStatusBadge f={f} />
-            <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => openEditFlight(f)}>Edit</button>
-            <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => removeFlight(f.id)}>✕</button>
+            <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
+              {f.airline && <span className="abadge">{f.airline}</span>}
+              {f.flight_number && <span className="abadge">{f.flight_number}</span>}
+              <div className="froute"><span>{f.origin}</span><span className="farrow">→</span><span>{f.destination}</span></div>
+              {f.confirmation && <span style={{ fontSize:10, color:'var(--muted)' }}># {f.confirmation}</span>}
+              {f.cost && <span style={{ fontSize:10, color:'var(--green)', fontWeight:600 }}>{fmtCost(f.cost)}</span>}
+              <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:10 }}>
+                <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => openEditFlight(f)}>Edit</button>
+                <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => removeFlight(f.id)}>✕</button>
+              </div>
+            </div>
           </div>
         );
       })}
