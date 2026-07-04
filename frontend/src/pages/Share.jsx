@@ -994,7 +994,13 @@ function slCalcWrap(startTime, shots) {
   return `${eh%12||12}:${String(em).padStart(2,'0')} ${eh>=12?'PM':'AM'}`;
 }
 
-function SlShotRow({ shot, index, sceneNum, shareToken, onUpdate, accentColor, allExpanded, talent }) {
+function slShotEstStart(sceneStartTime, shots, idx) {
+  if (!sceneStartTime) return null;
+  const offset = (shots || []).slice(0, idx).reduce((s, sh) => s + (sh.setup_minutes ?? 5) + ((sh.takes_count ?? 1) * (sh.take_minutes ?? 5)) + (sh.buffer_minutes ?? 5), 0);
+  return slAddMins(sceneStartTime, offset);
+}
+
+function SlShotRow({ shot, index, sceneNum, shareToken, onUpdate, accentColor, allExpanded, talent, sceneStartTime, allShots }) {
   const captured = shot.status === 'captured';
   const [desc, setDesc] = useState(shot.description || '');
   const [movement, setMovement] = useState(shot.movement || '');
@@ -1166,10 +1172,16 @@ function SlShotRow({ shot, index, sceneNum, shareToken, onUpdate, accentColor, a
         <td style={{ padding:'6px 8px', width:60 }}>
           <span style={{ fontSize:13, color: captured?'var(--muted)':'var(--text)', fontVariantNumeric:'tabular-nums' }}>{displayMinutes}<span style={{ fontSize:10, color:'var(--muted)', marginLeft:2 }}>m</span></span>
         </td>
+        <td style={{ padding:'6px 8px', width:72 }}>
+          {(() => {
+            const t = slShotEstStart(sceneStartTime, allShots, index);
+            return t ? <span style={{ fontSize:12, color:'var(--muted)', fontVariantNumeric:'tabular-nums', fontWeight:600 }}>{t}</span> : <span style={{ color:'var(--muted)', opacity:0.3, fontSize:12 }}>—</span>;
+          })()}
+        </td>
       </tr>
       {isOpen && !mobileModal && (
         <tr style={{ borderBottom:'1px solid var(--border)', background:'rgba(255,255,255,0.025)' }}>
-          <td colSpan={7} className="sl-detail-cell" style={{ padding:'12px 14px 16px 60px' }}>
+          <td colSpan={8} className="sl-detail-cell" style={{ padding:'12px 14px 16px 60px' }}>
             {detailBody}
           </td>
         </tr>
@@ -1225,13 +1237,15 @@ function SlSceneBlock({ scene, shareToken, talent, onShotUpdate, onStartTimeChan
             <th className="sl-col-hide" style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:130 }}>Movement</th>
             <th className="sl-col-hide" style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:80 }}>Talent</th>
             <th style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:60 }}>Time</th>
+            <th style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:92 }}>Est. Start Time</th>
           </tr>
         </thead>
         <tbody>
           {(scene.shots||[]).map((shot,i)=>(
             <SlShotRow key={shot.id} shot={shot} index={i} sceneNum={scene.scene_number}
               shareToken={shareToken} onUpdate={onShotUpdate}
-              accentColor={st.badgeText} allExpanded={allExpanded} talent={talent} />
+              accentColor={st.badgeText} allExpanded={allExpanded} talent={talent}
+              sceneStartTime={startTime} allShots={scene.shots} />
           ))}
         </tbody>
       </table>
