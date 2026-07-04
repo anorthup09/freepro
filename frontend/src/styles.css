@@ -315,6 +315,10 @@ textarea { resize: vertical; min-height: 70px; }
   .ov-kd-grid { grid-template-columns: 1fr !important; }
   .ov-kd-dates { order: 2; }
   .ov-kd-contacts { order: 1; }
+
+  /* Schedule day card: 2-col times, stacked meta fields */
+  .sched-times-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  .sched-meta-grid { grid-template-columns: 1fr !important; }
 }
 
 /* Overview: Key Dates + Contacts side by side on desktop */

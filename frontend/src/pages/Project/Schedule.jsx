@@ -359,19 +359,28 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
 
   async function saveWeatherLocation(sel) {
     if (!currentDay) return;
+    const body = sel
+      ? { weatherLocationName: sel.label, weatherLat: sel.latitude, weatherLon: sel.longitude }
+      : { weatherLocationName: null, weatherLat: null, weatherLon: null };
+    const applyUpdate = (dayId, updated) => setDays(ds => ds.map(d => d.id === dayId
+      ? { ...d, weather_location_name: updated.weather_location_name, weather_lat: updated.weather_lat, weather_lon: updated.weather_lon }
+      : d));
     try {
-      const updated = await api.updateDay(project.id, currentDay.id, sel
-        ? { weatherLocationName: sel.label, weatherLat: sel.latitude, weatherLon: sel.longitude }
-        : { weatherLocationName: null, weatherLat: null, weatherLon: null });
-      setDays(ds => ds.map(d => d.id === currentDay.id
-        ? { ...d, weather_location_name: updated.weather_location_name, weather_lat: updated.weather_lat, weather_lon: updated.weather_lon }
-        : d));
+      const updated = await api.updateDay(project.id, currentDay.id, body);
+      applyUpdate(currentDay.id, updated);
       flashSaved();
     } catch(e) {
       if (e.message?.includes('not found') || e.message?.includes('unexpected response')) {
+        // Stale day id — refetch the schedule and retry once against the same-date day
         try {
-          await resyncSchedule();
-          alert('The schedule was out of date and has been refreshed — please try again.');
+          const staleDate = currentDay.date?.slice(0, 10);
+          const fresh = await resyncSchedule();
+          const match = fresh.find(d => d.date?.slice(0, 10) === staleDate) || fresh[0];
+          if (!match) return alert('Please refresh the page and try again.');
+          const updated = await api.updateDay(project.id, match.id, body);
+          applyUpdate(match.id, updated);
+          setActiveDay(match.id);
+          flashSaved();
         } catch { alert('Please refresh the page and try again.'); }
       } else {
         alert(e.message);
@@ -595,8 +604,8 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
       {currentDay && (
         <div>
           <div className="card" style={{ marginBottom:16 }}>
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: dayCardCollapsed ? 0 : 12 }}>
-              <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:15, display:'flex', alignItems:'center', gap:10 }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:8, marginBottom: dayCardCollapsed ? 0 : 12 }}>
+              <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:15, display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
                 Day {[...days].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).findIndex(d=>d.id===currentDay.id)+1} · {parseDay(currentDay.date).toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' })}
                 {(() => {
                   const w = weatherByDay[currentDay.id];
@@ -631,7 +640,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
               onClear={() => saveWeatherLocation(null)}
             />
             {!dayCardCollapsed && <>
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, marginBottom:10 }}>
+              <div className="sched-times-grid" style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, marginBottom:10 }}>
                 {[
                   { label:'Call Time', field:'callTime' },
                   { label:'Shooting Call Time', field:'shootingCallTime' },
@@ -648,7 +657,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                   </div>
                 ))}
               </div>
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:10 }}>
+              <div className="sched-meta-grid" style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:10 }}>
                 {[
                   { label:'Crew Meal Location', field:'crewLunch' },
                   { label:'Gear Storage', field:'gearStorage' },
