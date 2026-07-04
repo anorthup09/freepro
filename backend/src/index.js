@@ -67,6 +67,40 @@ app.post('/admin/seed-crew', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// CREW-role accounts are locked to Crew Views: they may authenticate and
+// list crew views, but every other API surface is off limits.
+const jwt = require('jsonwebtoken');
+const { requireAuth: requireAuthGlobal } = require('./middleware/auth');
+app.use('/api', (req, res, next) => {
+  const h = req.headers.authorization;
+  if (!h || !h.startsWith('Bearer ')) return next();
+  try {
+    const u = jwt.verify(h.slice(7), process.env.JWT_SECRET);
+    if (u.role === 'CREW' && !(req.path.startsWith('/auth') || req.path === '/crew-views' || req.path.startsWith('/share'))) {
+      return res.status(403).json({ error: 'Crew accounts can only access Crew Views' });
+    }
+  } catch { /* invalid tokens are rejected by route-level auth */ }
+  next();
+});
+
+// Every project with its crew share token (created on demand) — the only
+// project listing available to CREW-role accounts.
+app.get('/api/crew-views', requireAuthGlobal, async (req, res) => {
+  try {
+    const sqldb = require('./lib/db');
+    const projects = await sqldb`SELECT id, code, title, client, status, start_date, end_date FROM projects ORDER BY start_date`;
+    const shares = await sqldb`SELECT project_id, token FROM project_shares WHERE view_type = 'crew' AND talent_name IS NULL`;
+    const byProject = Object.fromEntries(shares.map(s => [s.project_id, s.token]));
+    for (const p of projects) {
+      if (!byProject[p.id]) {
+        const [s] = await sqldb`INSERT INTO project_shares (id, project_id, token, view_type, talent_name) VALUES (gen_random_uuid()::text, ${p.id}, gen_random_uuid()::text, 'crew', NULL) RETURNING token`;
+        byProject[p.id] = s.token;
+      }
+    }
+    res.json(projects.map(p => ({ ...p, crewToken: byProject[p.id] })));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 app.use('/api/share', shareRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/crew', crewRoutes);

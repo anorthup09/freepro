@@ -49,7 +49,7 @@ export default function CrewViews() {
   const [showArchived, setShowArchived] = useState(false);
   const [openingId, setOpeningId] = useState(null);
 
-  useEffect(() => { api.getProjects().then(setProjects).catch(console.error); }, []);
+  useEffect(() => { api.getCrewViews().then(setProjects).catch(console.error); }, []);
 
   function logout() {
     localStorage.removeItem('fp_token');
@@ -57,16 +57,9 @@ export default function CrewViews() {
     nav('/login');
   }
 
-  async function openCrewView(e, projectId) {
+  function openCrewView(e, project) {
     e.preventDefault();
-    setOpeningId(projectId);
-    try {
-      const shares = await api.getShares(projectId);
-      let share = shares.find(s => s.view_type === 'crew' && !s.talent_name);
-      if (!share) share = await api.createShare(projectId, { viewType: 'crew' });
-      nav(`/share/${share.token}`);
-    } catch (err) { alert(err.message); }
-    finally { setOpeningId(null); }
+    nav(`/share/${project.crewToken}`);
   }
 
   const today = new Date(new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' }) + 'T12:00:00');
@@ -83,7 +76,7 @@ export default function CrewViews() {
   function card(p, showDays) {
     const d = showDays ? daysUntil(p.start_date) : null;
     return (
-      <a key={p.id} href="#" onClick={e => openCrewView(e, p.id)} className="proj-card" style={{ opacity: openingId === p.id ? 0.6 : 1 }}>
+      <a key={p.id} href="#" onClick={e => openCrewView(e, p)} className="proj-card" style={{ opacity: openingId === p.id ? 0.6 : 1 }}>
         <div className="proj-card-info">
           <div className="proj-card-code">{p.code}</div>
           <div className="proj-card-title">{p.title}</div>

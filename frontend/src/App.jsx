@@ -26,10 +26,10 @@ export default function App() {
     <AuthContext.Provider value={{ user, setUser }}>
       <Routes>
         <Route path="/login" element={user ? <Navigate to="/" /> : <Login />} />
-        <Route path="/" element={user ? <Projects /> : <Navigate to="/login" />} />
+        <Route path="/" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <Projects />) : <Navigate to="/login" />} />
         <Route path="/crew-views" element={user ? <CrewViews /> : <Navigate to="/login" />} />
-        <Route path="/projects/:id" element={user ? <Project /> : <Navigate to="/login" />} />
-        <Route path="/projects/:id/talent-callsheets" element={user ? <TalentCallSheets /> : <Navigate to="/login" />} />
+        <Route path="/projects/:id" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <Project />) : <Navigate to="/login" />} />
+        <Route path="/projects/:id/talent-callsheets" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <TalentCallSheets />) : <Navigate to="/login" />} />
         <Route path="/share/:token" element={<Share />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>

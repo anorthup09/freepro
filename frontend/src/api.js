@@ -37,6 +37,7 @@ export const api = {
 
   // Projects
   getProjects: () => req('GET', '/projects'),
+  getCrewViews: () => req('GET', '/crew-views'),
   getProject: (id) => req('GET', `/projects/${id}`),
   createProject: (data) => req('POST', '/projects', data),
   updateProject: (id, data) => req('PATCH', `/projects/${id}`, data),
