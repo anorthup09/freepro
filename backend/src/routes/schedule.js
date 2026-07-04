@@ -47,15 +47,34 @@ async function syncDaysToProjectRange(projectId) {
   const startISO = new Date(project.start_date).toISOString().slice(0, 10);
   const endISO = new Date(project.end_date).toISOString().slice(0, 10);
   const missing = [];
+  const wanted = new Set();
   let cur = new Date(startISO + 'T12:00:00Z');
   const end = new Date(endISO + 'T12:00:00Z');
   for (let i = 0; cur <= end && i < 60; i++, cur = new Date(cur.getTime() + 86400000)) {
     const iso = cur.toISOString().slice(0, 10);
+    wanted.add(iso);
     if (!have.has(iso)) missing.push(iso);
   }
 
+  // Drop out-of-range days that carry no content (days with events/calls/catering are kept)
+  const outOfRange = existing.filter(d => !wanted.has(new Date(d.date).toISOString().slice(0, 10)));
+  let deleted = 0;
+  if (outOfRange.length) {
+    const ids = outOfRange.map(d => d.id);
+    const used = await sql`
+      SELECT shoot_day_id AS id FROM schedule_events WHERE shoot_day_id = ANY(${sql.array(ids)})
+      UNION SELECT shoot_day_id FROM crew_day_calls WHERE shoot_day_id = ANY(${sql.array(ids)})
+      UNION SELECT shoot_day_id FROM catering_orders WHERE shoot_day_id = ANY(${sql.array(ids)})`;
+    const usedSet = new Set(used.map(u => u.id));
+    const deletable = ids.filter(id => !usedSet.has(id));
+    if (deletable.length) {
+      await sql`DELETE FROM shoot_days WHERE id = ANY(${sql.array(deletable)})`;
+      deleted = deletable.length;
+    }
+  }
+
   const numberedByDate = existing.every((d, i) => Number(d.day_number) === i + 1);
-  if (missing.length === 0 && numberedByDate) return;
+  if (missing.length === 0 && deleted === 0 && numberedByDate) return;
 
   for (let i = 0; i < missing.length; i++) {
     await sql`
@@ -184,7 +203,11 @@ router.patch('/:id/schedule/days/:dayId', requireAuth, requireRole('ADMIN','PROD
         call_time_location_id=${d.callTimeLocationId !== undefined ? (d.callTimeLocationId||null) : sql`call_time_location_id`},
         shooting_call_location_id=${d.shootingCallLocationId !== undefined ? (d.shootingCallLocationId||null) : sql`shooting_call_location_id`},
         lunch_location_id=${d.lunchLocationId !== undefined ? (d.lunchLocationId||null) : sql`lunch_location_id`},
-        wrap_time_location_id=${d.wrapTimeLocationId !== undefined ? (d.wrapTimeLocationId||null) : sql`wrap_time_location_id`}
+        wrap_time_location_id=${d.wrapTimeLocationId !== undefined ? (d.wrapTimeLocationId||null) : sql`wrap_time_location_id`},
+        weather_location_name=${d.weatherLocationName !== undefined ? (d.weatherLocationName||null) : sql`weather_location_name`},
+        weather_lat=${d.weatherLat !== undefined ? (d.weatherLat ?? null) : sql`weather_lat`},
+        weather_lon=${d.weatherLon !== undefined ? (d.weatherLon ?? null) : sql`weather_lon`},
+        weather_fetched_at=${d.weatherLat !== undefined || d.weatherLon !== undefined ? null : sql`weather_fetched_at`}
       WHERE id=${req.params.dayId} RETURNING *`;
     res.json(day);
   } catch(e){next(e);}

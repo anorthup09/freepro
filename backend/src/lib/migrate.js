@@ -571,6 +571,11 @@ async function migrate() {
     )
   `;
 
+  // Per-day weather location (searched city/zip; falls back to project city)
+  await sql`ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS weather_location_name TEXT`;
+  await sql`ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS weather_lat DOUBLE PRECISION`;
+  await sql`ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS weather_lon DOUBLE PRECISION`;
+
   console.log('Migration complete.');
 }
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { api } from '../../api.js';
 import { displayName } from '../../utils/displayName.js';
 
@@ -150,6 +150,75 @@ const DAY_TYPES = [
   { value:'SCOUT',        label:'Scout Day' },
 ];
 
+// City/state/zip search that sets the weather location for a single day
+function WeatherLocationPicker({ day, projectCity, onSelect, onClear }) {
+  const [q, setQ] = useState('');
+  const [results, setResults] = useState([]);
+  const [open, setOpen] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const boxRef = useRef(null);
+
+  useEffect(() => {
+    if (q.trim().length < 2) { setResults([]); setOpen(false); return; }
+    setSearching(true);
+    const t = setTimeout(async () => {
+      try {
+        const r = await api.geoSearch(q.trim());
+        setResults(r);
+        setOpen(true);
+      } catch { setResults([]); }
+      setSearching(false);
+    }, 350);
+    return () => clearTimeout(t);
+  }, [q]);
+
+  useEffect(() => {
+    function h(e) { if (boxRef.current && !boxRef.current.contains(e.target)) setOpen(false); }
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, []);
+
+  return (
+    <div ref={boxRef} style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap', marginBottom:12, position:'relative' }}>
+      <span style={{ fontSize:10, fontWeight:700, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em' }}>Weather Location</span>
+      {day.weather_location_name ? (
+        <span style={{ display:'inline-flex', alignItems:'center', gap:6, fontSize:12, color:'var(--tan)', background:'var(--bg3)', border:'1px solid var(--border2)', borderRadius:12, padding:'3px 10px' }}>
+          📍 {day.weather_location_name}
+          <button type="button" onClick={onClear} title="Reset to project city"
+            style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', padding:0, fontSize:12, lineHeight:1 }}>✕</button>
+        </span>
+      ) : (
+        projectCity && <span style={{ fontSize:12, color:'var(--muted)' }}>📍 {projectCity} <span style={{ fontSize:10 }}>(project default)</span></span>
+      )}
+      <div style={{ position:'relative' }}>
+        <input
+          value={q}
+          onChange={e => setQ(e.target.value)}
+          onFocus={() => results.length > 0 && setOpen(true)}
+          placeholder="Search city, state or zip…"
+          style={{ width:200, fontSize:12, padding:'5px 10px' }}
+        />
+        {open && (
+          <div style={{ position:'absolute', top:'100%', left:0, marginTop:4, minWidth:240, background:'var(--bg2)', border:'1px solid var(--border2)', borderRadius:8, boxShadow:'0 8px 24px rgba(0,0,0,0.5)', zIndex:200, overflow:'hidden' }}>
+            {results.length === 0 && !searching && (
+              <div style={{ padding:'8px 12px', fontSize:12, color:'var(--muted)' }}>No matches found.</div>
+            )}
+            {results.map((r, i) => (
+              <button key={i} type="button"
+                onClick={() => { onSelect(r); setQ(''); setOpen(false); }}
+                style={{ display:'block', width:'100%', textAlign:'left', padding:'8px 12px', background:'none', border:'none', borderBottom: i < results.length-1 ? '1px solid var(--border)' : 'none', color:'var(--text)', fontSize:12, cursor:'pointer' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'var(--bg3)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+                {r.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 const MEAL_COLORS = {
   BREAKFAST: { color:'#fbbf24', bg:'rgba(251,191,36,0.10)', emoji:'🍳', label:'Breakfast' },
   DINNER:    { color:'#f87171', bg:'rgba(248,113,113,0.10)', emoji:'🍽️', label:'Dinner' },
@@ -182,7 +251,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
   const [editingSyntheticKey, setEditingSyntheticKey] = useState(null);
   const [dayMeta, setDayMeta] = useState({});
   const [flights, setFlights] = useState([]);
-  const [weatherByDate, setWeatherByDate] = useState({});
+  const [weatherByDay, setWeatherByDay] = useState({});
   const [cateringModal, setCateringModal] = useState(null);
   const [cateringForm, setCateringForm] = useState({ mealTypes:[], name:'', address:'', orderNumber:'', deliveryTime:'' });
   const [shotListScenes, setShotListScenes] = useState([]);
@@ -232,28 +301,45 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
   }, [project.id]);
 
   useEffect(() => {
-    if (!project.city) return;
+    // Per-day weather: each day can carry its own weather_lat/lon (set via the
+    // city search under the day header); days without one use the project city.
     async function fetchWeather() {
       try {
-        const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(project.city)}&count=1&language=en&format=json`);
-        const geo = await geoRes.json();
-        if (!geo.results?.length) return;
-        const { latitude, longitude } = geo.results[0];
-        const dates = days.map(d => d.date?.slice(0,10)).filter(Boolean).sort();
-        if (!dates.length) return;
-        const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weathercode&temperature_unit=fahrenheit&timezone=auto&start_date=${dates[0]}&end_date=${dates[dates.length-1]}&forecast_days=16`);
-        const w = await wRes.json();
-        if (!w.daily?.time) return;
-        const byDate = {};
-        w.daily.time.forEach((date, i) => {
-          byDate[date] = {
-            high: Math.round(w.daily.temperature_2m_max[i]),
-            low: Math.round(w.daily.temperature_2m_min[i]),
-            precip: w.daily.precipitation_probability_max[i],
-            code: w.daily.weathercode[i],
-          };
+        let defCoords = null;
+        if (project.city) {
+          const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(project.city)}&count=1&language=en&format=json`);
+          const geo = await geoRes.json();
+          if (geo.results?.length) defCoords = { lat: geo.results[0].latitude, lon: geo.results[0].longitude };
+        }
+        // Group days by coordinates so each location is one forecast call
+        const groups = {};
+        days.forEach(d => {
+          const dateStr = d.date?.slice(0, 10);
+          if (!dateStr) return;
+          const lat = d.weather_lat != null ? Number(d.weather_lat) : defCoords?.lat;
+          const lon = d.weather_lon != null ? Number(d.weather_lon) : defCoords?.lon;
+          if (lat == null || lon == null) return;
+          const key = `${lat},${lon}`;
+          (groups[key] ||= { lat, lon, days: [] }).days.push({ id: d.id, date: dateStr });
         });
-        setWeatherByDate(byDate);
+        const byDay = {};
+        await Promise.all(Object.values(groups).map(async g => {
+          const dates = g.days.map(x => x.date).sort();
+          const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${g.lat}&longitude=${g.lon}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weathercode&temperature_unit=fahrenheit&timezone=auto&start_date=${dates[0]}&end_date=${dates[dates.length-1]}&forecast_days=16`);
+          const w = await wRes.json();
+          if (!w.daily?.time) return;
+          const byDate = {};
+          w.daily.time.forEach((date, i) => {
+            byDate[date] = {
+              high: Math.round(w.daily.temperature_2m_max[i]),
+              low: Math.round(w.daily.temperature_2m_min[i]),
+              precip: w.daily.precipitation_probability_max[i],
+              code: w.daily.weathercode[i],
+            };
+          });
+          g.days.forEach(x => { if (byDate[x.date]) byDay[x.id] = byDate[x.date]; });
+        }));
+        setWeatherByDay(byDay);
       } catch(e) {}
     }
     if (days.length) fetchWeather();
@@ -262,6 +348,19 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
   async function saveDayType(dayId, value) {
     setDays(ds => ds.map(d => d.id === dayId ? { ...d, day_type: value } : d));
     try { await api.updateDay(project.id, dayId, { dayType: value }); flashSaved(); } catch(e) { alert(e.message); }
+  }
+
+  async function saveWeatherLocation(sel) {
+    if (!currentDay) return;
+    try {
+      const updated = await api.updateDay(project.id, currentDay.id, sel
+        ? { weatherLocationName: sel.label, weatherLat: sel.latitude, weatherLon: sel.longitude }
+        : { weatherLocationName: null, weatherLat: null, weatherLon: null });
+      setDays(ds => ds.map(d => d.id === currentDay.id
+        ? { ...d, weather_location_name: updated.weather_location_name, weather_lat: updated.weather_lat, weather_lon: updated.weather_lon }
+        : d));
+      flashSaved();
+    } catch(e) { alert(e.message); }
   }
 
   function openCateringModal(dayId) {
@@ -486,7 +585,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
               <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:15, display:'flex', alignItems:'center', gap:10 }}>
                 Day {[...days].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).findIndex(d=>d.id===currentDay.id)+1} · {parseDay(currentDay.date).toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' })}
                 {(() => {
-                  const w = weatherByDate[currentDay.date?.slice(0,10)];
+                  const w = weatherByDay[currentDay.id];
                   if (!w) return null;
                   return (
                     <span style={{ fontSize:12, fontWeight:400, color:'var(--tan)', display:'flex', alignItems:'center', gap:5 }}>
@@ -510,6 +609,13 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                 <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text)' }} onClick={() => deleteDay(currentDay.id)}>Delete Day</button>
               </div>
             </div>
+            <WeatherLocationPicker
+              key={currentDay.id}
+              day={currentDay}
+              projectCity={project.city}
+              onSelect={sel => saveWeatherLocation(sel)}
+              onClear={() => saveWeatherLocation(null)}
+            />
             {!dayCardCollapsed && <>
               <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, marginBottom:10 }}>
                 {[

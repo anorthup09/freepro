@@ -56,6 +56,24 @@ router.get('/hotel-search', requireAuth, async (req, res, next) => {
   } catch(e) { next(e); }
 });
 
+// ─── City / ZIP search (Open-Meteo geocoding) ────────────────────────────────
+router.get('/geo-search', requireAuth, async (req, res, next) => {
+  try {
+    const { q } = req.query;
+    if (!q || q.trim().length < 2) return res.json([]);
+    const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q.trim())}&count=8&language=en&format=json`);
+    const data = await r.json();
+    res.json((data.results || []).map(p => ({
+      name: p.name,
+      admin1: p.admin1 || '',
+      country: p.country_code || '',
+      latitude: p.latitude,
+      longitude: p.longitude,
+      label: [p.name, p.admin1, p.country_code === 'US' ? null : p.country_code].filter(Boolean).join(', '),
+    })));
+  } catch(e) { next(e); }
+});
+
 // ─── Flight Lookup (AeroDataBox via RapidAPI) ────────────────────────────────
 function aeroHeaders(key) {
   return { 'X-RapidAPI-Key': key, 'X-RapidAPI-Host': 'aerodatabox.p.rapidapi.com' };
