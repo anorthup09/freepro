@@ -633,11 +633,11 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
       {currentDay && (
         <div>
           <div className="card" style={{ marginBottom:16 }}>
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:8, marginBottom: dayCardCollapsed ? 0 : 12 }}>
+            <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', flexWrap:'wrap', gap:8, marginBottom: dayCardCollapsed ? 0 : 12 }}>
               <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:15, display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
                 Day {[...days].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).findIndex(d=>d.id===currentDay.id)+1} · {parseDay(currentDay.date).toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' })}
               </div>
-              <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+              <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:8 }}>
                 <select
                   value={currentDay.day_type || 'SHOOT'}
                   onChange={e => saveDayType(currentDay.id, e.target.value)}
@@ -645,19 +645,14 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                 >
                   {DAY_TYPES.map(dt => <option key={dt.value} value={dt.value}>{dt.label}</option>)}
                 </select>
-                <button className="btn btn-ghost btn-sm" onClick={() => setDayCardCollapsed(c => !c)} style={{ color:'var(--muted)', fontSize:11 }}>
-                  {dayCardCollapsed ? '▸ Expand' : '▾ Collapse'}
-                </button>
-                <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text)' }} onClick={() => deleteDay(currentDay.id)}>Delete Day</button>
+                <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                  <button className="btn btn-ghost btn-sm" onClick={() => setDayCardCollapsed(c => !c)} style={{ color:'var(--muted)', fontSize:11 }}>
+                    {dayCardCollapsed ? '▸ Expand' : '▾ Collapse'}
+                  </button>
+                  <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text)' }} onClick={() => deleteDay(currentDay.id)}>Delete Day</button>
+                </div>
               </div>
             </div>
-            <WeatherLocationPicker
-              key={currentDay.id}
-              day={currentDay}
-              projectCity={project.city}
-              onSelect={sel => saveWeatherLocation(sel)}
-              onClear={() => saveWeatherLocation(null)}
-            />
             {!dayCardCollapsed && <>
               <div className="sched-times-grid" style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, marginBottom:10 }}>
                 {[
@@ -777,6 +772,13 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
 
             return (
               <>
+                <WeatherLocationPicker
+                  key={currentDay.id}
+                  day={currentDay}
+                  projectCity={project.city}
+                  onSelect={sel => saveWeatherLocation(sel)}
+                  onClear={() => saveWeatherLocation(null)}
+                />
                 <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
                   <div style={{ display:'flex', alignItems:'center', gap:10 }}>
                     <div className="sec-lbl" style={{ margin:0 }}>Timeline</div>
