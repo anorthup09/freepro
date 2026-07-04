@@ -2,7 +2,7 @@ const router = require('express').Router();
 const sql = require('../lib/db');
 const { requireAuth, requireRole } = require('../middleware/auth');
 
-const ROLES = ['ADMIN', 'PRODUCER', 'CREW', 'CLIENT'];
+const ROLES = ['ADMIN', 'PRODUCER', 'CREW', 'CLIENT', 'PENDING'];
 
 router.get('/', requireAuth, requireRole('ADMIN'), async (req, res, next) => {
   try {

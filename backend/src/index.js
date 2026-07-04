@@ -76,6 +76,9 @@ app.use('/api', (req, res, next) => {
   if (!h || !h.startsWith('Bearer ')) return next();
   try {
     const u = jwt.verify(h.slice(7), process.env.JWT_SECRET);
+    if (u.role === 'PENDING' && !req.path.startsWith('/auth')) {
+      return res.status(403).json({ error: 'Your account is awaiting approval from an admin' });
+    }
     if (u.role === 'CREW' && !(req.path.startsWith('/auth') || req.path === '/crew-views' || req.path.startsWith('/share'))) {
       return res.status(403).json({ error: 'Crew accounts can only access Crew Views' });
     }

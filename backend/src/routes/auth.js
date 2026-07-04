@@ -18,7 +18,7 @@ router.post('/register', async (req, res, next) => {
     const existing = await sql`SELECT id FROM users WHERE email = ${email}`;
     if (existing.length) return res.status(409).json({ error: 'Email already in use' });
     const hashed = await bcrypt.hash(password, 12);
-    const [user] = await sql`INSERT INTO users (id, name, email, password) VALUES (gen_random_uuid()::text, ${name}, ${email}, ${hashed}) RETURNING id, name, email, role`;
+    const [user] = await sql`INSERT INTO users (id, name, email, password, role) VALUES (gen_random_uuid()::text, ${name}, ${email}, ${hashed}, 'PENDING'::user_role) RETURNING id, name, email, role`;
     res.status(201).json({ token: makeToken(user), user });
   } catch (err) {
     if (err.name === 'ZodError') return res.status(400).json({ error: err.errors });

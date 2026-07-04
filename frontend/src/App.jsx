@@ -5,6 +5,25 @@ import Projects from './pages/Projects.jsx';
 import Project from './pages/Project/index.jsx';
 import TalentCallSheets from './pages/Project/TalentCallSheets.jsx';
 import CrewViews from './pages/CrewViews.jsx';
+
+function PendingApproval({ setUser }) {
+  return (
+    <div className="login-wrap">
+      <div className="login-box" style={{ textAlign:'center' }}>
+        <div className="login-logo">Free<em>Pro</em></div>
+        <div style={{ fontSize:14, fontWeight:700, margin:'14px 0 6px' }}>Account awaiting approval</div>
+        <div style={{ fontSize:12, color:'var(--muted)', lineHeight:1.6 }}>
+          Your account was created but doesn't have access yet.<br />
+          Ask an admin to approve you, then sign in again.
+        </div>
+        <button className="btn btn-ghost btn-sm" style={{ marginTop:16 }}
+          onClick={() => { localStorage.removeItem('fp_token'); setUser(null); }}>
+          Sign out
+        </button>
+      </div>
+    </div>
+  );
+}
 import Share from './pages/Share.jsx';
 import { api } from './api.js';
 
@@ -24,6 +43,7 @@ export default function App() {
 
   return (
     <AuthContext.Provider value={{ user, setUser }}>
+      {user?.role === 'PENDING' ? <PendingApproval setUser={setUser} /> : (
       <Routes>
         <Route path="/login" element={user ? <Navigate to="/" /> : <Login />} />
         <Route path="/" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <Projects />) : <Navigate to="/login" />} />
@@ -33,6 +53,7 @@ export default function App() {
         <Route path="/share/:token" element={<Share />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
+      )}
     </AuthContext.Provider>
   );
 }

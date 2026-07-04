@@ -22,7 +22,7 @@ export default function Projects() {
   const [showArchived, setShowArchived] = useState(false);
   const [showUsers, setShowUsers] = useState(false);
   const [users, setUsers] = useState([]);
-  const ROLES = ['ADMIN', 'PRODUCER', 'CREW', 'CLIENT'];
+  const ROLES = ['PENDING', 'CREW', 'CLIENT', 'PRODUCER', 'ADMIN'];
 
   async function toggleUsers() {
     if (!showUsers) {
