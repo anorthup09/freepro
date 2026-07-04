@@ -86,6 +86,7 @@ function parseDay(dateStr) {
 }
 
 function wmoIcon(code) {
+  if (code == null) return '🌡️';
   if (code === 0) return '☀️';
   if (code <= 2) return '⛅';
   if (code === 3) return '☁️';
@@ -561,7 +562,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
       <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:14, flexWrap:'wrap', gap:10 }}>
         <div>
           <div className="page-title">Schedule</div>
-          <div className="page-sub">{project.city}, {project.state} · {parseDay(project.start_date||project.startDate).toLocaleDateString()} – {parseDay(project.end_date||project.endDate).toLocaleDateString()}</div>
+          <div className="page-sub">{parseDay(project.start_date||project.startDate).toLocaleDateString()} – {parseDay(project.end_date||project.endDate).toLocaleDateString()}</div>
         </div>
         <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:6 }}>
           <div style={{ display:'flex', gap:6, flexWrap:'wrap', justifyContent:'flex-end' }}>
@@ -608,7 +609,8 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
               <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:15, display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
                 Day {[...days].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).findIndex(d=>d.id===currentDay.id)+1} · {parseDay(currentDay.date).toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' })}
                 {(() => {
-                  const w = weatherByDay[currentDay.id];
+                  const w = weatherByDay[currentDay.id]
+                    || (currentDay.weather_high != null ? { high: currentDay.weather_high, low: currentDay.weather_low, precip: currentDay.weather_precip, code: null } : null);
                   if (!w) return null;
                   return (
                     <span style={{ fontSize:12, fontWeight:400, color:'var(--tan)', display:'flex', alignItems:'center', gap:5 }}>
@@ -762,7 +764,8 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                   <div style={{ display:'flex', alignItems:'center', gap:10 }}>
                     <div className="sec-lbl" style={{ margin:0 }}>Timeline</div>
                     {(() => {
-                      const w = weatherByDay[currentDay.id];
+                      const w = weatherByDay[currentDay.id]
+                    || (currentDay.weather_high != null ? { high: currentDay.weather_high, low: currentDay.weather_low, precip: currentDay.weather_precip, code: null } : null);
                       if (!w) return null;
                       return (
                         <span style={{ fontSize:12, fontWeight:400, color:'var(--tan)', display:'flex', alignItems:'center', gap:5 }}>

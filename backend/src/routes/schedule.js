@@ -2,6 +2,7 @@ const router = require('express').Router();
 const { z } = require('zod');
 const sql = require('../lib/db');
 const { requireAuth, requireRole } = require('../middleware/auth');
+const { refreshWeather } = require('../lib/weather');
 
 async function getDayFull(dayId) {
   const [[day], events, crewCalls] = await Promise.all([
@@ -95,6 +96,10 @@ router.get('/:id/schedule', requireAuth, async (req, res, next) => {
   try {
     await syncDaysToProjectRange(req.params.id).catch(e => console.error('day sync failed:', e.message));
     const days = await sql`SELECT * FROM shoot_days WHERE project_id = ${req.params.id} ORDER BY day_number`;
+    // Server-side weather refresh (capped) so the schedule shows weather even
+    // when the browser can't reach the weather API directly
+    const [proj] = await sql`SELECT city, state FROM projects WHERE id = ${req.params.id}`;
+    if (proj) await Promise.race([refreshWeather(proj, days), new Promise(r => setTimeout(r, 4000))]);
     if (days.length === 0) return res.json([]);
     const dayIds = days.map(d => d.id);
 
