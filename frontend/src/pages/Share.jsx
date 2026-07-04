@@ -627,9 +627,9 @@ function ProducerView({ data, hideGear }) {
         )}
         {[...(schedule||[])].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).filter(day => {
           if (!tagFilter) return true;
-          if (day.events.some(e => (e.tags || []).some(t => t.type === tagFilter))) return true;
+          if (day.events.some(e => (e.tags || []).some(t => t.type === tagFilter || t.type === 'ALL_CREW'))) return true;
           return [day.call_time_tags, day.shooting_call_tags, day.lunch_tags, day.wrap_time_tags]
-            .some(tags => Array.isArray(tags) && tags.includes(tagFilter));
+            .some(tags => Array.isArray(tags) && (tags.includes(tagFilter) || tags.includes('ALL_CREW')));
         }).map((day, i) => (
           <DaySection key={day.id} day={day} showCalls flights={flights} dayIndex={i} tagFilter={tagFilter} cateringDetail="full" shotList={shotList} slDays={slDays} slBreaks={slBreaks} />
         ))}
@@ -810,9 +810,9 @@ function CrewView({ data, shareToken, hideGear }) {
         )}
         {sortedSchedule.filter(day => {
           if (!tagFilter) return true;
-          if (day.events.some(e => (e.tags || []).some(t => t.type === tagFilter))) return true;
+          if (day.events.some(e => (e.tags || []).some(t => t.type === tagFilter || t.type === 'ALL_CREW'))) return true;
           return [day.call_time_tags, day.shooting_call_tags, day.lunch_tags, day.wrap_time_tags]
-            .some(tags => Array.isArray(tags) && tags.includes(tagFilter));
+            .some(tags => Array.isArray(tags) && (tags.includes(tagFilter) || tags.includes('ALL_CREW')));
         }).map((day, i) => (
           <DaySection key={day.id} day={day} showCalls flights={flights} dayIndex={i} tagFilter={tagFilter} cateringDetail="name" shotList={shotList} slDays={slDays} slBreaks={slBreaks} />
         ))}
@@ -1657,7 +1657,7 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
   const [driveTimes, setDriveTimes] = useState({});
 
   const filteredDay = tagFilter
-    ? { ...day, events: day.events.filter(e => (e.tags || []).some(t => t.type === tagFilter)) }
+    ? { ...day, events: day.events.filter(e => (e.tags || []).some(t => t.type === tagFilter || t.type === 'ALL_CREW')) }
     : day;
 
   const dayStr = filteredDay.date ? isoDate(new Date(filteredDay.date)) : null;
