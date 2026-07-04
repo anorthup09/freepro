@@ -624,17 +624,6 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:8, marginBottom: dayCardCollapsed ? 0 : 12 }}>
               <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:15, display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
                 Day {[...days].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).findIndex(d=>d.id===currentDay.id)+1} · {parseDay(currentDay.date).toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' })}
-                {(() => {
-                  const w = weatherByDay[currentDay.id]
-                    || (currentDay.weather_high != null ? { high: currentDay.weather_high, low: currentDay.weather_low, precip: currentDay.weather_precip, code: null } : null);
-                  if (!w) return null;
-                  return (
-                    <span style={{ fontSize:12, fontWeight:400, color:'var(--tan)', display:'flex', alignItems:'center', gap:5 }}>
-                      {wmoIcon(w.code)} {w.high}° / {w.low}°
-                      {w.precip > 0 && <span style={{ color:'var(--muted)', fontSize:11 }}>· {w.precip}% precip</span>}
-                    </span>
-                  );
-                })()}
               </div>
               <div style={{ display:'flex', alignItems:'center', gap:10 }}>
                 <select
