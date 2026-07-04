@@ -299,8 +299,8 @@ textarea { resize: vertical; min-height: 70px; }
 
   /* Modal: full-width on mobile */
   .modal { padding: 16px; border-radius: 8px; }
-  .modal-bg { padding: 10px; align-items: flex-end; }
-  .modal { border-radius: 12px 12px 0 0; max-height: 85vh; }
+  .modal-bg { padding: 16px; align-items: center; }
+  .modal { border-radius: 12px; max-height: 85vh; overflow-y: auto; }
 
   /* Project page header actions: stack on small screens */
   .proj-actions { flex-wrap: wrap; gap: 6px; }

@@ -393,7 +393,8 @@ export default function Project() {
             Questions
           </button>
         </div>
-        <ShareDropdown projectId={id} showShotList={showShotList} />
+        {/* Share collapses while scrolled; reappears at the top of the page */}
+        {!glassVisible && <ShareDropdown projectId={id} showShotList={showShotList} />}
       </nav>
 
       <div className="wrap">
