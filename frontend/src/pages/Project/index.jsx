@@ -280,7 +280,7 @@ export default function Project() {
   return (
     <>
       {/* Liquid glass sticky bar — shown on scroll across all tabs */}
-      <div style={{
+      <div className="proj-glass-head" style={{
         position: 'fixed',
         top: 48,
         left: 0,

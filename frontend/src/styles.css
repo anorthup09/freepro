@@ -336,6 +336,18 @@ textarea { resize: vertical; min-height: 70px; }
   .sl-tile-row { flex-wrap: wrap !important; gap: 6px 10px !important; }
   .sl-tile-left { flex-wrap: wrap !important; }
   .sl-tile-left span { white-space: normal !important; }
+
+  /* Shot list page: scene header stacks vertically so squeezed text can't
+     paint over neighboring elements */
+  .sl-scene-head { flex-direction: column !important; align-items: stretch !important; gap: 8px !important; padding: 10px 14px !important; }
+  .sl-scene-head > div { flex-wrap: wrap !important; row-gap: 6px; justify-content: flex-start !important; }
+  .sl-scene-head span { white-space: normal !important; }
+
+  /* Fixed glass header: wrap instead of crushing title/current time into
+     the day info columns */
+  .proj-glass-head { flex-wrap: wrap !important; row-gap: 4px; padding: 8px 14px !important; }
+  .proj-glass-head > div { min-width: 0; }
+  .proj-glass-head > div:last-child { flex-wrap: wrap !important; gap: 12px !important; }
 }
 
 /* Overview: Key Dates + Contacts side by side on desktop */
