@@ -55,6 +55,14 @@ function useDebounce(fn, delay) {
   }, [fn, delay]);
 }
 
+function statusColor(status) {
+  const s = String(status || '').toLowerCase();
+  if (s.includes('cancel') || s.includes('divert')) return 'var(--red-text)';
+  if (s.includes('delay') || s.includes('late')) return 'var(--amber-text)';
+  if (s.includes('landed') || s.includes('arrived') || s.includes('departed') || s.includes('en route') || s.includes('expected') || s.includes('scheduled') || s.includes('on time')) return 'var(--green-text)';
+  return 'var(--muted)';
+}
+
 export default function Travel({ project }) {
   const [hotels, setHotels] = useState([]);
   const [flights, setFlights] = useState([]);
