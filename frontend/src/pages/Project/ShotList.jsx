@@ -594,7 +594,7 @@ function DaySynopsisCard({ day, onDelete, onAddScene, scenes, scheduleDays, onDa
               <span style={{ color: 'var(--text)', fontWeight: 700 }}>{totalShots}</span> total shots &nbsp;·&nbsp; <span style={{ color: 'var(--text)', fontWeight: 700 }}>{capturedShots}</span> captured &nbsp;·&nbsp; <span style={{ color: 'var(--text)', fontWeight: 700 }}>{remaining}</span> remaining
             </div>
           )}
-          <button className="btn btn-primary btn-sm" style={{ fontSize: 11 }} onClick={() => onAddScene?.(day.id)}>+ Add Scene</button>
+          <button className="btn btn-primary btn-sm" style={{ fontSize: 11, whiteSpace: 'nowrap', padding: '4px 9px' }} onClick={() => onAddScene?.(day.id)}>+ Add Scene</button>
           <button className="btn btn-ghost btn-sm" style={{ fontSize: 11, color: 'var(--muted)' }} onClick={() => {
             if (confirm(`Delete Day ${day.day_number}?`)) onDelete(day.id);
           }}>Delete</button>
@@ -864,7 +864,7 @@ function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded,
 
       {/* Scene Edit Modal — portalled to body so it escapes overflow:hidden */}
       {showEditModal && createPortal(
-        <div className="modal-backdrop" onClick={() => setShowEditModal(false)}>
+        <div className="modal-bg" onClick={() => setShowEditModal(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-title">Edit Scene</div>
             <form onSubmit={saveSceneEdit}>
@@ -1441,7 +1441,7 @@ export default function ShotList({ project, onScenesChange, onCurrentDayChange, 
 
       {/* Edit Day Modal */}
       {editingDay && (
-        <div className="modal-backdrop" onClick={() => setEditingDay(null)}>
+        <div className="modal-bg" onClick={() => setEditingDay(null)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-title">Edit Day {editingDay.day_number}</div>
             <form onSubmit={saveEditDay}>
@@ -1475,7 +1475,7 @@ export default function ShotList({ project, onScenesChange, onCurrentDayChange, 
 
       {/* Add / Edit Break Modal */}
       {(showAddBreak || editingBreak) && (
-        <div className="modal-backdrop" onClick={() => { setShowAddBreak(false); setEditingBreak(null); setBreakForm({ dayId: '', startTime: '', endTime: '' }); }}>
+        <div className="modal-bg" onClick={() => { setShowAddBreak(false); setEditingBreak(null); setBreakForm({ dayId: '', startTime: '', endTime: '' }); }}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-title">{editingBreak ? 'Edit Break' : 'Add Break'}</div>
             <form onSubmit={editingBreak ? saveEditBreak : addBreak}>
