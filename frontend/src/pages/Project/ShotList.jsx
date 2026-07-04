@@ -899,7 +899,7 @@ export default function ShotList({ project, onScenesChange, onCurrentDayChange }
   useEffect(() => {
     api.getShotList(project.id).then(s => { setScenes(s); onScenesChange?.(s); }).catch(() => {});
     api.getTalent(project.id).then(setTalent).catch(() => {});
-    api.getDays(project.id).then(d => { setDays(d); if (d.length) onCurrentDayChange?.(d[0]); }).catch(() => {});
+    api.getSlDays(project.id).then(d => { setDays(d); if (d.length) onCurrentDayChange?.(d[0]); }).catch(() => {});
     api.getSchedule(project.id).then(d => setScheduleDays(d || [])).catch(() => {});
     api.getBreaks(project.id).then(setBreaks).catch(() => {});
   }, [project.id]);
@@ -950,7 +950,7 @@ export default function ShotList({ project, onScenesChange, onCurrentDayChange }
   async function addDay(e) {
     e.preventDefault();
     try {
-      const day = await api.createDay(project.id, dayForm);
+      const day = await api.createSlDay(project.id, dayForm);
       setDays(prev => [...prev, day]);
       setShowAddDay(false);
       setDayForm({ date: '', callTime: '', shootingCall: '', lunchTime: '', estWrap: '' });
@@ -960,14 +960,14 @@ export default function ShotList({ project, onScenesChange, onCurrentDayChange }
   async function saveEditDay(e) {
     e.preventDefault();
     try {
-      const updated = await api.updateDay(project.id, editingDay.id, dayForm);
+      const updated = await api.updateSlDay(project.id, editingDay.id, dayForm);
       setDays(prev => prev.map(d => d.id === updated.id ? updated : d));
       setEditingDay(null);
     } catch(err) { alert(err.message); }
   }
 
   async function deleteDay(dayId) {
-    await api.deleteDay(project.id, dayId);
+    await api.deleteSlDay(project.id, dayId);
     setDays(prev => prev.filter(d => d.id !== dayId));
     updateScenes(prev => prev.map(s => s.day_id === dayId ? { ...s, day_id: null } : s));
   }
@@ -1043,7 +1043,7 @@ export default function ShotList({ project, onScenesChange, onCurrentDayChange }
       estWrap: matched?.wrap_time || day.est_wrap || '',
     };
     try {
-      const updated = await api.updateDay(project.id, day.id, payload);
+      const updated = await api.updateSlDay(project.id, day.id, payload);
       setDays(prev => prev.map(d => d.id === updated.id ? updated : d));
     } catch(err) { alert(err.message); }
   }

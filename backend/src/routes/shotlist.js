@@ -141,6 +141,7 @@ router.patch('/:id/shot-list/days/:dayId', requireAuth, requireRole('ADMIN','PRO
         lunch_time = ${lunchTime !== undefined ? (lunchTime||null) : sql`lunch_time`},
         est_wrap = ${estWrap !== undefined ? (estWrap||null) : sql`est_wrap`}
       WHERE id = ${req.params.dayId} RETURNING *`;
+    if (!day) return res.status(404).json({ error: 'Shot list day not found — please refresh the page and try again.' });
     res.json(day);
   } catch(e) { next(e); }
 });

@@ -271,7 +271,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
   useEffect(() => {
     api.getTalent(project.id).then(setKeyTalent).catch(() => {});
     api.getShotList(project.id).then(setShotListScenes).catch(() => {});
-    api.getDays(project.id).then(setSlDays).catch(() => {});
+    api.getSlDays(project.id).then(setSlDays).catch(() => {});
   }, [project.id]);
 
   useEffect(() => {
