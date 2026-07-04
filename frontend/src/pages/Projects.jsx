@@ -83,7 +83,10 @@ export default function Projects() {
             <div className="page-title">Projects</div>
             <div className="page-sub">{projects.length} shoot{projects.length !== 1 ? 's' : ''}</div>
           </div>
-          <button className="btn btn-primary" onClick={() => setShowNew(true)}>+ New Project</button>
+          <div style={{ display:'flex', gap:8 }}>
+            <Link to="/crew-views" className="btn btn-ghost">Crew Views</Link>
+            <button className="btn btn-primary" onClick={() => setShowNew(true)}>+ New Project</button>
+          </div>
         </div>
 
         {projects.length === 0 && <div className="empty">No projects yet — create one to get started.</div>}

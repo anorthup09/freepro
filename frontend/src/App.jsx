@@ -4,6 +4,7 @@ import Login from './pages/Login.jsx';
 import Projects from './pages/Projects.jsx';
 import Project from './pages/Project/index.jsx';
 import TalentCallSheets from './pages/Project/TalentCallSheets.jsx';
+import CrewViews from './pages/CrewViews.jsx';
 import Share from './pages/Share.jsx';
 import { api } from './api.js';
 
@@ -26,6 +27,7 @@ export default function App() {
       <Routes>
         <Route path="/login" element={user ? <Navigate to="/" /> : <Login />} />
         <Route path="/" element={user ? <Projects /> : <Navigate to="/login" />} />
+        <Route path="/crew-views" element={user ? <CrewViews /> : <Navigate to="/login" />} />
         <Route path="/projects/:id" element={user ? <Project /> : <Navigate to="/login" />} />
         <Route path="/projects/:id/talent-callsheets" element={user ? <TalentCallSheets /> : <Navigate to="/login" />} />
         <Route path="/share/:token" element={<Share />} />
