@@ -237,7 +237,7 @@ const SYNTHETIC_META = {
   wt:  { color:'#a78bfa', bg:'rgba(167,139,250,0.08)', notesKey:'wrapTimeNotes',      tagsKey:'wrapTimeTags',      locationKey:'wrapTimeLocationId' },
 };
 
-export default function Schedule({ project, showCateringGrid, setShowCateringGrid, onCateringTabChange, showShotList, setShowShotList, onShotListTabChange, showTravel, setShowTravel, onTravelTabChange }) {
+export default function Schedule({ project, showCateringGrid, setShowCateringGrid, onCateringTabChange, showShotList, setShowShotList, onShotListTabChange, showTravel, setShowTravel, onTravelTabChange, focusDate, onFocusConsumed }) {
   const [days, setDays] = useState([]);
   const [activeDay, setActiveDay] = useState(null);
   const [showAddEvent, setShowAddEvent] = useState(false);
@@ -245,6 +245,18 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
   const [editEventId, setEditEventId] = useState(null);
   const [editEventForm, setEditEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', roomSpace:'', isAlert:false, isFilming:false, tags:[], audience:[], locationId:'' });
   const [dayCardCollapsed, setDayCardCollapsed] = useState(true);
+
+  // Jump straight to a specific day (from the shot list day tiles) with the
+  // day details expanded for editing
+  useEffect(() => {
+    if (!focusDate || !days.length) return;
+    const match = days.find(d => d.date?.slice(0, 10) === focusDate);
+    if (match) {
+      setActiveDay(match.id);
+      setDayCardCollapsed(false);
+    }
+    onFocusConsumed?.();
+  }, [focusDate, days]);
   const [keyTalent, setKeyTalent] = useState([]);
   const [editCallId, setEditCallId] = useState(null);
   const [callTime, setCallTime] = useState('');

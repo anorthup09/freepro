@@ -547,7 +547,17 @@ function fmt12(t) {
   return `${h}:${String(min).padStart(2, '0')} ${period}`;
 }
 
-function DaySynopsisCard({ day, onDelete, onAddScene, scenes, scheduleDays, onDateSelect }) {
+// "FRI, AUG 7, 2026" or ISO text -> "2026-08-07" (null if unparseable)
+function slDayDateToISO(str) {
+  if (!str) return null;
+  const iso = /^(\d{4})-(\d{2})-(\d{2})/.exec(str);
+  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+  const { month, day, year } = parseDayDate(str);
+  if (!month || !day || !year) return null;
+  return `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+}
+
+function DaySynopsisCard({ day, onDelete, onAddScene, scenes, scheduleDays, onDateSelect, onOpenSchedule }) {
   const tiles = [
     { label: 'Call Time', val: fmt12(day.call_time) },
     { label: 'Shooting Call', val: fmt12(day.shooting_call) },
@@ -594,7 +604,7 @@ function DaySynopsisCard({ day, onDelete, onAddScene, scenes, scheduleDays, onDa
         <ShineBorder radius={10}>
           <div className="sl-day-tiles" style={{ background: 'rgba(10,10,8,0.92)', borderRadius: 8, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', overflow: 'hidden' }}>
             {tiles.map((t, i) => (
-              <div key={t.label} style={{ padding: '3px 12px 4px', borderRight: i < 3 ? '1px solid rgba(255,255,255,0.07)' : 'none', textAlign: 'center' }}>
+              <div key={t.label} onClick={onOpenSchedule} title="Edit on the Schedule" style={{ padding: '3px 12px 4px', borderRight: i < 3 ? '1px solid rgba(255,255,255,0.07)' : 'none', textAlign: 'center', cursor: onOpenSchedule ? 'pointer' : 'default' }}>
                 <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '.12em' }}>{t.label}</div>
                 <div style={{ fontSize: 12, fontWeight: 800, color: t.val ? 'var(--text)' : 'rgba(255,255,255,0.2)', fontVariantNumeric: 'tabular-nums', lineHeight: 1.2 }}>{t.val || '—'}</div>
               </div>
@@ -958,7 +968,7 @@ function LiveClock({ currentDay }) {
 }
 
 // ── Main Component ────────────────────────────────────────────────────────────
-export default function ShotList({ project, onScenesChange, onCurrentDayChange }) {
+export default function ShotList({ project, onScenesChange, onCurrentDayChange, onOpenScheduleDay }) {
   const [scenes, setScenes] = useState([]);
   const [talent, setTalent] = useState([]);
   const [days, setDays] = useState([]);
@@ -1380,7 +1390,7 @@ export default function ShotList({ project, onScenesChange, onCurrentDayChange }
         return (
           <div key={day.id} style={{ marginBottom: 32 }} ref={el => { dayRefs.current[day.id] = el; }}>
             {dayIdx > 0 && <div style={{ height: 1, background: 'rgba(255,255,255,0.15)', borderRadius: 1, marginBottom: 24 }} />}
-            <DaySynopsisCard day={day} onDelete={deleteDay} onAddScene={openAddSceneForDay} scenes={dayScenes} scheduleDays={scheduleDays} onDateSelect={handleDayDateSelect} />
+            <DaySynopsisCard day={day} onDelete={deleteDay} onAddScene={openAddSceneForDay} scenes={dayScenes} scheduleDays={scheduleDays} onDateSelect={handleDayDateSelect} onOpenSchedule={onOpenScheduleDay ? () => onOpenScheduleDay(slDayDateToISO(day.date)) : undefined} />
             {items.map((item, itemIdx) => item._type === 'scene' ? (
               <SceneBlock key={item.data.id} scene={item.data} projectId={project.id} talent={talent} days={days}
                 onShotUpdate={handleShotUpdate} onShotAdded={handleShotAdded} onShotDelete={handleShotDelete}

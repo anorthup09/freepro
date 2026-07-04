@@ -250,6 +250,7 @@ export default function Project() {
   const [clockTime, setClockTime] = useState(new Date());
   const [shotListScenes, setShotListScenes] = useState([]);
   const [currentShotListDay, setCurrentShotListDay] = useState(null);
+  const [scheduleFocusDate, setScheduleFocusDate] = useState(null);
 
   useEffect(() => {
     function onScroll() { setGlassVisible(window.scrollY > 60); }
@@ -399,9 +400,9 @@ export default function Project() {
 
       <div className="wrap">
         {tab === 'overview'             && <Overview     project={project} setProject={setProject} onTabChange={setTab} />}
-        {tab === 'schedule'             && <Schedule     project={project} showCateringGrid={showCateringGrid} setShowCateringGrid={toggleCateringGrid} onCateringTabChange={() => setTab('catering')} showShotList={showShotList} setShowShotList={toggleShotList} onShotListTabChange={() => setTab('shot-list')} showTravel={showTravel} setShowTravel={toggleTravel} onTravelTabChange={() => setTab('travel')} />}
+        {tab === 'schedule'             && <Schedule     project={project} showCateringGrid={showCateringGrid} setShowCateringGrid={toggleCateringGrid} onCateringTabChange={() => setTab('catering')} showShotList={showShotList} setShowShotList={toggleShotList} onShotListTabChange={() => setTab('shot-list')} showTravel={showTravel} setShowTravel={toggleTravel} onTravelTabChange={() => setTab('travel')} focusDate={scheduleFocusDate} onFocusConsumed={() => setScheduleFocusDate(null)} />}
         {tab === 'catering'             && <Catering     project={project} />}
-        {tab === 'shot-list'            && <ShotList     project={project} onScenesChange={setShotListScenes} onCurrentDayChange={setCurrentShotListDay} />}
+        {tab === 'shot-list'            && <ShotList     project={project} onScenesChange={setShotListScenes} onCurrentDayChange={setCurrentShotListDay} onOpenScheduleDay={(iso) => { setScheduleFocusDate(iso); setTab('schedule'); }} />}
         {tab === 'crew'                 && <Crew         project={project} onProjectUpdate={setProject} />}
         {tab === 'travel'               && <Travel       project={project} />}
         {tab === 'gear'                 && <Gear         project={project} setProject={setProject} />}
