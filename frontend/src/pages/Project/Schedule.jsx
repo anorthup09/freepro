@@ -206,7 +206,7 @@ function WeatherLocationPicker({ day, projectCity, onSelect, onClear }) {
         projectCity && <span style={{ fontSize:12, color:'var(--muted)' }}>📍 {projectCity} <span style={{ fontSize:10 }}>(project default)</span></span>
       )}
       <button type="button" onClick={() => setShowSearch(s => !s)} title="Change weather location"
-        style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', padding:0, fontSize:12, lineHeight:1 }}>
+        style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:28, height:28, background:'var(--bg3)', border:'1px solid var(--border2)', borderRadius:8, color:'var(--tan)', cursor:'pointer', padding:0, fontSize:16, lineHeight:1 }}>
         {showSearch ? '▴' : '▾'}
       </button>
       {showSearch && <div style={{ position:'relative' }}>
