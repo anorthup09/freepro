@@ -31,9 +31,9 @@ async function refreshWeather(project, shootDays) {
           weather_sunrise: w.sunrise, weather_sunset: w.sunset,
           weather_precip: w.precip, weather_condition: w.condition,
         });
-      } catch(e) { /* leave weather null for this day */ }
+      } catch(e) { console.error('weather fetch failed for day', day.id, e.message); }
     }));
-  } catch(e) { /* geocode failed, leave all weather null */ }
+  } catch(e) { console.error('weather geocode failed:', project.city, project.state, '-', e.message); }
 }
 
 // GET /share/:token — public, no auth
