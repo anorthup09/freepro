@@ -99,6 +99,20 @@ function wmoIcon(code) {
   return '⛈️';
 }
 
+function wmoLabel(code) {
+  if (code == null) return '';
+  if (code === 0) return 'Sunny';
+  if (code <= 2) return 'Partly Cloudy';
+  if (code === 3) return 'Cloudy';
+  if (code <= 48) return 'Foggy';
+  if (code <= 55) return 'Drizzle';
+  if (code <= 67) return 'Rainy';
+  if (code <= 77) return 'Snowy';
+  if (code <= 82) return 'Showers';
+  if (code <= 86) return 'Snow Showers';
+  return 'Thunderstorms';
+}
+
 function flightStatusLabel(f) {
   const st = (f.status || '').toUpperCase();
   if (st === 'CANCELLED') return { label:'Cancelled', color:'#ef4444', alert:true };
@@ -787,7 +801,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                       }
                       return (
                         <span style={{ fontSize:12, fontWeight:400, color:'var(--tan)', display:'flex', alignItems:'center', gap:5 }}>
-                          {wmoIcon(w.code)} {w.high}° / {w.low}°
+                          {wmoIcon(w.code)}{wmoLabel(w.code) && <span style={{ color:'var(--muted)', fontSize:11 }}>{wmoLabel(w.code)}</span>} {w.high}° / {w.low}°
                           {w.precip > 0 && <span style={{ color:'var(--muted)', fontSize:11 }}>· {w.precip}% precip</span>}
                         </span>
                       );
