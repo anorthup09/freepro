@@ -2,18 +2,19 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 // Running local-time timecode: HH.MM.SS.xx AM/PM in slate red on black
-function TimecodeBar({ big }) {
+function TimecodeBar({ big, frozen }) {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 50);
     return () => clearInterval(id);
   }, []);
-  const h24 = now.getHours();
+  const t = frozen || now;
+  const h24 = t.getHours();
   const ampm = h24 >= 12 ? 'PM' : 'AM';
   const h = String(h24 % 12 || 12).padStart(2, '0');
-  const m = String(now.getMinutes()).padStart(2, '0');
-  const sec = String(now.getSeconds()).padStart(2, '0');
-  const cs = String(Math.floor(now.getMilliseconds() / 10)).padStart(2, '0');
+  const m = String(t.getMinutes()).padStart(2, '0');
+  const sec = String(t.getSeconds()).padStart(2, '0');
+  const cs = String(Math.floor(t.getMilliseconds() / 10)).padStart(2, '0');
   return (
     <div style={{ background: '#000', padding: 'min(10px, 1.4vh) 52px min(10px, 1.4vh) 12px', textAlign: 'right', position: 'relative' }}>
       {big && (
@@ -60,6 +61,7 @@ export default function Clapboard({ title, date, location, fieldProducer, direct
   const [landscape, setLandscape] = useState(() => typeof window !== 'undefined' && window.innerWidth > window.innerHeight);
   const WIPE_MS = 280;
   const [wiping, setWiping] = useState(false);
+  const [frozenTime, setFrozenTime] = useState(null);
 
   // Synthesized clap scheduled on the audio clock so it lands exactly when the
   // panels meet — setTimeout jitter and context spin-up were audibly late
@@ -69,18 +71,27 @@ export default function Clapboard({ title, date, location, fieldProducer, direct
     try {
       const ctx = audioRef.current || (audioRef.current = new (window.AudioContext || window.webkitAudioContext)());
       if (ctx.state === 'suspended') ctx.resume();
-      const dur = 0.14;
-      const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * dur), ctx.sampleRate);
-      const d = buf.getChannelData(0);
-      for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 2.2);
-      const src = ctx.createBufferSource(); src.buffer = buf;
-      const filt = ctx.createBiquadFilter(); filt.type = 'bandpass'; filt.frequency.value = 1700; filt.Q.value = 0.7;
-      const gain = ctx.createGain(); gain.gain.value = 2.2;
-      src.connect(filt); filt.connect(gain); gain.connect(ctx.destination);
+      // Sync beep — 1 kHz tone like a broadcast 2-pop
+      const dur = 0.2;
+      const osc = ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.value = 1000;
+      const gain = ctx.createGain();
       const outLatency = ctx.outputLatency || ctx.baseLatency || 0;
-      src.start(Math.max(ctx.currentTime, ctx.currentTime + WIPE_MS / 1000 - outLatency));
+      const t0 = Math.max(ctx.currentTime, ctx.currentTime + WIPE_MS / 1000 - outLatency);
+      gain.gain.setValueAtTime(0, t0);
+      gain.gain.linearRampToValueAtTime(0.9, t0 + 0.005);
+      gain.gain.setValueAtTime(0.9, t0 + dur - 0.02);
+      gain.gain.linearRampToValueAtTime(0, t0 + dur);
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(t0); osc.stop(t0 + dur + 0.02);
     } catch { /* audio blocked — wipe still plays */ }
     setWiping(true);
+    setTimeout(() => {
+      // Hold the marked timecode for 3s so it can be read on camera
+      setFrozenTime(new Date());
+      setTimeout(() => setFrozenTime(null), 3000);
+    }, WIPE_MS);
     setTimeout(() => setWiping(false), WIPE_MS + 420);
   }
   useEffect(() => {
@@ -101,7 +112,7 @@ export default function Clapboard({ title, date, location, fieldProducer, direct
         width: '100vw', height: '100dvh', overflowY: 'auto', overflowX: 'hidden', background: '#fdfdfb', position: 'relative', overflow: 'hidden',
         display: 'flex', flexDirection: 'column',
       }}>
-        <TimecodeBar big={landscape} />
+        <TimecodeBar big={landscape} frozen={frozenTime} />
         <button onClick={onClose} aria-label="Close"
           style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(255,255,255,0.12)', color: '#fff', border: 'none', borderRadius: 8, width: 32, height: 32, fontSize: 15, cursor: 'pointer', lineHeight: 1 }}>✕</button>
 
