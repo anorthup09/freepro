@@ -881,7 +881,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                       return (
                         <div key={item._key} className="ev">
                           <div className="ev-time" style={{ color: sm.color }}>{fmtTime(item.startTime)}</div>
-                          <div className="ev-body" style={{ borderLeft:`2px solid ${sm.color}`, background: sm.bg, cursor:'pointer' }}
+                          <div className="ev-body" style={{ borderLeft:`2px solid ${sm.color}`, cursor:'pointer' }}
                             onClick={() => setEditingSyntheticKey(isEditing ? null : item._key)}>
                             <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between' }}>
                               <div style={{ flex:1 }}>
@@ -977,7 +977,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                       return (
                         <div key={item._key} className="ev" style={{ cursor: 'pointer' }} onClick={() => onShotListTabChange?.()}>
                           <div className="ev-time" style={{ color: st.color }}>{item.est_start_time}</div>
-                          <div className="ev-body" style={{ borderLeft: `2px solid ${st.border}`, background: st.bg, padding: '10px 14px' }}>
+                          <div className="ev-body" style={{ borderLeft: `2px solid ${st.border}`, padding: '10px 14px' }}>
                             <div className="sl-tile-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                               <div className="sl-tile-left" style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
                                 <span style={{ fontSize: 10, fontWeight: 800, color: st.color, background: st.badge, border: `1px solid ${st.border}`, borderRadius: 4, padding: '2px 7px', whiteSpace: 'nowrap', letterSpacing: '.08em', flexShrink: 0 }}>
@@ -1007,7 +1007,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                       return (
                         <div key={item._key} className="ev">
                           <div className="ev-time" style={{ color: mc.color }}>{item.delivery_time ? fmtTime(item.delivery_time) : '—'}</div>
-                          <div className="ev-body" style={{ borderLeft:`2px solid ${mc.color}`, background: mc.bg }}>
+                          <div className="ev-body" style={{ borderLeft:`2px solid ${mc.color}` }}>
                             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
                               <div className="ev-title" style={{ color: mc.color }}>{mc.emoji} {mc.label}</div>
                               <div style={{ textAlign:'right' }}>
@@ -1051,7 +1051,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                       <div key={item.id} className="ev">
                         <div className="ev-time">{fmtTime(item.start_time || item.startTime)}{(item.end_time || item.endTime) ? ` – ${fmtTime(item.end_time || item.endTime)}` : ''}</div>
                         <div className={`ev-body${(item.is_alert||item.isAlert) ? ' warn' : ''}`}
-                          style={{ cursor:'pointer', ...(!(item.is_alert||item.isAlert) ? { borderLeft:'2px solid var(--orange)', ...(item.is_filming||item.isFilming ? { background:'linear-gradient(90deg, rgba(255,140,0,0.12) 0%, transparent 100%)', borderRadius:'0 6px 6px 0' } : {}) } : {}) }}
+                          style={{ cursor:'pointer', ...(!(item.is_alert||item.isAlert) ? { borderLeft:'2px solid var(--orange)',  } : {}) }}
                           onClick={() => openEditEvent(item)}>
                           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:8 }}>
                             <div style={{ flex:1, minWidth:0 }}>
@@ -1172,10 +1172,6 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                     </div>
                   )}
                 </div>
-                <div className="field span2" style={{ flexDirection:'row', alignItems:'center', gap:10 }}>
-                  <input type="checkbox" id="isAlert" checked={eventForm.isAlert} onChange={e => setEventForm(f=>({...f,isAlert:e.target.checked}))} style={{ width:'auto' }} />
-                  <label htmlFor="isAlert" style={{ textTransform:'none', letterSpacing:0, fontSize:12, color:'var(--text)' }}>Mark as urgent alert</label>
-                </div>
               </div>
               <div className="btn-row"><button className="btn btn-primary">Add Event</button><button type="button" className="btn btn-ghost" onClick={() => setShowAddEvent(false)}>Cancel</button></div>
             </form>
@@ -1293,10 +1289,6 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                       })}
                     </div>
                   )}
-                </div>
-                <div className="field span2" style={{ flexDirection:'row', alignItems:'center', gap:10 }}>
-                  <input type="checkbox" id="editIsAlert" checked={editEventForm.isAlert} onChange={e => setEditEventForm(f=>({...f,isAlert:e.target.checked}))} style={{ width:'auto' }} />
-                  <label htmlFor="editIsAlert" style={{ textTransform:'none', letterSpacing:0, fontSize:12, color:'var(--text)' }}>Mark as urgent alert</label>
                 </div>
               </div>
               <div className="btn-row"><button className="btn btn-primary">Save</button><button type="button" className="btn btn-ghost" onClick={() => setEditEventId(null)}>Cancel</button></div>

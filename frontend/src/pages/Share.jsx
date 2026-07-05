@@ -2084,7 +2084,7 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
                 return (
                   <div key={item._key} className="ev">
                     <div className="ev-time" style={{ color: sm.color }}>{fmtTime(item.startTime)}</div>
-                    <div className="ev-body" style={{ borderLeft:`2px solid ${sm.color}`, background: sm.bg }}>
+                    <div className="ev-body" style={{ borderLeft:`2px solid ${sm.color}` }}>
                       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
                         <div style={{ flex:1 }}>
                           <div className="ev-title" style={{ color: sm.color }}>{item.title}</div>
@@ -2125,7 +2125,7 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
                 return (
                   <div key={item._key} className="ev" style={onOpenShotList ? { cursor:'pointer' } : undefined} onClick={() => onOpenShotList?.()}>
                     <div className="ev-time" style={{ color: st.color }}>{item.est_start_time}</div>
-                    <div className="ev-body" style={{ borderLeft:`2px solid ${st.border}`, background: st.bg, padding:'10px 14px' }}>
+                    <div className="ev-body" style={{ borderLeft:`2px solid ${st.border}`, padding:'10px 14px' }}>
                       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12 }}>
                         <div style={{ display:'flex', alignItems:'center', gap:8, minWidth:0, flex:1, flexWrap:'wrap' }}>
                           <span style={{ display:'inline-flex', alignItems:'center', gap:8, minWidth:0 }}>
@@ -2189,7 +2189,7 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
                 return (
                   <div key={item.id || i} className="ev">
                     <div className="ev-time">{fmtTime(item.start_time)}{item.end_time ? ` – ${fmtTime(item.end_time)}` : ''}</div>
-                    <div className={`ev-body${item.is_alert ? ' warn' : ''}`} style={!item.is_alert ? { borderLeft:'2px solid var(--orange)', ...(item.is_filming ? { background:'linear-gradient(90deg, rgba(255,140,0,0.12) 0%, transparent 100%)', borderRadius:'0 6px 6px 0' } : {}) } : {}}>
+                    <div className={`ev-body${item.is_alert ? ' warn' : ''}`} style={!item.is_alert ? { borderLeft:'2px solid var(--orange)',  } : {}}>
                       <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:8 }}>
                         <div style={{ flex:1, minWidth:0 }}>
                           <div className={`ev-title${item.is_alert ? ' alert' : ''}`} style={item.is_filming ? { color:'var(--orange)' } : {}}>{item.is_filming ? '🎬 ' : ''}{item.title}</div>
