@@ -1988,23 +1988,25 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
                     <div className="ev-body" style={{ borderLeft:`2px solid ${st.border}`, background: st.bg, padding:'10px 14px' }}>
                       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12 }}>
                         <div style={{ display:'flex', alignItems:'center', gap:8, minWidth:0, flex:1, flexWrap:'wrap' }}>
-                          <span style={{ fontSize:10, fontWeight:800, color: st.color, background: st.badge, border:`1px solid ${st.border}`, borderRadius:4, padding:'2px 7px', whiteSpace:'nowrap', letterSpacing:'.08em', flexShrink:0 }}>
-                            {st.label} · Scene {item.scene_number}
+                          <span style={{ display:'inline-flex', alignItems:'center', gap:8, minWidth:0 }}>
+                            <span style={{ fontSize:10, fontWeight:800, color: st.color, background: st.badge, border:`1px solid ${st.border}`, borderRadius:4, padding:'2px 7px', whiteSpace:'nowrap', letterSpacing:'.08em', flexShrink:0 }}>
+                              {st.label} · Scene {item.scene_number}
+                            </span>
+                            <span style={{ fontSize:13, fontWeight:700, color:'var(--text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{item.name}</span>
                           </span>
-                          <span style={{ fontSize:13, fontWeight:700, color:'var(--text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{item.name}</span>
                           {item.description && <span style={{ fontSize:11, color:'var(--muted)', whiteSpace:'nowrap' }}>· {item.description}</span>}
                           <span style={{ fontSize:11, fontWeight:600, color: st.color, background: st.badge, border:`1px solid ${st.border}`, borderRadius:100, padding:'1px 8px', whiteSpace:'nowrap', flexShrink:0 }}>
                             {(item.shots||[]).length} shots
                           </span>
                         </div>
-                        <div style={{ display:'flex', alignItems:'center', gap:12, flexShrink:0 }}>
+                        <div style={{ textAlign:'right', flexShrink:0 }}>
                           {wrapTime && (
-                            <div style={{ textAlign:'right' }}>
+                            <>
                               <div style={{ fontSize:9, fontWeight:700, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.1em' }}>Est. Wrap</div>
                               <div style={{ fontSize:13, fontWeight:800, color: st.color, fontVariantNumeric:'tabular-nums' }}>{wrapTime}</div>
-                            </div>
+                            </>
                           )}
-                          {onOpenShotList && <span style={{ fontSize:10, color: st.color, opacity:0.6, whiteSpace:'nowrap' }}>→ Shot List</span>}
+                          {onOpenShotList && <div style={{ fontSize:10, color: st.color, opacity:0.6, whiteSpace:'nowrap', marginTop:2 }}>→ Shot List</div>}
                         </div>
                       </div>
                     </div>
