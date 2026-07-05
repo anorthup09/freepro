@@ -2060,7 +2060,7 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
                     <div className={`ev-body${item.is_alert ? ' warn' : ''}`} style={!item.is_alert ? { borderLeft:'2px solid var(--orange)', ...(item.is_filming ? { background:'linear-gradient(90deg, rgba(255,140,0,0.12) 0%, transparent 100%)', borderRadius:'0 6px 6px 0' } : {}) } : {}}>
                       <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:8 }}>
                         <div style={{ flex:1, minWidth:0 }}>
-                          <div className={`ev-title${item.is_alert ? ' alert' : ''}`} style={item.is_filming ? { color:'var(--orange)' } : {}}>{item.is_filming ? <span title="Open clapboard" onClick={e => { e.stopPropagation(); if (crewAssignments) setClapEvent(item); }} style={{ cursor: crewAssignments ? 'pointer' : 'default' }}>🎬 </span> : ''}{item.title}</div>
+                          <div className={`ev-title${item.is_alert ? ' alert' : ''}`} style={item.is_filming ? { color:'var(--orange)' } : {}}>{item.is_filming ? '🎬 ' : ''}{item.title}</div>
                           {item.detail && <div className="ev-detail">{item.detail}</div>}
                           {item.room_space && (
                             <div style={{ fontSize:12, fontWeight:700, color:'var(--text)', marginTop:2 }}>
@@ -2085,6 +2085,14 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
                           </div>
                         )}
                       </div>
+                      {item.is_filming && crewAssignments && (
+                        <div style={{ display:'flex', justifyContent:'flex-end', marginTop:6 }}>
+                          <button onClick={e => { e.stopPropagation(); setClapEvent(item); }}
+                            style={{ display:'inline-flex', alignItems:'center', gap:5, background:'rgba(255,140,0,0.12)', border:'1px solid rgba(255,140,0,0.4)', borderRadius:6, padding:'2px 9px', fontSize:10, fontWeight:700, color:'var(--orange)', cursor:'pointer', letterSpacing:'.05em', textTransform:'uppercase' }}>
+                            🎬 Slate
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );

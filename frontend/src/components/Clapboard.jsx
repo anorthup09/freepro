@@ -1,20 +1,24 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-const STRIPES = ['#111', '#1a9850', '#e8d417', '#2b7de0', '#e03131', '#e9e9e9', '#8a8a8a', '#4a4a4a', '#241f1f'];
-
-function StripeBar({ flipped }) {
+// Running local-time timecode: HH.MM.SS.xx AM/PM in slate red on black
+function TimecodeBar() {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 50);
+    return () => clearInterval(id);
+  }, []);
+  const h24 = now.getHours();
+  const ampm = h24 >= 12 ? 'PM' : 'AM';
+  const h = String(h24 % 12 || 12).padStart(2, '0');
+  const m = String(now.getMinutes()).padStart(2, '0');
+  const sec = String(now.getSeconds()).padStart(2, '0');
+  const cs = String(Math.floor(now.getMilliseconds() / 10)).padStart(2, '0');
   return (
-    <div style={{ display: 'flex', height: 34, overflow: 'hidden', background: '#111' }}>
-      {STRIPES.map((c, i) => (
-        <div key={i} style={{
-          flex: 1,
-          background: c,
-          transform: flipped ? 'skewX(30deg)' : 'skewX(-30deg)',
-          marginLeft: i === 0 ? -14 : 2,
-          marginRight: i === STRIPES.length - 1 ? -14 : 0,
-        }} />
-      ))}
+    <div style={{ background: '#000', padding: '14px 12px', textAlign: 'center' }}>
+      <span style={{ fontFamily: "'Courier New', monospace", fontWeight: 700, fontSize: 30, letterSpacing: '0.06em', color: '#ff2222', textShadow: '0 0 12px rgba(255,34,34,0.6)', fontVariantNumeric: 'tabular-nums' }}>
+        {h}.{m}.{sec}.{cs} <span style={{ fontSize: 18 }}>{ampm}</span>
+      </span>
     </div>
   );
 }
@@ -42,13 +46,7 @@ export default function Clapboard({ title, date, fieldProducer, director, camera
         width: 'min(440px, 94vw)', background: '#fdfdfb', borderRadius: 10, overflow: 'hidden',
         boxShadow: '0 24px 64px rgba(0,0,0,0.6)', border: '1px solid rgba(0,0,0,0.4)',
       }}>
-        {/* Hinged sticks */}
-        <div style={{ transform: 'rotate(-3deg) translateY(-4px)', transformOrigin: 'left bottom', margin: '10px 6px 0' , borderRadius: 6, overflow: 'hidden', boxShadow: '0 3px 8px rgba(0,0,0,0.35)' }}>
-          <StripeBar />
-        </div>
-        <div style={{ margin: '2px 6px 0', borderRadius: 6, overflow: 'hidden' }}>
-          <StripeBar flipped />
-        </div>
+        <TimecodeBar />
 
         <div style={{ padding: '14px 18px 18px' }}>
           <Row name="Prod">{fieldProducer || '—'}</Row>
