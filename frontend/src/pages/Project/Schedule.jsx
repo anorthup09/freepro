@@ -616,15 +616,17 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
         </div>
       )}
       <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:14, flexWrap:'wrap', gap:10 }}>
-        <div>
-          <div className="page-title">Schedule</div>
-          <div className="page-sub">{parseDay(project.start_date||project.startDate).toLocaleDateString()} – {parseDay(project.end_date||project.endDate).toLocaleDateString()}</div>
-        </div>
-        <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:6, minWidth:0 }}>
+        <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:10, flex:'1 1 100%' }}>
+          <div>
+            <div className="page-title">Schedule</div>
+            <div className="page-sub">{parseDay(project.start_date||project.startDate).toLocaleDateString()} – {parseDay(project.end_date||project.endDate).toLocaleDateString()}</div>
+          </div>
           <button onClick={() => setQuickSlate(true)}
-            style={{ display:'inline-flex', alignItems:'center', gap:6, background:'rgba(255,140,0,0.12)', border:'1px solid rgba(255,140,0,0.45)', borderRadius:6, padding:'4px 12px', fontSize:11, fontWeight:700, color:'var(--orange)', cursor:'pointer', letterSpacing:'.05em', textTransform:'uppercase', whiteSpace:'nowrap' }}>
+            style={{ display:'inline-flex', alignItems:'center', gap:6, background:'rgba(255,140,0,0.12)', border:'1px solid rgba(255,140,0,0.45)', borderRadius:6, padding:'4px 12px', fontSize:11, fontWeight:700, color:'var(--orange)', cursor:'pointer', letterSpacing:'.05em', textTransform:'uppercase', whiteSpace:'nowrap', flexShrink:0 }}>
             🎬 Quick Slate
           </button>
+        </div>
+        <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:6, minWidth:0, flex:1 }}>
           <div style={{ display:'flex', gap:6, flexWrap:'nowrap', overflowX:'auto', WebkitOverflowScrolling:'touch', maxWidth:'100%', scrollbarWidth:'none' }}>
             <button
               onClick={() => { if (!showTravel) { setShowTravel(true); onTravelTabChange?.(); } else { setShowTravel(false); } }}
