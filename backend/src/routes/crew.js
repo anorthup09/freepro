@@ -75,7 +75,8 @@ router.get('/:id', requireAuth, async (req, res, next) => {
       FROM crew_assignments ca
       JOIN positions p ON p.id = ca.position_id
       JOIN projects pr ON pr.id = ca.project_id
-      WHERE ca.crew_member_id = ${req.params.id}`;
+      WHERE ca.crew_member_id = ${req.params.id}
+      ORDER BY pr.start_date DESC NULLS LAST`;
     res.json({ ...member, assignments });
   } catch (err) { next(err); }
 });

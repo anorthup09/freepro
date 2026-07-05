@@ -571,8 +571,18 @@ export default function Crew({ project, onProjectUpdate }) {
                 <div style={{ gridColumn:'1/-1', marginTop:6, borderTop:'1px solid var(--border)', paddingTop:6 }}>
                   <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)', marginBottom:4 }}>Project History</div>
                   {memberDetail.assignments.map(a => (
-                    <div key={a.id} style={{ fontSize:11, color:'var(--muted)', padding:'2px 0' }}>
-                      <span style={{ color:'var(--text)', fontWeight:500 }}>{a.code}</span> · {a.title} · {a.position_name}
+                    <div key={a.id} style={{ display:'flex', alignItems:'baseline', gap:8, fontSize:11, color:'var(--muted)', padding:'2px 0' }}>
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <span style={{ color:'var(--text)', fontWeight:500 }}>{a.code}</span> · {a.title} · {a.position_name}
+                        {a.start_date && <span> · {new Date(String(a.start_date).slice(0,10)+'T12:00:00').getFullYear()}</span>}
+                      </div>
+                      <div style={{ flexShrink:0, whiteSpace:'nowrap', textAlign:'right' }}>
+                        {a.is_contractor && a.day_rate
+                          ? <span style={{ color:'var(--green)', fontWeight:600 }}>${Number(a.day_rate).toLocaleString('en-US',{maximumFractionDigits:2})}/day{a.labor_days ? ` × ${Number(a.labor_days)}d` : ''}</span>
+                          : a.is_contractor
+                            ? <span>Contract · no rate</span>
+                            : <span style={{ color:'var(--orange)' }}>Unbridled</span>}
+                      </div>
                     </div>
                   ))}
                 </div>
