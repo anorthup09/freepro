@@ -379,6 +379,7 @@ textarea { resize: vertical; min-height: 70px; }
      paint over neighboring elements */
   .sl-scene-head { flex-direction: column !important; align-items: stretch !important; gap: 8px !important; padding: 10px 14px !important; }
   .sl-scene-head > div { flex-wrap: wrap !important; row-gap: 6px; justify-content: flex-start !important; }
+  .sl-scene-head > div:last-child { justify-content: flex-end !important; }
   .sl-scene-head span { white-space: normal !important; }
 
   /* Fixed glass header: stack title above day info so labels stay visible */
