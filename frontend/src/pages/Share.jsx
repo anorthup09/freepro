@@ -1591,7 +1591,7 @@ function ClientView({ data, onOpenShotList }) {
         </section>
       )}
       {[...(schedule||[])].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map((day, i) => (
-        <DaySection key={day.id} day={day} showCalls={false} dayIndex={i} cateringDetail="name" shotList={shotList} slDays={slDays} slBreaks={slBreaks} onOpenShotList={onOpenShotList} />
+        <DaySection key={day.id} day={day} showCalls={false} dayIndex={i} cateringDetail="name" shotList={shotList} slDays={slDays} slBreaks={slBreaks} onOpenShotList={onOpenShotList} projectCity={[project.city, project.state].filter(Boolean).join(', ')} />
       ))}
     </div>
   );
@@ -1752,7 +1752,7 @@ function TalentView({ data }) {
           </section>
         )}
         {filteredSchedule.map((day, i) => (
-          <DaySection key={day.id} day={day} showCalls={false} dayIndex={i} talentCallTime={day.talent_call_time} hideCallWrap talentMode />
+          <DaySection key={day.id} day={day} showCalls={false} dayIndex={i} talentCallTime={day.talent_call_time} hideCallWrap talentMode projectCity={[project.city, project.state].filter(Boolean).join(', ')} />
         ))}
       </div>
     </div>
@@ -2001,7 +2001,10 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
     <section className="share-section">
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
         <div>
-          <div className="sec-lbl" style={{ margin:0 }}>Day {dayIndex != null ? dayIndex + 1 : day.day_number} — {new Date(day.date.slice ? day.date.slice(0,10) + 'T12:00:00' : day.date).toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' })}</div>
+          <div className="sec-lbl" style={{ margin:0 }}>
+            Day {dayIndex != null ? dayIndex + 1 : day.day_number} — {new Date(day.date.slice ? day.date.slice(0,10) + 'T12:00:00' : day.date).toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' })}
+            {(day.weather_location_name || projectCity) && <span style={{ color:'var(--muted)', fontWeight:500, textTransform:'none', letterSpacing:'normal' }}> · {day.weather_location_name || projectCity}</span>}
+          </div>
           <div style={{ fontSize:11, color:'var(--muted)', marginTop:2 }}>
             {weatherStr || 'Weather coming soon'}
           </div>
