@@ -45,6 +45,7 @@ function PendingApproval({ setUser }) {
   );
 }
 import Share from './pages/Share.jsx';
+import ContractSign from './pages/ContractSign.jsx';
 import { api } from './api.js';
 
 export const AuthContext = createContext(null);
@@ -72,6 +73,7 @@ export default function App() {
         <Route path="/projects/:id" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <Project />) : <Navigate to="/login" />} />
         <Route path="/projects/:id/talent-callsheets" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <TalentCallSheets />) : <Navigate to="/login" />} />
         <Route path="/share/:token" element={<Share />} />
+        <Route path="/contract/:token" element={<ContractSign />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
       )}

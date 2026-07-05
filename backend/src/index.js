@@ -115,6 +115,7 @@ app.use('/api/projects', travelRoutes);
 app.use('/api/projects', shotListRoutes);
 app.use('/api/projects', require('./routes/scripts'));
 app.use('/api/util', utilRoutes);
+app.use('/api', require('./routes/contracts'));
 
 // Fallback: serve index.html for client-side routing (React Router)
 if (fs.existsSync(publicDir)) {

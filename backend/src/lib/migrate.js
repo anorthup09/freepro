@@ -691,6 +691,31 @@ async function migrate() {
     WHERE cm.id = ca.crew_member_id
       AND ca.is_contractor IS DISTINCT FROM NOT (COALESCE(cm.company, '') ILIKE '%unbridled%')`;
 
+  // Contractor deal-memo contracts (token = id, shared via public link)
+  await sql`
+    CREATE TABLE IF NOT EXISTS contracts (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      crew_assignment_id TEXT REFERENCES crew_assignments(id) ON DELETE SET NULL,
+      contractor_name TEXT,
+      contractor_email TEXT,
+      position_name TEXT,
+      project_title TEXT,
+      project_code TEXT,
+      start_date TEXT,
+      end_date TEXT,
+      day_rate NUMERIC,
+      labor_days NUMERIC,
+      gear_rate NUMERIC,
+      gear_days NUMERIC,
+      scope TEXT,
+      status TEXT DEFAULT 'SENT',
+      signed_name TEXT,
+      signed_at TIMESTAMPTZ,
+      signed_ip TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`;
+
   console.log('Migration complete.');
 }
 

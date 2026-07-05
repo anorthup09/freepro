@@ -87,6 +87,10 @@ export const api = {
   addCrewSlot: (projectId, data) => req('POST', `/projects/${projectId}/crew`, data),
   updateCrewSlot: (projectId, id, data) => req('PATCH', `/projects/${projectId}/crew/${id}`, data),
   removeCrewSlot: (projectId, id) => req('DELETE', `/projects/${projectId}/crew/${id}`),
+  createContract: (projectId, aid, data) => req('POST', `/projects/${projectId}/crew/${aid}/contract`, data),
+  getContracts: (projectId) => req('GET', `/projects/${projectId}/contracts`),
+  getContract: (token) => req('GET', `/contract/${token}`),
+  signContract: (token, name) => req('POST', `/contract/${token}/sign`, { name }),
 
   // Schedule
   getSchedule: (projectId) => req('GET', `/projects/${projectId}/schedule`),
