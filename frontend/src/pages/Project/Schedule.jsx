@@ -254,7 +254,7 @@ const MEAL_COLORS = {
   LUNCH:     { color:'#4ade80', bg:'rgba(74,222,128,0.08)',  emoji:'🥗', label:'Lunch' },
 };
 
-const TAG_TYPES = ['VIDEO','PHOTO','AUDIO','ALL_CREW','TALENT','CUSTOM'];
+const TAG_TYPES = ['VIDEO','PHOTO','AUDIO','ALL_CREW','TALENT'];
 const TAG_CLASS = { VIDEO:'v', PHOTO:'p', AUDIO:'a', ALL_CREW:'a', TALENT:'t', CUSTOM:'v' };
 const TAG_LABEL = { VIDEO:'Video', PHOTO:'Photo', AUDIO:'Audio', ALL_CREW:'All Crew', TALENT:'Talent', CUSTOM:'Custom' };
 

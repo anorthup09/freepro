@@ -56,6 +56,7 @@ export default function Crew({ project, onProjectUpdate }) {
   const [editTalent, setEditTalent] = useState(null);
   const [editTalentForm, setEditTalentForm] = useState({ name:'', role:'', videoTitle:'', phone:'', email:'', notes:'', dietaryRestrictions:'', callTime:'', wardrobeNotes:'', arrivalNotes:'' });
   const [talentDays, setTalentDays] = useState([]);
+  const [addTalentDayCalls, setAddTalentDayCalls] = useState({});
   const [talentDayCallsForm, setTalentDayCallsForm] = useState({});
 
   useEffect(() => {
@@ -178,6 +179,10 @@ export default function Crew({ project, onProjectUpdate }) {
     e.preventDefault();
     try {
       const t = await api.createTalent(project.id, talentForm);
+      const dayCalls = Object.entries(addTalentDayCalls)
+        .filter(([, v]) => v)
+        .map(([shootDayId, callTime]) => ({ shootDayId, callTime }));
+      if (dayCalls.length) await api.saveTalentDayCalls(project.id, t.id, dayCalls).catch(() => {});
       if (onProjectUpdate) onProjectUpdate(p => ({ ...p, keyTalent: [...(p.keyTalent||[]), t] }));
       setShowTalentModal(false);
       setTalentForm({ name:'', role:'', videoTitle:'', phone:'', email:'', notes:'', dietaryRestrictions:'', callTime:'', wardrobeNotes:'', arrivalNotes:'' });
@@ -307,7 +312,11 @@ export default function Crew({ project, onProjectUpdate }) {
       {/* Talent */}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:24, marginBottom:6 }}>
         <div className="sec-lbl" style={{ marginTop:0 }}>Talent</div>
-        <button className="btn btn-primary btn-sm" onClick={() => setShowTalentModal(true)}>+ Add Talent</button>
+        <button className="btn btn-primary btn-sm" onClick={() => {
+          setAddTalentDayCalls({});
+          api.getSchedule(project.id).then(setTalentDays).catch(() => {});
+          setShowTalentModal(true);
+        }}>+ Add Talent</button>
       </div>
       {(project.keyTalent||[]).length === 0
         ? <div className="empty" style={{ marginBottom:16 }}>No talent added yet.</div>
@@ -603,12 +612,28 @@ export default function Crew({ project, onProjectUpdate }) {
                 <div className="field"><label>Email</label><input type="email" value={talentForm.email} onChange={e => setTalentForm(f=>({...f,email:e.target.value}))} /></div>
                 <div className="field"><label>Phone</label><input value={talentForm.phone} onChange={e => setTalentForm(f=>({...f,phone:e.target.value}))} /></div>
                 <div className="field"><label>Video Title</label><input value={talentForm.videoTitle} onChange={e => setTalentForm(f=>({...f,videoTitle:e.target.value}))} /></div>
-                <div className="field"><label>Call Time</label><input type="time" value={talentForm.callTime} onChange={e => setTalentForm(f=>({...f,callTime:e.target.value}))} /></div>
                 <div className="field"><label>Dietary Restrictions</label><input value={talentForm.dietaryRestrictions} onChange={e => setTalentForm(f=>({...f,dietaryRestrictions:e.target.value}))} /></div>
                 <div className="field"><label>Wardrobe Notes</label><input value={talentForm.wardrobeNotes} onChange={e => setTalentForm(f=>({...f,wardrobeNotes:e.target.value}))} /></div>
                 <div className="field span2"><label>Arrival Notes</label><input value={talentForm.arrivalNotes} onChange={e => setTalentForm(f=>({...f,arrivalNotes:e.target.value}))} /></div>
-                <div className="field span2"><label>Notes</label><textarea rows={2} value={talentForm.notes} onChange={e => setTalentForm(f=>({...f,notes:e.target.value}))} style={{ fontFamily:'inherit', fontSize:12, resize:'vertical' }} /></div>
               </div>
+              {talentDays.length > 0 && (
+                <div style={{ marginBottom:12 }}>
+                  <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)', marginBottom:8 }}>Call Times by Day</div>
+                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'6px 12px' }}>
+                    {talentDays.map((day, i) => {
+                      const dateLabel = day.date ? new Date(day.date.slice(0,10)+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '';
+                      return (
+                        <React.Fragment key={day.id}>
+                          <div style={{ display:'flex', alignItems:'center', fontSize:12, color:'var(--text)', fontWeight:500 }}>
+                            Day {i+1}{dateLabel ? ` — ${dateLabel}` : ''}
+                          </div>
+                          <input type="time" value={addTalentDayCalls[day.id] || ''} onChange={e => setAddTalentDayCalls(m => ({ ...m, [day.id]: e.target.value }))} />
+                        </React.Fragment>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
               <div className="btn-row"><button className="btn btn-primary">Add Talent</button><button type="button" className="btn btn-ghost" onClick={() => setShowTalentModal(false)}>Cancel</button></div>
             </form>
           </div>

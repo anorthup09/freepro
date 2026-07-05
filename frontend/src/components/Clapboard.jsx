@@ -50,14 +50,14 @@ export default function Clapboard({ title, date, location, fieldProducer, direct
   return createPortal(
     <div className="modal-bg" onClick={onClose} style={{ zIndex: 300 }}>
       <div onClick={e => e.stopPropagation()} style={{
-        width: 'min(900px, 96vw)', maxHeight: '96vh', overflowY: 'auto', background: '#fdfdfb', borderRadius: 10, position: 'relative',
-        boxShadow: '0 24px 64px rgba(0,0,0,0.6)', border: '1px solid rgba(0,0,0,0.4)',
+        width: '100vw', height: '100dvh', overflowY: 'auto', background: '#fdfdfb', position: 'relative',
+        display: 'flex', flexDirection: 'column',
       }}>
         <TimecodeBar />
         <button onClick={onClose} aria-label="Close"
           style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(255,255,255,0.12)', color: '#fff', border: 'none', borderRadius: 8, width: 32, height: 32, fontSize: 15, cursor: 'pointer', lineHeight: 1 }}>✕</button>
 
-        <div style={{ padding: 'min(10px, 1.4vh) 18px min(12px, 1.6vh)' }}>
+        <div style={{ padding: 'min(10px, 1.4vh) 18px min(12px, 1.6vh)', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-evenly' }}>
           <Row name="Prod">{fieldProducer || '—'}</Row>
 
           {/* Title | Take grid */}
