@@ -681,6 +681,16 @@ async function migrate() {
     }
   }
 
+  // Keep assignment grouping in sync with the roster: Unbridled staff are never
+  // contractors, everyone else assigned to a slot is. Runs every boot so roster
+  // company edits propagate to existing projects.
+  await sql`
+    UPDATE crew_assignments ca
+    SET is_contractor = NOT (COALESCE(cm.company, '') ILIKE '%unbridled%')
+    FROM crew_members cm
+    WHERE cm.id = ca.crew_member_id
+      AND ca.is_contractor IS DISTINCT FROM NOT (COALESCE(cm.company, '') ILIKE '%unbridled%')`;
+
   console.log('Migration complete.');
 }
 
