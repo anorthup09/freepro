@@ -1556,15 +1556,15 @@ function TalentView({ data }) {
         return (
           <section className="share-section">
             <div className="sec-lbl">Key Contacts</div>
+            {project.poc_name && (
+              <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 14px', marginBottom:10 }}>
+                <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:4 }}>Main POC</div>
+                <div style={{ fontWeight:600, fontSize:13 }}>{shortName(project.poc_name)}</div>
+                {project.poc_phone && <div style={{ fontSize:12, color:'var(--tan)', marginTop:2 }}><Tel v={project.poc_phone} /></div>}
+                {project.poc_email && <div style={{ fontSize:11, color:'var(--muted)', overflowWrap:'anywhere' }}><Mail v={project.poc_email} /></div>}
+              </div>
+            )}
             <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
-              {project.poc_name && (
-                <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 14px', flex:1, minWidth:180 }}>
-                  <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:4 }}>Main POC</div>
-                  <div style={{ fontWeight:600, fontSize:13 }}>{shortName(project.poc_name)}</div>
-                  {project.poc_phone && <div style={{ fontSize:12, color:'var(--tan)', marginTop:2 }}><Tel v={project.poc_phone} /></div>}
-                  {project.poc_email && <div style={{ fontSize:11, color:'var(--muted)', overflowWrap:'anywhere' }}><Mail v={project.poc_email} /></div>}
-                </div>
-              )}
               {wardrobeNotes && (
                 <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 14px', flex:1, minWidth:180 }}>
                   <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:4 }}>Wardrobe Notes</div>
@@ -1599,6 +1599,7 @@ function TalentView({ data }) {
                 <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:2 }}>{a.position.name}</div>
                 <div style={{ fontWeight:600, fontSize:13 }}>{a.crewMember ? shortName(displayName(a.crewMember)) || 'TBD' : 'TBD'}</div>
                 {a.crewMember?.phone && <div style={{ fontSize:12, color:'var(--tan)', marginTop:3 }}><Tel v={a.crewMember.phone} /></div>}
+                {a.crewMember?.email && <div style={{ fontSize:11, color:'var(--muted)', overflowWrap:'anywhere' }}><Mail v={a.crewMember.email} /></div>}
               </div>
             ))}
           </div>
@@ -1615,7 +1616,7 @@ function TalentView({ data }) {
           </section>
         )}
         {filteredSchedule.map((day, i) => (
-          <DaySection key={day.id} day={day} showCalls={false} dayIndex={i} talentCallTime={day.talent_call_time} hideCallWrap />
+          <DaySection key={day.id} day={day} showCalls={false} dayIndex={i} talentCallTime={day.talent_call_time} hideCallWrap talentMode />
         ))}
       </div>
     </div>
@@ -1740,7 +1741,7 @@ function CateringBadge({ catering, detail }) {
   );
 }
 
-function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCallWrap, tagFilter, cateringDetail, shotList, slDays, slBreaks, onOpenShotList, crewAssignments, projectCity }) {
+function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCallWrap, tagFilter, cateringDetail, shotList, slDays, slBreaks, onOpenShotList, crewAssignments, projectCity, talentMode }) {
   const [clapEvent, setClapEvent] = useState(null);
   const crewByPosition = (posName) => {
     const a = (crewAssignments || []).find(x => (x.position?.name || '').toLowerCase() === posName && x.crewMember);
@@ -1781,14 +1782,18 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
   };
   const lunchCateringRaw = (day.catering || []).find(c => c.meal_type === 'LUNCH');
   const lunchCatering = lunchCateringRaw && (lunchCateringRaw.name || lunchCateringRaw.address || lunchCateringRaw.delivery_time) ? lunchCateringRaw : null;
-  const syntheticDayItems = tagFilter ? [] : [
+  const syntheticAllItems = tagFilter ? [] : [
     day.call_time          && { _type:'synthetic', _key:'ct',  _sort: timeToMins(day.call_time),           startTime: day.call_time,          title:'General Call Time', notes: day.call_time_notes,      tags: day.call_time_tags },
     day.shooting_call_time && { _type:'synthetic', _key:'sct', _sort: timeToMins(day.shooting_call_time),  startTime: day.shooting_call_time, title:'Shooting Call',     notes: day.shooting_call_notes,  tags: day.shooting_call_tags },
     day.lunch_time         && { _type:'synthetic', _key:'lt',  _sort: timeToMins(day.lunch_time),          startTime: day.lunch_time,         title:'Lunch',             notes: day.lunch_notes,          tags: day.lunch_tags },
     day.wrap_time          && { _type:'synthetic', _key:'wt',  _sort: timeToMins(day.wrap_time),           startTime: day.wrap_time,          title:'Est. Wrap',         notes: day.wrap_time_notes,      tags: day.wrap_time_tags },
   ].filter(Boolean);
+  // Talent views only see day-time tiles explicitly tagged for talent
+  const syntheticDayItems = talentMode
+    ? syntheticAllItems.filter(it => (it.tags || []).some(t => (t.type || t) === 'TALENT'))
+    : syntheticAllItems;
 
-  const cateringItems = tagFilter ? [] : (day.catering || [])
+  const cateringItems = (tagFilter || talentMode) ? [] : (day.catering || [])
     .filter(c => c.meal_type !== 'LUNCH' && (c.name || c.address || c.delivery_time))
     .map(c => ({ _type:'catering', _sort: timeToMins(c.delivery_time) || 9997, _key:`cat-${c.id}`, ...c }));
 
