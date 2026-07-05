@@ -617,6 +617,9 @@ async function migrate() {
   await sql`ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS weather_lat DOUBLE PRECISION`;
   await sql`ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS weather_lon DOUBLE PRECISION`;
 
+  // Shot list days can be hidden from public views (e.g. travel days with no scenes)
+  await sql`ALTER TABLE shot_list_days ADD COLUMN IF NOT EXISTS hide_public BOOLEAN DEFAULT false`;
+
   console.log('Migration complete.');
 }
 

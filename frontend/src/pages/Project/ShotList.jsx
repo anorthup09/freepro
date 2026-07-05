@@ -557,7 +557,7 @@ function slDayDateToISO(str) {
   return `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
 }
 
-function DaySynopsisCard({ day, onDelete, onAddScene, scenes, scheduleDays, onDateSelect, onOpenSchedule }) {
+function DaySynopsisCard({ day, onDelete, onAddScene, scenes, scheduleDays, onDateSelect, onOpenSchedule, onToggleHidePublic }) {
   const tiles = [
     { label: 'Call Time', val: fmt12(day.call_time) },
     { label: 'Shooting Call', val: fmt12(day.shooting_call) },
@@ -595,6 +595,12 @@ function DaySynopsisCard({ day, onDelete, onAddScene, scenes, scheduleDays, onDa
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
           <button className="btn btn-primary btn-sm" style={{ fontSize: 11, whiteSpace: 'nowrap', padding: '2px 9px', minHeight: 0, height: 22, lineHeight: '18px' }} onClick={() => onAddScene?.(day.id)}>+ Add Scene</button>
+          {totalShots === 0 && (
+            <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: day.hide_public ? 'var(--orange)' : 'var(--muted)', cursor: 'pointer', whiteSpace: 'nowrap', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.05em' }}>
+              <input type="checkbox" checked={!!day.hide_public} onChange={e => onToggleHidePublic?.(day.id, e.target.checked)} style={{ accentColor: 'var(--orange)', width: 13, height: 13 }} />
+              Hide from public views
+            </label>
+          )}
           <button className="btn btn-ghost btn-sm" style={{ fontSize: 11, color: 'var(--muted)', padding: '2px 8px', minHeight: 0, height: 22, lineHeight: '18px', marginLeft: 'auto' }} onClick={() => {
             if (confirm(`Delete Day ${day.day_number}?`)) onDelete(day.id);
           }}>Delete</button>
@@ -1345,7 +1351,13 @@ export default function ShotList({ project, onScenesChange, onCurrentDayChange, 
         return (
           <div key={day.id} style={{ marginBottom: 32 }} ref={el => { dayRefs.current[day.id] = el; }}>
             {dayIdx > 0 && <div style={{ height: 1, background: 'rgba(255,255,255,0.15)', borderRadius: 1, marginBottom: 24 }} />}
-            <DaySynopsisCard day={day} onDelete={deleteDay} onAddScene={openAddSceneForDay} scenes={dayScenes} scheduleDays={scheduleDays} onDateSelect={handleDayDateSelect} onOpenSchedule={onOpenScheduleDay ? () => onOpenScheduleDay(slDayDateToISO(day.date)) : undefined} />
+            <DaySynopsisCard day={day} onDelete={deleteDay} onAddScene={openAddSceneForDay} scenes={dayScenes} scheduleDays={scheduleDays} onDateSelect={handleDayDateSelect} onOpenSchedule={onOpenScheduleDay ? () => onOpenScheduleDay(slDayDateToISO(day.date)) : undefined}
+              onToggleHidePublic={async (dayId, hide) => {
+                try {
+                  const u = await api.updateSlDay(project.id, dayId, { hidePublic: hide });
+                  setDays(prev => prev.map(d => d.id === u.id ? u : d));
+                } catch (e) { alert(e.message); }
+              }} />
             {items.map((item, itemIdx) => item._type === 'scene' ? (
               <SceneBlock key={item.data.id} scene={item.data} projectId={project.id} talent={talent} days={days}
                 onShotUpdate={handleShotUpdate} onShotAdded={handleShotAdded} onShotDelete={handleShotDelete}

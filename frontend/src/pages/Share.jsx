@@ -1390,7 +1390,9 @@ function ShotListShareView({ scenes: initialScenes, days: initialDays = [], brea
 
   // Build day groups with scenes and breaks interleaved, times cascaded
   const unassignedScenes = scenes.filter(s => !s.day_id);
-  const dayGroups = initialDays.map(day => {
+  // Days flagged hidden (and holding no scenes) stay off the public views
+  const visibleDays = initialDays.filter(d => !(d.hide_public && !scenes.some(s => s.day_id === d.id)));
+  const dayGroups = visibleDays.map(day => {
     const dayScenes = scenes.filter(s => s.day_id === day.id).sort((a,b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
     const dayBreaks = initialBreaks.filter(b => b.day_id === day.id);
     // Cascade times: start from day's shooting_call

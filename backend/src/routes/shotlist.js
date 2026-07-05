@@ -200,14 +200,15 @@ router.post('/:id/shot-list/days', requireAuth, requireRole('ADMIN','PRODUCER'),
 // PATCH /api/projects/:id/shot-list/days/:dayId
 router.patch('/:id/shot-list/days/:dayId', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const { date, callTime, shootingCall, lunchTime, estWrap } = req.body;
+    const { date, callTime, shootingCall, lunchTime, estWrap, hidePublic } = req.body;
     const [day] = await sql`
       UPDATE shot_list_days SET
         date = ${date !== undefined ? (date||null) : sql`date`},
         call_time = ${callTime !== undefined ? (callTime||null) : sql`call_time`},
         shooting_call = ${shootingCall !== undefined ? (shootingCall||null) : sql`shooting_call`},
         lunch_time = ${lunchTime !== undefined ? (lunchTime||null) : sql`lunch_time`},
-        est_wrap = ${estWrap !== undefined ? (estWrap||null) : sql`est_wrap`}
+        est_wrap = ${estWrap !== undefined ? (estWrap||null) : sql`est_wrap`},
+        hide_public = ${hidePublic !== undefined ? !!hidePublic : sql`hide_public`}
       WHERE id = ${req.params.dayId} RETURNING *`;
     if (!day) return res.status(404).json({ error: 'Shot list day not found — please refresh the page and try again.' });
     res.json(day);
