@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 // Running local-time timecode: HH.MM.SS.xx AM/PM in slate red on black
@@ -42,6 +42,7 @@ function Row({ name, children, lbl, val }) {
 export default function Clapboard({ title, date, location, fieldProducer, director, camera, onClose, editableTitle }) {
   const [take, setTake] = useState(1);
   const [titleVal, setTitleVal] = useState(title || '');
+  const takeDrag = useRef(null);
   const [landscape, setLandscape] = useState(() => typeof window !== 'undefined' && window.innerWidth > window.innerHeight);
   useEffect(() => {
     const onResize = () => setLandscape(window.innerWidth > window.innerHeight);
@@ -81,12 +82,15 @@ export default function Clapboard({ title, date, location, fieldProducer, direct
             </div>
             <div style={{ padding: 'min(10px, 1.4vh) 8px min(8px, 1.1vh)', textAlign: 'center' }}>
               <div style={{ ...lbl, marginBottom: 4 }}>Take</div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-                <button onClick={() => setTake(t => Math.max(1, t - 1))}
-                  style={{ background: '#111', color: '#fff', border: 'none', borderRadius: 8, width: 'min(40px, 7vh)', height: 'min(40px, 7vh)', fontSize: 18, cursor: 'pointer', lineHeight: 1 }}>‹</button>
+              <div
+                onPointerDown={e => { e.currentTarget.setPointerCapture(e.pointerId); takeDrag.current = { x: e.clientX, base: take }; }}
+                onPointerMove={e => { if (!takeDrag.current) return; setTake(Math.max(1, takeDrag.current.base + Math.round((e.clientX - takeDrag.current.x) / 48))); }}
+                onPointerUp={() => { takeDrag.current = null; }}
+                onPointerCancel={() => { takeDrag.current = null; }}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, touchAction: 'none', cursor: 'ew-resize', userSelect: 'none' }}>
+                <span style={{ color: '#999', fontSize: 'min(22px, 3.5vh)', lineHeight: 1 }}>‹</span>
                 <span style={{ ...val, fontSize: takeSize, fontVariantNumeric: 'tabular-nums', minWidth: 44, textAlign: 'center' }}>{take}</span>
-                <button onClick={() => setTake(t => t + 1)}
-                  style={{ background: '#111', color: '#fff', border: 'none', borderRadius: 8, width: 'min(40px, 7vh)', height: 'min(40px, 7vh)', fontSize: 18, cursor: 'pointer', lineHeight: 1 }}>›</button>
+                <span style={{ color: '#999', fontSize: 'min(22px, 3.5vh)', lineHeight: 1 }}>›</span>
               </div>
             </div>
           </div>
