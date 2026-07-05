@@ -1620,6 +1620,51 @@ function TalentView({ data }) {
         );
       })()}
 
+      {(() => {
+        // Shoot location: prefer a filming event tagged for this talent, else the primary venue
+        let filming = null;
+        for (const day of (schedule || [])) {
+          for (const e of (day.events || [])) {
+            if (e.is_filming && e.location?.name) { filming = e; break; }
+          }
+          if (filming) break;
+        }
+        const venue = filming
+          ? { name: filming.location.name, address: filming.location.address, room: filming.room_space }
+          : (() => {
+              const l = (locations || []).find(x => x.type === 'PRIMARY_VENUE') || (locations || [])[0];
+              return l ? { name: l.name, address: l.address, room: null } : null;
+            })();
+        if (!venue) return null;
+        const addr = venue.address || venue.name;
+        return (
+          <section className="share-section">
+            <div className="sec-lbl">Shoot Location</div>
+            <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, overflow:'hidden', maxWidth:480 }}>
+              <div style={{ padding:'12px 16px' }}>
+                <div style={{ fontSize:15, fontWeight:700, color:'var(--text)' }}>{venue.name}</div>
+                {venue.room && (
+                  <div style={{ fontSize:12, color:'var(--tan)', marginTop:3 }}>
+                    <span style={{ color:'var(--muted)', fontSize:11 }}>Room/Space: </span>{venue.room}
+                  </div>
+                )}
+              </div>
+              <a href={mapsUrl(addr)} target="_blank" rel="noreferrer" style={{ position:'relative', display:'block', height:170, borderTop:'1px solid var(--border)' }}>
+                <iframe
+                  title="Shoot location map"
+                  src={`https://maps.google.com/maps?q=${encodeURIComponent(addr)}&z=15&output=embed`}
+                  style={{ width:'100%', height:'100%', border:0, pointerEvents:'none', display:'block' }}
+                  loading="lazy"
+                />
+                <span style={{ position:'absolute', bottom:10, right:10, background:'rgba(10,10,8,0.85)', color:'var(--tan)', fontSize:11, fontWeight:700, borderRadius:6, padding:'5px 10px', border:'1px solid var(--border2)' }}>
+                  Open in Maps ↗
+                </span>
+              </a>
+            </div>
+          </section>
+        );
+      })()}
+
       {(clientContacts?.length > 0 || productionCrew?.length > 0) && (
         <section className="share-section">
           <div style={{ display:'flex', gap:8, flexWrap:'nowrap', overflowX:'auto' }}>
