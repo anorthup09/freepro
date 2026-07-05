@@ -1486,7 +1486,9 @@ function ClientView({ data, onOpenShotList }) {
                     {l.type && <span style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', fontWeight:600 }}>{LOCATION_TYPE_LABEL[l.type] || l.type} — </span>}
                     {l.name}
                   </div>
-                  <div className="loc-addr">{l.address}</div>
+                  {l.address
+                    ? <a href={mapsUrl(l.address)} target="_blank" rel="noreferrer" className="loc-addr" style={{ color:'var(--tan)', textDecoration:'underline', display:'block' }}>{l.address}</a>
+                    : null}
                 </div>
               </div>
             ))}
