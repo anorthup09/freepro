@@ -16,8 +16,10 @@ function TimecodeBar({ big }) {
   const cs = String(Math.floor(now.getMilliseconds() / 10)).padStart(2, '0');
   return (
     <div style={{ background: '#000', padding: 'min(10px, 1.4vh) 52px min(10px, 1.4vh) 12px', textAlign: 'right', position: 'relative' }}>
-      <img src="/unbridled-logo.png" alt="Unbridled Media"
-        style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', height: big ? 'min(46px, 7vh)' : 'min(30px, 5vh)', filter: 'brightness(0) invert(1)', opacity: 0.9 }} />
+      {big && (
+        <img src="/unbridled-logo.png" alt="Unbridled Media"
+          style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', height: 'min(46px, 7vh)', filter: 'brightness(0) invert(1)', opacity: 0.9 }} />
+      )}
       <span style={{ fontFamily: "'Courier New', monospace", fontWeight: 700, fontSize: big ? 'min(96px, 8vw, 12vh)' : 'min(56px, 7vw, 11vh)', letterSpacing: '0.06em', color: '#ff2222', textShadow: '0 0 12px rgba(255,34,34,0.6)', fontVariantNumeric: 'tabular-nums' }}>
         {h}.{m}.{sec}.{cs} <span style={{ fontSize: '0.55em' }}>{ampm}</span>
       </span>
