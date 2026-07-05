@@ -662,7 +662,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
         <Clapboard
           editableTitle
           title=""
-          location={(() => { const withLoc = (currentDay?.events || []).find(e => e.location?.name); return withLoc?.location?.name || ''; })()}
+          location={currentDay?.weather_location_name || [project.city, project.state].filter(Boolean).join(', ')}
           date={currentDay ? parseDay(currentDay.date).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }) : ''}
           fieldProducer={crewByPosition('field producer')}
           director={crewByPosition('director')}
@@ -674,7 +674,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
       {clapEvent && (
         <Clapboard
           title={clapEvent.title}
-          location={clapEvent.location?.name || clapEvent.location_name || ''}
+          location={currentDay?.weather_location_name || [project.city, project.state].filter(Boolean).join(', ')}
           date={currentDay ? parseDay(currentDay.date).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }) : ''}
           fieldProducer={crewByPosition('field producer')}
           director={crewByPosition('director')}
