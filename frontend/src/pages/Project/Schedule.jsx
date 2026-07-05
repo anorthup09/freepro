@@ -1014,7 +1014,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                           <div className="ev-time">{item.delivery_time ? fmtTime(item.delivery_time) : '—'}</div>
                           <div className="ev-body" style={{ borderLeft:`2px solid ${mc.color}` }}>
                             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
-                              <div className="ev-title">{mc.emoji} {mc.label}</div>
+                              <div className="ev-title">{mc.label}</div>
                               <div style={{ textAlign:'right' }}>
                                 {item.name && <div style={{ fontSize:12, fontWeight:600, color:'var(--text)' }}>{item.name}</div>}
                                 {item.address && <div style={{ fontSize:10, color:'var(--muted)' }}>{item.address}</div>}
@@ -1059,26 +1059,26 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                           style={{ cursor:'pointer', ...(!(item.is_alert||item.isAlert) ? { borderLeft:'2px solid var(--orange)',  } : {}) }}
                           onClick={() => openEditEvent(item)}>
                           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:8 }}>
-                            <div style={{ flex:1, minWidth:0 }}>
-                              <div className={`ev-title${(item.is_alert||item.isAlert) ? ' alert' : ''}`} >{(item.is_alert||item.isAlert) ? '⚠ ' : ''}{(item.is_filming||item.isFilming) ? '🎬 ' : ''}{item.title}</div>
-                              {item.detail && <div className="ev-detail">{item.detail}</div>}
-                            </div>
-                            <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4, flexShrink:1, minWidth:0, maxWidth:'55%' }}>
+                            <div className={`ev-title${(item.is_alert||item.isAlert) ? ' alert' : ''}`} style={{ flex:1, minWidth:0 }}>{(item.is_alert||item.isAlert) ? '⚠ ' : ''}{(item.is_filming||item.isFilming) ? '🎬 ' : ''}{item.title}</div>
+                            <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11, flexShrink:0 }}
+                              onClick={e => { e.stopPropagation(); deleteEvent(item.id); }}>✕</button>
+                          </div>
+                          {item.detail && <div className="ev-detail">{item.detail}</div>}
+                          {(item.room_space || item.location) && (
+                            <div style={{ display:'flex', flexWrap:'wrap', gap:'2px 16px', marginTop:4, alignItems:'baseline' }}>
                               {item.room_space && (
-                                <div style={{ fontSize:12, fontWeight:700, color:'var(--text)', overflowWrap:'anywhere', textAlign:'right' }}>
+                                <div style={{ fontSize:12, fontWeight:700, color:'var(--text)', overflowWrap:'anywhere' }}>
                                   <span style={{ fontWeight:400, color:'var(--muted)', fontSize:11 }}>Room/Space: </span>{item.room_space}
                                 </div>
                               )}
                               {item.location && (
-                                <div style={{ textAlign:'right', minWidth:0, maxWidth:'100%' }}>
-                                  <div style={{ fontSize:10, color:'var(--tan)', fontWeight:600, overflowWrap:'anywhere' }}>📍 {item.location.name}</div>
-                                  {item.location.address && <div style={{ fontSize:10, color:'var(--muted)', overflowWrap:'anywhere' }}>{item.location.address}</div>}
+                                <div style={{ minWidth:0 }}>
+                                  <span style={{ fontSize:10, color:'var(--tan)', fontWeight:600, overflowWrap:'anywhere' }}>📍 {item.location.name}</span>
+                                  {item.location.address && <span style={{ fontSize:10, color:'var(--muted)', overflowWrap:'anywhere' }}> · {item.location.address}</span>}
                                 </div>
                               )}
-                              <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }}
-                                onClick={e => { e.stopPropagation(); deleteEvent(item.id); }}>✕</button>
                             </div>
-                          </div>
+                          )}
                           {(item.tags?.length > 0 || item.is_filming || item.isFilming) && (
                             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-end', gap:8, marginTop:6 }}>
                               <div className="ev-tags" style={{ marginTop:0 }}>
@@ -1200,7 +1200,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                       <button key={mt} type="button"
                         onClick={() => toggleMealType(mt)}
                         style={{ flex:1, padding:'8px 6px', borderRadius:8, border:`2px solid ${sel ? mc.color : 'var(--border)'}`, background: sel ? mc.bg : 'var(--bg)', color: sel ? mc.color : 'var(--muted)', fontWeight:700, fontSize:12, cursor:'pointer', transition:'all .12s' }}>
-                        {mc.emoji} {mc.label}
+                        {mc.label}
                       </button>
                     );
                   })}

@@ -1861,14 +1861,14 @@ function CateringBadge({ catering, detail }) {
           <div key={c.meal_type} style={{ marginBottom:3 }}>
             {detail === 'full' ? (
               <div style={{ textAlign:'right' }}>
-                <div style={{ fontWeight:700, color: mm.color, fontSize:10, textTransform:'uppercase', letterSpacing:'.06em' }}>{mm.emoji} {mm.label}</div>
+                <div style={{ fontWeight:700, color: mm.color, fontSize:10, textTransform:'uppercase', letterSpacing:'.06em' }}>{mm.label}</div>
                 <div style={{ fontWeight:600, color:'var(--text)', fontSize:12 }}>{c.name}</div>
                 {c.address && <div style={{ color:'var(--muted)', fontSize:10 }}>{c.address}</div>}
                 {c.order_number && <div style={{ color:'var(--muted)', fontSize:10 }}>Order #{c.order_number}</div>}
                 {c.delivery_time && <div style={{ color: mm.color, fontSize:10 }}>🚚 {fmtTime(c.delivery_time)}</div>}
               </div>
             ) : (
-              <span style={{ color:'var(--muted)', fontSize:11 }}>{mm.emoji} <span style={{ color:'var(--text)', fontWeight:500 }}>{c.name}</span></span>
+              <span style={{ color:'var(--muted)', fontSize:11 }}><span style={{ color:'var(--text)', fontWeight:500 }}>{c.name}</span></span>
             )}
           </div>
         );
@@ -2065,7 +2065,7 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
                     <div className="ev-time">{item.delivery_time ? fmtTime(item.delivery_time) : '—'}</div>
                     <div className="ev-body" style={{ borderLeft:`2px solid ${mm.color}`, background: `${mm.color}14` }}>
                       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
-                        <div className="ev-title">{mm.emoji} {mm.label}</div>
+                        <div className="ev-title">{mm.label}</div>
                         {cateringDetail && (
                           <div style={{ textAlign:'right' }}>
                             {item.name && <div style={{ fontSize:12, fontWeight:600, color:'var(--text)' }}>{item.name}</div>}
@@ -2192,33 +2192,41 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
                   <div key={item.id || i} className="ev">
                     <div className="ev-time">{fmtTime(item.start_time)}{item.end_time ? ` – ${fmtTime(item.end_time)}` : ''}</div>
                     <div className={`ev-body${item.is_alert ? ' warn' : ''}`} style={!item.is_alert ? { borderLeft:'2px solid var(--orange)',  } : {}}>
-                      <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:8 }}>
-                        <div style={{ flex:1, minWidth:0 }}>
-                          <div className={`ev-title${item.is_alert ? ' alert' : ''}`}>{item.is_filming ? '🎬 ' : ''}{item.title}</div>
-                          {item.detail && <div className="ev-detail">{item.detail}</div>}
+                      <div className={`ev-title${item.is_alert ? ' alert' : ''}`}>{item.is_filming ? '🎬 ' : ''}{item.title}</div>
+                      {item.detail && <div className="ev-detail">{item.detail}</div>}
+                      {(item.room_space || loc) && (
+                        <div style={{ display:'flex', flexWrap:'wrap', gap:'2px 16px', marginTop:4, alignItems:'baseline' }}>
                           {item.room_space && (
-                            <div style={{ fontSize:12, fontWeight:700, color:'var(--text)', marginTop:2 }}>
+                            <div style={{ fontSize:12, fontWeight:700, color:'var(--text)', overflowWrap:'anywhere' }}>
                               <span style={{ fontWeight:400, color:'var(--muted)', fontSize:11 }}>Room/Space: </span>{item.room_space}
                             </div>
                           )}
+                          {loc && (
+                            <div style={{ minWidth:0, fontSize:11, color:'var(--muted)' }}>
+                              <span style={{ fontWeight:600, color:'var(--text)' }}>📍 {loc.name}</span>
+                              {loc.address && (
+                                <>
+                                  {' · '}
+                                  <a href={directionsUrl('', loc.address)} target="_blank" rel="noopener noreferrer"
+                                     style={{ color:'#4a9eff', textDecoration:'none', fontSize:10 }}
+                                     onClick={e => { e.stopPropagation(); window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loc.address)}`,'_blank'); e.preventDefault(); }}>
+                                    {loc.address}
+                                  </a>
+                                </>
+                              )}
+                              {driveTime && (
+                                <>
+                                  {' '}
+                                  <a href={directionsUrl(prevAddr, thisAddr)} target="_blank" rel="noopener noreferrer"
+                                     style={{ color:'var(--muted)', textDecoration:'none', fontSize:10 }}>
+                                    🚗 {driveTime} from prev
+                                  </a>
+                                </>
+                              )}
+                            </div>
+                          )}
                         </div>
-                        {loc && (
-                          <div style={{ flexShrink:0, textAlign:'right', fontSize:11, color:'var(--muted)', maxWidth:160 }}>
-                            <div style={{ fontWeight:600, color:'var(--text)', marginBottom:1 }}>{loc.name}</div>
-                            <a href={directionsUrl('', loc.address)} target="_blank" rel="noopener noreferrer"
-                               style={{ color:'#4a9eff', textDecoration:'none', fontSize:10, display:'block', marginBottom:driveTime ? 2 : 0 }}
-                               onClick={e => { e.stopPropagation(); window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loc.address)}`,'_blank'); e.preventDefault(); }}>
-                              {loc.address}
-                            </a>
-                            {driveTime && (
-                              <a href={directionsUrl(prevAddr, thisAddr)} target="_blank" rel="noopener noreferrer"
-                                 style={{ color:'var(--muted)', textDecoration:'none', fontSize:10 }}>
-                                🚗 {driveTime} from prev
-                              </a>
-                            )}
-                          </div>
-                        )}
-                      </div>
+                      )}
                       {item.is_filming && crewAssignments && (
                         <div style={{ display:'flex', justifyContent:'flex-end', marginTop:6 }}>
                           <button onClick={e => { e.stopPropagation(); setClapEvent(item); }}
