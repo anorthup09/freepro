@@ -562,8 +562,10 @@ function ProducerView({ data, hideGear, onOpenShotList }) {
               <div key={l.id} className="loc">
                 <div className="loc-ico">{l.emoji || '📍'}</div>
                 <div>
-                  {l.type && <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', fontWeight:600, marginBottom:2 }}>{LOCATION_TYPE_LABEL[l.type] || l.type}</div>}
-                  <div className="loc-name">{l.name}</div>
+                  <div className="loc-name">
+                    {l.type && <span style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', fontWeight:600 }}>{LOCATION_TYPE_LABEL[l.type] || l.type} — </span>}
+                    {l.name}
+                  </div>
                   {l.address
                     ? <a href={mapsUrl(l.address)} target="_blank" rel="noreferrer" className="loc-addr" style={{ color:'var(--tan)', textDecoration:'underline' }}>{l.address}</a>
                     : null}
@@ -746,8 +748,10 @@ function CrewView({ data, shareToken, hideGear, onOpenShotList }) {
               <div key={l.id} className="loc">
                 <div className="loc-ico">{l.emoji || '📍'}</div>
                 <div>
-                  {l.type && <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', fontWeight:600, marginBottom:2 }}>{LOCATION_TYPE_LABEL[l.type] || l.type}</div>}
-                  <div className="loc-name">{l.name}</div>
+                  <div className="loc-name">
+                    {l.type && <span style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', fontWeight:600 }}>{LOCATION_TYPE_LABEL[l.type] || l.type} — </span>}
+                    {l.name}
+                  </div>
                   {l.address
                     ? <a href={mapsUrl(l.address)} target="_blank" rel="noreferrer" className="loc-addr" style={{ color:'var(--tan)', textDecoration:'underline' }}>{l.address}</a>
                     : null}
@@ -1478,8 +1482,10 @@ function ClientView({ data, onOpenShotList }) {
               <div key={l.id} className="loc">
                 <div className="loc-ico">{l.emoji || '📍'}</div>
                 <div>
-                  {l.type && <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', fontWeight:600, marginBottom:2 }}>{LOCATION_TYPE_LABEL[l.type] || l.type}</div>}
-                  <div className="loc-name">{l.name}</div>
+                  <div className="loc-name">
+                    {l.type && <span style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', fontWeight:600 }}>{LOCATION_TYPE_LABEL[l.type] || l.type} — </span>}
+                    {l.name}
+                  </div>
                   <div className="loc-addr">{l.address}</div>
                 </div>
               </div>
