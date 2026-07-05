@@ -238,7 +238,7 @@ router.get('/:token', async (req, res, next) => {
       const filteredDays = daysWithData.map(day => ({
         ...day,
         talent_call_time: dayCallMap[day.id] || null,
-        events: day.events.filter(e => (e.audience || []).includes(talentName) || (e.audience || []).includes('talent')),
+        events: day.events.filter(e => (e.audience || []).includes(talentName)),
         crewCalls: day.crewCalls.filter(c => !c.audience || c.audience.length === 0 || c.audience.includes(talentName) || c.audience.includes('talent')),
       }));
       const productionCrew = mappedCrew.filter(a => KEY_PRODUCTION_POSITIONS.includes(a.position_name));

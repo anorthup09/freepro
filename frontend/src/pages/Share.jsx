@@ -1525,7 +1525,7 @@ function TalentView({ data }) {
   // Only show days that have at least one event tagged for this talent
   const filteredSchedule = [...(schedule || [])].sort((a,b) => (a.date||'').localeCompare(b.date||'')).map(day => ({
     ...day,
-    events: day.events.filter(e => (e.audience || []).includes(talent_name) || (e.audience || []).includes('talent')),
+    events: day.events.filter(e => (e.audience || []).includes(talent_name)),
   })).filter(day => day.events.length > 0);
 
   return (
@@ -1539,18 +1539,6 @@ function TalentView({ data }) {
               <span className="meta">{project.client}</span>
               <span className="meta">{fmt(project.start_date)} – {fmt(project.end_date)}</span>
             </div>
-            {locations?.length > 0 && (
-              <div style={{ marginTop:6, fontSize:12, color:'var(--muted)' }}>
-                <span style={{ textTransform:'uppercase', letterSpacing:'.08em', fontSize:10, marginRight:6 }}>Shoot Location</span>
-                {locations.map((l, i) => (
-                  <span key={l.id}>
-                    {i > 0 && <span style={{ margin:'0 6px', opacity:.4 }}>·</span>}
-                    <span style={{ color:'var(--text)', fontWeight:500 }}>{l.name}</span>
-                    {l.address && <span style={{ color:'var(--muted)', marginLeft:4 }}>— {l.address}</span>}
-                  </span>
-                ))}
-              </div>
-            )}
           </div>
           {filteredSchedule.length > 0 && (
             <button onClick={() => scheduleRef.current?.scrollIntoView({ behavior:'smooth' })} style={{ flexShrink:0, marginTop:4, padding:'6px 14px', fontSize:12, fontWeight:600, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:6, color:'var(--text)', cursor:'pointer', whiteSpace:'nowrap' }}>
@@ -1574,7 +1562,7 @@ function TalentView({ data }) {
                   <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:4 }}>Main POC</div>
                   <div style={{ fontWeight:600, fontSize:13 }}>{shortName(project.poc_name)}</div>
                   {project.poc_phone && <div style={{ fontSize:12, color:'var(--tan)', marginTop:2 }}><Tel v={project.poc_phone} /></div>}
-                  {project.poc_email && <div style={{ fontSize:11, color:'var(--muted)' }}><Mail v={project.poc_email} /></div>}
+                  {project.poc_email && <div style={{ fontSize:11, color:'var(--muted)', overflowWrap:'anywhere' }}><Mail v={project.poc_email} /></div>}
                 </div>
               )}
               {wardrobeNotes && (
@@ -1603,7 +1591,7 @@ function TalentView({ data }) {
                 <div style={{ fontWeight:600, fontSize:13 }}>{c.name}</div>
                 <div style={{ fontSize:11, color:'var(--muted)', marginTop:1 }}>{c.title}</div>
                 {c.phone && <div style={{ fontSize:12, color:'var(--tan)', marginTop:3 }}><Tel v={c.phone} /></div>}
-                {c.email && <div style={{ fontSize:11, color:'var(--muted)' }}><Mail v={c.email} /></div>}
+                {c.email && <div style={{ fontSize:11, color:'var(--muted)', overflowWrap:'anywhere' }}><Mail v={c.email} /></div>}
               </div>
             ))}
             {(productionCrew || []).map(a => (
@@ -2317,8 +2305,8 @@ export default function Share() {
 
   return (
     <>
-      {(view_type === 'producer' || view_type === 'crew' || view_type === 'client') && (
-        <GlassHeader project={data.project} showTime={sharePage === 'shot-list'} clientMode={view_type === 'client'} crewMode={view_type === 'crew'} />
+      {(view_type === 'producer' || view_type === 'crew' || view_type === 'client' || view_type === 'talent') && (
+        <GlassHeader project={data.project} showTime={sharePage === 'shot-list'} clientMode={view_type === 'client'} crewMode={view_type === 'crew' || view_type === 'talent'} />
       )}
       <nav className="nav" style={{ justifyContent:'space-between', flexWrap:'wrap', rowGap:6 }}>
         <div style={{ display:'flex', flexDirection:'column', gap:1 }}>
