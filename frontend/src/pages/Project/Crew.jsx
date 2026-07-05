@@ -40,7 +40,7 @@ export default function Crew({ project, onProjectUpdate }) {
   const [roster, setRoster] = useState([]);
   const [flights, setFlights] = useState([]);
   const [showAddSlot, setShowAddSlot] = useState(false);
-  const [slotForm, setSlotForm] = useState({ positionId:'', crewMemberId:'', slotNumber:1, startDate:'', endDate:'' });
+  const [slotForm, setSlotForm] = useState({ positionId:'', crewMemberId:'', slotNumber:1, startDate:'', endDate:'', isContractor:false, dayRate:'', laborDays:'', gearCost:'' });
   const [showAddCrew, setShowAddCrew] = useState(false);
   const [crewForm, setCrewForm] = useState({ name:'', email:'', phone:'', company:'' });
   const [rosterQuery, setRosterQuery] = useState('');
@@ -88,10 +88,14 @@ export default function Crew({ project, onProjectUpdate }) {
         slotNumber: parseInt(slotForm.slotNumber) || 1,
         startDate: slotForm.startDate || null,
         endDate: slotForm.endDate || null,
+        isContractor: slotForm.isContractor,
+        dayRate: slotForm.isContractor && slotForm.dayRate !== '' ? Number(slotForm.dayRate) : null,
+        laborDays: slotForm.isContractor && slotForm.laborDays !== '' ? Number(slotForm.laborDays) : null,
+        gearCost: slotForm.isContractor && slotForm.gearCost !== '' ? Number(slotForm.gearCost) : null,
       });
       setAssignments(prev => [...prev, a]);
       setShowAddSlot(false);
-      setSlotForm({ positionId:'', crewMemberId:'', slotNumber:1, startDate:'', endDate:'' });
+      setSlotForm({ positionId:'', crewMemberId:'', slotNumber:1, startDate:'', endDate:'', isContractor:false, dayRate:'', laborDays:'', gearCost:'' });
     } catch(e) { alert(e.message); }
   }
 
@@ -158,7 +162,11 @@ export default function Crew({ project, onProjectUpdate }) {
 
   async function saveEdit(id) {
     try {
-      const updated = await api.updateCrewSlot(project.id, id, editForm);
+      const payload = { ...editForm };
+      if (payload.dayRate !== undefined) payload.dayRate = payload.dayRate === '' ? null : Number(payload.dayRate);
+      if (payload.laborDays !== undefined) payload.laborDays = payload.laborDays === '' ? null : Number(payload.laborDays);
+      if (payload.gearCost !== undefined) payload.gearCost = payload.gearCost === '' ? null : Number(payload.gearCost);
+      const updated = await api.updateCrewSlot(project.id, id, payload);
       setAssignments(prev => prev.map(a => a.id === id ? updated : a));
       setEditId(null);
     } catch(e) { alert(e.message); }
@@ -227,23 +235,13 @@ export default function Crew({ project, onProjectUpdate }) {
 
       {assignments.length === 0 && <div className="empty">No crew assigned yet. Add a position to get started.</div>}
 
-      {assignments.length > 0 && (
-        <div className="pos-table-wrap" style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden' }}>
-          <table className="pos-table" style={{ width:'100%' }}>
-            <thead>
-              <tr>
-                <th>Position</th>
-                <th>Crew Member</th>
-                <th>Phone</th>
-                <th>Email</th>
-                <th>Dietary</th>
-                <th>Start Date</th>
-                <th>End Date</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {assignments.map(a => (
+      {assignments.length > 0 && (() => {
+        const staff = assignments.filter(a => !a.is_contractor);
+        const contractors = assignments.filter(a => a.is_contractor);
+        const laborTotal = contractors.reduce((s, a) => s + (Number(a.day_rate) || 0) * (Number(a.labor_days) || 0), 0);
+        const gearTotal = contractors.reduce((s, a) => s + (Number(a.gear_cost) || 0), 0);
+        const fmt$ = n => '$' + Number(n).toLocaleString('en-US', { maximumFractionDigits: 2 });
+        const renderRow = a => (
                 <tr key={a.id}>
                   <td>
                     <div className="pos-name">{a.position.name}</div>
@@ -255,7 +253,7 @@ export default function Crew({ project, onProjectUpdate }) {
                         const id = e.target.value;
                         const dates = flightDatesFor(id);
                         setEditForm(f => ({ ...f, crewMemberId: id||null, startDate: f.startDate || dates.startDate, endDate: f.endDate || dates.endDate }));
-                      }} onKeyDown={e => e.key === 'Enter' && saveEdit(a.id)} style={{ width:'100%' }}>
+                      }} onKeyDown={e => e.key === 'Enter' && saveEdit(a.id)} style={{ width:'100%', minWidth:120 }}>
                         <option value="">— Unassigned —</option>
                         {roster.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                       </select>
@@ -289,6 +287,33 @@ export default function Crew({ project, onProjectUpdate }) {
                       : <span style={{ fontSize:11, color:'var(--orange)' }}>{fmtDate(a.end_date)}</span>
                     }
                   </td>
+                  <td style={{ whiteSpace:'nowrap' }}>
+                    {a.is_contractor ? (
+                      editId === a.id ? (
+                        <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+                          <input type="number" min="0" step="0.01" placeholder="Rate" style={{ width:70 }} value={editForm.dayRate ?? ''} onChange={e => setEditForm(f=>({...f,dayRate:e.target.value}))} />
+                          <span style={{ fontSize:11, color:'var(--muted)' }}>×</span>
+                          <input type="number" min="0" step="0.5" placeholder="Days" style={{ width:52 }} value={editForm.laborDays ?? ''} onChange={e => setEditForm(f=>({...f,laborDays:e.target.value}))} />
+                        </div>
+                      ) : (
+                        (a.day_rate || a.labor_days)
+                          ? <div style={{ fontSize:11 }}>
+                              <span style={{ color:'var(--muted)' }}>{fmt$(a.day_rate||0)} × {Number(a.labor_days)||0}d = </span>
+                              <span style={{ color:'var(--green)', fontWeight:600 }}>{fmt$((Number(a.day_rate)||0)*(Number(a.labor_days)||0))}</span>
+                            </div>
+                          : <span style={{ color:'var(--muted)', fontSize:11 }}>—</span>
+                      )
+                    ) : <span style={{ color:'var(--muted)', fontSize:11 }}>—</span>}
+                  </td>
+                  <td style={{ whiteSpace:'nowrap' }}>
+                    {a.is_contractor ? (
+                      editId === a.id
+                        ? <input type="number" min="0" step="0.01" placeholder="Gear $" style={{ width:80 }} value={editForm.gearCost ?? ''} onChange={e => setEditForm(f=>({...f,gearCost:e.target.value}))} />
+                        : (a.gear_cost != null && a.gear_cost !== ''
+                            ? <span style={{ fontSize:11, color:'var(--green)', fontWeight:600 }}>{fmt$(a.gear_cost)}</span>
+                            : <span style={{ color:'var(--muted)', fontSize:11 }}>—</span>)
+                    ) : <span style={{ color:'var(--muted)', fontSize:11 }}>—</span>}
+                  </td>
                   <td style={{ textAlign:'right' }}>
                     {editId === a.id ? (
                       <div style={{ display:'flex', gap:6, justifyContent:'flex-end' }}>
@@ -297,17 +322,61 @@ export default function Crew({ project, onProjectUpdate }) {
                       </div>
                     ) : (
                       <div style={{ display:'flex', gap:6, justifyContent:'flex-end' }}>
-                        <button className="btn btn-ghost btn-sm" onClick={() => { setEditId(a.id); const cmId = a.crewMember?.id || a.crew_member_id || ''; const dates = flightDatesFor(cmId); setEditForm({ crewMemberId: cmId, startDate: a.start_date || dates.startDate, endDate: a.end_date || dates.endDate }); }}>Edit</button>
+                        <button className="btn btn-ghost btn-sm" onClick={() => { setEditId(a.id); const cmId = a.crewMember?.id || a.crew_member_id || ''; const dates = flightDatesFor(cmId); setEditForm({ crewMemberId: cmId, startDate: a.start_date || dates.startDate, endDate: a.end_date || dates.endDate, ...(a.is_contractor ? { dayRate: a.day_rate ?? '', laborDays: a.labor_days ?? '', gearCost: a.gear_cost ?? '' } : {}) }); }}>Edit</button>
                         <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text)' }} onClick={() => removeSlot(a.id)}>✕</button>
                       </div>
                     )}
                   </td>
                 </tr>
-              ))}
+        );
+        const sectionRow = (label, color) => (
+          <tr>
+            <td colSpan={10} style={{ padding:'6px 14px', background:`${color}14`, borderTop:'1px solid var(--border)' }}>
+              <span style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color }}>{label}</span>
+            </td>
+          </tr>
+        );
+        return (
+        <div className="pos-table-wrap" style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden' }}>
+          <table className="pos-table" style={{ width:'100%' }}>
+            <thead>
+              <tr>
+                <th>Position</th>
+                <th>Crew Member</th>
+                <th>Phone</th>
+                <th>Email</th>
+                <th>Dietary</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+                <th>Rate × Days</th>
+                <th>Gear</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {staff.length > 0 && sectionRow('Unbridled Crew', 'var(--orange)')}
+              {staff.map(renderRow)}
+              {contractors.length > 0 && sectionRow('Contractors', '#e6c229')}
+              {contractors.map(renderRow)}
+              {contractors.length > 0 && (
+                <tr>
+                  <td colSpan={7} style={{ textAlign:'right', padding:'8px 14px', borderTop:'1px solid var(--border)', fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)' }}>Totals</td>
+                  <td style={{ borderTop:'1px solid var(--border)', whiteSpace:'nowrap' }}>
+                    <span style={{ fontSize:10, color:'var(--muted)' }}>Labor </span>
+                    <span style={{ fontSize:12, color:'var(--green)', fontWeight:700 }}>{fmt$(laborTotal)}</span>
+                  </td>
+                  <td style={{ borderTop:'1px solid var(--border)', whiteSpace:'nowrap' }}>
+                    <span style={{ fontSize:10, color:'var(--muted)' }}>Gear </span>
+                    <span style={{ fontSize:12, color:'var(--green)', fontWeight:700 }}>{fmt$(gearTotal)}</span>
+                  </td>
+                  <td style={{ borderTop:'1px solid var(--border)' }}></td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
-      )}
+        );
+      })()}
 
       {/* Talent */}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:24, marginBottom:6 }}>
@@ -545,6 +614,41 @@ export default function Crew({ project, onProjectUpdate }) {
                   <label>End Date</label>
                   <input type="date" value={slotForm.endDate} onChange={e => setSlotForm(f=>({...f,endDate:e.target.value}))} />
                 </div>
+                <div className="field span2">
+                  <button type="button"
+                    onClick={() => setSlotForm(f => ({ ...f, isContractor: !f.isContractor }))}
+                    style={{
+                      alignSelf:'flex-start', display:'inline-flex', alignItems:'center', gap:6,
+                      background: slotForm.isContractor ? 'rgba(230,194,41,0.15)' : 'transparent',
+                      border: `1px solid ${slotForm.isContractor ? '#e6c229' : 'var(--border)'}`,
+                      color: slotForm.isContractor ? '#e6c229' : 'var(--muted)',
+                      borderRadius:20, padding:'5px 14px', fontSize:11, fontWeight:700, cursor:'pointer', letterSpacing:'0.04em', textTransform:'uppercase',
+                    }}>
+                    {slotForm.isContractor ? '✓ ' : ''}Contractor
+                  </button>
+                </div>
+                {slotForm.isContractor && (
+                  <>
+                    <div className="field">
+                      <label>Day Rate ($)</label>
+                      <input type="number" min="0" step="0.01" placeholder="650" value={slotForm.dayRate} onChange={e => setSlotForm(f=>({...f,dayRate:e.target.value}))} />
+                    </div>
+                    <div className="field">
+                      <label>Labor Days</label>
+                      <input type="number" min="0" step="0.5" placeholder="3" value={slotForm.laborDays} onChange={e => setSlotForm(f=>({...f,laborDays:e.target.value}))} />
+                    </div>
+                    <div className="field">
+                      <label>Gear ($)</label>
+                      <input type="number" min="0" step="0.01" placeholder="0" value={slotForm.gearCost} onChange={e => setSlotForm(f=>({...f,gearCost:e.target.value}))} />
+                    </div>
+                    <div className="field" style={{ justifyContent:'flex-end' }}>
+                      <label>Labor Total</label>
+                      <div style={{ fontSize:14, fontWeight:700, color:'var(--green)', padding:'6px 0' }}>
+                        ${((Number(slotForm.dayRate)||0) * (Number(slotForm.laborDays)||0)).toLocaleString('en-US', { maximumFractionDigits:2 })}
+                      </div>
+                    </div>
+                  </>
+                )}
                 {slotForm.positionId && nextSlot(slotForm.positionId) > 1 && (
                   <div className="field span2" style={{ background:'var(--amber-bg)', border:'1px solid var(--amber-border)', borderRadius:6, padding:'8px 10px', color:'var(--amber-text)', fontSize:11 }}>
                     This adds slot {nextSlot(slotForm.positionId)} for this position (e.g. Audio {nextSlot(slotForm.positionId)})

@@ -2174,8 +2174,10 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
                         {adjustedArrival && <span style={{ color:'var(--muted)', marginLeft:8 }}>Arrives: {adjustedArrival}</span>}
                       </div>
                       {item._leg === 'depart' && !fs.cancelled && (
-                        <div style={{ display:'inline-block', background:'rgba(0,0,0,0.25)', borderRadius:12, padding:'4px 12px', marginTop:6 }}>
-                          <FlightStatusPill s={fs} />
+                        <div style={{ display:'flex', justifyContent:'flex-end', marginTop:6 }}>
+                          <div style={{ display:'inline-block', background:'rgba(0,0,0,0.25)', borderRadius:12, padding:'4px 12px' }}>
+                            <FlightStatusPill s={fs} />
+                          </div>
                         </div>
                       )}
                     </div>

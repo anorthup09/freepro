@@ -1043,9 +1043,11 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                                 {item.confirmation && <span style={{ color:'var(--muted)', marginLeft:8 }}>#{item.confirmation}</span>}
                               </div>
                               {item._leg === 'depart' && (
-                                <div style={{ display:'inline-flex', alignItems:'center', gap:5, background:'rgba(0,0,0,0.2)', borderRadius:20, padding:'3px 10px', marginTop:6 }}>
-                                  {fs.dot && <div style={{ width:6, height:6, borderRadius:'50%', background:fs.dot }} />}
-                                  <span style={{ fontSize:10, fontWeight:600, color:fs.color, textTransform:'uppercase', letterSpacing:'.06em' }}>{fs.label}</span>
+                                <div style={{ display:'flex', justifyContent:'flex-end', marginTop:6 }}>
+                                  <div style={{ display:'inline-flex', alignItems:'center', gap:5, background:'rgba(0,0,0,0.2)', borderRadius:20, padding:'3px 10px' }}>
+                                    {fs.dot && <div style={{ width:6, height:6, borderRadius:'50%', background:fs.dot }} />}
+                                    <span style={{ fontSize:10, fontWeight:600, color:fs.color, textTransform:'uppercase', letterSpacing:'.06em' }}>{fs.label}</span>
+                                  </div>
                                 </div>
                               )}
                             </div>

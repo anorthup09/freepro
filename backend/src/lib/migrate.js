@@ -302,6 +302,10 @@ async function migrate() {
   await sql`ALTER TABLE projects ADD COLUMN IF NOT EXISTS poc_crew_member_id TEXT REFERENCES crew_members(id)`;
   await sql`ALTER TABLE crew_assignments ADD COLUMN IF NOT EXISTS start_date TEXT`;
   await sql`ALTER TABLE crew_assignments ADD COLUMN IF NOT EXISTS end_date TEXT`;
+  await sql`ALTER TABLE crew_assignments ADD COLUMN IF NOT EXISTS is_contractor BOOLEAN DEFAULT FALSE`;
+  await sql`ALTER TABLE crew_assignments ADD COLUMN IF NOT EXISTS day_rate NUMERIC`;
+  await sql`ALTER TABLE crew_assignments ADD COLUMN IF NOT EXISTS labor_days NUMERIC`;
+  await sql`ALTER TABLE crew_assignments ADD COLUMN IF NOT EXISTS gear_cost NUMERIC`;
 
   await sql`ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS crew_lunch TEXT`;
   await sql`ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS gear_storage TEXT`;
