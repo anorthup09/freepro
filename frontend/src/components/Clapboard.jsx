@@ -15,7 +15,7 @@ function TimecodeBar({ big }) {
   const sec = String(now.getSeconds()).padStart(2, '0');
   const cs = String(Math.floor(now.getMilliseconds() / 10)).padStart(2, '0');
   return (
-    <div style={{ background: '#000', padding: 'min(10px, 1.4vh) 44px', textAlign: 'center', position: 'relative' }}>
+    <div style={{ background: '#000', padding: 'min(10px, 1.4vh) 52px min(10px, 1.4vh) 12px', textAlign: 'right', position: 'relative' }}>
       <img src="/unbridled-logo.png" alt="Unbridled Media"
         style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', height: big ? 'min(46px, 7vh)' : 'min(30px, 5vh)', filter: 'brightness(0) invert(1)', opacity: 0.9 }} />
       <span style={{ fontFamily: "'Courier New', monospace", fontWeight: 700, fontSize: big ? 'min(96px, 8vw, 12vh)' : 'min(56px, 7vw, 11vh)', letterSpacing: '0.06em', color: '#ff2222', textShadow: '0 0 12px rgba(255,34,34,0.6)', fontVariantNumeric: 'tabular-nums' }}>
@@ -44,6 +44,32 @@ export default function Clapboard({ title, date, location, fieldProducer, direct
   const [titleVal, setTitleVal] = useState(title || '');
   const takeDrag = useRef(null);
   const [landscape, setLandscape] = useState(() => typeof window !== 'undefined' && window.innerWidth > window.innerHeight);
+  const WIPE_MS = 280;
+  const [wiping, setWiping] = useState(false);
+
+  // Synthesized clap: white-noise burst through a bandpass, no audio file needed
+  function playClap() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const dur = 0.14;
+      const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * dur), ctx.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 2.2);
+      const src = ctx.createBufferSource(); src.buffer = buf;
+      const filt = ctx.createBiquadFilter(); filt.type = 'bandpass'; filt.frequency.value = 1700; filt.Q.value = 0.7;
+      const gain = ctx.createGain(); gain.gain.value = 2.2;
+      src.connect(filt); filt.connect(gain); gain.connect(ctx.destination);
+      src.start();
+      src.onended = () => ctx.close().catch(() => {});
+    } catch { /* audio blocked — wipe still plays */ }
+  }
+
+  function slap() {
+    if (wiping) return;
+    setWiping(true);
+    setTimeout(playClap, WIPE_MS); // sound lands as the panels meet
+    setTimeout(() => setWiping(false), WIPE_MS + 420);
+  }
   useEffect(() => {
     const onResize = () => setLandscape(window.innerWidth > window.innerHeight);
     window.addEventListener('resize', onResize);
@@ -59,7 +85,7 @@ export default function Clapboard({ title, date, location, fieldProducer, direct
   return createPortal(
     <div className="modal-bg" onClick={onClose} style={{ zIndex: 300 }}>
       <div onClick={e => e.stopPropagation()} style={{
-        width: '100vw', height: '100dvh', overflowY: 'auto', background: '#fdfdfb', position: 'relative',
+        width: '100vw', height: '100dvh', overflowY: 'auto', overflowX: 'hidden', background: '#fdfdfb', position: 'relative', overflow: 'hidden',
         display: 'flex', flexDirection: 'column',
       }}>
         <TimecodeBar big={landscape} />
@@ -124,6 +150,16 @@ export default function Clapboard({ title, date, location, fieldProducer, direct
           )}
 
         </div>
+
+        {/* Slapstick */}
+        <button onClick={slap} aria-label="Slap the sticks"
+          style={{ position: 'absolute', bottom: 14, right: 14, zIndex: 5, background: '#E8500A', color: '#fff', border: 'none', borderRadius: 100, padding: '10px 18px', fontSize: 'min(16px, 3vh)', fontWeight: 800, cursor: 'pointer', letterSpacing: '.06em', boxShadow: '0 4px 16px rgba(0,0,0,0.35)', fontFamily: "'DM Sans', sans-serif" }}>
+          🎬 MARK
+        </button>
+
+        {/* Top/bottom wipe panels — meet in the middle on the clap */}
+        <div style={{ position: 'absolute', left: 0, right: 0, top: 0, height: '50.5%', background: '#E8500A', zIndex: 10, pointerEvents: 'none', transform: wiping ? 'translateY(0)' : 'translateY(-101%)', transition: `transform ${WIPE_MS}ms ${wiping ? 'cubic-bezier(0.5, 0, 0.9, 0.4)' : 'ease-in-out'}` }} />
+        <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '50.5%', background: '#E8500A', zIndex: 10, pointerEvents: 'none', transform: wiping ? 'translateY(0)' : 'translateY(101%)', transition: `transform ${WIPE_MS}ms ${wiping ? 'cubic-bezier(0.5, 0, 0.9, 0.4)' : 'ease-in-out'}` }} />
       </div>
     </div>,
     document.body
