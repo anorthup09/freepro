@@ -702,11 +702,11 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
               <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:15, display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
                 Day {[...days].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).findIndex(d=>d.id===currentDay.id)+1} · {parseDay(currentDay.date).toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' })}
               </div>
-              <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:8 }}>
+              <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap', justifyContent:'flex-end' }}>
                 <select
                   value={currentDay.day_type || 'SHOOT'}
                   onChange={e => saveDayType(currentDay.id, e.target.value)}
-                  style={{ fontSize:11, fontWeight:600, padding:'4px 10px', borderRadius:12, border:'1px solid var(--border2)', background:'var(--bg3)', color:'var(--orange)', cursor:'pointer', appearance:'none', WebkitAppearance:'none' }}
+                  style={{ fontSize:11, fontWeight:600, padding:'4px 10px', borderRadius:12, border:'1px solid var(--border2)', background:'var(--bg3)', color:'var(--orange)', cursor:'pointer', appearance:'none', WebkitAppearance:'none', width:'auto' }}
                 >
                   {DAY_TYPES.map(dt => <option key={dt.value} value={dt.value}>{dt.label}</option>)}
                 </select>
