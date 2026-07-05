@@ -720,7 +720,6 @@ function CrewView({ data, shareToken, hideGear }) {
         );
       })()}
 
-      <SpecTiles techSpecs={techSpecs} />
 
       {hotelBlocks?.length > 0 && (
         <section className="share-section">
