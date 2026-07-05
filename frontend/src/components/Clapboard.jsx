@@ -59,10 +59,14 @@ export default function Clapboard({ title, date, location, fieldProducer, direct
   const WIPE_MS = 280;
   const [wiping, setWiping] = useState(false);
 
-  // Synthesized clap: white-noise burst through a bandpass, no audio file needed
-  function playClap() {
+  // Synthesized clap scheduled on the audio clock so it lands exactly when the
+  // panels meet — setTimeout jitter and context spin-up were audibly late
+  const audioRef = useRef(null);
+  function slap() {
+    if (wiping) return;
     try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const ctx = audioRef.current || (audioRef.current = new (window.AudioContext || window.webkitAudioContext)());
+      if (ctx.state === 'suspended') ctx.resume();
       const dur = 0.14;
       const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * dur), ctx.sampleRate);
       const d = buf.getChannelData(0);
@@ -71,15 +75,10 @@ export default function Clapboard({ title, date, location, fieldProducer, direct
       const filt = ctx.createBiquadFilter(); filt.type = 'bandpass'; filt.frequency.value = 1700; filt.Q.value = 0.7;
       const gain = ctx.createGain(); gain.gain.value = 2.2;
       src.connect(filt); filt.connect(gain); gain.connect(ctx.destination);
-      src.start();
-      src.onended = () => ctx.close().catch(() => {});
+      const outLatency = ctx.outputLatency || ctx.baseLatency || 0;
+      src.start(Math.max(ctx.currentTime, ctx.currentTime + WIPE_MS / 1000 - outLatency));
     } catch { /* audio blocked — wipe still plays */ }
-  }
-
-  function slap() {
-    if (wiping) return;
     setWiping(true);
-    setTimeout(playClap, WIPE_MS); // sound lands as the panels meet
     setTimeout(() => setWiping(false), WIPE_MS + 420);
   }
   useEffect(() => {
