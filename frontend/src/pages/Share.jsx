@@ -2088,7 +2088,7 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
 }
 
 // ── Liquid Glass Sticky Header ───────────────────────────────────────────────
-function GlassHeader({ project, showTime, clientMode }) {
+function GlassHeader({ project, showTime, clientMode, crewMode }) {
   const [navH, setNavH] = React.useState(64);
   const [visible, setVisible] = React.useState(false);
   const [now, setNow] = React.useState(new Date());
@@ -2144,6 +2144,9 @@ function GlassHeader({ project, showTime, clientMode }) {
         ) : (
           <div style={{ fontSize:12, color:'rgba(255,255,255,0.6)', textTransform:'uppercase', letterSpacing:'0.14em', fontWeight:700 }}>{project.code}</div>
         )}
+        {crewMode && (
+          <div style={{ fontFamily:"'DM Sans', sans-serif", fontSize:11, fontWeight:600, color:'rgba(255,255,255,0.8)', letterSpacing:'0.02em', marginTop:2 }}>{project.client}</div>
+        )}
         {showTime && (
           <div style={{ fontSize:11, fontWeight:600, color:'rgba(255,255,255,0.8)', fontVariantNumeric:'tabular-nums', letterSpacing:'0.04em', marginTop:2 }}>
             {now.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit', second:'2-digit' })}
@@ -2152,7 +2155,7 @@ function GlassHeader({ project, showTime, clientMode }) {
       </div>
       <div style={{ textAlign:'right', marginLeft:'auto' }}>
         <div style={{ fontFamily:"'Syne', sans-serif", fontWeight:800, fontSize:18, letterSpacing:'-0.3px', color:'#fff', lineHeight:1 }}>{project.title}</div>
-        {clientMode && (
+        {(clientMode || crewMode) && (
           <div style={{ fontFamily:"'DM Sans', sans-serif", fontSize:11, fontWeight:500, color:'rgba(255,255,255,0.75)', marginTop:4, letterSpacing:'0.01em' }}>
             {fmt(project.start_date)} – {fmt(project.end_date)}
           </div>
@@ -2256,7 +2259,7 @@ export default function Share() {
   return (
     <>
       {(view_type === 'producer' || view_type === 'crew' || view_type === 'client') && (
-        <GlassHeader project={data.project} showTime={sharePage === 'shot-list'} clientMode={view_type === 'client'} />
+        <GlassHeader project={data.project} showTime={sharePage === 'shot-list'} clientMode={view_type === 'client'} crewMode={view_type === 'crew'} />
       )}
       <nav className="nav" style={{ justifyContent:'space-between', flexWrap:'wrap', rowGap:6 }}>
         <div style={{ display:'flex', flexDirection:'column', gap:1 }}>
