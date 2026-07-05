@@ -2136,21 +2136,23 @@ function GlassHeader({ project, showTime, clientMode }) {
       justifyContent: 'space-between',
       gap: 20,
     }}>
-      {!clientMode && (
-        <div style={{ flexShrink:0 }}>
+      <div style={{ flexShrink:0 }}>
+        {clientMode ? (
+          <div style={{ fontFamily:"'DM Sans', sans-serif", fontSize:12, fontWeight:600, color:'rgba(255,255,255,0.8)', letterSpacing:'0.02em' }}>{project.client}</div>
+        ) : (
           <div style={{ fontSize:12, color:'rgba(255,255,255,0.6)', textTransform:'uppercase', letterSpacing:'0.14em', fontWeight:700 }}>{project.code}</div>
-          {showTime && (
-            <div style={{ fontSize:11, fontWeight:600, color:'rgba(255,255,255,0.8)', fontVariantNumeric:'tabular-nums', letterSpacing:'0.04em', marginTop:2 }}>
-              {now.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit', second:'2-digit' })}
-            </div>
-          )}
-        </div>
-      )}
+        )}
+        {showTime && (
+          <div style={{ fontSize:11, fontWeight:600, color:'rgba(255,255,255,0.8)', fontVariantNumeric:'tabular-nums', letterSpacing:'0.04em', marginTop:2 }}>
+            {now.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit', second:'2-digit' })}
+          </div>
+        )}
+      </div>
       <div style={{ textAlign:'right', marginLeft:'auto' }}>
         <div style={{ fontFamily:"'Syne', sans-serif", fontWeight:800, fontSize:18, letterSpacing:'-0.3px', color:'#fff', lineHeight:1 }}>{project.title}</div>
         {clientMode && (
           <div style={{ fontFamily:"'DM Sans', sans-serif", fontSize:11, fontWeight:500, color:'rgba(255,255,255,0.75)', marginTop:4, letterSpacing:'0.01em' }}>
-            {project.client} · {fmt(project.start_date)} – {fmt(project.end_date)}
+            {fmt(project.start_date)} – {fmt(project.end_date)}
           </div>
         )}
       </div>
