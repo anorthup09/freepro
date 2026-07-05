@@ -158,6 +158,8 @@ function slCalcWrap(startTime, shots) {
 const _SL_MONTHS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 function slDateToISO(str) {
   if (!str) return null;
+  const iso = /^(\d{4})-(\d{2})-(\d{2})/.exec(str);
+  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
   const m = str.match(/\w+,\s+(\w+)\s+(\d+),\s+(\d{4})/);
   if (!m) return null;
   const mi = _SL_MONTHS.indexOf(m[1].toLowerCase()) + 1;
