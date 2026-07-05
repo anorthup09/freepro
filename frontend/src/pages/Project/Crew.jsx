@@ -95,11 +95,11 @@ export default function Crew({ project, onProjectUpdate }) {
         slotNumber: parseInt(slotForm.slotNumber) || 1,
         startDate: slotForm.startDate || null,
         endDate: slotForm.endDate || null,
-        isContractor: slotForm.isContractor,
-        dayRate: slotForm.isContractor && slotForm.dayRate !== '' ? Number(slotForm.dayRate) : null,
-        laborDays: slotForm.isContractor && slotForm.laborDays !== '' ? Number(slotForm.laborDays) : null,
-        gearCost: slotForm.isContractor && slotForm.gearCost !== '' ? Number(slotForm.gearCost) : null,
-        gearDays: slotForm.isContractor && slotForm.gearDays !== '' ? Number(slotForm.gearDays) : null,
+        isContractor: isContractorMember(slotForm.crewMemberId) === true,
+        dayRate: isContractorMember(slotForm.crewMemberId) === true && slotForm.dayRate !== '' ? Number(slotForm.dayRate) : null,
+        laborDays: isContractorMember(slotForm.crewMemberId) === true && slotForm.laborDays !== '' ? Number(slotForm.laborDays) : null,
+        gearCost: isContractorMember(slotForm.crewMemberId) === true && slotForm.gearCost !== '' ? Number(slotForm.gearCost) : null,
+        gearDays: isContractorMember(slotForm.crewMemberId) === true && slotForm.gearDays !== '' ? Number(slotForm.gearDays) : null,
       });
       setAssignments(prev => [...prev, a]);
       setShowAddSlot(false);
@@ -191,11 +191,11 @@ export default function Crew({ project, onProjectUpdate }) {
         crewMemberId: editForm.crewMemberId || null,
         startDate: editForm.startDate || null,
         endDate: editForm.endDate || null,
-        isContractor: editForm.isContractor,
-        dayRate: editForm.isContractor && editForm.dayRate !== '' ? Number(editForm.dayRate) : null,
-        laborDays: editForm.isContractor && editForm.laborDays !== '' ? Number(editForm.laborDays) : null,
-        gearCost: editForm.isContractor && editForm.gearCost !== '' ? Number(editForm.gearCost) : null,
-        gearDays: editForm.isContractor && editForm.gearDays !== '' ? Number(editForm.gearDays) : null,
+        isContractor: isContractorMember(editForm.crewMemberId) === true,
+        dayRate: isContractorMember(editForm.crewMemberId) === true && editForm.dayRate !== '' ? Number(editForm.dayRate) : null,
+        laborDays: isContractorMember(editForm.crewMemberId) === true && editForm.laborDays !== '' ? Number(editForm.laborDays) : null,
+        gearCost: isContractorMember(editForm.crewMemberId) === true && editForm.gearCost !== '' ? Number(editForm.gearCost) : null,
+        gearDays: isContractorMember(editForm.crewMemberId) === true && editForm.gearDays !== '' ? Number(editForm.gearDays) : null,
       };
       const updated = await api.updateCrewSlot(project.id, editId, payload);
       setAssignments(prev => prev.map(a => a.id === editId ? updated : a));
@@ -604,8 +604,7 @@ export default function Crew({ project, onProjectUpdate }) {
                   <select value={slotForm.crewMemberId} onChange={e => {
                     const id = e.target.value;
                     const dates = flightDatesFor(id);
-                    const contract = isContractorMember(id);
-                    setSlotForm(f => ({ ...f, crewMemberId: id, startDate: dates.startDate || f.startDate, endDate: dates.endDate || f.endDate, isContractor: contract === null ? f.isContractor : contract }));
+                    setSlotForm(f => ({ ...f, crewMemberId: id, startDate: dates.startDate || f.startDate, endDate: dates.endDate || f.endDate }));
                   }}>
                     <option value="">— Unassigned —</option>
                     {roster.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
@@ -620,27 +619,21 @@ export default function Crew({ project, onProjectUpdate }) {
                   <label>End Date</label>
                   <input type="date" value={slotForm.endDate} onChange={e => setSlotForm(f=>({...f,endDate:e.target.value}))} />
                 </div>
-                <div className="field span2">
-                  <button type="button"
-                    onClick={() => setSlotForm(f => ({ ...f, isContractor: !f.isContractor }))}
-                    style={{
-                      alignSelf:'flex-start', display:'inline-flex', alignItems:'center', gap:6,
-                      background: slotForm.isContractor ? 'rgba(230,194,41,0.15)' : 'transparent',
-                      border: `1px solid ${slotForm.isContractor ? '#e6c229' : 'var(--border)'}`,
-                      color: slotForm.isContractor ? '#e6c229' : 'var(--muted)',
-                      borderRadius:20, padding:'5px 14px', fontSize:11, fontWeight:700, cursor:'pointer', letterSpacing:'0.04em', textTransform:'uppercase',
+                {slotForm.crewMemberId && isContractorMember(slotForm.crewMemberId) !== null && (
+                  <div className="field span2">
+                    <span style={{
+                      alignSelf:'flex-start', display:'inline-flex', alignItems:'center',
+                      background: isContractorMember(slotForm.crewMemberId) ? 'rgba(230,194,41,0.15)' : 'rgba(255,140,0,0.12)',
+                      border: `1px solid ${isContractorMember(slotForm.crewMemberId) ? '#e6c229' : 'var(--orange)'}`,
+                      color: isContractorMember(slotForm.crewMemberId) ? '#e6c229' : 'var(--orange)',
+                      borderRadius:20, padding:'5px 14px', fontSize:11, fontWeight:700, letterSpacing:'0.04em', textTransform:'uppercase',
                     }}>
-                    {slotForm.isContractor ? '✓ ' : ''}Contract Crew
-                  </button>
-                  {slotForm.crewMemberId && isContractorMember(slotForm.crewMemberId) !== null && (
-                    <span style={{ fontSize:10, color:'var(--muted)', marginTop:3 }}>
-                      {isContractorMember(slotForm.crewMemberId)
-                        ? 'Not on the Unbridled roster — marked Contract Crew.'
-                        : 'Unbridled Media staff — marked Unbridled Crew.'} Tap the pill to override.
+                      {isContractorMember(slotForm.crewMemberId) ? 'Contract Crew' : 'Unbridled Crew'}
                     </span>
-                  )}
-                </div>
-                {slotForm.isContractor && (
+                    <span style={{ fontSize:10, color:'var(--muted)', marginTop:3 }}>Set by the roster — edit their company in Roster Look-Up to change.</span>
+                  </div>
+                )}
+                {isContractorMember(slotForm.crewMemberId) === true && (
                   <>
                     <div className="field">
                       <label>Day Rate ($)</label>
@@ -699,8 +692,7 @@ export default function Crew({ project, onProjectUpdate }) {
                   <select value={editForm.crewMemberId || ''} onChange={e => {
                     const id = e.target.value;
                     const dates = flightDatesFor(id);
-                    const contract = isContractorMember(id);
-                    setEditForm(f => ({ ...f, crewMemberId: id, startDate: f.startDate || dates.startDate, endDate: f.endDate || dates.endDate, isContractor: contract === null ? f.isContractor : contract }));
+                    setEditForm(f => ({ ...f, crewMemberId: id, startDate: f.startDate || dates.startDate, endDate: f.endDate || dates.endDate }));
                   }}>
                     <option value="">— Unassigned —</option>
                     {roster.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
@@ -715,27 +707,21 @@ export default function Crew({ project, onProjectUpdate }) {
                   <label>End Date</label>
                   <input type="date" value={editForm.endDate || ''} onChange={e => setEditForm(f=>({...f,endDate:e.target.value}))} />
                 </div>
-                <div className="field span2">
-                  <button type="button"
-                    onClick={() => setEditForm(f => ({ ...f, isContractor: !f.isContractor }))}
-                    style={{
-                      alignSelf:'flex-start', display:'inline-flex', alignItems:'center', gap:6,
-                      background: editForm.isContractor ? 'rgba(230,194,41,0.15)' : 'transparent',
-                      border: `1px solid ${editForm.isContractor ? '#e6c229' : 'var(--border)'}`,
-                      color: editForm.isContractor ? '#e6c229' : 'var(--muted)',
-                      borderRadius:20, padding:'5px 14px', fontSize:11, fontWeight:700, cursor:'pointer', letterSpacing:'0.04em', textTransform:'uppercase',
+                {editForm.crewMemberId && isContractorMember(editForm.crewMemberId) !== null && (
+                  <div className="field span2">
+                    <span style={{
+                      alignSelf:'flex-start', display:'inline-flex', alignItems:'center',
+                      background: isContractorMember(editForm.crewMemberId) ? 'rgba(230,194,41,0.15)' : 'rgba(255,140,0,0.12)',
+                      border: `1px solid ${isContractorMember(editForm.crewMemberId) ? '#e6c229' : 'var(--orange)'}`,
+                      color: isContractorMember(editForm.crewMemberId) ? '#e6c229' : 'var(--orange)',
+                      borderRadius:20, padding:'5px 14px', fontSize:11, fontWeight:700, letterSpacing:'0.04em', textTransform:'uppercase',
                     }}>
-                    {editForm.isContractor ? '✓ ' : ''}Contract Crew
-                  </button>
-                  {editForm.crewMemberId && isContractorMember(editForm.crewMemberId) !== null && (
-                    <span style={{ fontSize:10, color:'var(--muted)', marginTop:3 }}>
-                      {isContractorMember(editForm.crewMemberId)
-                        ? 'Not on the Unbridled roster — marked Contract Crew.'
-                        : 'Unbridled Media staff — marked Unbridled Crew.'} Tap the pill to override.
+                      {isContractorMember(editForm.crewMemberId) ? 'Contract Crew' : 'Unbridled Crew'}
                     </span>
-                  )}
-                </div>
-                {editForm.isContractor && (
+                    <span style={{ fontSize:10, color:'var(--muted)', marginTop:3 }}>Set by the roster — edit their company in Roster Look-Up to change.</span>
+                  </div>
+                )}
+                {isContractorMember(editForm.crewMemberId) === true && (
                   <>
                     <div className="field">
                       <label>Day Rate ($)</label>
