@@ -1590,104 +1590,115 @@ function TalentView({ data }) {
         const talentRecord = (keyTalent || []).find(t => t.name === talent_name);
         const wardrobeNotes = talentRecord?.wardrobe_notes;
         const arrivalNotes = talentRecord?.arrival_notes;
-        if (!project.poc_name && !wardrobeNotes && !arrivalNotes) return null;
-        return (
-          <section className="share-section">
-            <div className="sec-lbl">Key Contacts</div>
-            {project.poc_name && (
-              <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 14px', marginBottom:10 }}>
-                <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:4 }}>Main POC</div>
-                <div style={{ fontWeight:600, fontSize:13 }}>{shortName(project.poc_name)}</div>
-                {project.poc_phone && <div style={{ fontSize:12, color:'var(--tan)', marginTop:2 }}><Tel v={project.poc_phone} /></div>}
-                {project.poc_email && <div style={{ fontSize:11, color:'var(--muted)', overflowWrap:'anywhere' }}><Mail v={project.poc_email} /></div>}
-              </div>
-            )}
-            <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
-              {wardrobeNotes && (
-                <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 14px', flex:1, minWidth:180 }}>
-                  <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:4 }}>Wardrobe Notes</div>
-                  <div style={{ fontSize:13, color:'var(--text)', whiteSpace:'pre-wrap' }}>{wardrobeNotes}</div>
-                </div>
-              )}
-              {arrivalNotes && (
-                <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 14px', flex:1, minWidth:180 }}>
-                  <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:4 }}>Arrival Notes</div>
-                  <div style={{ fontSize:13, color:'var(--text)', whiteSpace:'pre-wrap' }}>{arrivalNotes}</div>
-                </div>
-              )}
-            </div>
-          </section>
-        );
-      })()}
 
-      {(() => {
-        // Shoot location: prefer a filming event tagged for this talent, else the primary venue
-        let filming = null;
+        // Shoot locations: every filming event with a location on the schedule,
+        // in day/time order (deduped); fall back to the primary venue
+        const venues = [];
+        const seen = new Set();
         for (const day of (schedule || [])) {
           for (const e of (day.events || [])) {
-            if (e.is_filming && e.location?.name) { filming = e; break; }
+            if (e.is_filming && e.location?.name && !seen.has(e.location.name)) {
+              seen.add(e.location.name);
+              venues.push({ name: e.location.name, address: e.location.address, room: e.room_space });
+            }
           }
-          if (filming) break;
         }
-        const venue = filming
-          ? { name: filming.location.name, address: filming.location.address, room: filming.room_space }
-          : (() => {
-              const l = (locations || []).find(x => x.type === 'PRIMARY_VENUE') || (locations || [])[0];
-              return l ? { name: l.name, address: l.address, room: null } : null;
-            })();
-        if (!venue) return null;
-        const addr = venue.address || venue.name;
+        if (venues.length === 0) {
+          const l = (locations || []).find(x => x.type === 'PRIMARY_VENUE') || (locations || [])[0];
+          if (l) venues.push({ name: l.name, address: l.address, room: null });
+        }
+
         return (
-          <section className="share-section">
-            <div className="sec-lbl">Shoot Location</div>
-            <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, overflow:'hidden', maxWidth:480 }}>
-              <div style={{ padding:'12px 16px' }}>
-                <div style={{ fontSize:15, fontWeight:700, color:'var(--text)' }}>{venue.name}</div>
-                {venue.room && (
-                  <div style={{ fontSize:12, color:'var(--tan)', marginTop:3 }}>
-                    <span style={{ color:'var(--muted)', fontSize:11 }}>Room/Space: </span>{venue.room}
-                  </div>
-                )}
-              </div>
-              <a href={mapsUrl(addr)} target="_blank" rel="noreferrer" style={{ position:'relative', display:'block', height:170, borderTop:'1px solid var(--border)' }}>
-                <iframe
-                  title="Shoot location map"
-                  src={`https://maps.google.com/maps?q=${encodeURIComponent(addr)}&z=15&output=embed`}
-                  style={{ width:'100%', height:'100%', border:0, pointerEvents:'none', display:'block' }}
-                  loading="lazy"
-                />
-                <span style={{ position:'absolute', bottom:10, right:10, background:'rgba(10,10,8,0.85)', color:'var(--tan)', fontSize:11, fontWeight:700, borderRadius:6, padding:'5px 10px', border:'1px solid var(--border2)' }}>
-                  Open in Maps ↗
-                </span>
-              </a>
-            </div>
-          </section>
+          <>
+            {project.poc_name && (
+              <section className="share-section">
+                <div className="sec-lbl">Key Contacts</div>
+                <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 14px' }}>
+                  <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:4 }}>Main POC</div>
+                  <div style={{ fontWeight:600, fontSize:13 }}>{shortName(project.poc_name)}</div>
+                  {project.poc_phone && <div style={{ fontSize:12, color:'var(--tan)', marginTop:2 }}><Tel v={project.poc_phone} /></div>}
+                  {project.poc_email && <div style={{ fontSize:11, color:'var(--muted)', overflowWrap:'anywhere' }}><Mail v={project.poc_email} /></div>}
+                </div>
+              </section>
+            )}
+
+            {(clientContacts?.length > 0 || productionCrew?.length > 0) && (
+              <section className="share-section">
+                <div style={{ display:'flex', gap:8, flexWrap:'nowrap', overflowX:'auto' }}>
+                  {(clientContacts || []).map(c => (
+                    <div key={c.id} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 14px', flex:'1 1 0', minWidth:0 }}>
+                      <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:2 }}>Client</div>
+                      <div style={{ fontWeight:600, fontSize:13 }}>{c.name}</div>
+                      <div style={{ fontSize:11, color:'var(--muted)', marginTop:1 }}>{c.title}</div>
+                      {c.phone && <div style={{ fontSize:12, color:'var(--tan)', marginTop:3 }}><Tel v={c.phone} /></div>}
+                      {c.email && <div style={{ fontSize:11, color:'var(--muted)', overflowWrap:'anywhere' }}><Mail v={c.email} /></div>}
+                    </div>
+                  ))}
+                  {(productionCrew || []).map(a => (
+                    <div key={a.id} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 14px', flex:'1 1 0', minWidth:0 }}>
+                      <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:2 }}>{a.position.name}</div>
+                      <div style={{ fontWeight:600, fontSize:13 }}>{a.crewMember ? shortName(displayName(a.crewMember)) || 'TBD' : 'TBD'}</div>
+                      {a.crewMember?.phone && <div style={{ fontSize:12, color:'var(--tan)', marginTop:3 }}><Tel v={a.crewMember.phone} /></div>}
+                      {a.crewMember?.email && <div style={{ fontSize:11, color:'var(--muted)', overflowWrap:'anywhere' }}><Mail v={a.crewMember.email} /></div>}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {venues.length > 0 && (
+              <section className="share-section">
+                <div className="sec-lbl">Shoot Location{venues.length > 1 ? 's' : ''}</div>
+                {venues.map((venue, vi) => {
+                  const addr = venue.address || venue.name;
+                  return (
+                    <div key={vi} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, overflow:'hidden', maxWidth:480, marginBottom: vi < venues.length - 1 ? 12 : 0 }}>
+                      <div style={{ padding:'12px 16px' }}>
+                        <div style={{ fontSize:15, fontWeight:700, color:'var(--text)' }}>{venue.name}</div>
+                        {venue.room && (
+                          <div style={{ fontSize:12, color:'var(--tan)', marginTop:3 }}>
+                            <span style={{ color:'var(--muted)', fontSize:11 }}>Room/Space: </span>{venue.room}
+                          </div>
+                        )}
+                      </div>
+                      <a href={mapsUrl(addr)} target="_blank" rel="noreferrer" style={{ position:'relative', display:'block', height:170, borderTop:'1px solid var(--border)' }}>
+                        <iframe
+                          title={`Shoot location map ${vi + 1}`}
+                          src={`https://maps.google.com/maps?q=${encodeURIComponent(addr)}&z=15&output=embed`}
+                          style={{ width:'100%', height:'100%', border:0, pointerEvents:'none', display:'block' }}
+                          loading="lazy"
+                        />
+                        <span style={{ position:'absolute', bottom:10, right:10, background:'rgba(10,10,8,0.85)', color:'var(--tan)', fontSize:11, fontWeight:700, borderRadius:6, padding:'5px 10px', border:'1px solid var(--border2)' }}>
+                          Open in Maps ↗
+                        </span>
+                      </a>
+                    </div>
+                  );
+                })}
+              </section>
+            )}
+
+            {(arrivalNotes || wardrobeNotes) && (
+              <section className="share-section">
+                <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
+                  {arrivalNotes && (
+                    <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 14px', flex:1, minWidth:180 }}>
+                      <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:4 }}>Arrival Notes</div>
+                      <div style={{ fontSize:13, color:'var(--text)', whiteSpace:'pre-wrap' }}>{arrivalNotes}</div>
+                    </div>
+                  )}
+                  {wardrobeNotes && (
+                    <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 14px', flex:1, minWidth:180 }}>
+                      <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:4 }}>Wardrobe Notes</div>
+                      <div style={{ fontSize:13, color:'var(--text)', whiteSpace:'pre-wrap' }}>{wardrobeNotes}</div>
+                    </div>
+                  )}
+                </div>
+              </section>
+            )}
+          </>
         );
       })()}
-
-      {(clientContacts?.length > 0 || productionCrew?.length > 0) && (
-        <section className="share-section">
-          <div style={{ display:'flex', gap:8, flexWrap:'nowrap', overflowX:'auto' }}>
-            {(clientContacts || []).map(c => (
-              <div key={c.id} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 14px', flex:'1 1 0', minWidth:0 }}>
-                <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:2 }}>Client</div>
-                <div style={{ fontWeight:600, fontSize:13 }}>{c.name}</div>
-                <div style={{ fontSize:11, color:'var(--muted)', marginTop:1 }}>{c.title}</div>
-                {c.phone && <div style={{ fontSize:12, color:'var(--tan)', marginTop:3 }}><Tel v={c.phone} /></div>}
-                {c.email && <div style={{ fontSize:11, color:'var(--muted)', overflowWrap:'anywhere' }}><Mail v={c.email} /></div>}
-              </div>
-            ))}
-            {(productionCrew || []).map(a => (
-              <div key={a.id} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 14px', flex:'1 1 0', minWidth:0 }}>
-                <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:2 }}>{a.position.name}</div>
-                <div style={{ fontWeight:600, fontSize:13 }}>{a.crewMember ? shortName(displayName(a.crewMember)) || 'TBD' : 'TBD'}</div>
-                {a.crewMember?.phone && <div style={{ fontSize:12, color:'var(--tan)', marginTop:3 }}><Tel v={a.crewMember.phone} /></div>}
-                {a.crewMember?.email && <div style={{ fontSize:11, color:'var(--muted)', overflowWrap:'anywhere' }}><Mail v={a.crewMember.email} /></div>}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
 
       <div ref={scheduleRef}>
         {filteredSchedule.length > 0 && (
