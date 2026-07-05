@@ -529,6 +529,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
   // Clapboard slate for filming events
   const [clapEvent, setClapEvent] = useState(null);
   const [quickSlate, setQuickSlate] = useState(false);
+  const includePhoto = project.include_photo !== false;
   const crewByPosition = (posName) => {
     const a = (project.crewAssignments || []).find(x => (x.position?.name || x.position_name || '').toLowerCase() === posName && x.crewMember);
     return a ? displayName(a.crewMember) : '';
@@ -966,7 +967,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                           {item.detail && <div className="ev-detail">{item.detail}</div>}
                           {item.tags?.length > 0 && (
                             <div className="ev-tags">
-                              {item.tags.map(t => <span key={t.type} className={`etag ${TAG_CLASS[t.type]}`}>{TAG_LABEL[t.type]}</span>)}
+                              {item.tags.filter(t => includePhoto || t.type !== 'PHOTO').map(t => <span key={t.type} className={`etag ${TAG_CLASS[t.type]}`}>{TAG_LABEL[t.type]}</span>)}
                             </div>
                           )}
                         </div>
@@ -1059,7 +1060,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                               {item.detail && <div className="ev-detail">{item.detail}</div>}
                               {item.tags?.length > 0 && (
                                 <div className="ev-tags">
-                                  {item.tags.map(t => <span key={t.id} className={`etag ${TAG_CLASS[t.type]}`}>{TAG_LABEL[t.type]}</span>)}
+                                  {item.tags.filter(t => includePhoto || t.type !== 'PHOTO').map(t => <span key={t.id} className={`etag ${TAG_CLASS[t.type]}`}>{TAG_LABEL[t.type]}</span>)}
                                 </div>
                               )}
                             </div>
@@ -1129,7 +1130,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                 <div className="field span2">
                   <label>Tags</label>
                   <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:4 }}>
-                    {['VIDEO','PHOTO','AUDIO','TALENT'].map(type => (
+                    {['VIDEO', ...(includePhoto ? ['PHOTO'] : []), 'AUDIO', 'TALENT'].map(type => (
                       <button key={type} type="button"
                         className={`etag ${TAG_CLASS[type]}`}
                         style={{ cursor:'pointer', opacity: eventForm.tags.some(t=>t.type===type) ? 1 : 0.4, padding:'4px 10px' }}
@@ -1139,7 +1140,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                     ))}
                   </div>
                   {(() => {
-                    const core = ['VIDEO','PHOTO','AUDIO'];
+                    const core = includePhoto ? ['VIDEO','PHOTO','AUDIO'] : ['VIDEO','AUDIO'];
                     const allOn = core.every(t => eventForm.tags.some(x => x.type === t));
                     return (
                       <div style={{ marginTop:6 }}>
@@ -1247,7 +1248,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                 <div className="field span2">
                   <label>Tags</label>
                   <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:4 }}>
-                    {['VIDEO','PHOTO','AUDIO','TALENT'].map(type => (
+                    {['VIDEO', ...(includePhoto ? ['PHOTO'] : []), 'AUDIO', 'TALENT'].map(type => (
                       <button key={type} type="button"
                         className={`etag ${TAG_CLASS[type]}`}
                         style={{ cursor:'pointer', opacity: editEventForm.tags.some(t=>t.type===type) ? 1 : 0.4, padding:'4px 10px' }}
@@ -1257,7 +1258,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                     ))}
                   </div>
                   {(() => {
-                    const core = ['VIDEO','PHOTO','AUDIO'];
+                    const core = includePhoto ? ['VIDEO','PHOTO','AUDIO'] : ['VIDEO','AUDIO'];
                     const allOn = core.every(t => editEventForm.tags.some(x => x.type === t));
                     return (
                       <div style={{ marginTop:6 }}>

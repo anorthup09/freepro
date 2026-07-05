@@ -636,6 +636,9 @@ async function migrate() {
   // Client logo (small data-URL PNG shown on public sticky bars)
   await sql`ALTER TABLE projects ADD COLUMN IF NOT EXISTS client_logo TEXT`;
 
+  // Photo department toggle — projects without photo hide the Photo tag everywhere
+  await sql`ALTER TABLE projects ADD COLUMN IF NOT EXISTS include_photo BOOLEAN DEFAULT true`;
+
   console.log('Migration complete.');
 }
 

@@ -649,7 +649,7 @@ function ProducerView({ data, hideGear, onOpenShotList }) {
         {(schedule||[]).length > 0 && (
           <div style={{ display:'flex', alignItems:'center', gap:8, margin:'24px 0 8px' }}>
             <div style={{ fontSize:16, fontWeight:700, color:'var(--text)', letterSpacing:'-0.01em', flex:1 }}>Schedule</div>
-            {['VIDEO','PHOTO'].map(tag => (
+            {['VIDEO', ...(project.include_photo !== false ? ['PHOTO'] : [])].map(tag => (
               <button key={tag} onClick={() => setTagFilter(f => f === tag ? null : tag)}
                 style={{ fontSize:11, fontWeight:700, padding:'5px 16px', borderRadius:100, border: tagFilter === tag ? 'none' : '1px solid rgba(255,255,255,0.12)', background: tagFilter === tag ? 'var(--orange)' : 'rgba(255,255,255,0.06)', color: tagFilter === tag ? '#fff' : 'rgba(255,255,255,0.5)', cursor:'pointer', letterSpacing:'.06em', transition:'all 0.15s' }}>
                 {tag}
@@ -663,7 +663,7 @@ function ProducerView({ data, hideGear, onOpenShotList }) {
           return [day.call_time_tags, day.shooting_call_tags, day.lunch_tags, day.wrap_time_tags]
             .some(tags => Array.isArray(tags) && (tags.includes(tagFilter) || tags.includes('ALL_CREW')));
         }).map((day, i) => (
-          <DaySection key={day.id} day={day} showCalls flights={flights} dayIndex={i} tagFilter={tagFilter} cateringDetail="full" shotList={shotList} slDays={slDays} slBreaks={slBreaks} onOpenShotList={onOpenShotList} crewAssignments={crewAssignments} projectCity={[project.city, project.state].filter(Boolean).join(', ')} />
+          <DaySection key={day.id} day={day} showCalls flights={flights} dayIndex={i} tagFilter={tagFilter} cateringDetail="full" shotList={shotList} slDays={slDays} slBreaks={slBreaks} onOpenShotList={onOpenShotList} crewAssignments={crewAssignments} includePhoto={project.include_photo !== false} projectCity={[project.city, project.state].filter(Boolean).join(', ')} />
         ))}
       </div>
     </div>
@@ -847,7 +847,7 @@ function CrewView({ data, shareToken, hideGear, onOpenShotList }) {
         {sortedSchedule.length > 0 && (
           <div style={{ display:'flex', alignItems:'center', gap:8, margin:'24px 0 8px' }}>
             <div style={{ fontSize:16, fontWeight:700, color:'var(--text)', letterSpacing:'-0.01em', flex:1 }}>Schedule</div>
-            {['VIDEO','PHOTO'].map(tag => (
+            {['VIDEO', ...(project.include_photo !== false ? ['PHOTO'] : [])].map(tag => (
               <button key={tag} onClick={() => setTagFilter(f => f === tag ? null : tag)}
                 style={{ fontSize:11, fontWeight:700, padding:'5px 16px', borderRadius:100, border: tagFilter === tag ? 'none' : '1px solid rgba(255,255,255,0.12)', background: tagFilter === tag ? 'var(--orange)' : 'rgba(255,255,255,0.06)', color: tagFilter === tag ? '#fff' : 'rgba(255,255,255,0.5)', cursor:'pointer', letterSpacing:'.06em', transition:'all 0.15s' }}>
                 {tag}
@@ -861,7 +861,7 @@ function CrewView({ data, shareToken, hideGear, onOpenShotList }) {
           return [day.call_time_tags, day.shooting_call_tags, day.lunch_tags, day.wrap_time_tags]
             .some(tags => Array.isArray(tags) && (tags.includes(tagFilter) || tags.includes('ALL_CREW')));
         }).map((day, i) => (
-          <DaySection key={day.id} day={day} showCalls flights={flights} dayIndex={i} tagFilter={tagFilter} cateringDetail="name" shotList={shotList} slDays={slDays} slBreaks={slBreaks} onOpenShotList={onOpenShotList} crewAssignments={crewAssignments} projectCity={[project.city, project.state].filter(Boolean).join(', ')} />
+          <DaySection key={day.id} day={day} showCalls flights={flights} dayIndex={i} tagFilter={tagFilter} cateringDetail="name" shotList={shotList} slDays={slDays} slBreaks={slBreaks} onOpenShotList={onOpenShotList} crewAssignments={crewAssignments} includePhoto={project.include_photo !== false} projectCity={[project.city, project.state].filter(Boolean).join(', ')} />
         ))}
       </div>
     </div>
@@ -1591,7 +1591,7 @@ function ClientView({ data, onOpenShotList }) {
         </section>
       )}
       {[...(schedule||[])].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map((day, i) => (
-        <DaySection key={day.id} day={day} showCalls={false} dayIndex={i} cateringDetail="name" shotList={shotList} slDays={slDays} slBreaks={slBreaks} onOpenShotList={onOpenShotList} projectCity={[project.city, project.state].filter(Boolean).join(', ')} />
+        <DaySection key={day.id} day={day} showCalls={false} dayIndex={i} cateringDetail="name" shotList={shotList} slDays={slDays} slBreaks={slBreaks} onOpenShotList={onOpenShotList} includePhoto={project.include_photo !== false} projectCity={[project.city, project.state].filter(Boolean).join(', ')} />
       ))}
     </div>
   );
@@ -1752,7 +1752,7 @@ function TalentView({ data }) {
           </section>
         )}
         {filteredSchedule.map((day, i) => (
-          <DaySection key={day.id} day={day} showCalls={false} dayIndex={i} talentCallTime={day.talent_call_time} hideCallWrap talentMode projectCity={[project.city, project.state].filter(Boolean).join(', ')} />
+          <DaySection key={day.id} day={day} showCalls={false} dayIndex={i} talentCallTime={day.talent_call_time} hideCallWrap talentMode includePhoto={project.include_photo !== false} projectCity={[project.city, project.state].filter(Boolean).join(', ')} />
         ))}
       </div>
     </div>
@@ -1877,7 +1877,7 @@ function CateringBadge({ catering, detail }) {
   );
 }
 
-function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCallWrap, tagFilter, cateringDetail, shotList, slDays, slBreaks, onOpenShotList, crewAssignments, projectCity, talentMode }) {
+function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCallWrap, tagFilter, cateringDetail, shotList, slDays, slBreaks, onOpenShotList, crewAssignments, projectCity, talentMode, includePhoto }) {
   const [clapEvent, setClapEvent] = useState(null);
   const crewByPosition = (posName) => {
     const a = (crewAssignments || []).find(x => (x.position?.name || '').toLowerCase() === posName && x.crewMember);
@@ -2079,7 +2079,7 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
                 );
               })() : item._type === 'synthetic' ? (() => {
                 const sm = SYNTHETIC_META_SHARE[item._key];
-                const itemTags = Array.isArray(item.tags) ? item.tags : [];
+                const itemTags = (Array.isArray(item.tags) ? item.tags : []).filter(t => includePhoto !== false || t !== 'PHOTO');
                 const isLunch = item._key === 'lt';
                 return (
                   <div key={item._key} className="ev">

@@ -19,7 +19,7 @@ router.get('/:token', async (req, res, next) => {
 
     // Load project base info
     const [project] = await sql`
-      SELECT p.id, p.code, p.title, p.subtitle, p.client, p.city, p.state, p.start_date, p.end_date, p.status, p.notes, p.share_password, p.show_shot_list, p.show_scripts, p.client_logo,
+      SELECT p.id, p.code, p.title, p.subtitle, p.client, p.city, p.state, p.start_date, p.end_date, p.status, p.notes, p.share_password, p.show_shot_list, p.show_scripts, p.client_logo, p.include_photo,
              COALESCE(NULLIF(TRIM(CONCAT(cm.preferred_first_name, ' ', cm.preferred_last_name)), ''), cm.name) as poc_name, cm.phone as poc_phone, cm.email as poc_email
       FROM projects p
       LEFT JOIN crew_members cm ON cm.id = p.poc_crew_member_id

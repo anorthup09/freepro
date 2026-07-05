@@ -89,10 +89,10 @@ router.get('/:id', requireAuth, async (req, res, next) => {
 // POST /api/projects
 router.post('/', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const d = z.object({ code:z.string(), title:z.string(), subtitle:z.string().optional(), client:z.string(), city:z.string(), state:z.string(), startDate:z.string(), endDate:z.string(), status:z.string().optional(), notes:z.string().optional() }).parse(req.body);
+    const d = z.object({ code:z.string(), title:z.string(), subtitle:z.string().optional(), client:z.string(), city:z.string(), state:z.string(), startDate:z.string(), endDate:z.string(), status:z.string().optional(), notes:z.string().optional(), includePhoto:z.boolean().optional() }).parse(req.body);
     const [p] = await sql`
-      INSERT INTO projects (id, code, title, subtitle, client, city, state, start_date, end_date, status, notes)
-      VALUES (gen_random_uuid()::text, ${d.code}, ${d.title}, ${d.subtitle||null}, ${d.client}, ${d.city}, ${d.state}, ${d.startDate}, ${d.endDate}, ${d.status||'PLANNING'}, ${d.notes||null})
+      INSERT INTO projects (id, code, title, subtitle, client, city, state, start_date, end_date, status, notes, include_photo)
+      VALUES (gen_random_uuid()::text, ${d.code}, ${d.title}, ${d.subtitle||null}, ${d.client}, ${d.city}, ${d.state}, ${d.startDate}, ${d.endDate}, ${d.status||'PLANNING'}, ${d.notes||null}, ${d.includePhoto !== false})
       RETURNING *`;
     res.status(201).json(p);
   } catch (err) {
@@ -122,6 +122,7 @@ router.patch('/:id', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, r
         show_shot_list = CASE WHEN ${d.showShotList !== undefined} THEN ${d.showShotList===true} ELSE show_shot_list END,
         show_scripts = CASE WHEN ${d.showScripts !== undefined} THEN ${d.showScripts===true} ELSE show_scripts END,
         client_logo = CASE WHEN ${d.clientLogo !== undefined} THEN ${d.clientLogo||null} ELSE client_logo END,
+        include_photo = CASE WHEN ${d.includePhoto !== undefined} THEN ${d.includePhoto !== false} ELSE include_photo END,
         updated_at = NOW()
       WHERE id = ${req.params.id}`;
     res.json(await getFullProject(req.params.id));

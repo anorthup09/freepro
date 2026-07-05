@@ -75,7 +75,7 @@ export default function Projects() {
       });
       setProjects(p => [proj, ...p]);
       setShowNew(false);
-      setForm({ code:'', title:'', client:'', city:'', state:'', startDate:'', endDate:'' });
+      setForm({ code:'', title:'', client:'', city:'', state:'', startDate:'', endDate:'', includePhoto:true });
     } catch (e) { alert(e.message); }
     finally { setSaving(false); }
   }
@@ -249,9 +249,24 @@ export default function Projects() {
                   <input type="date" value={form.endDate} onChange={e => setForm(f=>({...f,endDate:e.target.value}))} required />
                 </div>
               </div>
-              <div className="btn-row">
+              <div className="btn-row" style={{ alignItems:'center' }}>
                 <button className="btn btn-primary" disabled={saving}>{saving ? 'Creating…' : 'Create Project'}</button>
                 <button type="button" className="btn btn-ghost" onClick={() => setShowNew(false)}>Cancel</button>
+                {(() => {
+                  const on = form.includePhoto !== false;
+                  return (
+                    <div onClick={() => setForm(f => ({ ...f, includePhoto: !on }))}
+                      title={on ? 'Photo department included — tap to remove' : 'Photo department excluded — tap to include'}
+                      style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:7, cursor:'pointer', userSelect:'none' }}>
+                      <span style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color: on ? 'rgba(74,222,128,0.9)' : 'var(--muted)', whiteSpace:'nowrap' }}>
+                        {on ? 'Photo Included' : 'No Photo'}
+                      </span>
+                      <span style={{ width:32, height:18, borderRadius:100, flexShrink:0, position:'relative', transition:'background 0.2s, border-color 0.2s', background: on ? 'rgba(74,222,128,0.35)' : 'rgba(255,255,255,0.08)', border:`1px solid ${on ? 'rgba(74,222,128,0.7)' : 'rgba(255,255,255,0.18)'}` }}>
+                        <span style={{ position:'absolute', top:2, left: on ? 16 : 2, width:12, height:12, borderRadius:'50%', background: on ? '#4ade80' : 'rgba(255,255,255,0.45)', transition:'left 0.2s, background 0.2s' }} />
+                      </span>
+                    </div>
+                  );
+                })()}
               </div>
             </form>
           </div>
