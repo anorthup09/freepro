@@ -296,7 +296,7 @@ export default function Crew({ project, onProjectUpdate }) {
                           <span style={{ color:'var(--muted)' }}>{fmt$(a.day_rate||0)} × {Number(a.labor_days)||0}d = </span>
                           <span style={{ color:'var(--green)', fontWeight:600 }}>{fmt$((Number(a.day_rate)||0)*(Number(a.labor_days)||0))}</span>
                         </div>
-                      : <span style={{ color:'var(--muted)', fontSize:11 }}>—</span>}
+                      : <span style={{ color:'var(--muted)', fontSize:11 }}>{a.is_contractor ? '—' : ''}</span>}
                   </td>
                   <td style={{ whiteSpace:'nowrap' }}>
                     {a.is_contractor && (a.gear_cost || a.gear_days)
@@ -304,7 +304,7 @@ export default function Crew({ project, onProjectUpdate }) {
                           <span style={{ color:'var(--muted)' }}>{fmt$(a.gear_cost||0)} × {Number(a.gear_days)||0}d = </span>
                           <span style={{ color:'var(--green)', fontWeight:600 }}>{fmt$((Number(a.gear_cost)||0)*(Number(a.gear_days)||0))}</span>
                         </div>
-                      : <span style={{ color:'var(--muted)', fontSize:11 }}>—</span>}
+                      : <span style={{ color:'var(--muted)', fontSize:11 }}>{a.is_contractor ? '—' : ''}</span>}
                   </td>
                   <td style={{ textAlign:'right' }}>
                     <div style={{ display:'flex', gap:6, justifyContent:'flex-end' }}>
@@ -333,15 +333,28 @@ export default function Crew({ project, onProjectUpdate }) {
                 <th>Dietary</th>
                 <th>Start Date</th>
                 <th>End Date</th>
-                <th>Rate × Days</th>
-                <th>Gear Rate × Days</th>
+                <th></th>
+                <th></th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
               {staff.length > 0 && sectionRow('Unbridled Crew', 'var(--orange)')}
               {staff.map(renderRow)}
-              {contractors.length > 0 && sectionRow('Contract Crew', '#e6c229')}
+              {contractors.length > 0 && (
+                <tr>
+                  <td colSpan={7} style={{ padding:'6px 14px', background:'rgba(230,194,41,0.08)', borderTop:'1px solid var(--border)' }}>
+                    <span style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'#e6c229' }}>Contract Crew</span>
+                  </td>
+                  <td style={{ padding:'6px 8px', background:'rgba(230,194,41,0.08)', borderTop:'1px solid var(--border)', whiteSpace:'nowrap' }}>
+                    <span style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'#e6c229' }}>Rate × Days</span>
+                  </td>
+                  <td style={{ padding:'6px 8px', background:'rgba(230,194,41,0.08)', borderTop:'1px solid var(--border)', whiteSpace:'nowrap' }}>
+                    <span style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'#e6c229' }}>Gear Rate × Days</span>
+                  </td>
+                  <td style={{ background:'rgba(230,194,41,0.08)', borderTop:'1px solid var(--border)' }}></td>
+                </tr>
+              )}
               {contractors.map(renderRow)}
               {contractors.length > 0 && (
                 <tr>
