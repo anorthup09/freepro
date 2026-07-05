@@ -1998,18 +1998,11 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
                   <div key={`f-${item.id}-${item._leg}`} className="ev">
                     <div className="ev-time">✈ {item._time}</div>
                     <div className="ev-body" style={{ borderLeft:`2px solid ${fs.alert ? fs.color : 'var(--orange)'}`, ...(fs.alert ? { background: `${fs.color}11` } : {}) }}>
-                      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
-                        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                          {fs.alert && <span style={{ fontSize:14 }}>❗</span>}
-                          <div className="ev-title" style={fs.alert ? { color: fs.color } : {}}>
-                            {item._leg === 'depart' ? 'Departure' : 'Arrival'} — {item.crew_name || item.passenger_name}
-                          </div>
+                      <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                        {fs.alert && <span style={{ fontSize:14 }}>❗</span>}
+                        <div className="ev-title" style={fs.alert ? { color: fs.color } : {}}>
+                          {item._leg === 'depart' ? 'Departure' : 'Arrival'} — {item.crew_name || item.passenger_name}
                         </div>
-                        {item._leg === 'depart' && !fs.cancelled && (
-                          <div style={{ flexShrink:0, background:'rgba(0,0,0,0.25)', borderRadius:12, padding:'4px 12px' }}>
-                            <FlightStatusPill s={fs} />
-                          </div>
-                        )}
                       </div>
                       <div className="ev-detail">
                         {item.origin} → {item.destination}
@@ -2017,6 +2010,11 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
                         {item.confirmation && <span style={{ color:'var(--muted)', marginLeft:8 }}>#{item.confirmation}</span>}
                         {adjustedArrival && <span style={{ color:'var(--muted)', marginLeft:8 }}>Arrives: {adjustedArrival}</span>}
                       </div>
+                      {item._leg === 'depart' && !fs.cancelled && (
+                        <div style={{ display:'inline-block', background:'rgba(0,0,0,0.25)', borderRadius:12, padding:'4px 12px', marginTop:6 }}>
+                          <FlightStatusPill s={fs} />
+                        </div>
+                      )}
                     </div>
                   </div>
                 );

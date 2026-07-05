@@ -972,22 +972,20 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                         <div key={item._key} className="ev">
                           <div className="ev-time">✈ {legDisplayTime(item)}</div>
                           <div className="ev-body" style={{ borderLeft:`2px solid ${fs.alert ? fs.color : 'var(--orange)'}`, ...(fs.alert ? { background:`${fs.color}11` } : {}) }}>
-                            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
-                              <div>
-                                <div className="ev-title" style={fs.alert ? { color:fs.color } : {}}>
-                                  {fs.alert && '❗ '}{item._leg === 'depart' ? 'Departure' : 'Arrival'} — {item.crew_name || item.passenger_name}
-                                  {item.is_return && <span style={{ fontSize:10, marginLeft:6, color:'var(--muted)' }}>↩ return</span>}
-                                </div>
-                                <div className="ev-detail">
-                                  {item.origin} → {item.destination}
-                                  {(item.airline || item.flight_number) && (
-                                    <span style={{ color:'var(--muted)', marginLeft:8 }}>{[item.airline, item.flight_number].filter(Boolean).join(' ')}</span>
-                                  )}
-                                  {item.confirmation && <span style={{ color:'var(--muted)', marginLeft:8 }}>#{item.confirmation}</span>}
-                                </div>
+                            <div>
+                              <div className="ev-title" style={fs.alert ? { color:fs.color } : {}}>
+                                {fs.alert && '❗ '}{item._leg === 'depart' ? 'Departure' : 'Arrival'} — {item.crew_name || item.passenger_name}
+                                {item.is_return && <span style={{ fontSize:10, marginLeft:6, color:'var(--muted)' }}>↩ return</span>}
+                              </div>
+                              <div className="ev-detail">
+                                {item.origin} → {item.destination}
+                                {(item.airline || item.flight_number) && (
+                                  <span style={{ color:'var(--muted)', marginLeft:8 }}>{[item.airline, item.flight_number].filter(Boolean).join(' ')}</span>
+                                )}
+                                {item.confirmation && <span style={{ color:'var(--muted)', marginLeft:8 }}>#{item.confirmation}</span>}
                               </div>
                               {item._leg === 'depart' && (
-                                <div style={{ display:'flex', alignItems:'center', gap:5, flexShrink:0, background:'rgba(0,0,0,0.2)', borderRadius:20, padding:'3px 10px' }}>
+                                <div style={{ display:'inline-flex', alignItems:'center', gap:5, background:'rgba(0,0,0,0.2)', borderRadius:20, padding:'3px 10px', marginTop:6 }}>
                                   {fs.dot && <div style={{ width:6, height:6, borderRadius:'50%', background:fs.dot }} />}
                                   <span style={{ fontSize:10, fontWeight:600, color:fs.color, textTransform:'uppercase', letterSpacing:'.06em' }}>{fs.label}</span>
                                 </div>
