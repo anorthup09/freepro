@@ -632,6 +632,13 @@ export default function Crew({ project, onProjectUpdate }) {
                     }}>
                     {slotForm.isContractor ? '✓ ' : ''}Contract Crew
                   </button>
+                  {slotForm.crewMemberId && isContractorMember(slotForm.crewMemberId) !== null && (
+                    <span style={{ fontSize:10, color:'var(--muted)', marginTop:3 }}>
+                      {isContractorMember(slotForm.crewMemberId)
+                        ? 'Not on the Unbridled roster — marked Contract Crew.'
+                        : 'Unbridled Media staff — marked Unbridled Crew.'} Tap the pill to override.
+                    </span>
+                  )}
                 </div>
                 {slotForm.isContractor && (
                   <>
@@ -720,6 +727,13 @@ export default function Crew({ project, onProjectUpdate }) {
                     }}>
                     {editForm.isContractor ? '✓ ' : ''}Contract Crew
                   </button>
+                  {editForm.crewMemberId && isContractorMember(editForm.crewMemberId) !== null && (
+                    <span style={{ fontSize:10, color:'var(--muted)', marginTop:3 }}>
+                      {isContractorMember(editForm.crewMemberId)
+                        ? 'Not on the Unbridled roster — marked Contract Crew.'
+                        : 'Unbridled Media staff — marked Unbridled Crew.'} Tap the pill to override.
+                    </span>
+                  )}
                 </div>
                 {editForm.isContractor && (
                   <>
