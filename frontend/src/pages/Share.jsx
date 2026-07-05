@@ -1791,9 +1791,9 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
     })
     .map(s => ({ _type:'scene', _sort: timeToMins(s.est_start_time), _key:`scene-${s.id}`, ...s }));
 
-  const breakItems = tagFilter ? [] : (slBreaks || [])
-    .filter(b => b.day_id && matchingSlDayIds.has(b.day_id))
-    .map(b => ({ _type:'slbreak', _sort: timeToMins(b.start_time) + 0.5, _key:`brk-${b.id}`, ...b }));
+  // Shot list breaks stay on the shot list page — they're a timing tool, not
+  // a schedule item
+  const breakItems = [];
 
   const allItems = [
     ...syntheticDayItems,
