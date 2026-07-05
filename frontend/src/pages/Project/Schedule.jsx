@@ -1062,11 +1062,6 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                             <div style={{ flex:1, minWidth:0 }}>
                               <div className={`ev-title${(item.is_alert||item.isAlert) ? ' alert' : ''}`} >{(item.is_alert||item.isAlert) ? '⚠ ' : ''}{(item.is_filming||item.isFilming) ? '🎬 ' : ''}{item.title}</div>
                               {item.detail && <div className="ev-detail">{item.detail}</div>}
-                              {item.tags?.length > 0 && (
-                                <div className="ev-tags">
-                                  {item.tags.filter(t => includePhoto || t.type !== 'PHOTO').map(t => <span key={t.id} className={`etag ${TAG_CLASS[t.type]}`}>{TAG_LABEL[t.type]}</span>)}
-                                </div>
-                              )}
                             </div>
                             <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4, flexShrink:1, minWidth:0, maxWidth:'55%' }}>
                               {item.room_space && (
@@ -1084,12 +1079,17 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                                 onClick={e => { e.stopPropagation(); deleteEvent(item.id); }}>✕</button>
                             </div>
                           </div>
-                          {(item.is_filming||item.isFilming) && (
-                            <div style={{ display:'flex', justifyContent:'flex-end', marginTop:6 }}>
-                              <button onClick={e => { e.stopPropagation(); setClapEvent(item); }}
-                                style={{ display:'inline-flex', alignItems:'center', gap:5, background:'rgba(255,140,0,0.12)', border:'1px solid rgba(255,140,0,0.4)', borderRadius:6, padding:'2px 9px', fontSize:10, fontWeight:700, color:'var(--orange)', cursor:'pointer', letterSpacing:'.05em', textTransform:'uppercase' }}>
-                                🎬 Slate
-                              </button>
+                          {(item.tags?.length > 0 || item.is_filming || item.isFilming) && (
+                            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-end', gap:8, marginTop:6 }}>
+                              <div className="ev-tags" style={{ marginTop:0 }}>
+                                {(item.tags||[]).filter(t => includePhoto || t.type !== 'PHOTO').map(t => <span key={t.id} className={`etag ${TAG_CLASS[t.type]}`}>{TAG_LABEL[t.type]}</span>)}
+                              </div>
+                              {(item.is_filming||item.isFilming) && (
+                                <button onClick={e => { e.stopPropagation(); setClapEvent(item); }}
+                                  style={{ display:'inline-flex', alignItems:'center', gap:5, background:'rgba(255,140,0,0.12)', border:'1px solid rgba(255,140,0,0.4)', borderRadius:6, padding:'2px 9px', fontSize:10, fontWeight:700, color:'var(--orange)', cursor:'pointer', letterSpacing:'.05em', textTransform:'uppercase', flexShrink:0 }}>
+                                  🎬 Slate
+                                </button>
+                              )}
                             </div>
                           )}
                         </div>
