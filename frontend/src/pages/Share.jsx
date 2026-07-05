@@ -560,17 +560,31 @@ function ProducerView({ data, hideGear, onOpenShotList }) {
           <div className="sec-lbl">Locations</div>
           <div className="loc-grid">
             {locations.map(l => (
-              <div key={l.id} className="loc">
+              <div key={l.id} className="loc" style={{ alignItems:'stretch' }}>
                 <div className="loc-ico">{l.emoji || '📍'}</div>
-                <div>
+                <div style={{ flex:1, minWidth:0 }}>
                   <div className="loc-name">
                     {l.type && <span style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', fontWeight:600 }}>{LOCATION_TYPE_LABEL[l.type] || l.type} — </span>}
                     {l.name}
                   </div>
                   {l.address
-                    ? <a href={mapsUrl(l.address)} target="_blank" rel="noreferrer" className="loc-addr" style={{ color:'var(--tan)', textDecoration:'underline' }}>{l.address}</a>
+                    ? <a href={mapsUrl(l.address)} target="_blank" rel="noreferrer" className="loc-addr" style={{ color:'var(--tan)', textDecoration:'underline', display:'block' }}>{l.address}</a>
                     : null}
                 </div>
+                {l.address && (
+                  <a href={mapsUrl(l.address)} target="_blank" rel="noreferrer"
+                    style={{ position:'relative', display:'block', flex:'0 0 42%', maxWidth:240, minWidth:110, minHeight:96, borderRadius:8, overflow:'hidden', border:'1px solid var(--border)', alignSelf:'stretch' }}>
+                    <iframe
+                      title={`Map — ${l.name}`}
+                      src={`https://maps.google.com/maps?q=${encodeURIComponent(l.address)}&z=14&output=embed`}
+                      style={{ width:'100%', height:'100%', border:0, pointerEvents:'none', display:'block', position:'absolute', inset:0 }}
+                      loading="lazy"
+                    />
+                    <span style={{ position:'absolute', bottom:6, right:6, background:'rgba(10,10,8,0.85)', color:'var(--tan)', fontSize:9, fontWeight:700, borderRadius:5, padding:'3px 7px', border:'1px solid var(--border2)' }}>
+                      Maps ↗
+                    </span>
+                  </a>
+                )}
               </div>
             ))}
           </div>
@@ -746,17 +760,31 @@ function CrewView({ data, shareToken, hideGear, onOpenShotList }) {
           <div className="sec-lbl">Locations</div>
           <div className="loc-grid">
             {locations.map(l => (
-              <div key={l.id} className="loc">
+              <div key={l.id} className="loc" style={{ alignItems:'stretch' }}>
                 <div className="loc-ico">{l.emoji || '📍'}</div>
-                <div>
+                <div style={{ flex:1, minWidth:0 }}>
                   <div className="loc-name">
                     {l.type && <span style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', fontWeight:600 }}>{LOCATION_TYPE_LABEL[l.type] || l.type} — </span>}
                     {l.name}
                   </div>
                   {l.address
-                    ? <a href={mapsUrl(l.address)} target="_blank" rel="noreferrer" className="loc-addr" style={{ color:'var(--tan)', textDecoration:'underline' }}>{l.address}</a>
+                    ? <a href={mapsUrl(l.address)} target="_blank" rel="noreferrer" className="loc-addr" style={{ color:'var(--tan)', textDecoration:'underline', display:'block' }}>{l.address}</a>
                     : null}
                 </div>
+                {l.address && (
+                  <a href={mapsUrl(l.address)} target="_blank" rel="noreferrer"
+                    style={{ position:'relative', display:'block', flex:'0 0 42%', maxWidth:240, minWidth:110, minHeight:96, borderRadius:8, overflow:'hidden', border:'1px solid var(--border)', alignSelf:'stretch' }}>
+                    <iframe
+                      title={`Map — ${l.name}`}
+                      src={`https://maps.google.com/maps?q=${encodeURIComponent(l.address)}&z=14&output=embed`}
+                      style={{ width:'100%', height:'100%', border:0, pointerEvents:'none', display:'block', position:'absolute', inset:0 }}
+                      loading="lazy"
+                    />
+                    <span style={{ position:'absolute', bottom:6, right:6, background:'rgba(10,10,8,0.85)', color:'var(--tan)', fontSize:9, fontWeight:700, borderRadius:5, padding:'3px 7px', border:'1px solid var(--border2)' }}>
+                      Maps ↗
+                    </span>
+                  </a>
+                )}
               </div>
             ))}
           </div>
@@ -1520,9 +1548,9 @@ function ClientView({ data, onOpenShotList }) {
           <div className="sec-lbl">Locations</div>
           <div className="loc-grid">
             {locations.map(l => (
-              <div key={l.id} className="loc">
+              <div key={l.id} className="loc" style={{ alignItems:'stretch' }}>
                 <div className="loc-ico">{l.emoji || '📍'}</div>
-                <div>
+                <div style={{ flex:1, minWidth:0 }}>
                   <div className="loc-name">
                     {l.type && <span style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', fontWeight:600 }}>{LOCATION_TYPE_LABEL[l.type] || l.type} — </span>}
                     {l.name}
@@ -1531,6 +1559,20 @@ function ClientView({ data, onOpenShotList }) {
                     ? <a href={mapsUrl(l.address)} target="_blank" rel="noreferrer" className="loc-addr" style={{ color:'var(--tan)', textDecoration:'underline', display:'block' }}>{l.address}</a>
                     : null}
                 </div>
+                {l.address && (
+                  <a href={mapsUrl(l.address)} target="_blank" rel="noreferrer"
+                    style={{ position:'relative', display:'block', flex:'0 0 42%', maxWidth:240, minWidth:110, minHeight:96, borderRadius:8, overflow:'hidden', border:'1px solid var(--border)', alignSelf:'stretch' }}>
+                    <iframe
+                      title={`Map — ${l.name}`}
+                      src={`https://maps.google.com/maps?q=${encodeURIComponent(l.address)}&z=14&output=embed`}
+                      style={{ width:'100%', height:'100%', border:0, pointerEvents:'none', display:'block', position:'absolute', inset:0 }}
+                      loading="lazy"
+                    />
+                    <span style={{ position:'absolute', bottom:6, right:6, background:'rgba(10,10,8,0.85)', color:'var(--tan)', fontSize:9, fontWeight:700, borderRadius:5, padding:'3px 7px', border:'1px solid var(--border2)' }}>
+                      Maps ↗
+                    </span>
+                  </a>
+                )}
               </div>
             ))}
           </div>
