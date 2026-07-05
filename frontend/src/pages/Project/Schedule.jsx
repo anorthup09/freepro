@@ -881,12 +881,12 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                       const dt = dayTimesForm[currentDay.id] || {};
                       return (
                         <div key={item._key} className="ev">
-                          <div className="ev-time" style={{ color: sm.color }}>{fmtTime(item.startTime)}</div>
+                          <div className="ev-time">{fmtTime(item.startTime)}</div>
                           <div className="ev-body" style={{ borderLeft:`2px solid ${sm.color}`, cursor:'pointer' }}
                             onClick={() => setEditingSyntheticKey(isEditing ? null : item._key)}>
                             <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between' }}>
                               <div style={{ flex:1 }}>
-                                <div className="ev-title" style={{ color: sm.color }}>{item.title}</div>
+                                <div className="ev-title">{item.title}</div>
                                 {item.notes && !isEditing && <div className="ev-detail">{item.notes}</div>}
                                 {item.tags?.length > 0 && !isEditing && (
                                   <div className="ev-tags" style={{ marginTop:4 }}>
@@ -977,7 +977,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                       const wrapTime = slCalcWrap(item.est_start_time, item.shots || []);
                       return (
                         <div key={item._key} className="ev" style={{ cursor: 'pointer' }} onClick={() => onShotListTabChange?.()}>
-                          <div className="ev-time" style={{ color: st.color }}>{item.est_start_time}</div>
+                          <div className="ev-time">{item.est_start_time}</div>
                           <div className="ev-body" style={{ borderLeft: `2px solid ${st.border}`, padding: '10px 14px' }}>
                             <div className="sl-tile-left" style={{ minWidth: 0 }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
@@ -997,7 +997,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                                   {wrapTime && (
                                     <span style={{ fontSize: 11 }}>
                                       <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.1em' }}>Est. Wrap </span>
-                                      <span style={{ fontSize: 12, fontWeight: 800, color: st.color, fontVariantNumeric: 'tabular-nums' }}>{wrapTime}</span>
+                                      <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--text)', fontVariantNumeric: 'tabular-nums' }}>{wrapTime}</span>
                                     </span>
                                   )}
                                   <span style={{ fontSize: 10, color: st.color, opacity: 0.6, whiteSpace: 'nowrap' }}>→ Shot List</span>
@@ -1011,10 +1011,10 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                       const mc = MEAL_COLORS[item.meal_type] || MEAL_COLORS.BREAKFAST;
                       return (
                         <div key={item._key} className="ev">
-                          <div className="ev-time" style={{ color: mc.color }}>{item.delivery_time ? fmtTime(item.delivery_time) : '—'}</div>
+                          <div className="ev-time">{item.delivery_time ? fmtTime(item.delivery_time) : '—'}</div>
                           <div className="ev-body" style={{ borderLeft:`2px solid ${mc.color}` }}>
                             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
-                              <div className="ev-title" style={{ color: mc.color }}>{mc.emoji} {mc.label}</div>
+                              <div className="ev-title">{mc.emoji} {mc.label}</div>
                               <div style={{ textAlign:'right' }}>
                                 {item.name && <div style={{ fontSize:12, fontWeight:600, color:'var(--text)' }}>{item.name}</div>}
                                 {item.address && <div style={{ fontSize:10, color:'var(--muted)' }}>{item.address}</div>}
@@ -1060,7 +1060,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                           onClick={() => openEditEvent(item)}>
                           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:8 }}>
                             <div style={{ flex:1, minWidth:0 }}>
-                              <div className={`ev-title${(item.is_alert||item.isAlert) ? ' alert' : ''}`} style={(item.is_filming||item.isFilming) ? { color:'var(--orange)' } : {}}>{(item.is_alert||item.isAlert) ? '⚠ ' : ''}{(item.is_filming||item.isFilming) ? '🎬 ' : ''}{item.title}</div>
+                              <div className={`ev-title${(item.is_alert||item.isAlert) ? ' alert' : ''}`} >{(item.is_alert||item.isAlert) ? '⚠ ' : ''}{(item.is_filming||item.isFilming) ? '🎬 ' : ''}{item.title}</div>
                               {item.detail && <div className="ev-detail">{item.detail}</div>}
                               {item.tags?.length > 0 && (
                                 <div className="ev-tags">

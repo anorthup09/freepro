@@ -2062,10 +2062,10 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
                 const mm = MEAL_META[item.meal_type] || MEAL_META.BREAKFAST;
                 return (
                   <div key={item._key} className="ev">
-                    <div className="ev-time" style={{ color: mm.color }}>{item.delivery_time ? fmtTime(item.delivery_time) : '—'}</div>
+                    <div className="ev-time">{item.delivery_time ? fmtTime(item.delivery_time) : '—'}</div>
                     <div className="ev-body" style={{ borderLeft:`2px solid ${mm.color}`, background: `${mm.color}14` }}>
                       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
-                        <div className="ev-title" style={{ color: mm.color }}>{mm.emoji} {mm.label}</div>
+                        <div className="ev-title">{mm.emoji} {mm.label}</div>
                         {cateringDetail && (
                           <div style={{ textAlign:'right' }}>
                             {item.name && <div style={{ fontSize:12, fontWeight:600, color:'var(--text)' }}>{item.name}</div>}
@@ -2083,11 +2083,11 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
                 const isLunch = item._key === 'lt';
                 return (
                   <div key={item._key} className="ev">
-                    <div className="ev-time" style={{ color: sm.color }}>{fmtTime(item.startTime)}</div>
+                    <div className="ev-time">{fmtTime(item.startTime)}</div>
                     <div className="ev-body" style={{ borderLeft:`2px solid ${sm.color}` }}>
                       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
                         <div style={{ flex:1 }}>
-                          <div className="ev-title" style={{ color: sm.color }}>{item.title}</div>
+                          <div className="ev-title">{item.title}</div>
                           {item.notes && <div className="ev-detail">{item.notes}</div>}
                           {itemTags.length > 0 && (
                             <div className="ev-tags" style={{ marginTop:4 }}>
@@ -2110,10 +2110,10 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
               })() : item._type === 'slbreak' ? (() => {
                 return (
                   <div key={item._key} className="ev">
-                    <div className="ev-time" style={{ color:'#fbbf24' }}>{item.start_time ? fmtTime(item.start_time) : '—'}</div>
+                    <div className="ev-time">{item.start_time ? fmtTime(item.start_time) : '—'}</div>
                     <div className="ev-body" style={{ borderLeft:'2px solid #fbbf24', background:'rgba(251,191,36,0.07)' }}>
                       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
-                        <div className="ev-title" style={{ color:'#fbbf24' }}>☕ Break</div>
+                        <div className="ev-title">☕ Break</div>
                         {item.end_time && <div style={{ fontSize:11, color:'var(--muted)', fontVariantNumeric:'tabular-nums' }}>Until {fmtTime(item.end_time)}</div>}
                       </div>
                     </div>
@@ -2124,7 +2124,7 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
                 const wrapTime = slCalcWrapShare(item.est_start_time, item.shots || []);
                 return (
                   <div key={item._key} className="ev" style={onOpenShotList ? { cursor:'pointer' } : undefined} onClick={() => onOpenShotList?.()}>
-                    <div className="ev-time" style={{ color: st.color }}>{item.est_start_time}</div>
+                    <div className="ev-time">{item.est_start_time}</div>
                     <div className="ev-body" style={{ borderLeft:`2px solid ${st.border}`, padding:'10px 14px' }}>
                       <div style={{ minWidth:0 }}>
                         <div style={{ display:'flex', alignItems:'center', gap:8, minWidth:0 }}>
@@ -2144,7 +2144,7 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
                             {wrapTime && (
                               <span style={{ fontSize:11 }}>
                                 <span style={{ fontSize:9, fontWeight:700, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.1em' }}>Est. Wrap </span>
-                                <span style={{ fontSize:12, fontWeight:800, color: st.color, fontVariantNumeric:'tabular-nums' }}>{wrapTime}</span>
+                                <span style={{ fontSize:12, fontWeight:800, color:'var(--text)', fontVariantNumeric:'tabular-nums' }}>{wrapTime}</span>
                               </span>
                             )}
                             {onOpenShotList && <span style={{ fontSize:10, color: st.color, opacity:0.6, whiteSpace:'nowrap' }}>→ Shot List</span>}
@@ -2194,7 +2194,7 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
                     <div className={`ev-body${item.is_alert ? ' warn' : ''}`} style={!item.is_alert ? { borderLeft:'2px solid var(--orange)',  } : {}}>
                       <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:8 }}>
                         <div style={{ flex:1, minWidth:0 }}>
-                          <div className={`ev-title${item.is_alert ? ' alert' : ''}`} style={item.is_filming ? { color:'var(--orange)' } : {}}>{item.is_filming ? '🎬 ' : ''}{item.title}</div>
+                          <div className={`ev-title${item.is_alert ? ' alert' : ''}`}>{item.is_filming ? '🎬 ' : ''}{item.title}</div>
                           {item.detail && <div className="ev-detail">{item.detail}</div>}
                           {item.room_space && (
                             <div style={{ fontSize:12, fontWeight:700, color:'var(--text)', marginTop:2 }}>
