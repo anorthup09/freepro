@@ -77,16 +77,8 @@ export default function Clapboard({ title, date, location, fieldProducer, direct
 
           <Row name="Director">{director || '—'}</Row>
           <Row name="Camera">{camera || '—'}</Row>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, borderBottom: '2px solid #111', padding: '10px 2px 6px', flexWrap: 'wrap' }}>
-            <span style={label}>Date:</span>
-            <span style={value}>{date || '—'}</span>
-            {location && (
-              <>
-                <span style={{ ...label, marginLeft: 12 }}>Loc:</span>
-                <span style={value}>{location}</span>
-              </>
-            )}
-          </div>
+          <Row name="Date">{date || '—'}</Row>
+          {location && <Row name="Loc">{location}</Row>}
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 14 }}>
             <button onClick={onClose}
