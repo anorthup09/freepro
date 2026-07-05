@@ -29,6 +29,12 @@ async function req(method, path, body) {
   return data;
 }
 
+// Logged-in users bypass share passwords server-side — attach their token
+function shareAuthHeaders() {
+  const t = localStorage.getItem('fp_token');
+  return t ? { Authorization: `Bearer ${t}` } : {};
+}
+
 export const api = {
   // Auth
   login: (email, password) => req('POST', '/auth/login', { email, password }),
@@ -165,14 +171,14 @@ export const api = {
   // Share Questions
   getShareQuestions: async (token, pw) => {
     const url = `${BACKEND}/api/share/${token}/questions${pw ? `?pw=${encodeURIComponent(pw)}` : ''}`;
-    const r = await fetch(url);
+    const r = await fetch(url, { headers: shareAuthHeaders() });
     const data = await r.json();
     if (!r.ok) throw new Error(data.error || 'Failed');
     return data;
   },
   createShareQuestion: async (token, pw, question) => {
     const url = `${BACKEND}/api/share/${token}/questions${pw ? `?pw=${encodeURIComponent(pw)}` : ''}`;
-    const r = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ question }) });
+    const r = await fetch(url, { method:'POST', headers:{ 'Content-Type':'application/json', ...shareAuthHeaders() }, body: JSON.stringify({ question }) });
     const data = await r.json();
     if (!r.ok) throw new Error(data.error || 'Failed');
     return data;
@@ -202,7 +208,7 @@ export const api = {
 
   answerShareQuestion: async (token, pw, qid, answer) => {
     const url = `${BACKEND}/api/share/${token}/questions/${qid}${pw ? `?pw=${encodeURIComponent(pw)}` : ''}`;
-    const r = await fetch(url, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ answer }) });
+    const r = await fetch(url, { method:'PATCH', headers:{ 'Content-Type':'application/json', ...shareAuthHeaders() }, body: JSON.stringify({ answer }) });
     const data = await r.json();
     if (!r.ok) throw new Error(data.error || 'Failed');
     return data;

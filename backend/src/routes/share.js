@@ -275,13 +275,23 @@ router.patch('/:token/gear', async (req, res, next) => {
 });
 
 // Helper: resolve share token + optional pw check
-async function resolveShare(token, pw) {
+async function resolveShare(token, pw, req) {
   const [share] = await sql`SELECT * FROM project_shares WHERE token = ${token}`;
   if (!share) return { error: 'Share not found', status: 404 };
   const [project] = await sql`SELECT share_password FROM projects WHERE id = ${share.project_id}`;
   if (project?.share_password) {
+    // Logged-in users (any role above PENDING) bypass the share password,
+    // same as the main share GET
+    let authed = false;
+    const h = req?.headers?.authorization;
+    if (h?.startsWith('Bearer ')) {
+      try {
+        const u = jwt.verify(h.slice(7), process.env.JWT_SECRET);
+        authed = !!u.role && u.role !== 'PENDING';
+      } catch { /* invalid token — fall through to password check */ }
+    }
     const supplied = pw || '';
-    if (supplied !== project.share_password) return { error: 'Unauthorized', status: 401 };
+    if (!authed && supplied !== project.share_password) return { error: 'Unauthorized', status: 401 };
   }
   return { share };
 }
@@ -335,7 +345,7 @@ router.patch('/:token/scenes/:sceneId', async (req, res, next) => {
 // GET /share/:token/questions
 router.get('/:token/questions', async (req, res, next) => {
   try {
-    const r = await resolveShare(req.params.token, req.query.pw);
+    const r = await resolveShare(req.params.token, req.query.pw, req);
     if (r.error) return res.status(r.status).json({ error: r.error });
     const questions = await sql`SELECT * FROM project_questions WHERE project_id = ${r.share.project_id} ORDER BY asked_at ASC`;
     res.json(questions);
@@ -345,7 +355,7 @@ router.get('/:token/questions', async (req, res, next) => {
 // POST /share/:token/questions
 router.post('/:token/questions', async (req, res, next) => {
   try {
-    const r = await resolveShare(req.params.token, req.query.pw);
+    const r = await resolveShare(req.params.token, req.query.pw, req);
     if (r.error) return res.status(r.status).json({ error: r.error });
     const { question } = req.body;
     if (!question?.trim()) return res.status(400).json({ error: 'Question is required' });
@@ -376,7 +386,7 @@ router.post('/:token/questions', async (req, res, next) => {
 // PATCH /share/:token/questions/:qid — answer a question
 router.patch('/:token/questions/:qid', async (req, res, next) => {
   try {
-    const r = await resolveShare(req.params.token, req.query.pw);
+    const r = await resolveShare(req.params.token, req.query.pw, req);
     if (r.error) return res.status(r.status).json({ error: r.error });
     if (r.share.view_type !== 'producer') return res.status(403).json({ error: 'Only producers can answer questions' });
     const { answer } = req.body;
