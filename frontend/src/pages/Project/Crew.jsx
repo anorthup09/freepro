@@ -160,14 +160,35 @@ export default function Crew({ project, onProjectUpdate }) {
     setMemberSaving(false);
   }
 
-  async function saveEdit(id) {
+  function openEditSlot(a) {
+    const cmId = a.crewMember?.id || a.crew_member_id || '';
+    const dates = flightDatesFor(cmId);
+    setEditForm({
+      crewMemberId: cmId,
+      startDate: (a.start_date || dates.startDate || '').slice(0,10),
+      endDate: (a.end_date || dates.endDate || '').slice(0,10),
+      isContractor: !!a.is_contractor,
+      dayRate: a.day_rate ?? '',
+      laborDays: a.labor_days ?? '',
+      gearCost: a.gear_cost ?? '',
+    });
+    setEditId(a.id);
+  }
+
+  async function saveEdit(e) {
+    e.preventDefault();
     try {
-      const payload = { ...editForm };
-      if (payload.dayRate !== undefined) payload.dayRate = payload.dayRate === '' ? null : Number(payload.dayRate);
-      if (payload.laborDays !== undefined) payload.laborDays = payload.laborDays === '' ? null : Number(payload.laborDays);
-      if (payload.gearCost !== undefined) payload.gearCost = payload.gearCost === '' ? null : Number(payload.gearCost);
-      const updated = await api.updateCrewSlot(project.id, id, payload);
-      setAssignments(prev => prev.map(a => a.id === id ? updated : a));
+      const payload = {
+        crewMemberId: editForm.crewMemberId || null,
+        startDate: editForm.startDate || null,
+        endDate: editForm.endDate || null,
+        isContractor: editForm.isContractor,
+        dayRate: editForm.isContractor && editForm.dayRate !== '' ? Number(editForm.dayRate) : null,
+        laborDays: editForm.isContractor && editForm.laborDays !== '' ? Number(editForm.laborDays) : null,
+        gearCost: editForm.isContractor && editForm.gearCost !== '' ? Number(editForm.gearCost) : null,
+      };
+      const updated = await api.updateCrewSlot(project.id, editId, payload);
+      setAssignments(prev => prev.map(a => a.id === editId ? updated : a));
       setEditId(null);
     } catch(e) { alert(e.message); }
   }
@@ -248,25 +269,14 @@ export default function Crew({ project, onProjectUpdate }) {
                     {a.slotNumber > 1 && <div className="pos-slot">Slot {a.slotNumber}</div>}
                   </td>
                   <td>
-                    {editId === a.id ? (
-                      <select value={editForm.crewMemberId || ''} onChange={e => {
-                        const id = e.target.value;
-                        const dates = flightDatesFor(id);
-                        setEditForm(f => ({ ...f, crewMemberId: id||null, startDate: f.startDate || dates.startDate, endDate: f.endDate || dates.endDate }));
-                      }} onKeyDown={e => e.key === 'Enter' && saveEdit(a.id)} style={{ width:'100%', minWidth:120 }}>
-                        <option value="">— Unassigned —</option>
-                        {roster.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                      </select>
-                    ) : (
-                      a.crewMember ? (
-                        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                          <div className="av" style={{ width:26, height:26, fontSize:9, background: colorFor(a.crewMember.name)+'22', color: colorFor(a.crewMember.name) }}>
-                            {initials(a.crewMember.name)}
-                          </div>
-                          <div style={{ fontSize:12, fontWeight:500 }}>{displayName(a.crewMember)}</div>
+                    {a.crewMember ? (
+                      <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                        <div className="av" style={{ width:26, height:26, fontSize:9, background: colorFor(a.crewMember.name)+'22', color: colorFor(a.crewMember.name) }}>
+                          {initials(a.crewMember.name)}
                         </div>
-                      ) : <span style={{ color:'var(--muted)', fontSize:11 }}>— Unassigned —</span>
-                    )}
+                        <div style={{ fontSize:12, fontWeight:500 }}>{displayName(a.crewMember)}</div>
+                      </div>
+                    ) : <span style={{ color:'var(--muted)', fontSize:11 }}>— Unassigned —</span>}
                   </td>
                   <td style={{ fontSize:11, color:'var(--tan)', whiteSpace:'nowrap' }}>{a.crewMember?.phone || '—'}</td>
                   <td style={{ fontSize:11, color:'var(--muted)' }}>{a.crewMember?.email || '—'}</td>
@@ -275,57 +285,26 @@ export default function Crew({ project, onProjectUpdate }) {
                       ? <span>⚠️ {a.crewMember.dietaryRestrictions}</span>
                       : <span style={{ color:'var(--muted)' }}>—</span>}
                   </td>
-                  <td>
-                    {editId === a.id
-                      ? <input type="date" style={{ width:130 }} value={editForm.startDate||''} onChange={e => setEditForm(f=>({...f,startDate:e.target.value}))} onKeyDown={e => e.key === 'Enter' && saveEdit(a.id)} />
-                      : <span style={{ fontSize:11, color:'var(--orange)' }}>{fmtDate(a.start_date)}</span>
-                    }
-                  </td>
-                  <td>
-                    {editId === a.id
-                      ? <input type="date" style={{ width:130 }} value={editForm.endDate||''} onChange={e => setEditForm(f=>({...f,endDate:e.target.value}))} onKeyDown={e => e.key === 'Enter' && saveEdit(a.id)} />
-                      : <span style={{ fontSize:11, color:'var(--orange)' }}>{fmtDate(a.end_date)}</span>
-                    }
-                  </td>
+                  <td><span style={{ fontSize:11, color:'var(--orange)' }}>{fmtDate(a.start_date)}</span></td>
+                  <td><span style={{ fontSize:11, color:'var(--orange)' }}>{fmtDate(a.end_date)}</span></td>
                   <td style={{ whiteSpace:'nowrap' }}>
-                    {a.is_contractor ? (
-                      editId === a.id ? (
-                        <div style={{ display:'flex', alignItems:'center', gap:4 }}>
-                          <input type="number" min="0" step="0.01" placeholder="Rate" style={{ width:70 }} value={editForm.dayRate ?? ''} onChange={e => setEditForm(f=>({...f,dayRate:e.target.value}))} />
-                          <span style={{ fontSize:11, color:'var(--muted)' }}>×</span>
-                          <input type="number" min="0" step="0.5" placeholder="Days" style={{ width:52 }} value={editForm.laborDays ?? ''} onChange={e => setEditForm(f=>({...f,laborDays:e.target.value}))} />
+                    {a.is_contractor && (a.day_rate || a.labor_days)
+                      ? <div style={{ fontSize:11 }}>
+                          <span style={{ color:'var(--muted)' }}>{fmt$(a.day_rate||0)} × {Number(a.labor_days)||0}d = </span>
+                          <span style={{ color:'var(--green)', fontWeight:600 }}>{fmt$((Number(a.day_rate)||0)*(Number(a.labor_days)||0))}</span>
                         </div>
-                      ) : (
-                        (a.day_rate || a.labor_days)
-                          ? <div style={{ fontSize:11 }}>
-                              <span style={{ color:'var(--muted)' }}>{fmt$(a.day_rate||0)} × {Number(a.labor_days)||0}d = </span>
-                              <span style={{ color:'var(--green)', fontWeight:600 }}>{fmt$((Number(a.day_rate)||0)*(Number(a.labor_days)||0))}</span>
-                            </div>
-                          : <span style={{ color:'var(--muted)', fontSize:11 }}>—</span>
-                      )
-                    ) : <span style={{ color:'var(--muted)', fontSize:11 }}>—</span>}
+                      : <span style={{ color:'var(--muted)', fontSize:11 }}>—</span>}
                   </td>
                   <td style={{ whiteSpace:'nowrap' }}>
-                    {a.is_contractor ? (
-                      editId === a.id
-                        ? <input type="number" min="0" step="0.01" placeholder="Gear $" style={{ width:80 }} value={editForm.gearCost ?? ''} onChange={e => setEditForm(f=>({...f,gearCost:e.target.value}))} />
-                        : (a.gear_cost != null && a.gear_cost !== ''
-                            ? <span style={{ fontSize:11, color:'var(--green)', fontWeight:600 }}>{fmt$(a.gear_cost)}</span>
-                            : <span style={{ color:'var(--muted)', fontSize:11 }}>—</span>)
-                    ) : <span style={{ color:'var(--muted)', fontSize:11 }}>—</span>}
+                    {a.is_contractor && a.gear_cost != null && a.gear_cost !== ''
+                      ? <span style={{ fontSize:11, color:'var(--green)', fontWeight:600 }}>{fmt$(a.gear_cost)}</span>
+                      : <span style={{ color:'var(--muted)', fontSize:11 }}>—</span>}
                   </td>
                   <td style={{ textAlign:'right' }}>
-                    {editId === a.id ? (
-                      <div style={{ display:'flex', gap:6, justifyContent:'flex-end' }}>
-                        <button className="btn btn-primary btn-sm" onClick={() => saveEdit(a.id)}>Save</button>
-                        <button className="btn btn-ghost btn-sm" onClick={() => setEditId(null)}>Cancel</button>
-                      </div>
-                    ) : (
-                      <div style={{ display:'flex', gap:6, justifyContent:'flex-end' }}>
-                        <button className="btn btn-ghost btn-sm" onClick={() => { setEditId(a.id); const cmId = a.crewMember?.id || a.crew_member_id || ''; const dates = flightDatesFor(cmId); setEditForm({ crewMemberId: cmId, startDate: a.start_date || dates.startDate, endDate: a.end_date || dates.endDate, ...(a.is_contractor ? { dayRate: a.day_rate ?? '', laborDays: a.labor_days ?? '', gearCost: a.gear_cost ?? '' } : {}) }); }}>Edit</button>
-                        <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text)' }} onClick={() => removeSlot(a.id)}>✕</button>
-                      </div>
-                    )}
+                    <div style={{ display:'flex', gap:6, justifyContent:'flex-end' }}>
+                      <button className="btn btn-ghost btn-sm" onClick={() => openEditSlot(a)}>Edit</button>
+                      <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text)' }} onClick={() => removeSlot(a.id)}>✕</button>
+                    </div>
                   </td>
                 </tr>
         );
@@ -660,6 +639,79 @@ export default function Crew({ project, onProjectUpdate }) {
           </div>
         </div>
       )}
+
+      {/* Edit Position Slot Modal */}
+      {editId && (() => {
+        const a = assignments.find(x => x.id === editId);
+        if (!a) return null;
+        return (
+        <div className="modal-bg" onClick={e => e.target === e.currentTarget && setEditId(null)}>
+          <div className="modal">
+            <div className="modal-title">Edit Position — {a.position?.name || a.position_name}{a.slot_number > 1 ? ` (Slot ${a.slot_number})` : ''}</div>
+            <form onSubmit={saveEdit}>
+              <div className="form-grid" style={{ marginBottom:12 }}>
+                <div className="field span2">
+                  <label>Crew Member</label>
+                  <select value={editForm.crewMemberId || ''} onChange={e => {
+                    const id = e.target.value;
+                    const dates = flightDatesFor(id);
+                    setEditForm(f => ({ ...f, crewMemberId: id, startDate: f.startDate || dates.startDate, endDate: f.endDate || dates.endDate }));
+                  }}>
+                    <option value="">— Unassigned —</option>
+                    {roster.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                  </select>
+                  <span style={{ fontSize:10, color:'var(--muted)', marginTop:2 }}>Can't find them? Add via "New Person" first.</span>
+                </div>
+                <div className="field">
+                  <label>Start Date</label>
+                  <input type="date" value={editForm.startDate || ''} onChange={e => setEditForm(f=>({...f,startDate:e.target.value}))} />
+                </div>
+                <div className="field">
+                  <label>End Date</label>
+                  <input type="date" value={editForm.endDate || ''} onChange={e => setEditForm(f=>({...f,endDate:e.target.value}))} />
+                </div>
+                <div className="field span2">
+                  <button type="button"
+                    onClick={() => setEditForm(f => ({ ...f, isContractor: !f.isContractor }))}
+                    style={{
+                      alignSelf:'flex-start', display:'inline-flex', alignItems:'center', gap:6,
+                      background: editForm.isContractor ? 'rgba(230,194,41,0.15)' : 'transparent',
+                      border: `1px solid ${editForm.isContractor ? '#e6c229' : 'var(--border)'}`,
+                      color: editForm.isContractor ? '#e6c229' : 'var(--muted)',
+                      borderRadius:20, padding:'5px 14px', fontSize:11, fontWeight:700, cursor:'pointer', letterSpacing:'0.04em', textTransform:'uppercase',
+                    }}>
+                    {editForm.isContractor ? '✓ ' : ''}Contractor
+                  </button>
+                </div>
+                {editForm.isContractor && (
+                  <>
+                    <div className="field">
+                      <label>Day Rate ($)</label>
+                      <input type="number" min="0" step="0.01" placeholder="650" value={editForm.dayRate ?? ''} onChange={e => setEditForm(f=>({...f,dayRate:e.target.value}))} />
+                    </div>
+                    <div className="field">
+                      <label>Labor Days</label>
+                      <input type="number" min="0" step="0.5" placeholder="3" value={editForm.laborDays ?? ''} onChange={e => setEditForm(f=>({...f,laborDays:e.target.value}))} />
+                    </div>
+                    <div className="field">
+                      <label>Gear ($)</label>
+                      <input type="number" min="0" step="0.01" placeholder="0" value={editForm.gearCost ?? ''} onChange={e => setEditForm(f=>({...f,gearCost:e.target.value}))} />
+                    </div>
+                    <div className="field" style={{ justifyContent:'flex-end' }}>
+                      <label>Labor Total</label>
+                      <div style={{ fontSize:14, fontWeight:700, color:'var(--green)', padding:'6px 0' }}>
+                        ${((Number(editForm.dayRate)||0) * (Number(editForm.laborDays)||0)).toLocaleString('en-US', { maximumFractionDigits:2 })}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+              <div className="btn-row"><button className="btn btn-primary">Save</button><button type="button" className="btn btn-ghost" onClick={() => setEditId(null)}>Cancel</button></div>
+            </form>
+          </div>
+        </div>
+        );
+      })()}
 
       {/* Edit Talent Modal */}
       {editTalent && (
