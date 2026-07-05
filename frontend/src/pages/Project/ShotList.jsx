@@ -593,14 +593,20 @@ function DaySynopsisCard({ day, onDelete, onAddScene, scenes, scheduleDays, onDa
             </div>
           )}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
+        {totalShots === 0 && (
+          <div onClick={() => onToggleHidePublic?.(day.id, !day.hide_public)}
+            title={day.hide_public ? 'Hidden from public views — tap to show' : 'Shown on public views — tap to hide'}
+            style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', userSelect: 'none', flexShrink: 0 }}>
+            <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: day.hide_public ? 'var(--muted)' : 'rgba(74,222,128,0.9)', whiteSpace: 'nowrap' }}>
+              {day.hide_public ? 'Hidden from Public' : 'Public'}
+            </span>
+            <span style={{ width: 32, height: 18, borderRadius: 100, flexShrink: 0, position: 'relative', transition: 'background 0.2s, border-color 0.2s', background: day.hide_public ? 'rgba(255,255,255,0.08)' : 'rgba(74,222,128,0.35)', border: `1px solid ${day.hide_public ? 'rgba(255,255,255,0.18)' : 'rgba(74,222,128,0.7)'}` }}>
+              <span style={{ position: 'absolute', top: 2, left: day.hide_public ? 2 : 16, width: 12, height: 12, borderRadius: '50%', background: day.hide_public ? 'rgba(255,255,255,0.45)' : '#4ade80', transition: 'left 0.2s, background 0.2s' }} />
+            </span>
+          </div>
+        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: '1 1 100%' }}>
           <button className="btn btn-primary btn-sm" style={{ fontSize: 11, whiteSpace: 'nowrap', padding: '2px 9px', minHeight: 0, height: 22, lineHeight: '18px' }} onClick={() => onAddScene?.(day.id)}>+ Add Scene</button>
-          {totalShots === 0 && (
-            <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: day.hide_public ? 'var(--orange)' : 'var(--muted)', cursor: 'pointer', whiteSpace: 'nowrap', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.05em' }}>
-              <input type="checkbox" checked={!!day.hide_public} onChange={e => onToggleHidePublic?.(day.id, e.target.checked)} style={{ accentColor: 'var(--orange)', width: 13, height: 13 }} />
-              Hide from public views
-            </label>
-          )}
           <button className="btn btn-ghost btn-sm" style={{ fontSize: 11, color: 'var(--muted)', padding: '2px 8px', minHeight: 0, height: 22, lineHeight: '18px', marginLeft: 'auto' }} onClick={() => {
             if (confirm(`Delete Day ${day.day_number}?`)) onDelete(day.id);
           }}>Delete</button>
