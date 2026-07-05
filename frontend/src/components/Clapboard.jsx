@@ -16,15 +16,15 @@ function TimecodeBar() {
   const cs = String(Math.floor(now.getMilliseconds() / 10)).padStart(2, '0');
   return (
     <div style={{ background: '#000', padding: 'min(10px, 1.4vh) 44px min(10px, 1.4vh) 12px', textAlign: 'center', position: 'relative' }}>
-      <span style={{ fontFamily: "'Courier New', monospace", fontWeight: 700, fontSize: 'min(56px, 7vw, 9vh)', letterSpacing: '0.06em', color: '#ff2222', textShadow: '0 0 12px rgba(255,34,34,0.6)', fontVariantNumeric: 'tabular-nums' }}>
+      <span style={{ fontFamily: "'Courier New', monospace", fontWeight: 700, fontSize: 'min(56px, 7vw, 11vh)', letterSpacing: '0.06em', color: '#ff2222', textShadow: '0 0 12px rgba(255,34,34,0.6)', fontVariantNumeric: 'tabular-nums' }}>
         {h}.{m}.{sec}.{cs} <span style={{ fontSize: '0.55em' }}>{ampm}</span>
       </span>
     </div>
   );
 }
 
-const label = { fontFamily: "'DM Sans', sans-serif", fontWeight: 800, fontSize: 'min(24px, 2.6vw + 6px, 3.6vh)', letterSpacing: '0.04em', color: '#111', textTransform: 'uppercase', fontStyle: 'italic' };
-const value = { fontFamily: "'DM Sans', sans-serif", fontWeight: 700, fontSize: 'min(28px, 3vw + 7px, 4.2vh)', color: '#111', minWidth: 0, overflowWrap: 'anywhere' };
+const label = { fontFamily: "'DM Sans', sans-serif", fontWeight: 800, fontSize: 'min(24px, 2.6vw + 6px, 5vh)', letterSpacing: '0.04em', color: '#111', textTransform: 'uppercase', fontStyle: 'italic' };
+const value = { fontFamily: "'DM Sans', sans-serif", fontWeight: 700, fontSize: 'min(28px, 3vw + 7px, 6vh)', color: '#111', minWidth: 0, overflowWrap: 'anywhere' };
 
 function Row({ name, children }) {
   return (
@@ -40,6 +40,12 @@ function Row({ name, children }) {
 export default function Clapboard({ title, date, location, fieldProducer, director, camera, onClose, editableTitle }) {
   const [take, setTake] = useState(1);
   const [titleVal, setTitleVal] = useState(title || '');
+  const [landscape, setLandscape] = useState(() => typeof window !== 'undefined' && window.innerWidth > window.innerHeight);
+  useEffect(() => {
+    const onResize = () => setLandscape(window.innerWidth > window.innerHeight);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   return createPortal(
     <div className="modal-bg" onClick={onClose} style={{ zIndex: 300 }}>
@@ -60,27 +66,50 @@ export default function Clapboard({ title, date, location, fieldProducer, direct
               <div style={{ ...label, marginBottom: 4 }}>Title</div>
               {editableTitle ? (
                 <input value={titleVal} onChange={e => setTitleVal(e.target.value)} placeholder="Title…" autoFocus
-                  style={{ ...value, fontSize: 'min(34px, 3.6vw + 8px, 5vh)', width: '100%', background: 'transparent', border: 'none', borderBottom: '1px dashed #999', outline: 'none', padding: 0 }} />
+                  style={{ ...value, fontSize: 'min(34px, 3.6vw + 8px, 7vh)', width: '100%', background: 'transparent', border: 'none', borderBottom: '1px dashed #999', outline: 'none', padding: 0 }} />
               ) : (
-                <div style={{ ...value, fontSize: 'min(34px, 3.6vw + 8px, 5vh)' }}>{title || '—'}</div>
+                <div style={{ ...value, fontSize: 'min(34px, 3.6vw + 8px, 7vh)' }}>{title || '—'}</div>
               )}
             </div>
             <div style={{ padding: 'min(10px, 1.4vh) 8px min(8px, 1.1vh)', textAlign: 'center' }}>
               <div style={{ ...label, marginBottom: 4 }}>Take</div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
                 <button onClick={() => setTake(t => Math.max(1, t - 1))}
-                  style={{ background: '#111', color: '#fff', border: 'none', borderRadius: 8, width: 'min(40px, 5.5vh)', height: 'min(40px, 5.5vh)', fontSize: 18, cursor: 'pointer', lineHeight: 1 }}>‹</button>
-                <span style={{ ...value, fontSize: 'min(48px, 5vw + 12px, 6.5vh)', fontVariantNumeric: 'tabular-nums', minWidth: 44, textAlign: 'center' }}>{take}</span>
+                  style={{ background: '#111', color: '#fff', border: 'none', borderRadius: 8, width: 'min(40px, 7vh)', height: 'min(40px, 7vh)', fontSize: 18, cursor: 'pointer', lineHeight: 1 }}>‹</button>
+                <span style={{ ...value, fontSize: 'min(48px, 5vw + 12px, 8vh)', fontVariantNumeric: 'tabular-nums', minWidth: 44, textAlign: 'center' }}>{take}</span>
                 <button onClick={() => setTake(t => t + 1)}
-                  style={{ background: '#111', color: '#fff', border: 'none', borderRadius: 8, width: 'min(40px, 5.5vh)', height: 'min(40px, 5.5vh)', fontSize: 18, cursor: 'pointer', lineHeight: 1 }}>›</button>
+                  style={{ background: '#111', color: '#fff', border: 'none', borderRadius: 8, width: 'min(40px, 7vh)', height: 'min(40px, 7vh)', fontSize: 18, cursor: 'pointer', lineHeight: 1 }}>›</button>
               </div>
             </div>
           </div>
 
-          <Row name="Director">{director || '—'}</Row>
-          <Row name="Camera">{camera || '—'}</Row>
-          <Row name="Date">{date || '—'}</Row>
-          {location && <Row name="Loc">{location}</Row>}
+          {landscape ? (
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', borderBottom: '2px solid #111' }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, padding: 'min(8px, 1.1vh) 2px min(5px, 0.7vh)', borderRight: '2px solid #111' }}>
+                  <span style={label}>Director:</span><span style={value}>{director || '—'}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, padding: 'min(8px, 1.1vh) 10px min(5px, 0.7vh)' }}>
+                  <span style={label}>Camera:</span><span style={value}>{camera || '—'}</span>
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', borderBottom: '2px solid #111' }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, padding: 'min(8px, 1.1vh) 2px min(5px, 0.7vh)', borderRight: '2px solid #111' }}>
+                  <span style={label}>Date:</span><span style={value}>{date || '—'}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, padding: 'min(8px, 1.1vh) 10px min(5px, 0.7vh)' }}>
+                  <span style={label}>Loc:</span><span style={value}>{location || '—'}</span>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <Row name="Director">{director || '—'}</Row>
+              <Row name="Camera">{camera || '—'}</Row>
+              <Row name="Date">{date || '—'}</Row>
+              {location && <Row name="Loc">{location}</Row>}
+            </>
+          )}
 
         </div>
       </div>
