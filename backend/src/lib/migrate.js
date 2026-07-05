@@ -644,6 +644,43 @@ async function migrate() {
   // Photo department toggle — projects without photo hide the Photo tag everywhere
   await sql`ALTER TABLE projects ADD COLUMN IF NOT EXISTS include_photo BOOLEAN DEFAULT true`;
 
+  // Seed the Unbridled Media staff roster (idempotent; matches by name)
+  const UNBRIDLED_ROSTER = [
+    ['Alex Northup', null],
+    ['Anabelle Porio', 'Sr. Project Manager'],
+    ['Anna Parnigoni', 'Project Manager, Producer'],
+    ['Ben Lamb', 'Executive Producer, Partner'],
+    ['Cole Seifert', null],
+    ['Daniel Neville', 'Sr. Shooter/Editor'],
+    ['Derik Smith', 'Director of Operations'],
+    ['Dylan Patterson', null],
+    ['Fabrizio Alberdi', 'Sr. Shooter/Editor'],
+    ['Joe Seebeck', 'Sr. Video Producer, Partner'],
+    ['Joey Goldman', 'Producer'],
+    ['Jon Arneson', 'Video Editor'],
+    ['Kelly Hueseman', 'Director of Account Services & People Operations'],
+    ['Mason Vitro', 'Studio Manager'],
+    ['Melinda Love', 'Solutions Contractor'],
+    ['Mike Walsh', 'Executive Producer, Partner'],
+    ['Nate Woodard', 'Executive Creative Director'],
+    ['Shaun Teamer', 'Editor/Motion Graphics Designer'],
+    ['Tyler Castle', 'Director of Photography'],
+    ['Brandon Emery', null],
+    ['Ariel Lynch', null],
+    ['Allison Boon', null],
+  ];
+  for (const [name, title] of UNBRIDLED_ROSTER) {
+    const company = title ? `Unbridled Media · ${title}` : 'Unbridled Media';
+    const [existing] = await sql`SELECT id, company FROM crew_members WHERE LOWER(name) = ${name.toLowerCase()} LIMIT 1`;
+    if (existing) {
+      if (!(existing.company || '').toLowerCase().includes('unbridled')) {
+        await sql`UPDATE crew_members SET company = ${company} WHERE id = ${existing.id}`;
+      }
+    } else {
+      await sql`INSERT INTO crew_members (id, name, company) VALUES (gen_random_uuid()::text, ${name}, ${company})`;
+    }
+  }
+
   console.log('Migration complete.');
 }
 

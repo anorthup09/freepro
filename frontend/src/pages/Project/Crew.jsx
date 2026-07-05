@@ -79,6 +79,13 @@ export default function Crew({ project, onProjectUpdate }) {
     };
   }
 
+  function isContractorMember(id) {
+    if (!id) return null;
+    const m = roster.find(x => x.id === id);
+    if (!m) return null;
+    return !(m.company || '').toLowerCase().includes('unbridled');
+  }
+
   async function addSlot(e) {
     e.preventDefault();
     try {
@@ -597,7 +604,8 @@ export default function Crew({ project, onProjectUpdate }) {
                   <select value={slotForm.crewMemberId} onChange={e => {
                     const id = e.target.value;
                     const dates = flightDatesFor(id);
-                    setSlotForm(f => ({ ...f, crewMemberId: id, startDate: dates.startDate || f.startDate, endDate: dates.endDate || f.endDate }));
+                    const contract = isContractorMember(id);
+                    setSlotForm(f => ({ ...f, crewMemberId: id, startDate: dates.startDate || f.startDate, endDate: dates.endDate || f.endDate, isContractor: contract === null ? f.isContractor : contract }));
                   }}>
                     <option value="">— Unassigned —</option>
                     {roster.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
@@ -684,7 +692,8 @@ export default function Crew({ project, onProjectUpdate }) {
                   <select value={editForm.crewMemberId || ''} onChange={e => {
                     const id = e.target.value;
                     const dates = flightDatesFor(id);
-                    setEditForm(f => ({ ...f, crewMemberId: id, startDate: f.startDate || dates.startDate, endDate: f.endDate || dates.endDate }));
+                    const contract = isContractorMember(id);
+                    setEditForm(f => ({ ...f, crewMemberId: id, startDate: f.startDate || dates.startDate, endDate: f.endDate || dates.endDate, isContractor: contract === null ? f.isContractor : contract }));
                   }}>
                     <option value="">— Unassigned —</option>
                     {roster.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
