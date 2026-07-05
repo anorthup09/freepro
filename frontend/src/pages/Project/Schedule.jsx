@@ -1114,22 +1114,22 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                 <div className="field"><label>Start Time</label><input type="time" value={eventForm.startTime} onChange={e => setEventForm(f=>({...f,startTime:e.target.value}))} required /></div>
                 <div className="field"><label>End Time</label><input type="time" value={eventForm.endTime} onChange={e => setEventForm(f=>({...f,endTime:e.target.value}))} /></div>
                 <div className="field span2"><label>Title</label><input value={eventForm.title} onChange={e => setEventForm(f=>({...f,title:e.target.value}))} required /></div>
-                <div className="field"><label>Room / Space</label><input value={eventForm.roomSpace} onChange={e => setEventForm(f=>({...f,roomSpace:e.target.value}))} placeholder="Ballroom 3" /></div>
-                <div className="field"><label>Detail / Notes</label><textarea value={eventForm.detail} onChange={e => setEventForm(f=>({...f,detail:e.target.value}))} /></div>
-                <div className="field span2">
+                <div className="field span2"><label>Detail / Notes</label><textarea value={eventForm.detail} onChange={e => setEventForm(f=>({...f,detail:e.target.value}))} /></div>
+                <div className="field">
                   <label>Location</label>
                   {(project.locations||[]).length === 0
-                    ? <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic', paddingTop:4 }}>No locations added yet — add them in the Overview tab.</div>
+                    ? <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic', paddingTop:4 }}>No locations yet — add in Overview.</div>
                     : <select value={eventForm.locationId} onChange={e => setEventForm(f=>({...f,locationId:e.target.value}))}>
                         <option value="">— No location —</option>
                         {(project.locations||[]).map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
                       </select>
                   }
                 </div>
+                <div className="field"><label>Room / Space</label><input value={eventForm.roomSpace} onChange={e => setEventForm(f=>({...f,roomSpace:e.target.value}))} placeholder="Ballroom 3" /></div>
                 <div className="field span2">
                   <label>Tags</label>
                   <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:4 }}>
-                    {TAG_TYPES.map(type => (
+                    {['VIDEO','PHOTO','AUDIO','TALENT'].map(type => (
                       <button key={type} type="button"
                         className={`etag ${TAG_CLASS[type]}`}
                         style={{ cursor:'pointer', opacity: eventForm.tags.some(t=>t.type===type) ? 1 : 0.4, padding:'4px 10px' }}
@@ -1138,6 +1138,25 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                       </button>
                     ))}
                   </div>
+                  {(() => {
+                    const core = ['VIDEO','PHOTO','AUDIO'];
+                    const allOn = core.every(t => eventForm.tags.some(x => x.type === t));
+                    return (
+                      <div style={{ marginTop:6 }}>
+                        <button type="button"
+                          className="etag a"
+                          style={{ cursor:'pointer', opacity: allOn ? 1 : 0.4, padding:'4px 10px' }}
+                          onClick={() => setEventForm(f => ({
+                            ...f,
+                            tags: allOn
+                              ? f.tags.filter(t => !core.includes(t.type))
+                              : [...f.tags.filter(t => !core.includes(t.type)), ...core.map(type => ({ type }))],
+                          }))}>
+                          All Crew
+                        </button>
+                      </div>
+                    );
+                  })()}
                   {eventForm.tags.some(t=>t.type==='TALENT') && keyTalent.length > 0 && (
                     <div style={{ marginTop:8, display:'flex', gap:6, flexWrap:'wrap' }}>
                       {keyTalent.map(t => {
@@ -1217,22 +1236,22 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                 <div className="field"><label>Start Time</label><input type="time" value={editEventForm.startTime} onChange={e => setEditEventForm(f=>({...f,startTime:e.target.value}))} required /></div>
                 <div className="field"><label>End Time</label><input type="time" value={editEventForm.endTime} onChange={e => setEditEventForm(f=>({...f,endTime:e.target.value}))} /></div>
                 <div className="field span2"><label>Title</label><input value={editEventForm.title} onChange={e => setEditEventForm(f=>({...f,title:e.target.value}))} required /></div>
-                <div className="field"><label>Room / Space</label><input value={editEventForm.roomSpace} onChange={e => setEditEventForm(f=>({...f,roomSpace:e.target.value}))} placeholder="Ballroom 3" /></div>
-                <div className="field"><label>Detail / Notes</label><textarea value={editEventForm.detail} onChange={e => setEditEventForm(f=>({...f,detail:e.target.value}))} /></div>
-                <div className="field span2">
+                <div className="field span2"><label>Detail / Notes</label><textarea value={editEventForm.detail} onChange={e => setEditEventForm(f=>({...f,detail:e.target.value}))} /></div>
+                <div className="field">
                   <label>Location</label>
                   {(project.locations||[]).length === 0
-                    ? <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic', paddingTop:4 }}>No locations added yet — add them in the Overview tab.</div>
+                    ? <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic', paddingTop:4 }}>No locations yet — add in Overview.</div>
                     : <select value={editEventForm.locationId} onChange={e => setEditEventForm(f=>({...f,locationId:e.target.value}))}>
                         <option value="">— No location —</option>
                         {(project.locations||[]).map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
                       </select>
                   }
                 </div>
+                <div className="field"><label>Room / Space</label><input value={editEventForm.roomSpace} onChange={e => setEditEventForm(f=>({...f,roomSpace:e.target.value}))} placeholder="Ballroom 3" /></div>
                 <div className="field span2">
                   <label>Tags</label>
                   <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:4 }}>
-                    {TAG_TYPES.map(type => (
+                    {['VIDEO','PHOTO','AUDIO','TALENT'].map(type => (
                       <button key={type} type="button"
                         className={`etag ${TAG_CLASS[type]}`}
                         style={{ cursor:'pointer', opacity: editEventForm.tags.some(t=>t.type===type) ? 1 : 0.4, padding:'4px 10px' }}
@@ -1241,6 +1260,25 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                       </button>
                     ))}
                   </div>
+                  {(() => {
+                    const core = ['VIDEO','PHOTO','AUDIO'];
+                    const allOn = core.every(t => editEventForm.tags.some(x => x.type === t));
+                    return (
+                      <div style={{ marginTop:6 }}>
+                        <button type="button"
+                          className="etag a"
+                          style={{ cursor:'pointer', opacity: allOn ? 1 : 0.4, padding:'4px 10px' }}
+                          onClick={() => setEditEventForm(f => ({
+                            ...f,
+                            tags: allOn
+                              ? f.tags.filter(t => !core.includes(t.type))
+                              : [...f.tags.filter(t => !core.includes(t.type)), ...core.map(type => ({ type }))],
+                          }))}>
+                          All Crew
+                        </button>
+                      </div>
+                    );
+                  })()}
                   {editEventForm.tags.some(t=>t.type==='TALENT') && keyTalent.length > 0 && (
                     <div style={{ marginTop:8, display:'flex', gap:6, flexWrap:'wrap' }}>
                       {keyTalent.map(t => {
