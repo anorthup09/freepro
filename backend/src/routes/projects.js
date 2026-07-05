@@ -258,8 +258,26 @@ router.delete('/:id/shares/:sid', requireAuth, requireRole('ADMIN','PRODUCER'), 
 });
 
 // ─── Crew Assignments ────────────────────────────────────────────────────────
+
+// Core positions every project must staff — they feed the clapboard slate
+const CORE_POSITIONS = ['Field Producer', 'Director', 'Camera Operator'];
+async function ensureCoreCrewSlots(projectId) {
+  for (const name of CORE_POSITIONS) {
+    let [pos] = await sql`SELECT id FROM positions WHERE lower(name) = ${name.toLowerCase()} LIMIT 1`;
+    if (!pos) {
+      const [{ max_sort }] = await sql`SELECT COALESCE(MAX(sort_order), 0) as max_sort FROM positions`;
+      [pos] = await sql`INSERT INTO positions (id, name, sort_order) VALUES (gen_random_uuid()::text, ${name}, ${Number(max_sort) + 1}) RETURNING id`;
+    }
+    const [existing] = await sql`SELECT id FROM crew_assignments WHERE project_id = ${projectId} AND position_id = ${pos.id} LIMIT 1`;
+    if (!existing) {
+      await sql`INSERT INTO crew_assignments (id, project_id, position_id, slot_number) VALUES (gen_random_uuid()::text, ${projectId}, ${pos.id}, 1)`;
+    }
+  }
+}
+
 router.get('/:id/crew', requireAuth, async (req, res, next) => {
   try {
+    await ensureCoreCrewSlots(req.params.id).catch(e => console.error('core crew slots failed:', e.message));
     const rows = await sql`
       SELECT ca.*, p.name as position_name, p.sort_order,
              cm.id as cm_id, cm.name as cm_name, cm.email as cm_email, cm.phone as cm_phone, cm.company as cm_company, cm.initials, cm.avatar_color,

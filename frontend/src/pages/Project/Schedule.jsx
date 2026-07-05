@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { api } from '../../api.js';
 import { displayName } from '../../utils/displayName.js';
+import Clapboard from '../../components/Clapboard.jsx';
 
 function isoDateOf(ts) {
   if (!ts) return null;
@@ -525,6 +526,13 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
 
   const currentDay = days.find(d => d.id === activeDay);
 
+  // Clapboard slate for filming events
+  const [clapEvent, setClapEvent] = useState(null);
+  const crewByPosition = (posName) => {
+    const a = (project.crewAssignments || []).find(x => (x.position?.name || x.position_name || '').toLowerCase() === posName && x.crewMember);
+    return a ? displayName(a.crewMember) : '';
+  };
+
   async function addEvent(e) {
     e.preventDefault();
     if (!activeDay) return alert('No shoot day selected.');
@@ -642,6 +650,17 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
       </div>
 
       {days.length === 0 && <div className="empty">No shoot days yet — add a day to start building the schedule.</div>}
+
+      {clapEvent && (
+        <Clapboard
+          title={clapEvent.title}
+          date={currentDay ? parseDay(currentDay.date).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }) : ''}
+          fieldProducer={crewByPosition('field producer')}
+          director={crewByPosition('director')}
+          camera={crewByPosition('camera operator')}
+          onClose={() => setClapEvent(null)}
+        />
+      )}
 
       {/* Day tabs — sorted by date, day number = index */}
       {days.length > 0 && (
@@ -1008,7 +1027,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                           onClick={() => openEditEvent(item)}>
                           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:8 }}>
                             <div style={{ flex:1, minWidth:0 }}>
-                              <div className={`ev-title${(item.is_alert||item.isAlert) ? ' alert' : ''}`} style={(item.is_filming||item.isFilming) ? { color:'var(--orange)' } : {}}>{(item.is_alert||item.isAlert) ? '⚠ ' : ''}{(item.is_filming||item.isFilming) ? '🎬 ' : ''}{item.title}</div>
+                              <div className={`ev-title${(item.is_alert||item.isAlert) ? ' alert' : ''}`} style={(item.is_filming||item.isFilming) ? { color:'var(--orange)' } : {}}>{(item.is_alert||item.isAlert) ? '⚠ ' : ''}{(item.is_filming||item.isFilming) ? <span title="Open clapboard" onClick={e => { e.stopPropagation(); setClapEvent(item); }} style={{ cursor:'pointer' }}>🎬 </span> : ''}{item.title}</div>
                               {item.detail && <div className="ev-detail">{item.detail}</div>}
                               {item.tags?.length > 0 && (
                                 <div className="ev-tags">

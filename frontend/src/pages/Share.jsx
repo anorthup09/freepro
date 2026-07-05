@@ -4,6 +4,7 @@ import { useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../api.js';
 import { displayName } from '../utils/displayName.js';
 import ShineBorder from '../components/ShineBorder.jsx';
+import Clapboard from '../components/Clapboard.jsx';
 
 const isMobileNow = () => typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches;
 
@@ -648,7 +649,7 @@ function ProducerView({ data, hideGear, onOpenShotList }) {
           return [day.call_time_tags, day.shooting_call_tags, day.lunch_tags, day.wrap_time_tags]
             .some(tags => Array.isArray(tags) && (tags.includes(tagFilter) || tags.includes('ALL_CREW')));
         }).map((day, i) => (
-          <DaySection key={day.id} day={day} showCalls flights={flights} dayIndex={i} tagFilter={tagFilter} cateringDetail="full" shotList={shotList} slDays={slDays} slBreaks={slBreaks} onOpenShotList={onOpenShotList} />
+          <DaySection key={day.id} day={day} showCalls flights={flights} dayIndex={i} tagFilter={tagFilter} cateringDetail="full" shotList={shotList} slDays={slDays} slBreaks={slBreaks} onOpenShotList={onOpenShotList} crewAssignments={crewAssignments} />
         ))}
       </div>
     </div>
@@ -832,7 +833,7 @@ function CrewView({ data, shareToken, hideGear, onOpenShotList }) {
           return [day.call_time_tags, day.shooting_call_tags, day.lunch_tags, day.wrap_time_tags]
             .some(tags => Array.isArray(tags) && (tags.includes(tagFilter) || tags.includes('ALL_CREW')));
         }).map((day, i) => (
-          <DaySection key={day.id} day={day} showCalls flights={flights} dayIndex={i} tagFilter={tagFilter} cateringDetail="name" shotList={shotList} slDays={slDays} slBreaks={slBreaks} onOpenShotList={onOpenShotList} />
+          <DaySection key={day.id} day={day} showCalls flights={flights} dayIndex={i} tagFilter={tagFilter} cateringDetail="name" shotList={shotList} slDays={slDays} slBreaks={slBreaks} onOpenShotList={onOpenShotList} crewAssignments={crewAssignments} />
         ))}
       </div>
     </div>
@@ -1751,7 +1752,12 @@ function CateringBadge({ catering, detail }) {
   );
 }
 
-function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCallWrap, tagFilter, cateringDetail, shotList, slDays, slBreaks, onOpenShotList }) {
+function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCallWrap, tagFilter, cateringDetail, shotList, slDays, slBreaks, onOpenShotList, crewAssignments }) {
+  const [clapEvent, setClapEvent] = useState(null);
+  const crewByPosition = (posName) => {
+    const a = (crewAssignments || []).find(x => (x.position?.name || '').toLowerCase() === posName && x.crewMember);
+    return a ? displayName(a.crewMember) : '';
+  };
   const [open, setOpen] = useState(true);
   const now = useNow();
   const [driveTimes, setDriveTimes] = useState({});
@@ -2054,7 +2060,7 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
                     <div className={`ev-body${item.is_alert ? ' warn' : ''}`} style={!item.is_alert ? { borderLeft:'2px solid var(--orange)', ...(item.is_filming ? { background:'linear-gradient(90deg, rgba(255,140,0,0.12) 0%, transparent 100%)', borderRadius:'0 6px 6px 0' } : {}) } : {}}>
                       <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:8 }}>
                         <div style={{ flex:1, minWidth:0 }}>
-                          <div className={`ev-title${item.is_alert ? ' alert' : ''}`} style={item.is_filming ? { color:'var(--orange)' } : {}}>{item.is_filming ? '🎬 ' : ''}{item.title}</div>
+                          <div className={`ev-title${item.is_alert ? ' alert' : ''}`} style={item.is_filming ? { color:'var(--orange)' } : {}}>{item.is_filming ? <span title="Open clapboard" onClick={e => { e.stopPropagation(); if (crewAssignments) setClapEvent(item); }} style={{ cursor: crewAssignments ? 'pointer' : 'default' }}>🎬 </span> : ''}{item.title}</div>
                           {item.detail && <div className="ev-detail">{item.detail}</div>}
                           {item.room_space && (
                             <div style={{ fontSize:12, fontWeight:700, color:'var(--text)', marginTop:2 }}>
@@ -2085,6 +2091,16 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
               })())}
             </div>
           )}
+          {clapEvent && (
+        <Clapboard
+          title={clapEvent.title}
+          date={day.date ? new Date(day.date).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric', timeZone:'UTC' }) : ''}
+          fieldProducer={crewByPosition('field producer')}
+          director={crewByPosition('director')}
+          camera={crewByPosition('camera operator')}
+          onClose={() => setClapEvent(null)}
+        />
+      )}
     </section>
   );
 }
