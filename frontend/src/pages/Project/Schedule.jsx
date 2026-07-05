@@ -890,7 +890,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                                 {item.notes && !isEditing && <div className="ev-detail">{item.notes}</div>}
                                 {item.tags?.length > 0 && !isEditing && (
                                   <div className="ev-tags" style={{ marginTop:4 }}>
-                                    {item.tags.map(t => <span key={t} className={`etag ${TAG_CLASS[t]}`}>{TAG_LABEL[t]}</span>)}
+                                    {item.tags.filter(t => includePhoto || t !== 'PHOTO').map(t => <span key={t} className={`etag ${TAG_CLASS[t]}`}>{TAG_LABEL[t]}</span>)}
                                   </div>
                                 )}
                               </div>
@@ -933,7 +933,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                                   </select>
                                 )}
                                 <div style={{ display:'flex', gap:6, marginTop:6, flexWrap:'wrap', alignItems:'center' }}>
-                                  {['VIDEO','PHOTO'].map(tag => {
+                                  {['VIDEO', ...(includePhoto ? ['PHOTO'] : [])].map(tag => {
                                     const sel = (dt[sm.tagsKey]||[]).includes(tag);
                                     return (
                                       <button key={tag} type="button"
@@ -980,15 +980,17 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                           <div className="ev-time" style={{ color: st.color }}>{item.est_start_time}</div>
                           <div className="ev-body" style={{ borderLeft: `2px solid ${st.border}`, padding: '10px 14px' }}>
                             <div className="sl-tile-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                              <div className="sl-tile-left" style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
-                                <span style={{ fontSize: 10, fontWeight: 800, color: st.color, background: st.badge, border: `1px solid ${st.border}`, borderRadius: 4, padding: '2px 7px', whiteSpace: 'nowrap', letterSpacing: '.08em', flexShrink: 0 }}>
-                                  {st.label} · Scene {item.scene_number}
-                                </span>
-                                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.name}</span>
-                                {item.description && <span style={{ fontSize: 11, color: 'var(--muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>· {item.description}</span>}
-                                <span style={{ fontSize: 11, fontWeight: 600, color: st.color, background: `${st.badge}`, border: `1px solid ${st.border}`, borderRadius: 100, padding: '1px 8px', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                                  {item.shots?.length || 0} shots
-                                </span>
+                              <div className="sl-tile-left" style={{ minWidth: 0, flex: 1 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                                  <span style={{ fontSize: 10, fontWeight: 800, color: st.color, background: st.badge, border: `1px solid ${st.border}`, borderRadius: 4, padding: '2px 7px', whiteSpace: 'nowrap', letterSpacing: '.08em', flexShrink: 0 }}>
+                                    {st.label} · Scene {item.scene_number}
+                                  </span>
+                                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: '1 1 auto', minWidth: 0 }}>{item.name}</span>
+                                  <span style={{ fontSize: 11, fontWeight: 600, color: st.color, background: `${st.badge}`, border: `1px solid ${st.border}`, borderRadius: 100, padding: '1px 8px', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                                    {item.shots?.length || 0} shots
+                                  </span>
+                                </div>
+                                {item.description && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.description}</div>}
                               </div>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
                                 {wrapTime && (

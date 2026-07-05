@@ -2127,17 +2127,17 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
                     <div className="ev-time" style={{ color: st.color }}>{item.est_start_time}</div>
                     <div className="ev-body" style={{ borderLeft:`2px solid ${st.border}`, padding:'10px 14px' }}>
                       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12 }}>
-                        <div style={{ display:'flex', alignItems:'center', gap:8, minWidth:0, flex:1, flexWrap:'wrap' }}>
-                          <span style={{ display:'inline-flex', alignItems:'center', gap:8, minWidth:0 }}>
+                        <div style={{ minWidth:0, flex:1 }}>
+                          <div style={{ display:'flex', alignItems:'center', gap:8, minWidth:0 }}>
                             <span style={{ fontSize:10, fontWeight:800, color: st.color, background: st.badge, border:`1px solid ${st.border}`, borderRadius:4, padding:'2px 7px', whiteSpace:'nowrap', letterSpacing:'.08em', flexShrink:0 }}>
                               {st.label} · Scene {item.scene_number}
                             </span>
-                            <span style={{ fontSize:13, fontWeight:700, color:'var(--text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{item.name}</span>
-                          </span>
-                          {item.description && <span style={{ fontSize:11, color:'var(--muted)', whiteSpace:'nowrap' }}>· {item.description}</span>}
-                          <span style={{ fontSize:11, fontWeight:600, color: st.color, background: st.badge, border:`1px solid ${st.border}`, borderRadius:100, padding:'1px 8px', whiteSpace:'nowrap', flexShrink:0 }}>
-                            {(item.shots||[]).length} shots
-                          </span>
+                            <span style={{ fontSize:13, fontWeight:700, color:'var(--text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', flex:'1 1 auto', minWidth:0 }}>{item.name}</span>
+                            <span style={{ fontSize:11, fontWeight:600, color: st.color, background: st.badge, border:`1px solid ${st.border}`, borderRadius:100, padding:'1px 8px', whiteSpace:'nowrap', flexShrink:0 }}>
+                              {(item.shots||[]).length} shots
+                            </span>
+                          </div>
+                          {item.description && <div style={{ fontSize:11, color:'var(--muted)', marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{item.description}</div>}
                         </div>
                         <div style={{ textAlign:'right', flexShrink:0 }}>
                           {wrapTime && (
