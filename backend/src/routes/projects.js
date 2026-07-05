@@ -298,10 +298,10 @@ router.get('/:id/crew', requireAuth, async (req, res, next) => {
 });
 router.post('/:id/crew', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const { positionId, crewMemberId, slotNumber=1, notes, startDate, endDate, isContractor, dayRate, laborDays, gearCost } = req.body;
+    const { positionId, crewMemberId, slotNumber=1, notes, startDate, endDate, isContractor, dayRate, laborDays, gearCost, gearDays } = req.body;
     const [a] = await sql`
-      INSERT INTO crew_assignments (id, project_id, position_id, crew_member_id, slot_number, notes, start_date, end_date, is_contractor, day_rate, labor_days, gear_cost)
-      VALUES (gen_random_uuid()::text, ${req.params.id}, ${positionId}, ${crewMemberId||null}, ${slotNumber}, ${notes||null}, ${startDate||null}, ${endDate||null}, ${isContractor === true}, ${dayRate ?? null}, ${laborDays ?? null}, ${gearCost ?? null})
+      INSERT INTO crew_assignments (id, project_id, position_id, crew_member_id, slot_number, notes, start_date, end_date, is_contractor, day_rate, labor_days, gear_cost, gear_days)
+      VALUES (gen_random_uuid()::text, ${req.params.id}, ${positionId}, ${crewMemberId||null}, ${slotNumber}, ${notes||null}, ${startDate||null}, ${endDate||null}, ${isContractor === true}, ${dayRate ?? null}, ${laborDays ?? null}, ${gearCost ?? null}, ${gearDays ?? null})
       RETURNING *`;
     const [full] = await sql`
       SELECT ca.*, p.name as position_name, cm.id as cm_id, cm.name as cm_name, cm.email as cm_email, cm.phone as cm_phone, cm.initials, cm.avatar_color, cm.preferred_first_name as cm_pref_first, cm.preferred_last_name as cm_pref_last, cm.dietary_restrictions as cm_dietary
@@ -315,7 +315,7 @@ router.post('/:id/crew', requireAuth, requireRole('ADMIN','PRODUCER'), async (re
 });
 router.patch('/:id/crew/:aid', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const { crewMemberId, notes, startDate, endDate, isContractor, dayRate, laborDays, gearCost } = req.body;
+    const { crewMemberId, notes, startDate, endDate, isContractor, dayRate, laborDays, gearCost, gearDays } = req.body;
     await sql`
       UPDATE crew_assignments SET
         crew_member_id = CASE WHEN ${crewMemberId !== undefined} THEN ${crewMemberId||null} ELSE crew_member_id END,
@@ -325,7 +325,8 @@ router.patch('/:id/crew/:aid', requireAuth, requireRole('ADMIN','PRODUCER'), asy
         is_contractor = CASE WHEN ${isContractor !== undefined} THEN ${isContractor === true} ELSE is_contractor END,
         day_rate = ${dayRate !== undefined ? (dayRate === '' || dayRate === null ? null : dayRate) : sql`day_rate`},
         labor_days = ${laborDays !== undefined ? (laborDays === '' || laborDays === null ? null : laborDays) : sql`labor_days`},
-        gear_cost = ${gearCost !== undefined ? (gearCost === '' || gearCost === null ? null : gearCost) : sql`gear_cost`}
+        gear_cost = ${gearCost !== undefined ? (gearCost === '' || gearCost === null ? null : gearCost) : sql`gear_cost`},
+        gear_days = ${gearDays !== undefined ? (gearDays === '' || gearDays === null ? null : gearDays) : sql`gear_days`}
       WHERE id = ${req.params.aid}`;
     const [full] = await sql`
       SELECT ca.*, p.name as position_name, cm.id as cm_id, cm.name as cm_name, cm.email as cm_email, cm.phone as cm_phone, cm.initials, cm.avatar_color, cm.preferred_first_name as cm_pref_first, cm.preferred_last_name as cm_pref_last, cm.dietary_restrictions as cm_dietary

@@ -40,7 +40,7 @@ export default function Crew({ project, onProjectUpdate }) {
   const [roster, setRoster] = useState([]);
   const [flights, setFlights] = useState([]);
   const [showAddSlot, setShowAddSlot] = useState(false);
-  const [slotForm, setSlotForm] = useState({ positionId:'', crewMemberId:'', slotNumber:1, startDate:'', endDate:'', isContractor:false, dayRate:'', laborDays:'', gearCost:'' });
+  const [slotForm, setSlotForm] = useState({ positionId:'', crewMemberId:'', slotNumber:1, startDate:'', endDate:'', isContractor:false, dayRate:'', laborDays:'', gearCost:'', gearDays:'' });
   const [showAddCrew, setShowAddCrew] = useState(false);
   const [crewForm, setCrewForm] = useState({ name:'', email:'', phone:'', company:'' });
   const [rosterQuery, setRosterQuery] = useState('');
@@ -92,10 +92,11 @@ export default function Crew({ project, onProjectUpdate }) {
         dayRate: slotForm.isContractor && slotForm.dayRate !== '' ? Number(slotForm.dayRate) : null,
         laborDays: slotForm.isContractor && slotForm.laborDays !== '' ? Number(slotForm.laborDays) : null,
         gearCost: slotForm.isContractor && slotForm.gearCost !== '' ? Number(slotForm.gearCost) : null,
+        gearDays: slotForm.isContractor && slotForm.gearDays !== '' ? Number(slotForm.gearDays) : null,
       });
       setAssignments(prev => [...prev, a]);
       setShowAddSlot(false);
-      setSlotForm({ positionId:'', crewMemberId:'', slotNumber:1, startDate:'', endDate:'', isContractor:false, dayRate:'', laborDays:'', gearCost:'' });
+      setSlotForm({ positionId:'', crewMemberId:'', slotNumber:1, startDate:'', endDate:'', isContractor:false, dayRate:'', laborDays:'', gearCost:'', gearDays:'' });
     } catch(e) { alert(e.message); }
   }
 
@@ -171,6 +172,7 @@ export default function Crew({ project, onProjectUpdate }) {
       dayRate: a.day_rate ?? '',
       laborDays: a.labor_days ?? '',
       gearCost: a.gear_cost ?? '',
+      gearDays: a.gear_days ?? '',
     });
     setEditId(a.id);
   }
@@ -186,6 +188,7 @@ export default function Crew({ project, onProjectUpdate }) {
         dayRate: editForm.isContractor && editForm.dayRate !== '' ? Number(editForm.dayRate) : null,
         laborDays: editForm.isContractor && editForm.laborDays !== '' ? Number(editForm.laborDays) : null,
         gearCost: editForm.isContractor && editForm.gearCost !== '' ? Number(editForm.gearCost) : null,
+        gearDays: editForm.isContractor && editForm.gearDays !== '' ? Number(editForm.gearDays) : null,
       };
       const updated = await api.updateCrewSlot(project.id, editId, payload);
       setAssignments(prev => prev.map(a => a.id === editId ? updated : a));
@@ -260,7 +263,7 @@ export default function Crew({ project, onProjectUpdate }) {
         const staff = assignments.filter(a => !a.is_contractor);
         const contractors = assignments.filter(a => a.is_contractor);
         const laborTotal = contractors.reduce((s, a) => s + (Number(a.day_rate) || 0) * (Number(a.labor_days) || 0), 0);
-        const gearTotal = contractors.reduce((s, a) => s + (Number(a.gear_cost) || 0), 0);
+        const gearTotal = contractors.reduce((s, a) => s + (Number(a.gear_cost) || 0) * (Number(a.gear_days) || 0), 0);
         const fmt$ = n => '$' + Number(n).toLocaleString('en-US', { maximumFractionDigits: 2 });
         const renderRow = a => (
                 <tr key={a.id}>
@@ -296,8 +299,11 @@ export default function Crew({ project, onProjectUpdate }) {
                       : <span style={{ color:'var(--muted)', fontSize:11 }}>—</span>}
                   </td>
                   <td style={{ whiteSpace:'nowrap' }}>
-                    {a.is_contractor && a.gear_cost != null && a.gear_cost !== ''
-                      ? <span style={{ fontSize:11, color:'var(--green)', fontWeight:600 }}>{fmt$(a.gear_cost)}</span>
+                    {a.is_contractor && (a.gear_cost || a.gear_days)
+                      ? <div style={{ fontSize:11 }}>
+                          <span style={{ color:'var(--muted)' }}>{fmt$(a.gear_cost||0)} × {Number(a.gear_days)||0}d = </span>
+                          <span style={{ color:'var(--green)', fontWeight:600 }}>{fmt$((Number(a.gear_cost)||0)*(Number(a.gear_days)||0))}</span>
+                        </div>
                       : <span style={{ color:'var(--muted)', fontSize:11 }}>—</span>}
                   </td>
                   <td style={{ textAlign:'right' }}>
@@ -328,7 +334,7 @@ export default function Crew({ project, onProjectUpdate }) {
                 <th>Start Date</th>
                 <th>End Date</th>
                 <th>Rate × Days</th>
-                <th>Gear</th>
+                <th>Gear Rate × Days</th>
                 <th></th>
               </tr>
             </thead>
@@ -617,13 +623,23 @@ export default function Crew({ project, onProjectUpdate }) {
                       <input type="number" min="0" step="0.5" placeholder="3" value={slotForm.laborDays} onChange={e => setSlotForm(f=>({...f,laborDays:e.target.value}))} />
                     </div>
                     <div className="field">
-                      <label>Gear ($)</label>
+                      <label>Gear Rate ($/day)</label>
                       <input type="number" min="0" step="0.01" placeholder="0" value={slotForm.gearCost} onChange={e => setSlotForm(f=>({...f,gearCost:e.target.value}))} />
+                    </div>
+                    <div className="field">
+                      <label>Gear Days</label>
+                      <input type="number" min="0" step="0.5" placeholder="3" value={slotForm.gearDays} onChange={e => setSlotForm(f=>({...f,gearDays:e.target.value}))} />
                     </div>
                     <div className="field" style={{ justifyContent:'flex-end' }}>
                       <label>Labor Total</label>
                       <div style={{ fontSize:14, fontWeight:700, color:'var(--green)', padding:'6px 0' }}>
                         ${((Number(slotForm.dayRate)||0) * (Number(slotForm.laborDays)||0)).toLocaleString('en-US', { maximumFractionDigits:2 })}
+                      </div>
+                    </div>
+                    <div className="field" style={{ justifyContent:'flex-end' }}>
+                      <label>Gear Total</label>
+                      <div style={{ fontSize:14, fontWeight:700, color:'var(--green)', padding:'6px 0' }}>
+                        ${((Number(slotForm.gearCost)||0) * (Number(slotForm.gearDays)||0)).toLocaleString('en-US', { maximumFractionDigits:2 })}
                       </div>
                     </div>
                   </>
@@ -694,13 +710,23 @@ export default function Crew({ project, onProjectUpdate }) {
                       <input type="number" min="0" step="0.5" placeholder="3" value={editForm.laborDays ?? ''} onChange={e => setEditForm(f=>({...f,laborDays:e.target.value}))} />
                     </div>
                     <div className="field">
-                      <label>Gear ($)</label>
+                      <label>Gear Rate ($/day)</label>
                       <input type="number" min="0" step="0.01" placeholder="0" value={editForm.gearCost ?? ''} onChange={e => setEditForm(f=>({...f,gearCost:e.target.value}))} />
+                    </div>
+                    <div className="field">
+                      <label>Gear Days</label>
+                      <input type="number" min="0" step="0.5" placeholder="3" value={editForm.gearDays ?? ''} onChange={e => setEditForm(f=>({...f,gearDays:e.target.value}))} />
                     </div>
                     <div className="field" style={{ justifyContent:'flex-end' }}>
                       <label>Labor Total</label>
                       <div style={{ fontSize:14, fontWeight:700, color:'var(--green)', padding:'6px 0' }}>
                         ${((Number(editForm.dayRate)||0) * (Number(editForm.laborDays)||0)).toLocaleString('en-US', { maximumFractionDigits:2 })}
+                      </div>
+                    </div>
+                    <div className="field" style={{ justifyContent:'flex-end' }}>
+                      <label>Gear Total</label>
+                      <div style={{ fontSize:14, fontWeight:700, color:'var(--green)', padding:'6px 0' }}>
+                        ${((Number(editForm.gearCost)||0) * (Number(editForm.gearDays)||0)).toLocaleString('en-US', { maximumFractionDigits:2 })}
                       </div>
                     </div>
                   </>
