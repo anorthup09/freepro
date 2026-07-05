@@ -2167,12 +2167,16 @@ function GlassHeader({ project, showTime, clientMode, crewMode }) {
     }}>
       <div style={{ flexShrink:0 }}>
         {clientMode ? (
-          <div style={{ fontFamily:"'DM Sans', sans-serif", fontSize:12, fontWeight:600, color:'rgba(255,255,255,0.8)', letterSpacing:'0.02em' }}>{project.client}</div>
+          project.client_logo
+            ? <img src={project.client_logo} alt={project.client} style={{ height:28, maxWidth:140, objectFit:'contain', display:'block' }} />
+            : <div style={{ fontFamily:"'DM Sans', sans-serif", fontSize:12, fontWeight:600, color:'rgba(255,255,255,0.8)', letterSpacing:'0.02em' }}>{project.client}</div>
         ) : (
           <div style={{ fontSize:12, color:'rgba(255,255,255,0.6)', textTransform:'uppercase', letterSpacing:'0.14em', fontWeight:700 }}>{project.code}</div>
         )}
         {crewMode && (
-          <div style={{ fontFamily:"'DM Sans', sans-serif", fontSize:11, fontWeight:600, color:'rgba(255,255,255,0.8)', letterSpacing:'0.02em', marginTop:2 }}>{project.client}</div>
+          project.client_logo
+            ? <img src={project.client_logo} alt={project.client} style={{ height:24, maxWidth:120, objectFit:'contain', display:'block', marginTop:3 }} />
+            : <div style={{ fontFamily:"'DM Sans', sans-serif", fontSize:11, fontWeight:600, color:'rgba(255,255,255,0.8)', letterSpacing:'0.02em', marginTop:2 }}>{project.client}</div>
         )}
         {showTime && (
           <div style={{ fontSize:11, fontWeight:600, color:'rgba(255,255,255,0.8)', fontVariantNumeric:'tabular-nums', letterSpacing:'0.04em', marginTop:2 }}>

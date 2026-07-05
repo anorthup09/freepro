@@ -121,6 +121,7 @@ router.patch('/:id', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, r
         share_password = CASE WHEN ${d.sharePassword !== undefined} THEN ${d.sharePassword||null} ELSE share_password END,
         show_shot_list = CASE WHEN ${d.showShotList !== undefined} THEN ${d.showShotList===true} ELSE show_shot_list END,
         show_scripts = CASE WHEN ${d.showScripts !== undefined} THEN ${d.showScripts===true} ELSE show_scripts END,
+        client_logo = CASE WHEN ${d.clientLogo !== undefined} THEN ${d.clientLogo||null} ELSE client_logo END,
         updated_at = NOW()
       WHERE id = ${req.params.id}`;
     res.json(await getFullProject(req.params.id));

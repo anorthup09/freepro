@@ -633,6 +633,9 @@ async function migrate() {
     )`;
   await sql`ALTER TABLE projects ADD COLUMN IF NOT EXISTS show_scripts BOOLEAN DEFAULT false`;
 
+  // Client logo (small data-URL PNG shown on public sticky bars)
+  await sql`ALTER TABLE projects ADD COLUMN IF NOT EXISTS client_logo TEXT`;
+
   console.log('Migration complete.');
 }
 
