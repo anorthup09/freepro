@@ -72,7 +72,7 @@ export default function Clapboard({ title, date, location, fieldProducer, direct
       const ctx = audioRef.current || (audioRef.current = new (window.AudioContext || window.webkitAudioContext)());
       if (ctx.state === 'suspended') ctx.resume();
       // Sync beep — 1 kHz tone like a broadcast 2-pop
-      const dur = 0.2;
+      const dur = 0.08;
       const osc = ctx.createOscillator();
       osc.type = 'sine';
       osc.frequency.value = 1000;
