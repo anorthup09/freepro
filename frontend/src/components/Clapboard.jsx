@@ -25,6 +25,18 @@ function TimecodeBar({ big }) {
   );
 }
 
+
+const STATE_CODES = { alabama:'AL', alaska:'AK', arizona:'AZ', arkansas:'AR', california:'CA', colorado:'CO', connecticut:'CT', delaware:'DE', florida:'FL', georgia:'GA', hawaii:'HI', idaho:'ID', illinois:'IL', indiana:'IN', iowa:'IA', kansas:'KS', kentucky:'KY', louisiana:'LA', maine:'ME', maryland:'MD', massachusetts:'MA', michigan:'MI', minnesota:'MN', mississippi:'MS', missouri:'MO', montana:'MT', nebraska:'NE', nevada:'NV', 'new hampshire':'NH', 'new jersey':'NJ', 'new mexico':'NM', 'new york':'NY', 'north carolina':'NC', 'north dakota':'ND', ohio:'OH', oklahoma:'OK', oregon:'OR', pennsylvania:'PA', 'rhode island':'RI', 'south carolina':'SC', 'south dakota':'SD', tennessee:'TN', texas:'TX', utah:'UT', vermont:'VT', virginia:'VA', washington:'WA', 'west virginia':'WV', wisconsin:'WI', wyoming:'WY', 'district of columbia':'DC' };
+// "St. Louis, Missouri" -> "St. Louis, MO"
+function abbrevState(loc) {
+  if (!loc) return loc;
+  return loc.split(',').map((part, i) => {
+    const t = part.trim();
+    const code = STATE_CODES[t.toLowerCase()];
+    return i > 0 && code ? ` ${code}` : (i > 0 ? ` ${t}` : t);
+  }).join(',');
+}
+
 const label = { fontFamily: "'DM Sans', sans-serif", fontWeight: 800, fontSize: 'min(24px, 2.6vw + 6px, 5vh)', letterSpacing: '0.04em', color: '#111', textTransform: 'uppercase', fontStyle: 'italic' };
 const value = { fontFamily: "'DM Sans', sans-serif", fontWeight: 700, fontSize: 'min(28px, 3vw + 7px, 6vh)', color: '#111', minWidth: 0, overflowWrap: 'anywhere' };
 
@@ -93,7 +105,14 @@ export default function Clapboard({ title, date, location, fieldProducer, direct
           style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(255,255,255,0.12)', color: '#fff', border: 'none', borderRadius: 8, width: 32, height: 32, fontSize: 15, cursor: 'pointer', lineHeight: 1 }}>✕</button>
 
         <div style={{ padding: 'min(10px, 1.4vh) 18px min(12px, 1.6vh)', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-evenly' }}>
-          <Row name="Prod" lbl={lbl} val={val}>{fieldProducer || '—'}</Row>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, borderBottom: '2px solid #111', padding: 'min(8px, 1.1vh) 2px min(5px, 0.7vh)' }}>
+            <span style={lbl}>Prod:</span>
+            <span style={val}>{fieldProducer || '—'}</span>
+            <button onClick={slap} aria-label="Slap the sticks"
+              style={{ marginLeft: 'auto', background: '#E8500A', color: '#fff', border: 'none', borderRadius: 100, padding: 'min(8px, 1.2vh) min(18px, 2.6vh)', fontSize: 'min(16px, 3vh)', fontWeight: 800, cursor: 'pointer', letterSpacing: '.06em', boxShadow: '0 3px 12px rgba(0,0,0,0.3)', fontFamily: "'DM Sans', sans-serif", whiteSpace: 'nowrap', flexShrink: 0 }}>
+              🎬 MARK
+            </button>
+          </div>
 
           {/* Title | Take grid */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr minmax(150px, 24%)', borderBottom: '2px solid #111' }}>
@@ -136,7 +155,7 @@ export default function Clapboard({ title, date, location, fieldProducer, direct
                   <span style={lbl}>Date:</span><span style={val}>{date || '—'}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, padding: 'min(8px, 1.1vh) 10px min(5px, 0.7vh)' }}>
-                  <span style={lbl}>Loc:</span><span style={val}>{location || '—'}</span>
+                  <span style={lbl}>Loc:</span><span style={val}>{abbrevState(location) || '—'}</span>
                 </div>
               </div>
             </>
@@ -145,20 +164,17 @@ export default function Clapboard({ title, date, location, fieldProducer, direct
               <Row name="Director" lbl={lbl} val={val}>{director || '—'}</Row>
               <Row name="Camera" lbl={lbl} val={val}>{camera || '—'}</Row>
               <Row name="Date" lbl={lbl} val={val}>{date || '—'}</Row>
-              {location && <Row name="Loc" lbl={lbl} val={val}>{location}</Row>}
+              {location && <Row name="Loc" lbl={lbl} val={val}>{abbrevState(location)}</Row>}
             </>
           )}
 
         </div>
 
-        {/* Slapstick */}
-        <button onClick={slap} aria-label="Slap the sticks"
-          style={{ position: 'absolute', bottom: 14, right: 14, zIndex: 5, background: '#E8500A', color: '#fff', border: 'none', borderRadius: 100, padding: '10px 18px', fontSize: 'min(16px, 3vh)', fontWeight: 800, cursor: 'pointer', letterSpacing: '.06em', boxShadow: '0 4px 16px rgba(0,0,0,0.35)', fontFamily: "'DM Sans', sans-serif" }}>
-          🎬 MARK
-        </button>
-
         {/* Top/bottom wipe panels — meet in the middle on the clap */}
-        <div style={{ position: 'absolute', left: 0, right: 0, top: 0, height: '50.5%', background: '#E8500A', zIndex: 10, pointerEvents: 'none', transform: wiping ? 'translateY(0)' : 'translateY(-101%)', transition: `transform ${WIPE_MS}ms ${wiping ? 'cubic-bezier(0.5, 0, 0.9, 0.4)' : 'ease-in-out'}` }} />
+        <div style={{ position: 'absolute', left: 0, right: 0, top: 0, height: '50.5%', background: '#E8500A', zIndex: 11, pointerEvents: 'none', transform: wiping ? 'translateY(0)' : 'translateY(calc(-100% - 80px))', transition: `transform ${WIPE_MS}ms ${wiping ? 'cubic-bezier(0.5, 0, 0.9, 0.4)' : 'ease-in-out'}` }}>
+          <img src="/unbridled-logo.png" alt="Unbridled Media"
+            style={{ position: 'absolute', left: '50%', bottom: 0, transform: 'translate(-50%, 50%)', height: 'min(64px, 12vh)', filter: 'brightness(0) invert(1)' }} />
+        </div>
         <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '50.5%', background: '#E8500A', zIndex: 10, pointerEvents: 'none', transform: wiping ? 'translateY(0)' : 'translateY(101%)', transition: `transform ${WIPE_MS}ms ${wiping ? 'cubic-bezier(0.5, 0, 0.9, 0.4)' : 'ease-in-out'}` }} />
       </div>
     </div>,
