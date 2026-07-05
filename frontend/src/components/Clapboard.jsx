@@ -142,11 +142,13 @@ export default function Clapboard({ title, date, location, fieldProducer, direct
           {landscape ? (
             <>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', borderBottom: '2px solid #111' }}>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, padding: 'min(8px, 1.1vh) 2px min(5px, 0.7vh)', borderRight: '2px solid #111' }}>
-                  <span style={lbl}>Director:</span><span style={val}>{director || '—'}</span>
+                <div style={{ padding: 'min(8px, 1.1vh) 2px min(5px, 0.7vh)', borderRight: '2px solid #111' }}>
+                  <div style={{ ...lbl, marginBottom: 2 }}>Director:</div>
+                  <div style={{ ...val, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{director || '—'}</div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, padding: 'min(8px, 1.1vh) 10px min(5px, 0.7vh)' }}>
-                  <span style={lbl}>Camera:</span><span style={val}>{camera || '—'}</span>
+                <div style={{ padding: 'min(8px, 1.1vh) 10px min(5px, 0.7vh)' }}>
+                  <div style={{ ...lbl, marginBottom: 2 }}>Camera:</div>
+                  <div style={{ ...val, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{camera || '—'}</div>
                 </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', borderBottom: '2px solid #111' }}>
