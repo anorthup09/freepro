@@ -341,7 +341,7 @@ export default function Crew({ project, onProjectUpdate }) {
             <tbody>
               {staff.length > 0 && sectionRow('Unbridled Crew', 'var(--orange)')}
               {staff.map(renderRow)}
-              {contractors.length > 0 && sectionRow('Contractors', '#e6c229')}
+              {contractors.length > 0 && sectionRow('Contract Crew', '#e6c229')}
               {contractors.map(renderRow)}
               {contractors.length > 0 && (
                 <tr>
@@ -609,7 +609,7 @@ export default function Crew({ project, onProjectUpdate }) {
                       color: slotForm.isContractor ? '#e6c229' : 'var(--muted)',
                       borderRadius:20, padding:'5px 14px', fontSize:11, fontWeight:700, cursor:'pointer', letterSpacing:'0.04em', textTransform:'uppercase',
                     }}>
-                    {slotForm.isContractor ? '✓ ' : ''}Contractor
+                    {slotForm.isContractor ? '✓ ' : ''}Contract Crew
                   </button>
                 </div>
                 {slotForm.isContractor && (
@@ -696,7 +696,7 @@ export default function Crew({ project, onProjectUpdate }) {
                       color: editForm.isContractor ? '#e6c229' : 'var(--muted)',
                       borderRadius:20, padding:'5px 14px', fontSize:11, fontWeight:700, cursor:'pointer', letterSpacing:'0.04em', textTransform:'uppercase',
                     }}>
-                    {editForm.isContractor ? '✓ ' : ''}Contractor
+                    {editForm.isContractor ? '✓ ' : ''}Contract Crew
                   </button>
                 </div>
                 {editForm.isContractor && (

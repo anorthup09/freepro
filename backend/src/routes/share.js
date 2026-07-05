@@ -59,7 +59,7 @@ router.get('/:token', async (req, res, next) => {
       WHERE ca.project_id = ${projectId}
       ORDER BY p.sort_order, ca.slot_number`;
 
-    const mappedCrew = crewAssignments.map(a => ({
+    const mappedCrew = crewAssignments.map(({ is_contractor, day_rate, labor_days, gear_cost, gear_days, ...a }) => ({
       ...a,
       position: { id: a.position_id, name: a.position_name, sortOrder: a.sort_order },
       crewMember: a.cm_id ? { id: a.cm_id, name: a.cm_name, preferredFirstName: a.cm_pref_first, preferredLastName: a.cm_pref_last, email: a.cm_email, phone: a.cm_phone, company: a.cm_company, initials: a.initials, avatarColor: a.avatar_color, dietaryRestrictions: a.cm_dietary } : null,
