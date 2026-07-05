@@ -80,10 +80,14 @@ export default function Clapboard({ title, date, location, fieldProducer, direct
       const outLatency = ctx.outputLatency || ctx.baseLatency || 0;
       const t0 = Math.max(ctx.currentTime, ctx.currentTime + WIPE_MS / 1000 - outLatency);
       gain.gain.setValueAtTime(0, t0);
-      gain.gain.linearRampToValueAtTime(0.9, t0 + 0.005);
-      gain.gain.setValueAtTime(0.9, t0 + dur - 0.02);
+      gain.gain.linearRampToValueAtTime(3, t0 + 0.005);
+      gain.gain.setValueAtTime(3, t0 + dur - 0.02);
       gain.gain.linearRampToValueAtTime(0, t0 + dur);
-      osc.connect(gain); gain.connect(ctx.destination);
+      // Compressor keeps the hot signal loud without clipping distortion
+      const comp = ctx.createDynamicsCompressor();
+      comp.threshold.value = -12; comp.knee.value = 6; comp.ratio.value = 12;
+      comp.attack.value = 0.001; comp.release.value = 0.1;
+      osc.connect(gain); gain.connect(comp); comp.connect(ctx.destination);
       osc.start(t0); osc.stop(t0 + dur + 0.02);
     } catch { /* audio blocked — wipe still plays */ }
     setWiping(true);
