@@ -19,7 +19,7 @@ router.get('/:token', async (req, res, next) => {
 
     // Load project base info
     const [project] = await sql`
-      SELECT p.id, p.code, p.title, p.subtitle, p.client, p.city, p.state, p.start_date, p.end_date, p.status, p.notes, p.share_password, p.show_shot_list,
+      SELECT p.id, p.code, p.title, p.subtitle, p.client, p.city, p.state, p.start_date, p.end_date, p.status, p.notes, p.share_password, p.show_shot_list, p.show_scripts,
              COALESCE(NULLIF(TRIM(CONCAT(cm.preferred_first_name, ' ', cm.preferred_last_name)), ''), cm.name) as poc_name, cm.phone as poc_phone, cm.email as poc_email
       FROM projects p
       LEFT JOIN crew_members cm ON cm.id = p.poc_crew_member_id
@@ -120,6 +120,12 @@ router.get('/:token', async (req, res, next) => {
     }));
 
     let responseData = { view_type: viewType, talent_name: talentName, project };
+
+    if (project.show_scripts && ['producer','crew','client'].includes(viewType)) {
+      try {
+        responseData.scripts = await sql`SELECT id, name, file_name, mime FROM scripts WHERE project_id = ${projectId} AND data IS NOT NULL ORDER BY lower(name)`;
+      } catch (e) { console.error('share scripts failed:', e.message); }
+    }
 
     if (viewType === 'producer') {
       const safe = async (q) => { try { return await q; } catch(e) { console.error('share query failed:', e.message); return []; } };
@@ -394,6 +400,19 @@ router.patch('/:token/questions/:qid', async (req, res, next) => {
     if (!q) return res.status(404).json({ error: 'Not found' });
     res.json(q);
   } catch(e){ next(e); }
+});
+
+// GET /share/:token/scripts/:sid/file — public script download/view
+router.get('/:token/scripts/:sid/file', async (req, res, next) => {
+  try {
+    const r = await resolveShare(req.params.token, req.query.pw, req);
+    if (r.error) return res.status(r.status).json({ error: r.error });
+    const [s] = await sql`SELECT name, file_name, mime, data FROM scripts WHERE id = ${req.params.sid} AND project_id = ${r.share.project_id}`;
+    if (!s?.data) return res.status(404).json({ error: 'No file uploaded for this script' });
+    res.setHeader('Content-Type', s.mime || 'application/octet-stream');
+    res.setHeader('Content-Disposition', `inline; filename="${(s.file_name || s.name).replace(/"/g, '')}"`);
+    res.send(Buffer.from(s.data));
+  } catch(e) { next(e); }
 });
 
 module.exports = router;

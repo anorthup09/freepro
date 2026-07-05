@@ -620,6 +620,19 @@ async function migrate() {
   // Shot list days can be hidden from public views (e.g. travel days with no scenes)
   await sql`ALTER TABLE shot_list_days ADD COLUMN IF NOT EXISTS hide_public BOOLEAN DEFAULT false`;
 
+  // Uploaded scripts (PDF/Word) viewable on share pages
+  await sql`
+    CREATE TABLE IF NOT EXISTS scripts (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      project_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      file_name TEXT,
+      mime TEXT,
+      data BYTEA,
+      created_at TIMESTAMPTZ DEFAULT now()
+    )`;
+  await sql`ALTER TABLE projects ADD COLUMN IF NOT EXISTS show_scripts BOOLEAN DEFAULT false`;
+
   console.log('Migration complete.');
 }
 

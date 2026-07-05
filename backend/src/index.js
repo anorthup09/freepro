@@ -19,7 +19,7 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(cors());
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '30mb' }));
 
 // Serve frontend static files if present (production)
 const publicDir = path.join(__dirname, '../public');
@@ -113,6 +113,7 @@ app.use('/api/projects', scheduleRoutes);
 app.use('/api/projects', deliverableRoutes);
 app.use('/api/projects', travelRoutes);
 app.use('/api/projects', shotListRoutes);
+app.use('/api/projects', require('./routes/scripts'));
 app.use('/api/util', utilRoutes);
 
 // Fallback: serve index.html for client-side routing (React Router)

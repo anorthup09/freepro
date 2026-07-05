@@ -11,6 +11,7 @@ import GearList from './GearList.jsx';
 import Catering from './Catering.jsx';
 import SpaceInfo from './SpaceInfo.jsx';
 import Questions from './Questions.jsx';
+import Scripts from './Scripts.jsx';
 import ShotList from './ShotList.jsx';
 
 const BASE_TABS = [
@@ -208,6 +209,9 @@ export default function Project() {
   const [showTravel, setShowTravel] = useState(() => {
     try { return localStorage.getItem(`travel-${id}`) === 'true'; } catch { return false; }
   });
+  const [showScripts, setShowScripts] = useState(() => {
+    try { return localStorage.getItem(`scripts-${id}`) === 'true'; } catch { return false; }
+  });
 
   function toggleCateringGrid(val) {
     setShowCateringGrid(val);
@@ -218,6 +222,12 @@ export default function Project() {
     setShowShotList(val);
     try { localStorage.setItem(`shotlist-${id}`, String(val)); } catch {}
     api.updateProject(id, { showShotList: val }).catch(() => {});
+  }
+
+  function toggleScripts(val) {
+    setShowScripts(val);
+    try { localStorage.setItem(`scripts-${id}`, String(val)); } catch {}
+    api.updateProject(id, { showScripts: val }).catch(() => {});
   }
 
   function toggleTravel(val) {
@@ -231,6 +241,10 @@ export default function Project() {
       if (p.show_shot_list != null) {
         setShowShotList(!!p.show_shot_list);
         try { localStorage.setItem(`shotlist-${id}`, String(!!p.show_shot_list)); } catch {}
+      }
+      if (p.show_scripts != null) {
+        setShowScripts(!!p.show_scripts);
+        try { localStorage.setItem(`scripts-${id}`, String(!!p.show_scripts)); } catch {}
       }
     }).catch(() => nav('/'));
   }, [id]);
@@ -382,7 +396,7 @@ export default function Project() {
         </div>
         <div className="tabs">
           <button className={`tab${tab === 'overview' ? ' on' : ''}`} onClick={() => setTab('overview')}>Overview</button>
-          <DropdownTab label="Logistics" subtabs={[...BASE_LOGISTICS_TABS, ...(showTravel ? [{ id:'travel', label:'Travel' }] : []), ...(showCateringGrid ? [{ id:'catering', label:'Catering/Meals' }] : []), ...(showShotList ? [{ id:'shot-list', label:'Shot List' }] : [])]} tab={tab} setTab={setTab} />
+          <DropdownTab label="Logistics" subtabs={[...BASE_LOGISTICS_TABS, ...(showTravel ? [{ id:'travel', label:'Travel' }] : []), ...(showCateringGrid ? [{ id:'catering', label:'Catering/Meals' }] : []), ...(showShotList ? [{ id:'shot-list', label:'Shot List' }] : []), ...(showScripts ? [{ id:'scripts', label:'Scripts' }] : [])]} tab={tab} setTab={setTab} />
           <DropdownTab label="Gear" subtabs={GEAR_TABS} tab={tab} setTab={setTab} />
           <button className={`tab${tab === 'deliverable-overview' ? ' on' : ''}`} onClick={() => setTab('deliverable-overview')}>Deliverable</button>
           <button
@@ -400,8 +414,9 @@ export default function Project() {
 
       <div className="wrap">
         {tab === 'overview'             && <Overview     project={project} setProject={setProject} onTabChange={setTab} />}
-        {tab === 'schedule'             && <Schedule     project={project} showCateringGrid={showCateringGrid} setShowCateringGrid={toggleCateringGrid} onCateringTabChange={() => setTab('catering')} showShotList={showShotList} setShowShotList={toggleShotList} onShotListTabChange={() => setTab('shot-list')} showTravel={showTravel} setShowTravel={toggleTravel} onTravelTabChange={() => setTab('travel')} focusDate={scheduleFocusDate} onFocusConsumed={() => setScheduleFocusDate(null)} />}
+        {tab === 'schedule'             && <Schedule     project={project} showCateringGrid={showCateringGrid} setShowCateringGrid={toggleCateringGrid} onCateringTabChange={() => setTab('catering')} showShotList={showShotList} setShowShotList={toggleShotList} onShotListTabChange={() => setTab('shot-list')} showScripts={showScripts} setShowScripts={toggleScripts} onScriptsTabChange={() => setTab('scripts')} showTravel={showTravel} setShowTravel={toggleTravel} onTravelTabChange={() => setTab('travel')} focusDate={scheduleFocusDate} onFocusConsumed={() => setScheduleFocusDate(null)} />}
         {tab === 'catering'             && <Catering     project={project} />}
+        {tab === 'scripts'              && <Scripts      project={project} />}
         {tab === 'shot-list'            && <ShotList     project={project} onScenesChange={setShotListScenes} onCurrentDayChange={setCurrentShotListDay} onOpenScheduleDay={(iso) => { setScheduleFocusDate(iso); setTab('schedule'); }} />}
         {tab === 'crew'                 && <Crew         project={project} onProjectUpdate={setProject} />}
         {tab === 'travel'               && <Travel       project={project} />}

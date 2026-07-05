@@ -264,7 +264,7 @@ const SYNTHETIC_META = {
   wt:  { color:'#a78bfa', bg:'rgba(167,139,250,0.08)', notesKey:'wrapTimeNotes',      tagsKey:'wrapTimeTags',      locationKey:'wrapTimeLocationId' },
 };
 
-export default function Schedule({ project, showCateringGrid, setShowCateringGrid, onCateringTabChange, showShotList, setShowShotList, onShotListTabChange, showTravel, setShowTravel, onTravelTabChange, focusDate, onFocusConsumed }) {
+export default function Schedule({ project, showCateringGrid, setShowCateringGrid, onCateringTabChange, showShotList, setShowShotList, onShotListTabChange, showScripts, setShowScripts, onScriptsTabChange, showTravel, setShowTravel, onTravelTabChange, focusDate, onFocusConsumed }) {
   const [days, setDays] = useState([]);
   const [activeDay, setActiveDay] = useState(null);
   const [showAddEvent, setShowAddEvent] = useState(false);
@@ -630,6 +630,12 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
               style={{ fontSize:11, fontWeight:600, padding:'4px 12px', borderRadius:6, border:`1px solid ${showShotList ? '#60a5fa' : 'var(--border2)'}`, background: showShotList ? 'rgba(96,165,250,0.15)' : 'var(--bg2)', color: showShotList ? '#60a5fa' : 'var(--muted)', cursor:'pointer', transition:'all .15s', whiteSpace:'nowrap' }}
             >
               {showShotList ? '✓ Shot List' : '+ Shot List'}
+            </button>
+            <button
+              onClick={() => { if (!showScripts) { setShowScripts(true); onScriptsTabChange?.(); } else { setShowScripts(false); } }}
+              style={{ fontSize:11, fontWeight:600, padding:'4px 12px', borderRadius:6, border:`1px solid ${showScripts ? '#fbbf24' : 'var(--border2)'}`, background: showScripts ? 'rgba(251,191,36,0.15)' : 'var(--bg2)', color: showScripts ? '#fbbf24' : 'var(--muted)', cursor:'pointer', transition:'all .15s', whiteSpace:'nowrap' }}
+            >
+              {showScripts ? '✓ Script' : '+ Script'}
             </button>
           </div>
         </div>

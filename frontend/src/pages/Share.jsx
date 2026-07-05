@@ -2167,6 +2167,33 @@ function GlassHeader({ project, showTime, clientMode, crewMode }) {
   );
 }
 
+// ── Scripts View ─────────────────────────────────────────────────────────────
+function ScriptsShareView({ scripts, shareToken, pw }) {
+  const base = `${window.location.origin}/api/share/${shareToken}`;
+  return (
+    <div className="share-view">
+      <div className="share-header" style={{ paddingBottom:16 }}>
+        <div style={{ fontSize:16, fontWeight:700, letterSpacing:'-0.01em' }}>Scripts</div>
+        <div style={{ fontSize:12, color:'var(--muted)', marginTop:4 }}>Tap a script to view or download it.</div>
+      </div>
+      {(scripts || []).map(sc => (
+        <a key={sc.id}
+          href={`${base}/scripts/${sc.id}/file${pw ? `?pw=${encodeURIComponent(pw)}` : ''}`}
+          target="_blank" rel="noreferrer"
+          style={{ display:'flex', alignItems:'center', gap:12, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding:'14px 16px', marginBottom:10, textDecoration:'none', color:'var(--text)' }}>
+          <span style={{ fontSize:20 }}>📄</span>
+          <div style={{ minWidth:0 }}>
+            <div style={{ fontSize:14, fontWeight:700 }}>{sc.name}</div>
+            {sc.file_name && <div style={{ fontSize:11, color:'var(--muted)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{sc.file_name}</div>}
+          </div>
+          <span style={{ marginLeft:'auto', color:'var(--muted)', fontSize:14 }}>›</span>
+        </a>
+      ))}
+      {(!scripts || scripts.length === 0) && <div className="empty">No scripts uploaded yet.</div>}
+    </div>
+  );
+}
+
 // ── Main Share Page ──────────────────────────────────────────────────────────
 export default function Share() {
   const { token } = useParams();
@@ -2257,6 +2284,7 @@ export default function Share() {
   const hasQuestions = view_type === 'producer' || view_type === 'crew';
   const hasGearTab = view_type === 'producer' || view_type === 'crew';
   const hasShotList = (view_type === 'producer' || view_type === 'crew' || view_type === 'client') && !!data.project.show_shot_list;
+  const hasScripts = (view_type === 'producer' || view_type === 'crew' || view_type === 'client') && !!data.project.show_scripts && (data.scripts || []).length > 0;
 
   return (
     <>
@@ -2273,11 +2301,12 @@ export default function Share() {
             {view_type === 'producer' ? 'Producer View' : view_type === 'crew' ? 'Crew View' : 'Client View'}
           </span>
         )}
-        {(hasQuestions || (hasShotList && view_type === 'client')) ? (
+        {(hasQuestions || ((hasShotList || hasScripts) && view_type === 'client')) ? (
           <div className="tabs" style={{ flexBasis:'100%', display:'flex', alignItems:'center' }}>
             <button className={`tab${sharePage === 'callsheet' ? ' on' : ''}`} onClick={() => setSharePage('callsheet')}>Call Sheet</button>
             {hasGearTab && <button className={`tab${sharePage === 'gear' ? ' on' : ''}`} onClick={() => setSharePage('gear')}>Gear</button>}
             {hasShotList && <button className={`tab${sharePage === 'shot-list' ? ' on' : ''}`} onClick={() => setSharePage('shot-list')}>Shot List</button>}
+            {hasScripts && <button className={`tab${sharePage === 'scripts' ? ' on' : ''}`} onClick={() => setSharePage('scripts')}>Script</button>}
             {hasQuestions && <button className={`tab${sharePage === 'questions' ? ' on' : ''}`} onClick={() => setSharePage('questions')}>Questions</button>}
             <button
               onClick={() => window.print()}
@@ -2301,6 +2330,8 @@ export default function Share() {
       <div className="wrap">
         {hasQuestions && sharePage === 'questions' ? (
           <QuestionsView shareToken={token} pw={resolvedPw} canAnswer={view_type === 'producer'} project={data.project} />
+        ) : hasScripts && sharePage === 'scripts' ? (
+          <ScriptsShareView scripts={data.scripts} shareToken={token} pw={resolvedPw} />
         ) : hasGearTab && sharePage === 'gear' ? (
           <GearSection
             gear={data.gear}

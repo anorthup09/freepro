@@ -192,6 +192,17 @@ export const api = {
   // Shot List
   updateShareShot: (token, shotId, data) => req('PATCH', `/share/${token}/shots/${shotId}`, data),
   updateShareScene: (token, sceneId, data) => req('PATCH', `/share/${token}/scenes/${sceneId}`, data),
+  // Scripts
+  getScripts: (projectId) => req('GET', `/projects/${projectId}/scripts`),
+  createScript: (projectId, data) => req('POST', `/projects/${projectId}/scripts`, data),
+  updateScript: (projectId, sid, data) => req('PATCH', `/projects/${projectId}/scripts/${sid}`, data),
+  deleteScript: (projectId, sid) => req('DELETE', `/projects/${projectId}/scripts/${sid}`),
+  fetchScriptBlob: async (projectId, sid) => {
+    const r = await fetch(`${BACKEND}/api/projects/${projectId}/scripts/${sid}/file`, { headers: { Authorization: `Bearer ${localStorage.getItem('fp_token')}` } });
+    if (!r.ok) throw new Error('Could not load script file');
+    return r.blob();
+  },
+
   getShotList: (projectId) => req('GET', `/projects/${projectId}/shot-list`),
   createScene: (projectId, data) => req('POST', `/projects/${projectId}/shot-list/scenes`, data),
   updateScene: (projectId, sceneId, data) => req('PATCH', `/projects/${projectId}/shot-list/scenes/${sceneId}`, data),
