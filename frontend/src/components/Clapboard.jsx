@@ -37,8 +37,9 @@ function Row({ name, children }) {
 
 // Pop-out clapboard slate for filming events. Crew names come from the
 // project's Field Producer / Director / Camera Operator assignments.
-export default function Clapboard({ title, date, fieldProducer, director, camera, onClose }) {
+export default function Clapboard({ title, date, location, fieldProducer, director, camera, onClose, editableTitle }) {
   const [take, setTake] = useState(1);
+  const [titleVal, setTitleVal] = useState(title || '');
 
   return createPortal(
     <div className="modal-bg" onClick={onClose} style={{ zIndex: 300 }}>
@@ -55,7 +56,12 @@ export default function Clapboard({ title, date, fieldProducer, director, camera
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px', borderBottom: '2px solid #111' }}>
             <div style={{ padding: '12px 2px 10px', borderRight: '2px solid #111' }}>
               <div style={{ ...label, marginBottom: 4 }}>Title</div>
-              <div style={{ ...value, fontSize: 18 }}>{title || '—'}</div>
+              {editableTitle ? (
+                <input value={titleVal} onChange={e => setTitleVal(e.target.value)} placeholder="Title…" autoFocus
+                  style={{ ...value, fontSize: 18, width: '100%', background: 'transparent', border: 'none', borderBottom: '1px dashed #999', outline: 'none', padding: 0 }} />
+              ) : (
+                <div style={{ ...value, fontSize: 18 }}>{title || '—'}</div>
+              )}
             </div>
             <div style={{ padding: '12px 8px 10px', textAlign: 'center' }}>
               <div style={{ ...label, marginBottom: 4 }}>Take</div>
@@ -71,7 +77,16 @@ export default function Clapboard({ title, date, fieldProducer, director, camera
 
           <Row name="Director">{director || '—'}</Row>
           <Row name="Camera">{camera || '—'}</Row>
-          <Row name="Date">{date || '—'}</Row>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, borderBottom: '2px solid #111', padding: '10px 2px 6px', flexWrap: 'wrap' }}>
+            <span style={label}>Date:</span>
+            <span style={value}>{date || '—'}</span>
+            {location && (
+              <>
+                <span style={{ ...label, marginLeft: 12 }}>Loc:</span>
+                <span style={value}>{location}</span>
+              </>
+            )}
+          </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 14 }}>
             <button onClick={onClose}

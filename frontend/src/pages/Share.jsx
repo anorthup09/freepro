@@ -2102,6 +2102,7 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
           {clapEvent && (
         <Clapboard
           title={clapEvent.title}
+          location={clapEvent.location?.name || ''}
           date={day.date ? new Date(day.date).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric', timeZone:'UTC' }) : ''}
           fieldProducer={crewByPosition('field producer')}
           director={crewByPosition('director')}

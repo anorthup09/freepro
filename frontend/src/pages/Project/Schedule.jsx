@@ -528,6 +528,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
 
   // Clapboard slate for filming events
   const [clapEvent, setClapEvent] = useState(null);
+  const [quickSlate, setQuickSlate] = useState(false);
   const crewByPosition = (posName) => {
     const a = (project.crewAssignments || []).find(x => (x.position?.name || x.position_name || '').toLowerCase() === posName && x.crewMember);
     return a ? displayName(a.crewMember) : '';
@@ -619,8 +620,12 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
           <div className="page-title">Schedule</div>
           <div className="page-sub">{parseDay(project.start_date||project.startDate).toLocaleDateString()} – {parseDay(project.end_date||project.endDate).toLocaleDateString()}</div>
         </div>
-        <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:6 }}>
-          <div style={{ display:'flex', gap:6, flexWrap:'wrap', justifyContent:'flex-end' }}>
+        <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:6, minWidth:0 }}>
+          <button onClick={() => setQuickSlate(true)}
+            style={{ display:'inline-flex', alignItems:'center', gap:6, background:'rgba(255,140,0,0.12)', border:'1px solid rgba(255,140,0,0.45)', borderRadius:6, padding:'4px 12px', fontSize:11, fontWeight:700, color:'var(--orange)', cursor:'pointer', letterSpacing:'.05em', textTransform:'uppercase', whiteSpace:'nowrap' }}>
+            🎬 Quick Slate
+          </button>
+          <div style={{ display:'flex', gap:6, flexWrap:'nowrap', overflowX:'auto', WebkitOverflowScrolling:'touch', maxWidth:'100%', scrollbarWidth:'none' }}>
             <button
               onClick={() => { if (!showTravel) { setShowTravel(true); onTravelTabChange?.(); } else { setShowTravel(false); } }}
               style={{ fontSize:11, fontWeight:600, padding:'4px 12px', borderRadius:6, border:`1px solid ${showTravel ? '#a78bfa' : 'var(--border2)'}`, background: showTravel ? 'rgba(167,139,250,0.15)' : 'var(--bg2)', color: showTravel ? '#a78bfa' : 'var(--muted)', cursor:'pointer', transition:'all .15s', whiteSpace:'nowrap' }}
@@ -631,7 +636,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
               onClick={() => { if (!showCateringGrid) { setShowCateringGrid(true); onCateringTabChange?.(); } else { setShowCateringGrid(false); } }}
               style={{ fontSize:11, fontWeight:600, padding:'4px 12px', borderRadius:6, border:`1px solid ${showCateringGrid ? '#22c55e' : 'var(--border2)'}`, background: showCateringGrid ? 'rgba(34,197,94,0.15)' : 'var(--bg2)', color: showCateringGrid ? '#22c55e' : 'var(--muted)', cursor:'pointer', transition:'all .15s', whiteSpace:'nowrap' }}
             >
-              {showCateringGrid ? '✓ Catering/Meals Grid' : '+ Catering/Meals Grid'}
+              {showCateringGrid ? '✓ Catering/Meals' : '+ Catering/Meals'}
             </button>
             <button
               onClick={() => { if (!showShotList) { setShowShotList(true); onShotListTabChange?.(); } else { setShowShotList(false); } }}
@@ -651,9 +656,23 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
 
       {days.length === 0 && <div className="empty">No shoot days yet — add a day to start building the schedule.</div>}
 
+      {quickSlate && (
+        <Clapboard
+          editableTitle
+          title=""
+          location={(() => { const withLoc = (currentDay?.events || []).find(e => e.location?.name); return withLoc?.location?.name || ''; })()}
+          date={currentDay ? parseDay(currentDay.date).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }) : ''}
+          fieldProducer={crewByPosition('field producer')}
+          director={crewByPosition('director')}
+          camera={crewByPosition('camera operator')}
+          onClose={() => setQuickSlate(false)}
+        />
+      )}
+
       {clapEvent && (
         <Clapboard
           title={clapEvent.title}
+          location={clapEvent.location?.name || clapEvent.location_name || ''}
           date={currentDay ? parseDay(currentDay.date).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }) : ''}
           fieldProducer={crewByPosition('field producer')}
           director={crewByPosition('director')}
