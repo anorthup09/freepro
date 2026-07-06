@@ -550,9 +550,9 @@ export default function Overview({ project, setProject, onTabChange }) {
             <div className="modal-title">Edit Project Info</div>
             <form onSubmit={saveInfo}>
               <div className="form-grid" style={{ marginBottom:12 }}>
-                <div className="field"><label>Project Code — feeds from the ProFi budget</label><input value={info.code} disabled style={{ opacity:0.55, cursor:'not-allowed' }} /></div>
+                <div className="field"><label>Project Code</label><input value={info.code} disabled style={{ opacity:0.55, cursor:'not-allowed' }} /></div>
                 <div className="field"><label>Title</label><input value={info.title} onChange={e => setInfo(i=>({...i,title:e.target.value}))} required /></div>
-                <div className="field"><label>Client — feeds from the ProFi budget</label><input value={info.client} disabled style={{ opacity:0.55, cursor:'not-allowed' }} /></div>
+                <div className="field"><label>Client</label><input value={info.client} disabled style={{ opacity:0.55, cursor:'not-allowed' }} /></div>
                 <div className="field"><label>Status</label>
                   <select value={info.status} onChange={e => setInfo(i=>({...i,status:e.target.value}))}>
                     {['PLANNING','ACTIVE','WRAPPED','ARCHIVED'].map(s => <option key={s} value={s}>{s}</option>)}
