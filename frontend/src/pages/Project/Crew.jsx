@@ -64,6 +64,7 @@ export default function Crew({ project, onProjectUpdate }) {
   const [contractBusy, setContractBusy] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [contractSent, setContractSent] = useState('');
+  const [newContractor, setNewContractor] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -743,6 +744,10 @@ export default function Crew({ project, onProjectUpdate }) {
                         setContractScope(defaultScope({ position: { name: posName }, start_date: next.startDate, end_date: next.endDate }));
                         setContractLink('');
                         setContractSent('');
+                        setNewContractor(false);
+                        api.getCrewMember(id).then(d => setNewContractor((d.assignments || []).length === 0)).catch(() => {});
+                      } else {
+                        setNewContractor(false);
                       }
                       return next;
                     });
@@ -762,16 +767,27 @@ export default function Crew({ project, onProjectUpdate }) {
                 </div>
                 {slotForm.crewMemberId && isContractorMember(slotForm.crewMemberId) !== null && (
                   <div className="field span2">
-                    <span style={{
-                      alignSelf:'flex-start', display:'inline-flex', alignItems:'center',
-                      background: isContractorMember(slotForm.crewMemberId) ? 'rgba(230,194,41,0.15)' : 'rgba(255,140,0,0.12)',
-                      border: `1px solid ${isContractorMember(slotForm.crewMemberId) ? '#e6c229' : 'var(--orange)'}`,
-                      color: isContractorMember(slotForm.crewMemberId) ? '#e6c229' : 'var(--orange)',
-                      borderRadius:20, padding:'5px 14px', fontSize:11, fontWeight:700, letterSpacing:'0.04em', textTransform:'uppercase',
-                    }}>
-                      {isContractorMember(slotForm.crewMemberId) ? 'Contract Crew' : 'Unbridled Crew'}
-                    </span>
-                    <span style={{ fontSize:10, color:'var(--muted)', marginTop:3 }}>Set by the roster — edit their company in Roster Look-Up to change.</span>
+                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
+                      <span style={{
+                        display:'inline-flex', alignItems:'center',
+                        background: isContractorMember(slotForm.crewMemberId) ? 'rgba(230,194,41,0.15)' : 'rgba(255,140,0,0.12)',
+                        border: `1px solid ${isContractorMember(slotForm.crewMemberId) ? '#e6c229' : 'var(--orange)'}`,
+                        color: isContractorMember(slotForm.crewMemberId) ? '#e6c229' : 'var(--orange)',
+                        borderRadius:20, padding:'5px 14px', fontSize:11, fontWeight:700, letterSpacing:'0.04em', textTransform:'uppercase',
+                      }}>
+                        {isContractorMember(slotForm.crewMemberId) ? 'Contract Crew' : 'Unbridled Crew'}
+                      </span>
+                      {isContractorMember(slotForm.crewMemberId) && newContractor && (
+                        <span title="First time hiring this contractor — request onboarding documents." style={{
+                          display:'inline-flex', alignItems:'center', gap:5,
+                          background:'rgba(224,82,82,0.12)', border:'1px solid #e05252', color:'#e05252',
+                          borderRadius:20, padding:'5px 14px', fontSize:11, fontWeight:700, letterSpacing:'0.04em', textTransform:'uppercase',
+                        }}>
+                          ★ New Contractor
+                        </span>
+                      )}
+                    </div>
+                    <span style={{ fontSize:10, color:'var(--muted)', marginTop:3 }}>Set by the roster — edit their company in Roster Look-Up to change.{isContractorMember(slotForm.crewMemberId) && newContractor ? ' First hire in the system — collect onboarding documents.' : ''}</span>
                   </div>
                 )}
                 {isContractorMember(slotForm.crewMemberId) === true && (
