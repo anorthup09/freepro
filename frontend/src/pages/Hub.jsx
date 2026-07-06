@@ -79,6 +79,21 @@ export default function Hub() {
             ))}
           </div>
           <span style={{ fontSize:11, color:'var(--muted)' }}>{user?.name}</span>
+          {user?.role === 'ADMIN' && (
+            <button className="btn btn-ghost btn-sm" title="Download a full database backup (all projects, budgets, contracts, roster)"
+              onClick={async () => {
+                try {
+                  const r = await fetch('/api/admin/backup', { headers: { Authorization: `Bearer ${localStorage.getItem('fp_token')}` } });
+                  if (!r.ok) throw new Error('Backup failed');
+                  const blob = await r.blob();
+                  const a = document.createElement('a');
+                  a.href = URL.createObjectURL(blob);
+                  a.download = `freepro-backup-${new Date().toISOString().slice(0, 10)}.json.gz`;
+                  a.click();
+                  URL.revokeObjectURL(a.href);
+                } catch (e) { alert(e.message); }
+              }}>⬇ Backup</button>
+          )}
           <button className="btn btn-ghost btn-sm" onClick={() => { localStorage.removeItem('fp_token'); setUser(null); }}>Sign out</button>
         </div>
       </div>

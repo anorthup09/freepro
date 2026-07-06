@@ -118,6 +118,22 @@ app.use('/api/util', utilRoutes);
 app.use('/api', require('./routes/contracts'));
 app.use('/api', require('./routes/finance'));
 
+// Admin backup: download now, or trigger a cloud push
+const { buildBackup, uploadBackup, scheduleNightlyBackup } = require('./lib/backup');
+const { requireAuth: rqa, requireRole: rqr } = require('./middleware/auth');
+app.get('/api/admin/backup', rqa, rqr('ADMIN'), async (req, res, next) => {
+  try {
+    const gz = await buildBackup();
+    res.setHeader('Content-Type', 'application/gzip');
+    res.setHeader('Content-Disposition', `attachment; filename="freepro-backup-${new Date().toISOString().slice(0, 10)}.json.gz"`);
+    res.send(gz);
+  } catch (e) { next(e); }
+});
+app.post('/api/admin/backup/run', rqa, rqr('ADMIN'), async (req, res, next) => {
+  try { res.json(await uploadBackup()); } catch (e) { next(e); }
+});
+scheduleNightlyBackup();
+
 // Fallback: serve index.html for client-side routing (React Router)
 if (fs.existsSync(publicDir)) {
   app.get('*', (req, res, next) => {
