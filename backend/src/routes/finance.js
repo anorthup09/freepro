@@ -182,6 +182,7 @@ router.get('/finance/:pid', ...finance, async (req, res, next) => {
     const [budget] = await sql`SELECT * FROM budgets WHERE project_id = ${req.params.pid} AND COALESCE(kind, 'main') = 'main'`;
     let sections = [], lines = [];
     if (budget) {
+      await ensureShootProjects(budget.id).catch(e2 => console.error('Shoot link sync failed:', e2.message));
       sections = await sql`
         SELECT s.*, fp.start_date as fp_start_date, fp.end_date as fp_end_date
         FROM budget_sections s LEFT JOIN projects fp ON fp.id = s.freepro_project_id
@@ -195,6 +196,11 @@ router.get('/finance/:pid', ...finance, async (req, res, next) => {
           shootSecs[i].shoot_code = `${pr.code}-${String(i + 1).padStart(2, '0')}`;
           await sql`UPDATE budget_sections SET shoot_code = ${shootSecs[i].shoot_code} WHERE id = ${shootSecs[i].id}`;
         }
+      }
+      // Shoot Description keeps feeding the linked FreePro title on every load
+      for (const sec of sections.filter(x => x.kind === 'shoot' && x.freepro_project_id && (x.subtitle || '').trim())) {
+        await sql`UPDATE projects SET title = ${sec.subtitle.trim()} WHERE id = ${sec.freepro_project_id} AND title != ${sec.subtitle.trim()}`
+          .catch(e2 => console.error('Title feed failed:', e2.message));
       }
       lines = await sql`SELECT * FROM budget_lines WHERE budget_id = ${budget.id} ORDER BY sort`;
     }
