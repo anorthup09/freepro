@@ -107,6 +107,8 @@ export const api = {
   addVccEntry: (pid, data) => req('POST', `/finance/${pid}/vcc`, data),
   updateVccEntry: (id, data) => req('PATCH', `/finance/vcc/${id}`, data),
   deleteVccEntry: (id) => req('DELETE', `/finance/vcc/${id}`),
+  syncFreePro: (pid) => req('POST', `/finance/${pid}/sync-freepro`),
+  importOdc: (pid, fileBase64, filename) => req('POST', `/finance/${pid}/odc-import`, { fileBase64, filename }),
 
   // Schedule
   getSchedule: (projectId) => req('GET', `/projects/${projectId}/schedule`),

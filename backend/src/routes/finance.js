@@ -303,4 +303,182 @@ router.delete('/finance/vcc/:id', ...finance, async (req, res, next) => {
   try { await sql`DELETE FROM vcc_entries WHERE id = ${req.params.id}`; res.status(204).end(); } catch (e) { next(e); }
 });
 
+// ── FreePro cost sync: contracts + travel costs → VCC entries (idempotent by source key)
+router.post('/finance/:pid/sync-freepro', ...finance, async (req, res, next) => {
+  try {
+    const pid = req.params.pid;
+    const upserts = [];
+
+    const contracts = await sql`
+      SELECT DISTINCT ON (crew_assignment_id) * FROM contracts
+      WHERE project_id = ${pid} AND crew_assignment_id IS NOT NULL
+      ORDER BY crew_assignment_id, created_at DESC`;
+    for (const c of contracts) {
+      const labor = Number(c.day_rate || 0) * Number(c.labor_days || 0);
+      const gear = Number(c.gear_rate || 0) * Number(c.gear_days || 0);
+      if (labor > 0) upserts.push({ source: `contract:${c.crew_assignment_id}:labor`, description: `Hold - ${c.contractor_name} - ${c.position_name} Labor`, category: '5400 Logistics Labor (B)', amount: labor, status: 'HOLD', vendor: c.contractor_name, entry_date: null });
+      if (gear > 0) upserts.push({ source: `contract:${c.crew_assignment_id}:gear`, description: `Hold - ${c.contractor_name} - ${c.position_name} Gear`, category: '5270 Studio Gear, Equipment Rental (B)', amount: gear, status: 'HOLD', vendor: c.contractor_name, entry_date: null });
+    }
+
+    const flights = await sql`SELECT * FROM flights WHERE project_id = ${pid} AND cost IS NOT NULL AND cost > 0`;
+    for (const f of flights) {
+      upserts.push({ source: `flight:${f.id}`, description: `Airfare — ${f.crew_name || f.passenger_name} (${f.origin}→${f.destination})`, category: '5900 Airfare (B)', amount: Number(f.cost), status: 'POSTED', vendor: f.airline || null, entry_date: f.depart_time ? new Date(f.depart_time).toISOString().slice(0, 10) : null });
+    }
+    const guests = await sql`
+      SELECT hg.*, hb.name as hotel_name, hb.project_id FROM hotel_guests hg
+      JOIN hotel_blocks hb ON hb.id = hg.hotel_block_id
+      WHERE hb.project_id = ${pid} AND hg.cost IS NOT NULL AND hg.cost > 0`;
+    for (const g of guests) {
+      upserts.push({ source: `hotelguest:${g.id}`, description: `Hotel — ${g.guest_name} @ ${g.hotel_name}`, category: '5180 Hotel Payments (B)', amount: Number(g.cost), status: 'POSTED', vendor: g.hotel_name, entry_date: g.check_in ? new Date(g.check_in).toISOString().slice(0, 10) : null });
+    }
+    const cars = await sql`SELECT * FROM rental_cars WHERE project_id = ${pid} AND cost IS NOT NULL AND cost > 0`;
+    for (const d of cars) {
+      upserts.push({ source: `rentalcar:${d.id}`, description: `Rental car${d.pickup_location ? ` — ${d.pickup_location}` : ''}`, category: '5255 Staff Travel Expenses (B)', amount: Number(d.cost), status: 'POSTED', vendor: d.vendor || null, entry_date: d.pickup_date ? new Date(d.pickup_date).toISOString().slice(0, 10) : null });
+    }
+    const rentals = await sql`SELECT * FROM online_rentals WHERE project_id = ${pid} AND cost IS NOT NULL AND cost > 0`;
+    for (const r2 of rentals) {
+      upserts.push({ source: `rental:${r2.id}`, description: `Online gear rental${r2.renter_name ? ` — ${r2.renter_name}` : ''}`, category: '5270 Studio Gear, Equipment Rental (B)', amount: Number(r2.cost), status: 'POSTED', vendor: r2.renter_name || null, entry_date: null });
+    }
+
+    let created = 0, updated = 0;
+    for (const u of upserts) {
+      const [existing] = await sql`SELECT id, amount FROM vcc_entries WHERE project_id = ${pid} AND source = ${u.source}`;
+      if (existing) {
+        if (Number(existing.amount) !== u.amount) {
+          await sql`UPDATE vcc_entries SET amount = ${u.amount}, description = ${u.description} WHERE id = ${existing.id}`;
+          updated++;
+        }
+      } else {
+        await sql`INSERT INTO vcc_entries (project_id, entry_date, vendor, description, category, amount, status, source)
+          VALUES (${pid}, ${u.entry_date}, ${u.vendor}, ${u.description}, ${u.category}, ${u.amount}, ${u.status}, ${u.source})`;
+        created++;
+      }
+    }
+    const vcc = await sql`SELECT * FROM vcc_entries WHERE project_id = ${pid} ORDER BY trip NULLS LAST, entry_date NULLS LAST, created_at`;
+    res.json({ created, updated, vcc });
+  } catch (e) { next(e); }
+});
+
+// ── ODC report import: parse spreadsheet, dedupe, AI-guess coding, flag anomalies
+router.post('/finance/:pid/odc-import', ...finance, async (req, res, next) => {
+  try {
+    const pid = req.params.pid;
+    const XLSX = require('xlsx');
+    const buf = Buffer.from(String(req.body.fileBase64 || ''), 'base64');
+    if (!buf.length) return res.status(400).json({ error: 'No file received' });
+    const wb = XLSX.read(buf, { type: 'buffer', cellDates: true });
+
+    // Find a sheet + header row with recognizable columns
+    let rows = [];
+    for (const name of wb.SheetNames) {
+      const grid = XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: null });
+      let headerIdx = -1, map = {};
+      for (let i = 0; i < Math.min(grid.length, 30); i++) {
+        const cells = (grid[i] || []).map(c => String(c ?? '').toLowerCase().trim());
+        const m = {};
+        cells.forEach((c, j) => {
+          if (!c) return;
+          if (m.date === undefined && /(^|\s)date/.test(c)) m.date = j;
+          if (m.vendor === undefined && /(vendor|payee|merchant|supplier|employee|name)/.test(c)) m.vendor = j;
+          if (m.desc === undefined && /(desc|memo|detail|expense item|transaction)/.test(c)) m.desc = j;
+          if (m.amount === undefined && /(amount|total|cost|charge)/.test(c)) m.amount = j;
+        });
+        if (m.amount !== undefined && (m.desc !== undefined || m.vendor !== undefined)) { headerIdx = i; map = m; break; }
+      }
+      if (headerIdx === -1) continue;
+      for (let i = headerIdx + 1; i < grid.length; i++) {
+        const r2 = grid[i] || [];
+        const amount = Number(String(r2[map.amount] ?? '').toString().replace(/[$,()]/g, m => m === '(' ? '-' : m === ')' ? '' : ''));
+        if (!amount || isNaN(amount)) continue;
+        let date = r2[map.date];
+        if (date instanceof Date) date = date.toISOString().slice(0, 10);
+        else if (date != null) { const d2 = new Date(date); date = isNaN(d2) ? null : d2.toISOString().slice(0, 10); }
+        rows.push({ date: date || null, vendor: map.vendor !== undefined ? String(r2[map.vendor] ?? '').trim() || null : null, description: map.desc !== undefined ? String(r2[map.desc] ?? '').trim() || null : null, amount });
+      }
+      if (rows.length) break;
+    }
+    if (!rows.length) return res.status(400).json({ error: 'Could not find charge rows in that file — expected columns like Date / Vendor / Description / Amount.' });
+
+    // Dedupe against existing entries (amount within a cent + same date, or amount + same vendor)
+    const existing = await sql`SELECT entry_date, vendor, amount FROM vcc_entries WHERE project_id = ${pid}`;
+    const isDup = r2 => existing.some(e =>
+      Math.abs(Number(e.amount) - r2.amount) < 0.01 &&
+      ((e.entry_date && r2.date && e.entry_date === r2.date) ||
+       (e.vendor && r2.vendor && e.vendor.toLowerCase() === r2.vendor.toLowerCase())));
+    const fresh = rows.filter(r2 => !isDup(r2));
+    const skipped = rows.length - fresh.length;
+
+    // Project context for coding
+    const [project] = await sql`SELECT code, title, start_date, end_date FROM projects WHERE id = ${pid}`;
+    const trips = [...new Set((await sql`SELECT DISTINCT trip FROM vcc_entries WHERE project_id = ${pid} AND trip IS NOT NULL`).map(x => x.trip))];
+    const shootSections = await sql`
+      SELECT bs.title, bs.subtitle FROM budget_sections bs JOIN budgets b ON b.id = bs.budget_id
+      WHERE b.project_id = ${pid} AND bs.kind = 'shoot'`;
+    const travelers = await sql`
+      SELECT DISTINCT passenger_name, depart_time FROM flights WHERE project_id = ${pid}`;
+    const history = await sql`
+      SELECT vendor, description, category, trip FROM vcc_entries
+      WHERE category IS NOT NULL ORDER BY created_at DESC LIMIT 300`;
+
+    let guesses = fresh.map(() => ({ category: null, trip: null, flag: null }));
+    let aiUsed = false;
+    if (process.env.ANTHROPIC_API_KEY && fresh.length) {
+      try {
+        const prompt = `You are coding production-expense charges into a Vendor Cost Control ledger for a video production company.
+
+Project: ${project.code} ${project.title}, dates ${project.start_date} to ${project.end_date}.
+Valid categories: ${JSON.stringify(VCC_CATEGORIES)}
+Known trips/shoots for this project: ${JSON.stringify(trips)} plus shoot blocks: ${JSON.stringify(shootSections)}
+People who traveled on this project (with departure dates): ${JSON.stringify(travelers.map(t => ({ name: t.passenger_name, date: t.depart_time })))}
+Historical coding examples (vendor/description -> category, trip): ${JSON.stringify(history.slice(0, 120))}
+
+Charges to code (index, date, vendor, description, amount): ${JSON.stringify(fresh.map((r2, i) => ({ i, ...r2 })))}
+
+For each charge return: category (from the valid list, or null if unsure), trip (short label matching known trips/shoots if determinable, else null), and flag (null, or a short human explanation if suspicious: traveler not on this project, date outside all shoot/travel windows, looks like it belongs to a different project, or possible duplicate).
+Respond with ONLY a JSON array, one object per charge in order: [{"i":0,"category":"...","trip":"...","flag":null}, ...]`;
+        const r3 = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+          body: JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 8000, messages: [{ role: 'user', content: prompt }] }),
+        });
+        const out = await r3.json();
+        const text = out?.content?.[0]?.text || '';
+        const jsonStr = text.slice(text.indexOf('['), text.lastIndexOf(']') + 1);
+        const parsed = JSON.parse(jsonStr);
+        for (const g of parsed) {
+          if (g && typeof g.i === 'number' && guesses[g.i]) {
+            guesses[g.i] = {
+              category: VCC_CATEGORIES.includes(g.category) ? g.category : null,
+              trip: g.trip || null,
+              flag: g.flag || null,
+            };
+          }
+        }
+        aiUsed = true;
+      } catch (err) {
+        console.error('ODC AI coding failed, falling back to history match:', err.message);
+      }
+    }
+    if (!aiUsed) {
+      // deterministic fallback: exact vendor history match
+      for (let i = 0; i < fresh.length; i++) {
+        const v = (fresh[i].vendor || '').toLowerCase();
+        const hit = v && history.find(h => (h.vendor || '').toLowerCase() === v);
+        if (hit) guesses[i] = { category: hit.category, trip: hit.trip, flag: null };
+      }
+    }
+
+    const inserted = [];
+    for (let i = 0; i < fresh.length; i++) {
+      const r2 = fresh[i], g = guesses[i];
+      const [e] = await sql`INSERT INTO vcc_entries (project_id, entry_date, vendor, description, category, trip, amount, status, source, review, flag)
+        VALUES (${pid}, ${r2.date}, ${r2.vendor}, ${r2.description || r2.vendor || 'Imported charge'}, ${g.category}, ${g.trip}, ${r2.amount}, 'POSTED', 'odc-import', TRUE, ${g.flag})
+        RETURNING *`;
+      inserted.push(e);
+    }
+    const vcc = await sql`SELECT * FROM vcc_entries WHERE project_id = ${pid} ORDER BY trip NULLS LAST, entry_date NULLS LAST, created_at`;
+    res.json({ imported: inserted.length, skipped, aiUsed, vcc });
+  } catch (e) { next(e); }
+});
+
 module.exports = router;

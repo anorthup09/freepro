@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../api.js';
 import { FinanceHeader } from './Finance.jsx';
@@ -338,6 +338,9 @@ function VccTab({ pid, budget, sections, lines, vcc, categories, set }) {
         </div>
       </div>
 
+      {/* tools */}
+      <VccTools pid={pid} set={set} vcc={vcc} />
+
       {/* add entry */}
       <form onSubmit={addEntry} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding:'10px 14px', marginBottom:14, display:'flex', gap:8, flexWrap:'wrap', alignItems:'center' }}>
         <input type="date" value={form.entryDate} style={{ width:130, fontSize:11 }} onChange={e => setForm(f => ({ ...f, entryDate: e.target.value }))} />
@@ -378,13 +381,14 @@ function VccTab({ pid, budget, sections, lines, vcc, categories, set }) {
                   <td colSpan={2} />
                 </tr>
                 {entries.map(e => (
-                  <tr key={e.id} style={{ borderTop:'1px solid rgba(255,255,255,0.03)' }}>
+                  <tr key={e.id} style={{ borderTop:'1px solid rgba(255,255,255,0.03)', background: e.review ? 'rgba(224,82,82,0.05)' : 'transparent' }}>
                     <td style={{ padding:'2px 6px 2px 14px', color:'var(--muted)' }}>{e.entry_date ? new Date(e.entry_date.slice(0,10)+'T12:00:00').toLocaleDateString('en-US',{month:'numeric',day:'numeric',year:'2-digit'}) : '—'}</td>
                     <td style={{ padding:'2px 6px', color:'var(--muted)' }}>{e.vendor || '—'}</td>
                     <td style={{ padding:'2px 6px' }}>
                       <input value={e.description || ''} style={cellIn}
                         onChange={ev => patchEntry(e.id, { description: ev.target.value })}
                         onBlur={ev => saveEntry(e.id, { description: ev.target.value })} />
+                      {e.flag && <div style={{ fontSize:9, color:'#e05252', padding:'0 6px 2px' }}>⚠ {e.flag}</div>}
                     </td>
                     <td style={{ padding:'2px 6px' }}>
                       <select value={e.category || ''} style={{ ...cellIn, fontSize:10, color:'var(--muted)' }}
@@ -398,11 +402,18 @@ function VccTab({ pid, budget, sections, lines, vcc, categories, set }) {
                         onChange={ev => patchEntry(e.id, { amount: ev.target.value })}
                         onBlur={ev => saveEntry(e.id, { amount: ev.target.value })} />
                     </td>
-                    <td style={{ padding:'2px 6px' }}>
-                      <button onClick={() => { const s = e.status === 'HOLD' ? 'POSTED' : 'HOLD'; patchEntry(e.id, { status: s }); saveEntry(e.id, { status: s }); }}
-                        style={{ background:'none', border:`1px solid ${e.status === 'POSTED' ? '#5ABF80' : '#e6c229'}55`, color: e.status === 'POSTED' ? '#5ABF80' : '#e6c229', borderRadius:10, padding:'1px 8px', fontSize:9, fontWeight:700, cursor:'pointer' }}>
-                        {e.status === 'POSTED' ? 'Posted' : 'Hold'}
-                      </button>
+                    <td style={{ padding:'2px 6px', whiteSpace:'nowrap' }}>
+                      {e.review ? (
+                        <button title={e.flag || 'Imported — confirm coding'} onClick={() => { patchEntry(e.id, { review: false, flag: null }); api.updateVccEntry(e.id, { review: false, flag: null }).catch(() => {}); }}
+                          style={{ background:'rgba(224,82,82,0.12)', border:'1px solid #e05252', color:'#e05252', borderRadius:10, padding:'1px 8px', fontSize:9, fontWeight:700, cursor:'pointer' }}>
+                          ✓ Accept
+                        </button>
+                      ) : (
+                        <button onClick={() => { const s = e.status === 'HOLD' ? 'POSTED' : 'HOLD'; patchEntry(e.id, { status: s }); saveEntry(e.id, { status: s }); }}
+                          style={{ background:'none', border:`1px solid ${e.status === 'POSTED' ? '#5ABF80' : '#e6c229'}55`, color: e.status === 'POSTED' ? '#5ABF80' : '#e6c229', borderRadius:10, padding:'1px 8px', fontSize:9, fontWeight:700, cursor:'pointer' }}>
+                          {e.status === 'POSTED' ? 'Posted' : 'Hold'}
+                        </button>
+                      )}
                     </td>
                     <td style={{ textAlign:'center' }}>
                       <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:10 }} onClick={() => delEntry(e.id)}>✕</button>
@@ -431,6 +442,55 @@ function VccTab({ pid, budget, sections, lines, vcc, categories, set }) {
         ))}
         {vcc.length === 0 && <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>Nothing to break down yet.</div>}
       </div>
+    </div>
+  );
+}
+
+
+function VccTools({ pid, set, vcc }) {
+  const fileRef = useRef(null);
+  const [busy, setBusy] = useState('');
+  const [msg, setMsg] = useState('');
+  const reviewCount = vcc.filter(e => e.review).length;
+
+  async function sync() {
+    setBusy('sync'); setMsg('');
+    try {
+      const r = await api.syncFreePro(pid);
+      set(() => ({ vcc: r.vcc }));
+      setMsg(`FreePro sync: ${r.created} added, ${r.updated} updated.`);
+    } catch (e) { alert(e.message); }
+    setBusy('');
+  }
+
+  async function onFile(e) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setBusy('odc'); setMsg('');
+    try {
+      const b64 = await new Promise((res, rej) => {
+        const fr = new FileReader();
+        fr.onload = () => res(String(fr.result).split(',')[1]);
+        fr.onerror = rej;
+        fr.readAsDataURL(file);
+      });
+      const r = await api.importOdc(pid, b64, file.name);
+      set(() => ({ vcc: r.vcc }));
+      setMsg(`ODC import: ${r.imported} new charge${r.imported === 1 ? '' : 's'}${r.skipped ? `, ${r.skipped} already in the VCC` : ''}${r.aiUsed ? ' — coded by AI, review below.' : ' — coded from history where possible, review below.'}`);
+    } catch (e2) { alert(e2.message); }
+    setBusy('');
+  }
+
+  return (
+    <div style={{ display:'flex', gap:10, alignItems:'center', flexWrap:'wrap', marginBottom:12 }}>
+      <button className="btn btn-ghost btn-sm" disabled={!!busy} onClick={sync}>{busy === 'sync' ? 'Syncing…' : '⟳ Sync FreePro Costs'}</button>
+      <button className="btn btn-ghost btn-sm" disabled={!!busy} onClick={() => fileRef.current?.click()}>{busy === 'odc' ? 'Importing…' : '⬆ Import ODC Report'}</button>
+      <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" style={{ display:'none' }} onChange={onFile} />
+      {reviewCount > 0 && (
+        <span style={{ fontSize:11, color:'#e05252', fontWeight:700 }}>⚠ {reviewCount} charge{reviewCount === 1 ? '' : 's'} need review</span>
+      )}
+      {msg && <span style={{ fontSize:11, color:'var(--muted)' }}>{msg}</span>}
     </div>
   );
 }

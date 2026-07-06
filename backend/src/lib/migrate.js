@@ -774,6 +774,9 @@ async function migrate() {
       created_at TIMESTAMPTZ DEFAULT NOW()
     )`;
 
+  await sql`ALTER TABLE vcc_entries ADD COLUMN IF NOT EXISTS review BOOLEAN DEFAULT FALSE`;
+  await sql`ALTER TABLE vcc_entries ADD COLUMN IF NOT EXISTS flag TEXT`;
+
   console.log('Migration complete.');
 }
 
