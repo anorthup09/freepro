@@ -133,11 +133,13 @@ router.get('/finance/projects', ...finance, async (req, res, next) => {
       ORDER BY p.code`;
     const lines = await sql`SELECT budget_id, qty, unit_cost, percent, is_travel, section_id FROM budget_lines`;
     const vcc = await sql`SELECT project_id, SUM(amount) as total FROM vcc_entries GROUP BY project_id`;
+    const shoots = await sql`SELECT budget_id, shoot_code, trip, subtitle FROM budget_sections WHERE kind = 'shoot' ORDER BY sort`;
     const vccMap = Object.fromEntries(vcc.map(v => [v.project_id, Number(v.total)]));
     res.json(projects.map(p => {
       const bl = lines.filter(l => l.budget_id === p.budget_id);
       const { total, fee } = budgetTotal(bl, Number(p.mgmt_fee_rate ?? 0.15));
-      return { ...p, budget_total: total, fee, vcc_total: vccMap[p.id] || 0 };
+      return { ...p, budget_total: total, fee, vcc_total: vccMap[p.id] || 0,
+        shoots: shoots.filter(x => x.budget_id === p.budget_id).map(x => ({ code: x.shoot_code, trip: x.trip })) };
     }));
   } catch (e) { next(e); }
 });
@@ -339,16 +341,22 @@ router.post('/finance/:pid/sync-freepro', ...finance, async (req, res, next) => 
     const pid = req.params.pid;
     const upserts = [];
 
-    const contracts = await sql`
-      SELECT DISTINCT ON (crew_assignment_id) * FROM contracts
-      WHERE project_id = ${pid} AND crew_assignment_id IS NOT NULL
-      ORDER BY crew_assignment_id, created_at DESC`;
-    for (const c of contracts) {
+    // Contract crew labor/gear from the FreePro crew grid (no signed contract required)
+    const crew = await sql`
+      SELECT ca.*, p2.name as position_name, COALESCE(cm.preferred_first_name || ' ' || cm.preferred_last_name, cm.name) as crew_name
+      FROM crew_assignments ca
+      JOIN positions p2 ON p2.id = ca.position_id
+      LEFT JOIN crew_members cm ON cm.id = ca.crew_member_id
+      WHERE ca.project_id = ${pid} AND ca.is_contractor = TRUE`;
+    for (const c of crew) {
+      const who = c.crew_name || 'Unassigned';
       const labor = Number(c.day_rate || 0) * Number(c.labor_days || 0);
-      const gear = Number(c.gear_rate || 0) * Number(c.gear_days || 0);
-      if (labor > 0) upserts.push({ source: `contract:${c.crew_assignment_id}:labor`, description: `Hold - ${c.contractor_name} - ${c.position_name} Labor`, category: '5400 Logistics Labor (B)', amount: labor, status: 'HOLD', vendor: c.contractor_name, entry_date: null });
-      if (gear > 0) upserts.push({ source: `contract:${c.crew_assignment_id}:gear`, description: `Hold - ${c.contractor_name} - ${c.position_name} Gear`, category: '5270 Studio Gear, Equipment Rental (B)', amount: gear, status: 'HOLD', vendor: c.contractor_name, entry_date: null });
+      const gear = Number(c.gear_cost || 0) * Number(c.gear_days || 0);
+      if (labor > 0) upserts.push({ source: `crewlabor:${c.id}`, description: `Hold - ${who} - ${c.position_name} Labor`, category: '5400 Logistics Labor (B)', amount: labor, status: 'HOLD', vendor: who, entry_date: null });
+      if (gear > 0) upserts.push({ source: `crewgear:${c.id}`, description: `Hold - ${who} - ${c.position_name} Gear`, category: '5270 Studio Gear, Equipment Rental (B)', amount: gear, status: 'HOLD', vendor: who, entry_date: null });
     }
+    // retire legacy contract-sourced holds so the crew-grid holds don't double count
+    await sql`DELETE FROM vcc_entries WHERE project_id = ${pid} AND source LIKE 'contract:%'`;
 
     const flights = await sql`SELECT * FROM flights WHERE project_id = ${pid} AND cost IS NOT NULL AND cost > 0`;
     for (const f of flights) {

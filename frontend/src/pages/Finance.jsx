@@ -11,7 +11,9 @@ export function FinanceHeader({ crumb }) {
   return (
     <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 26px' }}>
       <div style={{ display:'flex', alignItems:'baseline', gap:14 }}>
-        <Link to="/" className="logo" style={{ fontSize:18, textDecoration:'none' }}>Unbridled <em>Media</em></Link>
+        <Link to="/" style={{ display:'flex', alignItems:'center' }} title="Back to the Unbridled Media hub">
+          <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height:20, filter:'brightness(0) invert(1)', opacity:0.95 }} />
+        </Link>
         <Link to="/finance" style={{ fontSize:11, color:'#5ABF80', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', textDecoration:'none' }}>ProFi</Link>
         {crumb && <span style={{ fontSize:11, color:'var(--muted)' }}>· {crumb}</span>}
       </div>
@@ -47,8 +49,12 @@ export default function Finance() {
             <div className="page-title">Project Finance</div>
             <div className="page-sub">Budgets, vendor cost control &amp; reconciliation</div>
           </div>
-          <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
-            <button className="btn btn-primary btn-sm" onClick={() => nav('/finance/overview')}>📊 Project Finance Overview</button>
+          <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:8 }}>
+            <button onClick={() => nav('/finance/overview')}
+              style={{ background:'rgba(232,80,10,0.2)', border:'1px solid var(--orange)', color:'var(--orange)', borderRadius:20, padding:'5px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
+              Project Finance Overview
+            </button>
+            <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
             {Object.entries(FOLDERS).map(([k, f]) => {
               const count = (projects || []).filter(f.match).length;
               const active = folder === k;
@@ -65,6 +71,7 @@ export default function Finance() {
                 </button>
               );
             })}
+            </div>
           </div>
         </div>
         {!projects && <div className="empty">Loading…</div>}

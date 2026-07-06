@@ -61,6 +61,10 @@ export default function Hub() {
           <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.12em', marginTop:5 }}>Operating Platform</div>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+          <button onClick={() => nav('/pipeline')}
+            style={{ background:'rgba(232,80,10,0.2)', border:'1px solid var(--orange)', color:'var(--orange)', borderRadius:20, padding:'5px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
+            Project Pipeline
+          </button>
           <span style={{ fontSize:11, color:'var(--muted)' }}>{user?.name}</span>
           {user?.role === 'ADMIN' && (
             <button className="btn btn-ghost btn-sm" title="Download a full database backup (all projects, budgets, contracts, roster)"
@@ -84,7 +88,6 @@ export default function Hub() {
 
         <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px 16px 60px' }}>
           <div style={{ width:'100%', maxWidth:1150 }}>
-            <PipelinePanel />
             <div style={{ textAlign:'center', marginBottom:28 }}>
               <div style={{ fontSize:22, fontWeight:800 }}>Where to today?</div>
               <div style={{ fontSize:12, color:'var(--muted)', marginTop:4 }}>Every project, from budget to delivery.</div>
@@ -127,107 +130,6 @@ export default function Hub() {
           </div>
         </div>
 
-    </div>
-  );
-}
-
-
-export const PIPELINE_STAGES = [
-  ['rfp', 'RFP'],
-  ['budget_approved', 'Budget Approved'],
-  ['contract_signed', 'Contract Signed'],
-  ['first_invoice', 'First Invoice Sent'],
-  ['pre_production', 'Pre Production'],
-  ['production', 'Production'],
-  ['post_production', 'Post-Production'],
-  ['reconcile', 'Reconcile'],
-  ['second_invoice', 'Second Invoice Sent'],
-  ['closed', 'Closed'],
-];
-
-function derivedState(p, key) {
-  if (key === 'rfp') {
-    if (!p.budget_id) return null;
-    return p.budget_status === 'RFP' ? 'active' : 'done';
-  }
-  if (key === 'budget_approved') {
-    if (['Live', 'Reconciled'].includes(p.budget_status)) return 'done';
-    if (p.budget_status === 'RFP') return 'active';
-    return null;
-  }
-  if (key === 'reconcile' && p.budget_status === 'Reconciled') return 'done';
-  return null;
-}
-
-function PipelinePanel() {
-  const [projects, setProjects] = useState(null);
-  const [showRfp, setShowRfp] = useState(() => localStorage.getItem('pipeline_rfp') !== 'off');
-  const [overrides, setOverrides] = useState({});
-
-  useEffect(() => {
-    api.financeProjects().then(ps => {
-      setProjects(ps);
-      const o = {};
-      for (const p of ps) { try { o[p.id] = JSON.parse(p.pipeline || '{}'); } catch { o[p.id] = {}; } }
-      setOverrides(o);
-    }).catch(() => setProjects([]));
-  }, []);
-  useEffect(() => { localStorage.setItem('pipeline_rfp', showRfp ? 'on' : 'off'); }, [showRfp]);
-
-  if (!projects) return null;
-  const rows = projects.filter(p => p.budget_status !== 'Dead' && (showRfp || p.budget_status !== 'RFP'));
-  if (!rows.length) return null;
-
-  function stateFor(p, key) {
-    const o = overrides[p.id] || {};
-    return o[key] !== undefined && o[key] !== null ? o[key] : derivedState(p, key);
-  }
-  function cycle(p, key) {
-    const cur = stateFor(p, key);
-    const next = !cur ? 'active' : cur === 'active' ? 'done' : null;
-    const po = { ...(overrides[p.id] || {}), [key]: next };
-    setOverrides(o => ({ ...o, [p.id]: po }));
-    api.savePipeline(p.id, po).catch(() => {});
-  }
-
-  return (
-    <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, padding:'16px 20px', marginBottom:30 }}>
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, flexWrap:'wrap', marginBottom:10 }}>
-        <div style={{ fontSize:13, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.07em' }}>Project Pipeline</div>
-        <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-          <span style={{ fontSize:10, color:'var(--muted)' }}>
-            <span style={{ display:'inline-block', width:8, height:8, borderRadius:'50%', background:'#e6c229', marginRight:4 }} />In progress
-            <span style={{ display:'inline-block', width:8, height:8, borderRadius:'50%', background:'#5ABF80', margin:'0 4px 0 12px' }} />Complete
-          </span>
-          <button onClick={() => setShowRfp(v => !v)}
-            style={{ background: showRfp ? 'rgba(230,194,41,0.15)' : 'transparent', border:'1px solid ' + (showRfp ? '#e6c229' : 'var(--border)'), color: showRfp ? '#e6c229' : 'var(--muted)', borderRadius:20, padding:'3px 12px', fontSize:10, fontWeight:700, cursor:'pointer' }}>
-            {showRfp ? '✓ ' : ''}RFPs
-          </button>
-        </div>
-      </div>
-
-      {rows.map(p => (
-        <div key={p.id} style={{ display:'flex', alignItems:'center', gap:14, padding:'8px 0', borderTop:'1px solid rgba(255,255,255,0.04)', flexWrap:'wrap' }}>
-          <div style={{ width:230, minWidth:180, fontSize:11, color:'var(--muted)' }}>
-            {p.client} | {p.code}
-            <div style={{ fontWeight:700, fontSize:13, color:'var(--text)' }}>{p.title}</div>
-          </div>
-          <div style={{ flex:1, minWidth:420, display:'flex', gap:4 }}>
-            {PIPELINE_STAGES.map(([key, label]) => {
-              const st = stateFor(p, key);
-              const bg = st === 'done' ? '#5ABF80' : st === 'active' ? '#e6c229' : 'rgba(255,255,255,0.06)';
-              const color = st ? '#0b0b0b' : 'var(--muted)';
-              return (
-                <div key={key} title={label + ' — click to cycle: in progress → complete → clear'}
-                  onClick={() => cycle(p, key)}
-                  style={{ flex:1, height:28, background:bg, color, borderRadius:6, display:'flex', alignItems:'center', justifyContent:'center', fontSize:8, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.02em', cursor:'pointer', textAlign:'center', lineHeight:1.15, padding:'0 2px', userSelect:'none' }}>
-                  {label}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      ))}
     </div>
   );
 }

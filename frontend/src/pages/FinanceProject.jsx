@@ -15,12 +15,12 @@ function lineSubtotal(l, sectionLines) {
 }
 
 const BUDGET_OWNERS = [
-  'Joey Goldman',
-  'Kelly Hueseman',
-  'Ben Lamb',
   'Alex Northup',
   'Anabelle Porio',
+  'Ben Lamb',
   'Derik Smith',
+  'Joey Goldman',
+  'Kelly Hueseman',
   'Mike Walsh',
   'Nate Woodard',
 ];
@@ -193,14 +193,14 @@ function BudgetTab({ budget, sections, lines, vcc, set, reload }) {
           </select>
         </div>
         <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
-          <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Status</label>
-          <StatusPill value={budget.status || 'RFP'} onChange={v => { patchBudget({ status: v }); saveBudget({ status: v }); }} />
-        </div>
-        <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
           <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Mgmt Fee %</label>
           <input type="number" step="0.5" value={Math.round(mgmtRate * 1000) / 10} style={{ width:80, fontSize:12, textAlign:'right' }}
             onChange={e => patchBudget({ mgmt_fee_rate: Number(e.target.value) / 100 })}
             onBlur={e => saveBudget({ mgmtFeeRate: Number(e.target.value) / 100 })} />
+        </div>
+        <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
+          <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Status</label>
+          <StatusPill value={budget.status || 'RFP'} onChange={v => { patchBudget({ status: v }); saveBudget({ status: v }); }} />
         </div>
         <ShareBudgetButton budget={budget} />
       </div>

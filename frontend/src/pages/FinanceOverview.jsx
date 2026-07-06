@@ -67,7 +67,7 @@ export default function FinanceOverview() {
                     <td style={{ padding:8, whiteSpace:'nowrap' }}>{fmtCloseMonth(p.close_month)}</td>
                     <td style={{ padding:'8px 16px 8px 8px', textAlign:'right', whiteSpace:'nowrap' }}>
                       <span title="ProFi" onClick={() => nav(`/finance/${p.id}`)} style={{ cursor:'pointer', color:'#5ABF80', fontWeight:800, padding:'0 7px' }}>$</span>
-                      <span title="FreePro" onClick={() => nav(`/projects/${p.id}`)} style={{ cursor:'pointer', padding:'0 7px' }}>🎬</span>
+                      <FreeProLink p={p} nav={nav} />
                       <span title="AvocadoPost — in development" style={{ opacity:0.3, padding:'0 7px' }}>🥑</span>
                     </td>
                   </tr>
@@ -79,5 +79,38 @@ export default function FinanceOverview() {
         </div>
       </div>
     </div>
+  );
+}
+
+
+function FreeProLink({ p, nav }) {
+  const [open, setOpen] = React.useState(false);
+  const shoots = p.shoots || [];
+  if (shoots.length <= 1) {
+    return <span title="FreePro" onClick={() => nav(`/projects/${p.id}?tab=schedule`)} style={{ cursor:'pointer', padding:'0 7px' }}>🎬</span>;
+  }
+  return (
+    <span style={{ position:'relative', display:'inline-block' }}>
+      <span title="FreePro — pick a shoot" onClick={() => setOpen(o => !o)} style={{ cursor:'pointer', padding:'0 7px' }}>🎬▾</span>
+      {open && (
+        <div style={{ position:'absolute', right:0, top:'120%', zIndex:60, background:'var(--bg)', border:'1px solid var(--border)', borderRadius:8, padding:5, boxShadow:'0 8px 24px rgba(0,0,0,0.5)', minWidth:190, textAlign:'left' }}>
+          {shoots.map(sh => (
+            <div key={sh.code} onClick={() => { setOpen(false); nav(`/projects/${p.id}?tab=schedule&shoot=${encodeURIComponent(sh.code)}`); }}
+              style={{ padding:'6px 10px', borderRadius:6, cursor:'pointer', fontSize:11 }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+              <span style={{ color:'#e6c229', fontWeight:800 }}>{sh.code}</span>
+              {sh.trip && <span style={{ color:'var(--muted)' }}> — {sh.trip}</span>}
+            </div>
+          ))}
+          <div onClick={() => { setOpen(false); nav(`/projects/${p.id}`); }}
+            style={{ padding:'6px 10px', borderRadius:6, cursor:'pointer', fontSize:11, color:'var(--muted)', borderTop:'1px solid var(--border)', marginTop:3 }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+            Project home
+          </div>
+        </div>
+      )}
+    </span>
   );
 }
