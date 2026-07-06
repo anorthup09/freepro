@@ -767,7 +767,7 @@ export default function Crew({ project, onProjectUpdate }) {
                     });
                   }}>
                     <option value="">— Unassigned —</option>
-                    {roster.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                    {[...roster].sort((a, b) => displayName(a).localeCompare(displayName(b))).map(m => <option key={m.id} value={m.id}>{displayName(m)}</option>)}
                   </select>
                   <span style={{ fontSize:10, color:'var(--muted)', marginTop:2 }}>Can't find them? Add via "New Person" first.</span>
                 </div>
@@ -882,7 +882,7 @@ export default function Crew({ project, onProjectUpdate }) {
                     setEditForm(f => ({ ...f, crewMemberId: id, startDate: f.startDate || dates.startDate, endDate: f.endDate || dates.endDate }));
                   }}>
                     <option value="">— Unassigned —</option>
-                    {roster.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                    {[...roster].sort((a, b) => displayName(a).localeCompare(displayName(b))).map(m => <option key={m.id} value={m.id}>{displayName(m)}</option>)}
                   </select>
                   <span style={{ fontSize:10, color:'var(--muted)', marginTop:2 }}>Can't find them? Add via "New Person" first.</span>
                 </div>
