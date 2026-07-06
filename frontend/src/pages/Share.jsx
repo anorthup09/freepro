@@ -304,6 +304,8 @@ function GearSection({ gear, onlineRentals = [], producerView, shareToken }) {
   );
 }
 
+const fmtAD = d => d ? new Date(String(d).slice(0,10)+'T12:00:00').toLocaleDateString('en-US', { month:'numeric', day:'numeric' }) : '—';
+
 function HotelRoster({ hotelBlocks, crewAssignments }) {
   // Build a flat map: crew_member_id → { guest, hotelBlock }
   const bookingMap = {};
@@ -615,7 +617,7 @@ function ProducerView({ data, hideGear, onOpenShotList }) {
       {crewAssignments?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Crew</div>
-          <ShareTable cols={['Name','Position','Phone','Email','Dietary']} colClasses={['','','nowrap','','']} rows={crewAssignments.map(a => [a.crewMember ? displayName(a.crewMember)||'TBD' : 'TBD', a.position.name, (a.crewMember?.phone ? <Tel v={a.crewMember.phone} /> : '—'), (a.crewMember?.email ? <Mail v={a.crewMember.email} /> : '—'), <DietaryCell key={a.id} value={a.crewMember?.dietaryRestrictions} />])} />
+          <ShareTable cols={['Name','Position','Start','End','Phone','Email','Dietary']} colClasses={['','','nowrap','nowrap','nowrap','','']} rows={crewAssignments.map(a => [a.crewMember ? displayName(a.crewMember)||'TBD' : 'TBD', a.position.name, fmtAD(a.start_date), fmtAD(a.end_date), (a.crewMember?.phone ? <Tel v={a.crewMember.phone} /> : '—'), (a.crewMember?.email ? <Mail v={a.crewMember.email} /> : '—'), <DietaryCell key={a.id} value={a.crewMember?.dietaryRestrictions} />])} />
         </section>
       )}
 
@@ -815,7 +817,7 @@ function CrewView({ data, shareToken, hideGear, onOpenShotList }) {
       {crewAssignments?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Crew</div>
-          <ShareTable cols={['Name','Position','Phone','Email','Dietary']} colClasses={['','','nowrap','','']} rows={crewAssignments.map(a => [a.crewMember ? shortName(displayName(a.crewMember))||'TBD' : 'TBD', a.position.name, (a.crewMember?.phone ? <Tel v={a.crewMember.phone} /> : '—'), (a.crewMember?.email ? <Mail v={a.crewMember.email} /> : '—'), <DietaryCell key={a.id} value={a.crewMember?.dietaryRestrictions} />])} />
+          <ShareTable cols={['Name','Position','Start','End','Phone','Email','Dietary']} colClasses={['','','nowrap','nowrap','nowrap','','']} rows={crewAssignments.map(a => [a.crewMember ? shortName(displayName(a.crewMember))||'TBD' : 'TBD', a.position.name, fmtAD(a.start_date), fmtAD(a.end_date), (a.crewMember?.phone ? <Tel v={a.crewMember.phone} /> : '—'), (a.crewMember?.email ? <Mail v={a.crewMember.email} /> : '—'), <DietaryCell key={a.id} value={a.crewMember?.dietaryRestrictions} />])} />
         </section>
       )}
 
