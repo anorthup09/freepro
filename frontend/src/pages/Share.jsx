@@ -2155,7 +2155,8 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
                 );
               })() : item._type === 'flight' ? (() => {
                 const fs = flightStatus(item, now);
-                const adjustedArrival = item._leg === 'arrive' ? (item.arrive_display || null) : null;
+                const adjustedArrival = item.arrive_display
+                  || (item.arrive_time ? new Date(item.arrive_time).toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' }) : null);
                 return (
                   <div key={`f-${item.id}-${item._leg}`} className="ev">
                     <div className="ev-time">✈ {item._time}</div>
