@@ -11,7 +11,24 @@ function token() {
   return localStorage.getItem('fp_token');
 }
 
+// Save-state broadcast: non-GET requests flip a tiny status the UI can show
+// ("Saving…" → "Saved") without wiring every call site.
+const saveListeners = new Set();
+let inflight = 0;
+export function onSaveState(fn) { saveListeners.add(fn); return () => saveListeners.delete(fn); }
+function emitSave(state) { for (const fn of saveListeners) fn(state); }
+
 async function req(method, path, body) {
+  const isWrite = method !== 'GET';
+  if (isWrite) { inflight++; emitSave('saving'); }
+  try {
+    return await reqInner(method, path, body);
+  } finally {
+    if (isWrite) { inflight--; if (inflight <= 0) { inflight = 0; emitSave('saved'); } }
+  }
+}
+
+async function reqInner(method, path, body) {
   const res = await fetch(`${BASE}${path}`, {
     method,
     headers: {

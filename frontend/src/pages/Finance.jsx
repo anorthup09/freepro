@@ -1,10 +1,37 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../App.jsx';
-import { api } from '../api.js';
+import { api, onSaveState } from '../api.js';
 import { STATUS_COLORS } from './Hub.jsx';
 
 const fmt$ = n => '$' + Number(n || 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
+
+export function SaveIndicator() {
+  const [state, setState] = useState(null); // null | 'saving' | 'saved'
+  useEffect(() => {
+    let hideTimer;
+    const off = onSaveState(s2 => {
+      clearTimeout(hideTimer);
+      setState(s2);
+      if (s2 === 'saved') hideTimer = setTimeout(() => setState(null), 2200);
+    });
+    return () => { off(); clearTimeout(hideTimer); };
+  }, []);
+  if (!state) return null;
+  const saved = state === 'saved';
+  return (
+    <div className="no-print" style={{
+      position:'fixed', bottom:18, right:20, zIndex:200, pointerEvents:'none',
+      background: saved ? 'rgba(90,191,128,0.15)' : 'var(--bg2)',
+      border: '1px solid ' + (saved ? '#5ABF80' : 'var(--border)'),
+      color: saved ? '#5ABF80' : 'var(--muted)',
+      borderRadius:20, padding:'6px 16px', fontSize:11, fontWeight:700,
+      boxShadow:'0 6px 18px rgba(0,0,0,0.4)', transition:'opacity .2s ease',
+    }}>
+      {saved ? '✓ Saved' : 'Saving…'}
+    </div>
+  );
+}
 
 export function FinanceHeader({ crumb }) {
   const { user, setUser } = useAuth();
@@ -22,6 +49,7 @@ export function FinanceHeader({ crumb }) {
         <Link to="/" className="btn btn-ghost btn-sm" style={{ textDecoration:'none' }}>Back to Hub</Link>
         <button className="btn btn-ghost btn-sm" onClick={() => { localStorage.removeItem('fp_token'); setUser(null); }}>Sign out</button>
       </div>
+      <SaveIndicator />
     </div>
   );
 }
