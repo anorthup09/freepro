@@ -27,8 +27,8 @@ export function FinanceHeader({ crumb }) {
 
 const FOLDERS = {
   rfp: { label: 'RFP', match: p => p.budget_status === 'RFP' },
-  live: { label: 'Live Projects', match: p => p.budget_status !== 'RFP' && p.budget_status !== 'Dead' },
-  archive: { label: 'Archive', match: p => p.budget_status === 'Dead' },
+  live: { label: 'Live Projects', match: p => p.budget_status !== 'RFP' && p.budget_status !== 'Dead' && p.budget_status !== 'Closed' },
+  archive: { label: 'Archive', match: p => p.budget_status === 'Dead' || p.budget_status === 'Closed' },
 };
 
 export function LogoField({ value, onChange }) {
@@ -229,6 +229,20 @@ export default function Finance() {
                   {p.budget_id ? (p.budget_status || 'Draft') : 'No budget'}
                 </span>
               ); })()}
+              {p.budget_status === 'Live' && (
+                <button title="Close this project and move it to the Archive folder"
+                  onClick={async e => {
+                    e.stopPropagation();
+                    if (!confirm(`Close ${p.title} and move it to Archive?`)) return;
+                    try {
+                      await api.updateBudget(p.budget_id, { status: 'Closed' });
+                      setProjects(ps => ps.map(x => x.id === p.id ? { ...x, budget_status: 'Closed' } : x));
+                    } catch (err) { alert(err.message); }
+                  }}
+                  style={{ background:'none', border:'1px solid var(--border)', borderRadius:10, color:'var(--muted)', fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', padding:'2px 8px', cursor:'pointer', whiteSpace:'nowrap' }}>
+                  Closed
+                </button>
+              )}
             </div>
           </div>
         ))}

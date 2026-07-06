@@ -849,6 +849,7 @@ const STATUS_OPTS = [
   ['Live', '#5ABF80', 'Approved — moves to Live Projects'],
   ['Dead', '#e05252', 'Not approved — archived under RFP'],
   ['Reconciled', '#9DC183', 'Project closed out'],
+  ['Closed', '#8a8f98', 'Finished — moves to the Archive folder'],
 ];
 
 function StatusPill({ value, onChange }) {
