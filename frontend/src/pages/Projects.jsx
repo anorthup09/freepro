@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../App.jsx';
-import ShineBorder from '../components/ShineBorder.jsx';
 
 const STATUS_PILL = {
   PLANNING:  'amber',
@@ -20,29 +19,6 @@ export default function Projects() {
   const [form, setForm] = useState({ code:'', title:'', client:'', city:'', state:'', startDate:'', endDate:'' });
   const [saving, setSaving] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
-  const [showUsers, setShowUsers] = useState(false);
-  const [users, setUsers] = useState([]);
-  const ROLES = ['PENDING', 'CREW', 'CLIENT', 'PRODUCER', 'ADMIN'];
-
-  async function toggleUsers() {
-    if (!showUsers) {
-      try { setUsers(await api.getUsers()); } catch (e) { alert(e.message); return; }
-    }
-    setShowUsers(s => !s);
-  }
-
-  async function changeRole(id, role) {
-    try {
-      const u = await api.updateUserRole(id, role);
-      setUsers(us => us.map(x => x.id === id ? { ...x, role: u.role } : x));
-    } catch (e) { alert(e.message); }
-  }
-
-  async function removeUser(id, name) {
-    if (!confirm(`Delete user ${name}?`)) return;
-    try { await api.deleteUser(id); setUsers(us => us.filter(x => x.id !== id)); }
-    catch (e) { alert(e.message); }
-  }
 
   useEffect(() => { api.getProjects().then(setProjects).catch(console.error); }, []);
 
@@ -107,7 +83,7 @@ export default function Projects() {
       <div className="wrap">
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:18 }}>
           <div>
-            <div className="page-title">Projects</div>
+            <div className="page-title">Production</div>
             <div className="page-sub">{projects.length} shoot{projects.length !== 1 ? 's' : ''}</div>
           </div>
           <div style={{ display:'flex', gap:8 }}>
@@ -177,44 +153,6 @@ export default function Projects() {
           </div>
         )}
 
-        {user?.role === 'ADMIN' && (
-          <div style={{ marginTop:40 }}>
-            <div style={{ display:'flex', justifyContent:'center' }}>
-              <ShineBorder radius={10} width={2.5} tone="orange">
-                <button onClick={toggleUsers}
-                  style={{ background:'var(--bg)', border:'none', borderRadius:8, padding:'10px 26px', color:'var(--text)', fontSize:13, fontWeight:700, letterSpacing:'.04em', cursor:'pointer', fontFamily:'inherit' }}>
-                  User Management {showUsers ? '▾' : '▸'}
-                </button>
-              </ShineBorder>
-            </div>
-            {showUsers && (
-              <div className="pos-table-wrap" style={{ marginTop:16, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden' }}>
-                <table className="pos-table" style={{ width:'100%' }}>
-                  <thead><tr><th>Name</th><th>Email</th><th>Role</th><th></th></tr></thead>
-                  <tbody>
-                    {users.map(u => (
-                      <tr key={u.id}>
-                        <td style={{ fontWeight:600 }}>{u.name}{u.id === user.id && <span style={{ color:'var(--muted)', fontWeight:400 }}> (you)</span>}</td>
-                        <td style={{ color:'var(--muted)' }}>{u.email}</td>
-                        <td>
-                          <select value={u.role} onChange={e => changeRole(u.id, e.target.value)} style={{ width:'auto' }}>
-                            {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
-                          </select>
-                        </td>
-                        <td style={{ textAlign:'right' }}>
-                          {u.id !== user.id && (
-                            <button onClick={() => removeUser(u.id, u.name)}
-                              style={{ background:'none', border:'1px solid var(--border)', borderRadius:5, color:'var(--red-text)', fontSize:11, padding:'3px 9px', cursor:'pointer' }}>Delete</button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
       {showNew && (
