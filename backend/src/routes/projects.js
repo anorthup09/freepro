@@ -123,6 +123,13 @@ router.post('/', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, 
 router.patch('/:id', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
     const d = req.body;
+    // Clients often echo back the displayed code, which can be the ProFi
+    // shoot-code override (e.g. 02.X-01) rather than the stored code —
+    // writing that collides with the tile that owns it. Treat as unchanged.
+    if (d.code) {
+      const codes = await displayCodes([req.params.id]);
+      if (d.code === codes[req.params.id]) d.code = undefined;
+    }
     await sql`
       UPDATE projects SET
         code = COALESCE(${d.code??null}, code),

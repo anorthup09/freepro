@@ -1125,8 +1125,12 @@ function EditProjectModal({ project, onClose, onSaved }) {
   async function save() {
     setSaving(true);
     try {
-      const p2 = await api.updateProject(project.id, { ...f, clientLogo: logo });
-      onSaved(p2);
+      const payload = { clientLogo: logo };
+      if (f.code !== (project.code || '')) payload.code = f.code;
+      if (f.title !== (project.title || '')) payload.title = f.title;
+      if (f.client !== (project.client || '')) payload.client = f.client;
+      const p2 = await api.updateProject(project.id, payload);
+      onSaved({ ...p2, code: payload.code || project.code });
     } catch (e) { alert(e.message); setSaving(false); }
   }
   const field = (label, k, type = 'text') => (
