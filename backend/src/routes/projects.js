@@ -79,6 +79,20 @@ async function maybeAutoStatus(project) {
   return project;
 }
 
+// GET /api/projects/logos?q= — distinct client logos from past projects
+router.get('/logos', requireAuth, async (req, res, next) => {
+  try {
+    const q = `%${(req.query.q || '').trim()}%`;
+    const rows = await sql`
+      SELECT DISTINCT ON (client) client, client_logo
+      FROM projects
+      WHERE client_logo IS NOT NULL AND client ILIKE ${q}
+      ORDER BY client, updated_at DESC NULLS LAST
+      LIMIT 12`;
+    res.json(rows);
+  } catch (err) { next(err); }
+});
+
 // GET /api/projects/:id
 router.get('/:id', requireAuth, async (req, res, next) => {
   try {
@@ -92,10 +106,10 @@ router.get('/:id', requireAuth, async (req, res, next) => {
 // POST /api/projects
 router.post('/', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const d = z.object({ code:z.string(), title:z.string(), subtitle:z.string().optional(), client:z.string(), city:z.string(), state:z.string(), startDate:z.string(), endDate:z.string(), status:z.string().optional(), notes:z.string().optional(), includePhoto:z.boolean().optional() }).parse(req.body);
+    const d = z.object({ code:z.string(), title:z.string(), subtitle:z.string().optional(), client:z.string(), city:z.string(), state:z.string(), startDate:z.string(), endDate:z.string(), status:z.string().optional(), notes:z.string().optional(), includePhoto:z.boolean().optional(), clientLogo:z.string().nullable().optional() }).parse(req.body);
     const [p] = await sql`
-      INSERT INTO projects (id, code, title, subtitle, client, city, state, start_date, end_date, status, notes, include_photo)
-      VALUES (gen_random_uuid()::text, ${d.code}, ${d.title}, ${d.subtitle||null}, ${d.client}, ${d.city}, ${d.state}, ${d.startDate}, ${d.endDate}, ${d.status||'PLANNING'}, ${d.notes||null}, ${d.includePhoto !== false})
+      INSERT INTO projects (id, code, title, subtitle, client, city, state, start_date, end_date, status, notes, include_photo, client_logo)
+      VALUES (gen_random_uuid()::text, ${d.code}, ${d.title}, ${d.subtitle||null}, ${d.client}, ${d.city}, ${d.state}, ${d.startDate}, ${d.endDate}, ${d.status||'PLANNING'}, ${d.notes||null}, ${d.includePhoto !== false}, ${d.clientLogo||null})
       RETURNING *`;
     res.status(201).json(p);
   } catch (err) {

@@ -31,8 +31,65 @@ const FOLDERS = {
   archive: { label: 'Archive', match: p => p.budget_status === 'Dead' },
 };
 
+export function LogoField({ value, onChange }) {
+  const [q, setQ] = useState('');
+  const [results, setResults] = useState(null);
+  useEffect(() => {
+    if (!q.trim()) { setResults(null); return; }
+    const t = setTimeout(() => api.searchClientLogos(q).then(setResults).catch(() => setResults([])), 300);
+    return () => clearTimeout(t);
+  }, [q]);
+  function upload(e) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    const img = new Image();
+    img.onload = () => {
+      const maxH = 96;
+      const scale = Math.min(1, maxH / img.height);
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      onChange(canvas.toDataURL('image/png'));
+      URL.revokeObjectURL(img.src);
+    };
+    img.src = URL.createObjectURL(file);
+  }
+  return (
+    <div style={{ display:'flex', gap:12, flexWrap:'wrap', alignItems:'flex-start' }}>
+      <div style={{ flex:1, minWidth:180 }}>
+        <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4 }}>Client Logo (PNG)</div>
+        <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
+          {value && <img src={value} alt="Client logo" style={{ height:32, maxWidth:160, objectFit:'contain', background:'rgba(255,255,255,0.08)', borderRadius:6, padding:'2px 6px' }} />}
+          <input type="file" accept="image/png" style={{ fontSize:12, maxWidth:190 }} onChange={upload} />
+          {value && <button type="button" className="btn btn-ghost btn-sm" style={{ fontSize:11 }} onClick={() => onChange(null)}>Remove</button>}
+        </div>
+      </div>
+      <div style={{ flex:1, minWidth:180, position:'relative' }}>
+        <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4 }}>Or reuse a past client logo</div>
+        <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search client…"
+          style={{ background:'var(--bg)', border:'1px solid var(--border)', borderRadius:6, color:'var(--text)', padding:'8px 10px', fontSize:13, width:'100%' }} />
+        {results && (
+          <div style={{ position:'absolute', top:'100%', left:0, right:0, zIndex:20, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, marginTop:4, maxHeight:200, overflowY:'auto' }}>
+            {results.length === 0 && <div style={{ padding:'8px 12px', fontSize:11, color:'var(--muted)' }}>No logos found for that client.</div>}
+            {results.map(r => (
+              <div key={r.client} onClick={() => { onChange(r.client_logo); setQ(''); setResults(null); }}
+                style={{ display:'flex', alignItems:'center', gap:10, padding:'6px 12px', cursor:'pointer', borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
+                <img src={r.client_logo} alt={r.client} style={{ height:24, maxWidth:90, objectFit:'contain', background:'rgba(255,255,255,0.08)', borderRadius:4, padding:'1px 4px' }} />
+                <span style={{ fontSize:12 }}>{r.client}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function NewProjectModal({ onClose, onCreated }) {
   const [f, setF] = useState({ code:'', title:'', client:'', city:'', state:'', startDate:'', endDate:'' });
+  const [logo, setLogo] = useState(null);
   const [saving, setSaving] = useState(false);
   const set = k => e => setF(v => ({ ...v, [k]: e.target.value }));
   const ok = f.code && f.title && f.client && f.startDate && f.endDate;
@@ -40,7 +97,7 @@ function NewProjectModal({ onClose, onCreated }) {
     if (!ok || saving) return;
     setSaving(true);
     try {
-      const p = await api.createProject({ ...f, city: f.city || '—', state: f.state || '—' });
+      const p = await api.createProject({ ...f, city: f.city || '—', state: f.state || '—', clientLogo: logo });
       await api.createBudget(p.id);
       onCreated(p);
     } catch (e) { alert(e.message); setSaving(false); }
@@ -73,6 +130,7 @@ function NewProjectModal({ onClose, onCreated }) {
             {field('Start Date', 'startDate', 'date')}
             {field('End Date', 'endDate', 'date')}
           </div>
+          <LogoField value={logo} onChange={setLogo} />
           <div style={{ fontSize:11, color:'var(--muted)' }}>A budget is created automatically in <span style={{ color:'#e6c229', fontWeight:700 }}>RFP</span> status.</div>
           <div style={{ display:'flex', justifyContent:'flex-end', gap:8 }}>
             <button className="btn btn-ghost btn-sm" onClick={onClose}>Cancel</button>

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../api.js';
-import { FinanceHeader } from './Finance.jsx';
+import { FinanceHeader, LogoField } from './Finance.jsx';
 
 const fmt$ = (n, dec = 2) => '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: dec === 2 ? 2 : 0, maximumFractionDigits: dec });
 const num = v => Number(v) || 0;
@@ -1044,12 +1044,13 @@ function EditProjectModal({ project, onClose, onSaved }) {
     city: project.city || '', state: project.state || '',
     startDate: (project.start_date || '').slice(0, 10), endDate: (project.end_date || '').slice(0, 10),
   });
+  const [logo, setLogo] = useState(project.client_logo || null);
   const [saving, setSaving] = useState(false);
   const setV = k => e => setF(v => ({ ...v, [k]: e.target.value }));
   async function save() {
     setSaving(true);
     try {
-      const p2 = await api.updateProject(project.id, f);
+      const p2 = await api.updateProject(project.id, { ...f, clientLogo: logo });
       onSaved(p2);
     } catch (e) { alert(e.message); setSaving(false); }
   }
@@ -1081,6 +1082,7 @@ function EditProjectModal({ project, onClose, onSaved }) {
             {field('Start Date', 'startDate', 'date')}
             {field('End Date', 'endDate', 'date')}
           </div>
+          <LogoField value={logo} onChange={setLogo} />
           <div style={{ display:'flex', justifyContent:'flex-end', gap:8 }}>
             <button className="btn btn-ghost btn-sm" onClick={onClose}>Cancel</button>
             <button disabled={saving} onClick={save}

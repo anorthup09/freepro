@@ -547,9 +547,9 @@ export default function Overview({ project, setProject, onTabChange }) {
             <div className="modal-title">Edit Project Info</div>
             <form onSubmit={saveInfo}>
               <div className="form-grid" style={{ marginBottom:12 }}>
-                <div className="field"><label>Project Code</label><input value={info.code} onChange={e => setInfo(i=>({...i,code:e.target.value}))} required /></div>
+                <div className="field"><label>Project Code — feeds from the ProFi budget</label><input value={info.code} disabled style={{ opacity:0.55, cursor:'not-allowed' }} /></div>
                 <div className="field"><label>Title</label><input value={info.title} onChange={e => setInfo(i=>({...i,title:e.target.value}))} required /></div>
-                <div className="field"><label>Client</label><input value={info.client} onChange={e => setInfo(i=>({...i,client:e.target.value}))} required /></div>
+                <div className="field"><label>Client — feeds from the ProFi budget</label><input value={info.client} disabled style={{ opacity:0.55, cursor:'not-allowed' }} /></div>
                 <div className="field"><label>Status</label>
                   <select value={info.status} onChange={e => setInfo(i=>({...i,status:e.target.value}))}>
                     {['PLANNING','ACTIVE','WRAPPED','ARCHIVED'].map(s => <option key={s} value={s}>{s}</option>)}
@@ -558,35 +558,6 @@ export default function Overview({ project, setProject, onTabChange }) {
                 <div className="field"><label>Start Date</label><input type="date" value={info.startDate} onChange={e => setInfo(i=>({...i,startDate:e.target.value}))} /></div>
                 <div className="field"><label>End Date</label><input type="date" value={info.endDate} onChange={e => setInfo(i=>({...i,endDate:e.target.value}))} /></div>
                 <div className="field span2"><label>Notes</label><textarea value={info.notes} onChange={e => setInfo(i=>({...i,notes:e.target.value}))} /></div>
-                <div className="field span2">
-                  <label>Client Logo (PNG) — replaces the client name on public views</label>
-                  <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
-                    {(info.clientLogo ?? project.client_logo) && (
-                      <img src={info.clientLogo ?? project.client_logo} alt="Client logo" style={{ height:32, maxWidth:160, objectFit:'contain', background:'rgba(255,255,255,0.08)', borderRadius:6, padding:'2px 6px' }} />
-                    )}
-                    <input type="file" accept="image/png" style={{ fontSize:12 }} onChange={e => {
-                      const file = e.target.files?.[0];
-                      e.target.value = '';
-                      if (!file) return;
-                      // Downsize to a small data-URL PNG so the sticky bar stays light
-                      const img = new Image();
-                      img.onload = () => {
-                        const maxH = 96;
-                        const scale = Math.min(1, maxH / img.height);
-                        const canvas = document.createElement('canvas');
-                        canvas.width = Math.round(img.width * scale);
-                        canvas.height = Math.round(img.height * scale);
-                        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-                        setInfo(i => ({ ...i, clientLogo: canvas.toDataURL('image/png') }));
-                        URL.revokeObjectURL(img.src);
-                      };
-                      img.src = URL.createObjectURL(file);
-                    }} />
-                    {(info.clientLogo ?? project.client_logo) && (
-                      <button type="button" className="btn btn-ghost btn-sm" style={{ fontSize:11 }} onClick={() => setInfo(i => ({ ...i, clientLogo: null }))}>Remove logo</button>
-                    )}
-                  </div>
-                </div>
               </div>
               <div className="btn-row" style={{ alignItems:'center' }}>
                 <button className="btn btn-primary">Save</button>

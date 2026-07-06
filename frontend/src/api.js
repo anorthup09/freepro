@@ -53,6 +53,7 @@ export const api = {
   deleteUser: (id) => req('DELETE', `/users/${id}`),
   getProject: (id) => req('GET', `/projects/${id}`),
   createProject: (data) => req('POST', '/projects', data),
+  searchClientLogos: (q) => req('GET', `/projects/logos?q=${encodeURIComponent(q || '')}`),
   updateProject: (id, data) => req('PATCH', `/projects/${id}`, data),
 
   // Locations
