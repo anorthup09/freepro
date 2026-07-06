@@ -18,7 +18,9 @@
     "express": "^4.22.2",
     "jsonwebtoken": "^9.0.3",
     "nodemailer": "^9.0.3",
+    "otplib": "^12.0.1",
     "postgres": "^3.4.9",
+    "qrcode": "^1.5.4",
     "resend": "^6.16.0",
     "xlsx": "^0.18.5",
     "zod": "^3.25.76"

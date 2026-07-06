@@ -13,6 +13,8 @@ export default function Login() {
   const [err, setErr] = useState('');
   const [notice, setNotice] = useState('');
   const [loading, setLoading] = useState(false);
+  const [mfaToken, setMfaToken] = useState('');
+  const [mfaCode, setMfaCode] = useState('');
 
   async function submit(e) {
     e.preventDefault();
@@ -24,16 +26,63 @@ export default function Login() {
         setUser(user);
         nav('/');
       } else {
-        const { token, user } = await api.login(email, password);
-        localStorage.setItem('fp_token', token);
-        setUser(user);
-        nav('/');
+        const r = await api.login(email, password);
+        if (r.mfaRequired) {
+          setMfaToken(r.mfaToken);
+        } else {
+          localStorage.setItem('fp_token', r.token);
+          setUser(r.user);
+          nav('/');
+        }
       }
     } catch (e) {
       setErr(Array.isArray(e.message) ? 'Please check your details and try again' : e.message);
     } finally {
       setLoading(false);
     }
+  }
+
+  async function submitMfa(e) {
+    e.preventDefault();
+    setErr(''); setLoading(true);
+    try {
+      const { token, user } = await api.mfaVerify(mfaToken, mfaCode);
+      localStorage.setItem('fp_token', token);
+      setUser(user);
+      nav('/');
+    } catch (e) {
+      setErr(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (mfaToken) {
+    return (
+      <div className="login-wrap">
+        <div className="login-box">
+          <div className="login-logo">Free<em>Pro</em></div>
+          <div style={{ textAlign:'center', fontSize:9, color:'var(--muted)', letterSpacing:'0.06em', marginTop:-6, marginBottom:8 }}>Powered by Unbridled Media</div>
+          {err && <div className="login-err">{err}</div>}
+          <form onSubmit={submitMfa}>
+            <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+              <div style={{ fontSize:12, color:'var(--muted)', textAlign:'center', lineHeight:1.5 }}>
+                Enter the 6-digit code from your authenticator app<br />(or a recovery code)
+              </div>
+              <input autoFocus inputMode="numeric" autoComplete="one-time-code" placeholder="123 456"
+                value={mfaCode} onChange={e => setMfaCode(e.target.value)}
+                style={{ textAlign:'center', fontSize:20, letterSpacing:'0.2em' }} />
+              <button className="btn btn-primary" disabled={loading || !mfaCode.trim()}>
+                {loading ? 'Verifying…' : 'Verify'}
+              </button>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setMfaToken(''); setMfaCode(''); setErr(''); }}>
+                ← Back to sign in
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
   }
 
   return (

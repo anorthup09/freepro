@@ -51,6 +51,7 @@ import Finance from './pages/Finance.jsx';
 import FinanceProject from './pages/FinanceProject.jsx';
 import BudgetShare from './pages/BudgetShare.jsx';
 import FinanceReport from './pages/FinanceReport.jsx';
+import MfaSetup from './pages/MfaSetup.jsx';
 import { api } from './api.js';
 
 export const AuthContext = createContext(null);
@@ -70,7 +71,7 @@ export default function App() {
   return (
     <ErrorBoundary>
     <AuthContext.Provider value={{ user, setUser }}>
-      {user?.role === 'PENDING' ? <PendingApproval setUser={setUser} /> : (
+      {user?.role === 'PENDING' ? <PendingApproval setUser={setUser} /> : (user && ['ADMIN','PRODUCER'].includes(user.role) && user.mfa_enabled === false) ? <MfaSetup /> : (
       <Routes>
         <Route path="/login" element={user ? <Navigate to="/" /> : <Login />} />
         <Route path="/" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <Hub />) : <Navigate to="/login" />} />

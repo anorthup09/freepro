@@ -40,6 +40,10 @@ export const api = {
   login: (email, password) => req('POST', '/auth/login', { email, password }),
   register: (name, email, password) => req('POST', '/auth/register', { name, email, password }),
   me: () => req('GET', '/auth/me'),
+  mfaVerify: (mfaToken, code) => req('POST', '/auth/mfa/verify', { mfaToken, code }),
+  mfaSetup: () => req('POST', '/auth/mfa/setup'),
+  mfaEnable: (code) => req('POST', '/auth/mfa/enable', { code }),
+  mfaDisable: (code) => req('POST', '/auth/mfa/disable', { code }),
 
   // Projects
   getProjects: () => req('GET', '/projects'),

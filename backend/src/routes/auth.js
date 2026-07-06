@@ -1,6 +1,9 @@
 const router = require('express').Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const { authenticator } = require('otplib');
+const QRCode = require('qrcode');
 const { z } = require('zod');
 const sql = require('../lib/db');
 const { requireAuth } = require('../middleware/auth');
@@ -33,7 +36,11 @@ router.post('/login', async (req, res, next) => {
     if (!user) return res.status(401).json({ error: 'Invalid credentials' });
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
-    res.json({ token: makeToken(user), user: { id: user.id, name: user.name, email: user.email, role: user.role } });
+    if (user.mfa_enabled) {
+      const mfaToken = jwt.sign({ id: user.id, stage: 'mfa' }, process.env.JWT_SECRET, { expiresIn: '5m' });
+      return res.json({ mfaRequired: true, mfaToken });
+    }
+    res.json({ token: makeToken(user), user: { id: user.id, name: user.name, email: user.email, role: user.role, mfa_enabled: user.mfa_enabled === true } });
   } catch (err) {
     if (err.name === 'ZodError') return res.status(400).json({ error: err.errors });
     next(err);
@@ -42,8 +49,77 @@ router.post('/login', async (req, res, next) => {
 
 router.get('/me', requireAuth, async (req, res, next) => {
   try {
-    const [user] = await sql`SELECT id, name, email, role, created_at FROM users WHERE id = ${req.user.id}`;
+    const [user] = await sql`SELECT id, name, email, role, created_at, mfa_enabled FROM users WHERE id = ${req.user.id}`;
     res.json(user);
+  } catch (err) { next(err); }
+});
+
+// ── MFA (TOTP — works with Microsoft/Google Authenticator, 1Password, etc.) ──
+
+// Complete a login that requires MFA
+router.post('/mfa/verify', async (req, res, next) => {
+  try {
+    const { mfaToken, code } = req.body;
+    let payload;
+    try { payload = jwt.verify(mfaToken, process.env.JWT_SECRET); } catch { return res.status(401).json({ error: 'Session expired — sign in again' }); }
+    if (payload.stage !== 'mfa') return res.status(401).json({ error: 'Invalid session' });
+    const [user] = await sql`SELECT * FROM users WHERE id = ${payload.id}`;
+    if (!user || !user.mfa_enabled) return res.status(401).json({ error: 'Invalid session' });
+    const clean = String(code || '').replace(/[^a-zA-Z0-9]/g, '');
+    let ok = authenticator.check(clean, user.mfa_secret);
+    if (!ok && user.mfa_recovery) {
+      // recovery code fallback: compare against stored hashes, burn on use
+      const hashes = JSON.parse(user.mfa_recovery);
+      for (let i = 0; i < hashes.length; i++) {
+        if (await bcrypt.compare(clean.toUpperCase(), hashes[i])) {
+          hashes.splice(i, 1);
+          await sql`UPDATE users SET mfa_recovery = ${JSON.stringify(hashes)} WHERE id = ${user.id}`;
+          ok = true;
+          break;
+        }
+      }
+    }
+    if (!ok) return res.status(401).json({ error: 'That code didn\'t match — try the current code in your authenticator app' });
+    res.json({ token: makeToken(user), user: { id: user.id, name: user.name, email: user.email, role: user.role, mfa_enabled: true } });
+  } catch (err) { next(err); }
+});
+
+// Begin setup: generate a secret + QR + recovery codes (not enabled until confirmed)
+router.post('/mfa/setup', requireAuth, async (req, res, next) => {
+  try {
+    const [user] = await sql`SELECT * FROM users WHERE id = ${req.user.id}`;
+    if (user.mfa_enabled) return res.status(409).json({ error: 'MFA is already enabled' });
+    const secret = authenticator.generateSecret();
+    const recovery = Array.from({ length: 8 }, () => crypto.randomBytes(4).toString('hex').toUpperCase());
+    const hashes = await Promise.all(recovery.map(c => bcrypt.hash(c, 10)));
+    await sql`UPDATE users SET mfa_secret = ${secret}, mfa_recovery = ${JSON.stringify(hashes)} WHERE id = ${user.id}`;
+    const otpauth = authenticator.keyuri(user.email, 'Unbridled Media Platform', secret);
+    const qr = await QRCode.toDataURL(otpauth, { margin: 1, width: 220 });
+    res.json({ qr, secret, recovery });
+  } catch (err) { next(err); }
+});
+
+// Confirm setup with a live code from the app
+router.post('/mfa/enable', requireAuth, async (req, res, next) => {
+  try {
+    const [user] = await sql`SELECT * FROM users WHERE id = ${req.user.id}`;
+    if (!user.mfa_secret) return res.status(400).json({ error: 'Start setup first' });
+    const ok = authenticator.check(String(req.body.code || '').replace(/\D/g, ''), user.mfa_secret);
+    if (!ok) return res.status(401).json({ error: 'That code didn\'t match — scan the QR again and enter the current code' });
+    await sql`UPDATE users SET mfa_enabled = TRUE WHERE id = ${user.id}`;
+    res.json({ ok: true });
+  } catch (err) { next(err); }
+});
+
+// Turn MFA off (requires a current code)
+router.post('/mfa/disable', requireAuth, async (req, res, next) => {
+  try {
+    const [user] = await sql`SELECT * FROM users WHERE id = ${req.user.id}`;
+    if (!user.mfa_enabled) return res.status(400).json({ error: 'MFA is not enabled' });
+    const ok = authenticator.check(String(req.body.code || '').replace(/\D/g, ''), user.mfa_secret);
+    if (!ok) return res.status(401).json({ error: 'That code didn\'t match' });
+    await sql`UPDATE users SET mfa_enabled = FALSE, mfa_secret = NULL, mfa_recovery = NULL WHERE id = ${user.id}`;
+    res.json({ ok: true });
   } catch (err) { next(err); }
 });
 
