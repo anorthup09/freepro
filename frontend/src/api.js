@@ -118,6 +118,7 @@ export const api = {
   weeklyFinanceReport: () => req('POST', '/finance/weekly-report'),
   pushTravelHold: (sid) => req('POST', `/finance/sections/${sid}/push-travel-hold`),
   pullTravelActuals: (sid) => req('POST', `/finance/sections/${sid}/pull-travel-actuals`),
+  savePipeline: (pid, pipeline) => req('PATCH', `/finance/pipeline/${pid}`, { pipeline }),
 
   // Schedule
   getSchedule: (projectId) => req('GET', `/projects/${projectId}/schedule`),

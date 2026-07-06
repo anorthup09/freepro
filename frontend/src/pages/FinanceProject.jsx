@@ -409,7 +409,13 @@ function VccTab({ pid, budget, sections, lines, vcc, categories, set }) {
           </div>
         </div>
         <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding:'12px 16px' }}>
-          <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'#5ABF80', marginBottom:10 }}>Client Deposits</div>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+            <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'#5ABF80' }}>Client Deposits</div>
+            <button type="button" className="btn btn-ghost btn-sm"
+              onClick={() => alert('Coming soon: review the invoice email, attach the invoice, and send it to the client right from here.')}>
+              ✉ Send Invoice
+            </button>
+          </div>
           <div style={{ display:'grid', gridTemplateColumns:'auto 1fr 1fr', gap:'6px 10px', fontSize:11, alignItems:'center' }}>
             <span style={{ color:'var(--muted)' }}>Deposit</span>
             <MoneyInput value={budget.deposit ?? ''} width={110}

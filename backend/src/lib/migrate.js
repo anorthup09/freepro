@@ -784,6 +784,7 @@ async function migrate() {
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS mfa_secret TEXT`;
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS mfa_enabled BOOLEAN DEFAULT FALSE`;
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS mfa_recovery TEXT`;
+  await sql`ALTER TABLE projects ADD COLUMN IF NOT EXISTS pipeline TEXT`;
   await sql`
     CREATE TABLE IF NOT EXISTS finance_snapshots (
       id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,

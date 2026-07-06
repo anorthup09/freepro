@@ -126,7 +126,7 @@ async function seedShootLines(budgetId, sectionId) {
 router.get('/finance/projects', ...finance, async (req, res, next) => {
   try {
     const projects = await sql`
-      SELECT p.id, p.code, p.title, p.client, p.status, p.start_date, p.end_date, b.id as budget_id, b.status as budget_status,
+      SELECT p.id, p.code, p.title, p.client, p.status, p.start_date, p.end_date, p.pipeline, b.id as budget_id, b.status as budget_status,
              b.mgmt_fee_rate, b.total_cap_co, b.deposit, b.additional_deposit, b.media_rep, b.close_month
       FROM projects p LEFT JOIN budgets b ON b.project_id = p.id
       WHERE p.status != 'ARCHIVED'
@@ -653,6 +653,16 @@ router.post('/finance/weekly-report', ...finance, async (req, res, next) => {
       removed: removedIds.map(x => ({ code: x.code, title: x.title })),
       current,
     });
+  } catch (e) { next(e); }
+});
+
+// Project pipeline stage overrides (JSON map of stage -> 'active' | 'done')
+router.patch('/finance/pipeline/:pid', ...finance, async (req, res, next) => {
+  try {
+    const pipeline = JSON.stringify(req.body.pipeline || {});
+    const [p] = await sql`UPDATE projects SET pipeline = ${pipeline} WHERE id = ${req.params.pid} RETURNING id, pipeline`;
+    if (!p) return res.status(404).json({ error: 'Project not found' });
+    res.json(p);
   } catch (e) { next(e); }
 });
 
