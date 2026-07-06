@@ -540,8 +540,19 @@ router.post('/finance/:pid/odc-import', ...finance, async (req, res, next) => {
       for (let i = 0; i < Math.min(grid.length, 30); i++) {
         const cells = (grid[i] || []).map(c => String(c ?? '').toLowerCase().trim());
         const m = {};
+        // Priority pass: exact accounting-report headers (Program ODC Report etc.)
         cells.forEach((c, j) => {
           if (!c) return;
+          if (m.account === undefined && c === 'account') m.account = j;
+          if (m.acctName === undefined && /account name/.test(c)) m.acctName = j;
+          if (m.vendor === undefined && /purchased by/.test(c)) m.vendor = j;
+          if (m.desc === undefined && /vendor description/.test(c)) m.desc = j;
+          if (m.amount === undefined && /reimbursable/.test(c)) m.amount = j;
+        });
+        // Generic fallback pass — never reuse a column already claimed
+        const taken = () => new Set(Object.values(m));
+        cells.forEach((c, j) => {
+          if (!c || taken().has(j)) return;
           if (m.date === undefined && /(^|\s)date/.test(c)) m.date = j;
           if (m.vendor === undefined && /(vendor|payee|merchant|supplier|employee|name)/.test(c)) m.vendor = j;
           if (m.desc === undefined && /(desc|memo|detail|expense item|transaction)/.test(c)) m.desc = j;
@@ -552,12 +563,15 @@ router.post('/finance/:pid/odc-import', ...finance, async (req, res, next) => {
       if (headerIdx === -1) continue;
       for (let i = headerIdx + 1; i < grid.length; i++) {
         const r2 = grid[i] || [];
+        // Rows with a value in the Account column (TOTALS, 5210, …) are subtotals — skip
+        if (map.account !== undefined && String(r2[map.account] ?? '').trim()) continue;
         const amount = Number(String(r2[map.amount] ?? '').toString().replace(/[$,()]/g, m => m === '(' ? '-' : m === ')' ? '' : ''));
         if (!amount || isNaN(amount)) continue;
         let date = r2[map.date];
         if (date instanceof Date) date = date.toISOString().slice(0, 10);
         else if (date != null) { const d2 = new Date(date); date = isNaN(d2) ? null : d2.toISOString().slice(0, 10); }
-        rows.push({ date: date || null, vendor: map.vendor !== undefined ? String(r2[map.vendor] ?? '').trim() || null : null, description: map.desc !== undefined ? String(r2[map.desc] ?? '').trim() || null : null, amount });
+        const acctName = map.acctName !== undefined ? String(r2[map.acctName] ?? '').trim() || null : null;
+        rows.push({ date: date || null, vendor: map.vendor !== undefined ? String(r2[map.vendor] ?? '').trim() || null : null, description: map.desc !== undefined ? String(r2[map.desc] ?? '').trim() || null : null, amount, acctName });
       }
       if (rows.length) break;
     }
@@ -584,7 +598,12 @@ router.post('/finance/:pid/odc-import', ...finance, async (req, res, next) => {
       SELECT vendor, description, category, trip FROM vcc_entries
       WHERE category IS NOT NULL ORDER BY created_at DESC LIMIT 300`;
 
-    let guesses = fresh.map(() => ({ category: null, trip: null, flag: null }));
+    const catFromAcct = name => {
+      if (!name) return null;
+      const n = name.toLowerCase();
+      return VCC_CATEGORIES.find(c => c.toLowerCase().includes(n) || n.includes(c.toLowerCase().replace(/^\d+\s*/, ''))) || null;
+    };
+    let guesses = fresh.map(r2 => ({ category: catFromAcct(r2.acctName), trip: null, flag: null }));
     let aiUsed = false;
     if (process.env.ANTHROPIC_API_KEY && fresh.length) {
       try {
@@ -612,7 +631,7 @@ Respond with ONLY a JSON array, one object per charge in order: [{"i":0,"categor
         for (const g of parsed) {
           if (g && typeof g.i === 'number' && guesses[g.i]) {
             guesses[g.i] = {
-              category: VCC_CATEGORIES.includes(g.category) ? g.category : null,
+              category: VCC_CATEGORIES.includes(g.category) ? g.category : guesses[g.i].category,
               trip: g.trip || null,
               flag: g.flag || null,
             };
@@ -628,7 +647,7 @@ Respond with ONLY a JSON array, one object per charge in order: [{"i":0,"categor
       for (let i = 0; i < fresh.length; i++) {
         const v = (fresh[i].vendor || '').toLowerCase();
         const hit = v && history.find(h => (h.vendor || '').toLowerCase() === v);
-        if (hit) guesses[i] = { category: hit.category, trip: hit.trip, flag: null };
+        if (hit) guesses[i] = { category: guesses[i].category || hit.category, trip: hit.trip, flag: null };
       }
     }
 
