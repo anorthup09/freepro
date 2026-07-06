@@ -1009,7 +1009,6 @@ function EstimateMode({ pid, estimates, onExit, reload }) {
   const [idx, setIdx] = useState(Math.max(estimates.length - 1, 0));
   const [busy, setBusy] = useState(false);
   const feeRate = estimates.length ? Number(estimates[0].mgmt_fee_rate ?? 0.15) : 0.15;
-  const [feeDraft, setFeeDraft] = useState(Math.round(feeRate * 1000) / 10);
   const [overview, setOverview] = useState(false);
 
   useEffect(() => { requestAnimationFrame(() => setEntered(true)); }, []);
@@ -1041,25 +1040,9 @@ function EstimateMode({ pid, estimates, onExit, reload }) {
       display:'flex', flexDirection:'column',
     }}>
       <div style={{ display:'flex', alignItems:'center', gap:14, padding:'12px 22px', borderBottom:'1px solid rgba(230,194,41,0.35)', flexWrap:'wrap' }}>
-        <div style={{ display:'flex', flexDirection:'column', gap:5, alignItems:'flex-start' }}>
-          <span style={{ color:YEL, fontWeight:800, fontSize:13, letterSpacing:'0.1em' }}>⚡ ESTIMATE MODE</span>
-          <button onClick={exit}
-            style={{ background:'none', border:'1px solid var(--border)', borderRadius:12, padding:'2px 10px', fontSize:10, fontWeight:600, color:'var(--muted)', cursor:'pointer' }}>
-            ← Back to Budget
-          </button>
-        </div>
+        <span style={{ color:YEL, fontWeight:800, fontSize:13, letterSpacing:'0.1em' }}>⚡ ESTIMATE MODE</span>
         <span style={{ fontSize:11, color:'var(--muted)' }}>Pricing only — nothing here feeds the approved budget until you move it over.</span>
         <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:12, flexWrap:'wrap' }}>
-          {estimates[idx] && (
-            <button onClick={() => setOverview(true)}
-              style={{ background:'rgba(90,191,128,0.12)', border:'1px solid #5ABF80', color:'#5ABF80', borderRadius:20, padding:'4px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
-              📋 Estimate Overview
-            </button>
-          )}
-          <label style={{ fontSize:10, color:'var(--muted)', display:'flex', alignItems:'center', gap:6 }}>Mgmt Fee % (all estimates)
-            <input type="number" step="0.5" value={feeDraft} style={{ width:70, fontSize:12, textAlign:'right' }}
-              onChange={e => setFeeDraft(e.target.value)} onBlur={e => saveFeeAll(e.target.value)} />
-          </label>
           {estimates.length > 1 && (
             <span style={{ display:'flex', alignItems:'center', gap:6, fontSize:11, color:YEL, fontWeight:700 }}>
               <button className="btn btn-ghost btn-sm" disabled={idx === 0} onClick={() => setIdx(i => i - 1)}>‹</button>
@@ -1067,11 +1050,20 @@ function EstimateMode({ pid, estimates, onExit, reload }) {
               <button className="btn btn-ghost btn-sm" disabled={idx >= estimates.length - 1} onClick={() => setIdx(i => i + 1)}>›</button>
             </span>
           )}
+          {estimates[idx] && (
+            <button onClick={() => setOverview(true)}
+              style={{ background:'rgba(90,191,128,0.12)', border:'1px solid #5ABF80', color:'#5ABF80', borderRadius:20, padding:'4px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
+              Estimate Overview
+            </button>
+          )}
           <button disabled={busy} onClick={addEstimate}
             style={{ background:'rgba(230,194,41,0.15)', border:'1px solid ' + YEL, color:YEL, borderRadius:20, padding:'4px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
             + New Estimate
           </button>
-          <button className="btn btn-ghost btn-sm" onClick={exit}>✕ Exit Estimate Mode</button>
+          <button onClick={exit}
+            style={{ background:'transparent', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:20, padding:'4px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
+            ← Back to Budget
+          </button>
         </div>
       </div>
 
@@ -1079,7 +1071,7 @@ function EstimateMode({ pid, estimates, onExit, reload }) {
         <div style={{ display:'flex', height:'100%', width:'100%', transform:`translateX(-${idx * 100}%)`, transition:'transform .32s ease' }}>
           {estimates.map(est => (
             <div key={est.id} style={{ minWidth:'100%', height:'100%', overflowY:'auto', padding:'18px 26px 60px' }}>
-              <EstimatePane est={est} feeRate={feeRate} reload={reload} onMerged={exit} />
+              <EstimatePane est={est} feeRate={feeRate} saveFeeAll={saveFeeAll} reload={reload} onMerged={exit} />
             </div>
           ))}
           {!estimates.length && <div style={{ minWidth:'100%', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--muted)' }}>Creating your first estimate…</div>}
@@ -1093,7 +1085,9 @@ function EstimateMode({ pid, estimates, onExit, reload }) {
   );
 }
 
-function EstimatePane({ est, feeRate, reload, onMerged }) {
+function EstimatePane({ est, feeRate, saveFeeAll, reload, onMerged }) {
+  const [feeDraft, setFeeDraft] = useState(Math.round(feeRate * 1000) / 10);
+  useEffect(() => { setFeeDraft(Math.round(feeRate * 1000) / 10); }, [feeRate]);
   const [sections, setSections] = useState(est.sections);
   const [lines, setLines] = useState(est.lines);
   const [label, setLabel] = useState(est.label || 'Estimate');
@@ -1154,13 +1148,15 @@ function EstimatePane({ est, feeRate, reload, onMerged }) {
         <input value={label} onChange={e => setLabel(e.target.value)}
           onBlur={e => api.updateBudget(est.id, { label: e.target.value }).catch(() => {})}
           style={{ fontSize:18, fontWeight:800, background:'transparent', border:'1px solid transparent', borderRadius:6, padding:'4px 8px', color:YEL, width:280 }} />
-        <span style={{ fontSize:12, color:'var(--muted)' }}>Total <b style={{ color:YEL }}>{fmt$(total)}</b></span>
-        <div style={{ marginLeft:'auto', display:'flex', gap:8 }}>
-          <button disabled={busy} onClick={merge}
-            style={{ background:'rgba(90,191,128,0.15)', border:'1px solid #5ABF80', color:'#5ABF80', borderRadius:20, padding:'5px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
-            ✓ Move into Approved Budget
-          </button>
-          <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text, #e08080)' }} disabled={busy} onClick={remove}>Delete Estimate</button>
+        <div style={{ marginLeft:'auto', display:'flex', flexDirection:'column', alignItems:'flex-end', gap:6 }}>
+          <div style={{ display:'flex', gap:8 }}>
+            <button disabled={busy} onClick={merge}
+              style={{ background:'rgba(90,191,128,0.15)', border:'1px solid #5ABF80', color:'#5ABF80', borderRadius:20, padding:'5px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
+              ✓ Move into Approved Budget
+            </button>
+            <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text, #e08080)' }} disabled={busy} onClick={remove}>Delete Estimate</button>
+          </div>
+          <span style={{ fontSize:12, color:'var(--muted)' }}>{label} Total: <b style={{ color:YEL }}>{fmt$(total)}</b></span>
         </div>
       </div>
 
@@ -1260,6 +1256,12 @@ function EstimatePane({ est, feeRate, reload, onMerged }) {
         </select>
       </div>
 
+      <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:10 }}>
+        <label style={{ fontSize:10, color:'var(--muted)', display:'flex', alignItems:'center', gap:6 }}>Mgmt Fee % (all estimates)
+          <input type="number" step="0.5" value={feeDraft} style={{ width:70, fontSize:12, textAlign:'right' }}
+            onChange={e => setFeeDraft(e.target.value)} onBlur={e => saveFeeAll(e.target.value)} />
+        </label>
+      </div>
       <div style={{ background:'var(--bg2)', border:'1px solid ' + YEL + '55', borderRadius:10, padding:'14px 18px', maxWidth:420, marginLeft:'auto' }}>
         {[
           ['Production & Post (non-travel)', nonTravel],
