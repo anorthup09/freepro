@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { api } from '../../api.js';
 import { displayName } from '../../utils/displayName.js';
+import GearRequestModal from '../../components/GearRequestModal.jsx';
 
 function Field({ label, value, onChange, onBlur, placeholder, type='text' }) {
   return (
@@ -34,6 +35,12 @@ function detectCarrier(num) {
 const BLANK_RENTAL = { renterName: '', confirmation: '', trackingNumber: '', cost: '', notes: '' };
 
 export default function Gear({ project, setProject }) {
+  const [gearRequest, setGearRequest] = useState(undefined); // undefined = loading, null = none
+  const [showGearReq, setShowGearReq] = useState(false);
+  useEffect(() => {
+    api.gearRequestForProject(project.id).then(setGearRequest).catch(() => setGearRequest(null));
+  }, [project.id]);
+
   const [onlineRentals, setOnlineRentals] = useState(project.onlineRentals || []);
   const [showAddRental, setShowAddRental] = useState(false);
   const [rentalForm, setRentalForm] = useState(BLANK_RENTAL);
@@ -159,9 +166,23 @@ export default function Gear({ project, setProject }) {
           <div className="page-title" style={{ marginBottom:3 }}>Gear Management</div>
           <div className="page-sub">{project.client} · {project.code}</div>
         </div>
-        {saving && <span style={{ fontSize:11, color:'var(--muted)' }}>Saving…</span>}
-        {saved && !saving && <span style={{ fontSize:11, color:'var(--green-text,#4ade80)' }}>Saved</span>}
+        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+          {saving && <span style={{ fontSize:11, color:'var(--muted)' }}>Saving…</span>}
+          {saved && !saving && <span style={{ fontSize:11, color:'var(--green-text,#4ade80)' }}>Saved</span>}
+          <button onClick={() => setShowGearReq(true)}
+            title={gearRequest ? 'Gear request submitted — click to view' : 'No gear request yet — click to fill one out'}
+            style={gearRequest
+              ? { background:'var(--orange)', border:'1px solid var(--orange)', color:'#fff', borderRadius:20, padding:'6px 16px', fontSize:11, fontWeight:800, cursor:'pointer' }
+              : { background:'var(--bg2)', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:20, padding:'6px 16px', fontSize:11, fontWeight:800, cursor:'pointer' }}>
+            View Gear Request
+          </button>
+        </div>
       </div>
+      {showGearReq && (
+        <GearRequestModal projectId={project.id} existing={gearRequest || null}
+          onClose={() => setShowGearReq(false)}
+          onSubmitted={r => setGearRequest({ ...r, code: project.code, title: project.title })} />
+      )}
 
       {/* ── Storage Location ── */}
       <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'16px', marginBottom:20 }}>
@@ -190,9 +211,6 @@ export default function Gear({ project, setProject }) {
               {gearPerson.email && <span style={{ color:'var(--muted)' }}>{gearPerson.email}</span>}
             </div>
           )}
-        </div>
-        <div style={{ marginTop:10 }}>
-          <Check id="internalReq" label="Internal gear request submitted" {...check('internalRequestSubmitted')} />
         </div>
       </div>
 

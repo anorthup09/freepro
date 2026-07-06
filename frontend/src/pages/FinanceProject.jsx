@@ -1042,8 +1042,6 @@ function OverviewEstimateModal({ sections, lines, feeRate, heading, onClose }) {
 function EditProjectModal({ project, onClose, onSaved }) {
   const [f, setF] = useState({
     code: project.code || '', title: project.title || '', client: project.client || '',
-    city: project.city || '', state: project.state || '',
-    startDate: (project.start_date || '').slice(0, 10), endDate: (project.end_date || '').slice(0, 10),
   });
   const [logo, setLogo] = useState(project.client_logo || null);
   const [saving, setSaving] = useState(false);
@@ -1075,14 +1073,6 @@ function EditProjectModal({ project, onClose, onSaved }) {
             {field('Client', 'client')}
           </div>
           {field('Project Name', 'title')}
-          <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
-            {field('City', 'city')}
-            {field('State', 'state')}
-          </div>
-          <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
-            {field('Start Date', 'startDate', 'date')}
-            {field('End Date', 'endDate', 'date')}
-          </div>
           <LogoField value={logo} onChange={setLogo} />
           <div style={{ display:'flex', justifyContent:'flex-end', gap:8 }}>
             <button className="btn btn-ghost btn-sm" onClick={onClose}>Cancel</button>

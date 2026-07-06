@@ -116,6 +116,7 @@ app.use('/api/projects', shotListRoutes);
 app.use('/api/projects', require('./routes/scripts'));
 app.use('/api/util', utilRoutes);
 app.use('/api', require('./routes/contracts'));
+app.use('/api/gear-requests', require('./routes/gearRequests'));
 app.use('/api', require('./routes/finance'));
 
 // Admin backup: download now, or trigger a cloud push

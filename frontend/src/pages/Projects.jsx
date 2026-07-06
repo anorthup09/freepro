@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../App.jsx';
+import GearRequestModal from '../components/GearRequestModal.jsx';
 
 const STATUS_PILL = {
   PLANNING:  'amber',
@@ -11,6 +12,48 @@ const STATUS_PILL = {
   ARCHIVED:  '',
 };
 
+function GearManagement() {
+  const [requests, setRequests] = useState(null);
+  const [showForm, setShowForm] = useState(false);
+  const [viewing, setViewing] = useState(null);
+  const load = () => api.gearRequests().then(setRequests).catch(e => alert(e.message));
+  useEffect(() => { load(); }, []);
+
+  return (
+    <div>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14, flexWrap:'wrap', gap:8 }}>
+        <div className="page-sub">Internal gear requests — submissions email the gear team automatically.</div>
+        <button className="btn btn-primary" onClick={() => setShowForm(true)}>+ New Gear Request</button>
+      </div>
+      {!requests && <div className="empty">Loading…</div>}
+      {requests && requests.length === 0 && <div className="empty">No gear requests yet — submit the first one.</div>}
+      {requests && requests.map(r => (
+        <div key={r.id} onClick={() => setViewing(r)}
+          style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding:'13px 18px', marginBottom:10, cursor:'pointer', display:'flex', alignItems:'center', gap:14, flexWrap:'wrap' }}>
+          <div style={{ flex:1, minWidth:180 }}>
+            <div style={{ fontSize:10, color:'var(--muted)' }}>{r.code}</div>
+            <div style={{ fontSize:14, fontWeight:700 }}>{r.title}</div>
+            <div style={{ fontSize:11, color:'var(--muted)' }}>{r.client} · requested by {r.name}</div>
+          </div>
+          <div style={{ textAlign:'right' }}>
+            <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Check-Out → Check-In</div>
+            <div style={{ fontSize:12, fontWeight:600 }}>
+              {r.check_out ? new Date(String(r.check_out).slice(0,10)+'T12:00:00').toLocaleDateString() : '—'}
+              {' → '}
+              {r.check_in ? new Date(String(r.check_in).slice(0,10)+'T12:00:00').toLocaleDateString() : '—'}
+            </div>
+          </div>
+          <span style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--orange)', border:'1px solid rgba(232,80,10,0.4)', borderRadius:10, padding:'2px 8px', whiteSpace:'nowrap' }}>
+            {r.moving || 'Submitted'}
+          </span>
+        </div>
+      ))}
+      {showForm && <GearRequestModal onClose={() => setShowForm(false)} onSubmitted={load} />}
+      {viewing && <GearRequestModal existing={viewing} onClose={() => setViewing(null)} />}
+    </div>
+  );
+}
+
 export default function Projects() {
   const { user, setUser } = useAuth();
   const nav = useNavigate();
@@ -19,6 +62,8 @@ export default function Projects() {
   const [form, setForm] = useState({ code:'', title:'', client:'', city:'', state:'', startDate:'', endDate:'' });
   const [saving, setSaving] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+  const [view, setView] = useState('production');
+  const isCrew = user?.role === 'CREW';
 
   useEffect(() => { api.getProjects().then(setProjects).catch(console.error); }, []);
 
@@ -81,19 +126,37 @@ export default function Projects() {
         <button className="btn btn-ghost btn-sm" onClick={logout}>Sign out</button>
       </nav>
       <div className="wrap">
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:18 }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:18, flexWrap:'wrap', gap:10 }}>
           <div>
-            <div className="page-title">Production</div>
-            <div className="page-sub">{projects.length} shoot{projects.length !== 1 ? 's' : ''}</div>
+            <div style={{ display:'flex', border:'1px solid var(--border)', borderRadius:18, overflow:'hidden', marginBottom:6, width:'fit-content' }}>
+              {[['production', 'Production Management'], ['gear', 'Gear Management']].map(([k, label]) => (
+                <button key={k} onClick={() => setView(k)}
+                  style={{ background: view === k ? 'rgba(232,80,10,0.25)' : 'transparent', border:'none',
+                    color: view === k ? 'var(--orange)' : 'var(--muted)', fontSize:12, fontWeight:800, padding:'7px 18px', cursor:'pointer', fontFamily:'inherit' }}>
+                  {label}
+                </button>
+              ))}
+            </div>
+            {view === 'production' && !isCrew && <div className="page-sub">{projects.length} shoot{projects.length !== 1 ? 's' : ''}</div>}
           </div>
-          <div style={{ display:'flex', gap:8 }}>
-            <Link to="/crew-views" className="btn btn-ghost">Crew Views</Link>
-            <button className="btn btn-primary" onClick={() => setShowNew(true)}>+ New Project</button>
-          </div>
+          {view === 'production' && (
+            <div style={{ display:'flex', gap:8 }}>
+              <Link to="/crew-views" className="btn btn-ghost">Crew Views</Link>
+              {!isCrew && <button className="btn btn-primary" onClick={() => setShowNew(true)}>+ New Project</button>}
+            </div>
+          )}
         </div>
 
-        {projects.length === 0 && <div className="empty">No projects yet — create one to get started.</div>}
+        {view === 'gear' && <GearManagement />}
+        {view === 'production' && isCrew && (
+          <div className="empty" style={{ padding:'40px 20px', textAlign:'center' }}>
+            Head to <Link to="/crew-views" style={{ color:'var(--orange)' }}>Crew Views</Link> for your call sheets and schedules,
+            or switch to Gear Management above to submit and track gear requests.
+          </div>
+        )}
+        {view === 'production' && !isCrew && projects.length === 0 && <div className="empty">No projects yet — create one to get started.</div>}
 
+        {view === 'production' && !isCrew && (
         <div className="proj-list">
           {activeProjects.map(p => {
             const d = daysUntil(p.start_date);
@@ -123,8 +186,9 @@ export default function Projects() {
             );
           })}
         </div>
+        )}
 
-        {projects.some(p => p.status === 'ARCHIVED') && (
+        {view === 'production' && !isCrew && projects.some(p => p.status === 'ARCHIVED') && (
           <div style={{ marginTop:24 }}>
             <button
               className="btn btn-ghost btn-sm"

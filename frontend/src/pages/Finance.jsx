@@ -88,16 +88,17 @@ export function LogoField({ value, onChange }) {
 }
 
 function NewProjectModal({ onClose, onCreated }) {
-  const [f, setF] = useState({ code:'', title:'', client:'', city:'', state:'', startDate:'', endDate:'' });
+  const [f, setF] = useState({ code:'', title:'', client:'' });
   const [logo, setLogo] = useState(null);
   const [saving, setSaving] = useState(false);
   const set = k => e => setF(v => ({ ...v, [k]: e.target.value }));
-  const ok = f.code && f.title && f.client && f.startDate && f.endDate;
+  const ok = f.code && f.title && f.client;
   const submit = async () => {
     if (!ok || saving) return;
     setSaving(true);
     try {
-      const p = await api.createProject({ ...f, city: f.city || '—', state: f.state || '—', clientLogo: logo });
+      const today = new Date().toISOString().slice(0, 10);
+      const p = await api.createProject({ ...f, city: '—', state: '—', startDate: today, endDate: today, clientLogo: logo });
       await api.createBudget(p.id);
       onCreated(p);
     } catch (e) { alert(e.message); setSaving(false); }
@@ -122,14 +123,6 @@ function NewProjectModal({ onClose, onCreated }) {
             {field('Client', 'client')}
           </div>
           {field('Project Name', 'title')}
-          <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
-            {field('City', 'city')}
-            {field('State', 'state')}
-          </div>
-          <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
-            {field('Start Date', 'startDate', 'date')}
-            {field('End Date', 'endDate', 'date')}
-          </div>
           <LogoField value={logo} onChange={setLogo} />
           <div style={{ fontSize:11, color:'var(--muted)' }}>A budget is created automatically in <span style={{ color:'#e6c229', fontWeight:700 }}>RFP</span> status.</div>
           <div style={{ display:'flex', justifyContent:'flex-end', gap:8 }}>

@@ -831,6 +831,27 @@ async function migrate() {
     if (secs.length) console.log(`Backfilled ${secs.length} FreePro shoot project tile(s).`);
   } catch (e) { console.error('Shoot tile backfill failed:', e.message); }
 
+  await sql`
+    CREATE TABLE IF NOT EXISTS gear_requests (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      project_id TEXT NOT NULL UNIQUE,
+      name TEXT,
+      crew TEXT,
+      check_out DATE,
+      check_in DATE,
+      moving TEXT,
+      camera TEXT,
+      lights TEXT,
+      grip TEXT,
+      other TEXT,
+      drives TEXT,
+      drive_size TEXT,
+      drive_qty TEXT,
+      notes TEXT,
+      submitted_by TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`;
+
   // Backfill: shoots under closed/dead budgets should be archived in FreePro
   try {
     const archived = await sql`

@@ -54,6 +54,10 @@ export const api = {
   getProject: (id) => req('GET', `/projects/${id}`),
   createProject: (data) => req('POST', '/projects', data),
   searchClientLogos: (q) => req('GET', `/projects/logos?q=${encodeURIComponent(q || '')}`),
+  gearRequests: () => req('GET', '/gear-requests'),
+  gearRequestProjects: () => req('GET', '/gear-requests/available-projects'),
+  gearRequestForProject: (pid) => req('GET', `/gear-requests/project/${pid}`),
+  createGearRequest: (data) => req('POST', '/gear-requests', data),
   updateProject: (id, data) => req('PATCH', `/projects/${id}`, data),
 
   // Locations

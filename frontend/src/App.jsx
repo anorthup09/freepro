@@ -77,7 +77,7 @@ export default function App() {
       <Routes>
         <Route path="/login" element={user ? <Navigate to="/" /> : <Login />} />
         <Route path="/" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <Hub />) : <Navigate to="/login" />} />
-        <Route path="/projects" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <Projects />) : <Navigate to="/login" />} />
+        <Route path="/projects" element={user ? <Projects /> : <Navigate to="/login" />} />
         <Route path="/finance" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <Finance />) : <Navigate to="/login" />} />
         <Route path="/pipeline" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <Pipeline />) : <Navigate to="/login" />} />
         <Route path="/finance/overview" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <FinanceOverview />) : <Navigate to="/login" />} />
