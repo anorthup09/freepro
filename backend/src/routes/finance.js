@@ -451,7 +451,9 @@ router.patch('/finance/vcc/:id', ...finance, async (req, res, next) => {
       trip = ${d.trip !== undefined ? (d.trip || null) : sql`trip`},
       amount = ${d.amount !== undefined ? (Number(d.amount) || 0) : sql`amount`},
       status = ${d.status !== undefined ? d.status : sql`status`},
-      not_posted = ${d.notPosted !== undefined ? (d.notPosted === true) : sql`not_posted`}
+      not_posted = ${d.notPosted !== undefined ? (d.notPosted === true) : sql`not_posted`},
+      review = ${d.review !== undefined ? (d.review === true) : sql`review`},
+      flag = ${d.flag !== undefined ? (d.flag || null) : sql`flag`}
       WHERE id = ${req.params.id} RETURNING *`;
     res.json(e);
   } catch (e) { next(e); }
