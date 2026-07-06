@@ -113,7 +113,22 @@ function totals(sections, lines, mgmtRate) {
   return { nonTravel, travel, photo, mgmt, video: nonTravel + travel + mgmt, total: nonTravel + travel + mgmt + photo };
 }
 
+function closeMonthRange() {
+  const opts = [];
+  const start = new Date();
+  start.setMonth(start.getMonth() - 6, 1);
+  for (let i = 0; i < 43; i++) {
+    const d = new Date(start.getFullYear(), start.getMonth() + i, 1);
+    opts.push({
+      value: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
+      label: d.toLocaleDateString('en-US', { month: 'long' }) + ' ' + d.getFullYear(),
+    });
+  }
+  return opts;
+}
+
 function BudgetTab({ budget, sections, lines, vcc, set, reload }) {
+  const closeMonthOptions = useMemo(closeMonthRange, []);
   const mgmtRate = budget.mgmt_fee_rate != null ? Number(budget.mgmt_fee_rate) : 0.15;
   const t = useMemo(() => totals(sections, lines, mgmtRate), [sections, lines, mgmtRate]);
 
@@ -149,7 +164,6 @@ function BudgetTab({ budget, sections, lines, vcc, set, reload }) {
         {[
           ['Budget Dated', 'budget_date', 'budgetDate', 'date'],
           ['Solutions Code', 'solutions_code', 'solutionsCode', 'text'],
-          ['Close Month', 'close_month', 'closeMonth', 'month'],
         ].map(([label, key, apiKey, type]) => (
           <div key={key} style={{ display:'flex', flexDirection:'column', gap:3 }}>
             <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>{label}</label>
@@ -158,6 +172,17 @@ function BudgetTab({ budget, sections, lines, vcc, set, reload }) {
               onBlur={e => saveBudget({ [apiKey]: e.target.value })} />
           </div>
         ))}
+        <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
+          <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Close Month</label>
+          <select value={budget.close_month || ''} style={{ width:150, fontSize:12 }}
+            onChange={e => { patchBudget({ close_month: e.target.value }); saveBudget({ closeMonth: e.target.value }); }}>
+            <option value="">— Select —</option>
+            {budget.close_month && !closeMonthOptions.some(o => o.value === budget.close_month) && (
+              <option value={budget.close_month}>{budget.close_month}</option>
+            )}
+            {closeMonthOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        </div>
         <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
           <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Budget Owner</label>
           <select value={budget.media_rep || ''} style={{ width:160, fontSize:12 }}
