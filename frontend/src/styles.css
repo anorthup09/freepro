@@ -445,3 +445,4 @@ textarea { resize: vertical; min-height: 70px; }
   .spec-tile-val { color: #1a1a1a !important; }
   .spec-tile-label { color: #555 !important; }
 }
+@media print { .no-print { display: none !important } }

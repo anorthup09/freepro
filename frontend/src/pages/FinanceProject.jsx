@@ -137,8 +137,9 @@ function BudgetTab({ budget, sections, lines, set }) {
       <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding:'12px 16px', marginBottom:16, display:'flex', gap:16, flexWrap:'wrap', alignItems:'flex-end' }}>
         {[
           ['Budget Dated', 'budget_date', 'budgetDate', 'date'],
-          ['Media Rep', 'media_rep', 'mediaRep', 'text'],
+          ['Budget Owner', 'media_rep', 'mediaRep', 'text'],
           ['Solutions Code', 'solutions_code', 'solutionsCode', 'text'],
+          ['Close Month', 'close_month', 'closeMonth', 'month'],
         ].map(([label, key, apiKey, type]) => (
           <div key={key} style={{ display:'flex', flexDirection:'column', gap:3 }}>
             <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>{label}</label>
@@ -151,7 +152,7 @@ function BudgetTab({ budget, sections, lines, set }) {
           <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Status</label>
           <select value={budget.status || 'Draft'} style={{ width:130, fontSize:12 }}
             onChange={e => { patchBudget({ status: e.target.value }); saveBudget({ status: e.target.value }); }}>
-            {['Draft','Sent','Approved','Live','Reconciled'].map(s => <option key={s}>{s}</option>)}
+            {['RFP','Draft','Sent','Live','Dead','Reconciled'].map(s => <option key={s}>{s}</option>)}
           </select>
         </div>
         <div style={{ display:'flex', flexDirection:'column', gap:3 }}>

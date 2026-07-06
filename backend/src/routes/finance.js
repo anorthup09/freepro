@@ -121,7 +121,7 @@ router.get('/finance/projects', ...finance, async (req, res, next) => {
   try {
     const projects = await sql`
       SELECT p.id, p.code, p.title, p.client, p.status, p.start_date, p.end_date, b.id as budget_id, b.status as budget_status,
-             b.mgmt_fee_rate, b.total_cap_co, b.deposit, b.additional_deposit
+             b.mgmt_fee_rate, b.total_cap_co, b.deposit, b.additional_deposit, b.media_rep, b.close_month
       FROM projects p LEFT JOIN budgets b ON b.project_id = p.id
       WHERE p.status != 'ARCHIVED'
       ORDER BY p.code`;
@@ -130,8 +130,8 @@ router.get('/finance/projects', ...finance, async (req, res, next) => {
     const vccMap = Object.fromEntries(vcc.map(v => [v.project_id, Number(v.total)]));
     res.json(projects.map(p => {
       const bl = lines.filter(l => l.budget_id === p.budget_id);
-      const total = budgetTotal(bl, Number(p.mgmt_fee_rate ?? 0.15));
-      return { ...p, budget_total: total, vcc_total: vccMap[p.id] || 0 };
+      const { total, fee } = budgetTotal(bl, Number(p.mgmt_fee_rate ?? 0.15));
+      return { ...p, budget_total: total, fee, vcc_total: vccMap[p.id] || 0 };
     }));
   } catch (e) { next(e); }
 });
@@ -153,7 +153,8 @@ function budgetTotal(allLines, mgmtRate) {
       if (l.is_travel) travel += st; else nonTravel += st;
     }
   }
-  return nonTravel + travel + mgmtRate * nonTravel;
+  const fee = mgmtRate * nonTravel;
+  return { total: nonTravel + travel + fee, fee };
 }
 
 // Full finance bundle for a project
@@ -212,6 +213,7 @@ router.patch('/finance/budget/:bid', ...finance, async (req, res, next) => {
         original_fee_estimate = ${d.originalFeeEstimate !== undefined ? num(d.originalFeeEstimate) : sql`original_fee_estimate`},
         budget_date = ${d.budgetDate !== undefined ? (d.budgetDate || null) : sql`budget_date`},
         media_rep = ${d.mediaRep !== undefined ? (d.mediaRep || null) : sql`media_rep`},
+        close_month = ${d.closeMonth !== undefined ? (d.closeMonth || null) : sql`close_month`},
         solutions_code = ${d.solutionsCode !== undefined ? (d.solutionsCode || null) : sql`solutions_code`}
       WHERE id = ${req.params.bid} RETURNING *`;
     res.json(b);
@@ -499,6 +501,63 @@ router.get('/budget-share/:token', async (req, res, next) => {
     const sections = await sql`SELECT id, title, subtitle, kind, sort FROM budget_sections WHERE budget_id = ${budget.id} ORDER BY sort`;
     const lines = await sql`SELECT id, section_id, scope, notes, qty, unit_cost, percent, is_travel, sort FROM budget_lines WHERE budget_id = ${budget.id} ORDER BY sort`;
     res.json({ project, budget: { budget_date: budget.budget_date, media_rep: budget.media_rep, solutions_code: budget.solutions_code, mgmt_fee_rate: budget.mgmt_fee_rate }, sections, lines });
+  } catch (e) { next(e); }
+});
+
+// Weekly finance report: snapshot current state, diff against the previous snapshot
+router.post('/finance/weekly-report', ...finance, async (req, res, next) => {
+  try {
+    const projects = await sql`
+      SELECT p.id, p.code, p.title, p.client, p.status as project_status, b.id as budget_id, b.status as budget_status,
+             b.mgmt_fee_rate, b.media_rep, b.close_month
+      FROM projects p LEFT JOIN budgets b ON b.project_id = p.id
+      ORDER BY p.code`;
+    const lines = await sql`SELECT budget_id, qty, unit_cost, percent, is_travel, section_id FROM budget_lines`;
+    const current = projects.map(p => {
+      const { total, fee } = budgetTotal(lines.filter(l => l.budget_id === p.budget_id), Number(p.mgmt_fee_rate ?? 0.15));
+      return {
+        project_id: p.id, code: p.code, title: p.title, client: p.client,
+        media_rep: p.media_rep || null, budget_status: p.budget_status || (p.budget_id ? 'Draft' : 'No budget'),
+        budget_total: Math.round(total * 100) / 100, fee: Math.round(fee * 100) / 100,
+        close_month: p.close_month || null, project_status: p.project_status,
+      };
+    });
+
+    const [latest] = await sql`SELECT batch_id, created_at FROM finance_snapshots ORDER BY created_at DESC LIMIT 1`;
+    let prev = [];
+    if (latest) prev = await sql`SELECT * FROM finance_snapshots WHERE batch_id = ${latest.batch_id}`;
+    const prevMap = Object.fromEntries(prev.map(x => [x.project_id, x]));
+
+    const added = [], changed = [], closed = [];
+    const DEAD = ['Dead', 'Reconciled'];
+    for (const c of current) {
+      const p = prevMap[c.project_id];
+      if (!p) { added.push(c); continue; }
+      const diffs = [];
+      if (Math.abs(Number(p.budget_total || 0) - c.budget_total) >= 0.01) diffs.push({ field: 'Budget', from: Number(p.budget_total || 0), to: c.budget_total, money: true });
+      if (Math.abs(Number(p.fee || 0) - c.fee) >= 0.01) diffs.push({ field: 'Fee', from: Number(p.fee || 0), to: c.fee, money: true });
+      if ((p.budget_status || '') !== (c.budget_status || '')) diffs.push({ field: 'Status', from: p.budget_status || '—', to: c.budget_status || '—' });
+      if ((p.close_month || '') !== (c.close_month || '')) diffs.push({ field: 'Close Month', from: p.close_month || '—', to: c.close_month || '—' });
+      const nowClosed = DEAD.includes(c.budget_status) || c.project_status === 'ARCHIVED';
+      const wasClosed = DEAD.includes(p.budget_status || '');
+      if (nowClosed && !wasClosed) closed.push({ ...c, reason: c.budget_status === 'Dead' ? 'Budget marked Dead' : c.budget_status === 'Reconciled' ? 'Reconciled' : 'Project archived' });
+      else if (diffs.length) changed.push({ ...c, diffs });
+    }
+    const removedIds = prev.filter(x => !current.some(c => c.project_id === x.project_id));
+
+    const batchId = require('crypto').randomUUID();
+    for (const c of current) {
+      await sql`INSERT INTO finance_snapshots (batch_id, project_id, code, title, media_rep, budget_status, budget_total, fee, close_month)
+        VALUES (${batchId}, ${c.project_id}, ${c.code}, ${c.title}, ${c.media_rep}, ${c.budget_status}, ${c.budget_total}, ${c.fee}, ${c.close_month})`;
+    }
+    res.json({
+      generatedAt: new Date().toISOString(),
+      previousAt: latest ? latest.created_at : null,
+      firstReport: !latest,
+      added, changed, closed,
+      removed: removedIds.map(x => ({ code: x.code, title: x.title })),
+      current,
+    });
   } catch (e) { next(e); }
 });
 

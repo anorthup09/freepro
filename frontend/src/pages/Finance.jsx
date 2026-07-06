@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../App.jsx';
 import { api } from '../api.js';
+import { STATUS_COLORS } from './Hub.jsx';
 
 const fmt$ = n => '$' + Number(n || 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
 
@@ -40,7 +41,7 @@ export default function Finance() {
         {projects && projects.length === 0 && <div className="empty">No projects yet — create one in FreePro first.</div>}
         {projects && projects.map(p => (
           <div key={p.id} onClick={() => nav(`/finance/${p.id}`)}
-            style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding:'14px 18px', marginBottom:10, cursor:'pointer', display:'flex', alignItems:'center', gap:14, flexWrap:'wrap' }}>
+            style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding:'14px 18px', marginBottom:10, cursor:'pointer', display:'flex', alignItems:'center', gap:14, flexWrap:'wrap', opacity: p.budget_status === 'Dead' ? 0.55 : 1 }}>
             <div style={{ flex:1, minWidth:180 }}>
               <div style={{ fontSize:10, color:'var(--muted)' }}>{p.code}</div>
               <div style={{ fontSize:15, fontWeight:700 }}>{p.title}</div>
@@ -61,7 +62,11 @@ export default function Finance() {
                   {p.budget_id ? fmt$((p.budget_total - (p.total_cap_co || 0)) - p.vcc_total) : '—'}
                 </div>
               </div>
-              <span className="badge" style={{ fontSize:9 }}>{p.budget_id ? (p.budget_status || 'Draft') : 'No budget'}</span>
+              {(() => { const sc = STATUS_COLORS[p.budget_status] || 'var(--muted)'; return (
+                <span style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:sc, border:`1px solid ${sc}55`, borderRadius:10, padding:'2px 8px', whiteSpace:'nowrap' }}>
+                  {p.budget_id ? (p.budget_status || 'Draft') : 'No budget'}
+                </span>
+              ); })()}
             </div>
           </div>
         ))}

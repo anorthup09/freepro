@@ -111,6 +111,7 @@ export const api = {
   importOdc: (pid, fileBase64, filename) => req('POST', `/finance/${pid}/odc-import`, { fileBase64, filename }),
   shareBudget: (bid) => req('POST', `/finance/budget/${bid}/share`),
   getBudgetShare: (token) => req('GET', `/budget-share/${token}`),
+  weeklyFinanceReport: () => req('POST', '/finance/weekly-report'),
 
   // Schedule
   getSchedule: (projectId) => req('GET', `/projects/${projectId}/schedule`),
