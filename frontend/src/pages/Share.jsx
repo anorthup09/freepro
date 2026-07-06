@@ -1906,7 +1906,7 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
       ? (dayMD && arriveMD === dayMD)
       : (f.arrive_time && isoDate(new Date(f.arrive_time)) === dayStr);
     if (departMatch) legs.push({ ...f, _leg:'depart', _time: flightTime(f,'depart') });
-    // Same-day arrivals ride along on the departure card
+    // Same-day arrivals ride along on the departure card (orange Arrives label)
     if (arriveMatch && !departMatch) legs.push({ ...f, _leg:'arrive', _time: flightTime(f,'arrive') });
     return legs;
   });
@@ -2178,8 +2178,13 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
                         {item.origin} → {item.destination}
                         {(item.airline || item.flight_number) && <span style={{ color:'var(--muted)', marginLeft:8 }}>{[item.airline, item.flight_number].filter(Boolean).join(' ')}</span>}
                         {item.confirmation && <span style={{ color:'var(--muted)', marginLeft:8 }}>#{item.confirmation}</span>}
-                        {adjustedArrival && <span style={{ color:'var(--muted)', marginLeft:8 }}>Arrives: {adjustedArrival}</span>}
                       </div>
+                      {adjustedArrival && (
+                        <div style={{ position:'absolute', bottom:8, right:10, fontSize:11 }}>
+                          <span style={{ color:'var(--orange)', fontWeight:700 }}>Arrives</span>
+                          <span style={{ color:'var(--text)', marginLeft:6 }}>{adjustedArrival}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );

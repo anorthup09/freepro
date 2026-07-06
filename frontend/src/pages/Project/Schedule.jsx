@@ -1088,12 +1088,13 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                                   <span style={{ color:'var(--muted)', marginLeft:8 }}>{[item.airline, item.flight_number].filter(Boolean).join(' ')}</span>
                                 )}
                                 {item.confirmation && <span style={{ color:'var(--muted)', marginLeft:8 }}>#{item.confirmation}</span>}
-                                {item._leg === 'depart' && (item.arrive_display || item.arrive_time) && (
-                                  <span style={{ color:'var(--muted)', marginLeft:8 }}>
-                                    Arrives: {item.arrive_display || new Date(item.arrive_time).toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' })}
-                                  </span>
-                                )}
                               </div>
+                              {item._leg === 'depart' && (item.arrive_display || item.arrive_time) && (
+                                <div style={{ position:'absolute', bottom:8, right:10, fontSize:11 }}>
+                                  <span style={{ color:'var(--orange)', fontWeight:700 }}>Arrives</span>
+                                  <span style={{ color:'var(--text)', marginLeft:6 }}>{item.arrive_display || new Date(item.arrive_time).toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' })}</span>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
