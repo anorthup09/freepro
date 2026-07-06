@@ -62,7 +62,7 @@ const TEMPLATE = [
     ['Recording Engineer', 'Flat Rate - priced per 1-hour recording session', 175],
     ['Remote Production Studio', 'Flat Rate - Hourly Usage Fee', 200],
   ]},
-  { title: 'PRODUCTION COSTS — Shoot #1', subtitle: 'Shoot Description · City, State · Dates', kind: 'shoot', lines: 'SHOOT' },
+  { title: 'PRODUCTION COSTS — Shoot #1', subtitle: '', kind: 'shoot', lines: 'SHOOT' },
   { title: 'POST-PRODUCTION', subtitle: 'Allocations subject to change based on final output', kind: 'general', lines: [
     ['Video Editing - Assembly Editing Rate', 'Starting rate: < 30 min TRT', 1500],
     ['Video Editing - Assembly Editing Rate', 'Starting rate: 30-60 min TRT', 2500],
@@ -182,7 +182,10 @@ router.get('/finance/:pid', ...finance, async (req, res, next) => {
     const [budget] = await sql`SELECT * FROM budgets WHERE project_id = ${req.params.pid} AND COALESCE(kind, 'main') = 'main'`;
     let sections = [], lines = [];
     if (budget) {
-      sections = await sql`SELECT * FROM budget_sections WHERE budget_id = ${budget.id} ORDER BY sort`;
+      sections = await sql`
+        SELECT s.*, fp.start_date as fp_start_date, fp.end_date as fp_end_date
+        FROM budget_sections s LEFT JOIN projects fp ON fp.id = s.freepro_project_id
+        WHERE s.budget_id = ${budget.id} ORDER BY s.sort`;
       // backfill shoot codes for sections created before the coding system
       const shootSecs = sections.filter(x => x.kind === 'shoot');
       if (shootSecs.some(x => !x.shoot_code)) {
@@ -249,7 +252,7 @@ async function ensureShootProjects(budgetId) {
   for (const sec of shootSecs) {
     if (sec.freepro_project_id || !sec.shoot_code) continue;
     const nn = sec.shoot_code.split('-').pop();
-    const title = `${parent.title} — ${sec.trip || 'Shoot ' + nn}`;
+    const title = (sec.subtitle || '').trim() || `${parent.title} — ${sec.trip || 'Shoot ' + nn}`;
     let [proj] = await sql`SELECT id FROM projects WHERE code = ${sec.shoot_code}`;
     if (!proj) {
       [proj] = await sql`INSERT INTO projects (id, code, title, client, city, state, start_date, end_date, status, parent_project_id)

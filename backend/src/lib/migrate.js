@@ -836,7 +836,7 @@ async function migrate() {
   // Backfill: every production block of a Live budget gets its FreePro project tile
   try {
     const secs = await sql`
-      SELECT s.id, s.shoot_code, s.trip, p.id as parent_id, p.title, p.client, p.city, p.state, p.start_date, p.end_date,
+      SELECT s.id, s.shoot_code, s.trip, s.subtitle, p.id as parent_id, p.title, p.client, p.city, p.state, p.start_date, p.end_date,
              (SELECT COUNT(*) FROM budget_sections s2 WHERE s2.budget_id = b.id AND s2.kind = 'shoot') as shoot_count
       FROM budget_sections s
       JOIN budgets b ON b.id = s.budget_id AND COALESCE(b.kind, 'main') = 'main' AND b.status = 'Live'
@@ -848,7 +848,7 @@ async function migrate() {
         continue;
       }
       const nn = sec.shoot_code.split('-').pop();
-      const title = `${sec.title} — ${sec.trip || 'Shoot ' + nn}`;
+      const title = (sec.subtitle || '').trim() || `${sec.title} — ${sec.trip || 'Shoot ' + nn}`;
       let [proj] = await sql`SELECT id FROM projects WHERE code = ${sec.shoot_code}`;
       if (!proj) {
         [proj] = await sql`INSERT INTO projects (id, code, title, client, city, state, start_date, end_date, status, parent_project_id)

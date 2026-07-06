@@ -364,9 +364,15 @@ function BudgetTab({ budget, sections, lines, vcc, set, reload }) {
                       onChange={e => patchSection(sec.id, { trip: e.target.value })}
                       onBlur={e => api.updateBudgetSection(sec.id, { trip: e.target.value }).catch(() => {})} />
                   )}
-                  <input value={sec.subtitle || ''} placeholder="Description · City, State · Dates" style={{ ...cellIn, fontSize:11, color:'var(--muted)' }}
+                  <input value={sec.subtitle || ''} placeholder={sec.kind === 'shoot' ? 'Shoot Description' : 'Description'} style={{ ...cellIn, fontSize:11, color:'var(--muted)' }}
                     onChange={e => patchSection(sec.id, { subtitle: e.target.value })}
                     onBlur={e => api.updateBudgetSection(sec.id, { subtitle: e.target.value }).catch(() => {})} />
+                  {sec.kind === 'shoot' && sec.fp_start_date && (
+                    <span title="Dates feed from the FreePro project"
+                      style={{ fontSize:10, color:'var(--muted)', whiteSpace:'nowrap', flexShrink:0 }}>
+                      🎬 {new Date(String(sec.fp_start_date).slice(0,10)+'T12:00:00').toLocaleDateString()} – {new Date(String(sec.fp_end_date || sec.fp_start_date).slice(0,10)+'T12:00:00').toLocaleDateString()}
+                    </span>
+                  )}
                 </div>
               </div>
               <div style={{ fontSize:13, fontWeight:700, whiteSpace:'nowrap' }}>{fmt$(mainTotal + travelTotal)}</div>
@@ -1397,7 +1403,7 @@ function EstimatePane({ est, feeRate, saveFeeAll, reload, onMerged }) {
                 <input value={sec.title} style={{ ...cellIn, fontWeight:700, fontSize:13, textTransform:'uppercase', letterSpacing:'0.04em', color:YEL }}
                   onChange={e => patchSection(sec.id, { title: e.target.value })}
                   onBlur={e => api.updateBudgetSection(sec.id, { title: e.target.value }).catch(() => {})} />
-                <input value={sec.subtitle || ''} placeholder="Description · City, State · Dates" style={{ ...cellIn, fontSize:11, color:'var(--muted)' }}
+                <input value={sec.subtitle || ''} placeholder={sec.kind === 'shoot' ? 'Shoot Description' : 'Description'} style={{ ...cellIn, fontSize:11, color:'var(--muted)' }}
                   onChange={e => patchSection(sec.id, { subtitle: e.target.value })}
                   onBlur={e => api.updateBudgetSection(sec.id, { subtitle: e.target.value }).catch(() => {})} />
               </div>
