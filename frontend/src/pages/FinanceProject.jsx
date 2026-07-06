@@ -53,6 +53,7 @@ export default function FinanceProject() {
   const [data, setData] = useState(null);
   const [tab, setTab] = useState('budget');
   const [estimateMode, setEstimateMode] = useState(false);
+  const [overview, setOverview] = useState(false);
 
   useEffect(() => { api.financeBundle(pid).then(setData).catch(e => alert(e.message)); }, [pid]);
 
@@ -82,10 +83,16 @@ export default function FinanceProject() {
               <button className={`btn btn-sm ${tab === 'vcc' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setTab('vcc')}>VCC</button>
             </div>
             {budget && (
-              <button onClick={() => setEstimateMode(true)}
-                style={{ background:'rgba(230,194,41,0.15)', border:'1px solid #e6c229', color:'#e6c229', borderRadius:20, padding:'4px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
-                ⚡ Additional Estimate{estimates.length ? ` (${estimates.length})` : ''}
-              </button>
+              <>
+                <button onClick={() => setOverview(true)}
+                  style={{ background:'rgba(90,191,128,0.12)', border:'1px solid #5ABF80', color:'#5ABF80', borderRadius:20, padding:'4px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
+                  📋 Overview Estimate
+                </button>
+                <button onClick={() => setEstimateMode(true)}
+                  style={{ background:'rgba(230,194,41,0.15)', border:'1px solid #e6c229', color:'#e6c229', borderRadius:20, padding:'4px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
+                  ⚡ Additional Estimate{estimates.length ? ` (${estimates.length})` : ''}
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -104,6 +111,10 @@ export default function FinanceProject() {
       {estimateMode && (
         <EstimateMode pid={pid} estimates={estimates} onExit={() => setEstimateMode(false)}
           reload={() => api.financeBundle(pid).then(setData)} />
+      )}
+      {overview && budget && (
+        <OverviewEstimateModal sections={sections} lines={lines} feeRate={Number(budget.mgmt_fee_rate ?? 0.15)}
+          heading={`Overview Estimate — ${project.title}`} onClose={() => setOverview(false)} />
       )}
     </div>
   );
@@ -801,6 +812,116 @@ function TravelSync({ sec, travelTotal, reload, hasHold, hasActuals }) {
 }
 
 
+const OVERVIEW_LABELS = { scripting:'Scripting / Storyboarding', virtual:'Virtual Recording', shoot:'Production', post:'Post-Production', misc:'Misc Costs', photo:'Photography' };
+const MGMT_INCLUSIONS = [
+  'Creative Consultation', 'Budget & Accounts Payable Management', 'Line Production',
+  'Location Scouting and Management', 'Production/Post Timelines', 'Film Schedule & Call Sheets',
+  'Catering/Crafty', 'Editor Sourcing and Management', 'Version Control',
+];
+
+function OverviewEstimateModal({ sections, lines, feeRate, heading, onClose }) {
+  const tableRef = useRef(null);
+  const [copied, setCopied] = useState(false);
+
+  const rows = [];
+  let feeBase = 0;
+  for (const s of sections) {
+    const secLines = lines.filter(l => l.section_id === s.id);
+    let cost = 0;
+    const inclusions = [];
+    for (const l of secLines) {
+      const st = lineSubtotal(l, secLines);
+      if (st <= 0) continue;
+      cost += st;
+      if (s.kind !== 'photo' && !l.is_travel) feeBase += st;
+      const q = num(l.qty);
+      inclusions.push((l.percent == null && q > 1 ? `${q}x ` : '') + (l.scope || 'Line item'));
+    }
+    if (cost <= 0) continue;
+    rows.push({ name: OVERVIEW_LABELS[s.kind] || s.title || 'Costs', cost, inclusions });
+  }
+  const fee = feeBase * feeRate;
+  const total = rows.reduce((s, r) => s + r.cost, 0) + fee;
+  const pct = Math.round(feeRate * 1000) / 10;
+
+  async function copy() {
+    const html = '<meta charset="utf-8">' + tableRef.current.outerHTML;
+    const text = [
+      ...rows.map(r => `${r.name}: ${fmt$(r.cost)}\n${r.inclusions.map(i => '  - ' + i).join('\n')}`),
+      `Production Management: ${fmt$(fee)} (*${pct}% of Production and Post-Production Costs)`,
+      `Total Cost: ${fmt$(total)}`,
+    ].join('\n\n');
+    try {
+      await navigator.clipboard.write([new ClipboardItem({
+        'text/html': new Blob([html], { type: 'text/html' }),
+        'text/plain': new Blob([text], { type: 'text/plain' }),
+      })]);
+    } catch {
+      const range = document.createRange();
+      range.selectNode(tableRef.current);
+      const sel = window.getSelection();
+      sel.removeAllRanges(); sel.addRange(range);
+      document.execCommand('copy'); sel.removeAllRanges();
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  const td = { border:'1px solid #999', padding:'10px 14px', verticalAlign:'top', fontSize:14, color:'#111' };
+  return (
+    <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:120, background:'rgba(0,0,0,0.7)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, padding:'20px 22px', width:'100%', maxWidth:780, maxHeight:'90vh', overflowY:'auto' }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, marginBottom:14, flexWrap:'wrap' }}>
+          <div style={{ fontSize:15, fontWeight:800 }}>{heading || 'Overview Estimate'}</div>
+          <div style={{ display:'flex', gap:8 }}>
+            <button onClick={copy}
+              style={{ background: copied ? '#5ABF80' : 'rgba(90,191,128,0.15)', border:'1px solid #5ABF80', color: copied ? '#0b0b0b' : '#5ABF80', borderRadius:20, padding:'5px 16px', fontSize:11, fontWeight:800, cursor:'pointer' }}>
+              {copied ? '✓ Copied' : '📋 Copy for Email'}
+            </button>
+            <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
+          </div>
+        </div>
+        <div style={{ background:'#fff', borderRadius:8, padding:14, overflowX:'auto' }}>
+          <table ref={tableRef} style={{ borderCollapse:'collapse', width:'100%', background:'#ffffff', fontFamily:'Arial, sans-serif' }}>
+            <thead>
+              <tr>
+                <td style={td}></td>
+                <td style={{ ...td, fontWeight:'bold' }}>Cost Estimate</td>
+                <td style={{ ...td, fontWeight:'bold' }}>Cost Inclusions</td>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r, i) => (
+                <tr key={i}>
+                  <td style={{ ...td, fontWeight:'bold', textAlign:'center' }}>{r.name}</td>
+                  <td style={{ ...td, textAlign:'center' }}>{fmt$(r.cost)}</td>
+                  <td style={td}>
+                    {r.inclusions.map((inc, j) => <div key={j} style={{ paddingLeft:24 }}>- {inc}</div>)}
+                  </td>
+                </tr>
+              ))}
+              <tr>
+                <td style={{ ...td, fontWeight:'bold', textAlign:'center' }}>Production Management</td>
+                <td style={{ ...td, textAlign:'center' }}>{fmt$(fee)}</td>
+                <td style={td}>
+                  <div style={{ fontStyle:'italic' }}>*{pct}% of Production and Post-Production Costs</div>
+                  {MGMT_INCLUSIONS.map((inc, j) => <div key={j} style={{ paddingLeft:24 }}>- {inc}</div>)}
+                </td>
+              </tr>
+              <tr style={{ background:'#f7e8d8' }}>
+                <td style={{ ...td, fontWeight:'bold', textAlign:'center' }}>Total Cost</td>
+                <td style={{ ...td, fontWeight:'bold' }}>{fmt$(total)}</td>
+                <td style={td}></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div style={{ fontSize:11, color:'var(--muted)', marginTop:10 }}>Copy pastes the formatted table straight into Outlook / Gmail.</div>
+      </div>
+    </div>
+  );
+}
+
 const EST_TEMPLATES = [
   ['scripting', 'Scripting / Storyboarding'],
   ['virtual', 'Virtual Recording'],
@@ -817,6 +938,7 @@ function EstimateMode({ pid, estimates, onExit, reload }) {
   const [busy, setBusy] = useState(false);
   const feeRate = estimates.length ? Number(estimates[0].mgmt_fee_rate ?? 0.15) : 0.15;
   const [feeDraft, setFeeDraft] = useState(Math.round(feeRate * 1000) / 10);
+  const [overview, setOverview] = useState(false);
 
   useEffect(() => { requestAnimationFrame(() => setEntered(true)); }, []);
   useEffect(() => {
@@ -847,9 +969,21 @@ function EstimateMode({ pid, estimates, onExit, reload }) {
       display:'flex', flexDirection:'column',
     }}>
       <div style={{ display:'flex', alignItems:'center', gap:14, padding:'12px 22px', borderBottom:'1px solid rgba(230,194,41,0.35)', flexWrap:'wrap' }}>
-        <span style={{ color:YEL, fontWeight:800, fontSize:13, letterSpacing:'0.1em' }}>⚡ ESTIMATE MODE</span>
+        <div style={{ display:'flex', flexDirection:'column', gap:5, alignItems:'flex-start' }}>
+          <span style={{ color:YEL, fontWeight:800, fontSize:13, letterSpacing:'0.1em' }}>⚡ ESTIMATE MODE</span>
+          <button onClick={exit}
+            style={{ background:'none', border:'1px solid var(--border)', borderRadius:12, padding:'2px 10px', fontSize:10, fontWeight:600, color:'var(--muted)', cursor:'pointer' }}>
+            ← Back to Budget
+          </button>
+        </div>
         <span style={{ fontSize:11, color:'var(--muted)' }}>Pricing only — nothing here feeds the approved budget until you move it over.</span>
         <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:12, flexWrap:'wrap' }}>
+          {estimates[idx] && (
+            <button onClick={() => setOverview(true)}
+              style={{ background:'rgba(90,191,128,0.12)', border:'1px solid #5ABF80', color:'#5ABF80', borderRadius:20, padding:'4px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
+              📋 Overview Estimate
+            </button>
+          )}
           <label style={{ fontSize:10, color:'var(--muted)', display:'flex', alignItems:'center', gap:6 }}>Mgmt Fee % (all estimates)
             <input type="number" step="0.5" value={feeDraft} style={{ width:70, fontSize:12, textAlign:'right' }}
               onChange={e => setFeeDraft(e.target.value)} onBlur={e => saveFeeAll(e.target.value)} />
@@ -879,6 +1013,10 @@ function EstimateMode({ pid, estimates, onExit, reload }) {
           {!estimates.length && <div style={{ minWidth:'100%', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--muted)' }}>Creating your first estimate…</div>}
         </div>
       </div>
+      {overview && estimates[idx] && (
+        <OverviewEstimateModal sections={estimates[idx].sections} lines={estimates[idx].lines} feeRate={feeRate}
+          heading={`Overview Estimate — ${estimates[idx].label || 'Estimate'}`} onClose={() => setOverview(false)} />
+      )}
     </div>
   );
 }
