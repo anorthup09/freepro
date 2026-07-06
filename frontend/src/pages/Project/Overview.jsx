@@ -176,8 +176,11 @@ export default function Overview({ project, setProject, onTabChange }) {
   async function saveInfo(e) {
     e.preventDefault();
     try {
+      // code and client are locked (fed from the ProFi budget) — never send
+      // them back: the displayed code can be the shoot code of another tile
+      const { code, client, ...editable } = info;
       const updated = await api.updateProject(project.id, {
-        ...info,
+        ...editable,
         startDate: info.startDate ? new Date(info.startDate + 'T12:00:00').toISOString() : undefined,
         endDate: info.endDate ? new Date(info.endDate + 'T12:00:00').toISOString() : undefined,
       });
