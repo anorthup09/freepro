@@ -119,10 +119,10 @@ function BudgetTab({ budget, sections, lines, vcc, set, reload }) {
     await api.deleteBudgetLine(id);
     set(d => ({ lines: d.lines.filter(l => l.id !== id) }));
   }
-  async function addSection(seedShoot) {
+  async function addSection(seedShoot, afterSectionId) {
     const title = seedShoot ? 'PRODUCTION COSTS — New Shoot' : 'NEW SECTION';
-    const r = await api.addBudgetSection(budget.id, { title, kind: seedShoot ? 'shoot' : 'general', seedShoot });
-    set(d => ({ sections: [...d.sections, r.section], lines: [...d.lines, ...(r.lines || [])] }));
+    await api.addBudgetSection(budget.id, { title, kind: seedShoot ? 'shoot' : 'general', seedShoot, afterSectionId });
+    reload && reload();
   }
   async function delSection(sid) {
     if (!confirm('Delete this section and all its lines?')) return;
@@ -161,7 +161,7 @@ function BudgetTab({ budget, sections, lines, vcc, set, reload }) {
         <ShareBudgetButton budget={budget} />
       </div>
 
-      {sections.map(sec => {
+      {(() => { const lastShootId = [...sections].filter(x => x.kind === 'shoot').map(x => x.id).pop(); return sections.map(sec => {
         const secLines = lines.filter(l => l.section_id === sec.id).sort((a, b) => a.sort - b.sort);
         const main = secLines.filter(l => !l.is_travel);
         const travel = secLines.filter(l => l.is_travel);
@@ -171,18 +171,16 @@ function BudgetTab({ budget, sections, lines, vcc, set, reload }) {
           <div key={sec.id} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, marginBottom:14, overflow:'hidden' }}>
             <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', borderBottom:'1px solid var(--border)' }}>
               <div style={{ flex:1, minWidth:0 }}>
+                <input value={sec.title} style={{ ...cellIn, fontWeight:700, fontSize:13, textTransform:'uppercase', letterSpacing:'0.04em', color:'#5ABF80' }}
+                  onChange={e => patchSection(sec.id, { title: e.target.value })}
+                  onBlur={e => api.updateBudgetSection(sec.id, { title: e.target.value }).catch(() => {})} />
                 <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                   {sec.shoot_code && (
                     <span title="Shoot code — used to tie VCC costs and FreePro planning to this shoot"
-                      style={{ fontSize:10, fontWeight:800, letterSpacing:'0.05em', color:'#e6c229', border:'1px solid #e6c22955', borderRadius:6, padding:'2px 8px', whiteSpace:'nowrap' }}>
+                      style={{ fontSize:10, fontWeight:800, letterSpacing:'0.05em', color:'#e6c229', border:'1px solid #e6c22955', borderRadius:6, padding:'2px 8px', whiteSpace:'nowrap', flexShrink:0 }}>
                       {sec.shoot_code}
                     </span>
                   )}
-                  <input value={sec.title} style={{ ...cellIn, fontWeight:700, fontSize:13, textTransform:'uppercase', letterSpacing:'0.04em', color:'#5ABF80' }}
-                    onChange={e => patchSection(sec.id, { title: e.target.value })}
-                    onBlur={e => api.updateBudgetSection(sec.id, { title: e.target.value }).catch(() => {})} />
-                </div>
-                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                   {sec.kind === 'shoot' && (
                     <input value={sec.trip || ''} placeholder="Trip (e.g. NYC)" title="Production trip descriptor — VCC entries with this trip roll up to this shoot"
                       style={{ ...cellIn, width:120, flexShrink:0, fontSize:11, color:'#e6c229', border:'1px solid rgba(230,194,41,0.25)' }}
@@ -224,7 +222,19 @@ function BudgetTab({ budget, sections, lines, vcc, set, reload }) {
             </div>
           </div>
         );
-      })}
+      }).flatMap(el => {
+        const sec = sections.find(x => x.id === el.key);
+        if (sec && sec.id === lastShootId) {
+          return [el, (
+            <div key="add-production" style={{ display:'flex', justifyContent:'center', margin:'0 0 14px' }}>
+              <button className="btn btn-ghost btn-sm" style={{ borderStyle:'dashed', color:'#5ABF80' }} onClick={() => addSection(true, sec.id)}>
+                + Add New Production
+              </button>
+            </div>
+          )];
+        }
+        return [el];
+      }); })()}
 
       <div style={{ display:'flex', gap:10, marginBottom:18 }}>
         <button className="btn btn-ghost btn-sm" onClick={() => addSection(true)}>+ Add Shoot Block</button>

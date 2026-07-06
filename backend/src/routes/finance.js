@@ -240,10 +240,19 @@ router.patch('/finance/budget/:bid', ...finance, async (req, res, next) => {
 // Sections
 router.post('/finance/budget/:bid/sections', ...finance, async (req, res, next) => {
   try {
-    const { title, subtitle, kind = 'general', seedShoot } = req.body;
-    const [{ max }] = await sql`SELECT COALESCE(MAX(sort), -1) as max FROM budget_sections WHERE budget_id = ${req.params.bid}`;
+    const { title, subtitle, kind = 'general', seedShoot, afterSectionId } = req.body;
+    let sort;
+    if (afterSectionId) {
+      const [after] = await sql`SELECT sort FROM budget_sections WHERE id = ${afterSectionId} AND budget_id = ${req.params.bid}`;
+      sort = after ? Number(after.sort) + 1 : null;
+      if (sort != null) await sql`UPDATE budget_sections SET sort = sort + 1 WHERE budget_id = ${req.params.bid} AND sort >= ${sort}`;
+    }
+    if (sort == null) {
+      const [{ max }] = await sql`SELECT COALESCE(MAX(sort), -1) as max FROM budget_sections WHERE budget_id = ${req.params.bid}`;
+      sort = Number(max) + 1;
+    }
     const shootCode = kind === 'shoot' ? await nextShootCode(req.params.bid) : null;
-    const [s] = await sql`INSERT INTO budget_sections (budget_id, title, subtitle, kind, sort, shoot_code) VALUES (${req.params.bid}, ${title}, ${subtitle || null}, ${kind}, ${Number(max) + 1}, ${shootCode}) RETURNING *`;
+    const [s] = await sql`INSERT INTO budget_sections (budget_id, title, subtitle, kind, sort, shoot_code) VALUES (${req.params.bid}, ${title}, ${subtitle || null}, ${kind}, ${sort}, ${shootCode}) RETURNING *`;
     if (seedShoot) await seedShootLines(req.params.bid, s.id);
     const lines = await sql`SELECT * FROM budget_lines WHERE section_id = ${s.id} ORDER BY sort`;
     res.status(201).json({ section: s, lines });
