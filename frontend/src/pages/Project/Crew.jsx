@@ -422,18 +422,12 @@ export default function Crew({ project, onProjectUpdate }) {
                   <td><span style={{ fontSize:11, color:'var(--orange)' }}>{fmtDate(a.end_date)}</span></td>
                   <td style={{ whiteSpace:'nowrap' }}>
                     {a.is_contractor && (a.day_rate || a.labor_days)
-                      ? <div style={{ fontSize:11 }}>
-                          <span style={{ color:'var(--muted)' }}>{fmt$(a.day_rate||0)} × {Number(a.labor_days)||0}d = </span>
-                          <span style={{ color:'var(--green)', fontWeight:600 }}>{fmt$((Number(a.day_rate)||0)*(Number(a.labor_days)||0))}</span>
-                        </div>
+                      ? <span style={{ fontSize:11, color:'var(--green)', fontWeight:600 }}>{fmt$((Number(a.day_rate)||0)*(Number(a.labor_days)||0))}</span>
                       : <span style={{ color:'var(--muted)', fontSize:11 }}>{a.is_contractor ? '—' : ''}</span>}
                   </td>
                   <td style={{ whiteSpace:'nowrap' }}>
                     {a.is_contractor && (a.gear_cost || a.gear_days)
-                      ? <div style={{ fontSize:11 }}>
-                          <span style={{ color:'var(--muted)' }}>{fmt$(a.gear_cost||0)} × {Number(a.gear_days)||0}d = </span>
-                          <span style={{ color:'var(--green)', fontWeight:600 }}>{fmt$((Number(a.gear_cost)||0)*(Number(a.gear_days)||0))}</span>
-                        </div>
+                      ? <span style={{ fontSize:11, color:'var(--green)', fontWeight:600 }}>{fmt$((Number(a.gear_cost)||0)*(Number(a.gear_days)||0))}</span>
                       : <span style={{ color:'var(--muted)', fontSize:11 }}>{a.is_contractor ? '—' : ''}</span>}
                   </td>
                   <td style={{ textAlign:'right' }}>
@@ -477,10 +471,10 @@ export default function Crew({ project, onProjectUpdate }) {
                     <span style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'#e6c229' }}>Contract Crew</span>
                   </td>
                   <td style={{ padding:'6px 8px', background:'rgba(230,194,41,0.08)', borderTop:'1px solid var(--border)', whiteSpace:'nowrap' }}>
-                    <span style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'#e6c229' }}>Rate × Days</span>
+                    <span style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'#e6c229' }}>Labor</span>
                   </td>
                   <td style={{ padding:'6px 8px', background:'rgba(230,194,41,0.08)', borderTop:'1px solid var(--border)', whiteSpace:'nowrap' }}>
-                    <span style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'#e6c229' }}>Gear Rate × Days</span>
+                    <span style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'#e6c229' }}>Gear</span>
                   </td>
                   <td style={{ background:'rgba(230,194,41,0.08)', borderTop:'1px solid var(--border)' }}></td>
                 </tr>
