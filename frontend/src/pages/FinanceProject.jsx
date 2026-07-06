@@ -364,7 +364,8 @@ function BudgetTab({ budget, sections, lines, vcc, set, reload }) {
                       onChange={e => patchSection(sec.id, { trip: e.target.value })}
                       onBlur={e => api.updateBudgetSection(sec.id, { trip: e.target.value }).catch(() => {})} />
                   )}
-                  <input value={sec.subtitle || ''} placeholder={sec.kind === 'shoot' ? 'Shoot Description' : 'Description'} style={{ ...cellIn, fontSize:11, color:'var(--muted)' }}
+                  <input value={sec.subtitle || ''} placeholder={sec.kind === 'shoot' ? 'Shoot Description' : 'Description'}
+                    style={{ ...cellIn, fontSize:11, color:'var(--muted)', ...(sec.kind === 'shoot' && sec.fp_start_date ? { width:'auto', flex:'0 1 260px' } : {}) }}
                     onChange={e => patchSection(sec.id, { subtitle: e.target.value })}
                     onBlur={e => api.updateBudgetSection(sec.id, { subtitle: e.target.value }).catch(() => {})} />
                   {sec.kind === 'shoot' && sec.fp_start_date && (
