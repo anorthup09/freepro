@@ -14,7 +14,7 @@ export function FinanceHeader({ crumb }) {
         <Link to="/" style={{ display:'flex', alignItems:'center' }} title="Back to the Unbridled Media hub">
           <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height:20, filter:'brightness(0) invert(1)', opacity:0.95 }} />
         </Link>
-        <Link to="/finance" style={{ fontSize:11, color:'#5ABF80', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', textDecoration:'none' }}>ProFi</Link>
+        <Link to="/finance" style={{ fontSize:12, color:'#5ABF80', fontWeight:700, letterSpacing:'0.04em', textDecoration:'none' }}>ProFi</Link>
         {crumb && <span style={{ fontSize:11, color:'var(--muted)' }}>· {crumb}</span>}
       </div>
       <div style={{ display:'flex', alignItems:'center', gap:12 }}>

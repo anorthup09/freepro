@@ -54,6 +54,14 @@ export default function FinanceProject() {
   const [tab, setTab] = useState('budget');
   const [estimateMode, setEstimateMode] = useState(false);
   const [overview, setOverview] = useState(false);
+  const [editProject, setEditProject] = useState(false);
+  const [glass, setGlass] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setGlass(window.scrollY > 170);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   useEffect(() => { api.financeBundle(pid).then(setData).catch(e => alert(e.message)); }, [pid]);
 
@@ -69,13 +77,17 @@ export default function FinanceProject() {
 
   return (
     <div style={{ minHeight:'100vh', background:'var(--bg)' }}>
-      <FinanceHeader crumb={project.code} />
+      <FinanceHeader />
       <div style={{ maxWidth:1100, margin:'0 auto', padding:'6px 16px 80px' }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:10, marginBottom:14 }}>
           <div>
             <div style={{ fontSize:10, color:'var(--muted)' }}>{project.code}</div>
             <div className="page-title">{project.title}</div>
             <div className="page-sub">{project.client}</div>
+            <button onClick={() => setEditProject(true)}
+              style={{ marginTop:6, background:'none', border:'1px solid var(--border)', borderRadius:12, padding:'2px 12px', fontSize:10, fontWeight:600, color:'var(--muted)', cursor:'pointer' }}>
+              ✎ Edit
+            </button>
           </div>
           <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:8 }}>
             <div style={{ display:'flex', border:'1px solid var(--border)', borderRadius:16, overflow:'hidden' }}>
@@ -119,6 +131,38 @@ export default function FinanceProject() {
           <VccTab pid={pid} budget={budget} sections={sections} lines={lines} vcc={vcc} categories={categories} set={set} />
         )}
       </div>
+      {budget && (() => {
+        const rate = budget.mgmt_fee_rate != null ? Number(budget.mgmt_fee_rate) : 0.15;
+        const grand = totals(sections, lines, rate).total;
+        return (
+          <div style={{
+            position:'fixed', top:0, left:0, right:0, zIndex:80, pointerEvents:'none',
+            opacity: glass ? 1 : 0, transform: glass ? 'translateY(0)' : 'translateY(-6px)',
+            transition:'opacity .25s ease, transform .25s ease',
+            backdropFilter:'blur(5px) saturate(140%)', WebkitBackdropFilter:'blur(5px) saturate(140%)',
+            background:'rgba(10,10,8,0.18)',
+            maskImage:'linear-gradient(to bottom, black 85%, transparent 100%)',
+            WebkitMaskImage:'linear-gradient(to bottom, black 85%, transparent 100%)',
+            padding:'12px 22px 20px', display:'flex', alignItems:'center', gap:14,
+          }}>
+            {project.client_logo
+              ? <img src={project.client_logo} alt={project.client} style={{ height:22, maxWidth:120, objectFit:'contain' }} />
+              : <span style={{ fontSize:13, fontWeight:800, color:'#fff' }}>{project.client}</span>}
+            <span style={{ color:'rgba(255,255,255,0.25)' }}>|</span>
+            <span style={{ fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.65)', letterSpacing:'0.08em' }}>{project.code}</span>
+            <span style={{ color:'rgba(255,255,255,0.25)' }}>|</span>
+            <span style={{ fontFamily:"'Syne', sans-serif", fontWeight:800, fontSize:15, color:'#fff', letterSpacing:'-0.3px' }}>{project.title}</span>
+            <span style={{ marginLeft:'auto', textAlign:'right' }}>
+              <span style={{ fontSize:9, fontWeight:700, color:'rgba(255,255,255,0.4)', textTransform:'uppercase', letterSpacing:'0.1em', marginRight:8 }}>Total Estimate</span>
+              <span style={{ fontSize:16, fontWeight:800, color:'#5ABF80', fontVariantNumeric:'tabular-nums' }}>{fmt$(grand)}</span>
+            </span>
+          </div>
+        );
+      })()}
+      {editProject && (
+        <EditProjectModal project={project} onClose={() => setEditProject(false)}
+          onSaved={p2 => { set(() => ({ project: p2 })); setEditProject(false); }} />
+      )}
       {estimateMode && (
         <EstimateMode pid={pid} estimates={estimates} onExit={() => setEstimateMode(false)}
           reload={() => api.financeBundle(pid).then(setData)} />
@@ -989,6 +1033,62 @@ function OverviewEstimateModal({ sections, lines, feeRate, heading, onClose }) {
           </table>
         </div>
         <div style={{ fontSize:11, color:'var(--muted)', marginTop:10 }}>Copy pastes the formatted table straight into Outlook / Gmail.</div>
+      </div>
+    </div>
+  );
+}
+
+function EditProjectModal({ project, onClose, onSaved }) {
+  const [f, setF] = useState({
+    code: project.code || '', title: project.title || '', client: project.client || '',
+    city: project.city || '', state: project.state || '',
+    startDate: (project.start_date || '').slice(0, 10), endDate: (project.end_date || '').slice(0, 10),
+  });
+  const [saving, setSaving] = useState(false);
+  const setV = k => e => setF(v => ({ ...v, [k]: e.target.value }));
+  async function save() {
+    setSaving(true);
+    try {
+      const p2 = await api.updateProject(project.id, f);
+      onSaved(p2);
+    } catch (e) { alert(e.message); setSaving(false); }
+  }
+  const field = (label, k, type = 'text') => (
+    <label style={{ display:'flex', flexDirection:'column', gap:4, fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', flex:1, minWidth:120 }}>
+      {label}
+      <input type={type} value={f[k]} onChange={setV(k)}
+        style={{ background:'var(--bg)', border:'1px solid var(--border)', borderRadius:6, color:'var(--text)', padding:'8px 10px', fontSize:13 }} />
+    </label>
+  );
+  return (
+    <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.65)', zIndex:110, display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid #5ABF80', borderRadius:12, padding:'22px 24px', width:'100%', maxWidth:560 }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
+          <div style={{ fontSize:16, fontWeight:800 }}>Edit Project</div>
+          <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
+        </div>
+        <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+          <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
+            {field('Project Code', 'code')}
+            {field('Client', 'client')}
+          </div>
+          {field('Project Name', 'title')}
+          <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
+            {field('City', 'city')}
+            {field('State', 'state')}
+          </div>
+          <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
+            {field('Start Date', 'startDate', 'date')}
+            {field('End Date', 'endDate', 'date')}
+          </div>
+          <div style={{ display:'flex', justifyContent:'flex-end', gap:8 }}>
+            <button className="btn btn-ghost btn-sm" onClick={onClose}>Cancel</button>
+            <button disabled={saving} onClick={save}
+              style={{ background:'#5ABF80', color:'#0b0b0b', border:'none', borderRadius:8, padding:'8px 18px', fontSize:12, fontWeight:800, cursor:'pointer', opacity: saving ? 0.6 : 1 }}>
+              {saving ? 'Saving…' : 'Save Changes'}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
