@@ -370,15 +370,13 @@ function BudgetTab({ budget, sections, lines, vcc, set, reload }) {
                 </div>
               </div>
               <div style={{ fontSize:13, fontWeight:700, whiteSpace:'nowrap' }}>{fmt$(mainTotal + travelTotal)}</div>
-              <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4 }}>
-                {sec.kind === 'shoot' && sec.freepro_project_id && (
-                  <a href={`/projects/${sec.freepro_project_id}`}
-                    style={{ fontSize:10, fontWeight:700, color:'var(--orange)', border:'1px solid rgba(232,80,10,0.45)', borderRadius:12, padding:'2px 10px', textDecoration:'none', whiteSpace:'nowrap' }}>
-                    Go to FreePro ›
-                  </a>
-                )}
-                <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text)' }} onClick={() => delSection(sec.id)}>✕</button>
-              </div>
+              {sec.kind === 'shoot' && sec.freepro_project_id && (
+                <a href={`/projects/${sec.freepro_project_id}`}
+                  style={{ fontSize:10, fontWeight:700, color:'var(--orange)', border:'1px solid rgba(232,80,10,0.45)', borderRadius:12, padding:'3px 10px', textDecoration:'none', whiteSpace:'nowrap', alignSelf:'center' }}>
+                  Go to FreePro ›
+                </a>
+              )}
+              <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text)' }} onClick={() => delSection(sec.id)}>✕</button>
             </div>
             <table style={{ width:'100%', borderCollapse:'collapse' }}>
               <thead>
