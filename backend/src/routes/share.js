@@ -1,5 +1,6 @@
 const router = require('express').Router();
 const sql = require('../lib/db');
+const { applyDisplayCode } = require('../lib/displayCode');
 const { refreshWeather } = require('../lib/weather');
 const { refreshFlightStatuses } = require('../lib/flightStatus');
 const { sendQuestionNotification } = require('../lib/email');
@@ -25,6 +26,7 @@ router.get('/:token', async (req, res, next) => {
       LEFT JOIN crew_members cm ON cm.id = p.poc_crew_member_id
       WHERE p.id = ${projectId}`;
     if (!project) return res.status(404).json({ error: 'Project not found' });
+    await applyDisplayCode(project);
 
     if (project.share_password) {
       // Logged-in app users (crew and up) skip the public password

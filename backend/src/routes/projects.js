@@ -2,10 +2,12 @@ const router = require('express').Router();
 const { z } = require('zod');
 const sql = require('../lib/db');
 const { requireAuth, requireRole } = require('../middleware/auth');
+const { displayCodes, applyDisplayCode } = require('../lib/displayCode');
 
 async function getFullProject(id) {
   const [project] = await sql`SELECT * FROM projects WHERE id = ${id}`;
   if (!project) return null;
+  await applyDisplayCode(project);
   const [locations, techSpecs, clientContacts, agencyContacts, keyTalent, crewAssignments, deliverables, hotelBlocks, gear, onlineRentals] = await Promise.all([
     sql`SELECT * FROM locations WHERE project_id = ${id}`,
     sql`SELECT * FROM tech_specs WHERE project_id = ${id}`,
@@ -55,7 +57,8 @@ async function getFullProject(id) {
 router.get('/', requireAuth, async (req, res, next) => {
   try {
     const projects = await sql`SELECT * FROM projects ORDER BY start_date DESC`;
-    res.json(projects);
+    const codes = await displayCodes(projects.map(p => p.id));
+    res.json(projects.map(p => codes[p.id] ? { ...p, code: codes[p.id] } : p));
   } catch (err) { next(err); }
 });
 
