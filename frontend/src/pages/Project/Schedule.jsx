@@ -515,6 +515,16 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
     setEditingSyntheticKey(null);
   }
 
+  async function applyLocationToAll(locationKey) {
+    const value = dayTimesForm[currentDay.id]?.[locationKey] || null;
+    const otherDays = days.filter(d => d.id !== currentDay.id);
+    otherDays.forEach(d => setDayTimesForm(m => ({ ...m, [d.id]: { ...m[d.id], [locationKey]: value || '' } })));
+    try {
+      await Promise.all(otherDays.map(d => api.updateDay(project.id, d.id, { [locationKey]: value })));
+      flashSaved();
+    } catch (e) { alert(e.message); }
+  }
+
   async function applyMetaToAll(field, value) {
     const otherDays = days.filter(d => d.id !== currentDay.id);
     otherDays.forEach(d => setDayMeta(m => ({ ...m, [d.id]: { ...m[d.id], [field]: value } })));
@@ -924,13 +934,22 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                                   onChange={e => setDayTimesForm(m => ({ ...m, [currentDay.id]: { ...m[currentDay.id], [sm.notesKey]: e.target.value } }))}
                                 />
                                 {(project.locations||[]).length > 0 && (
-                                  <select
-                                    style={{ width:'100%', marginTop:6, fontSize:11, background:'var(--bg)', border:'1px solid var(--border)', borderRadius:4, padding:'4px 6px', color:'var(--text)' }}
-                                    value={dt[sm.locationKey]||''}
-                                    onChange={e => setDayTimesForm(m => ({ ...m, [currentDay.id]: { ...m[currentDay.id], [sm.locationKey]: e.target.value } }))}>
-                                    <option value="">— No location —</option>
-                                    {(project.locations||[]).map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-                                  </select>
+                                  <div style={{ display:'flex', gap:6, marginTop:6, alignItems:'center' }}>
+                                    <select
+                                      style={{ flex:1, fontSize:11, background:'var(--bg)', border:'1px solid var(--border)', borderRadius:4, padding:'4px 6px', color:'var(--text)' }}
+                                      value={dt[sm.locationKey]||''}
+                                      onChange={e => setDayTimesForm(m => ({ ...m, [currentDay.id]: { ...m[currentDay.id], [sm.locationKey]: e.target.value } }))}>
+                                      <option value="">— No location —</option>
+                                      {(project.locations||[]).map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                                    </select>
+                                    {days.length > 1 && (
+                                      <button type="button" title="Apply this location to every day"
+                                        style={{ fontSize:9, padding:'3px 8px', borderRadius:10, border:'1px solid var(--border2)', background:'var(--bg3)', color:'var(--muted)', cursor:'pointer', fontWeight:600, whiteSpace:'nowrap' }}
+                                        onClick={() => applyLocationToAll(sm.locationKey)}>
+                                        Apply to All
+                                      </button>
+                                    )}
+                                  </div>
                                 )}
                                 <div style={{ display:'flex', gap:6, marginTop:6, flexWrap:'wrap', alignItems:'center' }}>
                                   {['VIDEO', ...(includePhoto ? ['PHOTO'] : [])].map(tag => {
