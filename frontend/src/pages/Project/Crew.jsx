@@ -59,7 +59,6 @@ export default function Crew({ project, onProjectUpdate }) {
   const [addTalentDayCalls, setAddTalentDayCalls] = useState({});
   const [talentDayCallsForm, setTalentDayCallsForm] = useState({});
   const [contracts, setContracts] = useState([]);
-  const [contractSlot, setContractSlot] = useState(null);
   const [contractScope, setContractScope] = useState('');
   const [contractLink, setContractLink] = useState('');
   const [contractBusy, setContractBusy] = useState(false);
@@ -85,19 +84,23 @@ export default function Crew({ project, onProjectUpdate }) {
     return `Provide ${a.position.name} services for "${project.title}" (${project.code}), ${when}. Rates listed cover all services and equipment described. Contractor will submit an invoice against these agreed terms upon completion.`;
   }
 
-  function openContract(a) {
-    setContractSlot(a);
-    const existing = contractFor(a.id);
-    setContractScope(existing?.scope || defaultScope(a));
-    setContractLink(existing ? `${window.location.origin}/contract/${existing.id}` : '');
-    setLinkCopied(false);
-  }
-
-  async function generateContract() {
+  async function generateContract(aid) {
     setContractBusy(true);
     try {
-      const c = await api.createContract(project.id, contractSlot.id, { scope: contractScope });
-      setContracts(prev => [c, ...prev.filter(x => !(x.crew_assignment_id === contractSlot.id && !x.signed_at))]);
+      const payload = {
+        crewMemberId: editForm.crewMemberId || null,
+        startDate: editForm.startDate || null,
+        endDate: editForm.endDate || null,
+        isContractor: true,
+        dayRate: editForm.dayRate !== '' && editForm.dayRate != null ? Number(editForm.dayRate) : null,
+        laborDays: editForm.laborDays !== '' && editForm.laborDays != null ? Number(editForm.laborDays) : null,
+        gearCost: editForm.gearCost !== '' && editForm.gearCost != null ? Number(editForm.gearCost) : null,
+        gearDays: editForm.gearDays !== '' && editForm.gearDays != null ? Number(editForm.gearDays) : null,
+      };
+      const updated = await api.updateCrewSlot(project.id, aid, payload);
+      setAssignments(prev => prev.map(x => x.id === aid ? updated : x));
+      const c = await api.createContract(project.id, aid, { scope: contractScope });
+      setContracts(prev => [c, ...prev.filter(x => !(x.crew_assignment_id === aid && !x.signed_at))]);
       setContractLink(`${window.location.origin}/contract/${c.id}`);
       setLinkCopied(false);
     } catch (e) { alert(e.message); }
@@ -221,6 +224,12 @@ export default function Crew({ project, onProjectUpdate }) {
       gearCost: a.gear_cost ?? '',
       gearDays: a.gear_days ?? '',
     });
+    if (a.is_contractor) {
+      const existing = contractFor(a.id);
+      setContractScope(existing?.scope || defaultScope(a));
+      setContractLink(existing ? `${window.location.origin}/contract/${existing.id}` : '');
+      setLinkCopied(false);
+    }
     setEditId(a.id);
   }
 
@@ -321,6 +330,12 @@ export default function Crew({ project, onProjectUpdate }) {
                   <td>
                     {a.crewMember ? (
                       <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                        {a.is_contractor && (() => {
+                          const c = contractFor(a.id);
+                          const color = c?.signed_at ? 'var(--green)' : c ? '#e6c229' : '#e05252';
+                          const label = c?.signed_at ? 'Contract accepted' : c ? 'Contract sent - awaiting signature' : 'Contract not sent';
+                          return <div title={label} style={{ width:8, height:8, borderRadius:'50%', background:color, flexShrink:0 }} />;
+                        })()}
                         <div className="av" style={{ width:26, height:26, fontSize:9, background: colorFor(a.crewMember.name)+'22', color: colorFor(a.crewMember.name) }}>
                           {initials(a.crewMember.name)}
                         </div>
@@ -355,19 +370,6 @@ export default function Crew({ project, onProjectUpdate }) {
                   </td>
                   <td style={{ textAlign:'right' }}>
                     <div style={{ display:'flex', gap:6, justifyContent:'flex-end', alignItems:'center' }}>
-                      {a.is_contractor && a.crewMember && (() => {
-                        const c = contractFor(a.id);
-                        const signed = c && c.signed_at;
-                        return (
-                          <button className="btn btn-ghost btn-sm"
-                            style={signed
-                              ? { color:'var(--green)', borderColor:'rgba(90,191,128,0.4)' }
-                              : c ? { color:'#e6c229' } : {}}
-                            onClick={() => openContract(a)}>
-                            {signed ? '✓ Signed' : c ? 'Sent' : 'Contract'}
-                          </button>
-                        );
-                      })()}
                       <button className="btn btn-ghost btn-sm" onClick={() => openEditSlot(a)}>Edit</button>
                       <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text)' }} onClick={() => removeSlot(a.id)}>✕</button>
                     </div>
@@ -740,64 +742,6 @@ export default function Crew({ project, onProjectUpdate }) {
         </div>
       )}
 
-      {/* Contract Modal */}
-      {contractSlot && (() => {
-        const a = assignments.find(x => x.id === contractSlot.id) || contractSlot;
-        const c = contractFor(a.id);
-        const signed = c && c.signed_at;
-        const laborTotal = (Number(a.day_rate)||0) * (Number(a.labor_days)||0);
-        const gearTotal = (Number(a.gear_cost)||0) * (Number(a.gear_days)||0);
-        const fmt$ = n => '$' + Number(n||0).toLocaleString('en-US', { maximumFractionDigits:2 });
-        const mailBody = encodeURIComponent(`Hi ${a.crewMember?.name?.split(' ')[0] || ''},\n\nPlease review and sign your agreement for ${project.title}:\n${contractLink}\n\nThanks!`);
-        const mailHref = `mailto:${a.crewMember?.email || ''}?subject=${encodeURIComponent(`${project.title} — Contractor Agreement`)}&body=${mailBody}`;
-        return (
-        <div className="modal-bg" onClick={e => e.target === e.currentTarget && setContractSlot(null)}>
-          <div className="modal" style={{ maxWidth:520 }}>
-            <div className="modal-title">Contract — {a.crewMember?.name} ({a.position?.name})</div>
-            <div style={{ fontSize:12, marginBottom:12, display:'grid', gridTemplateColumns:'1fr 1fr', gap:'4px 16px' }}>
-              <div><span style={{ color:'var(--muted)' }}>Labor </span>{fmt$(a.day_rate)}/day × {Number(a.labor_days)||0}d = <b style={{ color:'var(--green)' }}>{fmt$(laborTotal)}</b></div>
-              <div><span style={{ color:'var(--muted)' }}>Gear </span>{fmt$(a.gear_cost)}/day × {Number(a.gear_days)||0}d = <b style={{ color:'var(--green)' }}>{fmt$(gearTotal)}</b></div>
-              <div style={{ gridColumn:'1/-1' }}><span style={{ color:'var(--muted)' }}>Total </span><b style={{ color:'var(--green)' }}>{fmt$(laborTotal + gearTotal)}</b></div>
-            </div>
-            {signed ? (
-              <div style={{ background:'rgba(90,191,128,0.08)', border:'1px solid rgba(90,191,128,0.4)', borderRadius:8, padding:'10px 14px', fontSize:12, marginBottom:12 }}>
-                ✓ Signed by <b>{c.signed_name}</b> on {new Date(c.signed_at).toLocaleString('en-US', { month:'short', day:'numeric', year:'numeric', hour:'numeric', minute:'2-digit' })}
-              </div>
-            ) : (
-              <div className="field" style={{ marginBottom:12 }}>
-                <label>Scope of Work</label>
-                <textarea rows={5} value={contractScope} onChange={e => setContractScope(e.target.value)} />
-              </div>
-            )}
-            {contractLink && (
-              <div style={{ marginBottom:12 }}>
-                <label style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)' }}>Contract Link</label>
-                <div style={{ display:'flex', gap:6, marginTop:4 }}>
-                  <input readOnly value={contractLink} style={{ flex:1, fontSize:11 }} onFocus={e => e.target.select()} />
-                  <button type="button" className="btn btn-ghost btn-sm" onClick={copyContractLink}>{linkCopied ? '✓ Copied' : 'Copy'}</button>
-                  {a.crewMember?.email && !signed && <a className="btn btn-ghost btn-sm" href={mailHref} style={{ textDecoration:'none', display:'inline-flex', alignItems:'center' }}>Email</a>}
-                </div>
-                {signed && <a href={contractLink} target="_blank" rel="noopener noreferrer" style={{ fontSize:11, color:'#4a9eff', display:'inline-block', marginTop:6 }}>View signed contract ↗</a>}
-              </div>
-            )}
-            <div className="btn-row">
-              {!signed && (
-                <button className="btn btn-primary" disabled={contractBusy} onClick={generateContract}>
-                  {contractBusy ? 'Generating…' : contractLink ? 'Regenerate Link' : 'Generate Contract Link'}
-                </button>
-              )}
-              <button type="button" className="btn btn-ghost" onClick={() => setContractSlot(null)}>Close</button>
-            </div>
-            {!signed && contractLink && (
-              <div style={{ fontSize:10, color:'var(--muted)', marginTop:8 }}>
-                Regenerating replaces the unsigned link with the latest rates and scope. Signed contracts are kept for records.
-              </div>
-            )}
-          </div>
-        </div>
-        );
-      })()}
-
       {/* Edit Position Slot Modal */}
       {editId && (() => {
         const a = assignments.find(x => x.id === editId);
@@ -871,6 +815,42 @@ export default function Crew({ project, onProjectUpdate }) {
                       <div style={{ fontSize:14, fontWeight:700, color:'var(--green)', padding:'6px 0' }}>
                         ${((Number(editForm.gearCost)||0) * (Number(editForm.gearDays)||0)).toLocaleString('en-US', { maximumFractionDigits:2 })}
                       </div>
+                    </div>
+                    <div className="field span2" style={{ borderTop:'1px solid var(--border)', paddingTop:12 }}>
+                      {(() => {
+                        const c = contractFor(a.id);
+                        const signed = c && c.signed_at;
+                        const dotColor = signed ? 'var(--green)' : c ? '#e6c229' : '#e05252';
+                        const mailBody = encodeURIComponent(`Hi ${a.crewMember?.name?.split(' ')[0] || ''},\n\nPlease review and sign your agreement for ${project.title}:\n${contractLink}\n\nThanks!`);
+                        const mailHref = `mailto:${a.crewMember?.email || ''}?subject=${encodeURIComponent(`${project.title} — Contractor Agreement`)}&body=${mailBody}`;
+                        return (
+                          <>
+                            <label style={{ display:'flex', alignItems:'center', gap:6 }}>
+                              <span style={{ width:8, height:8, borderRadius:'50%', background:dotColor, display:'inline-block' }} />
+                              Contract — {signed ? `signed by ${c.signed_name} on ${new Date(c.signed_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}` : c ? 'sent, awaiting signature' : 'not sent'}
+                            </label>
+                            {!signed && (
+                              <textarea rows={4} value={contractScope} onChange={e => setContractScope(e.target.value)} style={{ marginTop:6 }} />
+                            )}
+                            {contractLink && (
+                              <div style={{ display:'flex', gap:6, marginTop:8 }}>
+                                <input readOnly value={contractLink} style={{ flex:1, fontSize:11 }} onFocus={e => e.target.select()} />
+                                <button type="button" className="btn btn-ghost btn-sm" onClick={copyContractLink}>{linkCopied ? '✓ Copied' : 'Copy'}</button>
+                                {a.crewMember?.email && !signed && <a className="btn btn-ghost btn-sm" href={mailHref} style={{ textDecoration:'none', display:'inline-flex', alignItems:'center' }}>Email</a>}
+                              </div>
+                            )}
+                            {!signed && (
+                              <div style={{ display:'flex', alignItems:'center', gap:10, marginTop:8 }}>
+                                <button type="button" className="btn btn-ghost btn-sm" disabled={contractBusy} onClick={() => generateContract(a.id)}>
+                                  {contractBusy ? 'Generating…' : contractLink ? 'Regenerate Contract Link' : 'Generate Contract Link'}
+                                </button>
+                                <span style={{ fontSize:10, color:'var(--muted)' }}>Snapshots the rates &amp; scope above.</span>
+                              </div>
+                            )}
+                            {signed && <a href={contractLink} target="_blank" rel="noopener noreferrer" style={{ fontSize:11, color:'#4a9eff', display:'inline-block', marginTop:6 }}>View signed contract ↗</a>}
+                          </>
+                        );
+                      })()}
                     </div>
                   </>
                 )}
