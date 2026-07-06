@@ -248,6 +248,9 @@ async function ensureShootProjects(budgetId) {
   if (shootSecs.length === 1) {
     const sec = shootSecs[0];
     if (!sec.freepro_project_id) await sql`UPDATE budget_sections SET freepro_project_id = ${parent.id} WHERE id = ${sec.id}`;
+    if ((sec.subtitle || '').trim()) {
+      await sql`UPDATE projects SET title = ${sec.subtitle.trim()} WHERE id = ${sec.freepro_project_id || parent.id} AND title != ${sec.subtitle.trim()}`;
+    }
     return;
   }
   for (const sec of shootSecs) {
@@ -385,6 +388,11 @@ router.patch('/finance/sections/:sid', ...finance, async (req, res, next) => {
       trip = ${trip !== undefined ? (trip || null) : sql`trip`},
       sort = COALESCE(${sort ?? null}, sort)
       WHERE id = ${req.params.sid} RETURNING *`;
+    // Shoot Description feeds the linked FreePro project's title
+    if (subtitle !== undefined && s && s.kind === 'shoot' && s.freepro_project_id && (subtitle || '').trim()) {
+      await sql`UPDATE projects SET title = ${subtitle.trim()} WHERE id = ${s.freepro_project_id}`
+        .catch(e2 => console.error('Title feed failed:', e2.message));
+    }
     res.json(s);
   } catch (e) { next(e); }
 });
