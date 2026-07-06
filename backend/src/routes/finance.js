@@ -71,7 +71,7 @@ const TEMPLATE = [
     ['Color Correction/Final Polish', 'Starting hourly rate', 250],
     ['Audio Mixing/Sound Design', 'Starting rate per video', 500],
     ['Professional Voiceover Talent', 'Allocation - billed to actual', 1500],
-    ['Creative Direction - Post-Production', 'Based on total project budget - set Hrs/Days to 1 if needed', null, 0.10],
+    ['Creative Direction - Post-Production', 'Based on section total - toggle on to apply', null, 0.10],
   ]},
   { title: 'MISC COSTS', kind: 'general', lines: [
     ['Stock or AI Footage (licensing)', 'Billed to Actual', 0],
@@ -116,7 +116,7 @@ async function seedShootLines(budgetId, sectionId) {
   for (const [scope, notes, unit] of CREW_LINES) {
     await sql`INSERT INTO budget_lines (budget_id, section_id, scope, notes, unit_cost, sort) VALUES (${budgetId}, ${sectionId}, ${scope}, ${notes}, ${unit}, ${sort++})`;
   }
-  await sql`INSERT INTO budget_lines (budget_id, section_id, scope, notes, percent, sort) VALUES (${budgetId}, ${sectionId}, 'Creative Direction - Pre-/Production', 'Based on section total - set Hrs/Days to 1 if needed', 0.10, ${sort++})`;
+  await sql`INSERT INTO budget_lines (budget_id, section_id, scope, notes, percent, sort) VALUES (${budgetId}, ${sectionId}, 'Creative Direction - Pre-/Production', 'Based on section total - toggle on to apply', 0.10, ${sort++})`;
   for (const [scope, notes, unit] of TRAVEL_LINES) {
     await sql`INSERT INTO budget_lines (budget_id, section_id, scope, notes, unit_cost, is_travel, sort) VALUES (${budgetId}, ${sectionId}, ${scope}, ${notes}, ${unit}, TRUE, ${sort++})`;
   }

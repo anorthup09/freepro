@@ -321,9 +321,22 @@ function LineRow({ l, secLines, patchLine, saveLine, delLine }) {
           onBlur={e => saveLine(l.id, { notes: e.target.value })} />
       </td>
       <td style={{ padding:'2px 6px', textAlign:'right' }}>
-        <input type="number" step="0.5" value={l.qty ?? 0} style={numIn}
-          onChange={e => patchLine(l.id, { qty: e.target.value })}
-          onBlur={e => saveLine(l.id, { qty: e.target.value })} />
+        {l.percent != null ? (
+          <button type="button" title={num(l.qty) > 0 ? 'Creative Direction applied — click to remove' : 'Click to apply Creative Direction to this section'}
+            onClick={() => { const q = num(l.qty) > 0 ? 0 : 1; patchLine(l.id, { qty: q }); saveLine(l.id, { qty: q }); }}
+            style={{
+              background: num(l.qty) > 0 ? 'rgba(90,191,128,0.15)' : 'transparent',
+              border: '1px solid ' + (num(l.qty) > 0 ? '#5ABF80' : 'var(--border)'),
+              color: num(l.qty) > 0 ? '#5ABF80' : 'var(--muted)',
+              borderRadius:20, padding:'2px 10px', fontSize:9, fontWeight:800, letterSpacing:'0.05em', textTransform:'uppercase', cursor:'pointer', whiteSpace:'nowrap',
+            }}>
+            {num(l.qty) > 0 ? '✓ On' : 'Off'}
+          </button>
+        ) : (
+          <input type="number" step="0.5" value={l.qty ?? 0} style={numIn}
+            onChange={e => patchLine(l.id, { qty: e.target.value })}
+            onBlur={e => saveLine(l.id, { qty: e.target.value })} />
+        )}
       </td>
       <td style={{ padding:'2px 6px', textAlign:'right' }}>
         {l.percent != null
@@ -409,31 +422,45 @@ function VccTab({ pid, budget, sections, lines, vcc, categories, set }) {
           </div>
         </div>
         <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding:'12px 16px' }}>
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
-            <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'#5ABF80' }}>Client Deposits</div>
-            <button type="button" className="btn btn-ghost btn-sm"
-              onClick={() => alert('Coming soon: review the invoice email, attach the invoice, and send it to the client right from here.')}>
-              ✉ Send Invoice
-            </button>
-          </div>
-          <div style={{ display:'grid', gridTemplateColumns:'auto 1fr 1fr', gap:'6px 10px', fontSize:11, alignItems:'center' }}>
-            <span style={{ color:'var(--muted)' }}>Deposit</span>
-            <MoneyInput value={budget.deposit ?? ''} width={110}
-              onCommit={v => { patchBudget({ deposit: v }); saveBudget({ deposit: v }); }} />
-            <input type="date" value={budget.deposit_due || ''} style={{ fontSize:11 }}
-              onChange={e => patchBudget({ deposit_due: e.target.value })} onBlur={e => saveBudget({ depositDue: e.target.value })} />
-            <span style={{ color:'var(--muted)' }}>Additional</span>
-            <MoneyInput value={budget.additional_deposit ?? ''} width={110}
-              onCommit={v => { patchBudget({ additional_deposit: v }); saveBudget({ additionalDeposit: v }); }} />
-            <input type="date" value={budget.final_inv_date || ''} title="Final invoice date" style={{ fontSize:11 }}
-              onChange={e => patchBudget({ final_inv_date: e.target.value })} onBlur={e => saveBudget({ finalInvDate: e.target.value })} />
-            <span style={{ color:'var(--muted)' }}>Final Invoice</span>
-            <span style={{ textAlign:'right', fontWeight:700 }}>{fmt$(finalInvoice)}</span>
-            <span />
-            <span style={{ color:'var(--muted)' }}>Total Budget</span>
-            <span style={{ textAlign:'right', fontWeight:800, color:'#5ABF80' }}>{fmt$(t.total)}</span>
-            <span />
-          </div>
+          <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'#5ABF80', marginBottom:10 }}>Client Deposits</div>
+          {(() => {
+            const today = () => new Date().toISOString().slice(0, 10);
+            const fmtD = d => d ? new Date(d.slice(0,10) + 'T12:00:00').toLocaleDateString('en-US', { month:'numeric', day:'numeric', year:'2-digit' }) : '';
+            const send = (dateKey, apiKey) => {
+              const d = today();
+              patchBudget({ [dateKey]: d });
+              saveBudget({ [apiKey]: d });
+              alert('Coming soon: review the invoice email, attach the invoice, and send it to the client right from here.\n\nInvoice date recorded as today.');
+            };
+            const row = (label, amountEl, dateVal, onSend) => (
+              <React.Fragment key={label}>
+                <span style={{ color:'var(--muted)' }}>{label}</span>
+                <span style={{ display:'flex', justifyContent:'flex-end' }}>{amountEl}</span>
+                <span style={{ fontSize:10, color: dateVal ? 'var(--text)' : 'var(--muted)', textAlign:'center' }}>{dateVal ? fmtD(dateVal) : '—'}</span>
+                <span>
+                  {onSend && (
+                    <button type="button" className="btn btn-ghost btn-sm" style={{ whiteSpace:'nowrap' }} onClick={onSend}>✉ Send Invoice</button>
+                  )}
+                </span>
+              </React.Fragment>
+            );
+            return (
+              <div style={{ display:'grid', gridTemplateColumns:'auto 110px 64px auto', gap:'7px 10px', fontSize:11, alignItems:'center' }}>
+                {row('Deposit',
+                  <MoneyInput value={budget.deposit ?? ''} width={110} onCommit={v => { patchBudget({ deposit: v }); saveBudget({ deposit: v }); }} />,
+                  budget.deposit_due, () => send('deposit_due', 'depositDue'))}
+                {row('Additional',
+                  <MoneyInput value={budget.additional_deposit ?? ''} width={110} onCommit={v => { patchBudget({ additional_deposit: v }); saveBudget({ additionalDeposit: v }); }} />,
+                  budget.paid_date, () => send('paid_date', 'paidDate'))}
+                {row('Final Invoice',
+                  <span style={{ fontWeight:700, padding:'4px 6px' }}>{fmt$(finalInvoice)}</span>,
+                  budget.final_inv_date, () => send('final_inv_date', 'finalInvDate'))}
+                {row('Total Budget',
+                  <span style={{ fontWeight:800, color:'#5ABF80', padding:'4px 6px' }}>{fmt$(t.total)}</span>,
+                  null, null)}
+              </div>
+            );
+          })()}
         </div>
       </div>
 
