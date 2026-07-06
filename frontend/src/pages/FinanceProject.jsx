@@ -1098,6 +1098,8 @@ function EstimatePane({ est, feeRate, reload, onMerged }) {
   const [lines, setLines] = useState(est.lines);
   const [label, setLabel] = useState(est.label || 'Estimate');
   const [busy, setBusy] = useState(false);
+  const [expandedSecs, setExpandedSecs] = useState({});
+  const [revealed, setRevealed] = useState({});
 
   const patchLine = (id, fields) => setLines(ls => ls.map(l => l.id === id ? { ...l, ...fields } : l));
   const saveLine = (id, data) => api.updateBudgetLine(id, data).catch(e => alert(e.message));
@@ -1167,6 +1169,25 @@ function EstimatePane({ est, feeRate, reload, onMerged }) {
         const main = secLines.filter(l => !l.is_travel);
         const trav = secLines.filter(l => l.is_travel);
         const secTotal = secLines.reduce((s2, l) => s2 + lineSubtotal(l, secLines), 0);
+        const isCollapsed = sec.kind === 'shoot' && !expandedSecs[sec.id];
+        const hiddenMain = isCollapsed ? main.filter(l => l.percent == null && !(num(l.qty) > 0) && !revealed[l.id]) : [];
+        const shownMain = isCollapsed ? main.filter(l => l.percent != null || num(l.qty) > 0 || revealed[l.id]) : main;
+        async function addPosition(val) {
+          if (!val) return;
+          if (val === '__custom') {
+            const l = await api.addBudgetLine(sec.id, {});
+            setLines(ls => [...ls, l]);
+            setRevealed(r => ({ ...r, [l.id]: true }));
+            return;
+          }
+          if (val.startsWith('reveal:')) { setRevealed(r => ({ ...r, [val.slice(7)]: true })); return; }
+          if (val.startsWith('scope:')) {
+            const scope = val.slice(6);
+            const l = await api.addBudgetLine(sec.id, { scope });
+            setLines(ls => [...ls, l]);
+            setRevealed(r => ({ ...r, [l.id]: true }));
+          }
+        }
         return (
           <div key={sec.id} style={{ background:'var(--bg2)', border:'1px solid rgba(230,194,41,0.25)', borderRadius:10, marginBottom:14, overflow:'hidden' }}>
             <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', borderBottom:'1px solid var(--border)' }}>
@@ -1193,15 +1214,38 @@ function EstimatePane({ est, feeRate, reload, onMerged }) {
                 </tr>
               </thead>
               <tbody>
-                {main.map(l => <LineRow key={l.id} l={l} secLines={secLines} patchLine={patchLine} saveLine={saveLine} delLine={delLine} />)}
+                {shownMain.map(l => <LineRow key={l.id} l={l} secLines={secLines} patchLine={patchLine} saveLine={saveLine} delLine={delLine} />)}
+                {sec.kind === 'shoot' && (
+                  <tr>
+                    <td colSpan={6} style={{ padding:'6px 6px 6px 14px' }}>
+                      <select value="" style={{ fontSize:11, width:240, color:YEL, border:'1px dashed rgba(230,194,41,0.45)', background:'transparent', borderRadius:6, padding:'4px 8px' }}
+                        onChange={e => addPosition(e.target.value)}>
+                        <option value="">+ Add Position…</option>
+                        {isCollapsed
+                          ? hiddenMain.map(l => <option key={l.id} value={'reveal:' + l.id}>{l.scope || 'Untitled position'}</option>)
+                          : [...new Set(main.filter(l => l.percent == null && l.scope).map(l => l.scope))].map(s2 => <option key={s2} value={'scope:' + s2}>{s2}</option>)}
+                        <option value="__custom">Custom position…</option>
+                      </select>
+                      {isCollapsed && hiddenMain.length > 0 && (
+                        <span style={{ fontSize:10, color:'var(--muted)', marginLeft:10 }}>{hiddenMain.length} position option{hiddenMain.length !== 1 ? 's' : ''} hidden</span>
+                      )}
+                    </td>
+                  </tr>
+                )}
                 {trav.length > 0 && (
                   <tr><td colSpan={6} style={{ padding:'6px 6px 2px 14px', fontSize:9, color:'var(--tan)', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em' }}>Travel</td></tr>
                 )}
                 {trav.map(l => <LineRow key={l.id} l={l} secLines={secLines} patchLine={patchLine} saveLine={saveLine} delLine={delLine} />)}
               </tbody>
             </table>
-            <div style={{ display:'flex', gap:8, padding:'6px 14px 10px' }}>
-              <button className="btn btn-ghost btn-sm" onClick={() => addLine(sec.id, false)}>+ Line</button>
+            <div style={{ display:'flex', gap:8, padding:'6px 14px 10px', alignItems:'center' }}>
+              {sec.kind !== 'shoot' && <button className="btn btn-ghost btn-sm" onClick={() => addLine(sec.id, false)}>+ Line</button>}
+              {sec.kind === 'shoot' && (
+                <button className="btn btn-ghost btn-sm" style={{ color:'var(--muted)' }}
+                  onClick={() => setExpandedSecs(x => ({ ...x, [sec.id]: !x[sec.id] }))}>
+                  {isCollapsed ? '▸ Expand All Positions' : '▾ Collapse Positions'}
+                </button>
+              )}
               {sec.kind === 'shoot' && <button className="btn btn-ghost btn-sm" onClick={() => addLine(sec.id, true)}>+ Travel Line</button>}
             </div>
           </div>
