@@ -52,10 +52,10 @@ export default function Questions({ project }) {
   const unanswered = questions.filter(q => !q.answer);
   const answered = questions.filter(q => q.answer);
 
-  // Once day 1 arrives (America/Chicago), new questions are closed
+  // Once day 1 arrives (device-local time), new questions are closed
   const projectStarted = (() => {
     if (!project?.start_date) return false;
-    const today = new Date(new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' }) + 'T12:00:00');
+    const today = new Date(new Date().toLocaleDateString('en-CA') + 'T12:00:00');
     return new Date(project.start_date.slice(0, 10) + 'T12:00:00') <= today;
   })();
   const pocMember = (project.crewAssignments || []).find(a => a.crewMember && a.crewMember.id === project.poc_crew_member_id)?.crewMember || null;

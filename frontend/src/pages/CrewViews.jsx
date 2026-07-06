@@ -63,7 +63,7 @@ export default function CrewViews() {
     nav(`/share/${project.crewToken}`);
   }
 
-  const today = new Date(new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' }) + 'T12:00:00');
+  const today = new Date(new Date().toLocaleDateString('en-CA') + 'T12:00:00');
   function daysUntil(startDate) {
     if (!startDate) return null;
     return Math.ceil((new Date(startDate.slice(0, 10) + 'T12:00:00') - today) / 86400000);
