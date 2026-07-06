@@ -893,6 +893,65 @@ async function migrate() {
 
   await sql`UPDATE budgets SET status = 'Reconcile' WHERE status = 'Reconciled'`;
 
+  // Merge duplicate crew members (e.g. "Ben Lamb"/"Benjamin Lamb", double
+  // entries). Keeper = the record with the most linked data (travel etc.);
+  // missing profile fields are filled in from the duplicate before it goes.
+  try {
+    const members = await sql`SELECT * FROM crew_members`;
+    const norm = v => String(v || '').trim().toLowerCase();
+    const lastName = m => norm(m.name).split(/\s+/).slice(-1)[0] || '';
+    const firstName = m => norm(m.name).split(/\s+/)[0] || '';
+    const isDupPair = (a, b) => {
+      if (norm(a.name) && norm(a.name) === norm(b.name)) return true;
+      if (lastName(a) && lastName(a) === lastName(b)) {
+        if (a.email && b.email && norm(a.email) === norm(b.email)) return true;
+        if (a.phone && b.phone && norm(a.phone).replace(/\D/g, '') === norm(b.phone).replace(/\D/g, '')) return true;
+        const fa = firstName(a), fb = firstName(b);
+        if (fa.length >= 3 && fb.length >= 3 && (fa.startsWith(fb) || fb.startsWith(fa)) && fa !== fb) return true;
+        if (fa === fb) return true;
+      }
+      return false;
+    };
+    const weight = async m => {
+      const [{ n }] = await sql`
+        SELECT (SELECT COUNT(*) FROM crew_assignments WHERE crew_member_id = ${m.id})
+             + (SELECT COUNT(*) FROM flights WHERE crew_member_id = ${m.id})
+             + (SELECT COUNT(*) FROM hotel_guests WHERE crew_member_id = ${m.id})
+             + (SELECT COUNT(*) FROM event_crew_tags WHERE crew_member_id = ${m.id}) as n`;
+      const filled = ['email','phone','company','home_airport','known_traveler_number','passport_number','seat_preference','date_of_birth','preferred_first_name']
+        .filter(k => m[k]).length;
+      return Number(n) * 100 + filled;
+    };
+    const gone = new Set();
+    for (let i = 0; i < members.length; i++) {
+      for (let j = i + 1; j < members.length; j++) {
+        const a = members[i], b = members[j];
+        if (gone.has(a.id) || gone.has(b.id)) continue;
+        if (!isDupPair(a, b)) continue;
+        const [wa, wb] = [await weight(a), await weight(b)];
+        const keep = wa >= wb ? a : b;
+        const dup = wa >= wb ? b : a;
+        for (const [table, col] of [
+          ['crew_assignments', 'crew_member_id'], ['event_crew_tags', 'crew_member_id'],
+          ['hotel_guests', 'crew_member_id'], ['flights', 'crew_member_id'],
+          ['drive_group_members', 'crew_member_id'], ['tech_specs', 'dit_crew_member_id'],
+          ['projects', 'poc_crew_member_id'], ['project_gear', 'gear_person_id'],
+        ]) {
+          await sql.unsafe(`UPDATE ${table} SET ${col} = $1 WHERE ${col} = $2`, [keep.id, dup.id]);
+        }
+        for (const k of ['email','phone','company','home_airport','known_traveler_number','passport_number','passport_expiry','seat_preference','date_of_birth','dietary_restrictions','emergency_contact','emergency_phone','preferred_first_name','preferred_last_name','notes']) {
+          if (!keep[k] && dup[k]) {
+            await sql.unsafe(`UPDATE crew_members SET ${k} = $1 WHERE id = $2`, [dup[k], keep.id]);
+            keep[k] = dup[k];
+          }
+        }
+        await sql`DELETE FROM crew_members WHERE id = ${dup.id}`;
+        gone.add(dup.id);
+        console.log(`Merged duplicate crew member "${dup.name}" into "${keep.name}".`);
+      }
+    }
+  } catch (e) { console.error('Crew dedupe failed:', e.message); }
+
   console.log('Migration complete.');
 }
 
