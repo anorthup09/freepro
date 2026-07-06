@@ -143,7 +143,7 @@ function ShareDropdown({ projectId, showShotList }) {
   const talentShares = shares.filter(s => s.view_type === 'talent');
 
   return (
-    <div className="share-wrap" ref={ref} style={{ position: 'relative', marginLeft: 'auto' }}>
+    <div className="share-wrap" ref={ref} style={{ position: 'relative' }}>
       <button className="share-btn" onClick={() => setOpen(o => !o)}>
         Share ▾
       </button>
