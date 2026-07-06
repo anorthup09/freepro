@@ -519,6 +519,17 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
     setEditingSyntheticKey(null);
   }
 
+  async function applyWeatherLocationToAll() {
+    if (!currentDay?.weather_location_name) return;
+    const body = { weatherLocationName: currentDay.weather_location_name, weatherLat: currentDay.weather_lat, weatherLon: currentDay.weather_lon };
+    const others = days.filter(d => d.id !== currentDay.id);
+    try {
+      await Promise.all(others.map(d => api.updateDay(project.id, d.id, body)));
+      setDays(ds => ds.map(d => ({ ...d, weather_location_name: body.weatherLocationName, weather_lat: body.weatherLat, weather_lon: body.weatherLon })));
+      flashSaved();
+    } catch (e) { alert(e.message); }
+  }
+
   async function applyLocationToAll(locationKey) {
     const value = dayTimesForm[currentDay.id]?.[locationKey] || null;
     const otherDays = days.filter(d => d.id !== currentDay.id);
@@ -865,6 +876,13 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                       onSelect={sel => saveWeatherLocation(sel)}
                       onClear={() => saveWeatherLocation(null)}
                     />
+                    {currentDay.weather_location_name && days.length > 1 && (
+                      <button type="button" title="Apply this location to every day"
+                        style={{ fontSize:9, padding:'3px 8px', borderRadius:10, border:'1px solid var(--border2)', background:'var(--bg3)', color:'var(--muted)', cursor:'pointer', fontWeight:600, whiteSpace:'nowrap' }}
+                        onClick={applyWeatherLocationToAll}>
+                        Apply to All
+                      </button>
+                    )}
                   </div>
                   <div style={{ display:'flex', alignItems:'center', gap:12, flexShrink:0 }}>
                     {(() => {
