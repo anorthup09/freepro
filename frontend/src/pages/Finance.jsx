@@ -109,7 +109,7 @@ export default function Finance() {
           <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:8 }}>
             <div style={{ display:'flex', gap:8 }}>
             <button onClick={() => setShowNew(true)}
-              style={{ background:'#5ABF80', border:'1px solid #5ABF80', color:'#0b0b0b', borderRadius:20, padding:'5px 14px', fontSize:11, fontWeight:800, cursor:'pointer' }}>
+              style={{ background:'rgba(90,191,128,0.2)', border:'1px solid #5ABF80', color:'#5ABF80', borderRadius:20, padding:'5px 14px', fontSize:11, fontWeight:800, cursor:'pointer' }}>
               + New Project
             </button>
             <button onClick={() => nav('/finance/overview')}

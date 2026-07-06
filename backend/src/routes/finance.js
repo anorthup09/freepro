@@ -125,7 +125,7 @@ async function seedShootLines(budgetId, sectionId) {
   for (const [scope, notes, unit] of CREW_LINES) {
     await sql`INSERT INTO budget_lines (budget_id, section_id, scope, notes, unit_cost, sort) VALUES (${budgetId}, ${sectionId}, ${scope}, ${notes}, ${unit}, ${sort++})`;
   }
-  await sql`INSERT INTO budget_lines (budget_id, section_id, scope, notes, percent, sort) VALUES (${budgetId}, ${sectionId}, 'Creative Direction - Pre-/Production', 'Based on section total - toggle on to apply', 0.10, ${sort++})`;
+  await sql`INSERT INTO budget_lines (budget_id, section_id, scope, notes, percent, sort) VALUES (${budgetId}, ${sectionId}, 'Creative Direction - Pre-Production', 'Based on section total - toggle on to apply', 0.10, ${sort++})`;
   for (const [scope, notes, unit] of TRAVEL_LINES) {
     await sql`INSERT INTO budget_lines (budget_id, section_id, scope, notes, unit_cost, is_travel, sort) VALUES (${budgetId}, ${sectionId}, ${scope}, ${notes}, ${unit}, TRUE, ${sort++})`;
   }
@@ -252,7 +252,8 @@ router.patch('/finance/budget/:bid', ...finance, async (req, res, next) => {
         media_rep = ${d.mediaRep !== undefined ? (d.mediaRep || null) : sql`media_rep`},
         label = ${d.label !== undefined ? (d.label || null) : sql`label`},
         close_month = ${d.closeMonth !== undefined ? (d.closeMonth || null) : sql`close_month`},
-        solutions_code = ${d.solutionsCode !== undefined ? (d.solutionsCode || null) : sql`solutions_code`}
+        solutions_code = ${d.solutionsCode !== undefined ? (d.solutionsCode || null) : sql`solutions_code`},
+        share_mode = ${d.shareMode !== undefined ? (d.shareMode || 'lines') : sql`share_mode`}
       WHERE id = ${req.params.bid} RETURNING *`;
     // Going Live: give every production block its own FreePro project tile
     if (d.status === 'Live' && b && (b.kind || 'main') === 'main') {
@@ -697,12 +698,12 @@ router.post('/finance/budget/:bid/share', ...finance, async (req, res, next) => 
 // Public: client-facing budget estimate (sanitized — no costs ledger, no profit data)
 router.get('/budget-share/:token', async (req, res, next) => {
   try {
-    const [budget] = await sql`SELECT id, project_id, budget_date, media_rep, solutions_code, mgmt_fee_rate, status FROM budgets WHERE share_token = ${req.params.token}`;
+    const [budget] = await sql`SELECT id, project_id, budget_date, media_rep, solutions_code, mgmt_fee_rate, status, share_mode FROM budgets WHERE share_token = ${req.params.token}`;
     if (!budget) return res.status(404).json({ error: 'Budget not found' });
     const [project] = await sql`SELECT code, title, client FROM projects WHERE id = ${budget.project_id}`;
     const sections = await sql`SELECT id, title, subtitle, kind, sort FROM budget_sections WHERE budget_id = ${budget.id} ORDER BY sort`;
     const lines = await sql`SELECT id, section_id, scope, notes, qty, unit_cost, percent, is_travel, sort FROM budget_lines WHERE budget_id = ${budget.id} ORDER BY sort`;
-    res.json({ project, budget: { budget_date: budget.budget_date, media_rep: budget.media_rep, solutions_code: budget.solutions_code, mgmt_fee_rate: budget.mgmt_fee_rate }, sections, lines });
+    res.json({ project, budget: { budget_date: budget.budget_date, media_rep: budget.media_rep, solutions_code: budget.solutions_code, mgmt_fee_rate: budget.mgmt_fee_rate, share_mode: budget.share_mode || 'lines' }, sections, lines });
   } catch (e) { next(e); }
 });
 

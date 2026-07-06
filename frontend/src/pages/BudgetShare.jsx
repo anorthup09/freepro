@@ -25,6 +25,7 @@ export default function BudgetShare() {
 
   const { project, budget, sections, lines } = data;
   const mgmtRate = budget.mgmt_fee_rate != null ? Number(budget.mgmt_fee_rate) : 0.15;
+  const bucketMode = budget.share_mode === 'buckets';
 
   let nonTravel = 0, travel = 0, photo = 0;
   const photoIds = new Set(sections.filter(s => s.kind === 'photo').map(s => s.id));
@@ -77,15 +78,17 @@ export default function BudgetShare() {
                 </div>
                 <div style={{ fontSize:14, fontWeight:800, whiteSpace:'nowrap' }}>{fmt$(secTotal)}</div>
               </div>
-              <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12 }}>
-                <tbody>
-                  {main.map(l => <ShareRow key={l.id} l={l} secLines={secLines} />)}
-                  {trav.length > 0 && (
-                    <tr><td colSpan={3} style={{ padding:'8px 20px 2px', fontSize:9, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--tan)' }}>Travel</td></tr>
-                  )}
-                  {trav.map(l => <ShareRow key={l.id} l={l} secLines={secLines} />)}
-                </tbody>
-              </table>
+              {!bucketMode && (
+                <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12 }}>
+                  <tbody>
+                    {main.map(l => <ShareRow key={l.id} l={l} secLines={secLines} />)}
+                    {trav.length > 0 && (
+                      <tr><td colSpan={3} style={{ padding:'8px 20px 2px', fontSize:9, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--tan)' }}>Travel</td></tr>
+                    )}
+                    {trav.map(l => <ShareRow key={l.id} l={l} secLines={secLines} />)}
+                  </tbody>
+                </table>
+              )}
             </div>
           );
         })}

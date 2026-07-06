@@ -806,6 +806,9 @@ async function migrate() {
       created_at TIMESTAMPTZ DEFAULT NOW()
     )`;
 
+  await sql`ALTER TABLE budgets ADD COLUMN IF NOT EXISTS share_mode TEXT DEFAULT 'lines'`;
+  await sql`UPDATE budget_lines SET scope = 'Creative Direction - Pre-Production' WHERE scope = 'Creative Direction - Pre-/Production'`;
+
   console.log('Migration complete.');
 }
 

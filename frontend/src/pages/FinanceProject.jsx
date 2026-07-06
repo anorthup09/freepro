@@ -86,7 +86,7 @@ export default function FinanceProject() {
               <>
                 <button onClick={() => setOverview(true)}
                   style={{ background:'rgba(90,191,128,0.12)', border:'1px solid #5ABF80', color:'#5ABF80', borderRadius:20, padding:'4px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
-                  📋 Overview Estimate
+                  📋 Estimate Overview
                 </button>
                 <button onClick={() => setEstimateMode(true)}
                   style={{ background:'rgba(230,194,41,0.15)', border:'1px solid #e6c229', color:'#e6c229', borderRadius:20, padding:'4px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
@@ -114,7 +114,7 @@ export default function FinanceProject() {
       )}
       {overview && budget && (
         <OverviewEstimateModal sections={sections} lines={lines} feeRate={Number(budget.mgmt_fee_rate ?? 0.15)}
-          heading={`Overview Estimate — ${project.title}`} onClose={() => setOverview(false)} />
+          heading={`Estimate Overview — ${project.title}`} onClose={() => setOverview(false)} />
       )}
     </div>
   );
@@ -155,6 +155,8 @@ function BudgetTab({ budget, sections, lines, vcc, set, reload }) {
   const closeMonthOptions = useMemo(closeMonthRange, []);
   const mgmtRate = budget.mgmt_fee_rate != null ? Number(budget.mgmt_fee_rate) : 0.15;
   const t = useMemo(() => totals(sections, lines, mgmtRate), [sections, lines, mgmtRate]);
+  const [expandedSecs, setExpandedSecs] = useState({});
+  const [revealed, setRevealed] = useState({});
 
   const patchLine = (id, fields) => set(d => ({ lines: d.lines.map(l => l.id === id ? { ...l, ...fields } : l) }));
   const saveLine = (id, data) => api.updateBudgetLine(id, data).catch(e => alert(e.message));
@@ -226,7 +228,7 @@ function BudgetTab({ budget, sections, lines, vcc, set, reload }) {
           <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Status</label>
           <StatusPill value={budget.status || 'RFP'} onChange={v => { patchBudget({ status: v }); saveBudget({ status: v }); }} />
         </div>
-        <ShareBudgetButton budget={budget} />
+        <ShareBudgetButton budget={budget} patchBudget={patchBudget} saveBudget={saveBudget} />
       </div>
 
       {(() => { const lastShootId = [...sections].filter(x => x.kind === 'shoot').map(x => x.id).pop(); return sections.map(sec => {
@@ -235,6 +237,25 @@ function BudgetTab({ budget, sections, lines, vcc, set, reload }) {
         const travel = secLines.filter(l => l.is_travel);
         const mainTotal = main.reduce((s, l) => s + lineSubtotal(l, secLines), 0);
         const travelTotal = travel.reduce((s, l) => s + lineSubtotal(l, secLines), 0);
+        const isCollapsed = sec.kind === 'shoot' && !expandedSecs[sec.id];
+        const hiddenMain = isCollapsed ? main.filter(l => l.percent == null && !(num(l.qty) > 0) && !revealed[l.id]) : [];
+        const shownMain = isCollapsed ? main.filter(l => l.percent != null || num(l.qty) > 0 || revealed[l.id]) : main;
+        async function addPosition(val) {
+          if (!val) return;
+          if (val === '__custom') {
+            const l = await api.addBudgetLine(sec.id, {});
+            set(d => ({ lines: [...d.lines, l] }));
+            setRevealed(r => ({ ...r, [l.id]: true }));
+            return;
+          }
+          if (val.startsWith('reveal:')) { setRevealed(r => ({ ...r, [val.slice(7)]: true })); return; }
+          if (val.startsWith('scope:')) {
+            const scope = val.slice(6);
+            const l = await api.addBudgetLine(sec.id, { scope });
+            set(d => ({ lines: [...d.lines, l] }));
+            setRevealed(r => ({ ...r, [l.id]: true }));
+          }
+        }
         return (
           <div key={sec.id} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, marginBottom:14, overflow:'hidden' }}>
             <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', borderBottom:'1px solid var(--border)' }}>
@@ -275,7 +296,24 @@ function BudgetTab({ budget, sections, lines, vcc, set, reload }) {
                 </tr>
               </thead>
               <tbody>
-                {main.map(l => <LineRow key={l.id} l={l} secLines={secLines} patchLine={patchLine} saveLine={saveLine} delLine={delLine} />)}
+                {shownMain.map(l => <LineRow key={l.id} l={l} secLines={secLines} patchLine={patchLine} saveLine={saveLine} delLine={delLine} />)}
+                {sec.kind === 'shoot' && (
+                  <tr>
+                    <td colSpan={6} style={{ padding:'6px 6px 6px 14px' }}>
+                      <select value="" style={{ fontSize:11, width:240, color:'#5ABF80', border:'1px dashed rgba(90,191,128,0.45)', background:'transparent', borderRadius:6, padding:'4px 8px' }}
+                        onChange={e => addPosition(e.target.value)}>
+                        <option value="">+ Add Position…</option>
+                        {isCollapsed
+                          ? hiddenMain.map(l => <option key={l.id} value={'reveal:' + l.id}>{l.scope || 'Untitled position'}</option>)
+                          : [...new Set(main.filter(l => l.percent == null && l.scope).map(l => l.scope))].map(s2 => <option key={s2} value={'scope:' + s2}>{s2}</option>)}
+                        <option value="__custom">Custom position…</option>
+                      </select>
+                      {isCollapsed && hiddenMain.length > 0 && (
+                        <span style={{ fontSize:10, color:'var(--muted)', marginLeft:10 }}>{hiddenMain.length} position option{hiddenMain.length !== 1 ? 's' : ''} hidden</span>
+                      )}
+                    </td>
+                  </tr>
+                )}
                 {travel.length > 0 && (
                   <tr><td colSpan={4} style={{ padding:'6px 6px 2px 14px', fontSize:9, color:'var(--tan)', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em' }}>Travel</td>
                     <td style={{ textAlign:'right', padding:'6px 6px 2px', fontSize:10, color:'var(--tan)', fontWeight:700 }}>{fmt$(travelTotal)}</td><td/></tr>
@@ -284,7 +322,13 @@ function BudgetTab({ budget, sections, lines, vcc, set, reload }) {
               </tbody>
             </table>
             <div style={{ display:'flex', gap:8, padding:'6px 14px 10px', alignItems:'center' }}>
-              <button className="btn btn-ghost btn-sm" onClick={() => addLine(sec.id, false)}>+ Line</button>
+              {sec.kind !== 'shoot' && <button className="btn btn-ghost btn-sm" onClick={() => addLine(sec.id, false)}>+ Line</button>}
+              {sec.kind === 'shoot' && (
+                <button className="btn btn-ghost btn-sm" style={{ color:'var(--muted)' }}
+                  onClick={() => setExpandedSecs(x => ({ ...x, [sec.id]: !x[sec.id] }))}>
+                  {isCollapsed ? '▸ Expand All Positions' : '▾ Collapse Positions'}
+                </button>
+              )}
               {sec.kind === 'shoot' && <button className="btn btn-ghost btn-sm" onClick={() => addLine(sec.id, true)}>+ Travel Line</button>}
               {sec.kind === 'shoot' && <TravelSync sec={sec} travelTotal={travelTotal} reload={reload} hasHold={(vcc || []).some(e => (e.source || '') === 'travelhold:' + sec.id)} hasActuals={travel.some(l => /Actuals from VCC/i.test(l.notes || ''))} />}
             </div>
@@ -706,22 +750,32 @@ function VccTools({ pid, set, vcc }) {
 }
 
 
-function ShareBudgetButton({ budget }) {
-  const [copied, setCopied] = useState(false);
+function ShareBudgetButton({ budget, patchBudget, saveBudget }) {
+  const mode = budget.share_mode || 'lines';
   async function share() {
     try {
       const { token } = await api.shareBudget(budget.id);
-      const link = `${window.location.origin}/budget/${token}`;
-      await navigator.clipboard?.writeText(link).catch(() => {});
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
-      if (!navigator.clipboard) prompt('Client budget link:', link);
+      window.open(`${window.location.origin}/budget/${token}`, '_blank');
     } catch (e) { alert(e.message); }
+  }
+  function setMode(m) {
+    patchBudget && patchBudget({ share_mode: m });
+    saveBudget && saveBudget({ shareMode: m });
   }
   return (
     <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:8 }}>
+      <div title="What the client sees on the shared budget page"
+        style={{ display:'flex', border:'1px solid var(--border)', borderRadius:14, overflow:'hidden' }}>
+        {[['lines', 'Line Items'], ['buckets', 'Buckets']].map(([m, label]) => (
+          <button key={m} type="button" onClick={() => setMode(m)}
+            style={{ background: mode === m ? 'rgba(90,191,128,0.25)' : 'transparent', border:'none',
+              color: mode === m ? '#5ABF80' : 'var(--muted)', fontSize:10, fontWeight:700, padding:'4px 10px', cursor:'pointer' }}>
+            {label}
+          </button>
+        ))}
+      </div>
       <button type="button" className="btn btn-ghost btn-sm" onClick={share}>
-        {copied ? '✓ Link copied' : '🔗 Client Budget Link'}
+        🔗 Client Budget Link
       </button>
     </div>
   );
@@ -981,7 +1035,7 @@ function EstimateMode({ pid, estimates, onExit, reload }) {
           {estimates[idx] && (
             <button onClick={() => setOverview(true)}
               style={{ background:'rgba(90,191,128,0.12)', border:'1px solid #5ABF80', color:'#5ABF80', borderRadius:20, padding:'4px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
-              📋 Overview Estimate
+              📋 Estimate Overview
             </button>
           )}
           <label style={{ fontSize:10, color:'var(--muted)', display:'flex', alignItems:'center', gap:6 }}>Mgmt Fee % (all estimates)
@@ -1015,7 +1069,7 @@ function EstimateMode({ pid, estimates, onExit, reload }) {
       </div>
       {overview && estimates[idx] && (
         <OverviewEstimateModal sections={estimates[idx].sections} lines={estimates[idx].lines} feeRate={feeRate}
-          heading={`Overview Estimate — ${estimates[idx].label || 'Estimate'}`} onClose={() => setOverview(false)} />
+          heading={`Estimate Overview — ${estimates[idx].label || 'Estimate'}`} onClose={() => setOverview(false)} />
       )}
     </div>
   );
