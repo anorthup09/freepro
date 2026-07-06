@@ -26,6 +26,7 @@ export default function Catering({ project }) {
   const [days, setDays] = useState([]);
   const [cateringModal, setCateringModal] = useState(null);
   const [cateringForm, setCateringForm] = useState({ mealTypes:[], name:'', address:'', orderNumber:'', deliveryTime:'' });
+  const [expandedDays, setExpandedDays] = useState({});
   const [savedToast, setSavedToast] = useState(false);
   const toastTimer = React.useRef(null);
 
@@ -86,8 +87,7 @@ export default function Catering({ project }) {
 
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:20 }}>
         <div>
-          <div className="page-title">Catering</div>
-          <div className="page-sub">{project.city}, {project.state}</div>
+          <div className="page-title">Catering/Meals</div>
         </div>
       </div>
 
@@ -106,11 +106,14 @@ export default function Catering({ project }) {
                   Day {i+1} · {parseDay(d.date).toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' })}
                 </div>
                 <button className="btn btn-ghost btn-sm" style={{ fontSize:11, padding:'3px 10px' }} onClick={() => openCateringModal(d.id)}>
-                  Edit Catering
+                  Add/Edit Meal
                 </button>
               </div>
               <div style={{ padding:'10px 14px' }}>
-                {['BREAKFAST','LUNCH','DINNER'].map(mt => {
+                {!catering.length && (
+                  <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>No meals set yet.</div>
+                )}
+                {['BREAKFAST','LUNCH','DINNER'].filter(mt => expandedDays[d.id] || byMeal[mt]).map(mt => {
                   const mc = MEAL_COLORS[mt];
                   const entry = byMeal[mt];
                   return (
@@ -129,6 +132,12 @@ export default function Catering({ project }) {
                     </div>
                   );
                 })}
+                {catering.length > 0 && catering.length < 3 && (
+                  <button type="button" className="btn btn-ghost btn-sm" style={{ fontSize:10, padding:'2px 8px', color:'var(--muted)' }}
+                    onClick={() => setExpandedDays(m => ({ ...m, [d.id]: !m[d.id] }))}>
+                    {expandedDays[d.id] ? '▾ Hide empty meals' : '▸ Show all meals'}
+                  </button>
+                )}
               </div>
             </div>
           );
