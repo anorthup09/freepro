@@ -14,6 +14,7 @@ const fmtDT = d => d ? new Date(d).toLocaleString('en-US', { month:'long', day:'
 export default function FinanceReport() {
   const [report, setReport] = useState(null);
   const [error, setError] = useState('');
+  const [year, setYear] = useState('all');
 
   useEffect(() => { api.weeklyFinanceReport().then(setReport).catch(e => setError(e.message)); }, []);
 
@@ -25,8 +26,11 @@ export default function FinanceReport() {
   const th = { padding:'8px 10px', fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', textAlign:'left' };
   const td = { padding:'6px 10px', fontSize:12 };
 
-  const totalPortfolio = report.current.reduce((s, c) => s + Number(c.budget_total || 0), 0);
-  const totalFees = report.current.reduce((s, c) => s + Number(c.fee || 0), 0);
+  const yearOf = p => (p.close_month ? String(p.close_month).slice(0, 4) : null);
+  const years = [...new Set(report.current.map(yearOf).filter(Boolean))].sort().reverse();
+  const shown = report.current.filter(p => year === 'all' ? true : year === 'none' ? !yearOf(p) : yearOf(p) === year);
+  const totalPortfolio = shown.reduce((s, c) => s + Number(c.budget_total || 0), 0);
+  const totalFees = shown.reduce((s, c) => s + Number(c.fee || 0), 0);
 
   return (
     <div style={{ minHeight:'100vh', background:'var(--bg)', padding:'30px 16px 80px' }}>
@@ -98,12 +102,20 @@ export default function FinanceReport() {
           </>
         )}
 
-        <div style={secTitle}>📋 Current Portfolio ({report.current.length})</div>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, flexWrap:'wrap' }}>
+          <div style={secTitle}>📋 Projects by Year ({shown.length})</div>
+          <select className="no-print" value={year} onChange={e => setYear(e.target.value)}
+            style={{ width:150, fontSize:12, background:'var(--bg2)', border:'1px solid var(--border)', color:'var(--text)', borderRadius:8, padding:'5px 10px' }}>
+            <option value="all">All Years</option>
+            {years.map(y => <option key={y} value={y}>{y}</option>)}
+            {report.current.some(p => !yearOf(p)) && <option value="none">No close month</option>}
+          </select>
+        </div>
         <div style={card}>
           <table style={{ width:'100%', borderCollapse:'collapse' }}>
             <thead><tr><th style={th}>Code</th><th style={th}>Project</th><th style={th}>Owner</th><th style={th}>Status</th><th style={{ ...th, textAlign:'right' }}>Budget</th><th style={{ ...th, textAlign:'right' }}>Fee</th><th style={th}>Close</th></tr></thead>
             <tbody>
-              {report.current.map(p => {
+              {shown.map(p => {
                 const sc = STATUS_COLORS[p.budget_status] || 'var(--muted)';
                 return (
                   <tr key={p.project_id} style={{ borderTop:'1px solid rgba(255,255,255,0.04)', opacity: p.budget_status === 'Dead' ? 0.55 : 1 }}>
