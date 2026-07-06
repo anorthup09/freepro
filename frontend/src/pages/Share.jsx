@@ -1906,7 +1906,8 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
       (!arriveMD && f.arrive_time && isoDate(new Date(f.arrive_time)) === dayStr) ||
       (arriveMD && f.arrive_time && isoDate(new Date(f.arrive_time)) === dayStr);
     if (departMatch) legs.push({ ...f, _leg:'depart', _time: flightTime(f,'depart') });
-    if (arriveMatch) legs.push({ ...f, _leg:'arrive', _time: flightTime(f,'arrive') });
+    // Same-day arrivals ride along on the departure card
+    if (arriveMatch && !departMatch) legs.push({ ...f, _leg:'arrive', _time: flightTime(f,'arrive') });
     return legs;
   });
 

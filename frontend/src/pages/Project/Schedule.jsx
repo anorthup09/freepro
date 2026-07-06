@@ -35,7 +35,9 @@ function flightLegsForDay(flights, dayDateStr) {
       (arriveMD && arriveMD === dayMD) ||
       (f.arrive_time && isoDateOf(f.arrive_time) === dayDate);
     if (departMatch && !seen.has(f.id + 'd')) { legs.push({ ...f, _leg:'depart' }); seen.add(f.id + 'd'); }
-    if (arriveMatch && !seen.has(f.id + 'a')) { legs.push({ ...f, _leg:'arrive' }); seen.add(f.id + 'a'); }
+    // Same-day arrivals are covered by the departure card — only show a
+    // separate Arrival when the flight lands on a different day
+    if (arriveMatch && !departMatch && !seen.has(f.id + 'a')) { legs.push({ ...f, _leg:'arrive' }); seen.add(f.id + 'a'); }
   }
   return legs;
 }
@@ -1060,6 +1062,11 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                                   <span style={{ color:'var(--muted)', marginLeft:8 }}>{[item.airline, item.flight_number].filter(Boolean).join(' ')}</span>
                                 )}
                                 {item.confirmation && <span style={{ color:'var(--muted)', marginLeft:8 }}>#{item.confirmation}</span>}
+                                {item._leg === 'depart' && (item.arrive_display || item.arrive_time) && (
+                                  <span style={{ color:'var(--muted)', marginLeft:8 }}>
+                                    Arrives: {item.arrive_display || new Date(item.arrive_time).toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' })}
+                                  </span>
+                                )}
                               </div>
                               {item._leg === 'depart' && (
                                 <div style={{ display:'flex', justifyContent:'flex-end', marginTop:6 }}>
