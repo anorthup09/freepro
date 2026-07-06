@@ -198,6 +198,7 @@ router.get('/finance/:pid', ...finance, async (req, res, next) => {
       }
       lines = await sql`SELECT * FROM budget_lines WHERE budget_id = ${budget.id} ORDER BY sort`;
     }
+    if (budget) await syncFreeProCosts(req.params.pid).catch(e2 => console.error('Auto sync failed:', e2.message));
     const vcc = await sql`SELECT * FROM vcc_entries WHERE project_id = ${req.params.pid} ORDER BY trip NULLS LAST, entry_date NULLS LAST, created_at`;
     const estRows = await sql`SELECT * FROM budgets WHERE project_id = ${req.params.pid} AND kind = 'estimate' ORDER BY created_at`;
     const estIds = estRows.map(e => e.id);
@@ -466,9 +467,9 @@ router.delete('/finance/vcc/:id', ...finance, async (req, res, next) => {
 });
 
 // ── FreePro cost sync: contracts + travel costs → VCC entries (idempotent by source key)
-router.post('/finance/:pid/sync-freepro', ...finance, async (req, res, next) => {
-  try {
-    const pid = req.params.pid;
+// Pull FreePro costs (crew labor/gear, flights, hotels, rentals) into the VCC.
+// Idempotent by source key — safe to run on every budget load.
+async function syncFreeProCosts(pid) {
     const upserts = [];
     // trip auto-coding: with a single shoot the destination is obvious
     const shootSecs2 = await sql`
@@ -530,8 +531,11 @@ router.post('/finance/:pid/sync-freepro', ...finance, async (req, res, next) => 
       }
     }
     const vcc = await sql`SELECT * FROM vcc_entries WHERE project_id = ${pid} ORDER BY trip NULLS LAST, entry_date NULLS LAST, created_at`;
-    res.json({ created, updated, vcc });
-  } catch (e) { next(e); }
+    return { created, updated, vcc };
+}
+
+router.post('/finance/:pid/sync-freepro', ...finance, async (req, res, next) => {
+  try { res.json(await syncFreeProCosts(req.params.pid)); } catch (e) { next(e); }
 });
 
 // ── ODC report import: parse spreadsheet, dedupe, AI-guess coding, flag anomalies
