@@ -45,7 +45,10 @@ export default function BudgetShare() {
   const lbl = { fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' };
 
   return (
-    <div style={{ minHeight:'100vh', background:'var(--bg)', padding:'34px 16px 80px' }}>
+    <div style={{ minHeight:'100vh', background:'var(--bg)', padding:'34px 16px 80px', position:'relative' }}>
+      <div className="no-print" style={{ position:'absolute', top:14, right:16 }}>
+        <ShareLinkButton />
+      </div>
       <div style={{ maxWidth:760, margin:'0 auto' }}>
         <div style={{ textAlign:'center', marginBottom:24 }}>
           <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height:26, filter:'brightness(0) invert(1)', opacity:0.9 }} />
@@ -118,6 +121,23 @@ export default function BudgetShare() {
         </div>
       </div>
     </div>
+  );
+}
+
+function ShareLinkButton() {
+  const [copied, setCopied] = useState(false);
+  async function copy() {
+    try { await navigator.clipboard.writeText(window.location.href); }
+    catch { prompt('Copy this link:', window.location.href); }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+  return (
+    <button onClick={copy}
+      style={{ background: copied ? '#5ABF80' : 'transparent', border:'1px solid ' + (copied ? '#5ABF80' : 'var(--border)'),
+        color: copied ? '#0b0b0b' : 'var(--muted)', borderRadius:20, padding:'5px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
+      {copied ? '✓ Link copied' : 'Share'}
+    </button>
   );
 }
 
