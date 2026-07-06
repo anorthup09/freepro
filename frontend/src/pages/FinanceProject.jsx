@@ -368,11 +368,25 @@ function BudgetTab({ budget, sections, lines, vcc, set, reload }) {
                     </td>
                   </tr>
                 )}
+                {sec.kind === 'shoot' && (
+                  <tr>
+                    <td colSpan={4} style={{ padding:'6px 6px 6px 14px', fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.06em', color:'#5ABF80', borderTop:'1px solid rgba(90,191,128,0.5)' }}>Labor Subtotal</td>
+                    <td style={{ padding:'6px 10px 6px 6px', textAlign:'right', fontSize:12, fontWeight:800, color:'#5ABF80', borderTop:'1px solid rgba(90,191,128,0.5)' }}>{fmt$(mainTotal)}</td>
+                    <td style={{ borderTop:'1px solid rgba(90,191,128,0.5)' }} />
+                  </tr>
+                )}
                 {travel.length > 0 && (
                   <tr><td colSpan={4} style={{ padding:'6px 6px 2px 14px', fontSize:9, color:'var(--tan)', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em' }}>Travel</td>
-                    <td style={{ textAlign:'right', padding:'6px 6px 2px', fontSize:10, color:'var(--tan)', fontWeight:700 }}>{fmt$(travelTotal)}</td><td/></tr>
+                    <td style={{ textAlign:'right', padding:'6px 6px 2px', fontSize:10, color:'var(--tan)', fontWeight:700 }}></td><td/></tr>
                 )}
                 {travel.map(l => <LineRow key={l.id} l={l} secLines={secLines} patchLine={patchLine} saveLine={saveLine} delLine={delLine} />)}
+                {travel.length > 0 && (
+                  <tr>
+                    <td colSpan={4} style={{ padding:'6px 6px 6px 14px', fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.06em', color:'#5ABF80', borderTop:'1px solid rgba(90,191,128,0.5)' }}>Travel Subtotal</td>
+                    <td style={{ padding:'6px 10px 6px 6px', textAlign:'right', fontSize:12, fontWeight:800, color:'#5ABF80', borderTop:'1px solid rgba(90,191,128,0.5)' }}>{fmt$(travelTotal)}</td>
+                    <td style={{ borderTop:'1px solid rgba(90,191,128,0.5)' }} />
+                  </tr>
+                )}
               </tbody>
             </table>
             <div style={{ display:'flex', gap:8, padding:'6px 14px 10px', alignItems:'center' }}>
@@ -1323,10 +1337,24 @@ function EstimatePane({ est, feeRate, saveFeeAll, reload, onMerged }) {
                     </td>
                   </tr>
                 )}
+                {sec.kind === 'shoot' && (
+                  <tr>
+                    <td colSpan={4} style={{ padding:'6px 6px 6px 14px', fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.06em', color:'#5ABF80', borderTop:'1px solid rgba(90,191,128,0.5)' }}>Labor Subtotal</td>
+                    <td style={{ padding:'6px 10px 6px 6px', textAlign:'right', fontSize:12, fontWeight:800, color:'#5ABF80', borderTop:'1px solid rgba(90,191,128,0.5)' }}>{fmt$(main.reduce((s2, l) => s2 + lineSubtotal(l, secLines), 0))}</td>
+                    <td style={{ borderTop:'1px solid rgba(90,191,128,0.5)' }} />
+                  </tr>
+                )}
                 {trav.length > 0 && (
                   <tr><td colSpan={6} style={{ padding:'6px 6px 2px 14px', fontSize:9, color:'var(--tan)', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em' }}>Travel</td></tr>
                 )}
                 {trav.map(l => <LineRow key={l.id} l={l} secLines={secLines} patchLine={patchLine} saveLine={saveLine} delLine={delLine} />)}
+                {trav.length > 0 && (
+                  <tr>
+                    <td colSpan={4} style={{ padding:'6px 6px 6px 14px', fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.06em', color:'#5ABF80', borderTop:'1px solid rgba(90,191,128,0.5)' }}>Travel Subtotal</td>
+                    <td style={{ padding:'6px 10px 6px 6px', textAlign:'right', fontSize:12, fontWeight:800, color:'#5ABF80', borderTop:'1px solid rgba(90,191,128,0.5)' }}>{fmt$(trav.reduce((s2, l) => s2 + lineSubtotal(l, secLines), 0))}</td>
+                    <td style={{ borderTop:'1px solid rgba(90,191,128,0.5)' }} />
+                  </tr>
+                )}
               </tbody>
             </table>
             <div style={{ display:'flex', gap:8, padding:'6px 14px 10px', alignItems:'center' }}>
