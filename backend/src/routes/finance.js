@@ -240,6 +240,12 @@ async function ensureShootProjects(budgetId) {
   const [parent] = await sql`SELECT * FROM projects WHERE id = ${b.project_id}`;
   if (!parent) return;
   const shootSecs = await sql`SELECT * FROM budget_sections WHERE budget_id = ${b.id} AND kind = 'shoot'`;
+  // A single production block IS the parent project — no separate tile
+  if (shootSecs.length === 1) {
+    const sec = shootSecs[0];
+    if (!sec.freepro_project_id) await sql`UPDATE budget_sections SET freepro_project_id = ${parent.id} WHERE id = ${sec.id}`;
+    return;
+  }
   for (const sec of shootSecs) {
     if (sec.freepro_project_id || !sec.shoot_code) continue;
     const nn = sec.shoot_code.split('-').pop();

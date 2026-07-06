@@ -809,15 +809,44 @@ async function migrate() {
   await sql`ALTER TABLE budgets ADD COLUMN IF NOT EXISTS share_mode TEXT DEFAULT 'lines'`;
   await sql`UPDATE budget_lines SET scope = 'Creative Direction - Pre-Production' WHERE scope = 'Creative Direction - Pre-/Production'`;
 
+  // Cleanup: single-shoot budgets should point at the parent project, not a
+  // duplicate child tile. Repoint and remove/park the auto-created child.
+  try {
+    const dups = await sql`
+      SELECT s.id as section_id, s.freepro_project_id as child_id, b.project_id as parent_id
+      FROM budget_sections s
+      JOIN budgets b ON b.id = s.budget_id AND COALESCE(b.kind, 'main') = 'main'
+      WHERE s.kind = 'shoot'
+        AND s.freepro_project_id IS NOT NULL
+        AND s.freepro_project_id != b.project_id
+        AND (SELECT COUNT(*) FROM budget_sections s2 WHERE s2.budget_id = b.id AND s2.kind = 'shoot') = 1
+        AND EXISTS (SELECT 1 FROM projects c WHERE c.id = s.freepro_project_id AND c.parent_project_id = b.project_id)`;
+    for (const d of dups) {
+      await sql`UPDATE budget_sections SET freepro_project_id = ${d.parent_id} WHERE id = ${d.section_id}`;
+      const [{ n }] = await sql`
+        SELECT (SELECT COUNT(*) FROM crew_assignments WHERE project_id = ${d.child_id})
+             + (SELECT COUNT(*) FROM shoot_days WHERE project_id = ${d.child_id})
+             + (SELECT COUNT(*) FROM deliverables WHERE project_id = ${d.child_id}) as n`;
+      if (Number(n) === 0) await sql`DELETE FROM projects WHERE id = ${d.child_id}`;
+      else await sql`UPDATE projects SET status = 'ARCHIVED'::project_status WHERE id = ${d.child_id}`;
+    }
+    if (dups.length) console.log(`Merged ${dups.length} duplicate single-shoot tile(s) back into their parent project.`);
+  } catch (e) { console.error('Duplicate shoot tile cleanup failed:', e.message); }
+
   // Backfill: every production block of a Live budget gets its FreePro project tile
   try {
     const secs = await sql`
-      SELECT s.id, s.shoot_code, s.trip, p.id as parent_id, p.title, p.client, p.city, p.state, p.start_date, p.end_date
+      SELECT s.id, s.shoot_code, s.trip, p.id as parent_id, p.title, p.client, p.city, p.state, p.start_date, p.end_date,
+             (SELECT COUNT(*) FROM budget_sections s2 WHERE s2.budget_id = b.id AND s2.kind = 'shoot') as shoot_count
       FROM budget_sections s
       JOIN budgets b ON b.id = s.budget_id AND COALESCE(b.kind, 'main') = 'main' AND b.status = 'Live'
       JOIN projects p ON p.id = b.project_id
       WHERE s.kind = 'shoot' AND s.freepro_project_id IS NULL AND s.shoot_code IS NOT NULL`;
     for (const sec of secs) {
+      if (Number(sec.shoot_count) === 1) {
+        await sql`UPDATE budget_sections SET freepro_project_id = ${sec.parent_id} WHERE id = ${sec.id}`;
+        continue;
+      }
       const nn = sec.shoot_code.split('-').pop();
       const title = `${sec.title} — ${sec.trip || 'Shoot ' + nn}`;
       let [proj] = await sql`SELECT id FROM projects WHERE code = ${sec.shoot_code}`;

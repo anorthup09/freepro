@@ -170,7 +170,7 @@ export default function Projects() {
               <div className="proj-card-info">
                 <div className="proj-card-code">{p.code}</div>
                 <div className="proj-card-title">{p.title}</div>
-                <div className="proj-card-meta">{p.client} · {p.city}, {p.state} · {new Date(p.start_date?.slice(0,10)+'T12:00:00').toLocaleDateString()} – {new Date(p.end_date?.slice(0,10)+'T12:00:00').toLocaleDateString()}</div>
+                <div className="proj-card-meta">{p.client} · {new Date(p.start_date?.slice(0,10)+'T12:00:00').toLocaleDateString()} – {new Date(p.end_date?.slice(0,10)+'T12:00:00').toLocaleDateString()}</div>
               </div>
               {d != null && d > 0 && (
                 <div style={{ textAlign:'right', flexShrink:0 }}>
@@ -207,7 +207,7 @@ export default function Projects() {
                     <div className="proj-card-info">
                       <div className="proj-card-code">{p.code}</div>
                       <div className="proj-card-title">{p.title}</div>
-                      <div className="proj-card-meta">{p.client} · {p.city}, {p.state}</div>
+                      <div className="proj-card-meta">{p.client}</div>
                     </div>
                     <span className="pill">ARCHIVED</span>
                     <button
