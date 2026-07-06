@@ -43,6 +43,15 @@ const TRAVEL_LINES = [
   ['Daily Per Diem', 'Flat Rate (travel days included) - # crew/# days', 100],
   ['Insurance', 'Flat Rate per shoot', 500],
 ];
+const TEMPLATE_KEYS = {
+  scripting: 'SCRIPTING / STORYBOARDING',
+  virtual: 'VIRTUAL RECORDING',
+  shoot: 'PRODUCTION COSTS',
+  post: 'POST-PRODUCTION',
+  misc: 'MISC COSTS',
+  photo: 'PHOTOGRAPHY',
+};
+
 const TEMPLATE = [
   { title: 'SCRIPTING / STORYBOARDING', kind: 'general', lines: [
     ['Scripting', 'Starting allocation per script (based on 2-min max TRT)', 1000],
@@ -128,18 +137,18 @@ router.get('/finance/projects', ...finance, async (req, res, next) => {
     const projects = await sql`
       SELECT p.id, p.code, p.title, p.client, p.status, p.start_date, p.end_date, p.pipeline, b.id as budget_id, b.status as budget_status,
              b.mgmt_fee_rate, b.total_cap_co, b.deposit, b.additional_deposit, b.media_rep, b.close_month
-      FROM projects p LEFT JOIN budgets b ON b.project_id = p.id
-      WHERE p.status != 'ARCHIVED'
+      FROM projects p LEFT JOIN budgets b ON b.project_id = p.id AND COALESCE(b.kind, 'main') = 'main'
+      WHERE p.status != 'ARCHIVED' AND p.parent_project_id IS NULL
       ORDER BY p.code`;
     const lines = await sql`SELECT budget_id, qty, unit_cost, percent, is_travel, section_id FROM budget_lines`;
     const vcc = await sql`SELECT project_id, SUM(amount) as total FROM vcc_entries GROUP BY project_id`;
-    const shoots = await sql`SELECT budget_id, shoot_code, trip, subtitle FROM budget_sections WHERE kind = 'shoot' ORDER BY sort`;
+    const shoots = await sql`SELECT budget_id, shoot_code, trip, subtitle, freepro_project_id FROM budget_sections WHERE kind = 'shoot' ORDER BY sort`;
     const vccMap = Object.fromEntries(vcc.map(v => [v.project_id, Number(v.total)]));
     res.json(projects.map(p => {
       const bl = lines.filter(l => l.budget_id === p.budget_id);
       const { total, fee } = budgetTotal(bl, Number(p.mgmt_fee_rate ?? 0.15));
       return { ...p, budget_total: total, fee, vcc_total: vccMap[p.id] || 0,
-        shoots: shoots.filter(x => x.budget_id === p.budget_id).map(x => ({ code: x.shoot_code, trip: x.trip })) };
+        shoots: shoots.filter(x => x.budget_id === p.budget_id).map(x => ({ code: x.shoot_code, trip: x.trip, freeproProjectId: x.freepro_project_id })) };
     }));
   } catch (e) { next(e); }
 });
@@ -170,7 +179,7 @@ router.get('/finance/:pid', ...finance, async (req, res, next) => {
   try {
     const [project] = await sql`SELECT id, code, title, client, status, start_date, end_date FROM projects WHERE id = ${req.params.pid}`;
     if (!project) return res.status(404).json({ error: 'Project not found' });
-    const [budget] = await sql`SELECT * FROM budgets WHERE project_id = ${req.params.pid}`;
+    const [budget] = await sql`SELECT * FROM budgets WHERE project_id = ${req.params.pid} AND COALESCE(kind, 'main') = 'main'`;
     let sections = [], lines = [];
     if (budget) {
       sections = await sql`SELECT * FROM budget_sections WHERE budget_id = ${budget.id} ORDER BY sort`;
@@ -187,14 +196,23 @@ router.get('/finance/:pid', ...finance, async (req, res, next) => {
       lines = await sql`SELECT * FROM budget_lines WHERE budget_id = ${budget.id} ORDER BY sort`;
     }
     const vcc = await sql`SELECT * FROM vcc_entries WHERE project_id = ${req.params.pid} ORDER BY trip NULLS LAST, entry_date NULLS LAST, created_at`;
-    res.json({ project, budget, sections, lines, vcc, categories: VCC_CATEGORIES });
+    const estRows = await sql`SELECT * FROM budgets WHERE project_id = ${req.params.pid} AND kind = 'estimate' ORDER BY created_at`;
+    const estIds = estRows.map(e => e.id);
+    const estSections = estIds.length ? await sql`SELECT * FROM budget_sections WHERE budget_id = ANY(${estIds}) ORDER BY sort` : [];
+    const estLines = estIds.length ? await sql`SELECT * FROM budget_lines WHERE budget_id = ANY(${estIds}) ORDER BY sort` : [];
+    const estimates = estRows.map(e => ({
+      ...e,
+      sections: estSections.filter(x => x.budget_id === e.id),
+      lines: estLines.filter(x => x.budget_id === e.id),
+    }));
+    res.json({ project, budget, sections, lines, vcc, estimates, categories: VCC_CATEGORIES });
   } catch (e) { next(e); }
 });
 
 // Create budget from template
 router.post('/finance/:pid/budget', ...finance, async (req, res, next) => {
   try {
-    const [existing] = await sql`SELECT id FROM budgets WHERE project_id = ${req.params.pid}`;
+    const [existing] = await sql`SELECT id FROM budgets WHERE project_id = ${req.params.pid} AND COALESCE(kind, 'main') = 'main'`;
     if (existing) return res.status(409).json({ error: 'Budget already exists' });
     const [b] = await sql`INSERT INTO budgets (project_id, status) VALUES (${req.params.pid}, 'RFP') RETURNING *`;
     let sort = 0;
@@ -232,17 +250,83 @@ router.patch('/finance/budget/:bid', ...finance, async (req, res, next) => {
         original_fee_estimate = ${d.originalFeeEstimate !== undefined ? num(d.originalFeeEstimate) : sql`original_fee_estimate`},
         budget_date = ${d.budgetDate !== undefined ? (d.budgetDate || null) : sql`budget_date`},
         media_rep = ${d.mediaRep !== undefined ? (d.mediaRep || null) : sql`media_rep`},
+        label = ${d.label !== undefined ? (d.label || null) : sql`label`},
         close_month = ${d.closeMonth !== undefined ? (d.closeMonth || null) : sql`close_month`},
         solutions_code = ${d.solutionsCode !== undefined ? (d.solutionsCode || null) : sql`solutions_code`}
       WHERE id = ${req.params.bid} RETURNING *`;
+    // Going Live: give every production block its own FreePro project tile
+    if (d.status === 'Live' && b && (b.kind || 'main') === 'main') {
+      try {
+        const [parent] = await sql`SELECT * FROM projects WHERE id = ${b.project_id}`;
+        const shootSecs = await sql`SELECT * FROM budget_sections WHERE budget_id = ${b.id} AND kind = 'shoot'`;
+        for (const sec of shootSecs) {
+          if (sec.freepro_project_id || !sec.shoot_code) continue;
+          const nn = sec.shoot_code.split('-').pop();
+          const title = `${parent.title} — ${sec.trip || 'Shoot ' + nn}`;
+          let [proj] = await sql`SELECT id FROM projects WHERE code = ${sec.shoot_code}`;
+          if (!proj) {
+            [proj] = await sql`INSERT INTO projects (id, code, title, client, city, state, start_date, end_date, status, parent_project_id)
+              VALUES (gen_random_uuid()::text, ${sec.shoot_code}, ${title}, ${parent.client}, ${parent.city}, ${parent.state}, ${parent.start_date}, ${parent.end_date}, 'PLANNING', ${parent.id})
+              RETURNING id`;
+          }
+          await sql`UPDATE budget_sections SET freepro_project_id = ${proj.id} WHERE id = ${sec.id}`;
+        }
+      } catch (e2) { console.error('FreePro shoot project creation failed:', e2.message); }
+    }
     res.json(b);
+  } catch (e) { next(e); }
+});
+
+// ── Estimates: parallel budget containers for pricing new client asks ──
+router.post('/finance/:pid/estimates', ...finance, async (req, res, next) => {
+  try {
+    const [main] = await sql`SELECT mgmt_fee_rate FROM budgets WHERE project_id = ${req.params.pid} AND COALESCE(kind, 'main') = 'main'`;
+    const [{ n }] = await sql`SELECT COUNT(*) as n FROM budgets WHERE project_id = ${req.params.pid} AND kind = 'estimate'`;
+    const label = req.body.label || `Estimate ${Number(n) + 1}`;
+    const [e] = await sql`INSERT INTO budgets (project_id, kind, label, status, mgmt_fee_rate)
+      VALUES (${req.params.pid}, 'estimate', ${label}, 'Estimate', ${main ? main.mgmt_fee_rate : 0.15}) RETURNING *`;
+    res.status(201).json({ ...e, sections: [], lines: [] });
+  } catch (e) { next(e); }
+});
+router.delete('/finance/estimates/:eid', ...finance, async (req, res, next) => {
+  try {
+    await sql`DELETE FROM budgets WHERE id = ${req.params.eid} AND kind = 'estimate'`;
+    res.status(204).end();
+  } catch (e) { next(e); }
+});
+// Fold an approved estimate into the main budget
+router.post('/finance/estimates/:eid/merge', ...finance, async (req, res, next) => {
+  try {
+    const [est] = await sql`SELECT * FROM budgets WHERE id = ${req.params.eid} AND kind = 'estimate'`;
+    if (!est) return res.status(404).json({ error: 'Estimate not found' });
+    const [main] = await sql`SELECT * FROM budgets WHERE project_id = ${est.project_id} AND COALESCE(kind, 'main') = 'main'`;
+    if (!main) return res.status(400).json({ error: 'Create the main budget first' });
+    const secs = await sql`SELECT * FROM budget_sections WHERE budget_id = ${est.id} ORDER BY sort`;
+    const [{ max }] = await sql`SELECT COALESCE(MAX(sort), -1) as max FROM budget_sections WHERE budget_id = ${main.id}`;
+    let sort = Number(max) + 1;
+    for (const sec of secs) {
+      const shootCode = sec.kind === 'shoot' ? await nextShootCode(main.id) : null;
+      await sql`UPDATE budget_sections SET budget_id = ${main.id}, sort = ${sort++}, shoot_code = ${shootCode} WHERE id = ${sec.id}`;
+      await sql`UPDATE budget_lines SET budget_id = ${main.id} WHERE section_id = ${sec.id}`;
+    }
+    await sql`DELETE FROM budgets WHERE id = ${est.id}`;
+    res.json({ ok: true, moved: secs.length });
   } catch (e) { next(e); }
 });
 
 // Sections
 router.post('/finance/budget/:bid/sections', ...finance, async (req, res, next) => {
   try {
-    const { title, subtitle, kind = 'general', seedShoot, afterSectionId } = req.body;
+    const { title: rawTitle, subtitle: rawSubtitle, kind: rawKind = 'general', seedShoot: rawSeed, afterSectionId, template } = req.body;
+    let title = rawTitle, subtitle = rawSubtitle, kind = rawKind, seedShoot = rawSeed, tmplLines = null;
+    if (template && TEMPLATE_KEYS[template]) {
+      const tmpl = TEMPLATE.find(t => t.title.startsWith(TEMPLATE_KEYS[template]));
+      title = title || (template === 'shoot' ? 'PRODUCTION COSTS — New Shoot' : tmpl.title);
+      subtitle = subtitle ?? tmpl.subtitle;
+      kind = tmpl.kind;
+      if (template === 'shoot') seedShoot = true;
+      else tmplLines = tmpl.lines;
+    }
     let sort;
     if (afterSectionId) {
       const [after] = await sql`SELECT sort FROM budget_sections WHERE id = ${afterSectionId} AND budget_id = ${req.params.bid}`;
@@ -253,9 +337,17 @@ router.post('/finance/budget/:bid/sections', ...finance, async (req, res, next) 
       const [{ max }] = await sql`SELECT COALESCE(MAX(sort), -1) as max FROM budget_sections WHERE budget_id = ${req.params.bid}`;
       sort = Number(max) + 1;
     }
-    const shootCode = kind === 'shoot' ? await nextShootCode(req.params.bid) : null;
+    const [bRow] = await sql`SELECT kind FROM budgets WHERE id = ${req.params.bid}`;
+    const isEstimate = bRow && bRow.kind === 'estimate';
+    const shootCode = kind === 'shoot' && !isEstimate ? await nextShootCode(req.params.bid) : null;
     const [s] = await sql`INSERT INTO budget_sections (budget_id, title, subtitle, kind, sort, shoot_code) VALUES (${req.params.bid}, ${title}, ${subtitle || null}, ${kind}, ${sort}, ${shootCode}) RETURNING *`;
     if (seedShoot) await seedShootLines(req.params.bid, s.id);
+    if (tmplLines) {
+      let lsort = 0;
+      for (const [scope, notes, unit, percent] of tmplLines) {
+        await sql`INSERT INTO budget_lines (budget_id, section_id, scope, notes, unit_cost, percent, sort) VALUES (${req.params.bid}, ${s.id}, ${scope}, ${notes}, ${unit ?? 0}, ${percent ?? null}, ${lsort++})`;
+      }
+    }
     const lines = await sql`SELECT * FROM budget_lines WHERE section_id = ${s.id} ORDER BY sort`;
     res.status(201).json({ section: s, lines });
   } catch (e) { next(e); }
@@ -340,6 +432,12 @@ router.post('/finance/:pid/sync-freepro', ...finance, async (req, res, next) => 
   try {
     const pid = req.params.pid;
     const upserts = [];
+    // trip auto-coding: with a single shoot the destination is obvious
+    const shootSecs2 = await sql`
+      SELECT bs.shoot_code, bs.trip FROM budget_sections bs
+      JOIN budgets b2 ON b2.id = bs.budget_id
+      WHERE b2.project_id = ${pid} AND COALESCE(b2.kind, 'main') = 'main' AND bs.kind = 'shoot'`;
+    const defaultTrip = shootSecs2.length === 1 ? (shootSecs2[0].trip || shootSecs2[0].shoot_code) : null;
 
     // Contract crew labor/gear from the FreePro crew grid (no signed contract required)
     const crew = await sql`
@@ -380,15 +478,16 @@ router.post('/finance/:pid/sync-freepro', ...finance, async (req, res, next) => 
 
     let created = 0, updated = 0;
     for (const u of upserts) {
-      const [existing] = await sql`SELECT id, amount FROM vcc_entries WHERE project_id = ${pid} AND source = ${u.source}`;
+      const trip = u.trip || defaultTrip;
+      const [existing] = await sql`SELECT id, amount, trip FROM vcc_entries WHERE project_id = ${pid} AND source = ${u.source}`;
       if (existing) {
-        if (Number(existing.amount) !== u.amount) {
-          await sql`UPDATE vcc_entries SET amount = ${u.amount}, description = ${u.description} WHERE id = ${existing.id}`;
+        if (Number(existing.amount) !== u.amount || (!existing.trip && trip)) {
+          await sql`UPDATE vcc_entries SET amount = ${u.amount}, description = ${u.description}, trip = COALESCE(trip, ${trip}) WHERE id = ${existing.id}`;
           updated++;
         }
       } else {
-        await sql`INSERT INTO vcc_entries (project_id, entry_date, vendor, description, category, amount, status, source)
-          VALUES (${pid}, ${u.entry_date}, ${u.vendor}, ${u.description}, ${u.category}, ${u.amount}, ${u.status}, ${u.source})`;
+        await sql`INSERT INTO vcc_entries (project_id, entry_date, vendor, description, category, trip, amount, status, source)
+          VALUES (${pid}, ${u.entry_date}, ${u.vendor}, ${u.description}, ${u.category}, ${trip}, ${u.amount}, ${u.status}, ${u.source})`;
         created++;
       }
     }
@@ -613,7 +712,8 @@ router.post('/finance/weekly-report', ...finance, async (req, res, next) => {
     const projects = await sql`
       SELECT p.id, p.code, p.title, p.client, p.status as project_status, b.id as budget_id, b.status as budget_status,
              b.mgmt_fee_rate, b.media_rep, b.close_month
-      FROM projects p LEFT JOIN budgets b ON b.project_id = p.id
+      FROM projects p LEFT JOIN budgets b ON b.project_id = p.id AND COALESCE(b.kind, 'main') = 'main'
+      WHERE p.parent_project_id IS NULL
       ORDER BY p.code`;
     const lines = await sql`SELECT budget_id, qty, unit_cost, percent, is_travel, section_id FROM budget_lines`;
     const current = projects.filter(p => (p.budget_status || '') !== 'RFP').map(p => {

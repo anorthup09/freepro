@@ -119,6 +119,9 @@ export const api = {
   pushTravelHold: (sid) => req('POST', `/finance/sections/${sid}/push-travel-hold`),
   pullTravelActuals: (sid) => req('POST', `/finance/sections/${sid}/pull-travel-actuals`),
   savePipeline: (pid, pipeline) => req('PATCH', `/finance/pipeline/${pid}`, { pipeline }),
+  createEstimate: (pid, label) => req('POST', `/finance/${pid}/estimates`, { label }),
+  deleteEstimate: (eid) => req('DELETE', `/finance/estimates/${eid}`),
+  mergeEstimate: (eid) => req('POST', `/finance/estimates/${eid}/merge`),
 
   // Schedule
   getSchedule: (projectId) => req('GET', `/projects/${projectId}/schedule`),

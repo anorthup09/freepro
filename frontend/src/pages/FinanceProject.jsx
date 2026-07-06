@@ -52,11 +52,12 @@ export default function FinanceProject() {
   const { pid } = useParams();
   const [data, setData] = useState(null);
   const [tab, setTab] = useState('budget');
+  const [estimateMode, setEstimateMode] = useState(false);
 
   useEffect(() => { api.financeBundle(pid).then(setData).catch(e => alert(e.message)); }, [pid]);
 
   if (!data) return <div style={{ minHeight:'100vh', background:'var(--bg)' }}><FinanceHeader /><div className="empty">Loading…</div></div>;
-  const { project, budget, sections, lines, vcc, categories } = data;
+  const { project, budget, sections, lines, vcc, categories, estimates = [] } = data;
 
   const set = fn => setData(d => ({ ...d, ...fn(d) }));
 
@@ -75,9 +76,17 @@ export default function FinanceProject() {
             <div className="page-title">{project.title}</div>
             <div className="page-sub">{project.client}</div>
           </div>
-          <div style={{ display:'flex', gap:8 }}>
-            <button className={`btn btn-sm ${tab === 'budget' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setTab('budget')}>Budget</button>
-            <button className={`btn btn-sm ${tab === 'vcc' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setTab('vcc')}>VCC</button>
+          <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:6 }}>
+            <div style={{ display:'flex', gap:8 }}>
+              <button className={`btn btn-sm ${tab === 'budget' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setTab('budget')}>Budget</button>
+              <button className={`btn btn-sm ${tab === 'vcc' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setTab('vcc')}>VCC</button>
+            </div>
+            {budget && (
+              <button onClick={() => setEstimateMode(true)}
+                style={{ background:'rgba(230,194,41,0.15)', border:'1px solid #e6c229', color:'#e6c229', borderRadius:20, padding:'4px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
+                ⚡ Additional Estimate{estimates.length ? ` (${estimates.length})` : ''}
+              </button>
+            )}
           </div>
         </div>
 
@@ -92,6 +101,10 @@ export default function FinanceProject() {
           <VccTab pid={pid} budget={budget} sections={sections} lines={lines} vcc={vcc} categories={categories} set={set} />
         )}
       </div>
+      {estimateMode && (
+        <EstimateMode pid={pid} estimates={estimates} onExit={() => setEstimateMode(false)}
+          reload={() => api.financeBundle(pid).then(setData)} />
+      )}
     </div>
   );
 }
@@ -782,6 +795,230 @@ function TravelSync({ sec, travelTotal, reload, hasHold, hasActuals }) {
         style={{ display:'flex', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden' }}>
         {seg('hold', busy && mode !== 'hold' ? '…' : 'Hold', '#e6c229')}
         {seg('actuals', busy && mode !== 'actuals' ? '…' : 'Actuals', '#5ABF80')}
+      </div>
+    </div>
+  );
+}
+
+
+const EST_TEMPLATES = [
+  ['scripting', 'Scripting / Storyboarding'],
+  ['virtual', 'Virtual Recording'],
+  ['shoot', 'Production Costs'],
+  ['post', 'Post-Production'],
+  ['misc', 'Misc Costs'],
+  ['photo', 'Photography'],
+];
+const YEL = '#e6c229';
+
+function EstimateMode({ pid, estimates, onExit, reload }) {
+  const [entered, setEntered] = useState(false);
+  const [idx, setIdx] = useState(Math.max(estimates.length - 1, 0));
+  const [busy, setBusy] = useState(false);
+  const feeRate = estimates.length ? Number(estimates[0].mgmt_fee_rate ?? 0.15) : 0.15;
+  const [feeDraft, setFeeDraft] = useState(Math.round(feeRate * 1000) / 10);
+
+  useEffect(() => { requestAnimationFrame(() => setEntered(true)); }, []);
+  useEffect(() => {
+    if (!estimates.length && !busy) {
+      setBusy(true);
+      api.createEstimate(pid).then(() => reload()).finally(() => setBusy(false));
+    }
+  }, [estimates.length]);
+  useEffect(() => { setIdx(i => Math.min(i, Math.max(estimates.length - 1, 0))); }, [estimates.length]);
+
+  function exit() { setEntered(false); setTimeout(onExit, 320); }
+
+  async function addEstimate() {
+    setBusy(true);
+    try { await api.createEstimate(pid); await reload(); setIdx(estimates.length); } catch (e) { alert(e.message); }
+    setBusy(false);
+  }
+  async function saveFeeAll(v) {
+    const rate = Number(v) / 100;
+    try { await Promise.all(estimates.map(e => api.updateBudget(e.id, { mgmtFeeRate: rate }))); await reload(); } catch (e) { alert(e.message); }
+  }
+
+  return (
+    <div style={{
+      position:'fixed', inset:0, zIndex:90, background:'var(--bg)',
+      border: '3px solid ' + YEL, boxSizing:'border-box',
+      transform: entered ? 'translateX(0)' : 'translateX(100%)', transition:'transform .32s ease',
+      display:'flex', flexDirection:'column',
+    }}>
+      <div style={{ display:'flex', alignItems:'center', gap:14, padding:'12px 22px', borderBottom:'1px solid rgba(230,194,41,0.35)', flexWrap:'wrap' }}>
+        <span style={{ color:YEL, fontWeight:800, fontSize:13, letterSpacing:'0.1em' }}>⚡ ESTIMATE MODE</span>
+        <span style={{ fontSize:11, color:'var(--muted)' }}>Pricing only — nothing here feeds the approved budget until you move it over.</span>
+        <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:12, flexWrap:'wrap' }}>
+          <label style={{ fontSize:10, color:'var(--muted)', display:'flex', alignItems:'center', gap:6 }}>Mgmt Fee % (all estimates)
+            <input type="number" step="0.5" value={feeDraft} style={{ width:70, fontSize:12, textAlign:'right' }}
+              onChange={e => setFeeDraft(e.target.value)} onBlur={e => saveFeeAll(e.target.value)} />
+          </label>
+          {estimates.length > 1 && (
+            <span style={{ display:'flex', alignItems:'center', gap:6, fontSize:11, color:YEL, fontWeight:700 }}>
+              <button className="btn btn-ghost btn-sm" disabled={idx === 0} onClick={() => setIdx(i => i - 1)}>‹</button>
+              {idx + 1} / {estimates.length}
+              <button className="btn btn-ghost btn-sm" disabled={idx >= estimates.length - 1} onClick={() => setIdx(i => i + 1)}>›</button>
+            </span>
+          )}
+          <button disabled={busy} onClick={addEstimate}
+            style={{ background:'rgba(230,194,41,0.15)', border:'1px solid ' + YEL, color:YEL, borderRadius:20, padding:'4px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
+            + New Estimate
+          </button>
+          <button className="btn btn-ghost btn-sm" onClick={exit}>✕ Exit Estimate Mode</button>
+        </div>
+      </div>
+
+      <div style={{ flex:1, overflow:'hidden' }}>
+        <div style={{ display:'flex', height:'100%', width:'100%', transform:`translateX(-${idx * 100}%)`, transition:'transform .32s ease' }}>
+          {estimates.map(est => (
+            <div key={est.id} style={{ minWidth:'100%', height:'100%', overflowY:'auto', padding:'18px 26px 60px' }}>
+              <EstimatePane est={est} feeRate={feeRate} reload={reload} onMerged={exit} />
+            </div>
+          ))}
+          {!estimates.length && <div style={{ minWidth:'100%', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--muted)' }}>Creating your first estimate…</div>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EstimatePane({ est, feeRate, reload, onMerged }) {
+  const [sections, setSections] = useState(est.sections);
+  const [lines, setLines] = useState(est.lines);
+  const [label, setLabel] = useState(est.label || 'Estimate');
+  const [busy, setBusy] = useState(false);
+
+  const patchLine = (id, fields) => setLines(ls => ls.map(l => l.id === id ? { ...l, ...fields } : l));
+  const saveLine = (id, data) => api.updateBudgetLine(id, data).catch(e => alert(e.message));
+  async function delLine(id) { await api.deleteBudgetLine(id); setLines(ls => ls.filter(l => l.id !== id)); }
+  async function addLine(sid, isTravel) {
+    const l = await api.addBudgetLine(sid, { isTravel });
+    setLines(ls => [...ls, l]);
+  }
+  const patchSection = (sid, fields) => setSections(ss => ss.map(x => x.id === sid ? { ...x, ...fields } : x));
+  async function delSection(sid) {
+    if (!confirm('Delete this estimate section?')) return;
+    await api.deleteBudgetSection(sid);
+    setSections(ss => ss.filter(x => x.id !== sid));
+    setLines(ls => ls.filter(l => l.section_id !== sid));
+  }
+  async function addTemplateSection(key) {
+    if (!key) return;
+    try {
+      const r = await api.addBudgetSection(est.id, { template: key });
+      setSections(ss => [...ss, r.section]);
+      setLines(ls => [...ls, ...(r.lines || [])]);
+    } catch (e) { alert(e.message); }
+  }
+  async function merge() {
+    if (!confirm(`Move "${label}" into the approved budget? Its sections become part of the live budget and this estimate closes.`)) return;
+    setBusy(true);
+    try { await api.mergeEstimate(est.id); await reload(); onMerged && onMerged(); } catch (e) { alert(e.message); }
+    setBusy(false);
+  }
+  async function remove() {
+    if (!confirm(`Delete "${label}" and everything in it?`)) return;
+    setBusy(true);
+    try { await api.deleteEstimate(est.id); await reload(); } catch (e) { alert(e.message); }
+    setBusy(false);
+  }
+
+  let nonTravel = 0, travel = 0;
+  const bySec = {};
+  for (const l of lines) (bySec[l.section_id] ||= []).push(l);
+  for (const secLines of Object.values(bySec)) {
+    for (const l of secLines) {
+      const st = lineSubtotal(l, secLines);
+      if (l.is_travel) travel += st; else nonTravel += st;
+    }
+  }
+  const fee = feeRate * nonTravel;
+  const total = nonTravel + travel + fee;
+
+  return (
+    <div style={{ maxWidth:1100, margin:'0 auto' }}>
+      <div style={{ display:'flex', alignItems:'center', gap:12, flexWrap:'wrap', marginBottom:16 }}>
+        <input value={label} onChange={e => setLabel(e.target.value)}
+          onBlur={e => api.updateBudget(est.id, { label: e.target.value }).catch(() => {})}
+          style={{ fontSize:18, fontWeight:800, background:'transparent', border:'1px solid transparent', borderRadius:6, padding:'4px 8px', color:YEL, width:280 }} />
+        <span style={{ fontSize:12, color:'var(--muted)' }}>Total <b style={{ color:YEL }}>{fmt$(total)}</b></span>
+        <div style={{ marginLeft:'auto', display:'flex', gap:8 }}>
+          <button disabled={busy} onClick={merge}
+            style={{ background:'rgba(90,191,128,0.15)', border:'1px solid #5ABF80', color:'#5ABF80', borderRadius:20, padding:'5px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
+            ✓ Move into Approved Budget
+          </button>
+          <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text, #e08080)' }} disabled={busy} onClick={remove}>Delete Estimate</button>
+        </div>
+      </div>
+
+      {sections.sort((a, b) => a.sort - b.sort).map(sec => {
+        const secLines = lines.filter(l => l.section_id === sec.id).sort((a, b) => a.sort - b.sort);
+        const main = secLines.filter(l => !l.is_travel);
+        const trav = secLines.filter(l => l.is_travel);
+        const secTotal = secLines.reduce((s2, l) => s2 + lineSubtotal(l, secLines), 0);
+        return (
+          <div key={sec.id} style={{ background:'var(--bg2)', border:'1px solid rgba(230,194,41,0.25)', borderRadius:10, marginBottom:14, overflow:'hidden' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', borderBottom:'1px solid var(--border)' }}>
+              <div style={{ flex:1, minWidth:0 }}>
+                <input value={sec.title} style={{ ...cellIn, fontWeight:700, fontSize:13, textTransform:'uppercase', letterSpacing:'0.04em', color:YEL }}
+                  onChange={e => patchSection(sec.id, { title: e.target.value })}
+                  onBlur={e => api.updateBudgetSection(sec.id, { title: e.target.value }).catch(() => {})} />
+                <input value={sec.subtitle || ''} placeholder="Description · City, State · Dates" style={{ ...cellIn, fontSize:11, color:'var(--muted)' }}
+                  onChange={e => patchSection(sec.id, { subtitle: e.target.value })}
+                  onBlur={e => api.updateBudgetSection(sec.id, { subtitle: e.target.value }).catch(() => {})} />
+              </div>
+              <div style={{ fontSize:13, fontWeight:700, whiteSpace:'nowrap' }}>{fmt$(secTotal)}</div>
+              <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text)' }} onClick={() => delSection(sec.id)}>✕</button>
+            </div>
+            <table style={{ width:'100%', borderCollapse:'collapse' }}>
+              <thead>
+                <tr style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', textAlign:'left' }}>
+                  <th style={{ padding:'6px 6px 6px 14px', width:'30%' }}>Scope of Work</th>
+                  <th style={{ padding:6 }}>Notes</th>
+                  <th style={{ padding:6, textAlign:'right', width:80 }}>Hrs/Days</th>
+                  <th style={{ padding:6, textAlign:'right', width:90 }}>Unit Cost</th>
+                  <th style={{ padding:6, textAlign:'right', width:100 }}>Subtotal</th>
+                  <th style={{ width:34 }}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {main.map(l => <LineRow key={l.id} l={l} secLines={secLines} patchLine={patchLine} saveLine={saveLine} delLine={delLine} />)}
+                {trav.length > 0 && (
+                  <tr><td colSpan={6} style={{ padding:'6px 6px 2px 14px', fontSize:9, color:'var(--tan)', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em' }}>Travel</td></tr>
+                )}
+                {trav.map(l => <LineRow key={l.id} l={l} secLines={secLines} patchLine={patchLine} saveLine={saveLine} delLine={delLine} />)}
+              </tbody>
+            </table>
+            <div style={{ display:'flex', gap:8, padding:'6px 14px 10px' }}>
+              <button className="btn btn-ghost btn-sm" onClick={() => addLine(sec.id, false)}>+ Line</button>
+              {sec.kind === 'shoot' && <button className="btn btn-ghost btn-sm" onClick={() => addLine(sec.id, true)}>+ Travel Line</button>}
+            </div>
+          </div>
+        );
+      })}
+
+      <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:18 }}>
+        <select defaultValue="" onChange={e => { addTemplateSection(e.target.value); e.target.value = ''; }}
+          style={{ width:240, fontSize:12, border:'1px solid ' + YEL, color:YEL, background:'rgba(230,194,41,0.08)', borderRadius:8 }}>
+          <option value="" disabled>+ New Estimate Section…</option>
+          {EST_TEMPLATES.map(([k, label2]) => <option key={k} value={k} style={{ color:'var(--text)', background:'var(--bg)' }}>{label2}</option>)}
+        </select>
+      </div>
+
+      <div style={{ background:'var(--bg2)', border:'1px solid ' + YEL + '55', borderRadius:10, padding:'14px 18px', maxWidth:420, marginLeft:'auto' }}>
+        {[
+          ['Production & Post (non-travel)', nonTravel],
+          ['Travel', travel],
+          [`Management Fee (${Math.round(feeRate * 1000) / 10}% of non-travel)`, fee],
+        ].map(([lbl2, val]) => (
+          <div key={lbl2} style={{ display:'flex', justifyContent:'space-between', fontSize:12, padding:'3px 0', color:'var(--muted)' }}>
+            <span>{lbl2}</span><span style={{ fontWeight:600, color:'var(--text)' }}>{fmt$(val)}</span>
+          </div>
+        ))}
+        <div style={{ display:'flex', justifyContent:'space-between', fontSize:15, fontWeight:800, borderTop:'1px solid var(--border)', marginTop:6, paddingTop:8 }}>
+          <span>ESTIMATE TOTAL</span><span style={{ color:YEL }}>{fmt$(total)}</span>
+        </div>
       </div>
     </div>
   );

@@ -785,6 +785,12 @@ async function migrate() {
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS mfa_enabled BOOLEAN DEFAULT FALSE`;
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS mfa_recovery TEXT`;
   await sql`ALTER TABLE projects ADD COLUMN IF NOT EXISTS pipeline TEXT`;
+  await sql`ALTER TABLE budgets ADD COLUMN IF NOT EXISTS kind TEXT DEFAULT 'main'`;
+  await sql`ALTER TABLE budgets ADD COLUMN IF NOT EXISTS label TEXT`;
+  await sql`ALTER TABLE budgets DROP CONSTRAINT IF EXISTS budgets_project_id_key`;
+  await sql`CREATE UNIQUE INDEX IF NOT EXISTS budgets_main_uniq ON budgets(project_id) WHERE COALESCE(kind, 'main') = 'main'`;
+  await sql`ALTER TABLE budget_sections ADD COLUMN IF NOT EXISTS freepro_project_id TEXT`;
+  await sql`ALTER TABLE projects ADD COLUMN IF NOT EXISTS parent_project_id TEXT`;
   await sql`
     CREATE TABLE IF NOT EXISTS finance_snapshots (
       id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,

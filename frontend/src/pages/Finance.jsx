@@ -26,15 +26,72 @@ export function FinanceHeader({ crumb }) {
 }
 
 const FOLDERS = {
-  live: { label: 'Live Projects', match: p => p.budget_status !== 'RFP' && p.budget_status !== 'Dead' },
   rfp: { label: 'RFP', match: p => p.budget_status === 'RFP' },
+  live: { label: 'Live Projects', match: p => p.budget_status !== 'RFP' && p.budget_status !== 'Dead' },
   archive: { label: 'Archive', match: p => p.budget_status === 'Dead' },
 };
+
+function NewProjectModal({ onClose, onCreated }) {
+  const [f, setF] = useState({ code:'', title:'', client:'', city:'', state:'', startDate:'', endDate:'' });
+  const [saving, setSaving] = useState(false);
+  const set = k => e => setF(v => ({ ...v, [k]: e.target.value }));
+  const ok = f.code && f.title && f.client && f.startDate && f.endDate;
+  const submit = async () => {
+    if (!ok || saving) return;
+    setSaving(true);
+    try {
+      const p = await api.createProject({ ...f, city: f.city || '—', state: f.state || '—' });
+      await api.createBudget(p.id);
+      onCreated(p);
+    } catch (e) { alert(e.message); setSaving(false); }
+  };
+  const field = (label, k, type = 'text', ph = '') => (
+    <label style={{ display:'flex', flexDirection:'column', gap:4, fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', flex:1, minWidth:120 }}>
+      {label}
+      <input type={type} value={f[k]} onChange={set(k)} placeholder={ph}
+        style={{ background:'var(--bg)', border:'1px solid var(--border)', borderRadius:6, color:'var(--text)', padding:'8px 10px', fontSize:13 }} />
+    </label>
+  );
+  return (
+    <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.65)', zIndex:60, display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid #5ABF80', borderRadius:12, padding:'22px 24px', width:'100%', maxWidth:560 }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
+          <div style={{ fontSize:16, fontWeight:800 }}>New Project</div>
+          <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
+        </div>
+        <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+          <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
+            {field('Project Code', 'code', 'text', 'e.g. 02.CHP00126')}
+            {field('Client', 'client')}
+          </div>
+          {field('Project Name', 'title')}
+          <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
+            {field('City', 'city')}
+            {field('State', 'state')}
+          </div>
+          <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
+            {field('Start Date', 'startDate', 'date')}
+            {field('End Date', 'endDate', 'date')}
+          </div>
+          <div style={{ fontSize:11, color:'var(--muted)' }}>A budget is created automatically in <span style={{ color:'#e6c229', fontWeight:700 }}>RFP</span> status.</div>
+          <div style={{ display:'flex', justifyContent:'flex-end', gap:8 }}>
+            <button className="btn btn-ghost btn-sm" onClick={onClose}>Cancel</button>
+            <button disabled={!ok || saving} onClick={submit}
+              style={{ background: ok ? '#5ABF80' : 'var(--border)', color:'#0b0b0b', border:'none', borderRadius:8, padding:'8px 18px', fontSize:12, fontWeight:800, cursor: ok ? 'pointer' : 'default', opacity: saving ? 0.6 : 1 }}>
+              {saving ? 'Creating…' : 'Create Project'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function Finance() {
   const nav = useNavigate();
   const [projects, setProjects] = useState(null);
   const [folder, setFolder] = useState('live');
+  const [showNew, setShowNew] = useState(false);
 
   useEffect(() => { api.financeProjects().then(setProjects).catch(e => alert(e.message)); }, []);
 
@@ -50,10 +107,16 @@ export default function Finance() {
             <div className="page-sub">Budgets, vendor cost control &amp; reconciliation</div>
           </div>
           <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:8 }}>
+            <div style={{ display:'flex', gap:8 }}>
+            <button onClick={() => setShowNew(true)}
+              style={{ background:'#5ABF80', border:'1px solid #5ABF80', color:'#0b0b0b', borderRadius:20, padding:'5px 14px', fontSize:11, fontWeight:800, cursor:'pointer' }}>
+              + New Project
+            </button>
             <button onClick={() => nav('/finance/overview')}
               style={{ background:'rgba(232,80,10,0.2)', border:'1px solid var(--orange)', color:'var(--orange)', borderRadius:20, padding:'5px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
               Project Finance Overview
             </button>
+            </div>
             <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
             {Object.entries(FOLDERS).map(([k, f]) => {
               const count = (projects || []).filter(f.match).length;
@@ -112,6 +175,7 @@ export default function Finance() {
           </div>
         ))}
       </div>
+      {showNew && <NewProjectModal onClose={() => setShowNew(false)} onCreated={p => nav(`/finance/${p.id}`)} />}
     </div>
   );
 }
