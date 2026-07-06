@@ -862,6 +862,8 @@ async function migrate() {
     if (archived.length) console.log(`Archived ${archived.length} shoot tile(s) under closed budgets.`);
   } catch (e) { console.error('Shoot archive backfill failed:', e.message); }
 
+  await sql`UPDATE budgets SET status = 'Reconcile' WHERE status = 'Reconciled'`;
+
   console.log('Migration complete.');
 }
 

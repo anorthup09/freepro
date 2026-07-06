@@ -847,9 +847,9 @@ function ShareModeToggle({ budget, patchBudget, saveBudget }) {
 const STATUS_OPTS = [
   ['RFP', '#e6c229', 'Waiting on client approval — shows in the RFP folder'],
   ['Live', '#5ABF80', 'Approved — moves to Live Projects'],
-  ['Dead', '#e05252', 'Not approved — archived under RFP'],
-  ['Reconciled', '#9DC183', 'Project closed out'],
+  ['Reconcile', '#9DC183', 'Project complete, finalize budget'],
   ['Closed', '#8a8f98', 'Finished — moves to the Archive folder'],
+  ['Dead', '#e05252', 'Not approved — archived under RFP'],
 ];
 
 function StatusPill({ value, onChange }) {

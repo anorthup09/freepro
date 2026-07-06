@@ -746,7 +746,7 @@ router.post('/finance/weekly-report', ...finance, async (req, res, next) => {
     const prevMap = Object.fromEntries(prev.map(x => [x.project_id, x]));
 
     const added = [], changed = [], closed = [];
-    const DEAD = ['Dead', 'Reconciled'];
+    const DEAD = ['Dead', 'Reconcile', 'Reconciled', 'Closed'];
     for (const c of current) {
       const p = prevMap[c.project_id];
       if (!p) { added.push(c); continue; }
@@ -757,7 +757,7 @@ router.post('/finance/weekly-report', ...finance, async (req, res, next) => {
       if ((p.close_month || '') !== (c.close_month || '')) diffs.push({ field: 'Close Month', from: p.close_month || '—', to: c.close_month || '—' });
       const nowClosed = DEAD.includes(c.budget_status) || c.project_status === 'ARCHIVED';
       const wasClosed = DEAD.includes(p.budget_status || '');
-      if (nowClosed && !wasClosed) closed.push({ ...c, reason: c.budget_status === 'Dead' ? 'Budget marked Dead' : c.budget_status === 'Reconciled' ? 'Reconciled' : 'Project archived' });
+      if (nowClosed && !wasClosed) closed.push({ ...c, reason: c.budget_status === 'Dead' ? 'Budget marked Dead' : ['Reconcile', 'Reconciled'].includes(c.budget_status) ? 'Reconciled' : 'Project archived' });
       else if (diffs.length) changed.push({ ...c, diffs });
     }
     const removedIds = prev.filter(x => !current.some(c => c.project_id === x.project_id));

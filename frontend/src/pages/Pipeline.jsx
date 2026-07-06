@@ -22,11 +22,11 @@ function derivedState(p, key) {
     return p.budget_status === 'RFP' ? 'active' : 'done';
   }
   if (key === 'budget_approved') {
-    if (['Live', 'Reconciled'].includes(p.budget_status)) return 'done';
+    if (['Live', 'Reconcile', 'Reconciled'].includes(p.budget_status)) return 'done';
     if (p.budget_status === 'RFP') return 'active';
     return null;
   }
-  if (key === 'reconcile' && p.budget_status === 'Reconciled') return 'done';
+  if (key === 'reconcile' && ['Reconcile', 'Reconciled'].includes(p.budget_status)) return 'done';
   return null;
 }
 
