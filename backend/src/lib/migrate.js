@@ -809,6 +809,28 @@ async function migrate() {
   await sql`ALTER TABLE budgets ADD COLUMN IF NOT EXISTS share_mode TEXT DEFAULT 'lines'`;
   await sql`UPDATE budget_lines SET scope = 'Creative Direction - Pre-Production' WHERE scope = 'Creative Direction - Pre-/Production'`;
 
+  // Backfill: every production block of a Live budget gets its FreePro project tile
+  try {
+    const secs = await sql`
+      SELECT s.id, s.shoot_code, s.trip, p.id as parent_id, p.title, p.client, p.city, p.state, p.start_date, p.end_date
+      FROM budget_sections s
+      JOIN budgets b ON b.id = s.budget_id AND COALESCE(b.kind, 'main') = 'main' AND b.status = 'Live'
+      JOIN projects p ON p.id = b.project_id
+      WHERE s.kind = 'shoot' AND s.freepro_project_id IS NULL AND s.shoot_code IS NOT NULL`;
+    for (const sec of secs) {
+      const nn = sec.shoot_code.split('-').pop();
+      const title = `${sec.title} — ${sec.trip || 'Shoot ' + nn}`;
+      let [proj] = await sql`SELECT id FROM projects WHERE code = ${sec.shoot_code}`;
+      if (!proj) {
+        [proj] = await sql`INSERT INTO projects (id, code, title, client, city, state, start_date, end_date, status, parent_project_id)
+          VALUES (gen_random_uuid()::text, ${sec.shoot_code}, ${title}, ${sec.client}, ${sec.city}, ${sec.state}, ${sec.start_date}, ${sec.end_date}, 'PLANNING', ${sec.parent_id})
+          RETURNING id`;
+      }
+      await sql`UPDATE budget_sections SET freepro_project_id = ${proj.id} WHERE id = ${sec.id}`;
+    }
+    if (secs.length) console.log(`Backfilled ${secs.length} FreePro shoot project tile(s).`);
+  } catch (e) { console.error('Shoot tile backfill failed:', e.message); }
+
   console.log('Migration complete.');
 }
 

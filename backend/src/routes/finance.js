@@ -233,6 +233,27 @@ router.post('/finance/:pid/budget', ...finance, async (req, res, next) => {
 });
 
 // Budget header fields
+// Give every production block of a Live main budget its own FreePro project tile
+async function ensureShootProjects(budgetId) {
+  const [b] = await sql`SELECT * FROM budgets WHERE id = ${budgetId}`;
+  if (!b || (b.kind || 'main') !== 'main' || b.status !== 'Live') return;
+  const [parent] = await sql`SELECT * FROM projects WHERE id = ${b.project_id}`;
+  if (!parent) return;
+  const shootSecs = await sql`SELECT * FROM budget_sections WHERE budget_id = ${b.id} AND kind = 'shoot'`;
+  for (const sec of shootSecs) {
+    if (sec.freepro_project_id || !sec.shoot_code) continue;
+    const nn = sec.shoot_code.split('-').pop();
+    const title = `${parent.title} — ${sec.trip || 'Shoot ' + nn}`;
+    let [proj] = await sql`SELECT id FROM projects WHERE code = ${sec.shoot_code}`;
+    if (!proj) {
+      [proj] = await sql`INSERT INTO projects (id, code, title, client, city, state, start_date, end_date, status, parent_project_id)
+        VALUES (gen_random_uuid()::text, ${sec.shoot_code}, ${title}, ${parent.client}, ${parent.city}, ${parent.state}, ${parent.start_date}, ${parent.end_date}, 'PLANNING', ${parent.id})
+        RETURNING id`;
+    }
+    await sql`UPDATE budget_sections SET freepro_project_id = ${proj.id} WHERE id = ${sec.id}`;
+  }
+}
+
 router.patch('/finance/budget/:bid', ...finance, async (req, res, next) => {
   try {
     const d = req.body;
@@ -255,24 +276,9 @@ router.patch('/finance/budget/:bid', ...finance, async (req, res, next) => {
         solutions_code = ${d.solutionsCode !== undefined ? (d.solutionsCode || null) : sql`solutions_code`},
         share_mode = ${d.shareMode !== undefined ? (d.shareMode || 'lines') : sql`share_mode`}
       WHERE id = ${req.params.bid} RETURNING *`;
-    // Going Live: give every production block its own FreePro project tile
-    if (d.status === 'Live' && b && (b.kind || 'main') === 'main') {
-      try {
-        const [parent] = await sql`SELECT * FROM projects WHERE id = ${b.project_id}`;
-        const shootSecs = await sql`SELECT * FROM budget_sections WHERE budget_id = ${b.id} AND kind = 'shoot'`;
-        for (const sec of shootSecs) {
-          if (sec.freepro_project_id || !sec.shoot_code) continue;
-          const nn = sec.shoot_code.split('-').pop();
-          const title = `${parent.title} — ${sec.trip || 'Shoot ' + nn}`;
-          let [proj] = await sql`SELECT id FROM projects WHERE code = ${sec.shoot_code}`;
-          if (!proj) {
-            [proj] = await sql`INSERT INTO projects (id, code, title, client, city, state, start_date, end_date, status, parent_project_id)
-              VALUES (gen_random_uuid()::text, ${sec.shoot_code}, ${title}, ${parent.client}, ${parent.city}, ${parent.state}, ${parent.start_date}, ${parent.end_date}, 'PLANNING', ${parent.id})
-              RETURNING id`;
-          }
-          await sql`UPDATE budget_sections SET freepro_project_id = ${proj.id} WHERE id = ${sec.id}`;
-        }
-      } catch (e2) { console.error('FreePro shoot project creation failed:', e2.message); }
+    // Live budgets keep every production block paired with a FreePro project tile
+    if (b && (b.kind || 'main') === 'main' && (d.status === 'Live' || b.status === 'Live')) {
+      await ensureShootProjects(b.id).catch(e2 => console.error('FreePro shoot project creation failed:', e2.message));
     }
     res.json(b);
   } catch (e) { next(e); }
@@ -311,6 +317,7 @@ router.post('/finance/estimates/:eid/merge', ...finance, async (req, res, next) 
       await sql`UPDATE budget_lines SET budget_id = ${main.id} WHERE section_id = ${sec.id}`;
     }
     await sql`DELETE FROM budgets WHERE id = ${est.id}`;
+    await ensureShootProjects(main.id).catch(e2 => console.error('FreePro shoot project creation failed:', e2.message));
     res.json({ ok: true, moved: secs.length });
   } catch (e) { next(e); }
 });
@@ -350,6 +357,7 @@ router.post('/finance/budget/:bid/sections', ...finance, async (req, res, next) 
       }
     }
     const lines = await sql`SELECT * FROM budget_lines WHERE section_id = ${s.id} ORDER BY sort`;
+    await ensureShootProjects(req.params.bid).catch(e2 => console.error('FreePro shoot project creation failed:', e2.message));
     res.status(201).json({ section: s, lines });
   } catch (e) { next(e); }
 });

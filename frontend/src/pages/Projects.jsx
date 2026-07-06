@@ -77,8 +77,8 @@ export default function Projects() {
           <Link to="/projects" className="logo">Free<em>Pro</em></Link>
           <span style={{ fontSize:9, color:'var(--muted)', letterSpacing:'0.06em', paddingLeft:1 }}>Powered by Unbridled Media</span>
         </div>
-        <span style={{ color: 'var(--muted)', fontSize: 12 }}>{user?.name}</span>
-        <button className="btn btn-ghost btn-sm" style={{ marginLeft: 'auto' }} onClick={logout}>Sign out</button>
+        <span style={{ color: 'var(--muted)', fontSize: 12, flex: 1, textAlign: 'center' }}>{user?.name}</span>
+        <button className="btn btn-ghost btn-sm" onClick={logout}>Sign out</button>
       </nav>
       <div className="wrap">
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:18 }}>
