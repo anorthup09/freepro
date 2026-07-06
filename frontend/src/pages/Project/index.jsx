@@ -391,9 +391,6 @@ export default function Project() {
       </div>
       <nav className="nav">
         <div style={{ display:'flex', flexDirection:'column', gap:1 }}>
-          <Link to="/" title="Back to the Unbridled Media hub" style={{ display:'flex', alignItems:'center', marginRight:12 }}>
-            <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height:18, filter:'brightness(0) invert(1)', opacity:0.9 }} />
-          </Link>
           <Link to="/projects" className="logo">Free<em>Pro</em></Link>
           <span style={{ fontSize:9, color:'var(--muted)', letterSpacing:'0.06em', paddingLeft:1 }}>Powered by Unbridled Media</span>
         </div>
@@ -412,6 +409,9 @@ export default function Project() {
           </button>
         </div>
         {/* Share collapses while scrolled; reappears at the top of the page */}
+        <Link to="/" title="Back to the Unbridled Media hub" style={{ display:'flex', alignItems:'center', marginLeft:'auto', marginRight:10 }}>
+          <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height:18, filter:'brightness(0) invert(1)', opacity:0.9 }} />
+        </Link>
         {!glassVisible && <ShareDropdown projectId={id} showShotList={showShotList} />}
       </nav>
 
