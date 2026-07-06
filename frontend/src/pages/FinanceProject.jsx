@@ -14,6 +14,9 @@ function lineSubtotal(l, sectionLines) {
   return num(l.qty) * num(l.unit_cost);
 }
 
+// Lines that stay visible in a collapsed production section even at qty 0
+const ALWAYS_SHOWN = /^(equipment rental|post-production supervisor)$/i;
+
 const BUDGET_OWNERS = [
   'Alex Northup',
   'Anabelle Porio',
@@ -222,9 +225,29 @@ function BudgetTab({ budget, sections, lines, vcc, set, reload }) {
     const l = await api.addBudgetLine(sid, { isTravel });
     set(d => ({ lines: [...d.lines, l] }));
   }
+  async function dupLine(l) {
+    const nl = await api.addBudgetLine(l.section_id, {
+      scope: l.scope || '', notes: l.notes || '', isTravel: l.is_travel === true,
+      unitCost: l.unit_cost, percent: l.percent, qty: l.qty, afterLineId: l.id,
+    });
+    set(d => ({ lines: [...d.lines.map(x => x.section_id === l.section_id && Number(x.sort) > Number(l.sort) ? { ...x, sort: Number(x.sort) + 1 } : x), nl] }));
+  }
   async function delLine(id) {
     await api.deleteBudgetLine(id);
     set(d => ({ lines: d.lines.filter(l => l.id !== id) }));
+  }
+  function moveLine(l, dir) {
+    set(d => {
+      const group = d.lines.filter(x => x.section_id === l.section_id && !!x.is_travel === !!l.is_travel)
+        .sort((a, b) => a.sort - b.sort);
+      const i = group.findIndex(x => x.id === l.id);
+      const j = i + dir;
+      if (j < 0 || j >= group.length) return {};
+      const other = group[j];
+      api.updateBudgetLine(l.id, { sort: other.sort }).catch(() => {});
+      api.updateBudgetLine(other.id, { sort: l.sort }).catch(() => {});
+      return { lines: d.lines.map(x => x.id === l.id ? { ...x, sort: other.sort } : x.id === other.id ? { ...x, sort: l.sort } : x) };
+    });
   }
   async function addSection(seedShoot, afterSectionId) {
     const title = seedShoot ? 'PRODUCTION COSTS — New Shoot' : 'NEW SECTION';
@@ -292,8 +315,8 @@ function BudgetTab({ budget, sections, lines, vcc, set, reload }) {
         const mainTotal = main.reduce((s, l) => s + lineSubtotal(l, secLines), 0);
         const travelTotal = travel.reduce((s, l) => s + lineSubtotal(l, secLines), 0);
         const isCollapsed = sec.kind === 'shoot' && !expandedSecs[sec.id];
-        const hiddenMain = isCollapsed ? main.filter(l => l.percent == null && !(num(l.qty) > 0) && !revealed[l.id]) : [];
-        const shownMain = isCollapsed ? main.filter(l => l.percent != null || num(l.qty) > 0 || revealed[l.id]) : main;
+        const hiddenMain = isCollapsed ? main.filter(l => l.percent == null && !(num(l.qty) > 0) && !revealed[l.id] && !ALWAYS_SHOWN.test((l.scope || '').trim())) : [];
+        const shownMain = isCollapsed ? main.filter(l => l.percent != null || num(l.qty) > 0 || revealed[l.id] || ALWAYS_SHOWN.test((l.scope || '').trim())) : main;
         async function addPosition(val) {
           if (!val) return;
           if (val === '__custom') {
@@ -350,7 +373,7 @@ function BudgetTab({ budget, sections, lines, vcc, set, reload }) {
                 </tr>
               </thead>
               <tbody>
-                {shownMain.map(l => <LineRow key={l.id} l={l} secLines={secLines} patchLine={patchLine} saveLine={saveLine} delLine={delLine} />)}
+                {shownMain.map(l => <LineRow key={l.id} l={l} secLines={secLines} patchLine={patchLine} saveLine={saveLine} delLine={delLine} dupLine={dupLine} moveLine={moveLine} />)}
                 {sec.kind === 'shoot' && (
                   <tr>
                     <td colSpan={6} style={{ padding:'6px 6px 6px 14px' }}>
@@ -379,7 +402,7 @@ function BudgetTab({ budget, sections, lines, vcc, set, reload }) {
                   <tr><td colSpan={4} style={{ padding:'6px 6px 2px 14px', fontSize:9, color:'var(--tan)', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em' }}>Travel</td>
                     <td style={{ textAlign:'right', padding:'6px 6px 2px', fontSize:10, color:'var(--tan)', fontWeight:700 }}></td><td/></tr>
                 )}
-                {travel.map(l => <LineRow key={l.id} l={l} secLines={secLines} patchLine={patchLine} saveLine={saveLine} delLine={delLine} />)}
+                {travel.map(l => <LineRow key={l.id} l={l} secLines={secLines} patchLine={patchLine} saveLine={saveLine} delLine={delLine} dupLine={dupLine} moveLine={moveLine} />)}
                 {travel.length > 0 && (
                   <tr>
                     <td colSpan={4} style={{ padding:'6px 6px 6px 14px', fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.06em', color:'#5ABF80', borderTop:'1px solid rgba(90,191,128,0.5)' }}>Travel Subtotal</td>
@@ -442,14 +465,32 @@ function BudgetTab({ budget, sections, lines, vcc, set, reload }) {
   );
 }
 
-function LineRow({ l, secLines, patchLine, saveLine, delLine }) {
+function LineRow({ l, secLines, patchLine, saveLine, delLine, dupLine, moveLine }) {
   const st = lineSubtotal(l, secLines);
+  const [hover, setHover] = useState(false);
+  const hoverBtn = { background:'none', border:'none', cursor:'pointer', padding:0, flexShrink:0, opacity: hover ? 1 : 0, transition:'opacity .12s ease' };
   return (
-    <tr style={{ borderTop:'1px solid rgba(255,255,255,0.03)' }}>
-      <td style={{ padding:'2px 6px 2px 14px' }}>
+    <tr style={{ borderTop:'1px solid rgba(255,255,255,0.03)' }}
+      onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
+      <td style={{ padding:'2px 6px 2px 2px' }}>
+        <div style={{ display:'flex', alignItems:'center' }}>
+        <button type="button" title="Duplicate this line directly below"
+          onClick={() => dupLine && dupLine(l)}
+          style={{ ...hoverBtn, width:12, color:'#5ABF80', fontSize:12, fontWeight:800, opacity: hover && dupLine ? 1 : 0 }}>
+          +
+        </button>
+        {moveLine && (
+          <span style={{ display:'flex', flexDirection:'column', width:11, flexShrink:0 }}>
+            <button type="button" title="Move up" onClick={() => moveLine(l, -1)}
+              style={{ ...hoverBtn, color:'var(--muted)', fontSize:8, lineHeight:'7px' }}>▲</button>
+            <button type="button" title="Move down" onClick={() => moveLine(l, 1)}
+              style={{ ...hoverBtn, color:'var(--muted)', fontSize:8, lineHeight:'7px' }}>▼</button>
+          </span>
+        )}
         <input value={l.scope || ''} style={cellIn}
           onChange={e => patchLine(l.id, { scope: e.target.value })}
           onBlur={e => saveLine(l.id, { scope: e.target.value })} />
+        </div>
       </td>
       <td style={{ padding:'2px 6px' }}>
         <input value={l.notes || ''} style={{ ...cellIn, color:'var(--muted)', fontSize:11 }}
@@ -1211,6 +1252,26 @@ function EstimatePane({ est, feeRate, saveFeeAll, reload, onMerged }) {
     const l = await api.addBudgetLine(sid, { isTravel });
     setLines(ls => [...ls, l]);
   }
+  async function dupLine(l) {
+    const nl = await api.addBudgetLine(l.section_id, {
+      scope: l.scope || '', notes: l.notes || '', isTravel: l.is_travel === true,
+      unitCost: l.unit_cost, percent: l.percent, qty: l.qty, afterLineId: l.id,
+    });
+    setLines(ls => [...ls.map(x => x.section_id === l.section_id && Number(x.sort) > Number(l.sort) ? { ...x, sort: Number(x.sort) + 1 } : x), nl]);
+  }
+  function moveLine(l, dir) {
+    setLines(ls => {
+      const group = ls.filter(x => x.section_id === l.section_id && !!x.is_travel === !!l.is_travel)
+        .sort((a, b) => a.sort - b.sort);
+      const i = group.findIndex(x => x.id === l.id);
+      const j = i + dir;
+      if (j < 0 || j >= group.length) return ls;
+      const other = group[j];
+      api.updateBudgetLine(l.id, { sort: other.sort }).catch(() => {});
+      api.updateBudgetLine(other.id, { sort: l.sort }).catch(() => {});
+      return ls.map(x => x.id === l.id ? { ...x, sort: other.sort } : x.id === other.id ? { ...x, sort: l.sort } : x);
+    });
+  }
   const patchSection = (sid, fields) => setSections(ss => ss.map(x => x.id === sid ? { ...x, ...fields } : x));
   async function delSection(sid) {
     if (!confirm('Delete this estimate section?')) return;
@@ -1275,8 +1336,8 @@ function EstimatePane({ est, feeRate, saveFeeAll, reload, onMerged }) {
         const trav = secLines.filter(l => l.is_travel);
         const secTotal = secLines.reduce((s2, l) => s2 + lineSubtotal(l, secLines), 0);
         const isCollapsed = sec.kind === 'shoot' && !expandedSecs[sec.id];
-        const hiddenMain = isCollapsed ? main.filter(l => l.percent == null && !(num(l.qty) > 0) && !revealed[l.id]) : [];
-        const shownMain = isCollapsed ? main.filter(l => l.percent != null || num(l.qty) > 0 || revealed[l.id]) : main;
+        const hiddenMain = isCollapsed ? main.filter(l => l.percent == null && !(num(l.qty) > 0) && !revealed[l.id] && !ALWAYS_SHOWN.test((l.scope || '').trim())) : [];
+        const shownMain = isCollapsed ? main.filter(l => l.percent != null || num(l.qty) > 0 || revealed[l.id] || ALWAYS_SHOWN.test((l.scope || '').trim())) : main;
         async function addPosition(val) {
           if (!val) return;
           if (val === '__custom') {
@@ -1319,7 +1380,7 @@ function EstimatePane({ est, feeRate, saveFeeAll, reload, onMerged }) {
                 </tr>
               </thead>
               <tbody>
-                {shownMain.map(l => <LineRow key={l.id} l={l} secLines={secLines} patchLine={patchLine} saveLine={saveLine} delLine={delLine} />)}
+                {shownMain.map(l => <LineRow key={l.id} l={l} secLines={secLines} patchLine={patchLine} saveLine={saveLine} delLine={delLine} dupLine={dupLine} moveLine={moveLine} />)}
                 {sec.kind === 'shoot' && (
                   <tr>
                     <td colSpan={6} style={{ padding:'6px 6px 6px 14px' }}>
@@ -1347,7 +1408,7 @@ function EstimatePane({ est, feeRate, saveFeeAll, reload, onMerged }) {
                 {trav.length > 0 && (
                   <tr><td colSpan={6} style={{ padding:'6px 6px 2px 14px', fontSize:9, color:'var(--tan)', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em' }}>Travel</td></tr>
                 )}
-                {trav.map(l => <LineRow key={l.id} l={l} secLines={secLines} patchLine={patchLine} saveLine={saveLine} delLine={delLine} />)}
+                {trav.map(l => <LineRow key={l.id} l={l} secLines={secLines} patchLine={patchLine} saveLine={saveLine} delLine={delLine} dupLine={dupLine} moveLine={moveLine} />)}
                 {trav.length > 0 && (
                   <tr>
                     <td colSpan={4} style={{ padding:'6px 6px 6px 14px', fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.06em', color:'#5ABF80', borderTop:'1px solid rgba(90,191,128,0.5)' }}>Travel Subtotal</td>

@@ -385,10 +385,22 @@ router.delete('/finance/sections/:sid', ...finance, async (req, res, next) => {
 // Lines
 router.post('/finance/sections/:sid/lines', ...finance, async (req, res, next) => {
   try {
-    const { scope = '', notes = '', isTravel = false } = req.body;
+    const { scope = '', notes = '', isTravel = false, unitCost = null, percent = null, qty = null, afterLineId = null } = req.body;
     const [sec] = await sql`SELECT budget_id FROM budget_sections WHERE id = ${req.params.sid}`;
-    const [{ max }] = await sql`SELECT COALESCE(MAX(sort), -1) as max FROM budget_lines WHERE section_id = ${req.params.sid}`;
-    const [l] = await sql`INSERT INTO budget_lines (budget_id, section_id, scope, notes, is_travel, sort) VALUES (${sec.budget_id}, ${req.params.sid}, ${scope}, ${notes}, ${isTravel === true}, ${Number(max) + 1}) RETURNING *`;
+    let sort;
+    if (afterLineId) {
+      const [after] = await sql`SELECT sort FROM budget_lines WHERE id = ${afterLineId} AND section_id = ${req.params.sid}`;
+      if (after) {
+        sort = Number(after.sort) + 1;
+        await sql`UPDATE budget_lines SET sort = sort + 1 WHERE section_id = ${req.params.sid} AND sort > ${after.sort}`;
+      }
+    }
+    if (sort === undefined) {
+      const [{ max }] = await sql`SELECT COALESCE(MAX(sort), -1) as max FROM budget_lines WHERE section_id = ${req.params.sid}`;
+      sort = Number(max) + 1;
+    }
+    const [l] = await sql`INSERT INTO budget_lines (budget_id, section_id, scope, notes, is_travel, unit_cost, percent, qty, sort)
+      VALUES (${sec.budget_id}, ${req.params.sid}, ${scope}, ${notes}, ${isTravel === true}, ${unitCost}, ${percent}, ${qty}, ${sort}) RETURNING *`;
     res.status(201).json(l);
   } catch (e) { next(e); }
 });
@@ -402,7 +414,8 @@ router.patch('/finance/lines/:lid', ...finance, async (req, res, next) => {
       qty = ${d.qty !== undefined ? (num(d.qty) ?? 0) : sql`qty`},
       unit_cost = ${d.unitCost !== undefined ? (num(d.unitCost) ?? 0) : sql`unit_cost`},
       percent = ${d.percent !== undefined ? num(d.percent) : sql`percent`},
-      actual = ${d.actual !== undefined ? num(d.actual) : sql`actual`}
+      actual = ${d.actual !== undefined ? num(d.actual) : sql`actual`},
+      sort = ${d.sort !== undefined ? (num(d.sort) ?? 0) : sql`sort`}
       WHERE id = ${req.params.lid} RETURNING *`;
     res.json(l);
   } catch (e) { next(e); }
