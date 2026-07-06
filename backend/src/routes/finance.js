@@ -511,22 +511,22 @@ async function syncFreeProCosts(pid) {
 
     const flights = await sql`SELECT * FROM flights WHERE project_id = ${pid} AND cost IS NOT NULL AND cost > 0`;
     for (const f of flights) {
-      upserts.push({ source: `flight:${f.id}`, description: `Airfare — ${f.crew_name || f.passenger_name} (${f.origin}→${f.destination})`, category: '5900 Airfare (B)', amount: Number(f.cost), status: 'POSTED', vendor: f.airline || null, entry_date: f.depart_time ? new Date(f.depart_time).toISOString().slice(0, 10) : null });
+      upserts.push({ source: `flight:${f.id}`, description: `Airfare — ${f.crew_name || f.passenger_name} (${f.origin}→${f.destination})`, category: '5900 Airfare (B)', amount: Number(f.cost), status: 'HOLD', vendor: f.airline || null, entry_date: f.depart_time ? new Date(f.depart_time).toISOString().slice(0, 10) : null });
     }
     const guests = await sql`
       SELECT hg.*, hb.name as hotel_name, hb.project_id FROM hotel_guests hg
       JOIN hotel_blocks hb ON hb.id = hg.hotel_block_id
       WHERE hb.project_id = ${pid} AND hg.cost IS NOT NULL AND hg.cost > 0`;
     for (const g of guests) {
-      upserts.push({ source: `hotelguest:${g.id}`, description: `Hotel — ${g.guest_name} @ ${g.hotel_name}`, category: '5180 Hotel Payments (B)', amount: Number(g.cost), status: 'POSTED', vendor: g.hotel_name, entry_date: g.check_in ? new Date(g.check_in).toISOString().slice(0, 10) : null });
+      upserts.push({ source: `hotelguest:${g.id}`, description: `Hotel — ${g.guest_name} @ ${g.hotel_name}`, category: '5180 Hotel Payments (B)', amount: Number(g.cost), status: 'HOLD', vendor: g.hotel_name, entry_date: g.check_in ? new Date(g.check_in).toISOString().slice(0, 10) : null });
     }
     const cars = await sql`SELECT * FROM rental_cars WHERE project_id = ${pid} AND cost IS NOT NULL AND cost > 0`;
     for (const d of cars) {
-      upserts.push({ source: `rentalcar:${d.id}`, description: `Rental car${d.pickup_location ? ` — ${d.pickup_location}` : ''}`, category: '5255 Staff Travel Expenses (B)', amount: Number(d.cost), status: 'POSTED', vendor: d.vendor || null, entry_date: d.pickup_date ? new Date(d.pickup_date).toISOString().slice(0, 10) : null });
+      upserts.push({ source: `rentalcar:${d.id}`, description: `Rental car${d.pickup_location ? ` — ${d.pickup_location}` : ''}`, category: '5255 Staff Travel Expenses (B)', amount: Number(d.cost), status: 'HOLD', vendor: d.vendor || null, entry_date: d.pickup_date ? new Date(d.pickup_date).toISOString().slice(0, 10) : null });
     }
     const rentals = await sql`SELECT * FROM online_rentals WHERE project_id = ${pid} AND cost IS NOT NULL AND cost > 0`;
     for (const r2 of rentals) {
-      upserts.push({ source: `rental:${r2.id}`, description: `Online gear rental${r2.renter_name ? ` — ${r2.renter_name}` : ''}`, category: '5270 Studio Gear, Equipment Rental (B)', amount: Number(r2.cost), status: 'POSTED', vendor: r2.renter_name || null, entry_date: null });
+      upserts.push({ source: `rental:${r2.id}`, description: `Online gear rental${r2.renter_name ? ` — ${r2.renter_name}` : ''}`, category: '5270 Studio Gear, Equipment Rental (B)', amount: Number(r2.cost), status: 'HOLD', vendor: r2.renter_name || null, entry_date: null });
     }
 
     let created = 0, updated = 0;
