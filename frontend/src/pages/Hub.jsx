@@ -60,6 +60,8 @@ export default function Hub() {
     if (view === 'projects' && !projects) api.financeProjects().then(setProjects).catch(e => alert(e.message));
   }, [view, projects]);
 
+  const gridProjects = (projects || []).filter(p => p.budget_status !== 'RFP');
+
   return (
     <div style={{ minHeight:'100vh', background:'var(--bg)', display:'flex', flexDirection:'column' }}>
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 26px', flexWrap:'wrap', gap:10 }}>
@@ -131,7 +133,7 @@ export default function Hub() {
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12, flexWrap:'wrap', gap:8 }}>
               <div>
                 <div className="page-title">All Projects</div>
-                <div className="page-sub">{projects ? `${projects.length} project${projects.length === 1 ? '' : 's'}` : 'Loading…'}</div>
+                <div className="page-sub">{projects ? `${gridProjects.length} project${gridProjects.length === 1 ? '' : 's'} · RFPs live in ProFi` : 'Loading…'}</div>
               </div>
               <button className="btn btn-primary btn-sm" onClick={() => nav('/finance/report')}>📄 Weekly Finance Report</button>
             </div>
@@ -150,7 +152,7 @@ export default function Hub() {
                   </tr>
                 </thead>
                 <tbody>
-                  {(projects || []).map(p => {
+                  {gridProjects.map(p => {
                     const dead = p.budget_status === 'Dead';
                     const sc = STATUS_COLORS[p.budget_status] || 'var(--muted)';
                     return (
@@ -177,7 +179,7 @@ export default function Hub() {
                       </tr>
                     );
                   })}
-                  {projects && projects.length === 0 && <tr><td colSpan={8} style={{ padding:16, color:'var(--muted)', fontStyle:'italic' }}>No projects yet.</td></tr>}
+                  {projects && gridProjects.length === 0 && <tr><td colSpan={8} style={{ padding:16, color:'var(--muted)', fontStyle:'italic' }}>No projects yet (RFP budgets appear in ProFi's RFP folder once approved).</td></tr>}
                 </tbody>
               </table>
             </div>
