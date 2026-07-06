@@ -583,7 +583,7 @@ export default function Crew({ project, onProjectUpdate }) {
         <div className="pos-table-wrap" style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden', marginBottom:12 }}>
           {roster.filter(m => {
             const q = rosterQuery.toLowerCase();
-            return m.name?.toLowerCase().includes(q) || m.email?.toLowerCase().includes(q) || m.company?.toLowerCase().includes(q);
+            return displayName(m)?.toLowerCase().includes(q) || m.name?.toLowerCase().includes(q) || m.email?.toLowerCase().includes(q) || m.company?.toLowerCase().includes(q);
           }).slice(0,10).map(m => (
             <div key={m.id}
               style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 14px', cursor:'pointer', borderBottom:'1px solid var(--border)' }}
@@ -599,7 +599,7 @@ export default function Crew({ project, onProjectUpdate }) {
           ))}
           {roster.filter(m => {
             const q = rosterQuery.toLowerCase();
-            return m.name?.toLowerCase().includes(q) || m.email?.toLowerCase().includes(q) || m.company?.toLowerCase().includes(q);
+            return displayName(m)?.toLowerCase().includes(q) || m.name?.toLowerCase().includes(q) || m.email?.toLowerCase().includes(q) || m.company?.toLowerCase().includes(q);
           }).length === 0 && <div className="empty" style={{ padding:'10px 14px' }}>No match found.</div>}
         </div>
       )}
