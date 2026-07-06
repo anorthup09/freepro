@@ -29,7 +29,11 @@ function DietaryBadge({ value }) {
 }
 
 function initials(name) {
-  return name?.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase() || '??';
+  const parts = (name || '').trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return '??';
+  const first = parts[0][0];
+  const last = parts.length > 1 ? parts[parts.length - 1][0] : '';
+  return (first + last).toUpperCase();
 }
 const COLORS = ['#E8A030','#5ABF80','#8080E0','#E08080','#B080E0','#40A0A0','#D0A030','#C08080'];
 function colorFor(str) { let h = 0; for (let c of str||'') h = (h*31+c.charCodeAt(0))&0xffffffff; return COLORS[Math.abs(h)%COLORS.length]; }
@@ -237,6 +241,9 @@ export default function Crew({ project, onProjectUpdate }) {
   function startEditMember() {
     setMemberForm({
       name: memberDetail.name || '',
+      legalFirstName: memberDetail.legal_first_name || (memberDetail.name || '').trim().split(/\s+/)[0] || '',
+      legalMiddleName: memberDetail.legal_middle_name || '',
+      legalLastName: memberDetail.legal_last_name || ((memberDetail.name || '').trim().split(/\s+/).length > 1 ? (memberDetail.name || '').trim().split(/\s+/).slice(-1)[0] : ''),
       email: memberDetail.email || '',
       phone: memberDetail.phone || '',
       company: memberDetail.company || '',
@@ -628,7 +635,20 @@ export default function Crew({ project, onProjectUpdate }) {
             <form onSubmit={saveMember}>
               <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)', marginBottom:6 }}>Contact</div>
               <div className="form-grid" style={{ marginBottom:14 }}>
-                <div className="field span2"><label>Legal Full Name</label><input value={memberForm.name} onChange={e => setMemberForm(f=>({...f,name:e.target.value}))} required /></div>
+                {(() => {
+                  const setLegal = (k, v) => setMemberForm(f => {
+                    const nf = { ...f, [k]: v };
+                    nf.name = [nf.legalFirstName, nf.legalMiddleName, nf.legalLastName].map(x => (x || '').trim()).filter(Boolean).join(' ');
+                    return nf;
+                  });
+                  return (
+                    <>
+                      <div className="field"><label>Legal First Name</label><input value={memberForm.legalFirstName || ''} onChange={e => setLegal('legalFirstName', e.target.value)} required /></div>
+                      <div className="field"><label>Middle Initial / Name</label><input value={memberForm.legalMiddleName || ''} onChange={e => setLegal('legalMiddleName', e.target.value)} /></div>
+                      <div className="field span2"><label>Legal Last Name</label><input value={memberForm.legalLastName || ''} onChange={e => setLegal('legalLastName', e.target.value)} required /></div>
+                    </>
+                  );
+                })()}
                 <div className="field"><label>Preferred First Name</label><input value={memberForm.preferredFirstName} onChange={e => setMemberForm(f=>({...f,preferredFirstName:e.target.value}))} placeholder="Leave blank to use legal name" /></div>
                 <div className="field"><label>Preferred Last Name</label><input value={memberForm.preferredLastName} onChange={e => setMemberForm(f=>({...f,preferredLastName:e.target.value}))} placeholder="Leave blank to use legal name" /></div>
                 <div className="field"><label>Email</label><input type="email" value={memberForm.email} onChange={e => setMemberForm(f=>({...f,email:e.target.value}))} /></div>

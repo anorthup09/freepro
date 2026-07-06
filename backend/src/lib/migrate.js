@@ -893,6 +893,20 @@ async function migrate() {
 
   await sql`UPDATE budgets SET status = 'Reconcile' WHERE status = 'Reconciled'`;
 
+  await sql`ALTER TABLE crew_members ADD COLUMN IF NOT EXISTS legal_first_name TEXT`;
+  await sql`ALTER TABLE crew_members ADD COLUMN IF NOT EXISTS legal_middle_name TEXT`;
+  await sql`ALTER TABLE crew_members ADD COLUMN IF NOT EXISTS legal_last_name TEXT`;
+  // Backfill the split legal name from the full legal name
+  await sql`
+    UPDATE crew_members SET
+      legal_first_name = split_part(TRIM(name), ' ', 1),
+      legal_last_name = CASE WHEN TRIM(name) LIKE '% %' THEN reverse(split_part(reverse(TRIM(name)), ' ', 1)) ELSE NULL END,
+      legal_middle_name = NULLIF(TRIM(BOTH ' ' FROM
+        CASE WHEN array_length(string_to_array(TRIM(name), ' '), 1) > 2
+          THEN array_to_string((string_to_array(TRIM(name), ' '))[2:array_length(string_to_array(TRIM(name), ' '), 1) - 1], ' ')
+          ELSE '' END), '')
+    WHERE legal_first_name IS NULL AND name IS NOT NULL`;
+
   // Merge duplicate crew members (e.g. "Ben Lamb"/"Benjamin Lamb", double
   // entries). Keeper = the record with the most linked data (travel etc.);
   // missing profile fields are filled in from the duplicate before it goes.
