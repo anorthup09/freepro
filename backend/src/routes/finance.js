@@ -760,6 +760,74 @@ router.post('/finance/sections/:sid/pull-travel-actuals', ...finance, async (req
   } catch (e) { next(e); }
 });
 
+// ── Harbinger: internal kickoff form that opens the project with accounting ──
+const { sendMail } = require('../lib/mailer');
+
+router.get('/finance/:pid/harbinger', ...finance, async (req, res, next) => {
+  try {
+    const [h] = await sql`SELECT * FROM harbingers WHERE project_id = ${req.params.pid}`;
+    if (!h) return res.status(404).json({ error: 'No harbinger yet' });
+    res.json(h);
+  } catch (e) { next(e); }
+});
+
+router.post('/finance/:pid/harbinger', ...finance, async (req, res, next) => {
+  try {
+    const pid = req.params.pid;
+    const d = req.body || {};
+    const [budget] = await sql`SELECT * FROM budgets WHERE project_id = ${pid} AND COALESCE(kind, 'main') = 'main'`;
+    if (!budget) return res.status(400).json({ error: 'No budget for this project' });
+    const [project] = await sql`SELECT code, title, client FROM projects WHERE id = ${pid}`;
+    const [existing] = await sql`SELECT id FROM harbingers WHERE budget_id = ${budget.id}`;
+    let row;
+    if (existing) {
+      [row] = await sql`UPDATE harbingers SET data = ${d}, submitted_by = ${req.user?.email || null} WHERE id = ${existing.id} RETURNING *`;
+    } else {
+      [row] = await sql`INSERT INTO harbingers (budget_id, project_id, data, submitted_by)
+        VALUES (${budget.id}, ${pid}, ${d}, ${req.user?.email || null}) RETURNING *`;
+    }
+    // Moving to Live is what the harbinger announces
+    await sql`UPDATE budgets SET status = 'Live' WHERE id = ${budget.id}`;
+    await ensureShootProjects(budget.id).catch(e2 => console.error('Shoot tiles on harbinger failed:', e2.message));
+
+    const to = process.env.HARBINGER_EMAIL;
+    if (to) {
+      const line = (label, v) => `${label}: ${v || '—'}`;
+      const text = [
+        `Harbinger — ${project.code} ${project.title} (${project.client})`,
+        `Submitted by: ${d.email || req.user?.email || 'unknown'}`,
+        '',
+        line('Client Company', d.clientCompany), line('Project Name', d.projectName),
+        line('Proposed Code', d.proposedCode), line('Existing Solutions/Client Code', d.solutionsCode),
+        '', 'SOW & Project Description:', d.sow || '—', '', 'Budget Summary / Breakdown:', d.budgetSummary || '—',
+        '', 'Client Contacts:', d.clientContacts || '—',
+        line('Contract/MSA already signed', d.contractSigned ? 'Yes' : 'No'),
+        line('Primary Client Contact', d.primaryContactName), line('Primary Contact Email', d.primaryContactEmail),
+        line('Client Mailing Address', d.mailingAddress), line('Contract/Invoice CC', d.invoiceCc),
+        line('Media Revenue', d.mediaRevenue), line('Capture Co Revenue', d.capcoRevenue),
+        line('Media Commission Owner(s)', d.mediaCommissionOwners), line('Budget Owner', d.budgetOwner),
+        line('Media Commission % Breakdown', d.mediaCommissionPct),
+        line('Solutions Commission Owner(s)', d.solutionsCommissionOwners),
+        line('No Commissions', d.noCommissions ? 'Yes' : 'No'), line('% for Solutions Commission(s)', d.solutionsCommissionPct),
+        line('Link to Budget', d.budgetLink), line('Creative Direction Notes', d.creativeNotes),
+        line('Video References', d.videoReferences), line('Client Kickoff Call Date', d.kickoffDate),
+        line('Preferred PM(s)', d.preferredPm), line('Preferred Producer(s)/Director(s)', d.preferredProducer),
+        '', 'Budgeted Positions:', d.budgetedPositions || '—',
+        line('Shooting Location(s)', d.shootingLocations), '', 'Gear Scope/Summary:', d.gearScope || '—',
+        line('Production and Travel Dates', d.productionDates),
+        line('Preferred Crew', d.preferredCrew), line('Crew Preference Notes', d.crewNotes),
+        line('Preferred Editor(s)', d.preferredEditors), line('Pro Colorist Needed', d.proColorist),
+        line('Pro Audio Engineer Needed', d.proAudio),
+        line('Estimated Final Delivery', d.finalDelivery), line('Estimated Close Month', d.closeMonth),
+        '', 'Notes:', d.notes || '—',
+      ].join('\n');
+      sendMail({ to, subject: `Harbinger — ${project.code} ${project.title}`, text })
+        .catch(err => console.error('Harbinger email failed:', err.message));
+    }
+    res.status(201).json(row);
+  } catch (e) { next(e); }
+});
+
 // Generate (or fetch) the client share token for a budget
 router.post('/finance/budget/:bid/share', ...finance, async (req, res, next) => {
   try {

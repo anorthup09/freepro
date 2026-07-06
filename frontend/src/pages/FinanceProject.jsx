@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../api.js';
 import { FinanceHeader, LogoField } from './Finance.jsx';
+import HarbingerModal from '../components/HarbingerModal.jsx';
+import { useAuth } from '../App.jsx';
 
 const fmt$ = (n, dec = 2) => '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: dec === 2 ? 2 : 0, maximumFractionDigits: dec });
 const num = v => Number(v) || 0;
@@ -129,7 +131,7 @@ export default function FinanceProject() {
             <button className="btn btn-primary" onClick={createBudget}>Create Budget from 2026 Template</button>
           </div>
         ) : tab === 'budget' ? (
-          <BudgetTab budget={budget} sections={sections} lines={lines} vcc={vcc} set={set} reload={() => api.financeBundle(pid).then(setData)} />
+          <BudgetTab budget={budget} sections={sections} lines={lines} vcc={vcc} project={project} set={set} reload={() => api.financeBundle(pid).then(setData)} />
         ) : (
           <VccTab pid={pid} budget={budget} sections={sections} lines={lines} vcc={vcc} categories={categories} set={set} />
         )}
@@ -209,7 +211,62 @@ function closeMonthRange() {
   return opts;
 }
 
-function BudgetTab({ budget, sections, lines, vcc, set, reload }) {
+function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
+  const { user } = useAuth();
+  const [harbingerOpen, setHarbingerOpen] = useState(false);
+
+  // Prefill the Harbinger from the budget + estimate overview
+  function harbingerPrefill() {
+    const rate = budget.mgmt_fee_rate != null ? Number(budget.mgmt_fee_rate) : 0.15;
+    const t = totals(sections, lines, rate);
+    const scopeLines = [];
+    const summaryLines = [];
+    for (const sec of sections) {
+      const secLines = lines.filter(l => l.section_id === sec.id);
+      let cost = 0;
+      const inc = [];
+      for (const l of secLines) {
+        const st = lineSubtotal(l, secLines);
+        if (st <= 0) continue;
+        cost += st;
+        inc.push((l.percent == null && num(l.qty) > 1 ? `${num(l.qty)}x ` : '') + (l.scope || ''));
+      }
+      if (cost <= 0) continue;
+      const name = OVERVIEW_LABELS[sec.kind] || sec.title || 'Costs';
+      scopeLines.push(`${name}:`, ...inc.map(x => `- ${x}`), '');
+      summaryLines.push(`${name} — ${fmt$(cost)}`);
+    }
+    summaryLines.push(`Production Management — ${fmt$(t.mgmt)}`, `Total — ${fmt$(t.total)}`);
+    const positions = [...new Set(sections.filter(x => x.kind === 'shoot').flatMap(sec =>
+      lines.filter(l => l.section_id === sec.id && !l.is_travel && l.percent == null && num(l.qty) > 0 && l.scope).map(l => l.scope)))];
+    const shootSec = sections.find(x => x.kind === 'shoot');
+    const fmtD = d => d ? new Date(String(d).slice(0, 10) + 'T12:00:00').toLocaleDateString() : '';
+    return {
+      email: user?.email || '',
+      clientCompany: project?.client || '',
+      projectName: project?.title || '',
+      proposedCode: project?.code || '',
+      solutionsCode: budget.solutions_code || '',
+      sow: scopeLines.join('\n').trim(),
+      budgetSummary: summaryLines.join('\n'),
+      mediaRevenue: fmt$(t.total - Number(budget.total_cap_co || 0)),
+      capcoRevenue: Number(budget.total_cap_co || 0) ? fmt$(budget.total_cap_co) : '',
+      budgetOwner: budget.media_rep || '',
+      budgetLink: `${window.location.origin}/finance/${project?.id || ''}`,
+      budgetedPositions: positions.join('\n'),
+      productionDates: shootSec?.fp_start_date ? `${fmtD(shootSec.fp_start_date)} – ${fmtD(shootSec.fp_end_date || shootSec.fp_start_date)}` : '',
+      closeMonth: budget.close_month || '',
+    };
+  }
+
+  async function handleStatusChange(v) {
+    if (v === 'Live' && (budget.status || 'RFP') === 'RFP') {
+      try { await api.getHarbinger(project.id); } catch { setHarbingerOpen(true); return; }
+    }
+    patchBudget({ status: v });
+    saveBudget({ status: v });
+  }
+
   const closeMonthOptions = useMemo(closeMonthRange, []);
   const mgmtRate = budget.mgmt_fee_rate != null ? Number(budget.mgmt_fee_rate) : 0.15;
   const t = useMemo(() => totals(sections, lines, mgmtRate), [sections, lines, mgmtRate]);
@@ -315,7 +372,7 @@ function BudgetTab({ budget, sections, lines, vcc, set, reload }) {
         </div>
         <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
           <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Status</label>
-          <StatusPill value={budget.status || 'RFP'} onChange={v => { patchBudget({ status: v }); saveBudget({ status: v }); }} />
+          <StatusPill value={budget.status || 'RFP'} onChange={handleStatusChange} />
         </div>
       </div>
 
@@ -485,6 +542,11 @@ function BudgetTab({ budget, sections, lines, vcc, set, reload }) {
           <span>TOTAL PROJECT ESTIMATE</span><span style={{ color:'#5ABF80' }}>{fmt$(t.total)}</span>
         </div>
       </div>
+      {harbingerOpen && (
+        <HarbingerModal pid={project.id} initial={harbingerPrefill()}
+          onClose={() => setHarbingerOpen(false)}
+          onSubmitted={() => { patchBudget({ status: 'Live' }); reload && reload(); }} />
+      )}
     </div>
   );
 }

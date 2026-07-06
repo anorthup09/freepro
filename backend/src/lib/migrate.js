@@ -966,6 +966,16 @@ async function migrate() {
     }
   } catch (e) { console.error('Crew dedupe failed:', e.message); }
 
+  await sql`
+    CREATE TABLE IF NOT EXISTS harbingers (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      budget_id TEXT NOT NULL UNIQUE,
+      project_id TEXT NOT NULL,
+      data JSONB NOT NULL,
+      submitted_by TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`;
+
   console.log('Migration complete.');
 }
 
