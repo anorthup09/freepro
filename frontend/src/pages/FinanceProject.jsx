@@ -1039,7 +1039,13 @@ function EstimateMode({ pid, estimates, onExit, reload }) {
       transform: entered ? 'translateX(0)' : 'translateX(100%)', transition:'transform .32s ease',
       display:'flex', flexDirection:'column',
     }}>
-      <div style={{ display:'flex', alignItems:'center', gap:14, padding:'12px 22px', borderBottom:'1px solid rgba(230,194,41,0.35)', flexWrap:'wrap' }}>
+      <div style={{ display:'flex', justifyContent:'flex-end', padding:'8px 14px 0' }}>
+        <button onClick={exit}
+          style={{ background:'transparent', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:20, padding:'4px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
+          ← Back to Budget
+        </button>
+      </div>
+      <div style={{ display:'flex', alignItems:'center', gap:14, padding:'2px 22px 12px', borderBottom:'1px solid rgba(230,194,41,0.35)', flexWrap:'wrap' }}>
         <span style={{ color:YEL, fontWeight:800, fontSize:13, letterSpacing:'0.1em' }}>⚡ ESTIMATE MODE</span>
         <span style={{ fontSize:11, color:'var(--muted)' }}>Pricing only — nothing here feeds the approved budget until you move it over.</span>
         <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:12, flexWrap:'wrap' }}>
@@ -1059,10 +1065,6 @@ function EstimateMode({ pid, estimates, onExit, reload }) {
           <button disabled={busy} onClick={addEstimate}
             style={{ background:'rgba(230,194,41,0.15)', border:'1px solid ' + YEL, color:YEL, borderRadius:20, padding:'4px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
             + New Estimate
-          </button>
-          <button onClick={exit}
-            style={{ background:'transparent', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:20, padding:'4px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
-            ← Back to Budget
           </button>
         </div>
       </div>
