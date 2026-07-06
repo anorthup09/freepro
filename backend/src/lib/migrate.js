@@ -831,6 +831,16 @@ async function migrate() {
     if (secs.length) console.log(`Backfilled ${secs.length} FreePro shoot project tile(s).`);
   } catch (e) { console.error('Shoot tile backfill failed:', e.message); }
 
+  // Backfill: shoots under closed/dead budgets should be archived in FreePro
+  try {
+    const archived = await sql`
+      UPDATE projects SET status = 'ARCHIVED'::project_status
+      WHERE status != 'ARCHIVED' AND parent_project_id IN (
+        SELECT project_id FROM budgets WHERE COALESCE(kind, 'main') = 'main' AND status IN ('Closed', 'Dead')
+      ) RETURNING code`;
+    if (archived.length) console.log(`Archived ${archived.length} shoot tile(s) under closed budgets.`);
+  } catch (e) { console.error('Shoot archive backfill failed:', e.message); }
+
   console.log('Migration complete.');
 }
 
