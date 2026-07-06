@@ -112,6 +112,8 @@ export const api = {
   shareBudget: (bid) => req('POST', `/finance/budget/${bid}/share`),
   getBudgetShare: (token) => req('GET', `/budget-share/${token}`),
   weeklyFinanceReport: () => req('POST', '/finance/weekly-report'),
+  pushTravelHold: (sid) => req('POST', `/finance/sections/${sid}/push-travel-hold`),
+  pullTravelActuals: (sid) => req('POST', `/finance/sections/${sid}/pull-travel-actuals`),
 
   // Schedule
   getSchedule: (projectId) => req('GET', `/projects/${projectId}/schedule`),

@@ -76,7 +76,7 @@ export default function FinanceProject() {
             <button className="btn btn-primary" onClick={createBudget}>Create Budget from 2026 Template</button>
           </div>
         ) : tab === 'budget' ? (
-          <BudgetTab budget={budget} sections={sections} lines={lines} set={set} />
+          <BudgetTab budget={budget} sections={sections} lines={lines} set={set} reload={() => api.financeBundle(pid).then(setData)} />
         ) : (
           <VccTab pid={pid} budget={budget} sections={sections} lines={lines} vcc={vcc} categories={categories} set={set} />
         )}
@@ -102,7 +102,7 @@ function totals(sections, lines, mgmtRate) {
   return { nonTravel, travel, photo, mgmt, video: nonTravel + travel + mgmt, total: nonTravel + travel + mgmt + photo };
 }
 
-function BudgetTab({ budget, sections, lines, set }) {
+function BudgetTab({ budget, sections, lines, set, reload }) {
   const mgmtRate = budget.mgmt_fee_rate != null ? Number(budget.mgmt_fee_rate) : 0.15;
   const t = useMemo(() => totals(sections, lines, mgmtRate), [sections, lines, mgmtRate]);
 
@@ -171,12 +171,28 @@ function BudgetTab({ budget, sections, lines, set }) {
           <div key={sec.id} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, marginBottom:14, overflow:'hidden' }}>
             <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', borderBottom:'1px solid var(--border)' }}>
               <div style={{ flex:1, minWidth:0 }}>
-                <input value={sec.title} style={{ ...cellIn, fontWeight:700, fontSize:13, textTransform:'uppercase', letterSpacing:'0.04em', color:'#5ABF80' }}
-                  onChange={e => patchSection(sec.id, { title: e.target.value })}
-                  onBlur={e => api.updateBudgetSection(sec.id, { title: e.target.value }).catch(() => {})} />
-                <input value={sec.subtitle || ''} placeholder="Description · City, State · Dates" style={{ ...cellIn, fontSize:11, color:'var(--muted)' }}
-                  onChange={e => patchSection(sec.id, { subtitle: e.target.value })}
-                  onBlur={e => api.updateBudgetSection(sec.id, { subtitle: e.target.value }).catch(() => {})} />
+                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                  {sec.shoot_code && (
+                    <span title="Shoot code — used to tie VCC costs and FreePro planning to this shoot"
+                      style={{ fontSize:10, fontWeight:800, letterSpacing:'0.05em', color:'#e6c229', border:'1px solid #e6c22955', borderRadius:6, padding:'2px 8px', whiteSpace:'nowrap' }}>
+                      {sec.shoot_code}
+                    </span>
+                  )}
+                  <input value={sec.title} style={{ ...cellIn, fontWeight:700, fontSize:13, textTransform:'uppercase', letterSpacing:'0.04em', color:'#5ABF80' }}
+                    onChange={e => patchSection(sec.id, { title: e.target.value })}
+                    onBlur={e => api.updateBudgetSection(sec.id, { title: e.target.value }).catch(() => {})} />
+                </div>
+                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                  {sec.kind === 'shoot' && (
+                    <input value={sec.trip || ''} placeholder="Trip (e.g. NYC)" title="Production trip descriptor — VCC entries with this trip roll up to this shoot"
+                      style={{ ...cellIn, width:120, flexShrink:0, fontSize:11, color:'#e6c229', border:'1px solid rgba(230,194,41,0.25)' }}
+                      onChange={e => patchSection(sec.id, { trip: e.target.value })}
+                      onBlur={e => api.updateBudgetSection(sec.id, { trip: e.target.value }).catch(() => {})} />
+                  )}
+                  <input value={sec.subtitle || ''} placeholder="Description · City, State · Dates" style={{ ...cellIn, fontSize:11, color:'var(--muted)' }}
+                    onChange={e => patchSection(sec.id, { subtitle: e.target.value })}
+                    onBlur={e => api.updateBudgetSection(sec.id, { subtitle: e.target.value }).catch(() => {})} />
+                </div>
               </div>
               <div style={{ fontSize:13, fontWeight:700, whiteSpace:'nowrap' }}>{fmt$(mainTotal + travelTotal)}</div>
               <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text)' }} onClick={() => delSection(sec.id)}>✕</button>
@@ -201,9 +217,10 @@ function BudgetTab({ budget, sections, lines, set }) {
                 {travel.map(l => <LineRow key={l.id} l={l} secLines={secLines} patchLine={patchLine} saveLine={saveLine} delLine={delLine} />)}
               </tbody>
             </table>
-            <div style={{ display:'flex', gap:8, padding:'6px 14px 10px' }}>
+            <div style={{ display:'flex', gap:8, padding:'6px 14px 10px', alignItems:'center' }}>
               <button className="btn btn-ghost btn-sm" onClick={() => addLine(sec.id, false)}>+ Line</button>
               {sec.kind === 'shoot' && <button className="btn btn-ghost btn-sm" onClick={() => addLine(sec.id, true)}>+ Travel Line</button>}
+              {sec.kind === 'shoot' && <TravelSync sec={sec} travelTotal={travelTotal} reload={reload} />}
             </div>
           </div>
         );
@@ -447,6 +464,48 @@ function VccTab({ pid, budget, sections, lines, vcc, categories, set }) {
         </table>
       </div>
 
+      {/* travel by shoot */}
+      {(() => {
+        const shoots = sections.filter(x => x.kind === 'shoot');
+        if (!shoots.length) return null;
+        const TRAVEL_CATS = ['5900 Airfare (B)', '5180 Hotel Payments (B)', '5410 Per Diem (B)', '5255 Staff Travel Expenses (B)'];
+        return (
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(240px, 1fr))', gap:12, marginBottom:16 }}>
+            {shoots.map(sec => {
+              const trips = [sec.trip, sec.shoot_code].filter(Boolean);
+              const mine = vcc.filter(e => trips.includes(e.trip));
+              const actuals = mine.filter(e => TRAVEL_CATS.includes(e.category) && !(e.source || '').startsWith('travelhold:')).reduce((s2, e) => s2 + num(e.amount), 0);
+              const hold = mine.filter(e => (e.source || '').startsWith('travelhold:')).reduce((s2, e) => s2 + num(e.amount), 0);
+              const budgetTravel = lines.filter(l => l.section_id === sec.id && l.is_travel).reduce((s2, l) => s2 + num(l.qty) * num(l.unit_cost), 0);
+              return (
+                <div key={sec.id} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding:'11px 14px' }}>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', gap:8 }}>
+                    <span style={{ fontSize:10, fontWeight:800, letterSpacing:'0.05em', color:'#e6c229' }}>{sec.shoot_code}</span>
+                    <span style={{ fontSize:10, color:'var(--muted)' }}>{sec.trip || '—'}</span>
+                  </div>
+                  <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginTop:8 }}>Travel — this shoot</div>
+                  <div style={{ display:'flex', justifyContent:'space-between', fontSize:11, marginTop:4 }}>
+                    <span style={{ color:'var(--muted)' }}>Budget</span><span style={{ fontWeight:600 }}>{fmt$(budgetTravel)}</span>
+                  </div>
+                  {hold > 0 && (
+                    <div style={{ display:'flex', justifyContent:'space-between', fontSize:11 }}>
+                      <span style={{ color:'var(--muted)' }}>Hold in VCC</span><span style={{ fontWeight:600, color:'#e6c229' }}>{fmt$(hold)}</span>
+                    </div>
+                  )}
+                  <div style={{ display:'flex', justifyContent:'space-between', fontSize:11 }}>
+                    <span style={{ color:'var(--muted)' }}>Actuals</span><span style={{ fontWeight:700, color: actuals > budgetTravel ? '#e05252' : '#5ABF80' }}>{fmt$(actuals)}</span>
+                  </div>
+                  <div style={{ display:'flex', justifyContent:'space-between', fontSize:11, borderTop:'1px solid var(--border)', marginTop:5, paddingTop:5 }}>
+                    <span style={{ color:'var(--muted)' }}>Variance</span>
+                    <span style={{ fontWeight:700, color: budgetTravel - actuals >= 0 ? '#5ABF80' : '#e05252' }}>{fmt$(budgetTravel - actuals)}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
+
       {/* breakage by category */}
       <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding:'12px 16px', maxWidth:480 }}>
         <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'#5ABF80', marginBottom:8 }}>Breakage — by Category</div>
@@ -565,6 +624,43 @@ function StatusPill({ value, onChange }) {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+
+function TravelSync({ sec, travelTotal, reload }) {
+  const [busy, setBusy] = useState('');
+  const [msg, setMsg] = useState('');
+  const fmt = n => '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  async function push() {
+    setBusy('push'); setMsg('');
+    try {
+      const r = await api.pushTravelHold(sec.id);
+      setMsg(`Hold of ${fmt(r.amount)} pushed to VCC as "${sec.shoot_code} - Travel Hold".`);
+    } catch (e) { alert(e.message); }
+    setBusy('');
+  }
+  async function pull() {
+    setBusy('pull'); setMsg('');
+    try {
+      const r = await api.pullTravelActuals(sec.id);
+      if (!r.updated.length) setMsg('No coded travel actuals found in the VCC for this shoot yet.');
+      else { setMsg(`Updated ${r.updated.map(u => u.scope).join(', ')} from VCC actuals.`); reload && reload(); }
+    } catch (e) { alert(e.message); }
+    setBusy('');
+  }
+  return (
+    <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:8, flexWrap:'wrap', justifyContent:'flex-end' }}>
+      {msg && <span style={{ fontSize:10, color:'var(--muted)' }}>{msg}</span>}
+      <span style={{ fontSize:10, color:'var(--tan)', fontWeight:700 }}>Travel {fmt(travelTotal)}</span>
+      <button type="button" className="btn btn-ghost btn-sm" disabled={!!busy} onClick={push} title="Creates/updates a Travel Hold line in the VCC for this shoot's budgeted travel">
+        {busy === 'push' ? 'Pushing…' : 'Hold → VCC'}
+      </button>
+      <button type="button" className="btn btn-ghost btn-sm" disabled={!!busy} onClick={pull} title="Replaces this shoot's travel lines with actuals coded to its trip in the VCC (and retires the hold)">
+        {busy === 'pull' ? 'Pulling…' : 'Actuals ← VCC'}
+      </button>
     </div>
   );
 }

@@ -779,6 +779,8 @@ async function migrate() {
   await sql`ALTER TABLE budgets ADD COLUMN IF NOT EXISTS share_token TEXT`;
   await sql`ALTER TABLE budgets ADD COLUMN IF NOT EXISTS close_month TEXT`;
   await sql`UPDATE budgets SET status = 'RFP' WHERE status IN ('Draft','Sent')`;
+  await sql`ALTER TABLE budget_sections ADD COLUMN IF NOT EXISTS shoot_code TEXT`;
+  await sql`ALTER TABLE budget_sections ADD COLUMN IF NOT EXISTS trip TEXT`;
   await sql`
     CREATE TABLE IF NOT EXISTS finance_snapshots (
       id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,

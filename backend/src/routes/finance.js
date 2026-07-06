@@ -105,6 +105,12 @@ const VCC_CATEGORIES = [
   '6050 Non-Billable',
 ];
 
+async function nextShootCode(budgetId) {
+  const [b] = await sql`SELECT p.code FROM budgets b JOIN projects p ON p.id = b.project_id WHERE b.id = ${budgetId}`;
+  const [{ n }] = await sql`SELECT COUNT(*) as n FROM budget_sections WHERE budget_id = ${budgetId} AND kind = 'shoot'`;
+  return `${b.code}-${String(Number(n) + 1).padStart(2, '0')}`;
+}
+
 async function seedShootLines(budgetId, sectionId) {
   let sort = 0;
   for (const [scope, notes, unit] of CREW_LINES) {
@@ -166,6 +172,16 @@ router.get('/finance/:pid', ...finance, async (req, res, next) => {
     let sections = [], lines = [];
     if (budget) {
       sections = await sql`SELECT * FROM budget_sections WHERE budget_id = ${budget.id} ORDER BY sort`;
+      // backfill shoot codes for sections created before the coding system
+      const shootSecs = sections.filter(x => x.kind === 'shoot');
+      if (shootSecs.some(x => !x.shoot_code)) {
+        const [pr] = await sql`SELECT code FROM projects WHERE id = ${budget.project_id}`;
+        for (let i = 0; i < shootSecs.length; i++) {
+          if (shootSecs[i].shoot_code) continue;
+          shootSecs[i].shoot_code = `${pr.code}-${String(i + 1).padStart(2, '0')}`;
+          await sql`UPDATE budget_sections SET shoot_code = ${shootSecs[i].shoot_code} WHERE id = ${shootSecs[i].id}`;
+        }
+      }
       lines = await sql`SELECT * FROM budget_lines WHERE budget_id = ${budget.id} ORDER BY sort`;
     }
     const vcc = await sql`SELECT * FROM vcc_entries WHERE project_id = ${req.params.pid} ORDER BY trip NULLS LAST, entry_date NULLS LAST, created_at`;
@@ -181,7 +197,8 @@ router.post('/finance/:pid/budget', ...finance, async (req, res, next) => {
     const [b] = await sql`INSERT INTO budgets (project_id, status) VALUES (${req.params.pid}, 'RFP') RETURNING *`;
     let sort = 0;
     for (const sec of TEMPLATE) {
-      const [s] = await sql`INSERT INTO budget_sections (budget_id, title, subtitle, kind, sort) VALUES (${b.id}, ${sec.title}, ${sec.subtitle || null}, ${sec.kind}, ${sort++}) RETURNING id`;
+      const shootCode = sec.kind === 'shoot' ? await nextShootCode(b.id) : null;
+      const [s] = await sql`INSERT INTO budget_sections (budget_id, title, subtitle, kind, sort, shoot_code) VALUES (${b.id}, ${sec.title}, ${sec.subtitle || null}, ${sec.kind}, ${sort++}, ${shootCode}) RETURNING id`;
       if (sec.lines === 'SHOOT') {
         await seedShootLines(b.id, s.id);
       } else {
@@ -225,7 +242,8 @@ router.post('/finance/budget/:bid/sections', ...finance, async (req, res, next) 
   try {
     const { title, subtitle, kind = 'general', seedShoot } = req.body;
     const [{ max }] = await sql`SELECT COALESCE(MAX(sort), -1) as max FROM budget_sections WHERE budget_id = ${req.params.bid}`;
-    const [s] = await sql`INSERT INTO budget_sections (budget_id, title, subtitle, kind, sort) VALUES (${req.params.bid}, ${title}, ${subtitle || null}, ${kind}, ${Number(max) + 1}) RETURNING *`;
+    const shootCode = kind === 'shoot' ? await nextShootCode(req.params.bid) : null;
+    const [s] = await sql`INSERT INTO budget_sections (budget_id, title, subtitle, kind, sort, shoot_code) VALUES (${req.params.bid}, ${title}, ${subtitle || null}, ${kind}, ${Number(max) + 1}, ${shootCode}) RETURNING *`;
     if (seedShoot) await seedShootLines(req.params.bid, s.id);
     const lines = await sql`SELECT * FROM budget_lines WHERE section_id = ${s.id} ORDER BY sort`;
     res.status(201).json({ section: s, lines });
@@ -233,10 +251,11 @@ router.post('/finance/budget/:bid/sections', ...finance, async (req, res, next) 
 });
 router.patch('/finance/sections/:sid', ...finance, async (req, res, next) => {
   try {
-    const { title, subtitle, sort } = req.body;
+    const { title, subtitle, sort, trip } = req.body;
     const [s] = await sql`UPDATE budget_sections SET
       title = COALESCE(${title ?? null}, title),
       subtitle = ${subtitle !== undefined ? (subtitle || null) : sql`subtitle`},
+      trip = ${trip !== undefined ? (trip || null) : sql`trip`},
       sort = COALESCE(${sort ?? null}, sort)
       WHERE id = ${req.params.sid} RETURNING *`;
     res.json(s);
@@ -480,6 +499,73 @@ Respond with ONLY a JSON array, one object per charge in order: [{"i":0,"categor
     }
     const vcc = await sql`SELECT * FROM vcc_entries WHERE project_id = ${pid} ORDER BY trip NULLS LAST, entry_date NULLS LAST, created_at`;
     res.json({ imported: inserted.length, skipped, aiUsed, vcc });
+  } catch (e) { next(e); }
+});
+
+const TRAVEL_CATEGORIES = ['5900 Airfare (B)', '5180 Hotel Payments (B)', '5410 Per Diem (B)', '5255 Staff Travel Expenses (B)'];
+
+async function shootTravelContext(sid) {
+  const [sec] = await sql`SELECT bs.*, b.project_id FROM budget_sections bs JOIN budgets b ON b.id = bs.budget_id WHERE bs.id = ${sid}`;
+  if (!sec) return {};
+  const lines = await sql`SELECT * FROM budget_lines WHERE section_id = ${sid} AND is_travel = TRUE`;
+  const budgetTravel = lines.reduce((s2, l) => s2 + Number(l.qty || 0) * Number(l.unit_cost || 0), 0);
+  return { sec, lines, budgetTravel };
+}
+
+// Push the section's budgeted travel to the VCC as a single Travel Hold
+router.post('/finance/sections/:sid/push-travel-hold', ...finance, async (req, res, next) => {
+  try {
+    const { sec, budgetTravel } = await shootTravelContext(req.params.sid);
+    if (!sec) return res.status(404).json({ error: 'Section not found' });
+    if (!sec.shoot_code) return res.status(400).json({ error: 'This section has no shoot code' });
+    const source = `travelhold:${sec.id}`;
+    const desc = `${sec.shoot_code} - Travel Hold`;
+    const trip = sec.trip || sec.shoot_code;
+    const [existing] = await sql`SELECT id FROM vcc_entries WHERE source = ${source}`;
+    if (existing) {
+      await sql`UPDATE vcc_entries SET amount = ${budgetTravel}, description = ${desc}, trip = ${trip} WHERE id = ${existing.id}`;
+    } else {
+      await sql`INSERT INTO vcc_entries (project_id, description, category, trip, amount, status, source)
+        VALUES (${sec.project_id}, ${desc}, '5255 Staff Travel Expenses (B)', ${trip}, ${budgetTravel}, 'HOLD', ${source})`;
+    }
+    const vcc = await sql`SELECT * FROM vcc_entries WHERE project_id = ${sec.project_id} ORDER BY trip NULLS LAST, entry_date NULLS LAST, created_at`;
+    res.json({ ok: true, amount: budgetTravel, vcc });
+  } catch (e) { next(e); }
+});
+
+// Pull VCC travel actuals for this shoot back into the budget's travel lines
+router.post('/finance/sections/:sid/pull-travel-actuals', ...finance, async (req, res, next) => {
+  try {
+    const { sec, lines } = await shootTravelContext(req.params.sid);
+    if (!sec) return res.status(404).json({ error: 'Section not found' });
+    const trips = [sec.trip, sec.shoot_code].filter(Boolean);
+    if (!trips.length) return res.status(400).json({ error: 'Set a trip descriptor or shoot code first' });
+    const entries = await sql`
+      SELECT category, SUM(amount) as total FROM vcc_entries
+      WHERE project_id = ${sec.project_id} AND trip = ANY(${trips})
+        AND category = ANY(${TRAVEL_CATEGORIES}) AND source NOT LIKE 'travelhold:%'
+      GROUP BY category`;
+    const byCat = Object.fromEntries(entries.map(e => [e.category, Number(e.total)]));
+    const stamp = new Date().toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' });
+    const MAP = [
+      ['5900 Airfare (B)', /airfare/i],
+      ['5180 Hotel Payments (B)', /hotel/i],
+      ['5410 Per Diem (B)', /per diem/i],
+      ['5255 Staff Travel Expenses (B)', /transportation|t&e/i],
+    ];
+    const updated = [];
+    for (const [cat, rx] of MAP) {
+      if (byCat[cat] == null) continue;
+      const line = lines.find(l => rx.test(l.scope || ''));
+      if (!line) continue;
+      const total = Math.round(byCat[cat] * 100) / 100;
+      const baseNotes = String(line.notes || '').replace(/\s*—? ?Actuals from VCC.*$/i, '');
+      await sql`UPDATE budget_lines SET qty = 1, unit_cost = ${total}, notes = ${baseNotes + ` — Actuals from VCC ${stamp}`} WHERE id = ${line.id}`;
+      updated.push({ scope: line.scope, total });
+    }
+    // the actuals are in the VCC now, so retire this shoot's travel hold
+    await sql`DELETE FROM vcc_entries WHERE source = ${'travelhold:' + sec.id}`;
+    res.json({ ok: true, updated });
   } catch (e) { next(e); }
 });
 
