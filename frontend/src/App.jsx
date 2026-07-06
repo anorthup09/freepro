@@ -71,7 +71,7 @@ export default function App() {
   return (
     <ErrorBoundary>
     <AuthContext.Provider value={{ user, setUser }}>
-      {user?.role === 'PENDING' ? <PendingApproval setUser={setUser} /> : (user && ['ADMIN','PRODUCER'].includes(user.role) && user.mfa_enabled === false) ? <MfaSetup /> : (
+      {user?.role === 'PENDING' ? <PendingApproval setUser={setUser} /> : (user && user.mfa_enabled === false) ? <MfaSetup /> : (
       <Routes>
         <Route path="/login" element={user ? <Navigate to="/" /> : <Login />} />
         <Route path="/" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <Hub />) : <Navigate to="/login" />} />
