@@ -76,7 +76,7 @@ export default function FinanceProject() {
             <button className="btn btn-primary" onClick={createBudget}>Create Budget from 2026 Template</button>
           </div>
         ) : tab === 'budget' ? (
-          <BudgetTab budget={budget} sections={sections} lines={lines} set={set} reload={() => api.financeBundle(pid).then(setData)} />
+          <BudgetTab budget={budget} sections={sections} lines={lines} vcc={vcc} set={set} reload={() => api.financeBundle(pid).then(setData)} />
         ) : (
           <VccTab pid={pid} budget={budget} sections={sections} lines={lines} vcc={vcc} categories={categories} set={set} />
         )}
@@ -102,7 +102,7 @@ function totals(sections, lines, mgmtRate) {
   return { nonTravel, travel, photo, mgmt, video: nonTravel + travel + mgmt, total: nonTravel + travel + mgmt + photo };
 }
 
-function BudgetTab({ budget, sections, lines, set, reload }) {
+function BudgetTab({ budget, sections, lines, vcc, set, reload }) {
   const mgmtRate = budget.mgmt_fee_rate != null ? Number(budget.mgmt_fee_rate) : 0.15;
   const t = useMemo(() => totals(sections, lines, mgmtRate), [sections, lines, mgmtRate]);
 
@@ -220,7 +220,7 @@ function BudgetTab({ budget, sections, lines, set, reload }) {
             <div style={{ display:'flex', gap:8, padding:'6px 14px 10px', alignItems:'center' }}>
               <button className="btn btn-ghost btn-sm" onClick={() => addLine(sec.id, false)}>+ Line</button>
               {sec.kind === 'shoot' && <button className="btn btn-ghost btn-sm" onClick={() => addLine(sec.id, true)}>+ Travel Line</button>}
-              {sec.kind === 'shoot' && <TravelSync sec={sec} travelTotal={travelTotal} reload={reload} />}
+              {sec.kind === 'shoot' && <TravelSync sec={sec} travelTotal={travelTotal} reload={reload} hasHold={(vcc || []).some(e => (e.source || '') === 'travelhold:' + sec.id)} hasActuals={travel.some(l => /Actuals from VCC/i.test(l.notes || ''))} />}
             </div>
           </div>
         );
@@ -316,6 +316,12 @@ function VccTab({ pid, budget, sections, lines, vcc, categories, set }) {
 
   const byTrip = {};
   for (const e of vcc) (byTrip[e.trip || '—'] ||= []).push(e);
+  const shootOpts = sections.filter(x => x.kind === 'shoot').map(x => {
+    const nn = (x.shoot_code || '').split('-').pop() || '';
+    return { value: x.trip || x.shoot_code, label: `${nn} - ${x.trip || 'Shoot ' + nn}` };
+  });
+  const extraTrips = [...new Set(vcc.map(e => e.trip).filter(t => t && !shootOpts.some(o => o.value === t)))];
+  const tripOptions = [...shootOpts, ...['Pre-Pro', 'Post'].filter(t => !extraTrips.includes(t) && !shootOpts.some(o => o.value === t)).map(t => ({ value: t, label: t })), ...extraTrips.map(t => ({ value: t, label: t }))];
   const catTotals = {};
   for (const e of vcc) catTotals[e.category || 'Uncategorized'] = (catTotals[e.category || 'Uncategorized'] || 0) + num(e.amount);
 
@@ -383,7 +389,10 @@ function VccTab({ pid, budget, sections, lines, vcc, categories, set }) {
           <option value="">Category…</option>
           {categories.map(c => <option key={c}>{c}</option>)}
         </select>
-        <input placeholder="Trip" value={form.trip} style={{ width:90, fontSize:11 }} onChange={e => setForm(f => ({ ...f, trip: e.target.value }))} />
+        <select value={form.trip} style={{ width:130, fontSize:11 }} onChange={e => setForm(f => ({ ...f, trip: e.target.value }))}>
+          <option value="">Trip…</option>
+          {tripOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
         <input type="number" step="0.01" placeholder="Amount" value={form.amount} style={{ width:100, fontSize:11, textAlign:'right' }} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} />
         <select value={form.status} style={{ width:90, fontSize:11 }} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
           <option value="HOLD">Hold</option><option value="POSTED">Posted</option>
@@ -400,6 +409,7 @@ function VccTab({ pid, budget, sections, lines, vcc, categories, set }) {
               <th style={{ padding:6, width:110 }}>Vendor</th>
               <th style={{ padding:6 }}>Description</th>
               <th style={{ padding:6, width:190 }}>Category</th>
+              <th style={{ padding:6, width:110 }}>Trip</th>
               <th style={{ padding:6, textAlign:'right', width:90 }}>Amount</th>
               <th style={{ padding:6, width:70 }}>Status</th>
               <th style={{ width:34 }}></th>
@@ -409,7 +419,7 @@ function VccTab({ pid, budget, sections, lines, vcc, categories, set }) {
             {Object.entries(byTrip).map(([trip, entries]) => (
               <React.Fragment key={trip}>
                 <tr style={{ background:'rgba(90,191,128,0.06)' }}>
-                  <td colSpan={4} style={{ padding:'5px 14px', fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'#5ABF80' }}>{trip}</td>
+                  <td colSpan={5} style={{ padding:'5px 14px', fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'#5ABF80' }}>{trip}</td>
                   <td style={{ textAlign:'right', padding:'5px 6px', fontWeight:700, color:'#5ABF80' }}>{fmt$(entries.reduce((s, e) => s + num(e.amount), 0))}</td>
                   <td colSpan={2} />
                 </tr>
@@ -428,6 +438,13 @@ function VccTab({ pid, budget, sections, lines, vcc, categories, set }) {
                         onChange={ev => { patchEntry(e.id, { category: ev.target.value }); saveEntry(e.id, { category: ev.target.value }); }}>
                         <option value="">—</option>
                         {categories.map(c => <option key={c}>{c}</option>)}
+                      </select>
+                    </td>
+                    <td style={{ padding:'2px 6px' }}>
+                      <select value={e.trip || ''} style={{ ...cellIn, fontSize:10, color:'var(--muted)' }}
+                        onChange={ev => { patchEntry(e.id, { trip: ev.target.value }); saveEntry(e.id, { trip: ev.target.value }); }}>
+                        <option value="">—</option>
+                        {tripOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                       </select>
                     </td>
                     <td style={{ padding:'2px 6px', textAlign:'right' }}>
@@ -454,9 +471,9 @@ function VccTab({ pid, budget, sections, lines, vcc, categories, set }) {
                 ))}
               </React.Fragment>
             ))}
-            {vcc.length === 0 && <tr><td colSpan={7} style={{ padding:'14px', color:'var(--muted)', fontStyle:'italic' }}>No direct costs yet.</td></tr>}
+            {vcc.length === 0 && <tr><td colSpan={8} style={{ padding:'14px', color:'var(--muted)', fontStyle:'italic' }}>No direct costs yet.</td></tr>}
             <tr style={{ borderTop:'1px solid var(--border)' }}>
-              <td colSpan={4} style={{ padding:'8px 14px', fontWeight:700, textAlign:'right', fontSize:10, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)' }}>Total Direct Costs</td>
+              <td colSpan={5} style={{ padding:'8px 14px', fontWeight:700, textAlign:'right', fontSize:10, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)' }}>Total Direct Costs</td>
               <td style={{ textAlign:'right', padding:'8px 6px', fontWeight:800, fontSize:13, color:'#e6c229' }}>{fmt$(billable)}</td>
               <td colSpan={2} />
             </tr>
@@ -629,38 +646,48 @@ function StatusPill({ value, onChange }) {
 }
 
 
-function TravelSync({ sec, travelTotal, reload }) {
-  const [busy, setBusy] = useState('');
+function TravelSync({ sec, travelTotal, reload, hasHold, hasActuals }) {
+  const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
   const fmt = n => '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const mode = hasHold ? 'hold' : hasActuals ? 'actuals' : null;
 
-  async function push() {
-    setBusy('push'); setMsg('');
+  async function select(next) {
+    if (busy || next === mode) return;
+    setBusy(true); setMsg('');
     try {
-      const r = await api.pushTravelHold(sec.id);
-      setMsg(`Hold of ${fmt(r.amount)} pushed to VCC as "${sec.shoot_code} - Travel Hold".`);
+      if (next === 'hold') {
+        const r = await api.pushTravelHold(sec.id);
+        setMsg(`Hold of ${fmt(r.amount)} pushed to VCC as "${sec.shoot_code} - Travel Hold".`);
+      } else {
+        const r = await api.pullTravelActuals(sec.id);
+        if (!r.updated.length) setMsg('No coded travel actuals in the VCC for this shoot yet — hold left in place.');
+        else setMsg(`Updated ${r.updated.map(u => u.scope).join(', ')} from VCC actuals; hold retired.`);
+      }
+      reload && reload();
     } catch (e) { alert(e.message); }
-    setBusy('');
+    setBusy(false);
   }
-  async function pull() {
-    setBusy('pull'); setMsg('');
-    try {
-      const r = await api.pullTravelActuals(sec.id);
-      if (!r.updated.length) setMsg('No coded travel actuals found in the VCC for this shoot yet.');
-      else { setMsg(`Updated ${r.updated.map(u => u.scope).join(', ')} from VCC actuals.`); reload && reload(); }
-    } catch (e) { alert(e.message); }
-    setBusy('');
-  }
+
+  const seg = (key, label, color) => {
+    const active = mode === key;
+    return (
+      <button type="button" disabled={busy} onClick={() => select(key)}
+        style={{ background: active ? color : 'transparent', color: active ? '#0b0b0b' : 'var(--muted)', border:'none', padding:'4px 12px', fontSize:10, fontWeight:800, letterSpacing:'0.05em', textTransform:'uppercase', cursor:'pointer' }}>
+        {label}
+      </button>
+    );
+  };
+
   return (
     <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:8, flexWrap:'wrap', justifyContent:'flex-end' }}>
       {msg && <span style={{ fontSize:10, color:'var(--muted)' }}>{msg}</span>}
       <span style={{ fontSize:10, color:'var(--tan)', fontWeight:700 }}>Travel {fmt(travelTotal)}</span>
-      <button type="button" className="btn btn-ghost btn-sm" disabled={!!busy} onClick={push} title="Creates/updates a Travel Hold line in the VCC for this shoot's budgeted travel">
-        {busy === 'push' ? 'Pushing…' : 'Hold → VCC'}
-      </button>
-      <button type="button" className="btn btn-ghost btn-sm" disabled={!!busy} onClick={pull} title="Replaces this shoot's travel lines with actuals coded to its trip in the VCC (and retires the hold)">
-        {busy === 'pull' ? 'Pulling…' : 'Actuals ← VCC'}
-      </button>
+      <div title="Hold pushes budgeted travel to the VCC as a hold line; Actuals pulls coded VCC travel back into these lines and retires the hold"
+        style={{ display:'flex', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden' }}>
+        {seg('hold', busy && mode !== 'hold' ? '…' : 'Hold', '#e6c229')}
+        {seg('actuals', busy && mode !== 'actuals' ? '…' : 'Actuals', '#5ABF80')}
+      </div>
     </div>
   );
 }
