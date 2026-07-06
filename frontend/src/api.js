@@ -93,6 +93,21 @@ export const api = {
   signContract: (token, name) => req('POST', `/contract/${token}/sign`, { name }),
   emailContract: (projectId, cid, to) => req('POST', `/projects/${projectId}/contracts/${cid}/email`, { to }),
 
+  // ProFi — project finance
+  financeProjects: () => req('GET', '/finance/projects'),
+  financeBundle: (pid) => req('GET', `/finance/${pid}`),
+  createBudget: (pid) => req('POST', `/finance/${pid}/budget`),
+  updateBudget: (bid, data) => req('PATCH', `/finance/budget/${bid}`, data),
+  addBudgetSection: (bid, data) => req('POST', `/finance/budget/${bid}/sections`, data),
+  updateBudgetSection: (sid, data) => req('PATCH', `/finance/sections/${sid}`, data),
+  deleteBudgetSection: (sid) => req('DELETE', `/finance/sections/${sid}`),
+  addBudgetLine: (sid, data) => req('POST', `/finance/sections/${sid}/lines`, data),
+  updateBudgetLine: (lid, data) => req('PATCH', `/finance/lines/${lid}`, data),
+  deleteBudgetLine: (lid) => req('DELETE', `/finance/lines/${lid}`),
+  addVccEntry: (pid, data) => req('POST', `/finance/${pid}/vcc`, data),
+  updateVccEntry: (id, data) => req('PATCH', `/finance/vcc/${id}`, data),
+  deleteVccEntry: (id) => req('DELETE', `/finance/vcc/${id}`),
+
   // Schedule
   getSchedule: (projectId) => req('GET', `/projects/${projectId}/schedule`),
   getDay: (projectId, dayId) => req('GET', `/projects/${projectId}/schedule/days/${dayId}`),

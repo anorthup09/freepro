@@ -716,6 +716,64 @@ async function migrate() {
       created_at TIMESTAMPTZ DEFAULT NOW()
     )`;
 
+  // ── ProFi: project finance ──
+  await sql`
+    CREATE TABLE IF NOT EXISTS budgets (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      project_id TEXT UNIQUE NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      status TEXT DEFAULT 'Draft',
+      mgmt_fee_rate NUMERIC DEFAULT 0.15,
+      deposit NUMERIC,
+      deposit_due TEXT,
+      additional_deposit NUMERIC,
+      final_inv_date TEXT,
+      paid_date TEXT,
+      total_cap_co NUMERIC DEFAULT 0,
+      original_fee_estimate NUMERIC,
+      budget_date TEXT,
+      media_rep TEXT,
+      solutions_code TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`;
+  await sql`
+    CREATE TABLE IF NOT EXISTS budget_sections (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      budget_id TEXT NOT NULL REFERENCES budgets(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      subtitle TEXT,
+      kind TEXT DEFAULT 'general',
+      sort INT DEFAULT 0
+    )`;
+  await sql`
+    CREATE TABLE IF NOT EXISTS budget_lines (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      budget_id TEXT NOT NULL REFERENCES budgets(id) ON DELETE CASCADE,
+      section_id TEXT NOT NULL REFERENCES budget_sections(id) ON DELETE CASCADE,
+      scope TEXT,
+      notes TEXT,
+      qty NUMERIC DEFAULT 0,
+      unit_cost NUMERIC DEFAULT 0,
+      percent NUMERIC,
+      is_travel BOOLEAN DEFAULT FALSE,
+      actual NUMERIC,
+      sort INT DEFAULT 0
+    )`;
+  await sql`
+    CREATE TABLE IF NOT EXISTS vcc_entries (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      entry_date TEXT,
+      vendor TEXT,
+      description TEXT,
+      category TEXT,
+      trip TEXT,
+      amount NUMERIC DEFAULT 0,
+      status TEXT DEFAULT 'HOLD',
+      not_posted BOOLEAN DEFAULT FALSE,
+      source TEXT DEFAULT 'manual',
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`;
+
   console.log('Migration complete.');
 }
 
