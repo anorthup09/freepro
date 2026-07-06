@@ -167,6 +167,54 @@ export default function Crew({ project, onProjectUpdate }) {
     } catch(e) { alert(e.message); }
   }
 
+  async function addSlotAndContract(send) {
+    if (!slotForm.positionId) { alert('Select a position first.'); return; }
+    if (!slotForm.crewMemberId) { alert('Select a crew member first.'); return; }
+    setContractBusy(true);
+    try {
+      const a = await api.addCrewSlot(project.id, {
+        positionId: slotForm.positionId,
+        crewMemberId: slotForm.crewMemberId || null,
+        slotNumber: parseInt(slotForm.slotNumber) || 1,
+        startDate: slotForm.startDate || null,
+        endDate: slotForm.endDate || null,
+        isContractor: true,
+        dayRate: slotForm.dayRate !== '' ? Number(slotForm.dayRate) : null,
+        laborDays: slotForm.laborDays !== '' ? Number(slotForm.laborDays) : null,
+        gearCost: slotForm.gearCost !== '' ? Number(slotForm.gearCost) : null,
+        gearDays: slotForm.gearDays !== '' ? Number(slotForm.gearDays) : null,
+      });
+      setAssignments(prev => [...prev, a]);
+      const scope = contractScope.trim() || defaultScope(a);
+      const c = await api.createContract(project.id, a.id, { scope });
+      setContracts(prev => [c, ...prev]);
+      let sentTo = '';
+      if (send) {
+        const r = await api.emailContract(project.id, c.id);
+        sentTo = r.to;
+      }
+      setShowAddSlot(false);
+      setSlotForm({ positionId:'', crewMemberId:'', slotNumber:1, startDate:'', endDate:'', isContractor:false, dayRate:'', laborDays:'', gearCost:'', gearDays:'' });
+      // open the edit modal on the new slot so the link/confirmation is visible
+      setEditForm({
+        crewMemberId: a.crewMember?.id || a.crew_member_id || '',
+        startDate: (a.start_date || '').slice(0,10),
+        endDate: (a.end_date || '').slice(0,10),
+        isContractor: true,
+        dayRate: a.day_rate ?? '',
+        laborDays: a.labor_days ?? '',
+        gearCost: a.gear_cost ?? '',
+        gearDays: a.gear_days ?? '',
+      });
+      setContractScope(scope);
+      setContractLink(`${window.location.origin}/contract/${c.id}`);
+      setContractSent(sentTo);
+      setLinkCopied(false);
+      setEditId(a.id);
+    } catch (e) { alert(e.message); }
+    setContractBusy(false);
+  }
+
   async function addCrewMember(e) {
     e.preventDefault();
     try {
@@ -688,7 +736,16 @@ export default function Crew({ project, onProjectUpdate }) {
                   <select value={slotForm.crewMemberId} onChange={e => {
                     const id = e.target.value;
                     const dates = flightDatesFor(id);
-                    setSlotForm(f => ({ ...f, crewMemberId: id, startDate: dates.startDate || f.startDate, endDate: dates.endDate || f.endDate }));
+                    setSlotForm(f => {
+                      const next = { ...f, crewMemberId: id, startDate: dates.startDate || f.startDate, endDate: dates.endDate || f.endDate };
+                      if (isContractorMember(id) === true) {
+                        const posName = positions.find(x => x.id === next.positionId)?.name || 'crew';
+                        setContractScope(defaultScope({ position: { name: posName }, start_date: next.startDate, end_date: next.endDate }));
+                        setContractLink('');
+                        setContractSent('');
+                      }
+                      return next;
+                    });
                   }}>
                     <option value="">— Unassigned —</option>
                     {roster.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
@@ -745,6 +802,22 @@ export default function Crew({ project, onProjectUpdate }) {
                       <label>Gear Total</label>
                       <div style={{ fontSize:14, fontWeight:700, color:'var(--green)', padding:'6px 0' }}>
                         ${((Number(slotForm.gearCost)||0) * (Number(slotForm.gearDays)||0)).toLocaleString('en-US', { maximumFractionDigits:2 })}
+                      </div>
+                    </div>
+                    <div className="field span2" style={{ borderTop:'1px solid var(--border)', paddingTop:12 }}>
+                      <label style={{ display:'flex', alignItems:'center', gap:6 }}>
+                        <span style={{ width:8, height:8, borderRadius:'50%', background:'#e05252', display:'inline-block' }} />
+                        Contract — not sent
+                      </label>
+                      <textarea rows={4} value={contractScope} onChange={e => setContractScope(e.target.value)} style={{ marginTop:6 }} />
+                      <div style={{ display:'flex', alignItems:'center', gap:10, marginTop:8, flexWrap:'wrap' }}>
+                        <button type="button" className="btn btn-primary btn-sm" disabled={contractBusy} onClick={() => addSlotAndContract(true)}>
+                          {contractBusy ? 'Working…' : 'Add & Send Contract'}
+                        </button>
+                        <button type="button" className="btn btn-ghost btn-sm" disabled={contractBusy} onClick={() => addSlotAndContract(false)}>
+                          Add & Generate Link
+                        </button>
+                        <span style={{ fontSize:10, color:'var(--muted)' }}>Adds the position, then snapshots the rates &amp; scope above.</span>
                       </div>
                     </div>
                   </>
