@@ -63,6 +63,7 @@ export default function Crew({ project, onProjectUpdate }) {
   const [contractLink, setContractLink] = useState('');
   const [contractBusy, setContractBusy] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [contractSent, setContractSent] = useState('');
 
   useEffect(() => {
     Promise.all([
@@ -84,8 +85,8 @@ export default function Crew({ project, onProjectUpdate }) {
     return `Provide ${a.position.name} services for "${project.title}" (${project.code}), ${when}. Rates listed cover all services and equipment described. Contractor will submit an invoice against these agreed terms upon completion.`;
   }
 
-  async function generateContract(aid) {
-    setContractBusy(true);
+  async function generateContract(aid, keepBusy) {
+    if (!keepBusy) setContractBusy(true);
     try {
       const payload = {
         crewMemberId: editForm.crewMemberId || null,
@@ -103,6 +104,22 @@ export default function Crew({ project, onProjectUpdate }) {
       setContracts(prev => [c, ...prev.filter(x => !(x.crew_assignment_id === aid && !x.signed_at))]);
       setContractLink(`${window.location.origin}/contract/${c.id}`);
       setLinkCopied(false);
+      return c;
+    } catch (e) { alert(e.message); return null; }
+    finally { if (!keepBusy) setContractBusy(false); }
+  }
+
+  async function sendContractEmail(aid) {
+    setContractBusy(true);
+    setContractSent('');
+    try {
+      let c = contractFor(aid);
+      if (c && c.signed_at) c = null;
+      if (!c) c = await generateContract(aid, true);
+      if (c) {
+        const r = await api.emailContract(project.id, c.id);
+        setContractSent(r.to);
+      }
     } catch (e) { alert(e.message); }
     setContractBusy(false);
   }
@@ -229,6 +246,7 @@ export default function Crew({ project, onProjectUpdate }) {
       setContractScope(existing?.scope || defaultScope(a));
       setContractLink(existing ? `${window.location.origin}/contract/${existing.id}` : '');
       setLinkCopied(false);
+      setContractSent('');
     }
     setEditId(a.id);
   }
@@ -330,7 +348,8 @@ export default function Crew({ project, onProjectUpdate }) {
                   <td>
                     {a.crewMember ? (
                       <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                        {a.is_contractor && (() => {
+                        {(() => {
+                          if (!a.is_contractor) return <div style={{ width:8, height:8, flexShrink:0 }} />;
                           const c = contractFor(a.id);
                           const color = c?.signed_at ? 'var(--green)' : c ? '#e6c229' : '#e05252';
                           const label = c?.signed_at ? 'Contract accepted' : c ? 'Contract sent - awaiting signature' : 'Contract not sent';
@@ -841,12 +860,16 @@ export default function Crew({ project, onProjectUpdate }) {
                             )}
                             {!signed && (
                               <div style={{ display:'flex', alignItems:'center', gap:10, marginTop:8 }}>
+                                <button type="button" className="btn btn-primary btn-sm" disabled={contractBusy} onClick={() => sendContractEmail(a.id)}>
+                                  {contractBusy ? 'Working…' : 'Send Contract'}
+                                </button>
                                 <button type="button" className="btn btn-ghost btn-sm" disabled={contractBusy} onClick={() => generateContract(a.id)}>
-                                  {contractBusy ? 'Generating…' : contractLink ? 'Regenerate Contract Link' : 'Generate Contract Link'}
+                                  {contractLink ? 'Regenerate Link' : 'Generate Link Only'}
                                 </button>
                                 <span style={{ fontSize:10, color:'var(--muted)' }}>Snapshots the rates &amp; scope above.</span>
                               </div>
                             )}
+                            {contractSent && !signed && <div style={{ fontSize:11, color:'var(--green)', marginTop:6 }}>✓ Emailed to {contractSent}</div>}
                             {signed && <a href={contractLink} target="_blank" rel="noopener noreferrer" style={{ fontSize:11, color:'#4a9eff', display:'inline-block', marginTop:6 }}>View signed contract ↗</a>}
                           </>
                         );

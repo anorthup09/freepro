@@ -42,6 +42,31 @@ router.get('/projects/:id/contracts', requireAuth, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// Email a contract link to the contractor from the configured mailbox
+router.post('/projects/:id/contracts/:cid/email', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try {
+    const { sendMail, isConfigured } = require('../lib/mailer');
+    if (!isConfigured()) return res.status(501).json({ error: 'Email is not configured yet. Add SMTP_HOST, SMTP_USER, and SMTP_PASS to the server environment.' });
+    const [c] = await sql`SELECT * FROM contracts WHERE id = ${req.params.cid} AND project_id = ${req.params.id}`;
+    if (!c) return res.status(404).json({ error: 'Contract not found' });
+    const to = String(req.body.to || c.contractor_email || '').trim();
+    if (!to) return res.status(400).json({ error: 'No email address on file for this contractor. Add one in Roster Look-Up.' });
+    const base = process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`;
+    const link = `${base}/contract/${c.id}`;
+    const first = (c.contractor_name || '').split(' ')[0];
+    const laborTotal = (Number(c.day_rate)||0) * (Number(c.labor_days)||0);
+    const gearTotal = (Number(c.gear_rate)||0) * (Number(c.gear_days)||0);
+    const fmt$ = n => '$' + Number(n||0).toLocaleString('en-US', { maximumFractionDigits: 2 });
+    const text = `Hi ${first},\n\nPlease review and sign your contractor agreement for "${c.project_title}" (${c.project_code}):\n\n${link}\n\nPosition: ${c.position_name}\nLabor: ${fmt$(c.day_rate)}/day x ${Number(c.labor_days)||0} days = ${fmt$(laborTotal)}${gearTotal ? `\nGear: ${fmt$(c.gear_rate)}/day x ${Number(c.gear_days)||0} days = ${fmt$(gearTotal)}` : ''}\nTotal: ${fmt$(laborTotal + gearTotal)}\n\nOpen the link, review the terms, and type your name to sign.\n\nThanks!\nUnbridled Media`;
+    await sendMail({ to, subject: `${c.project_title} — Contractor Agreement`, text });
+    await sql`UPDATE contracts SET status = 'SENT' WHERE id = ${c.id}`;
+    res.json({ ok: true, to });
+  } catch (e) {
+    if (e.status === 501) return res.status(501).json({ error: e.message });
+    next(e);
+  }
+});
+
 // Public: view a contract by token
 router.get('/contract/:token', async (req, res, next) => {
   try {

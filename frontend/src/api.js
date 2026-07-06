@@ -91,6 +91,7 @@ export const api = {
   getContracts: (projectId) => req('GET', `/projects/${projectId}/contracts`),
   getContract: (token) => req('GET', `/contract/${token}`),
   signContract: (token, name) => req('POST', `/contract/${token}/sign`, { name }),
+  emailContract: (projectId, cid, to) => req('POST', `/projects/${projectId}/contracts/${cid}/email`, { to }),
 
   // Schedule
   getSchedule: (projectId) => req('GET', `/projects/${projectId}/schedule`),
