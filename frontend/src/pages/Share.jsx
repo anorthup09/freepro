@@ -2159,8 +2159,13 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
                 return (
                   <div key={`f-${item.id}-${item._leg}`} className="ev">
                     <div className="ev-time">✈ {item._time}</div>
-                    <div className="ev-body" style={{ borderLeft:`2px solid ${fs.alert ? fs.color : 'var(--orange)'}`, ...(fs.alert ? { background: `${fs.color}11` } : {}) }}>
-                      <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                    <div className="ev-body" style={{ borderLeft:`2px solid ${fs.alert ? fs.color : 'var(--orange)'}`, position:'relative', ...(fs.alert ? { background: `${fs.color}11` } : {}) }}>
+                      {item._leg === 'depart' && !fs.cancelled && (
+                        <div style={{ position:'absolute', top:8, right:10, background:'rgba(0,0,0,0.25)', borderRadius:12, padding:'2px 10px' }}>
+                          <FlightStatusPill s={fs} />
+                        </div>
+                      )}
+                      <div style={{ display:'flex', alignItems:'center', gap:6, paddingRight:150 }}>
                         {fs.alert && <span style={{ fontSize:14 }}>❗</span>}
                         <div className="ev-title" style={fs.alert ? { color: fs.color } : {}}>
                           {item._leg === 'depart' ? 'Departure' : 'Arrival'} — {item.crew_name || item.passenger_name}
@@ -2172,13 +2177,6 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
                         {item.confirmation && <span style={{ color:'var(--muted)', marginLeft:8 }}>#{item.confirmation}</span>}
                         {adjustedArrival && <span style={{ color:'var(--muted)', marginLeft:8 }}>Arrives: {adjustedArrival}</span>}
                       </div>
-                      {item._leg === 'depart' && !fs.cancelled && (
-                        <div style={{ display:'flex', justifyContent:'flex-end', marginTop:6 }}>
-                          <div style={{ display:'inline-block', background:'rgba(0,0,0,0.25)', borderRadius:12, padding:'4px 12px' }}>
-                            <FlightStatusPill s={fs} />
-                          </div>
-                        </div>
-                      )}
                     </div>
                   </div>
                 );
