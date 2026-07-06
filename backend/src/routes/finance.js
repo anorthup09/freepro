@@ -178,7 +178,7 @@ router.post('/finance/:pid/budget', ...finance, async (req, res, next) => {
   try {
     const [existing] = await sql`SELECT id FROM budgets WHERE project_id = ${req.params.pid}`;
     if (existing) return res.status(409).json({ error: 'Budget already exists' });
-    const [b] = await sql`INSERT INTO budgets (project_id) VALUES (${req.params.pid}) RETURNING *`;
+    const [b] = await sql`INSERT INTO budgets (project_id, status) VALUES (${req.params.pid}, 'RFP') RETURNING *`;
     let sort = 0;
     for (const sec of TEMPLATE) {
       const [s] = await sql`INSERT INTO budget_sections (budget_id, title, subtitle, kind, sort) VALUES (${b.id}, ${sec.title}, ${sec.subtitle || null}, ${sec.kind}, ${sort++}) RETURNING id`;

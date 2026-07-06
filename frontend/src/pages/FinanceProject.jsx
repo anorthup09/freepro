@@ -150,10 +150,7 @@ function BudgetTab({ budget, sections, lines, set }) {
         ))}
         <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
           <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Status</label>
-          <select value={budget.status || 'Draft'} style={{ width:130, fontSize:12 }}
-            onChange={e => { patchBudget({ status: e.target.value }); saveBudget({ status: e.target.value }); }}>
-            {['RFP','Draft','Sent','Live','Dead','Reconciled'].map(s => <option key={s}>{s}</option>)}
-          </select>
+          <StatusPill value={budget.status || 'RFP'} onChange={v => { patchBudget({ status: v }); saveBudget({ status: v }); }} />
         </div>
         <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
           <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Mgmt Fee %</label>
@@ -531,6 +528,43 @@ function ShareBudgetButton({ budget }) {
       <button type="button" className="btn btn-ghost btn-sm" onClick={share}>
         {copied ? '✓ Link copied' : '🔗 Client Budget Link'}
       </button>
+    </div>
+  );
+}
+
+
+const STATUS_OPTS = [
+  ['RFP', '#e6c229', 'Waiting on client approval — shows in the RFP folder'],
+  ['Live', '#5ABF80', 'Approved — moves to Live Projects'],
+  ['Dead', '#e05252', 'Not approved — archived under RFP'],
+  ['Reconciled', '#9DC183', 'Project closed out'],
+];
+
+function StatusPill({ value, onChange }) {
+  const [open, setOpen] = useState(false);
+  const cur = STATUS_OPTS.find(o => o[0] === value) || STATUS_OPTS[0];
+  return (
+    <div style={{ position:'relative' }}>
+      <button type="button" onClick={() => setOpen(o => !o)}
+        style={{ display:'inline-flex', alignItems:'center', gap:6, background:`${cur[1]}1c`, border:`1px solid ${cur[1]}`, color:cur[1], borderRadius:20, padding:'5px 14px', fontSize:11, fontWeight:800, letterSpacing:'0.05em', textTransform:'uppercase', cursor:'pointer' }}>
+        {cur[0]} <span style={{ fontSize:8 }}>▼</span>
+      </button>
+      {open && (
+        <div style={{ position:'absolute', top:'110%', left:0, zIndex:50, background:'var(--bg)', border:'1px solid var(--border)', borderRadius:10, padding:6, boxShadow:'0 8px 24px rgba(0,0,0,0.5)', minWidth:250 }}>
+          {STATUS_OPTS.map(([name, color, hint]) => (
+            <div key={name} onClick={() => { setOpen(false); if (name !== value) onChange(name); }}
+              style={{ display:'flex', alignItems:'center', gap:10, padding:'7px 10px', borderRadius:7, cursor:'pointer', background: name === value ? 'rgba(255,255,255,0.04)' : 'transparent' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
+              onMouseLeave={e => e.currentTarget.style.background = name === value ? 'rgba(255,255,255,0.04)' : 'transparent'}>
+              <span style={{ width:8, height:8, borderRadius:'50%', background:color, flexShrink:0 }} />
+              <div>
+                <div style={{ fontSize:11, fontWeight:700, color }}>{name}</div>
+                <div style={{ fontSize:10, color:'var(--muted)' }}>{hint}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

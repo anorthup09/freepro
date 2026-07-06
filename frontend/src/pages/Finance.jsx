@@ -23,23 +23,56 @@ export function FinanceHeader({ crumb }) {
   );
 }
 
+const FOLDERS = {
+  live: { label: 'Live Projects', match: p => p.budget_status !== 'RFP' && p.budget_status !== 'Dead' },
+  rfp: { label: 'RFP', match: p => p.budget_status === 'RFP' },
+  archive: { label: 'Archive', match: p => p.budget_status === 'Dead' },
+};
+
 export default function Finance() {
   const nav = useNavigate();
   const [projects, setProjects] = useState(null);
+  const [folder, setFolder] = useState('live');
 
   useEffect(() => { api.financeProjects().then(setProjects).catch(e => alert(e.message)); }, []);
+
+  const shown = (projects || []).filter(FOLDERS[folder].match);
 
   return (
     <div style={{ minHeight:'100vh', background:'var(--bg)' }}>
       <FinanceHeader />
       <div style={{ maxWidth:900, margin:'0 auto', padding:'10px 16px 60px' }}>
-        <div style={{ marginBottom:16 }}>
-          <div className="page-title">Project Finance</div>
-          <div className="page-sub">Budgets, vendor cost control &amp; reconciliation</div>
+        <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'space-between', gap:10, flexWrap:'wrap', marginBottom:16 }}>
+          <div>
+            <div className="page-title">Project Finance</div>
+            <div className="page-sub">Budgets, vendor cost control &amp; reconciliation</div>
+          </div>
+          <div style={{ display:'flex', gap:6 }}>
+            {Object.entries(FOLDERS).map(([k, f]) => {
+              const count = (projects || []).filter(f.match).length;
+              const active = folder === k;
+              const color = k === 'rfp' ? '#e6c229' : k === 'archive' ? '#e05252' : '#5ABF80';
+              return (
+                <button key={k} onClick={() => setFolder(k)}
+                  style={{
+                    background: active ? color : 'transparent', display:'inline-flex', alignItems:'center', gap:6,
+                    border: '1px solid ' + (active ? color : 'var(--border)'),
+                    color: active ? '#0b0b0b' : color, borderRadius:20, padding:'5px 14px', fontSize:11, fontWeight:700, cursor:'pointer',
+                  }}>
+                  {k === 'rfp' ? '📁 ' : k === 'archive' ? '🗄 ' : ''}{f.label}
+                  <span style={{ fontSize:10, opacity:0.75 }}>{count}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
         {!projects && <div className="empty">Loading…</div>}
-        {projects && projects.length === 0 && <div className="empty">No projects yet — create one in FreePro first.</div>}
-        {projects && projects.map(p => (
+        {projects && shown.length === 0 && (
+          <div className="empty">
+            {folder === 'rfp' ? 'No budgets in RFP right now.' : folder === 'archive' ? 'No archived (dead) budgets.' : 'No live projects yet — create one in FreePro first.'}
+          </div>
+        )}
+        {projects && shown.map(p => (
           <div key={p.id} onClick={() => nav(`/finance/${p.id}`)}
             style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding:'14px 18px', marginBottom:10, cursor:'pointer', display:'flex', alignItems:'center', gap:14, flexWrap:'wrap', opacity: p.budget_status === 'Dead' ? 0.55 : 1 }}>
             <div style={{ flex:1, minWidth:180 }}>
