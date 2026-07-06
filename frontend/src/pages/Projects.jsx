@@ -138,7 +138,11 @@ export default function Projects() {
                 </button>
               ))}
             </div>
-            {view === 'production' && !isCrew && <div className="page-sub">{projects.length} shoot{projects.length !== 1 ? 's' : ''}</div>}
+            {view === 'production' && !isCrew && (() => {
+              const planning = projects.filter(p => p.status === 'PLANNING').length;
+              const live = projects.filter(p => p.status === 'ACTIVE').length;
+              return <div className="page-sub">{planning} planning · {live} live shoot{live !== 1 ? 's' : ''}</div>;
+            })()}
           </div>
           {view === 'production' && (
             <div style={{ display:'flex', gap:8 }}>
