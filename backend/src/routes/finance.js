@@ -513,7 +513,7 @@ router.post('/finance/weekly-report', ...finance, async (req, res, next) => {
       FROM projects p LEFT JOIN budgets b ON b.project_id = p.id
       ORDER BY p.code`;
     const lines = await sql`SELECT budget_id, qty, unit_cost, percent, is_travel, section_id FROM budget_lines`;
-    const current = projects.map(p => {
+    const current = projects.filter(p => (p.budget_status || '') !== 'RFP').map(p => {
       const { total, fee } = budgetTotal(lines.filter(l => l.budget_id === p.budget_id), Number(p.mgmt_fee_rate ?? 0.15));
       return {
         project_id: p.id, code: p.code, title: p.title, client: p.client,

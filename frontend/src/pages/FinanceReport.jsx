@@ -4,6 +4,11 @@ import { api } from '../api.js';
 import { STATUS_COLORS } from './Hub.jsx';
 
 const fmt$ = n => '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtCM = m => {
+  if (!m) return '—';
+  const [y, mo] = String(m).split('-');
+  return new Date(Number(y), Number(mo) - 1, 15).toLocaleDateString('en-US', { month:'long' }) + ', ' + y;
+};
 const fmtDT = d => d ? new Date(d).toLocaleString('en-US', { month:'long', day:'numeric', year:'numeric', hour:'numeric', minute:'2-digit' }) : '—';
 
 export default function FinanceReport() {
@@ -70,7 +75,7 @@ export default function FinanceReport() {
                     <div style={{ fontSize:12, fontWeight:700 }}>{p.code} — {p.title} <span style={{ fontWeight:400, color:'var(--muted)' }}>({p.media_rep || 'no owner'})</span></div>
                     {p.diffs.map((d, i) => (
                       <div key={i} style={{ fontSize:11, color:'var(--muted)', marginTop:2 }}>
-                        {d.field}: <span style={{ color:'var(--text)' }}>{d.money ? fmt$(d.from) : d.from}</span> → <span style={{ color:'#e6c229', fontWeight:600 }}>{d.money ? fmt$(d.to) : d.to}</span>
+                        {d.field}: <span style={{ color:'var(--text)' }}>{d.money ? fmt$(d.from) : d.field === 'Close Month' ? fmtCM(d.from === '—' ? null : d.from) : d.from}</span> → <span style={{ color:'#e6c229', fontWeight:600 }}>{d.money ? fmt$(d.to) : d.field === 'Close Month' ? fmtCM(d.to === '—' ? null : d.to) : d.to}</span>
                         {d.money && <span style={{ marginLeft:8, color: d.to - d.from >= 0 ? '#5ABF80' : '#e05252' }}>({d.to - d.from >= 0 ? '+' : ''}{fmt$(d.to - d.from)})</span>}
                       </div>
                     ))}
@@ -108,7 +113,7 @@ export default function FinanceReport() {
                     <td style={td}><span style={{ color:sc, fontWeight:700, fontSize:10, textTransform:'uppercase' }}>{p.budget_status}</span></td>
                     <td style={{ ...td, textAlign:'right', fontWeight:700, whiteSpace:'nowrap' }}>{fmt$(p.budget_total)}</td>
                     <td style={{ ...td, textAlign:'right', color:'#5ABF80', whiteSpace:'nowrap' }}>{fmt$(p.fee)}</td>
-                    <td style={{ ...td, whiteSpace:'nowrap' }}>{p.close_month || '—'}</td>
+                    <td style={{ ...td, whiteSpace:'nowrap' }}>{fmtCM(p.close_month)}</td>
                   </tr>
                 );
               })}

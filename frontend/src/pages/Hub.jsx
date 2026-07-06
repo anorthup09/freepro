@@ -133,7 +133,7 @@ export default function Hub() {
                 <div className="page-title">All Projects</div>
                 <div className="page-sub">{projects ? `${projects.length} project${projects.length === 1 ? '' : 's'}` : 'Loading…'}</div>
               </div>
-              <button className="btn btn-primary btn-sm" onClick={() => nav('/finance/report')}>📄 Weekly Report</button>
+              <button className="btn btn-primary btn-sm" onClick={() => nav('/finance/report')}>📄 Weekly Finance Report</button>
             </div>
             <div className="pos-table-wrap" style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, overflow:'auto' }}>
               <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12, minWidth:820 }}>
