@@ -94,8 +94,11 @@ export default function Projects() {
   return (
     <>
       <nav className="nav">
+        <Link to="/" title="Back to the Unbridled Media hub" style={{ display:'flex', alignItems:'center', marginRight:12 }}>
+            <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height:18, filter:'brightness(0) invert(1)', opacity:0.9 }} />
+          </Link>
         <div style={{ display:'flex', flexDirection:'column', gap:1 }}>
-          <Link to="/" className="logo">Free<em>Pro</em></Link>
+          <Link to="/projects" className="logo">Free<em>Pro</em></Link>
           <span style={{ fontSize:9, color:'var(--muted)', letterSpacing:'0.06em', paddingLeft:1 }}>Powered by Unbridled Media</span>
         </div>
         <span style={{ color: 'var(--muted)', fontSize: 12 }}>{user?.name}</span>

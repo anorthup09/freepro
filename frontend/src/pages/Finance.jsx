@@ -47,7 +47,8 @@ export default function Finance() {
             <div className="page-title">Project Finance</div>
             <div className="page-sub">Budgets, vendor cost control &amp; reconciliation</div>
           </div>
-          <div style={{ display:'flex', gap:6 }}>
+          <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+            <button className="btn btn-primary btn-sm" onClick={() => nav('/finance/overview')}>📊 Project Finance Overview</button>
             {Object.entries(FOLDERS).map(([k, f]) => {
               const count = (projects || []).filter(f.match).length;
               const active = folder === k;

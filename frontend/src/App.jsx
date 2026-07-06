@@ -52,6 +52,7 @@ import FinanceProject from './pages/FinanceProject.jsx';
 import BudgetShare from './pages/BudgetShare.jsx';
 import FinanceReport from './pages/FinanceReport.jsx';
 import MfaSetup from './pages/MfaSetup.jsx';
+import FinanceOverview from './pages/FinanceOverview.jsx';
 import { api } from './api.js';
 
 export const AuthContext = createContext(null);
@@ -77,6 +78,7 @@ export default function App() {
         <Route path="/" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <Hub />) : <Navigate to="/login" />} />
         <Route path="/projects" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <Projects />) : <Navigate to="/login" />} />
         <Route path="/finance" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <Finance />) : <Navigate to="/login" />} />
+        <Route path="/finance/overview" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <FinanceOverview />) : <Navigate to="/login" />} />
         <Route path="/finance/report" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <FinanceReport />) : <Navigate to="/login" />} />
         <Route path="/finance/:pid" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <FinanceProject />) : <Navigate to="/login" />} />
         <Route path="/crew-views" element={user ? <CrewViews /> : <Navigate to="/login" />} />
