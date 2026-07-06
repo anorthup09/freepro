@@ -121,8 +121,8 @@ export default function Hub() {
           <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height:26, filter:'brightness(0) invert(1)', opacity:0.95, display:'block' }} />
           <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.12em', marginTop:5 }}>Operating Platform</div>
         </div>
-        <button onClick={() => nav('/pipeline')}
-          style={{ position:'absolute', left:'50%', transform:'translateX(-50%)', background:'rgba(232,80,10,0.2)', border:'1px solid var(--orange)', color:'var(--orange)', borderRadius:20, padding:'5px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
+        <button onClick={() => nav('/pipeline')} className="hub-pipeline-btn"
+          style={{ background:'rgba(232,80,10,0.2)', border:'1px solid var(--orange)', color:'var(--orange)', borderRadius:20, padding:'5px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
           Project Pipeline
         </button>
         <div style={{ display:'flex', alignItems:'center', gap:12 }}>
