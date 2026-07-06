@@ -49,6 +49,7 @@ import ContractSign from './pages/ContractSign.jsx';
 import Hub from './pages/Hub.jsx';
 import Finance from './pages/Finance.jsx';
 import FinanceProject from './pages/FinanceProject.jsx';
+import BudgetShare from './pages/BudgetShare.jsx';
 import { api } from './api.js';
 
 export const AuthContext = createContext(null);
@@ -80,6 +81,7 @@ export default function App() {
         <Route path="/projects/:id/talent-callsheets" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <TalentCallSheets />) : <Navigate to="/login" />} />
         <Route path="/share/:token" element={<Share />} />
         <Route path="/contract/:token" element={<ContractSign />} />
+        <Route path="/budget/:token" element={<BudgetShare />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
       )}

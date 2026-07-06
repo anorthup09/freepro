@@ -776,6 +776,7 @@ async function migrate() {
 
   await sql`ALTER TABLE vcc_entries ADD COLUMN IF NOT EXISTS review BOOLEAN DEFAULT FALSE`;
   await sql`ALTER TABLE vcc_entries ADD COLUMN IF NOT EXISTS flag TEXT`;
+  await sql`ALTER TABLE budgets ADD COLUMN IF NOT EXISTS share_token TEXT`;
 
   console.log('Migration complete.');
 }

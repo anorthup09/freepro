@@ -481,4 +481,25 @@ Respond with ONLY a JSON array, one object per charge in order: [{"i":0,"categor
   } catch (e) { next(e); }
 });
 
+// Generate (or fetch) the client share token for a budget
+router.post('/finance/budget/:bid/share', ...finance, async (req, res, next) => {
+  try {
+    const [b] = await sql`UPDATE budgets SET share_token = COALESCE(share_token, gen_random_uuid()::text) WHERE id = ${req.params.bid} RETURNING share_token`;
+    if (!b) return res.status(404).json({ error: 'Budget not found' });
+    res.json({ token: b.share_token });
+  } catch (e) { next(e); }
+});
+
+// Public: client-facing budget estimate (sanitized — no costs ledger, no profit data)
+router.get('/budget-share/:token', async (req, res, next) => {
+  try {
+    const [budget] = await sql`SELECT id, project_id, budget_date, media_rep, solutions_code, mgmt_fee_rate, status FROM budgets WHERE share_token = ${req.params.token}`;
+    if (!budget) return res.status(404).json({ error: 'Budget not found' });
+    const [project] = await sql`SELECT code, title, client FROM projects WHERE id = ${budget.project_id}`;
+    const sections = await sql`SELECT id, title, subtitle, kind, sort FROM budget_sections WHERE budget_id = ${budget.id} ORDER BY sort`;
+    const lines = await sql`SELECT id, section_id, scope, notes, qty, unit_cost, percent, is_travel, sort FROM budget_lines WHERE budget_id = ${budget.id} ORDER BY sort`;
+    res.json({ project, budget: { budget_date: budget.budget_date, media_rep: budget.media_rep, solutions_code: budget.solutions_code, mgmt_fee_rate: budget.mgmt_fee_rate }, sections, lines });
+  } catch (e) { next(e); }
+});
+
 module.exports = router;

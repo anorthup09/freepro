@@ -17,6 +17,26 @@ function lineSubtotal(l, sectionLines) {
 const cellIn = { background:'transparent', border:'1px solid transparent', borderRadius:4, padding:'3px 6px', fontSize:12, width:'100%', color:'var(--text)' };
 const numIn = { ...cellIn, width:70, textAlign:'right' };
 
+function MoneyInput({ value, onCommit, width = 85 }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState('');
+  if (editing) {
+    return (
+      <input type="number" step="0.01" autoFocus value={draft}
+        style={{ ...numIn, width, borderColor:'var(--border)' }}
+        onChange={e => setDraft(e.target.value)}
+        onKeyDown={e => e.key === 'Enter' && e.target.blur()}
+        onBlur={() => { setEditing(false); onCommit(draft); }} />
+    );
+  }
+  return (
+    <div onClick={() => { setDraft(value ?? ''); setEditing(true); }}
+      style={{ ...numIn, width, cursor:'text', padding:'4px 6px' }}>
+      {value === '' || value == null ? <span style={{ color:'var(--muted)' }}>—</span> : fmt$(value)}
+    </div>
+  );
+}
+
 export default function FinanceProject() {
   const { pid } = useParams();
   const [data, setData] = useState(null);
@@ -140,6 +160,7 @@ function BudgetTab({ budget, sections, lines, set }) {
             onChange={e => patchBudget({ mgmt_fee_rate: Number(e.target.value) / 100 })}
             onBlur={e => saveBudget({ mgmtFeeRate: Number(e.target.value) / 100 })} />
         </div>
+        <ShareBudgetButton budget={budget} />
       </div>
 
       {sections.map(sec => {
@@ -238,9 +259,8 @@ function LineRow({ l, secLines, patchLine, saveLine, delLine }) {
       <td style={{ padding:'2px 6px', textAlign:'right' }}>
         {l.percent != null
           ? <span style={{ fontSize:11, color:'var(--muted)' }}>{Math.round(l.percent * 100)}% of section</span>
-          : <input type="number" step="0.01" value={l.unit_cost ?? 0} style={{ ...numIn, width:85 }}
-              onChange={e => patchLine(l.id, { unit_cost: e.target.value })}
-              onBlur={e => saveLine(l.id, { unitCost: e.target.value })} />}
+          : <MoneyInput value={l.unit_cost ?? 0} width={95}
+              onCommit={v => { patchLine(l.id, { unit_cost: v }); saveLine(l.id, { unitCost: v }); }} />}
       </td>
       <td style={{ padding:'2px 10px 2px 6px', textAlign:'right', fontSize:12, fontWeight:600, color: st ? 'var(--text)' : 'var(--muted)' }}>{st ? fmt$(st) : '—'}</td>
       <td style={{ textAlign:'center' }}>
@@ -305,13 +325,11 @@ function VccTab({ pid, budget, sections, lines, vcc, categories, set }) {
           </div>
           <div style={{ display:'flex', gap:14, marginTop:12, flexWrap:'wrap' }}>
             <label style={{ fontSize:10, color:'var(--muted)', display:'flex', alignItems:'center', gap:6 }}>Total Cap Co
-              <input type="number" value={budget.total_cap_co ?? 0} style={{ width:90, fontSize:11, textAlign:'right' }}
-                onChange={e => patchBudget({ total_cap_co: e.target.value })}
-                onBlur={e => saveBudget({ totalCapCo: e.target.value })} /></label>
+              <MoneyInput value={budget.total_cap_co ?? 0} width={100}
+                onCommit={v => { patchBudget({ total_cap_co: v }); saveBudget({ totalCapCo: v }); }} /></label>
             <label style={{ fontSize:10, color:'var(--muted)', display:'flex', alignItems:'center', gap:6 }}>Original Fee Est.
-              <input type="number" value={budget.original_fee_estimate ?? ''} style={{ width:90, fontSize:11, textAlign:'right' }}
-                onChange={e => patchBudget({ original_fee_estimate: e.target.value })}
-                onBlur={e => saveBudget({ originalFeeEstimate: e.target.value })} /></label>
+              <MoneyInput value={budget.original_fee_estimate ?? ''} width={100}
+                onCommit={v => { patchBudget({ original_fee_estimate: v }); saveBudget({ originalFeeEstimate: v }); }} /></label>
             <span style={{ fontSize:10, color:'var(--muted)', alignSelf:'center' }}>Media Revenue {fmt$(revenue)}</span>
           </div>
         </div>
@@ -319,13 +337,13 @@ function VccTab({ pid, budget, sections, lines, vcc, categories, set }) {
           <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'#5ABF80', marginBottom:10 }}>Client Deposits</div>
           <div style={{ display:'grid', gridTemplateColumns:'auto 1fr 1fr', gap:'6px 10px', fontSize:11, alignItems:'center' }}>
             <span style={{ color:'var(--muted)' }}>Deposit</span>
-            <input type="number" value={budget.deposit ?? ''} style={{ fontSize:11, textAlign:'right' }}
-              onChange={e => patchBudget({ deposit: e.target.value })} onBlur={e => saveBudget({ deposit: e.target.value })} />
+            <MoneyInput value={budget.deposit ?? ''} width={110}
+              onCommit={v => { patchBudget({ deposit: v }); saveBudget({ deposit: v }); }} />
             <input type="date" value={budget.deposit_due || ''} style={{ fontSize:11 }}
               onChange={e => patchBudget({ deposit_due: e.target.value })} onBlur={e => saveBudget({ depositDue: e.target.value })} />
             <span style={{ color:'var(--muted)' }}>Additional</span>
-            <input type="number" value={budget.additional_deposit ?? ''} style={{ fontSize:11, textAlign:'right' }}
-              onChange={e => patchBudget({ additional_deposit: e.target.value })} onBlur={e => saveBudget({ additionalDeposit: e.target.value })} />
+            <MoneyInput value={budget.additional_deposit ?? ''} width={110}
+              onCommit={v => { patchBudget({ additional_deposit: v }); saveBudget({ additionalDeposit: v }); }} />
             <input type="date" value={budget.final_inv_date || ''} title="Final invoice date" style={{ fontSize:11 }}
               onChange={e => patchBudget({ final_inv_date: e.target.value })} onBlur={e => saveBudget({ finalInvDate: e.target.value })} />
             <span style={{ color:'var(--muted)' }}>Final Invoice</span>
@@ -398,9 +416,8 @@ function VccTab({ pid, budget, sections, lines, vcc, categories, set }) {
                       </select>
                     </td>
                     <td style={{ padding:'2px 6px', textAlign:'right' }}>
-                      <input type="number" step="0.01" value={e.amount ?? 0} style={{ ...numIn, width:85 }}
-                        onChange={ev => patchEntry(e.id, { amount: ev.target.value })}
-                        onBlur={ev => saveEntry(e.id, { amount: ev.target.value })} />
+                      <MoneyInput value={e.amount ?? 0} width={95}
+                        onCommit={v => { patchEntry(e.id, { amount: v }); saveEntry(e.id, { amount: v }); }} />
                     </td>
                     <td style={{ padding:'2px 6px', whiteSpace:'nowrap' }}>
                       {e.review ? (
@@ -491,6 +508,28 @@ function VccTools({ pid, set, vcc }) {
         <span style={{ fontSize:11, color:'#e05252', fontWeight:700 }}>⚠ {reviewCount} charge{reviewCount === 1 ? '' : 's'} need review</span>
       )}
       {msg && <span style={{ fontSize:11, color:'var(--muted)' }}>{msg}</span>}
+    </div>
+  );
+}
+
+
+function ShareBudgetButton({ budget }) {
+  const [copied, setCopied] = useState(false);
+  async function share() {
+    try {
+      const { token } = await api.shareBudget(budget.id);
+      const link = `${window.location.origin}/budget/${token}`;
+      await navigator.clipboard?.writeText(link).catch(() => {});
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+      if (!navigator.clipboard) prompt('Client budget link:', link);
+    } catch (e) { alert(e.message); }
+  }
+  return (
+    <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:8 }}>
+      <button type="button" className="btn btn-ghost btn-sm" onClick={share}>
+        {copied ? '✓ Link copied' : '🔗 Client Budget Link'}
+      </button>
     </div>
   );
 }
