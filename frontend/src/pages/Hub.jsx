@@ -116,16 +116,16 @@ export default function Hub() {
 
   return (
     <div style={{ minHeight:'100vh', background:'var(--bg)', display:'flex', flexDirection:'column' }}>
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 26px', flexWrap:'wrap', gap:10 }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 26px', flexWrap:'wrap', gap:10, position:'relative' }}>
         <div>
           <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height:26, filter:'brightness(0) invert(1)', opacity:0.95, display:'block' }} />
           <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.12em', marginTop:5 }}>Operating Platform</div>
         </div>
+        <button onClick={() => nav('/pipeline')}
+          style={{ position:'absolute', left:'50%', transform:'translateX(-50%)', background:'rgba(232,80,10,0.2)', border:'1px solid var(--orange)', color:'var(--orange)', borderRadius:20, padding:'5px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
+          Project Pipeline
+        </button>
         <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-          <button onClick={() => nav('/pipeline')}
-            style={{ background:'rgba(232,80,10,0.2)', border:'1px solid var(--orange)', color:'var(--orange)', borderRadius:20, padding:'5px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
-            Project Pipeline
-          </button>
           <span style={{ fontSize:11, color:'var(--muted)' }}>{user?.name}</span>
           {user?.role === 'ADMIN' && (
             <button className="btn btn-ghost btn-sm" title="Download a full database backup (all projects, budgets, contracts, roster)"
