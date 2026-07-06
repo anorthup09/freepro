@@ -77,21 +77,32 @@ export default function FinanceProject() {
             <div className="page-title">{project.title}</div>
             <div className="page-sub">{project.client}</div>
           </div>
-          <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:6 }}>
-            <div style={{ display:'flex', gap:8 }}>
-              <button className={`btn btn-sm ${tab === 'budget' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setTab('budget')}>Budget</button>
-              <button className={`btn btn-sm ${tab === 'vcc' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setTab('vcc')}>VCC</button>
+          <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:8 }}>
+            <div style={{ display:'flex', border:'1px solid var(--border)', borderRadius:16, overflow:'hidden' }}>
+              {[['budget', 'Budget'], ['vcc', 'VCC']].map(([k, label]) => (
+                <button key={k} onClick={() => setTab(k)}
+                  style={{ background: tab === k ? 'rgba(232,80,10,0.25)' : 'transparent', border:'none',
+                    color: tab === k ? 'var(--orange)' : 'var(--muted)', fontSize:12, fontWeight:800, padding:'6px 18px', cursor:'pointer' }}>
+                  {label}
+                </button>
+              ))}
             </div>
             {budget && (
               <>
-                <button onClick={() => setOverview(true)}
-                  style={{ background:'rgba(90,191,128,0.12)', border:'1px solid #5ABF80', color:'#5ABF80', borderRadius:20, padding:'4px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
-                  📋 Estimate Overview
-                </button>
-                <button onClick={() => setEstimateMode(true)}
-                  style={{ background:'rgba(230,194,41,0.15)', border:'1px solid #e6c229', color:'#e6c229', borderRadius:20, padding:'4px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
-                  ⚡ Additional Estimate{estimates.length ? ` (${estimates.length})` : ''}
-                </button>
+                <div style={{ display:'flex', gap:8, flexWrap:'wrap', justifyContent:'flex-end' }}>
+                  <button onClick={() => setEstimateMode(true)}
+                    style={{ background:'rgba(230,194,41,0.15)', border:'1px solid #e6c229', color:'#e6c229', borderRadius:20, padding:'4px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
+                    ⚡ Additional Estimate{estimates.length ? ` (${estimates.length})` : ''}
+                  </button>
+                  <button onClick={() => setOverview(true)}
+                    style={{ background:'rgba(90,191,128,0.12)', border:'1px solid #5ABF80', color:'#5ABF80', borderRadius:20, padding:'4px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
+                    Estimate Overview
+                  </button>
+                  <ShareBudgetButton budget={budget} />
+                </div>
+                <ShareModeToggle budget={budget}
+                  patchBudget={fields => set(d => ({ budget: { ...d.budget, ...fields } }))}
+                  saveBudget={data => api.updateBudget(budget.id, data).catch(e => alert(e.message))} />
               </>
             )}
           </div>
@@ -228,7 +239,6 @@ function BudgetTab({ budget, sections, lines, vcc, set, reload }) {
           <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Status</label>
           <StatusPill value={budget.status || 'RFP'} onChange={v => { patchBudget({ status: v }); saveBudget({ status: v }); }} />
         </div>
-        <ShareBudgetButton budget={budget} patchBudget={patchBudget} saveBudget={saveBudget} />
       </div>
 
       {(() => { const lastShootId = [...sections].filter(x => x.kind === 'shoot').map(x => x.id).pop(); return sections.map(sec => {
@@ -401,9 +411,13 @@ function LineRow({ l, secLines, patchLine, saveLine, delLine }) {
             {num(l.qty) > 0 ? '✓ On' : 'Off'}
           </button>
         ) : (
-          <input type="number" step="0.5" value={l.qty ?? 0} style={numIn}
+          <input type="number" step={l.is_travel ? '1' : '0.5'} value={l.qty ?? 0} style={numIn}
             onChange={e => patchLine(l.id, { qty: e.target.value })}
-            onBlur={e => saveLine(l.id, { qty: e.target.value })} />
+            onBlur={e => {
+              const v = l.is_travel ? String(Math.round(num(e.target.value))) : e.target.value;
+              if (v !== e.target.value) patchLine(l.id, { qty: v });
+              saveLine(l.id, { qty: v });
+            }} />
         )}
       </td>
       <td style={{ padding:'2px 6px', textAlign:'right' }}>
@@ -750,33 +764,37 @@ function VccTools({ pid, set, vcc }) {
 }
 
 
-function ShareBudgetButton({ budget, patchBudget, saveBudget }) {
-  const mode = budget.share_mode || 'lines';
+function ShareBudgetButton({ budget }) {
   async function share() {
     try {
       const { token } = await api.shareBudget(budget.id);
       window.open(`${window.location.origin}/budget/${token}`, '_blank');
     } catch (e) { alert(e.message); }
   }
+  return (
+    <button type="button" onClick={share} title="Open the client-facing budget page in a new window"
+      style={{ background:'transparent', border:'1px solid var(--border)', color:'var(--text)', borderRadius:20, padding:'4px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
+      Client Budget
+    </button>
+  );
+}
+
+function ShareModeToggle({ budget, patchBudget, saveBudget }) {
+  const mode = budget.share_mode || 'lines';
   function setMode(m) {
-    patchBudget && patchBudget({ share_mode: m });
-    saveBudget && saveBudget({ shareMode: m });
+    patchBudget({ share_mode: m });
+    saveBudget({ shareMode: m });
   }
   return (
-    <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:8 }}>
-      <div title="What the client sees on the shared budget page"
-        style={{ display:'flex', border:'1px solid var(--border)', borderRadius:14, overflow:'hidden' }}>
-        {[['lines', 'Line Items'], ['buckets', 'Buckets']].map(([m, label]) => (
-          <button key={m} type="button" onClick={() => setMode(m)}
-            style={{ background: mode === m ? 'rgba(90,191,128,0.25)' : 'transparent', border:'none',
-              color: mode === m ? '#5ABF80' : 'var(--muted)', fontSize:10, fontWeight:700, padding:'4px 10px', cursor:'pointer' }}>
-            {label}
-          </button>
-        ))}
-      </div>
-      <button type="button" className="btn btn-ghost btn-sm" onClick={share}>
-        🔗 Client Budget Link
-      </button>
+    <div title="What the client sees on the shared budget page"
+      style={{ display:'flex', border:'1px solid var(--border)', borderRadius:14, overflow:'hidden' }}>
+      {[['lines', 'Line Items'], ['buckets', 'Buckets']].map(([m, label]) => (
+        <button key={m} type="button" onClick={() => setMode(m)}
+          style={{ background: mode === m ? 'rgba(90,191,128,0.25)' : 'transparent', border:'none',
+            color: mode === m ? '#5ABF80' : 'var(--muted)', fontSize:10, fontWeight:700, padding:'4px 10px', cursor:'pointer' }}>
+          {label}
+        </button>
+      ))}
     </div>
   );
 }
