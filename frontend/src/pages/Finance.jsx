@@ -145,6 +145,46 @@ function NewProjectModal({ onClose, onCreated }) {
   );
 }
 
+function TileStatusPill({ p, onClosed }) {
+  const [open, setOpen] = useState(false);
+  const sc = STATUS_COLORS[p.budget_status] || 'var(--muted)';
+  const isLive = p.budget_status === 'Live';
+  async function close(e) {
+    e.stopPropagation();
+    setOpen(false);
+    if (!confirm(`Close ${p.title} and move it to Archive?`)) return;
+    try {
+      await api.updateBudget(p.budget_id, { status: 'Closed' });
+      onClosed();
+    } catch (err) { alert(err.message); }
+  }
+  return (
+    <span style={{ position:'relative' }} onClick={e => e.preventDefault()}>
+      <button type="button"
+        onClick={e => { e.stopPropagation(); if (isLive) setOpen(o => !o); }}
+        style={{ background:'none', fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:sc, border:`1px solid ${sc}55`, borderRadius:10, padding:'2px 8px', whiteSpace:'nowrap', cursor: isLive ? 'pointer' : 'default', display:'inline-flex', alignItems:'center', gap:4 }}>
+        {p.budget_id ? (p.budget_status || 'Draft') : 'No budget'}
+        {isLive && <span style={{ fontSize:7 }}>▼</span>}
+      </button>
+      {open && (
+        <div onClick={e => e.stopPropagation()}
+          style={{ position:'absolute', top:'115%', right:0, zIndex:40, background:'var(--bg)', border:'1px solid var(--border)', borderRadius:8, padding:4, boxShadow:'0 8px 24px rgba(0,0,0,0.5)', minWidth:170 }}>
+          <div onClick={close}
+            style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 10px', borderRadius:6, cursor:'pointer' }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+            <span style={{ width:7, height:7, borderRadius:'50%', background:'#8a8f98', flexShrink:0 }} />
+            <div>
+              <div style={{ fontSize:11, fontWeight:700, color:'#8a8f98' }}>Close</div>
+              <div style={{ fontSize:10, color:'var(--muted)' }}>Moves the project to Archive</div>
+            </div>
+          </div>
+        </div>
+      )}
+    </span>
+  );
+}
+
 export default function Finance() {
   const nav = useNavigate();
   const [projects, setProjects] = useState(null);
@@ -224,25 +264,7 @@ export default function Finance() {
                   {p.budget_id ? fmt$((p.budget_total - (p.total_cap_co || 0)) - p.vcc_total) : '—'}
                 </div>
               </div>
-              {(() => { const sc = STATUS_COLORS[p.budget_status] || 'var(--muted)'; return (
-                <span style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:sc, border:`1px solid ${sc}55`, borderRadius:10, padding:'2px 8px', whiteSpace:'nowrap' }}>
-                  {p.budget_id ? (p.budget_status || 'Draft') : 'No budget'}
-                </span>
-              ); })()}
-              {p.budget_status === 'Live' && (
-                <button title="Close this project and move it to the Archive folder"
-                  onClick={async e => {
-                    e.stopPropagation();
-                    if (!confirm(`Close ${p.title} and move it to Archive?`)) return;
-                    try {
-                      await api.updateBudget(p.budget_id, { status: 'Closed' });
-                      setProjects(ps => ps.map(x => x.id === p.id ? { ...x, budget_status: 'Closed' } : x));
-                    } catch (err) { alert(err.message); }
-                  }}
-                  style={{ background:'none', border:'1px solid var(--border)', borderRadius:10, color:'var(--muted)', fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', padding:'2px 8px', cursor:'pointer', whiteSpace:'nowrap' }}>
-                  Closed
-                </button>
-              )}
+              <TileStatusPill p={p} onClosed={() => setProjects(ps => ps.map(x => x.id === p.id ? { ...x, budget_status: 'Closed' } : x))} />
             </div>
           </div>
         ))}
