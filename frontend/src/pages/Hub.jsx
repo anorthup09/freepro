@@ -4,10 +4,10 @@ import { useAuth } from '../App.jsx';
 
 const TILES = [
   {
-    key: 'finance',
-    title: 'Project Finance',
-    tagline: 'Budgets · Vendor Cost Control · Reconciliation',
-    desc: 'Build client-ready budgets, track committed costs, and reconcile every project.',
+    key: 'profi',
+    title: 'ProFi',
+    tagline: 'Project Finance · In High Fidelity',
+    desc: 'Client-ready budgets, vendor cost control, and final reconciliation — mixed and mastered.',
     accent: '#5ABF80',
     icon: '$',
     to: '/finance',
@@ -32,7 +32,7 @@ const TILES = [
     accent: '#9DC183',
     icon: '🥑',
     to: null,
-    status: 'Under Construction',
+    status: 'In Development',
   },
 ];
 
