@@ -773,7 +773,7 @@ function ShareBudgetButton({ budget }) {
   }
   return (
     <button type="button" onClick={share} title="Open the client-facing budget page in a new window"
-      style={{ background:'transparent', border:'1px solid var(--border)', color:'var(--text)', borderRadius:20, padding:'4px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
+      style={{ background:'rgba(74,158,255,0.12)', border:'1px solid #4a9eff', color:'#4a9eff', borderRadius:20, padding:'4px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
       Client Budget
     </button>
   );
