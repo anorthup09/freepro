@@ -46,6 +46,8 @@ function PendingApproval({ setUser }) {
 }
 import Share from './pages/Share.jsx';
 import ContractSign from './pages/ContractSign.jsx';
+import Hub from './pages/Hub.jsx';
+import Finance from './pages/Finance.jsx';
 import { api } from './api.js';
 
 export const AuthContext = createContext(null);
@@ -68,7 +70,9 @@ export default function App() {
       {user?.role === 'PENDING' ? <PendingApproval setUser={setUser} /> : (
       <Routes>
         <Route path="/login" element={user ? <Navigate to="/" /> : <Login />} />
-        <Route path="/" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <Projects />) : <Navigate to="/login" />} />
+        <Route path="/" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <Hub />) : <Navigate to="/login" />} />
+        <Route path="/projects" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <Projects />) : <Navigate to="/login" />} />
+        <Route path="/finance" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <Finance />) : <Navigate to="/login" />} />
         <Route path="/crew-views" element={user ? <CrewViews /> : <Navigate to="/login" />} />
         <Route path="/projects/:id" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <Project />) : <Navigate to="/login" />} />
         <Route path="/projects/:id/talent-callsheets" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <TalentCallSheets />) : <Navigate to="/login" />} />

@@ -246,7 +246,7 @@ export default function Project() {
         setShowScripts(!!p.show_scripts);
         try { localStorage.setItem(`scripts-${id}`, String(!!p.show_scripts)); } catch {}
       }
-    }).catch(() => nav('/'));
+    }).catch(() => nav('/projects'));
   }, [id]);
 
   useEffect(() => {
@@ -391,7 +391,7 @@ export default function Project() {
       </div>
       <nav className="nav">
         <div style={{ display:'flex', flexDirection:'column', gap:1 }}>
-          <Link to="/" className="logo">Free<em>Pro</em></Link>
+          <Link to="/projects" className="logo">Free<em>Pro</em></Link>
           <span style={{ fontSize:9, color:'var(--muted)', letterSpacing:'0.06em', paddingLeft:1 }}>Powered by Unbridled Media</span>
         </div>
         <div className="tabs">
