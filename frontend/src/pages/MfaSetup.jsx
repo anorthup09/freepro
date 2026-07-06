@@ -32,8 +32,8 @@ export default function MfaSetup() {
         <div className="login-logo">Free<em>Pro</em></div>
         <div style={{ textAlign:'center', fontSize:13, fontWeight:700, margin:'12px 0 4px' }}>Secure your account</div>
         <div style={{ fontSize:12, color:'var(--muted)', textAlign:'center', lineHeight:1.6, marginBottom:14 }}>
-          {user?.name?.split(' ')[0]}, two-factor authentication is required for every
-          Unbridled Media platform account. It takes about a minute with the
+          {user?.name?.split(' ')[0]}, your account can access budgets, contracts, and crew
+          records, so two-factor authentication is required. It takes about a minute with the
           <b> Microsoft Authenticator</b> app you already have (Google Authenticator and 1Password work too).
         </div>
         {err && <div className="login-err">{err}</div>}
