@@ -150,7 +150,14 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
   .form-grid.cols3 { grid-template-columns: 1fr; }
   .field.span2, .field.span3 { grid-column: span 1; }
 }
-.field { display: flex; flex-direction: column; gap: 5px; }
+.field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+/* iOS date/time inputs refuse to shrink without this, overflowing modals */
+input[type="date"], input[type="time"] {
+  min-width: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  min-height: 33px;
+}
 .field.span2 { grid-column: span 2; }
 .field.span3 { grid-column: span 3; }
 label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; font-weight: 500; }
