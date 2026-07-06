@@ -280,6 +280,11 @@ router.patch('/finance/budget/:bid', ...finance, async (req, res, next) => {
     if (b && (b.kind || 'main') === 'main' && (d.status === 'Live' || b.status === 'Live')) {
       await ensureShootProjects(b.id).catch(e2 => console.error('FreePro shoot project creation failed:', e2.message));
     }
+    // Closing a project archives its FreePro shoot tiles too
+    if (b && (b.kind || 'main') === 'main' && d.status === 'Closed') {
+      await sql`UPDATE projects SET status = 'ARCHIVED'::project_status WHERE parent_project_id = ${b.project_id} AND status != 'ARCHIVED'`
+        .catch(e2 => console.error('Shoot archive on close failed:', e2.message));
+    }
     res.json(b);
   } catch (e) { next(e); }
 });
