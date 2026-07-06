@@ -14,6 +14,17 @@ function lineSubtotal(l, sectionLines) {
   return num(l.qty) * num(l.unit_cost);
 }
 
+const BUDGET_OWNERS = [
+  'Joey Goldman',
+  'Kelly Hueseman',
+  'Ben Lamb',
+  'Alex Northup',
+  'Anabelle Porio',
+  'Derik Smith',
+  'Mike Walsh',
+  'Nate Woodard',
+];
+
 const cellIn = { background:'transparent', border:'1px solid transparent', borderRadius:4, padding:'3px 6px', fontSize:12, width:'100%', color:'var(--text)' };
 const numIn = { ...cellIn, width:70, textAlign:'right' };
 
@@ -137,7 +148,6 @@ function BudgetTab({ budget, sections, lines, vcc, set, reload }) {
       <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding:'12px 16px', marginBottom:16, display:'flex', gap:16, flexWrap:'wrap', alignItems:'flex-end' }}>
         {[
           ['Budget Dated', 'budget_date', 'budgetDate', 'date'],
-          ['Budget Owner', 'media_rep', 'mediaRep', 'text'],
           ['Solutions Code', 'solutions_code', 'solutionsCode', 'text'],
           ['Close Month', 'close_month', 'closeMonth', 'month'],
         ].map(([label, key, apiKey, type]) => (
@@ -148,6 +158,15 @@ function BudgetTab({ budget, sections, lines, vcc, set, reload }) {
               onBlur={e => saveBudget({ [apiKey]: e.target.value })} />
           </div>
         ))}
+        <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
+          <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Budget Owner</label>
+          <select value={budget.media_rep || ''} style={{ width:160, fontSize:12 }}
+            onChange={e => { patchBudget({ media_rep: e.target.value }); saveBudget({ mediaRep: e.target.value }); }}>
+            <option value="">— Select —</option>
+            {budget.media_rep && !BUDGET_OWNERS.includes(budget.media_rep) && <option value={budget.media_rep}>{budget.media_rep}</option>}
+            {BUDGET_OWNERS.map(n => <option key={n}>{n}</option>)}
+          </select>
+        </div>
         <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
           <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Status</label>
           <StatusPill value={budget.status || 'RFP'} onChange={v => { patchBudget({ status: v }); saveBudget({ status: v }); }} />
