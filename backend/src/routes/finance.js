@@ -494,7 +494,7 @@ async function syncFreeProCosts(pid) {
 
     // Contract crew labor/gear from the FreePro crew grid (no signed contract required)
     const crew = await sql`
-      SELECT ca.*, p2.name as position_name, COALESCE(cm.preferred_first_name || ' ' || cm.preferred_last_name, cm.name) as crew_name
+      SELECT ca.*, p2.name as position_name, COALESCE(NULLIF(TRIM(CONCAT(cm.preferred_first_name, ' ', cm.preferred_last_name)), ''), cm.name) as crew_name
       FROM crew_assignments ca
       JOIN positions p2 ON p2.id = ca.position_id
       LEFT JOIN crew_members cm ON cm.id = ca.crew_member_id

@@ -1897,14 +1897,12 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
     const legs = [];
     const departMD = f.depart_display ? displayMD(f.depart_display) : null;
     const arriveMD = f.arrive_display ? displayMD(f.arrive_display) : null;
-    const departMatch =
-      (departMD && dayMD && departMD === dayMD) ||
-      (!departMD && f.depart_time && isoDate(new Date(f.depart_time)) === dayStr) ||
-      (departMD && f.depart_time && isoDate(new Date(f.depart_time)) === dayStr);
-    const arriveMatch =
-      (arriveMD && dayMD && arriveMD === dayMD) ||
-      (!arriveMD && f.arrive_time && isoDate(new Date(f.arrive_time)) === dayStr) ||
-      (arriveMD && f.arrive_time && isoDate(new Date(f.arrive_time)) === dayStr);
+    const departMatch = departMD
+      ? (dayMD && departMD === dayMD)
+      : (f.depart_time && isoDate(new Date(f.depart_time)) === dayStr);
+    const arriveMatch = arriveMD
+      ? (dayMD && arriveMD === dayMD)
+      : (f.arrive_time && isoDate(new Date(f.arrive_time)) === dayStr);
     if (departMatch) legs.push({ ...f, _leg:'depart', _time: flightTime(f,'depart') });
     // Same-day arrivals ride along on the departure card
     if (arriveMatch && !departMatch) legs.push({ ...f, _leg:'arrive', _time: flightTime(f,'arrive') });

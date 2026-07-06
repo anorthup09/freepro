@@ -28,12 +28,14 @@ function flightLegsForDay(flights, dayDateStr) {
   for (const f of flights) {
     const departMD = f.depart_display ? displayMD(f.depart_display) : null;
     const arriveMD = f.arrive_display ? displayMD(f.arrive_display) : null;
-    const departMatch =
-      (departMD && departMD === dayMD) ||
-      (f.depart_time && isoDateOf(f.depart_time) === dayDate);
-    const arriveMatch =
-      (arriveMD && arriveMD === dayMD) ||
-      (f.arrive_time && isoDateOf(f.arrive_time) === dayDate);
+    // The display date is authoritative when present — falling back to the
+    // raw timestamp too caused flights to appear on two days (timezones)
+    const departMatch = departMD
+      ? departMD === dayMD
+      : (f.depart_time && isoDateOf(f.depart_time) === dayDate);
+    const arriveMatch = arriveMD
+      ? arriveMD === dayMD
+      : (f.arrive_time && isoDateOf(f.arrive_time) === dayDate);
     if (departMatch && !seen.has(f.id + 'd')) { legs.push({ ...f, _leg:'depart' }); seen.add(f.id + 'd'); }
     // Same-day arrivals are covered by the departure card — only show a
     // separate Arrival when the flight lands on a different day

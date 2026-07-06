@@ -28,7 +28,7 @@ async function getFullProject(id) {
         LEFT JOIN hotel_guests hg ON hg.hotel_block_id = hb.id
         WHERE hb.project_id = ${id}
         GROUP BY hb.id`,
-    sql`SELECT pg.*, cm.name as gear_person_name, cm.phone as gear_person_phone, cm.email as gear_person_email
+    sql`SELECT pg.*, COALESCE(NULLIF(TRIM(CONCAT(cm.preferred_first_name, ' ', cm.preferred_last_name)), ''), cm.name) as gear_person_name, cm.phone as gear_person_phone, cm.email as gear_person_email
         FROM project_gear pg
         LEFT JOIN crew_members cm ON cm.id = pg.gear_person_id
         WHERE pg.project_id = ${id}`,

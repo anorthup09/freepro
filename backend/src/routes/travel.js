@@ -8,7 +8,7 @@ router.get('/:id/travel/hotels', requireAuth, async (req, res, next) => {
   try {
     const hotels = await sql`SELECT * FROM hotel_blocks WHERE project_id = ${req.params.id}`;
     const result = await Promise.all(hotels.map(async h => {
-      const guests = await sql`SELECT hg.*, cm.name as crew_name FROM hotel_guests hg LEFT JOIN crew_members cm ON cm.id=hg.crew_member_id WHERE hg.hotel_block_id=${h.id}`;
+      const guests = await sql`SELECT hg.*, COALESCE(NULLIF(TRIM(CONCAT(cm.preferred_first_name, ' ', cm.preferred_last_name)), ''), cm.name) as crew_name FROM hotel_guests hg LEFT JOIN crew_members cm ON cm.id=hg.crew_member_id WHERE hg.hotel_block_id=${h.id}`;
       return { ...h, guests };
     }));
     res.json(result);
@@ -68,7 +68,7 @@ router.get('/:id/travel/flights', requireAuth, async (req, res, next) => {
   try {
     // Live status refresh in the background — next load shows the update
     refreshFlightStatuses(req.params.id).catch(() => {});
-    res.json(await sql`SELECT f.*, cm.name as crew_name FROM flights f LEFT JOIN crew_members cm ON cm.id=f.crew_member_id WHERE f.project_id=${req.params.id} ORDER BY f.depart_time`);
+    res.json(await sql`SELECT f.*, COALESCE(NULLIF(TRIM(CONCAT(cm.preferred_first_name, ' ', cm.preferred_last_name)), ''), cm.name) as crew_name FROM flights f LEFT JOIN crew_members cm ON cm.id=f.crew_member_id WHERE f.project_id=${req.params.id} ORDER BY f.depart_time`);
   } catch(e){next(e);}
 });
 
@@ -94,7 +94,7 @@ router.patch('/:id/travel/flights/:fid', requireAuth, requireRole('ADMIN','PRODU
         cost = ${d.cost != null ? d.cost : sql`cost`},
         crew_member_id = ${d.crewMemberId !== undefined ? (d.crewMemberId||null) : sql`crew_member_id`}
       WHERE id = ${req.params.fid}
-      RETURNING *, (SELECT name FROM crew_members WHERE id = crew_member_id) as crew_name`;
+      RETURNING *, (SELECT COALESCE(NULLIF(TRIM(CONCAT(preferred_first_name, ' ', preferred_last_name)), ''), name) FROM crew_members WHERE id = crew_member_id) as crew_name`;
     res.json(f);
   } catch(e){next(e);}
 });
