@@ -34,6 +34,107 @@ const daysBetween = (a, b, skipWknd) => {
 };
 const fmtLongD = d => new Date(d + 'T12:00:00').toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric' });
 
+// ── Month-calendar view of the timeline: runners span consecutive milestones ──
+const RUNNER_COLORS = ['#9DC183', '#4a9eff', '#e6c229', '#e8955a', '#a78bfa', '#f08080', '#40A0A0', '#d66a9b', '#5ABF80', '#E8500A', '#8ecae6', '#f4a261', '#c77dff'];
+
+function MilestoneCalendarModal({ edit, onClose }) {
+  const ms = edit.milestones || {};
+  // Chain filled milestones in order into start→end runners
+  const filled = MILESTONES.filter(([k]) => ms[k]);
+  const segs = [];
+  for (let i = 1; i < filled.length; i++) {
+    const [fk, fl] = filled[i - 1], [tk, tl] = filled[i];
+    segs.push({ from: ms[fk], to: ms[tk], label: tl, title: `${fl} → ${tl}`, color: RUNNER_COLORS[(i - 1) % RUNNER_COLORS.length] });
+  }
+  const first = filled.length ? new Date(ms[filled[0][0]] + 'T12:00:00') : new Date();
+  const [month, setMonth] = useState({ y: first.getFullYear(), m: first.getMonth() });
+
+  const d0 = new Date(month.y, month.m, 1, 12);
+  const label = d0.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const daysIn = new Date(month.y, month.m + 1, 0).getDate();
+  // Build week rows (Sunday-start)
+  const weeks = [];
+  let cur = new Date(month.y, month.m, 1 - d0.getDay(), 12);
+  while (cur <= new Date(month.y, month.m, daysIn, 12)) {
+    weeks.push(new Date(cur));
+    cur = new Date(cur.getTime() + 7 * 86400000);
+  }
+  const dd = s => new Date(s + 'T12:00:00');
+  const diff = (a, b) => Math.round((b - a) / 86400000);
+  const today = new Date(); today.setHours(12, 0, 0, 0);
+
+  return (
+    <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:120, background:'rgba(0,0,0,0.7)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+      <div onClick={ev => ev.stopPropagation()} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, padding:'18px 20px', width:'100%', maxWidth:760, maxHeight:'92vh', overflowY:'auto' }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, marginBottom:12, flexWrap:'wrap' }}>
+          <div style={{ fontSize:15, fontWeight:800 }}>📅 {edit.title} — Timeline</div>
+          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+            <button className="btn btn-ghost btn-sm" onClick={() => setMonth(({ y, m }) => m === 0 ? { y: y - 1, m: 11 } : { y, m: m - 1 })}>‹</button>
+            <div style={{ fontSize:13, fontWeight:800, minWidth:130, textAlign:'center' }}>{label}</div>
+            <button className="btn btn-ghost btn-sm" onClick={() => setMonth(({ y, m }) => m === 11 ? { y: y + 1, m: 0 } : { y, m: m + 1 })}>›</button>
+            <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
+          </div>
+        </div>
+        {!segs.length && <div className="empty">Fill in at least two timeline dates to see runners here.</div>}
+        <div style={{ border:'1px solid var(--border)', borderRadius:8, overflow:'hidden' }}>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(7, 1fr)', borderBottom:'1px solid var(--border)' }}>
+            {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => (
+              <div key={d} style={{ textAlign:'center', padding:'5px 0', fontSize:9, fontWeight:700, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>{d}</div>
+            ))}
+          </div>
+          {weeks.map((ws, wi) => {
+            // bars overlapping this week; alternate lanes so touching runners don't collide
+            const bars = segs.map((s, i) => ({ ...s, idx: i })).filter(s => diff(ws, dd(s.to)) >= 0 && diff(ws, dd(s.from)) <= 6);
+            const lanes = Math.max(1, ...bars.map(b => (b.idx % 2) + 1));
+            return (
+              <div key={wi} style={{ position:'relative', height: 30 + lanes * 18, borderBottom: wi < weeks.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
+                {Array.from({ length: 7 }, (_, i) => {
+                  const d = new Date(ws.getTime() + i * 86400000);
+                  const inMonth = d.getMonth() === month.m;
+                  const isToday = d.getTime() === today.getTime();
+                  return (
+                    <div key={i} style={{ position:'absolute', left:`${(i / 7) * 100}%`, width:`${100 / 7}%`, top:0, bottom:0, borderLeft: i ? '1px solid rgba(255,255,255,0.04)' : 'none', background: isToday ? 'rgba(232,80,10,0.06)' : 'transparent' }}>
+                      <div style={{ fontSize:10, fontWeight: isToday ? 800 : 600, color: isToday ? 'var(--orange)' : inMonth ? 'var(--text)' : 'rgba(255,255,255,0.18)', padding:'4px 6px' }}>{d.getDate()}</div>
+                    </div>
+                  );
+                })}
+                {bars.map(b => {
+                  const s = Math.max(0, diff(ws, dd(b.from)));
+                  const e2 = Math.min(6, diff(ws, dd(b.to)));
+                  const startsHere = diff(ws, dd(b.from)) >= 0;
+                  const endsHere = diff(ws, dd(b.to)) <= 6;
+                  const lane = b.idx % 2;
+                  return (
+                    <div key={b.idx} title={`${b.title}: ${b.from} → ${b.to}`}
+                      style={{
+                        position:'absolute', top: 24 + lane * 18, height:15,
+                        left:`calc(${(s / 7) * 100}% + 2px)`, width:`calc(${((e2 - s + 1) / 7) * 100}% - 5px)`,
+                        background:`${b.color}30`, border:`1px solid ${b.color}`,
+                        borderRadius: `${startsHere ? 8 : 0}px ${endsHere ? 8 : 0}px ${endsHere ? 8 : 0}px ${startsHere ? 8 : 0}px`,
+                        display:'flex', alignItems:'center', padding:'0 6px', overflow:'hidden',
+                        fontSize:8.5, fontWeight:800, color:b.color, whiteSpace:'nowrap',
+                      }}>
+                      {b.label}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
+        <div style={{ display:'flex', gap:10, flexWrap:'wrap', marginTop:10 }}>
+          {segs.map((s, i) => (
+            <span key={i} style={{ display:'inline-flex', alignItems:'center', gap:5, fontSize:9, color:'var(--muted)' }}>
+              <span style={{ width:10, height:10, borderRadius:3, background:`${s.color}30`, border:`1px solid ${s.color}` }} />
+              {s.title}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function TimelineShareModal({ edit, onClose }) {
   const tableRef = useRef(null);
   const [copied, setCopied] = useState(false);
@@ -108,6 +209,7 @@ export default function AvoEdit() {
   const [showTimeline, setShowTimeline] = useState(false);
   const [copied, setCopied] = useState('');
   const [shareTimeline, setShareTimeline] = useState(false);
+  const [showCal, setShowCal] = useState(false);
   // Auto-fill knobs (defaults: business days, 2-day client reviews)
   const [tlOpts, setTlOpts] = useState({ skipWknd: true, editDaysAfterScript: 5, editDaysAfterFeedback: 3, reviewDays: 2 });
   const [busy, setBusy] = useState(false);
@@ -174,6 +276,10 @@ export default function AvoEdit() {
               <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                 <input value={e.title || ''} onChange={ev => patch({ title: ev.target.value })} onBlur={ev => save({ title: ev.target.value })}
                   style={{ fontSize:18, fontWeight:800, background:'transparent', border:'1px solid transparent', borderRadius:6, padding:'4px 8px', width:'100%', flex:1 }} />
+                <button onClick={() => setShowCal(true)} title="Calendar view of the timeline dates"
+                  style={{ background:'transparent', border:`1px solid ${AVO}55`, color:AVO, borderRadius:14, padding:'4px 10px', fontSize:12, cursor:'pointer', flexShrink:0 }}>
+                  📅
+                </button>
                 <div style={{ display:'flex', border:`1px solid ${AVO}55`, borderRadius:14, overflow:'hidden', flexShrink:0 }}>
                   {[['details', 'Details'], ['timeline', 'Timeline']].map(([v, label]) => (
                     <button key={v} onClick={() => setShowTimeline(v === 'timeline')}
@@ -184,6 +290,7 @@ export default function AvoEdit() {
                 </div>
               </div>
               {shareTimeline && <TimelineShareModal edit={e} onClose={() => setShareTimeline(false)} />}
+      {showCal && <MilestoneCalendarModal edit={e} onClose={() => setShowCal(false)} />}
       {showTimeline && (() => {
                 const ms = e.milestones || {};
                 const setOpt = (k, v) => setTlOpts(o => ({ ...o, [k]: v }));
