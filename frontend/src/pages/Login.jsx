@@ -64,16 +64,10 @@ export default function Login() {
     return (
       <div className="login-wrap">
         <div className="login-box">
-          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:8, marginBottom:12 }}>
+          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:16, marginBottom:16 }}>
             <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height:30, filter:'brightness(0) invert(1)', opacity:0.95 }} />
-            <div style={{ fontSize:10, fontWeight:700, letterSpacing:'0.05em', textAlign:'center' }}>
-              <span style={{ color:'#5ABF80' }}>Project Finance</span>
-              <span style={{ color:'var(--muted)' }}> · </span>
-              <span style={{ color:'var(--orange, #E8500A)' }}>Production</span>
-              <span style={{ color:'var(--muted)' }}> · </span>
-              <span style={{ color:'#9DC183' }}>Post</span>
-              <span style={{ color:'var(--muted)' }}> · </span>
-              <span style={{ color:'#4a9eff' }}>Team Management</span>
+            <div style={{ fontSize:10, fontWeight:700, letterSpacing:'0.05em', textAlign:'center', color:'#fff', whiteSpace:'nowrap' }}>
+              Project Finance · Production · Post · Team Management
             </div>
           </div>
           {err && <div className="login-err">{err}</div>}
@@ -101,16 +95,10 @@ export default function Login() {
   return (
     <div className="login-wrap">
       <div className="login-box">
-        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:8, marginBottom:12 }}>
+        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:16, marginBottom:16 }}>
             <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height:30, filter:'brightness(0) invert(1)', opacity:0.95 }} />
-            <div style={{ fontSize:10, fontWeight:700, letterSpacing:'0.05em', textAlign:'center' }}>
-              <span style={{ color:'#5ABF80' }}>Project Finance</span>
-              <span style={{ color:'var(--muted)' }}> · </span>
-              <span style={{ color:'var(--orange, #E8500A)' }}>Production</span>
-              <span style={{ color:'var(--muted)' }}> · </span>
-              <span style={{ color:'#9DC183' }}>Post</span>
-              <span style={{ color:'var(--muted)' }}> · </span>
-              <span style={{ color:'#4a9eff' }}>Team Management</span>
+            <div style={{ fontSize:10, fontWeight:700, letterSpacing:'0.05em', textAlign:'center', color:'#fff', whiteSpace:'nowrap' }}>
+              Project Finance · Production · Post · Team Management
             </div>
           </div>
         {err && <div className="login-err">{err}</div>}
