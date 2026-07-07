@@ -40,7 +40,7 @@ router.post('/login', async (req, res, next) => {
       const mfaToken = jwt.sign({ id: user.id, stage: 'mfa' }, process.env.JWT_SECRET, { expiresIn: '5m' });
       return res.json({ mfaRequired: true, mfaToken });
     }
-    res.json({ token: makeToken(user), user: { id: user.id, name: user.name, email: user.email, role: user.role, mfa_enabled: user.mfa_enabled === true } });
+    res.json({ token: makeToken(user), user: { id: user.id, name: user.name, email: user.email, role: user.role, mfa_enabled: user.mfa_enabled === true, mfa_required: user.mfa_required === true } });
   } catch (err) {
     if (err.name === 'ZodError') return res.status(400).json({ error: err.errors });
     next(err);
@@ -120,7 +120,7 @@ router.post('/mfa/verify', async (req, res, next) => {
       }
     }
     if (!ok) return res.status(401).json({ error: 'That code didn\'t match — try the current code in your authenticator app' });
-    res.json({ token: makeToken(user), user: { id: user.id, name: user.name, email: user.email, role: user.role, mfa_enabled: true } });
+    res.json({ token: makeToken(user), user: { id: user.id, name: user.name, email: user.email, role: user.role, mfa_enabled: true, mfa_required: user.mfa_required === true } });
   } catch (err) { next(err); }
 });
 
