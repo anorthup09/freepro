@@ -12,7 +12,7 @@ const TILES = [
     accent: '#5ABF80',
     icon: '$',
     to: '/finance',
-    status: 'In Development',
+    status: null,
   },
   {
     key: 'freepro',
@@ -33,7 +33,7 @@ const TILES = [
     accent: '#9DC183',
     icon: '🥑',
     to: '/avo',
-    status: 'In Development',
+    status: null,
   },
   {
     key: 'team',
