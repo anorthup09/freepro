@@ -473,6 +473,22 @@ textarea { resize: vertical; min-height: 70px; }
   .hub-tiles > div { flex: 0 0 76%; scroll-snap-align: center; }
 }
 
+/* Avo mobile: lookup tiles swipe sideways; action buttons stack at the right
+   of the Editing Pipeline title (+ Add New Edit on top, Gantt View below) */
+@media (max-width: 700px) {
+  .avo-lookup-tiles {
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 8px;
+  }
+  .avo-lookup-tiles > div { flex: 0 0 62%; scroll-snap-align: start; }
+  .avo-actions { flex-direction: column; align-items: flex-end; gap: 6px !important; }
+  .avo-actions button:first-child { order: 2; }
+  .avo-actions button:last-child { order: 1; }
+}
+
 /* Avo video tracker: row edit button only shows on hover */
 .vt-row .vt-edit { opacity: 0; transition: opacity 0.12s; }
 .vt-row:hover .vt-edit { opacity: 1; }

@@ -99,7 +99,7 @@ function ProjectLookup() {
       {pages && filtered.length === 0 && liveExtra.length === 0 && !q.trim() && (
         <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>No project pages yet — type a project code above to create one.</div>
       )}
-      <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
+      <div className="avo-lookup-tiles" style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
         {filtered.map(p => (
           <div key={p.id} onClick={() => nav(`/avo/project/${p.id}`)}
             style={{ background:'var(--bg)', border:'1px solid var(--border)', borderLeft:`3px solid ${AVO}`, borderRadius:8, padding:'10px 14px', minWidth:170, cursor:'pointer' }}>
@@ -223,13 +223,13 @@ export default function Avo() {
             <div className="page-title">Editing Pipeline</div>
             <div className="page-sub">{(edits || []).filter(e => e.status !== 'CLOSED').length} active edit{(edits || []).filter(e => e.status !== 'CLOSED').length !== 1 ? 's' : ''}</div>
           </div>
-          <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+          <div className="avo-actions" style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
             <button onClick={() => nav('/avo/gantt')}
               style={{ background:'rgba(157,193,131,0.15)', border:`1px solid ${AVO}`, color:AVO, borderRadius:20, padding:'5px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
               Gantt View
             </button>
             <button onClick={() => setShowNew(true)}
-              style={{ background:AVO, border:`1px solid ${AVO}`, color:'#0b0b0b', borderRadius:20, padding:'5px 14px', fontSize:11, fontWeight:800, cursor:'pointer' }}>
+              style={{ background:AVO, border:`1px solid ${AVO}`, color:'#0b0b0b', borderRadius:20, padding:'5px 14px', fontSize:11, fontWeight:800, cursor:'pointer', whiteSpace:'nowrap' }}>
               + Add New Edit
             </button>
           </div>
