@@ -128,12 +128,13 @@ export default function Team() {
         </div>
         {view === 'form' && (
         <>
-        <div style={{ fontSize:12, color:'#e05252', fontWeight:700, marginBottom:16, maxWidth:640 }}>
+        <div style={{ maxWidth:680, margin:'0 auto' }}>
+        <div style={{ fontSize:12, color:'#e05252', fontWeight:700, margin:'8px 0 16px' }}>
           Please remember to send your Backup Plan document with coverage for your ongoing projects before taking PTO.
         </div>
 
         <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderTop:`3px solid ${BLUE}`, borderRadius:12, padding:'18px 20px', marginBottom:30 }}>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(260px, 1fr))', gap:14 }}>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(230px, 1fr))', gap:14 }}>
             <div>
               <span style={lbl}>Who is requesting PTO and/or OOO? *</span>
               <MemberSelect roster={selectable} value={f.memberId} onChange={v => setF(x => ({ ...x, memberId: v }))} />
@@ -158,6 +159,10 @@ export default function Team() {
               <input type="date" value={f.endDate} onChange={set('endDate')} />
             </div>
             <div>
+              <span style={lbl}>Manager's Name (Must be person who approves your timecards) *</span>
+              <MemberSelect roster={selectable} value={f.managerId} onChange={v => setF(x => ({ ...x, managerId: v }))} />
+            </div>
+            <div>
               <span style={lbl}>Are you currently assigned to any shoots/travel for these dates? *</span>
               <select value={f.onShoots} onChange={set('onShoots')}>
                 <option value="">Select option…</option>
@@ -166,10 +171,6 @@ export default function Team() {
                 <option>Not sure</option>
               </select>
             </div>
-            <div>
-              <span style={lbl}>Manager's Name (Must be person who approves your timecards) *</span>
-              <MemberSelect roster={selectable} value={f.managerId} onChange={v => setF(x => ({ ...x, managerId: v }))} />
-            </div>
             <div style={{ gridColumn:'1 / -1' }}>
               <span style={lbl}>If comp, please provide project code and production dates responsible for this comp time.</span>
               <input value={f.compNotes} onChange={set('compNotes')} placeholder="Enter text" />
@@ -177,7 +178,7 @@ export default function Team() {
             <div style={{ gridColumn:'1 / -1' }}>
               <span style={lbl}>Are there any other team members that you would like to notify about this request?</span>
               <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
-                {[...roster].sort((a, b) => displayOf(a).localeCompare(displayOf(b))).filter(m => m.id !== f.memberId).map(m => {
+                {[...selectable].sort((a, b) => displayOf(a).localeCompare(displayOf(b))).filter(m => m.id !== f.memberId).map(m => {
                   const name = displayOf(m);
                   const picked = f.notify.split(', ').filter(Boolean);
                   const on = picked.includes(name);
@@ -201,6 +202,7 @@ export default function Team() {
               {saving ? 'Submitting…' : 'Submit Request'}
             </button>
           </div>
+        </div>
         </div>
         </>
         )}
