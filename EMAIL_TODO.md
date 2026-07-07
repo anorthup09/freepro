@@ -64,6 +64,15 @@ link (SMTP) is connected. Keep this file updated as email features are added.
       type, dates, shoot conflicts, comp reference). Once SMTP is live, also
       notify the extra team members listed on the request and confirm
       approval back to the requester.
+- [ ] **Contractor sourcing blasts (shoots + edits)** — replace one-off
+      texts/emails to individual contractors when a role needs filling.
+      Rough shape (exact home/UX TBD): pick a role + scope of work + dates
+      from a shoot or Avo edit, select matching contractors from the crew
+      roster (by position/skill/market), and email them all the scope at
+      once with a respond-if-interested link; responses collect back on the
+      project so the producer picks from the interested pool instead of
+      chasing threads. Could live on the FreePro crew tab and/or the Avo
+      edit page; needs SMTP first.
 
 ## Notes
 
