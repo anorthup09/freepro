@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../App.jsx';
 import { api } from '../api.js';
+import RosterLookup from '../components/RosterLookup.jsx';
 
 const BLUE = '#4a9eff';
 const PTO_TYPES = ['PTO', 'WFH', 'STL/DEN Only', 'Comp', 'Other OOO'];
@@ -118,7 +119,7 @@ export default function Team() {
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, flexWrap:'wrap', marginBottom:4 }}>
           <div className="page-title" style={{ marginBottom:0 }}>PTO / OOO Requests</div>
           <div style={{ display:'flex', border:`1px solid ${BLUE}55`, borderRadius:16, overflow:'hidden' }}>
-            {[['form', 'Request Form'], ['pipeline', 'Pipeline']].map(([v, label]) => (
+            {[['roster', 'Roster'], ['form', 'OOO Request'], ['pipeline', 'OOO Pipeline']].map(([v, label]) => (
               <button key={v} onClick={() => setView(v)}
                 style={{ background: view === v ? `${BLUE}2e` : 'transparent', border:'none', color: view === v ? BLUE : 'var(--muted)', padding:'6px 16px', fontSize:11, fontWeight:800, cursor:'pointer' }}>
                 {label}
@@ -126,6 +127,7 @@ export default function Team() {
             ))}
           </div>
         </div>
+        {view === 'roster' && <div style={{ maxWidth:760, margin:'12px auto 0' }}><RosterLookup /></div>}
         {view === 'form' && (
         <>
         <div style={{ maxWidth:680, margin:'0 auto' }}>
