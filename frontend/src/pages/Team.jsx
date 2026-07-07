@@ -57,7 +57,7 @@ export default function Team() {
 
   const displayOf = m => [m.preferred_first_name, m.preferred_last_name].filter(Boolean).join(' ').trim() || m.name;
   // Not selectable as requester or manager
-  const EXCLUDED = ['allison boon', 'ariel lynch', 'brandon emery', 'cole seifert', 'dylan patterson', 'melinda love'];
+  const EXCLUDED = ['allison boon', 'anna parnigoni', 'ariel lynch', 'brandon emery', 'cole seifert', 'dylan patterson', 'melinda love'];
   const selectable = roster.filter(m => !EXCLUDED.includes(displayOf(m).toLowerCase()));
 
   useEffect(() => {
