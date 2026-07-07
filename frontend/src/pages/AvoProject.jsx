@@ -37,6 +37,7 @@ function VideoTracker({ edits, setEdits }) {
         <table style={{ width:'100%', borderCollapse:'collapse', minWidth:1050 }}>
           <thead>
             <tr>
+              <th style={{ ...th, width:30 }}></th>
               <th style={th}>Type</th><th style={th}>Video Title</th><th style={th}>Style</th><th style={th}>Notes</th>
               <th style={th}>Due Date</th><th style={th}>Video Assets</th><th style={th}>Editor</th>
               <th style={th}>Review Link</th><th style={th}>Status</th>
@@ -44,7 +45,7 @@ function VideoTracker({ edits, setEdits }) {
           </thead>
           <tbody>
             {edits.length === 0 && (
-              <tr><td colSpan={9} style={{ ...td, padding:'14px', fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>
+              <tr><td colSpan={10} style={{ ...td, padding:'14px', fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>
                 No edits with this project code yet — add them from the pipeline and they'll appear here automatically.
               </td></tr>
             )}
@@ -52,7 +53,11 @@ function VideoTracker({ edits, setEdits }) {
               const st = statusOf(e.status);
               const tc = typeColor(e.tracker_type);
               return (
-                <tr key={e.id} style={{ borderTop:'1px solid rgba(255,255,255,0.04)' }}>
+                <tr key={e.id} className="vt-row" style={{ borderTop:'1px solid rgba(255,255,255,0.04)' }}>
+                  <td style={{ ...td, textAlign:'center' }}>
+                    <button className="vt-edit" title="Open this edit" onClick={() => nav(`/avo/${e.id}`)}
+                      style={{ background:'none', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:5, padding:'2px 6px', fontSize:11, cursor:'pointer' }}>✎</button>
+                  </td>
                   <td style={{ ...td, minWidth:110 }}>
                     <Cell value={e.tracker_type} placeholder="Type…" onSave={v => saveEdit(e.id, { trackerType: v })}
                       style={e.tracker_type ? { background:`${tc}22`, border:`1px solid ${tc}55`, color:tc, fontWeight:700, textAlign:'center', borderRadius:12 } : {}} />

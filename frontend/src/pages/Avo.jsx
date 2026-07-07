@@ -35,6 +35,25 @@ const overdue = d => d && new Date(String(d).slice(0, 10) + 'T23:59:00') < new D
 export const fmtV = v => 'V' + (Number(v) || 1).toFixed(1);
 export const stepV = (v, dir) => Math.max(0.1, Math.round(((Number(v) || 1) + dir * 0.1) * 10) / 10);
 
+// Version number is typable too — blur/Enter saves
+export function VersionInput({ value, onSave, style }) {
+  const [v, setV] = useState((Number(value) || 1).toFixed(1));
+  useEffect(() => setV((Number(value) || 1).toFixed(1)), [value]);
+  const commit = () => {
+    const n = parseFloat(v);
+    if (!isNaN(n) && n > 0 && n !== Number(value)) onSave(Math.round(n * 10) / 10);
+    else setV((Number(value) || 1).toFixed(1));
+  };
+  return (
+    <span style={{ display:'inline-flex', alignItems:'center', fontWeight:800, color:AVO }}>
+      V<input value={v} onChange={e => setV(e.target.value)} onBlur={commit}
+        onKeyDown={e => e.key === 'Enter' && e.target.blur()} onClick={e => e.stopPropagation()}
+        style={{ width:34, background:'transparent', border:'1px solid transparent', borderRadius:4, color:AVO, fontWeight:800, fontSize:'inherit', padding:'1px 2px', textAlign:'center', ...style }}
+        onFocus={e => e.target.style.borderColor = 'var(--border)'} />
+    </span>
+  );
+}
+
 function ProjectLookup() {
   const nav = useNavigate();
   const [pages, setPages] = useState(null);
@@ -197,6 +216,8 @@ export default function Avo() {
     <div style={{ minHeight:'100vh', background:'var(--bg)' }}>
       <AvoHeader />
       <div style={{ maxWidth:1250, margin:'0 auto', padding:'6px 16px 80px' }}>
+        <ProjectLookup />
+
         <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'space-between', gap:10, flexWrap:'wrap', marginBottom:18 }}>
           <div>
             <div className="page-title">Editing Pipeline</div>
@@ -213,8 +234,6 @@ export default function Avo() {
             </button>
           </div>
         </div>
-
-        <ProjectLookup />
 
         {!edits && <div className="empty">Loading…</div>}
 
@@ -254,7 +273,7 @@ export default function Avo() {
                             <span style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
                               <button title="Version down 0.1" onClick={ev => act(ev, e.id, () => api.updateAvoEdit(e.id, { version: stepV(e.version, -1) }))}
                                 style={{ background:'none', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:5, padding:'0 5px', fontSize:10, cursor:'pointer', lineHeight:'16px' }}>−</button>
-                              <span style={{ fontWeight:800, color:AVO, minWidth:34, display:'inline-block' }}>{fmtV(e.version)}</span>
+                              <VersionInput value={e.version} onSave={n => act({ stopPropagation(){} }, e.id, () => api.updateAvoEdit(e.id, { version: n }))} />
                               <button title="Version up 0.1" onClick={ev => act(ev, e.id, () => api.updateAvoEdit(e.id, { version: stepV(e.version, 1) }))}
                                 style={{ background:'none', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:5, padding:'0 5px', fontSize:10, cursor:'pointer', lineHeight:'16px' }}>+</button>
                             </span>

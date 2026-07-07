@@ -167,6 +167,8 @@ router.patch('/edits/:id', ...staff, async (req, res, next) => {
         else delete milestones[k];
       }
     }
+    // Approving a video moves it to Closed Tasks
+    if (d.approved === true && before.status !== 'CLOSED' && d.status === undefined) d.status = 'CLOSED';
     let projectId;
     if (d.projectCode !== undefined) {
       const [p] = d.projectCode ? await sql`SELECT id FROM projects WHERE code = ${d.projectCode.trim()}` : [null];

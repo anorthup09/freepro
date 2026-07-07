@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api.js';
-import { AvoHeader, EditorSelect, AVO, AVO_STATUSES, fmtV, stepV } from './Avo.jsx';
+import { AvoHeader, EditorSelect, AVO, AVO_STATUSES, fmtV, stepV, VersionInput } from './Avo.jsx';
 import { MILESTONES, milestoneText } from '../components/GanttChart.jsx';
 
 const lbl = { fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4, display:'block' };
@@ -12,6 +12,92 @@ const KIND_STYLE = {
 };
 const CATEGORIES = ['Event Recap', 'Sizzle', 'Interstitial', 'Documentary', 'Teaser', 'Social Cutdown', 'Photo Slideshow', 'Other'];
 
+// ── Timeline date math (business-day aware) ──
+const addDaysStr = (dstr, n, skipWknd) => {
+  const dt = new Date(dstr + 'T12:00:00');
+  let left = n;
+  while (left > 0) {
+    dt.setDate(dt.getDate() + 1);
+    if (!skipWknd || (dt.getDay() !== 0 && dt.getDay() !== 6)) left--;
+  }
+  return dt.toISOString().slice(0, 10);
+};
+const daysBetween = (a, b, skipWknd) => {
+  let c = 0;
+  const dt = new Date(a + 'T12:00:00'), end = new Date(b + 'T12:00:00');
+  if (end <= dt) return 0;
+  while (dt < end) {
+    dt.setDate(dt.getDate() + 1);
+    if (!skipWknd || (dt.getDay() !== 0 && dt.getDay() !== 6)) c++;
+  }
+  return c;
+};
+const fmtLongD = d => new Date(d + 'T12:00:00').toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric' });
+
+function TimelineShareModal({ edit, onClose }) {
+  const tableRef = useRef(null);
+  const [copied, setCopied] = useState(false);
+  const rows = MILESTONES.filter(([k]) => edit.milestones?.[k]);
+  async function copy() {
+    const html = '<meta charset="utf-8">' + tableRef.current.outerHTML;
+    try {
+      await navigator.clipboard.write([new ClipboardItem({
+        'text/html': new Blob([html], { type: 'text/html' }),
+        'text/plain': new Blob([milestoneText(edit)], { type: 'text/plain' }),
+      })]);
+    } catch {
+      const range = document.createRange();
+      range.selectNode(tableRef.current);
+      const sel = window.getSelection();
+      sel.removeAllRanges(); sel.addRange(range);
+      document.execCommand('copy'); sel.removeAllRanges();
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+  const tdw = { border:'1px solid #999', padding:'9px 14px', fontSize:14, color:'#111' };
+  return (
+    <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:120, background:'rgba(0,0,0,0.7)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+      <div onClick={ev => ev.stopPropagation()} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, padding:'20px 22px', width:'100%', maxWidth:620, maxHeight:'90vh', overflowY:'auto' }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, marginBottom:14, flexWrap:'wrap' }}>
+          <div style={{ fontSize:15, fontWeight:800 }}>Timeline — {edit.title}</div>
+          <div style={{ display:'flex', gap:8 }}>
+            <button onClick={copy}
+              style={{ background: copied ? AVO : `${AVO}26`, border:`1px solid ${AVO}`, color: copied ? '#0b0b0b' : AVO, borderRadius:20, padding:'5px 16px', fontSize:11, fontWeight:800, cursor:'pointer' }}>
+              {copied ? '✓ Copied' : '📋 Copy'}
+            </button>
+            <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
+          </div>
+        </div>
+        <div style={{ background:'#fff', borderRadius:8, padding:14, overflowX:'auto' }}>
+          <table ref={tableRef} style={{ borderCollapse:'collapse', width:'100%', background:'#ffffff', fontFamily:'Arial, sans-serif' }}>
+            <thead>
+              <tr>
+                <td style={{ ...tdw, fontWeight:'bold' }}>Milestone</td>
+                <td style={{ ...tdw, fontWeight:'bold' }}>Date</td>
+              </tr>
+            </thead>
+            <tbody>
+              {edit.start_date && (
+                <tr>
+                  <td style={{ ...tdw, fontWeight:'bold' }}>Edit Window</td>
+                  <td style={tdw}>{fmtLongD(String(edit.start_date).slice(0, 10))} – {fmtLongD(String(edit.end_date || edit.start_date).slice(0, 10))}</td>
+                </tr>
+              )}
+              {rows.map(([k, label]) => (
+                <tr key={k}>
+                  <td style={{ ...tdw, fontWeight:'bold' }}>{label}</td>
+                  <td style={tdw}>{fmtLongD(edit.milestones[k])}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const fmtDT = d => new Date(d).toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' });
 
 export default function AvoEdit() {
@@ -21,6 +107,9 @@ export default function AvoEdit() {
   const [comment, setComment] = useState('');
   const [showTimeline, setShowTimeline] = useState(false);
   const [copied, setCopied] = useState('');
+  const [shareTimeline, setShareTimeline] = useState(false);
+  // Auto-fill knobs (defaults: business days, 2-day client reviews)
+  const [tlOpts, setTlOpts] = useState({ skipWknd: true, editDaysAfterScript: 5, editDaysAfterFeedback: 3, reviewDays: 2 });
   const [busy, setBusy] = useState(false);
   const fileRef = useRef(null);
   const feedRef = useRef(null);
@@ -94,8 +183,49 @@ export default function AvoEdit() {
                   ))}
                 </div>
               </div>
-              {showTimeline && (
+              {shareTimeline && <TimelineShareModal edit={e} onClose={() => setShareTimeline(false)} />}
+      {showTimeline && (() => {
+                const ms = e.milestones || {};
+                const setOpt = (k, v) => setTlOpts(o => ({ ...o, [k]: v }));
+                function autoFill() {
+                  const end = ms.scripting_end;
+                  if (!end) return alert('Set a Scripting End date first — the auto-fill builds forward from it.');
+                  const { skipWknd, editDaysAfterScript, editDaysAfterFeedback, reviewDays } = tlOpts;
+                  const next = { ...ms };
+                  let cur = end;
+                  cur = next.icr_v1_due = addDaysStr(cur, Number(editDaysAfterScript) || 0, skipWknd);
+                  cur = next.icr_feedback = addDaysStr(cur, Number(reviewDays) || 0, skipWknd);
+                  for (const v of ['v1', 'v2', 'v3']) {
+                    cur = next[`client_${v}_due`] = addDaysStr(cur, Number(editDaysAfterFeedback) || 0, skipWknd);
+                    cur = next[`client_${v}_feedback`] = addDaysStr(cur, Number(reviewDays) || 0, skipWknd);
+                  }
+                  cur = next.color_audio_send = addDaysStr(cur, Number(editDaysAfterFeedback) || 0, skipWknd);
+                  cur = next.color_audio_complete = addDaysStr(cur, 3, skipWknd);
+                  cur = next.final_comp = addDaysStr(cur, 2, skipWknd);
+                  next.final_delivery = addDaysStr(cur, 1, skipWknd);
+                  patch({ milestones: next });
+                  save({ milestones: next });
+                }
+                // gap column: business days since the previous filled milestone
+                let prevDate = null;
+                const optIn = { width:44, fontSize:11, padding:'4px 6px', textAlign:'center' };
+                const optLbl = { fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.05em' };
+                return (
                 <div style={{ background:'var(--bg)', border:'1px solid var(--border)', borderRadius:8, padding:'12px 14px', marginTop:10 }}>
+                  {/* auto-fill controls */}
+                  <div style={{ display:'flex', alignItems:'flex-end', gap:12, flexWrap:'wrap', padding:'2px 0 10px', borderBottom:'1px solid var(--border)', marginBottom:10 }}>
+                    <label style={{ display:'flex', alignItems:'center', gap:6, fontSize:11, cursor:'pointer', paddingBottom:6 }}>
+                      <input type="checkbox" checked={tlOpts.skipWknd} onChange={ev => setOpt('skipWknd', ev.target.checked)} style={{ width:'auto', accentColor:AVO }} />
+                      Exclude weekends
+                    </label>
+                    <div><div style={optLbl}>Edit days after script</div><input value={tlOpts.editDaysAfterScript} onChange={ev => setOpt('editDaysAfterScript', ev.target.value)} style={optIn} /></div>
+                    <div><div style={optLbl}>Edit days after feedback</div><input value={tlOpts.editDaysAfterFeedback} onChange={ev => setOpt('editDaysAfterFeedback', ev.target.value)} style={optIn} /></div>
+                    <div><div style={optLbl}>Client review days</div><input value={tlOpts.reviewDays} onChange={ev => setOpt('reviewDays', ev.target.value)} style={optIn} /></div>
+                    <button onClick={autoFill} title="Fill every milestone forward from Scripting End (color & audio 3 days, final comp +2, delivery +1)"
+                      style={{ background:AVO, border:`1px solid ${AVO}`, color:'#0b0b0b', borderRadius:14, padding:'6px 14px', fontSize:11, fontWeight:800, cursor:'pointer' }}>
+                      ⚡ Auto-Fill Timeline
+                    </button>
+                  </div>
                   <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, flexWrap:'wrap', marginBottom:10 }}>
                     <span style={{ fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.06em', color:AVO }}>Timeline Dates</span>
                     <div style={{ display:'flex', gap:6 }}>
@@ -107,31 +237,37 @@ export default function AvoEdit() {
                             setCopied('link'); setTimeout(() => setCopied(''), 2500);
                           } catch (err) { alert(err.message); }
                         }}>{copied === 'link' ? '✓ Link Copied' : 'Share Public Timeline'}</button>
-                      <button className="btn btn-ghost btn-sm" title="Copy the filled-in dates as a table for a message or email"
-                        onClick={async () => {
-                          try {
-                            await navigator.clipboard.writeText(milestoneText(e));
-                            setCopied('table'); setTimeout(() => setCopied(''), 2500);
-                          } catch (err) { alert(err.message); }
-                        }}>{copied === 'table' ? '✓ Copied' : 'Copy for Email'}</button>
+                      <button className="btn btn-ghost btn-sm" title="Preview and copy the filled-in dates as an email-ready table"
+                        onClick={() => setShareTimeline(true)}>Copy for Email</button>
                     </div>
                   </div>
                   <div style={{ display:'flex', flexDirection:'column' }}>
-                    {MILESTONES.map(([k, label]) => (
-                      <div key={k} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, padding:'6px 0', borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
-                        <span style={{ ...lbl, marginBottom:0 }}>{label}</span>
-                        <input type="date" value={e.milestones?.[k] || ''} style={{ width:'auto', maxWidth:190 }}
-                          onChange={ev => {
-                            const v = ev.target.value;
-                            patch({ milestones: { ...(e.milestones || {}), [k]: v || undefined } });
-                            save({ milestones: { [k]: v } });
-                          }} />
-                      </div>
-                    ))}
+                    {MILESTONES.map(([k, label]) => {
+                      const val = ms[k];
+                      let gap = null;
+                      if (val && prevDate) gap = daysBetween(prevDate, val, tlOpts.skipWknd);
+                      if (val) prevDate = val;
+                      return (
+                        <div key={k} style={{ display:'flex', alignItems:'center', gap:12, padding:'6px 0', borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
+                          <span title="Business days since the previous milestone"
+                            style={{ width:44, flexShrink:0, textAlign:'center', fontSize:9, fontWeight:800, color: gap != null ? AVO : 'var(--border)' }}>
+                            {gap != null ? `+${gap}bd` : '—'}
+                          </span>
+                          <span style={{ ...lbl, marginBottom:0, flex:1 }}>{label}</span>
+                          <input type="date" value={val || ''} style={{ width:'auto', maxWidth:190 }}
+                            onChange={ev => {
+                              const v = ev.target.value;
+                              patch({ milestones: { ...ms, [k]: v || undefined } });
+                              save({ milestones: { [k]: v } });
+                            }} />
+                        </div>
+                      );
+                    })}
                   </div>
                   <div style={{ fontSize:10, color:'var(--muted)', marginTop:10 }}>These dates appear as diamonds on the Gantt views; the public link and email copy only show dates that are filled in.</div>
                 </div>
-              )}
+                );
+              })()}
               {!showTimeline && <div style={{ display:'flex', flexDirection:'column', gap:12, marginTop:12 }}>
                 <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
                   <div style={{ flex:1, minWidth:150 }}>
@@ -145,7 +281,9 @@ export default function AvoEdit() {
                     <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                       <button className="btn btn-ghost btn-sm" title="Version down 0.1"
                         onClick={() => save({ version: stepV(e.version, -1) })}>−.1</button>
-                      <span style={{ fontSize:16, fontWeight:800, color:AVO }}>{fmtV(e.version)}</span>
+                      <span style={{ fontSize:16 }}>
+                        <VersionInput value={e.version} onSave={n => save({ version: n })} style={{ width:44 }} />
+                      </span>
                       <button className="btn btn-ghost btn-sm" title="Version up 0.1"
                         onClick={() => save({ version: stepV(e.version, 1) })}>+.1</button>
                     </div>

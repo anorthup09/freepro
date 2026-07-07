@@ -34,6 +34,18 @@ export default function Deliverables({ project }) {
     api.getDeliverables(project.id).then(setItems);
   }, [project.id]);
 
+  // Editor picks from the crew roster so the name always matches the Avo lead editor
+  const [roster, setRoster] = useState([]);
+  useEffect(() => { api.getCrew().then(setRoster).catch(() => setRoster([])); }, []);
+  const editorNames = [...new Set(roster.map(m => displayName(m)).filter(Boolean))].sort();
+  const EditorPick = ({ value, onChange }) => (
+    <select value={value || ''} onChange={e => onChange(e.target.value)}>
+      <option value="">— Unassigned —</option>
+      {value && !editorNames.includes(value) && <option value={value}>{value}</option>}
+      {editorNames.map(n => <option key={n} value={n}>{n}</option>)}
+    </select>
+  );
+
   async function saveTechSpecsField(fields) {
     const existing = project.techSpecs || {};
     await api.saveTechSpecs(project.id, {
@@ -260,7 +272,7 @@ export default function Deliverables({ project }) {
               <div className="form-grid" style={{ marginBottom:12 }}>
                 <div className="field span2"><label>Title</label><input value={editForm.title} onChange={e => setEditForm(f=>({...f,title:e.target.value}))} required /></div>
                 <div className="field span2"><label>Description</label><input value={editForm.description} onChange={e => setEditForm(f=>({...f,description:e.target.value}))} /></div>
-                <div className="field"><label>Editor</label><input value={editForm.editorName} onChange={e => setEditForm(f=>({...f,editorName:e.target.value}))} /></div>
+                <div className="field"><label>Editor</label><EditorPick value={editForm.editorName} onChange={v => setEditForm(f=>({...f,editorName:v}))} /></div>
                 <div className="field"><label>Due Date</label><input value={editForm.dueDate} onChange={e => setEditForm(f=>({...f,dueDate:e.target.value}))} /></div>
                 <div className="field"><label>Aspect Ratio</label><input value={editForm.aspectRatio} onChange={e => setEditForm(f=>({...f,aspectRatio:e.target.value}))} /></div>
                 <div className="field"><label>Resolution</label><input value={editForm.resolution} onChange={e => setEditForm(f=>({...f,resolution:e.target.value}))} /></div>
@@ -290,7 +302,7 @@ export default function Deliverables({ project }) {
               <div className="form-grid" style={{ marginBottom:12 }}>
                 <div className="field span2"><label>Title</label><input value={form.title} onChange={e => setForm(f=>({...f,title:e.target.value}))} placeholder="Onsite Recap Video" required /></div>
                 <div className="field span2"><label>Description</label><input value={form.description} onChange={e => setForm(f=>({...f,description:e.target.value}))} placeholder="Plays Day 4 GS · 2 min" /></div>
-                <div className="field"><label>Editor</label><input value={form.editorName} onChange={e => setForm(f=>({...f,editorName:e.target.value}))} placeholder="Jon A." /></div>
+                <div className="field"><label>Editor</label><EditorPick value={form.editorName} onChange={v => setForm(f=>({...f,editorName:v}))} /></div>
                 <div className="field"><label>Due Date</label><input value={form.dueDate} onChange={e => setForm(f=>({...f,dueDate:e.target.value}))} placeholder="7 AM, 5/6" /></div>
                 <div className="field"><label>Aspect Ratio</label><input value={form.aspectRatio} onChange={e => setForm(f=>({...f,aspectRatio:e.target.value}))} placeholder="16:9" /></div>
                 <div className="field"><label>Resolution</label><input value={form.resolution} onChange={e => setForm(f=>({...f,resolution:e.target.value}))} placeholder="1920×1080" /></div>

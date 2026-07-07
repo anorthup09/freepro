@@ -10,7 +10,7 @@ async function mirrorToAvo(item, actor) {
     const [editor] = item.editor_name
       ? await sql`SELECT id FROM crew_members WHERE LOWER(TRIM(CONCAT(preferred_first_name, ' ', preferred_last_name))) = LOWER(${item.editor_name}) OR LOWER(name) = LOWER(${item.editor_name}) LIMIT 1`
       : [null];
-    const statusMap = { WAITING_ON_ASSETS: 'COMING_SOON', IN_PROGRESS: 'ASSIGNED', ROUGH_CUT: 'ASSIGNED', IN_REVIEW: 'FOCUS', APPROVED: 'FOCUS', DELIVERED: 'CLOSED' };
+    const statusMap = { WAITING_ON_ASSETS: 'COMING_SOON', IN_PROGRESS: 'ASSIGNED', ROUGH_CUT: 'ASSIGNED', IN_REVIEW: 'FOCUS', APPROVED: 'CLOSED', DELIVERED: 'CLOSED' };
     if (existing) {
       await sql`
         UPDATE edits SET
