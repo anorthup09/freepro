@@ -139,21 +139,42 @@ router.get('/crew-calendar', requireAuth, async (req, res, next) => {
       FROM edits e JOIN crew_members cm ON cm.id = e.lead_editor_id
       WHERE cm.company ILIKE '%unbridled%' AND e.start_date IS NOT NULL AND e.status != 'CLOSED'
       ORDER BY member_name, e.start_date`;
-    // Lead-editor milestone dates show as single-day nodes
+    // Editor-task milestones show as runners from the previous milestone to the
+    // task's date (e.g. Client v1 Feedback 7/6 → Client v2 Due 7/8 spans 7/6–7/8)
     const EDITOR_TASKS = { icr_v1_due: 'ICR v1 Due', client_v1_due: 'Client v1 Due', client_v2_due: 'Client v2 Due', client_v3_due: 'Client v3 Due', color_audio_send: 'Send to Color & Audio', final_comp: 'Final Comp Complete' };
+    const MS_ORDER = ['scripting_start', 'scripting_end', 'icr_v1_due', 'icr_feedback', 'client_v1_due', 'client_v1_feedback', 'client_v2_due', 'client_v2_feedback', 'client_v3_due', 'client_v3_feedback', 'color_audio_send', 'color_audio_complete', 'final_comp', 'final_delivery'];
     const msEdits = await sql`
-      SELECT e.id, e.title, e.milestones, COALESCE(e.project_code, 'EDIT') as project_code,
-             COALESCE(NULLIF(TRIM(CONCAT(cm.preferred_first_name, ' ', cm.preferred_last_name)), ''), cm.name) as member_name
-      FROM edits e JOIN crew_members cm ON cm.id = e.lead_editor_id
-      WHERE cm.company ILIKE '%unbridled%' AND e.status != 'CLOSED' AND e.milestones IS NOT NULL`;
+      SELECT e.id, e.title, e.milestones, e.milestone_assignees, e.lead_editor_id,
+             COALESCE(e.project_code, 'EDIT') as project_code
+      FROM edits e
+      WHERE e.status != 'CLOSED' AND e.milestones IS NOT NULL AND (e.lead_editor_id IS NOT NULL OR e.milestone_assignees != '{}'::jsonb)`;
+    const parseJ = v => typeof v === 'string' ? JSON.parse(v || '{}') : (v || {});
+    const memberIds = new Set();
+    for (const e of msEdits) {
+      if (e.lead_editor_id) memberIds.add(e.lead_editor_id);
+      for (const v of Object.values(parseJ(e.milestone_assignees))) if (v) memberIds.add(v);
+    }
+    const memberRows = memberIds.size ? await sql`
+      SELECT id, COALESCE(NULLIF(TRIM(CONCAT(preferred_first_name, ' ', preferred_last_name)), ''), name) as n
+      FROM crew_members WHERE id = ANY(${[...memberIds]}) AND company ILIKE '%unbridled%'` : [];
+    const memberName = Object.fromEntries(memberRows.map(m => [m.id, m.n]));
     const milestoneRows = [];
     for (const e of msEdits) {
-      const ms = typeof e.milestones === 'string' ? JSON.parse(e.milestones || '{}') : (e.milestones || {});
+      const ms = parseJ(e.milestones);
+      const assignees = parseJ(e.milestone_assignees);
       for (const [k, label] of Object.entries(EDITOR_TASKS)) {
         if (!ms[k]) continue;
+        const who = assignees[k] || e.lead_editor_id;
+        if (!who || !memberName[who]) continue;
+        // runner starts at the closest earlier filled milestone
+        let start = ms[k];
+        for (const pk of MS_ORDER) {
+          if (pk === k) break;
+          if (ms[pk] && ms[pk] <= ms[k] && (start === ms[k] || ms[pk] > start)) start = ms[pk];
+        }
         milestoneRows.push({
-          id: `${e.id}-${k}`, kind: 'edit', start_date: ms[k], end_date: ms[k],
-          member_name: e.member_name, position_name: label,
+          id: `${e.id}-${k}`, kind: 'edit', start_date: start, end_date: ms[k],
+          member_name: memberName[who], position_name: label,
           project_id: e.id, project_title: e.title, project_code: e.project_code, project_status: 'EDIT',
         });
       }

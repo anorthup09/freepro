@@ -1037,6 +1037,8 @@ async function migrate() {
   await sql`ALTER TABLE edits ALTER COLUMN version TYPE NUMERIC(6,1)`;
   // Per-edit timeline milestones (scripting, ICR/client review rounds, color/audio, delivery)
   await sql`ALTER TABLE edits ADD COLUMN IF NOT EXISTS milestones JSONB DEFAULT '{}'::jsonb`;
+  // Editor-task milestones default to the lead editor but can be reassigned per task
+  await sql`ALTER TABLE edits ADD COLUMN IF NOT EXISTS milestone_assignees JSONB DEFAULT '{}'::jsonb`;
 
   // Per-project pages in AvocadoPost: lower-thirds grid + to-do list
   await sql`

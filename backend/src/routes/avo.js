@@ -169,6 +169,22 @@ router.patch('/edits/:id', ...staff, async (req, res, next) => {
     }
     // Approving a video moves it to Closed Tasks
     if (d.approved === true && before.status !== 'CLOSED' && d.status === undefined) d.status = 'CLOSED';
+    // Per-task assignee overrides (empty value = back to the lead editor)
+    let msAssignees;
+    if (d.milestoneAssignees !== undefined && typeof d.milestoneAssignees === 'object') {
+      const prevA = typeof before.milestone_assignees === 'string' ? JSON.parse(before.milestone_assignees || '{}') : (before.milestone_assignees || {});
+      msAssignees = {};
+      for (const k of Object.keys(MILESTONE_LABELS)) {
+        const v = d.milestoneAssignees[k] !== undefined ? d.milestoneAssignees[k] : prevA[k];
+        if (v) msAssignees[k] = v;
+      }
+      for (const k of Object.keys(MILESTONE_LABELS)) {
+        if (d.milestoneAssignees[k] === undefined || String(prevA[k] || '') === String(d.milestoneAssignees[k] || '')) continue;
+        const m = await memberName(d.milestoneAssignees[k]);
+        await logAct(req.params.id, 'log', req.user?.email || 'someone',
+          m ? `assigned ${MILESTONE_LABELS[k]} to ${m.n}` : `reset ${MILESTONE_LABELS[k]} back to the lead editor`);
+      }
+    }
     let projectId;
     if (d.projectCode !== undefined) {
       const [p] = d.projectCode ? await sql`SELECT id FROM projects WHERE code = ${d.projectCode.trim()}` : [null];
@@ -198,6 +214,7 @@ router.patch('/edits/:id', ...staff, async (req, res, next) => {
         notes = ${d.notes !== undefined ? (d.notes || null) : sql`notes`},
         video_assets = ${d.videoAssets !== undefined ? (d.videoAssets || null) : sql`video_assets`},
         milestones = ${milestones !== undefined ? sql.json(milestones) : sql`milestones`},
+        milestone_assignees = ${msAssignees !== undefined ? sql.json(msAssignees) : sql`milestone_assignees`},
         updated_at = NOW()
       WHERE id = ${req.params.id} RETURNING *`;
     const who = req.user?.email || 'someone';

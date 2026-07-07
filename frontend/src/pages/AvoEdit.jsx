@@ -393,12 +393,17 @@ export default function AvoEdit() {
                       if (val) prevDate = val;
                       return (
                         <div key={k} style={{ display:'flex', alignItems:'center', gap:12, padding:'6px 0', borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
-                          <span style={{ ...lbl, marginBottom:0, flex:1 }}>
+                          <span style={{ ...lbl, marginBottom:0, flex:1, display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
                             {label}
-                            {EDITOR_TASKS.includes(k) && (e.lead_editor_name_resolved || e.lead_editor_name) && (
-                              <span title="Lead editor's task — shows on the Crew Calendar"
-                                style={{ marginLeft:8, textTransform:'none', letterSpacing:0, background:`${AVO}1e`, border:`1px solid ${AVO}55`, color:AVO, borderRadius:10, padding:'1px 8px', fontSize:9, fontWeight:700 }}>
-                                {e.lead_editor_name_resolved || e.lead_editor_name}
+                            {EDITOR_TASKS.includes(k) && (
+                              <span title="Who's responsible for this task — shows on the Crew Calendar"
+                                style={{ display:'inline-block', maxWidth:150 }}>
+                                <EditorSelect value={e.milestone_assignees?.[k] || ''}
+                                  placeholder={`${e.lead_editor_name_resolved || e.lead_editor_name || 'Lead Editor'} (lead)`}
+                                  onChange={v => {
+                                    patch({ milestone_assignees: { ...(e.milestone_assignees || {}), [k]: v || undefined } });
+                                    save({ milestoneAssignees: { [k]: v } });
+                                  }} />
                               </span>
                             )}
                           </span>
