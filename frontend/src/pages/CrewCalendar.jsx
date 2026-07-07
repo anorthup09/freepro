@@ -69,8 +69,19 @@ export default function CrewCalendar() {
                 })}
               </div>
               {/* member rows */}
-              {members.map(([name, assigns]) => (
-                <div key={name} style={{ display: 'grid', gridTemplateColumns: `160px repeat(${daysInMonth}, 1fr)`, borderBottom: '1px solid rgba(255,255,255,0.04)', position: 'relative', minHeight: 40 }}>
+              {members.map(([name, assigns]) => {
+                // Double bookings drop to their own lane instead of overlapping
+                const lanes = [];
+                const laneOf = {};
+                for (const a of [...assigns].sort((x, y) => day(x.start_date) - day(y.start_date))) {
+                  const s2 = day(a.start_date), e2 = day(a.end_date || a.start_date);
+                  let li = lanes.findIndex(end => end < s2);
+                  if (li === -1) { li = lanes.length; lanes.push(e2); } else lanes[li] = e2;
+                  laneOf[a.id] = li;
+                }
+                const laneCount = Math.max(1, lanes.length);
+                return (
+                <div key={name} style={{ display: 'grid', gridTemplateColumns: `160px repeat(${daysInMonth}, 1fr)`, borderBottom: '1px solid rgba(255,255,255,0.04)', position: 'relative', minHeight: 12 + laneCount * 28 }}>
                   <div style={{ padding: '10px 12px', fontSize: 12, fontWeight: 700, position: 'sticky', left: 0, background: 'var(--bg2)', zIndex: 2, borderRight: '1px solid var(--border)' }}>{name}</div>
                   {Array.from({ length: daysInMonth }, (_, i) => {
                     const d = new Date(month.y, month.m, i + 1);
@@ -86,7 +97,7 @@ export default function CrewCalendar() {
                     return (
                       <a key={a.id} href={`/projects/${a.project_id}`} title={`${a.project_code} · ${a.project_title} — ${a.position_name}`}
                         style={{
-                          position: 'absolute', top: 8, height: 24, zIndex: 1,
+                          position: 'absolute', top: 8 + (laneOf[a.id] || 0) * 28, height: 24, zIndex: 1,
                           left: `calc(160px + (100% - 160px) * ${(from - 1) / daysInMonth})`,
                           width: `calc((100% - 160px) * ${(to - from + 1) / daysInMonth} - 3px)`,
                           background: `${c}2e`, border: `1px solid ${c}`, borderRadius: 6,
@@ -98,7 +109,8 @@ export default function CrewCalendar() {
                     );
                   })}
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
