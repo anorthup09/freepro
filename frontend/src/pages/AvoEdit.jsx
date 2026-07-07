@@ -373,7 +373,18 @@ export default function AvoEdit() {
                       );
                     })}
                   </div>
-                  <div style={{ fontSize:10, color:'var(--muted)', marginTop:10 }}>These dates appear as diamonds on the Gantt views; the public link and email copy only show dates that are filled in.</div>
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, marginTop:10, flexWrap:'wrap' }}>
+                    <div style={{ fontSize:10, color:'var(--muted)' }}>These dates appear as diamonds on the Gantt views; the public link and email copy only show dates that are filled in.</div>
+                    <button onClick={() => {
+                        if (!confirm('Clear all timeline dates?')) return;
+                        const cleared = Object.fromEntries(MILESTONES.map(([k]) => [k, '']));
+                        patch({ milestones: {} });
+                        save({ milestones: cleared });
+                      }}
+                      style={{ background:'transparent', border:'1px solid var(--border)', color:'var(--red-text, #e05252)', borderRadius:14, padding:'4px 12px', fontSize:10, fontWeight:700, cursor:'pointer', flexShrink:0 }}>
+                      Clear Dates
+                    </button>
+                  </div>
                 </div>
                 );
               })()}
