@@ -3,6 +3,40 @@ const { z } = require('zod');
 const sql = require('../lib/db');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { displayCodes, applyDisplayCode } = require('../lib/displayCode');
+const { sendCalendarHold } = require('../lib/ics');
+
+// Email an Outlook calendar hold to the assigned crew member (fire-and-forget)
+async function sendAssignmentHold(assignmentId) {
+  try {
+    const [a] = await sql`
+      SELECT ca.*, p.name as position_name, pr.title as project_title, pr.code as project_code, pr.city, pr.state,
+             cm.email as cm_email,
+             COALESCE(NULLIF(TRIM(CONCAT(cm.preferred_first_name, ' ', cm.preferred_last_name)), ''), cm.name) as cm_display
+      FROM crew_assignments ca
+      JOIN positions p ON p.id = ca.position_id
+      JOIN projects pr ON pr.id = ca.project_id
+      LEFT JOIN crew_members cm ON cm.id = ca.crew_member_id
+      WHERE ca.id = ${assignmentId}`;
+    if (!a || !a.cm_email || !a.start_date) return;
+    const codes = await displayCodes([a.project_id]);
+    const code = codes[a.project_id] || a.project_code;
+    const seq = Number(a.invite_seq || 0);
+    const sent = await sendCalendarHold({
+      uid: a.id,
+      sequence: seq,
+      startDate: a.start_date,
+      endDate: a.end_date || a.start_date,
+      summary: `HOLD — ${code} ${a.project_title} (${a.position_name})`,
+      description: `You are assigned as ${a.position_name} on ${a.project_title} (${code}).
+Dates: ${String(a.start_date).slice(0, 10)} to ${String(a.end_date || a.start_date).slice(0, 10)}.
+Details in FreePro.`,
+      location: [a.city, a.state].filter(x => x && x !== '—').join(', ') || undefined,
+      attendeeEmail: a.cm_email,
+      attendeeName: a.cm_display,
+    });
+    if (sent) await sql`UPDATE crew_assignments SET invite_seq = ${seq + 1} WHERE id = ${a.id}`;
+  } catch (e) { console.error('Calendar hold failed:', e.message); }
+}
 
 async function getFullProject(id) {
   const [project] = await sql`SELECT * FROM projects WHERE id = ${id}`;
@@ -78,6 +112,26 @@ async function maybeAutoStatus(project) {
   }
   return project;
 }
+
+// GET /api/projects/crew-calendar — Unbridled employees' shoot assignments
+router.get('/crew-calendar', requireAuth, async (req, res, next) => {
+  try {
+    const rows = await sql`
+      SELECT ca.id, ca.start_date, ca.end_date, ca.crew_member_id,
+             COALESCE(NULLIF(TRIM(CONCAT(cm.preferred_first_name, ' ', cm.preferred_last_name)), ''), cm.name) as member_name,
+             p.name as position_name, pr.id as project_id, pr.title as project_title, pr.code as project_code, pr.status as project_status
+      FROM crew_assignments ca
+      JOIN crew_members cm ON cm.id = ca.crew_member_id
+      JOIN positions p ON p.id = ca.position_id
+      JOIN projects pr ON pr.id = ca.project_id
+      WHERE cm.company ILIKE '%unbridled%'
+        AND ca.start_date IS NOT NULL
+        AND pr.status != 'ARCHIVED'
+      ORDER BY member_name, ca.start_date`;
+    const codes = await displayCodes([...new Set(rows.map(r => r.project_id))]);
+    res.json(rows.map(r => codes[r.project_id] ? { ...r, project_code: codes[r.project_id] } : r));
+  } catch (err) { next(err); }
+});
 
 // GET /api/projects/logos?q= — distinct client logos from past projects
 router.get('/logos', requireAuth, async (req, res, next) => {
@@ -331,6 +385,7 @@ router.post('/:id/crew', requireAuth, requireRole('ADMIN','PRODUCER'), async (re
       SELECT ca.*, p.name as position_name, cm.id as cm_id, cm.name as cm_name, cm.email as cm_email, cm.phone as cm_phone, cm.initials, cm.avatar_color, cm.preferred_first_name as cm_pref_first, cm.preferred_last_name as cm_pref_last, cm.dietary_restrictions as cm_dietary
       FROM crew_assignments ca JOIN positions p ON p.id=ca.position_id LEFT JOIN crew_members cm ON cm.id=ca.crew_member_id
       WHERE ca.id = ${a.id}`;
+    if (crewMemberId && startDate) sendAssignmentHold(a.id);
     res.status(201).json({ ...full, position:{id:full.position_id,name:full.position_name}, crewMember: full.cm_id?{id:full.cm_id,name:full.cm_name,preferredFirstName:full.cm_pref_first,preferredLastName:full.cm_pref_last,email:full.cm_email,phone:full.cm_phone,initials:full.initials,avatarColor:full.avatar_color,dietaryRestrictions:full.cm_dietary}:null });
   } catch(e){
     if(e.code==='23505') return res.status(409).json({error:'That position slot already exists on this project'});
@@ -356,6 +411,9 @@ router.patch('/:id/crew/:aid', requireAuth, requireRole('ADMIN','PRODUCER'), asy
       SELECT ca.*, p.name as position_name, cm.id as cm_id, cm.name as cm_name, cm.email as cm_email, cm.phone as cm_phone, cm.initials, cm.avatar_color, cm.preferred_first_name as cm_pref_first, cm.preferred_last_name as cm_pref_last, cm.dietary_restrictions as cm_dietary
       FROM crew_assignments ca JOIN positions p ON p.id=ca.position_id LEFT JOIN crew_members cm ON cm.id=ca.crew_member_id
       WHERE ca.id = ${req.params.aid}`;
+    if ((crewMemberId !== undefined || startDate !== undefined || endDate !== undefined) && full.cm_id && full.start_date) {
+      sendAssignmentHold(req.params.aid);
+    }
     res.json({ ...full, position:{id:full.position_id,name:full.position_name}, crewMember: full.cm_id?{id:full.cm_id,name:full.cm_name,preferredFirstName:full.cm_pref_first,preferredLastName:full.cm_pref_last,email:full.cm_email,phone:full.cm_phone,initials:full.initials,avatarColor:full.avatar_color,dietaryRestrictions:full.cm_dietary}:null });
   } catch(e){next(e);}
 });

@@ -71,6 +71,7 @@ export const api = {
   getProject: (id) => req('GET', `/projects/${id}`),
   createProject: (data) => req('POST', '/projects', data),
   searchClientLogos: (q) => req('GET', `/projects/logos?q=${encodeURIComponent(q || '')}`),
+  crewCalendar: () => req('GET', '/projects/crew-calendar'),
   getHarbinger: (pid) => req('GET', `/finance/${pid}/harbinger`),
   submitHarbinger: (pid, data) => req('POST', `/finance/${pid}/harbinger`, data),
   gearRequests: () => req('GET', '/gear-requests'),

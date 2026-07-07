@@ -976,6 +976,8 @@ async function migrate() {
       created_at TIMESTAMPTZ DEFAULT NOW()
     )`;
 
+  await sql`ALTER TABLE crew_assignments ADD COLUMN IF NOT EXISTS invite_seq INT DEFAULT 0`;
+
   console.log('Migration complete.');
 }
 

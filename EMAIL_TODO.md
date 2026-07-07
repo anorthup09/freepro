@@ -24,6 +24,10 @@ link (SMTP) is connected. Keep this file updated as email features are added.
 - [ ] **Gear request notification** — full gear request emailed to
       `mvitro@unbridledmedia.com` on submission.
       (`backend/src/routes/gearRequests.js`)
+- [ ] **Outlook calendar holds** — assigning an Unbridled crew member to a
+      shoot (with dates) emails them an .ics meeting request; re-sends an
+      update when dates change. (`backend/src/lib/ics.js`,
+      `backend/src/routes/projects.js`)
 - [ ] **Crew question notification** — emails the project POC when a crew
       member submits a question from a shared call sheet.
       (`backend/src/routes/share.js` → `backend/src/lib/email.js`)
@@ -40,6 +44,8 @@ link (SMTP) is connected. Keep this file updated as email features are added.
       Harbinger so they have the kickoff record.
 - [ ] **Contract signed confirmation** — notify the producer when a
       contractor e-signs their deal memo.
+- [ ] **Calendar hold cancellations** — send METHOD:CANCEL when someone is
+      unassigned or an assignment is deleted.
 - [ ] **Gear request status updates** — optional reply/confirmation to the
       requester when the gear team fulfills a request.
 

@@ -20,14 +20,14 @@ function getTransporter() {
   return transporter;
 }
 
-async function sendMail({ to, subject, text, html }) {
+async function sendMail({ to, subject, text, html, icalEvent }) {
   if (!isConfigured()) {
     const err = new Error('Email is not configured. Set SMTP_HOST, SMTP_USER, and SMTP_PASS environment variables.');
     err.status = 501;
     throw err;
   }
   const from = process.env.MAIL_FROM || process.env.SMTP_USER;
-  return getTransporter().sendMail({ from: `Unbridled Media <${from}>`, to, subject, text, html });
+  return getTransporter().sendMail({ from: `Unbridled Media <${from}>`, to, subject, text, html, ...(icalEvent ? { icalEvent } : {}) });
 }
 
 module.exports = { sendMail, isConfigured };

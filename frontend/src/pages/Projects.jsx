@@ -145,7 +145,8 @@ export default function Projects() {
             })()}
           </div>
           {view === 'production' && (
-            <div style={{ display:'flex', gap:8 }}>
+            <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+              {!isCrew && <Link to="/crew-calendar" className="btn btn-ghost">Crew Calendar</Link>}
               <Link to="/crew-views" className="btn btn-ghost">Crew Views</Link>
               {!isCrew && <button className="btn btn-primary" onClick={() => setShowNew(true)}>+ New Project</button>}
             </div>
