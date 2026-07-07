@@ -55,6 +55,15 @@ link (SMTP) is connected. Keep this file updated as email features are added.
       `/api/projects/crew-calendar`.)
 - [ ] **Gear request status updates** — optional reply/confirmation to the
       requester when the gear team fulfills a request.
+- [ ] **Harbinger → send contract** — after a Harbinger form is submitted,
+      auto-populate a pop-up asking whether to send the contract, and email
+      the contract/e-sign link to the client right from that prompt (uses the
+      client contacts captured on the Harbinger).
+- [ ] **PTO request → manager approval email** — `backend/src/routes/team.js`
+      POST /pto emails the selected manager ("PTO Request — {title}" with
+      type, dates, shoot conflicts, comp reference). Once SMTP is live, also
+      notify the extra team members listed on the request and confirm
+      approval back to the requester.
 
 ## Notes
 
@@ -63,13 +72,3 @@ link (SMTP) is connected. Keep this file updated as email features are added.
   still work, mail is just skipped/501.
 - Test after connecting: submit a gear request and a Harbinger on a test
   project and confirm both emails arrive.
-- [ ] **PTO request → manager approval email** — `backend/src/routes/team.js` POST
-  /pto emails the selected manager ("PTO Request — {title}" with type, dates,
-  shoot conflicts, comp reference). Also TODO once SMTP is live: notify the
-  extra team members listed on the request, and confirm approval back to the
-  requester.
-
-## Feature backlog (non-email)
-- [ ] **Harbinger → send contract prompt** — after submitting a Harbinger form,
-  pop up a dialog offering to send the contract right away. (User: "this
-  feature can come later".)
