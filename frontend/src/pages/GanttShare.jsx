@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../api.js';
-import GanttChart from '../components/GanttChart.jsx';
+import GanttChart, { MilestoneTable } from '../components/GanttChart.jsx';
 
 const AVO = '#9DC183';
 
@@ -30,6 +30,13 @@ export default function GanttShare() {
         {err && <div className="empty">{err}</div>}
         {!err && !data && <div className="empty">Loading…</div>}
         {data && <GanttChart edits={data.edits} />}
+        {data && (
+          <div style={{ display:'grid', gap:14, marginTop:18 }}>
+            {data.edits.map(ed => (
+              <MilestoneTable key={ed.id} edit={ed} title={data.kind === 'project' ? ed.title : 'Timeline Dates'} />
+            ))}
+          </div>
+        )}
 
         <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 14 }}>
           Live view — dates update automatically as the edit schedule changes.

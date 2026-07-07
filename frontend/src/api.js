@@ -85,6 +85,7 @@ export const api = {
   avoDeleteFile: (fid) => req('DELETE', `/avo/files/${fid}`),
   avoGanttShare: (kind, ref) => req('POST', '/avo/gantt-share', { kind, ref }),
   getGanttShare: (token) => req('GET', `/gantt-share/${token}`),
+  avoProjectCodes: () => req('GET', '/avo/project-codes'),
   avoProjects: () => req('GET', '/avo/projects'),
   createAvoProject: (code, title) => req('POST', '/avo/projects', { code, title }),
   avoProject: (id) => req('GET', `/avo/projects/${id}`),

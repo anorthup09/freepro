@@ -132,6 +132,16 @@ router.get('/edits/:id', ...staff, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+const MILESTONE_LABELS = {
+  scripting_start: 'Scripting Start', scripting_end: 'Scripting End',
+  icr_v1_due: 'ICR v1 Due', icr_feedback: 'ICR Feedback',
+  client_v1_due: 'Client v1 Due', client_v1_feedback: 'Client v1 Feedback',
+  client_v2_due: 'Client v2 Due', client_v2_feedback: 'Client v2 Feedback',
+  client_v3_due: 'Client v3 Due', client_v3_feedback: 'Client v3 Feedback',
+  color_audio_send: 'Send to Color & Audio', color_audio_complete: 'Color & Audio Complete',
+  final_comp: 'Final Comp Complete', final_delivery: 'Final Delivery',
+};
+
 const FIELD_LOGS = {
   title: 'Title', description: 'Description', aspectRatio: 'Aspect Ratio', resolution: 'Resolution',
   assetRef: 'Asset Ref', musicRef: 'Music Ref', category: 'Category', status: 'Status',
@@ -145,6 +155,17 @@ router.patch('/edits/:id', ...staff, async (req, res, next) => {
     const d = req.body;
     const [before] = await FULL_EDIT(req.params.id);
     if (!before) return res.status(404).json({ error: 'Edit not found' });
+    let prevMs = typeof before.milestones === 'string' ? JSON.parse(before.milestones || '{}') : (before.milestones || {});
+    prevMs = Object.fromEntries(Object.keys(MILESTONE_LABELS).filter(k => prevMs[k]).map(k => [k, prevMs[k]]));
+    let milestones;
+    if (d.milestones !== undefined && typeof d.milestones === 'object') {
+      milestones = { ...prevMs };
+      for (const k of Object.keys(MILESTONE_LABELS)) {
+        if (d.milestones[k] === undefined) continue;
+        if (d.milestones[k]) milestones[k] = String(d.milestones[k]).slice(0, 10);
+        else delete milestones[k];
+      }
+    }
     let projectId;
     if (d.projectCode !== undefined) {
       const [p] = d.projectCode ? await sql`SELECT id FROM projects WHERE code = ${d.projectCode.trim()}` : [null];
@@ -169,6 +190,7 @@ router.patch('/edits/:id', ...staff, async (req, res, next) => {
         end_date = ${d.endDate !== undefined ? (d.endDate || null) : sql`end_date`},
         version = ${d.version !== undefined ? Math.max(0.1, Math.round((Number(d.version) || 1) * 10) / 10) : sql`version`},
         approved = ${d.approved !== undefined ? (d.approved === true) : sql`approved`},
+        milestones = ${milestones !== undefined ? sql.json(milestones) : sql`milestones`},
         updated_at = NOW()
       WHERE id = ${req.params.id} RETURNING *`;
     const who = req.user?.email || 'someone';
@@ -187,6 +209,15 @@ router.patch('/edits/:id', ...staff, async (req, res, next) => {
       if (k === 'approved') await logAct(e.id, 'log', who, to ? 'marked this edit Approved ✓' : 'removed Approved');
       else if (k === 'description') await logAct(e.id, 'log', who, 'updated the Description');
       else await logAct(e.id, 'log', who, `set ${label} to ${to || '—'}${from ? ` (was ${String(from).slice(0, 60)})` : ''}`);
+    }
+    if (milestones !== undefined) {
+      const prev = prevMs;
+      for (const [k, label] of Object.entries(MILESTONE_LABELS)) {
+        if (d.milestones[k] === undefined || String(prev[k] || '') === String(milestones[k] || '')) continue;
+        await logAct(e.id, 'log', who, milestones[k]
+          ? `set ${label} to ${milestones[k]}${prev[k] ? ` (was ${prev[k]})` : ''}`
+          : `cleared ${label}`);
+      }
     }
     if (d.leadEditorId !== undefined && d.leadEditorId !== before.lead_editor_id) {
       const m = await memberName(d.leadEditorId);
@@ -318,6 +349,20 @@ router.post('/gantt-share', ...staff, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// ── Live ProFi project codes (New Edit form only offers these) ──
+router.get('/project-codes', ...staff, async (req, res, next) => {
+  try {
+    const rows = await sql`
+      SELECT DISTINCT COALESCE(s.shoot_code, p.code) as code, p.title, p.client
+      FROM projects p
+      JOIN budgets b ON b.project_id = p.id AND COALESCE(b.kind, 'main') = 'main' AND b.status = 'Live'
+      LEFT JOIN budget_sections s ON s.budget_id = b.id AND s.kind = 'shoot' AND s.shoot_code IS NOT NULL
+      WHERE p.parent_project_id IS NULL
+      ORDER BY 1`;
+    res.json(rows);
+  } catch (e) { next(e); }
+});
+
 // ── Project pages (lookup, lower-thirds grid, to-do list) ──
 router.get('/projects', ...staff, async (req, res, next) => {
   try {
@@ -410,12 +455,12 @@ publicRouter.get('/gantt-share/:token', async (req, res, next) => {
     let edits;
     if (share.kind === 'edit') {
       edits = await sql`
-        SELECT e.id, e.title, e.project_code, e.status, e.version, e.start_date, e.end_date, e.approved,
+        SELECT e.id, e.title, e.project_code, e.status, e.version, e.start_date, e.end_date, e.approved, e.milestones,
           COALESCE((SELECT ${sql.unsafe(PREF)} FROM crew_members cm WHERE cm.id = e.lead_editor_id), e.lead_editor_name) as lead_editor
         FROM edits e WHERE e.id = ${share.ref}`;
     } else {
       edits = await sql`
-        SELECT e.id, e.title, e.project_code, e.status, e.version, e.start_date, e.end_date, e.approved,
+        SELECT e.id, e.title, e.project_code, e.status, e.version, e.start_date, e.end_date, e.approved, e.milestones,
           COALESCE((SELECT ${sql.unsafe(PREF)} FROM crew_members cm WHERE cm.id = e.lead_editor_id), e.lead_editor_name) as lead_editor
         FROM edits e WHERE e.project_code = ${share.ref} ORDER BY e.start_date NULLS LAST`;
     }

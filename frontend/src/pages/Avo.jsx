@@ -38,14 +38,29 @@ export const stepV = (v, dir) => Math.max(0.1, Math.round(((Number(v) || 1) + di
 function ProjectLookup() {
   const nav = useNavigate();
   const [pages, setPages] = useState(null);
+  const [liveCodes, setLiveCodes] = useState([]);
   const [q, setQ] = useState('');
-  useEffect(() => { api.avoProjects().then(setPages).catch(() => setPages([])); }, []);
+  useEffect(() => {
+    api.avoProjects().then(setPages).catch(() => setPages([]));
+    api.avoProjectCodes().then(setLiveCodes).catch(() => setLiveCodes([]));
+  }, []);
 
-  const filtered = (pages || []).filter(p => !q.trim()
+  const match = p => !q.trim()
     || p.code.toLowerCase().includes(q.trim().toLowerCase())
-    || (p.title || '').toLowerCase().includes(q.trim().toLowerCase()));
-  const exactMatch = (pages || []).some(p => p.code.toLowerCase() === q.trim().toLowerCase());
+    || (p.title || '').toLowerCase().includes(q.trim().toLowerCase());
+  const filtered = (pages || []).filter(match);
+  // Live ProFi projects that don't have a page yet show as tiles too
+  const pageCodes = new Set((pages || []).map(p => p.code.toLowerCase()));
+  const liveExtra = liveCodes.filter(c => !pageCodes.has(c.code.toLowerCase())).filter(match);
+  const exactMatch = (pages || []).some(p => p.code.toLowerCase() === q.trim().toLowerCase())
+    || liveCodes.some(c => c.code.toLowerCase() === q.trim().toLowerCase());
 
+  async function openLive(c) {
+    try {
+      const p = await api.createAvoProject(c.code, c.title);
+      nav(`/avo/project/${p.id}`);
+    } catch (e) { alert(e.message); }
+  }
   async function createPage() {
     try {
       const p = await api.createAvoProject(q.trim());
@@ -62,7 +77,7 @@ function ProjectLookup() {
       </div>
       <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.07em', marginBottom:8 }}>Recent Projects</div>
       {!pages && <div style={{ fontSize:11, color:'var(--muted)' }}>Loading…</div>}
-      {pages && filtered.length === 0 && !q.trim() && (
+      {pages && filtered.length === 0 && liveExtra.length === 0 && !q.trim() && (
         <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>No project pages yet — type a project code above to create one.</div>
       )}
       <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
@@ -71,6 +86,16 @@ function ProjectLookup() {
             style={{ background:'var(--bg)', border:'1px solid var(--border)', borderLeft:`3px solid ${AVO}`, borderRadius:8, padding:'10px 14px', minWidth:170, cursor:'pointer' }}>
             <div style={{ fontSize:12, fontWeight:800 }}>{p.code}</div>
             <div style={{ fontSize:10, color:'var(--muted)', marginTop:2 }}>{p.title || 'Lower thirds · to-dos'}</div>
+          </div>
+        ))}
+        {liveExtra.map(c => (
+          <div key={c.code} onClick={() => openLive(c)}
+            style={{ background:'var(--bg)', border:'1px solid var(--border)', borderLeft:'3px solid #5ABF80', borderRadius:8, padding:'10px 14px', minWidth:170, cursor:'pointer' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+              <span style={{ fontSize:12, fontWeight:800 }}>{c.code}</span>
+              <span style={{ fontSize:8, fontWeight:800, color:'#5ABF80', border:'1px solid #5ABF8055', borderRadius:8, padding:'1px 6px', textTransform:'uppercase' }}>Live</span>
+            </div>
+            <div style={{ fontSize:10, color:'var(--muted)', marginTop:2 }}>{c.title || c.client || 'ProFi project'}</div>
           </div>
         ))}
         {q.trim() && !exactMatch && (
@@ -87,6 +112,8 @@ function ProjectLookup() {
 function NewEditModal({ onClose, onCreated }) {
   const [f, setF] = useState({ title:'', projectCode:'', leadEditorId:'', startDate:'', endDate:'' });
   const [saving, setSaving] = useState(false);
+  const [codes, setCodes] = useState([]);
+  useEffect(() => { api.avoProjectCodes().then(setCodes).catch(() => setCodes([])); }, []);
   const set = k => e => setF(v => ({ ...v, [k]: e.target.value }));
   async function submit() {
     if (!f.title || saving) return;
@@ -108,7 +135,10 @@ function NewEditModal({ onClose, onCreated }) {
             <input value={f.title} onChange={set('title')} /></div>
           <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
             <div style={{ flex:1, minWidth:150 }}><div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4 }}>Project Code</div>
-              <input value={f.projectCode} onChange={set('projectCode')} placeholder="e.g. 02.UNF00126" /></div>
+              <select value={f.projectCode} onChange={set('projectCode')}>
+                <option value="">— No project (Avo only) —</option>
+                {codes.map(c => <option key={c.code} value={c.code}>{c.code}{c.title ? ` — ${c.title}` : ''}</option>)}
+              </select></div>
             <div style={{ flex:1, minWidth:150 }}><div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4 }}>Lead Editor</div>
               <EditorSelect value={f.leadEditorId} onChange={v => setF(x => ({ ...x, leadEditorId: v }))} /></div>
           </div>

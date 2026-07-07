@@ -1035,6 +1035,8 @@ async function migrate() {
 
   // Versions increment by 0.1 (V1.0, V1.1, …)
   await sql`ALTER TABLE edits ALTER COLUMN version TYPE NUMERIC(6,1)`;
+  // Per-edit timeline milestones (scripting, ICR/client review rounds, color/audio, delivery)
+  await sql`ALTER TABLE edits ADD COLUMN IF NOT EXISTS milestones JSONB DEFAULT '{}'::jsonb`;
 
   // Per-project pages in AvocadoPost: lower-thirds grid + to-do list
   await sql`

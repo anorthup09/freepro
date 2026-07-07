@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api.js';
 import { AvoHeader, EditorSelect, AVO, AVO_STATUSES, fmtV, stepV } from './Avo.jsx';
+import { MILESTONES, milestoneText } from '../components/GanttChart.jsx';
 
 const lbl = { fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4, display:'block' };
 const KIND_STYLE = {
@@ -18,6 +19,8 @@ export default function AvoEdit() {
   const nav = useNavigate();
   const [e, setE] = useState(null);
   const [comment, setComment] = useState('');
+  const [showTimeline, setShowTimeline] = useState(false);
+  const [copied, setCopied] = useState('');
   const [busy, setBusy] = useState(false);
   const fileRef = useRef(null);
   const feedRef = useRef(null);
@@ -79,9 +82,57 @@ export default function AvoEdit() {
           {/* ── Left: details ── */}
           <div style={{ flex:'1 1 480px', minWidth:320 }}>
             <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderTop:`3px solid ${AVO}`, borderRadius:12, padding:'18px 20px' }}>
-              <input value={e.title || ''} onChange={ev => patch({ title: ev.target.value })} onBlur={ev => save({ title: ev.target.value })}
-                style={{ fontSize:18, fontWeight:800, background:'transparent', border:'1px solid transparent', borderRadius:6, padding:'4px 8px', width:'100%' }} />
-              <div style={{ display:'flex', flexDirection:'column', gap:12, marginTop:12 }}>
+              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                <input value={e.title || ''} onChange={ev => patch({ title: ev.target.value })} onBlur={ev => save({ title: ev.target.value })}
+                  style={{ fontSize:18, fontWeight:800, background:'transparent', border:'1px solid transparent', borderRadius:6, padding:'4px 8px', width:'100%', flex:1 }} />
+                <div style={{ display:'flex', border:`1px solid ${AVO}55`, borderRadius:14, overflow:'hidden', flexShrink:0 }}>
+                  {[['details', 'Details'], ['timeline', 'Timeline']].map(([v, label]) => (
+                    <button key={v} onClick={() => setShowTimeline(v === 'timeline')}
+                      style={{ background: (v === 'timeline') === showTimeline ? `${AVO}2e` : 'transparent', border:'none', color: (v === 'timeline') === showTimeline ? AVO : 'var(--muted)', padding:'4px 12px', fontSize:10, fontWeight:800, cursor:'pointer', whiteSpace:'nowrap' }}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {showTimeline && (
+                <div style={{ background:'var(--bg)', border:'1px solid var(--border)', borderRadius:8, padding:'12px 14px', marginTop:10 }}>
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, flexWrap:'wrap', marginBottom:10 }}>
+                    <span style={{ fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.06em', color:AVO }}>Timeline Dates</span>
+                    <div style={{ display:'flex', gap:6 }}>
+                      <button className="btn btn-ghost btn-sm" title="Copy a public link showing these dates and the Gantt"
+                        onClick={async () => {
+                          try {
+                            const { token } = await api.avoGanttShare('edit', id);
+                            await navigator.clipboard.writeText(`${window.location.origin}/gantt/${token}`);
+                            setCopied('link'); setTimeout(() => setCopied(''), 2500);
+                          } catch (err) { alert(err.message); }
+                        }}>{copied === 'link' ? '✓ Link Copied' : 'Share Public Timeline'}</button>
+                      <button className="btn btn-ghost btn-sm" title="Copy the filled-in dates as a table for a message or email"
+                        onClick={async () => {
+                          try {
+                            await navigator.clipboard.writeText(milestoneText(e));
+                            setCopied('table'); setTimeout(() => setCopied(''), 2500);
+                          } catch (err) { alert(err.message); }
+                        }}>{copied === 'table' ? '✓ Copied' : 'Copy for Email'}</button>
+                    </div>
+                  </div>
+                  <div style={{ display:'flex', flexDirection:'column' }}>
+                    {MILESTONES.map(([k, label]) => (
+                      <div key={k} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, padding:'6px 0', borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
+                        <span style={{ ...lbl, marginBottom:0 }}>{label}</span>
+                        <input type="date" value={e.milestones?.[k] || ''} style={{ width:'auto', maxWidth:190 }}
+                          onChange={ev => {
+                            const v = ev.target.value;
+                            patch({ milestones: { ...(e.milestones || {}), [k]: v || undefined } });
+                            save({ milestones: { [k]: v } });
+                          }} />
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ fontSize:10, color:'var(--muted)', marginTop:10 }}>These dates appear as diamonds on the Gantt views; the public link and email copy only show dates that are filled in.</div>
+                </div>
+              )}
+              {!showTimeline && <div style={{ display:'flex', flexDirection:'column', gap:12, marginTop:12 }}>
                 <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
                   <div style={{ flex:1, minWidth:150 }}>
                     <span style={lbl}>Status</span>
@@ -164,7 +215,7 @@ export default function AvoEdit() {
                     Sent to Client
                   </button>
                 </div>
-              </div>
+              </div>}
             </div>
 
             {/* ── Uploads ── */}
