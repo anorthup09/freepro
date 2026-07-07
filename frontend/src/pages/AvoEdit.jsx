@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api.js';
-import { AvoHeader, EditorSelect, AVO, AVO_STATUSES } from './Avo.jsx';
+import { AvoHeader, EditorSelect, AVO, AVO_STATUSES, fmtV, stepV } from './Avo.jsx';
 
 const lbl = { fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4, display:'block' };
 const KIND_STYLE = {
@@ -92,9 +92,11 @@ export default function AvoEdit() {
                   <div style={{ flex:1, minWidth:150 }}>
                     <span style={lbl}>Version</span>
                     <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                      <span style={{ fontSize:16, fontWeight:800, color:AVO }}>V{e.version}</span>
-                      <button className="btn btn-ghost btn-sm" title="Bump to the next version"
-                        onClick={() => save({ version: Number(e.version) + 1 })}>+1</button>
+                      <button className="btn btn-ghost btn-sm" title="Version down 0.1"
+                        onClick={() => save({ version: stepV(e.version, -1) })}>−.1</button>
+                      <span style={{ fontSize:16, fontWeight:800, color:AVO }}>{fmtV(e.version)}</span>
+                      <button className="btn btn-ghost btn-sm" title="Version up 0.1"
+                        onClick={() => save({ version: stepV(e.version, 1) })}>+.1</button>
                     </div>
                   </div>
                   <div style={{ flex:1, minWidth:120 }}>

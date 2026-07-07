@@ -58,6 +58,7 @@ import Pipeline from './pages/Pipeline.jsx';
 import Avo from './pages/Avo.jsx';
 import AvoEdit from './pages/AvoEdit.jsx';
 import AvoGantt from './pages/AvoGantt.jsx';
+import AvoProject from './pages/AvoProject.jsx';
 import GanttShare from './pages/GanttShare.jsx';
 import { api } from './api.js';
 
@@ -94,6 +95,7 @@ export default function App() {
         <Route path="/projects/:id/talent-callsheets" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <TalentCallSheets />) : <Navigate to="/login" />} />
         <Route path="/avo" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <Avo />) : <Navigate to="/login" />} />
         <Route path="/avo/gantt" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <AvoGantt />) : <Navigate to="/login" />} />
+        <Route path="/avo/project/:id" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <AvoProject />) : <Navigate to="/login" />} />
         <Route path="/avo/:id" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <AvoEdit />) : <Navigate to="/login" />} />
         <Route path="/gantt/:token" element={<GanttShare />} />
         <Route path="/share/:token" element={<Share />} />

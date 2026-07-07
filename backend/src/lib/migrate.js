@@ -995,7 +995,7 @@ async function migrate() {
       music_ref TEXT,
       category TEXT,
       status TEXT DEFAULT 'COMING_SOON',
-      version INT DEFAULT 1,
+      version NUMERIC(6,1) DEFAULT 1,
       review_link TEXT,
       start_date DATE,
       end_date DATE,
@@ -1030,6 +1030,38 @@ async function migrate() {
       token TEXT UNIQUE NOT NULL DEFAULT gen_random_uuid()::text,
       kind TEXT NOT NULL,
       ref TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`;
+
+  // Versions increment by 0.1 (V1.0, V1.1, …)
+  await sql`ALTER TABLE edits ALTER COLUMN version TYPE NUMERIC(6,1)`;
+
+  // Per-project pages in AvocadoPost: lower-thirds grid + to-do list
+  await sql`
+    CREATE TABLE IF NOT EXISTS avo_project_pages (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      code TEXT UNIQUE NOT NULL,
+      title TEXT,
+      last_opened_at TIMESTAMPTZ DEFAULT NOW(),
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`;
+  await sql`
+    CREATE TABLE IF NOT EXISTS avo_lower_thirds (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      page_id TEXT NOT NULL REFERENCES avo_project_pages(id) ON DELETE CASCADE,
+      name TEXT DEFAULT '',
+      title TEXT DEFAULT '',
+      notes TEXT DEFAULT '',
+      sort INT DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`;
+  await sql`
+    CREATE TABLE IF NOT EXISTS avo_todos (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      page_id TEXT NOT NULL REFERENCES avo_project_pages(id) ON DELETE CASCADE,
+      text TEXT DEFAULT '',
+      done BOOLEAN DEFAULT FALSE,
+      sort INT DEFAULT 0,
       created_at TIMESTAMPTZ DEFAULT NOW()
     )`;
 

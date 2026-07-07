@@ -32,6 +32,57 @@ export function AvoHeader() {
 
 const fmtD = d => d ? new Date(String(d).slice(0, 10) + 'T12:00:00').toLocaleDateString('en-US', { month:'numeric', day:'numeric', year:'2-digit' }) : '—';
 const overdue = d => d && new Date(String(d).slice(0, 10) + 'T23:59:00') < new Date();
+export const fmtV = v => 'V' + (Number(v) || 1).toFixed(1);
+export const stepV = (v, dir) => Math.max(0.1, Math.round(((Number(v) || 1) + dir * 0.1) * 10) / 10);
+
+function ProjectLookup() {
+  const nav = useNavigate();
+  const [pages, setPages] = useState(null);
+  const [q, setQ] = useState('');
+  useEffect(() => { api.avoProjects().then(setPages).catch(() => setPages([])); }, []);
+
+  const filtered = (pages || []).filter(p => !q.trim()
+    || p.code.toLowerCase().includes(q.trim().toLowerCase())
+    || (p.title || '').toLowerCase().includes(q.trim().toLowerCase()));
+  const exactMatch = (pages || []).some(p => p.code.toLowerCase() === q.trim().toLowerCase());
+
+  async function createPage() {
+    try {
+      const p = await api.createAvoProject(q.trim());
+      nav(`/avo/project/${p.id}`);
+    } catch (e) { alert(e.message); }
+  }
+
+  return (
+    <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding:'14px 16px', marginBottom:24 }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, flexWrap:'wrap', marginBottom:10 }}>
+        <div style={{ fontSize:13, fontWeight:800 }}>Project Lookup</div>
+        <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search projects…"
+          style={{ width:220, fontSize:12, padding:'6px 10px' }} />
+      </div>
+      <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.07em', marginBottom:8 }}>Recent Projects</div>
+      {!pages && <div style={{ fontSize:11, color:'var(--muted)' }}>Loading…</div>}
+      {pages && filtered.length === 0 && !q.trim() && (
+        <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>No project pages yet — type a project code above to create one.</div>
+      )}
+      <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
+        {filtered.map(p => (
+          <div key={p.id} onClick={() => nav(`/avo/project/${p.id}`)}
+            style={{ background:'var(--bg)', border:'1px solid var(--border)', borderLeft:`3px solid ${AVO}`, borderRadius:8, padding:'10px 14px', minWidth:170, cursor:'pointer' }}>
+            <div style={{ fontSize:12, fontWeight:800 }}>{p.code}</div>
+            <div style={{ fontSize:10, color:'var(--muted)', marginTop:2 }}>{p.title || 'Lower thirds · to-dos'}</div>
+          </div>
+        ))}
+        {q.trim() && !exactMatch && (
+          <div onClick={createPage}
+            style={{ background:'transparent', border:`1px dashed ${AVO}`, color:AVO, borderRadius:8, padding:'10px 14px', minWidth:170, cursor:'pointer', display:'flex', alignItems:'center', fontSize:12, fontWeight:700 }}>
+            + Create “{q.trim()}”
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function NewEditModal({ onClose, onCreated }) {
   const [f, setF] = useState({ title:'', projectCode:'', leadEditorId:'', startDate:'', endDate:'' });
@@ -133,6 +184,8 @@ export default function Avo() {
           </div>
         </div>
 
+        <ProjectLookup />
+
         {!edits && <div className="empty">Loading…</div>}
 
         {edits && AVO_STATUSES.map(([key, label, color]) => {
@@ -167,7 +220,15 @@ export default function Avo() {
                             {e.project_code && <div style={{ fontSize:9, color:'var(--muted)', fontWeight:400 }}>{e.project_code}{e.project_title ? ` · ${e.project_title}` : ''}</div>}
                           </td>
                           <td style={td}>{e.lead_editor || '—'}</td>
-                          <td style={{ ...td, textAlign:'center', fontWeight:800, color:AVO }}>V{e.version}</td>
+                          <td style={{ ...td, textAlign:'center', whiteSpace:'nowrap' }} onClick={ev => ev.stopPropagation()}>
+                            <span style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
+                              <button title="Version down 0.1" onClick={ev => act(ev, e.id, () => api.updateAvoEdit(e.id, { version: stepV(e.version, -1) }))}
+                                style={{ background:'none', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:5, padding:'0 5px', fontSize:10, cursor:'pointer', lineHeight:'16px' }}>−</button>
+                              <span style={{ fontWeight:800, color:AVO, minWidth:34, display:'inline-block' }}>{fmtV(e.version)}</span>
+                              <button title="Version up 0.1" onClick={ev => act(ev, e.id, () => api.updateAvoEdit(e.id, { version: stepV(e.version, 1) }))}
+                                style={{ background:'none', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:5, padding:'0 5px', fontSize:10, cursor:'pointer', lineHeight:'16px' }}>+</button>
+                            </span>
+                          </td>
                           <td style={{ ...td, padding:'7px 3px' }}>
                             <button title="Ready For Review — email the PM" onClick={ev => act(ev, e.id, () => api.avoRfr(e.id))}
                               style={{ background:'rgba(230,194,41,0.12)', border:'1px solid #e6c229', color:'#e6c229', borderRadius:10, padding:'2px 9px', fontSize:9, fontWeight:800, cursor:'pointer' }}>

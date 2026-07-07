@@ -167,7 +167,7 @@ router.patch('/edits/:id', ...staff, async (req, res, next) => {
         review_link = ${d.reviewLink !== undefined ? (d.reviewLink || null) : sql`review_link`},
         start_date = ${d.startDate !== undefined ? (d.startDate || null) : sql`start_date`},
         end_date = ${d.endDate !== undefined ? (d.endDate || null) : sql`end_date`},
-        version = ${d.version !== undefined ? (Number(d.version) || 1) : sql`version`},
+        version = ${d.version !== undefined ? Math.max(0.1, Math.round((Number(d.version) || 1) * 10) / 10) : sql`version`},
         approved = ${d.approved !== undefined ? (d.approved === true) : sql`approved`},
         updated_at = NOW()
       WHERE id = ${req.params.id} RETURNING *`;
@@ -315,6 +315,87 @@ router.post('/gantt-share', ...staff, async (req, res, next) => {
     if (existing) return res.json({ token: existing.token });
     const [row] = await sql`INSERT INTO gantt_shares (kind, ref) VALUES (${kind}, ${ref}) RETURNING token`;
     res.status(201).json({ token: row.token });
+  } catch (e) { next(e); }
+});
+
+// ── Project pages (lookup, lower-thirds grid, to-do list) ──
+router.get('/projects', ...staff, async (req, res, next) => {
+  try {
+    const rows = await sql`SELECT * FROM avo_project_pages ORDER BY last_opened_at DESC`;
+    res.json(rows);
+  } catch (e) { next(e); }
+});
+router.post('/projects', ...staff, async (req, res, next) => {
+  try {
+    const code = String(req.body.code || '').trim();
+    if (!code) return res.status(400).json({ error: 'code required' });
+    const [existing] = await sql`SELECT * FROM avo_project_pages WHERE LOWER(code) = ${code.toLowerCase()}`;
+    if (existing) return res.json(existing);
+    const [row] = await sql`INSERT INTO avo_project_pages (code, title) VALUES (${code}, ${req.body.title || null}) RETURNING *`;
+    res.status(201).json(row);
+  } catch (e) { next(e); }
+});
+router.get('/projects/:id', ...staff, async (req, res, next) => {
+  try {
+    const [page] = await sql`UPDATE avo_project_pages SET last_opened_at = NOW() WHERE id = ${req.params.id} RETURNING *`;
+    if (!page) return res.status(404).json({ error: 'Project page not found' });
+    const lowerThirds = await sql`SELECT * FROM avo_lower_thirds WHERE page_id = ${page.id} ORDER BY sort, created_at`;
+    const todos = await sql`SELECT * FROM avo_todos WHERE page_id = ${page.id} ORDER BY sort, created_at`;
+    res.json({ ...page, lowerThirds, todos });
+  } catch (e) { next(e); }
+});
+router.patch('/projects/:id', ...staff, async (req, res, next) => {
+  try {
+    const [row] = await sql`UPDATE avo_project_pages SET
+        title = ${req.body.title !== undefined ? (req.body.title || null) : sql`title`},
+        code = ${req.body.code !== undefined && String(req.body.code).trim() ? String(req.body.code).trim() : sql`code`}
+      WHERE id = ${req.params.id} RETURNING *`;
+    if (!row) return res.status(404).json({ error: 'Project page not found' });
+    res.json(row);
+  } catch (e) { next(e); }
+});
+router.delete('/projects/:id', ...staff, async (req, res, next) => {
+  try {
+    await sql`DELETE FROM avo_project_pages WHERE id = ${req.params.id}`;
+    res.status(204).end();
+  } catch (e) { next(e); }
+});
+
+// Grid rows: kind is 'lower-thirds' or 'todos'
+const GRID_TABLES = {
+  'lower-thirds': { table: 'avo_lower_thirds', cols: ['name', 'title', 'notes', 'sort'] },
+  'todos': { table: 'avo_todos', cols: ['text', 'done', 'sort'] },
+};
+router.post('/projects/:id/:kind', ...staff, async (req, res, next) => {
+  try {
+    const g = GRID_TABLES[req.params.kind];
+    if (!g) return res.status(404).json({ error: 'Unknown grid' });
+    const [row] = await sql`INSERT INTO ${sql.unsafe(g.table)} (page_id) VALUES (${req.params.id}) RETURNING *`;
+    res.status(201).json(row);
+  } catch (e) { next(e); }
+});
+router.patch('/grid/:kind/:rowId', ...staff, async (req, res, next) => {
+  try {
+    const g = GRID_TABLES[req.params.kind];
+    if (!g) return res.status(404).json({ error: 'Unknown grid' });
+    const data = {};
+    for (const c of g.cols) {
+      if (req.body[c] === undefined) continue;
+      data[c] = c === 'done' ? req.body[c] === true : c === 'sort' ? (Number(req.body[c]) || 0) : String(req.body[c]);
+    }
+    const keys = Object.keys(data);
+    if (!keys.length) return res.status(400).json({ error: 'Nothing to update' });
+    const [row] = await sql`UPDATE ${sql.unsafe(g.table)} SET ${sql(data, ...keys)} WHERE id = ${req.params.rowId} RETURNING *`;
+    if (!row) return res.status(404).json({ error: 'Row not found' });
+    res.json(row);
+  } catch (e) { next(e); }
+});
+router.delete('/grid/:kind/:rowId', ...staff, async (req, res, next) => {
+  try {
+    const g = GRID_TABLES[req.params.kind];
+    if (!g) return res.status(404).json({ error: 'Unknown grid' });
+    await sql`DELETE FROM ${sql.unsafe(g.table)} WHERE id = ${req.params.rowId}`;
+    res.status(204).end();
   } catch (e) { next(e); }
 });
 
