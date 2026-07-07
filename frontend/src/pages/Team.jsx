@@ -253,9 +253,17 @@ export default function Team() {
                             </td>
                             <td style={td}>{r.manager_name || '—'}</td>
                             <td style={{ ...td, textAlign:'center' }}>
-                              <input type="checkbox" checked={r.status === 'APPROVED' || (r.status === 'CLOSED' && true)} disabled={r.status === 'CLOSED'}
-                                style={{ width:'auto', accentColor:'#5ABF80' }}
-                                onChange={e => patch(r.id, { approved: e.target.checked })} />
+                              {r.status === 'CLOSED' ? (
+                                <span style={{ fontSize:9, fontWeight:800, color:'var(--muted)' }}>✓ Approved</span>
+                              ) : (
+                                <button title={r.status === 'APPROVED' ? 'Click to move back to review' : 'Approve this request'}
+                                  onClick={() => patch(r.id, { approved: r.status !== 'APPROVED' })}
+                                  style={r.status === 'APPROVED'
+                                    ? { background:'#5ABF80', border:'1px solid #5ABF80', color:'#0b0b0b', borderRadius:12, padding:'3px 12px', fontSize:9, fontWeight:800, cursor:'pointer', whiteSpace:'nowrap' }
+                                    : { background:'transparent', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:12, padding:'3px 12px', fontSize:9, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap' }}>
+                                  {r.status === 'APPROVED' ? '✓ Approved' : 'Approve'}
+                                </button>
+                              )}
                             </td>
                             <td style={{ ...td, color:'var(--muted)' }}>{r.comp_notes || '—'}</td>
                             <td style={{ ...td, textAlign:'center' }}>
