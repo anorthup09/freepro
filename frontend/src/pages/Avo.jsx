@@ -284,8 +284,13 @@ export default function Avo() {
                           <td style={{ ...td, whiteSpace:'nowrap' }}>{fmtD(e.start_date)}</td>
                           <td style={{ ...td, whiteSpace:'nowrap', color: e.status !== 'CLOSED' && overdue(e.end_date) ? '#e05252' : 'var(--text)', fontWeight: overdue(e.end_date) ? 700 : 400 }}>{fmtD(e.end_date)}</td>
                           <td style={{ ...td, textAlign:'center' }} onClick={ev => ev.stopPropagation()}>
-                            <input type="checkbox" checked={e.approved || false} style={{ width:'auto', accentColor:AVO }}
-                              onChange={ev => act(ev, e.id, () => api.updateAvoEdit(e.id, { approved: ev.target.checked }))} />
+                            <button title={e.approved ? 'Click to remove approval' : 'Mark this edit approved'}
+                              onClick={ev => act(ev, e.id, () => api.updateAvoEdit(e.id, { approved: !e.approved }))}
+                              style={e.approved
+                                ? { background:AVO, border:`1px solid ${AVO}`, color:'#0b0b0b', borderRadius:12, padding:'3px 12px', fontSize:9, fontWeight:800, cursor:'pointer', whiteSpace:'nowrap' }
+                                : { background:'transparent', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:12, padding:'3px 12px', fontSize:9, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap' }}>
+                              {e.approved ? '✓ Approved' : 'Approve'}
+                            </button>
                           </td>
                         </tr>
                       ))}

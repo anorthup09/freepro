@@ -372,7 +372,8 @@ router.get('/project-codes', ...staff, async (req, res, next) => {
 // ── Project pages (lookup, lower-thirds grid, to-do list) ──
 router.get('/projects', ...staff, async (req, res, next) => {
   try {
-    const rows = await sql`SELECT * FROM avo_project_pages ORDER BY last_opened_at DESC`;
+    // Base project codes only — hide pages created with -01/-02 production suffixes
+    const rows = await sql`SELECT * FROM avo_project_pages WHERE code !~ '-[0-9]+$' ORDER BY last_opened_at DESC`;
     res.json(rows);
   } catch (e) { next(e); }
 });

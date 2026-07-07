@@ -249,7 +249,13 @@ export default function Deliverables({ project }) {
       {editItemId && (
         <div className="modal-bg" onClick={e => e.target === e.currentTarget && setEditItemId(null)}>
           <div className="modal">
-            <div className="modal-title">Edit Deliverable</div>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, flexWrap:'wrap', marginBottom:12 }}>
+              <div className="modal-title" style={{ marginBottom:0 }}>Edit Deliverable</div>
+              <select value={editForm.status} onChange={e => setEditForm(f=>({...f,status:e.target.value}))}
+                title="Feeds the matching AvocadoPost edit" style={{ width:'auto' }}>
+                {STATUSES.map(s => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
+              </select>
+            </div>
             <form onSubmit={saveEdit}>
               <div className="form-grid" style={{ marginBottom:12 }}>
                 <div className="field span2"><label>Title</label><input value={editForm.title} onChange={e => setEditForm(f=>({...f,title:e.target.value}))} required /></div>
@@ -263,11 +269,6 @@ export default function Deliverables({ project }) {
                 <div className="field span2"><label>Category</label>
                   <select value={editForm.category} onChange={e => setEditForm(f=>({...f,category:e.target.value}))}>
                     {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-                  </select>
-                </div>
-                <div className="field span2"><label>Status</label>
-                  <select value={editForm.status} onChange={e => setEditForm(f=>({...f,status:e.target.value}))}>
-                    {STATUSES.map(s => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
                   </select>
                 </div>
                 <div className="field span2" style={{ flexDirection:'row', alignItems:'center', gap:10 }}>
