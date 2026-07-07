@@ -139,7 +139,26 @@ router.get('/crew-calendar', requireAuth, async (req, res, next) => {
       FROM edits e JOIN crew_members cm ON cm.id = e.lead_editor_id
       WHERE cm.company ILIKE '%unbridled%' AND e.start_date IS NOT NULL AND e.status != 'CLOSED'
       ORDER BY member_name, e.start_date`;
-    res.json([...shootRows, ...editRows.map(r => ({ ...r, kind: 'edit' }))]);
+    // Lead-editor milestone dates show as single-day nodes
+    const EDITOR_TASKS = { icr_v1_due: 'ICR v1 Due', client_v1_due: 'Client v1 Due', client_v2_due: 'Client v2 Due', client_v3_due: 'Client v3 Due', color_audio_send: 'Send to Color & Audio', final_comp: 'Final Comp Complete' };
+    const msEdits = await sql`
+      SELECT e.id, e.title, e.milestones, COALESCE(e.project_code, 'EDIT') as project_code,
+             COALESCE(NULLIF(TRIM(CONCAT(cm.preferred_first_name, ' ', cm.preferred_last_name)), ''), cm.name) as member_name
+      FROM edits e JOIN crew_members cm ON cm.id = e.lead_editor_id
+      WHERE cm.company ILIKE '%unbridled%' AND e.status != 'CLOSED' AND e.milestones IS NOT NULL`;
+    const milestoneRows = [];
+    for (const e of msEdits) {
+      const ms = typeof e.milestones === 'string' ? JSON.parse(e.milestones || '{}') : (e.milestones || {});
+      for (const [k, label] of Object.entries(EDITOR_TASKS)) {
+        if (!ms[k]) continue;
+        milestoneRows.push({
+          id: `${e.id}-${k}`, kind: 'edit', start_date: ms[k], end_date: ms[k],
+          member_name: e.member_name, position_name: label,
+          project_id: e.id, project_title: e.title, project_code: e.project_code, project_status: 'EDIT',
+        });
+      }
+    }
+    res.json([...shootRows, ...editRows.map(r => ({ ...r, kind: 'edit' })), ...milestoneRows]);
   } catch (err) { next(err); }
 });
 

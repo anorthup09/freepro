@@ -12,6 +12,10 @@ const KIND_STYLE = {
 };
 const CATEGORIES = ['Event Recap', 'Sizzle', 'Interstitial', 'Documentary', 'Teaser', 'Social Cutdown', 'Photo Slideshow', 'Other'];
 
+// Milestones that are the lead editor's deliverables — tagged with their name
+// and fed to the Crew Calendar
+export const EDITOR_TASKS = ['icr_v1_due', 'client_v1_due', 'client_v2_due', 'client_v3_due', 'color_audio_send', 'final_comp'];
+
 // ── Timeline date math (business-day aware) ──
 const addDaysStr = (dstr, n, skipWknd) => {
   const dt = new Date(dstr + 'T12:00:00');
@@ -125,6 +129,44 @@ function MilestoneCalendarModal({ edit, onClose }) {
         </div>
       </div>
     </div>
+  );
+}
+
+// Runs of more than 3 consecutive log lines auto-collapse in the feed
+function groupActivity(activity) {
+  const out = [];
+  let run = [];
+  const flush = () => {
+    if (run.length > 3) out.push({ group: true, key: run[0].id, logs: run });
+    else out.push(...run);
+    run = [];
+  };
+  for (const a of activity) {
+    if (a.kind === 'log') run.push(a);
+    else { flush(); out.push(a); }
+  }
+  flush();
+  return out;
+}
+
+function CollapsedLogs({ logs, renderLog }) {
+  const [open, setOpen] = useState(false);
+  const authors = [...new Set(logs.map(a => a.author).filter(Boolean))];
+  if (open) return (
+    <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+      {logs.map(renderLog)}
+      <button onClick={() => setOpen(false)}
+        style={{ background:'none', border:'none', color:'var(--muted)', fontSize:10, fontWeight:700, cursor:'pointer', textAlign:'left', padding:0 }}>
+        ▾ Collapse {logs.length} changes
+      </button>
+    </div>
+  );
+  return (
+    <button onClick={() => setOpen(true)} title="Click to expand"
+      style={{ background:'none', border:'none', color:'var(--muted)', fontSize:10, cursor:'pointer', textAlign:'left', padding:0, display:'flex', justifyContent:'space-between', gap:10, width:'100%' }}>
+      <span style={{ fontWeight:700 }}>▸ {logs.length} changes{authors.length === 1 ? ` by ${authors[0]}` : ''}</span>
+      <span style={{ whiteSpace:'nowrap' }}>{fmtDT(logs[logs.length - 1].created_at)}</span>
+    </button>
   );
 }
 
@@ -289,7 +331,7 @@ export default function AvoEdit() {
                 const setOpt = (k, v) => setTlOpts(o => ({ ...o, [k]: v }));
                 function autoFill() {
                   const end = ms.scripting_end;
-                  if (!end) return alert('Set a Scripting End date first — the auto-fill builds forward from it.');
+                  if (!end) return alert('Set a Creative/Scripting Complete date first — the auto-fill builds forward from it.');
                   const { skipWknd, editDaysAfterScript, editDaysAfterFeedback, reviewDays } = tlOpts;
                   const next = { ...ms };
                   let cur = end;
@@ -321,7 +363,7 @@ export default function AvoEdit() {
                     <div><div style={optLbl}>Edit days after script</div><input value={tlOpts.editDaysAfterScript} onChange={ev => setOpt('editDaysAfterScript', ev.target.value)} style={optIn} /></div>
                     <div><div style={optLbl}>Edit days after feedback</div><input value={tlOpts.editDaysAfterFeedback} onChange={ev => setOpt('editDaysAfterFeedback', ev.target.value)} style={optIn} /></div>
                     <div><div style={optLbl}>Client review days</div><input value={tlOpts.reviewDays} onChange={ev => setOpt('reviewDays', ev.target.value)} style={optIn} /></div>
-                    <button onClick={autoFill} title="Fill every milestone forward from Scripting End (color & audio 3 days, final comp +2, delivery +1)"
+                    <button onClick={autoFill} title="Fill every milestone forward from Creative/Scripting Complete (color & audio 3 days, final comp +2, delivery +1)"
                       style={{ background:AVO, border:`1px solid ${AVO}`, color:'#0b0b0b', borderRadius:14, padding:'6px 14px', fontSize:11, fontWeight:800, cursor:'pointer' }}>
                       ⚡ Auto-Fill Timeline
                     </button>
@@ -351,7 +393,15 @@ export default function AvoEdit() {
                       if (val) prevDate = val;
                       return (
                         <div key={k} style={{ display:'flex', alignItems:'center', gap:12, padding:'6px 0', borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
-                          <span style={{ ...lbl, marginBottom:0, flex:1 }}>{label}</span>
+                          <span style={{ ...lbl, marginBottom:0, flex:1 }}>
+                            {label}
+                            {EDITOR_TASKS.includes(k) && (e.lead_editor_name_resolved || e.lead_editor_name) && (
+                              <span title="Lead editor's task — shows on the Crew Calendar"
+                                style={{ marginLeft:8, textTransform:'none', letterSpacing:0, background:`${AVO}1e`, border:`1px solid ${AVO}55`, color:AVO, borderRadius:10, padding:'1px 8px', fontSize:9, fontWeight:700 }}>
+                                {e.lead_editor_name_resolved || e.lead_editor_name}
+                              </span>
+                            )}
+                          </span>
                           {gap != null && (
                             <span title="Time since the previous milestone"
                               style={{ flexShrink:0, fontSize:9, fontWeight:800, color:AVO, whiteSpace:'nowrap' }}>
@@ -500,12 +550,19 @@ export default function AvoEdit() {
           <div style={{ flex:'1 1 380px', minWidth:300, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, display:'flex', flexDirection:'column', maxHeight:'80vh' }}>
             <div style={{ padding:'14px 18px', borderBottom:'1px solid var(--border)', fontSize:12, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.06em' }}>Activity</div>
             <div ref={feedRef} style={{ flex:1, overflowY:'auto', padding:'12px 18px', display:'flex', flexDirection:'column', gap:8 }}>
-              {(e.activity || []).map(a => a.kind === 'log' ? (
+              {groupActivity(e.activity || []).map(item => item.group ? (
+                <CollapsedLogs key={item.key} logs={item.logs} renderLog={a => (
+                  <div key={a.id} style={{ fontSize:10, color:'var(--muted)', display:'flex', justifyContent:'space-between', gap:10 }}>
+                    <span>• {a.author && a.author !== 'system' ? `${a.author} ` : ''}{a.body}</span>
+                    <span style={{ whiteSpace:'nowrap' }}>{fmtDT(a.created_at)}</span>
+                  </div>
+                )} />
+              ) : item.kind === 'log' ? (() => { const a = item; return (
                 <div key={a.id} style={{ fontSize:10, color:'var(--muted)', display:'flex', justifyContent:'space-between', gap:10 }}>
                   <span>• {a.author && a.author !== 'system' ? `${a.author} ` : ''}{a.body}</span>
                   <span style={{ whiteSpace:'nowrap' }}>{fmtDT(a.created_at)}</span>
                 </div>
-              ) : (
+              ); })() : (() => { const a = item; return (
                 <div key={a.id} style={{ ...KIND_STYLE[a.kind] || KIND_STYLE.comment, borderRadius:10, padding:'8px 12px' }}>
                   <div style={{ display:'flex', justifyContent:'space-between', gap:10, marginBottom:3 }}>
                     <span style={{ fontSize:10, fontWeight:700, color: a.kind === 'rfr' ? '#e6c229' : a.kind === 'sent' ? '#4a9eff' : AVO }}>
@@ -515,7 +572,7 @@ export default function AvoEdit() {
                   </div>
                   <div style={{ fontSize:12, whiteSpace:'pre-wrap' }}>{a.body}</div>
                 </div>
-              ))}
+              ); })())}
               {(e.activity || []).length === 0 && <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>No activity yet.</div>}
             </div>
             <div style={{ padding:'12px 14px', borderTop:'1px solid var(--border)' }}>

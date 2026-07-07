@@ -14,7 +14,7 @@ const STATUS_LABELS = {
 };
 
 export const MILESTONES = [
-  ['scripting_start', 'Scripting Start'], ['scripting_end', 'Scripting End'],
+  ['scripting_start', 'Scripting Start'], ['scripting_end', 'Creative/Scripting Complete'],
   ['icr_v1_due', 'ICR v1 Due'], ['icr_feedback', 'ICR Feedback'],
   ['client_v1_due', 'Client v1 Due'], ['client_v1_feedback', 'Client v1 Feedback'],
   ['client_v2_due', 'Client v2 Due'], ['client_v2_feedback', 'Client v2 Feedback'],
