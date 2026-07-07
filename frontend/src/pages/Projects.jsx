@@ -109,8 +109,12 @@ export default function Projects() {
   }
 
   const activeProjects = projects
-    .filter(p => p.status !== 'ARCHIVED')
+    .filter(p => p.status !== 'ARCHIVED' && p.status !== 'WRAPPED')
     .sort((a, b) => (a.start_date || '').localeCompare(b.start_date || ''));
+  // Wrapped shoots drop to a condensed strip above Archived
+  const wrappedProjects = projects
+    .filter(p => p.status === 'WRAPPED')
+    .sort((a, b) => (b.start_date || '').localeCompare(a.start_date || ''));
 
   return (
     <>
@@ -192,6 +196,29 @@ export default function Projects() {
             );
           })}
         </div>
+        )}
+
+        {view === 'production' && !isCrew && wrappedProjects.length > 0 && (
+          <div style={{ marginTop:24 }}>
+            <div style={{ fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--muted)', marginBottom:8 }}>
+              Wrapped ({wrappedProjects.length})
+            </div>
+            <div style={{ display:'flex', flexDirection:'column', gap:6, opacity:0.75 }}>
+              {wrappedProjects.map(p => (
+                <Link key={p.id} to={`/projects/${p.id}`}
+                  style={{ display:'flex', alignItems:'center', gap:12, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'8px 14px', textDecoration:'none', color:'var(--text)' }}>
+                  <span style={{ fontSize:11, fontWeight:800, color:'var(--muted)', flexShrink:0 }}>{p.code}</span>
+                  <span style={{ fontSize:12, fontWeight:600, flex:1, minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{p.title}</span>
+                  <span className={`pill ${STATUS_PILL.WRAPPED || ''}`} style={{ flexShrink:0 }}>WRAPPED</span>
+                  <button onClick={e => archiveProject(e, p.id)}
+                    style={{ background:'none', border:'1px solid var(--border)', borderRadius:5, color:'var(--muted)', fontSize:10, padding:'2px 8px', cursor:'pointer', whiteSpace:'nowrap', flexShrink:0 }}>
+                    Archive
+                  </button>
+                  <span className="proj-card-arrow">›</span>
+                </Link>
+              ))}
+            </div>
+          </div>
         )}
 
         {view === 'production' && !isCrew && projects.some(p => p.status === 'ARCHIVED') && (
