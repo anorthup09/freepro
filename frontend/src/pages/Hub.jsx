@@ -95,7 +95,15 @@ function UserManagement({ user }) {
   return (
     <div style={{ padding:'0 26px 22px', display:'flex', flexDirection:'column', alignItems:'center', gap:12 }}>
       {open && (
-        <div style={{ width:'100%', maxWidth:720, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden' }}>
+        <div onClick={e => e.target === e.currentTarget && setOpen(false)}
+          style={{ position:'fixed', inset:0, zIndex:120, background:'rgba(0,0,0,0.7)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+        <div onClick={e => e.stopPropagation()}
+          style={{ width:'100%', maxWidth:760, maxHeight:'85vh', display:'flex', flexDirection:'column', background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, overflow:'hidden' }}>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 18px', borderBottom:'1px solid var(--border)' }}>
+            <div style={{ fontSize:14, fontWeight:800 }}>User Management</div>
+            <button className="btn btn-ghost btn-sm" onClick={() => setOpen(false)}>✕</button>
+          </div>
+          <div style={{ overflowY:'auto' }}>
           <table className="pos-table" style={{ width:'100%' }}>
             <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>MFA</th><th></th></tr></thead>
             <tbody>
@@ -138,11 +146,13 @@ function UserManagement({ user }) {
               ))}
             </tbody>
           </table>
+          </div>
+        </div>
         </div>
       )}
       <button onClick={toggle}
         style={{ background:'none', border:'1px solid var(--border)', borderRadius:14, padding:'4px 12px', color:'var(--muted)', fontSize:10, fontWeight:600, letterSpacing:'.05em', cursor:'pointer' }}>
-        User Management {open ? '▾' : '▸'}
+        User Management ▸
       </button>
     </div>
   );
