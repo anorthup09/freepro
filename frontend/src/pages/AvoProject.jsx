@@ -148,6 +148,148 @@ function Grid({ kind, columns, rows, setRows, pageId, doneKey, renderCell }) {
   );
 }
 
+// ── Music options: rows grouped by video title, client-shareable table ──
+function MusicShareModal({ groups, code, title, onClose }) {
+  const tableRef = React.useRef(null);
+  const [copied, setCopied] = useState(false);
+  async function copy() {
+    const html = '<meta charset="utf-8">' + tableRef.current.outerHTML;
+    const text = groups.map(([video, rows]) =>
+      `${video || 'Music'}\n${rows.map(r => '  - ' + r.url + (r.note ? ` (${r.note})` : '')).join('\n')}`).join('\n\n');
+    try {
+      await navigator.clipboard.write([new ClipboardItem({
+        'text/html': new Blob([html], { type: 'text/html' }),
+        'text/plain': new Blob([text], { type: 'text/plain' }),
+      })]);
+    } catch {
+      const range = document.createRange();
+      range.selectNode(tableRef.current);
+      const sel = window.getSelection();
+      sel.removeAllRanges(); sel.addRange(range);
+      document.execCommand('copy'); sel.removeAllRanges();
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+  const tdw = { border:'1px solid #999', padding:'10px 14px', verticalAlign:'top', fontSize:14, color:'#111' };
+  return (
+    <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:120, background:'rgba(0,0,0,0.7)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, padding:'20px 22px', width:'100%', maxWidth:780, maxHeight:'90vh', overflowY:'auto' }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, marginBottom:14, flexWrap:'wrap' }}>
+          <div style={{ fontSize:15, fontWeight:800 }}>Music Options — {title || code}</div>
+          <div style={{ display:'flex', gap:8 }}>
+            <button onClick={copy}
+              style={{ background: copied ? AVO : `${AVO}26`, border:`1px solid ${AVO}`, color: copied ? '#0b0b0b' : AVO, borderRadius:20, padding:'5px 16px', fontSize:11, fontWeight:800, cursor:'pointer' }}>
+              {copied ? '✓ Copied' : '📋 Copy for Email'}
+            </button>
+            <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
+          </div>
+        </div>
+        <div style={{ background:'#fff', borderRadius:8, padding:14, overflowX:'auto' }}>
+          <table ref={tableRef} style={{ borderCollapse:'collapse', width:'100%', background:'#ffffff', fontFamily:'Arial, sans-serif' }}>
+            <thead>
+              <tr>
+                <td style={{ ...tdw, fontWeight:'bold' }}>Video</td>
+                <td style={{ ...tdw, fontWeight:'bold' }}>Music Options</td>
+              </tr>
+            </thead>
+            <tbody>
+              {groups.map(([video, rows], i) => (
+                <tr key={i}>
+                  <td style={{ ...tdw, fontWeight:'bold' }}>{video || 'Music'}</td>
+                  <td style={tdw}>
+                    {rows.map((r, j) => (
+                      <div key={j} style={{ marginBottom:4 }}>
+                        <a href={r.url} style={{ color:'#1155cc' }}>{r.url}</a>{r.note ? ` (${r.note})` : ''}
+                      </div>
+                    ))}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MusicGrid({ rows, setRows, pageId, code, title }) {
+  const [share, setShare] = useState(false);
+  async function addRow() {
+    try { const r = await api.addAvoGridRow(pageId, 'music'); setRows(rs => [...rs, r]); }
+    catch (e) { alert(e.message); }
+  }
+  async function saveCell(rowId, col, val) {
+    try { const r = await api.updateAvoGridRow('music', rowId, { [col]: val }); setRows(rs => rs.map(x => x.id === rowId ? r : x)); }
+    catch (e) { alert(e.message); }
+  }
+  async function removeRow(rowId) {
+    try { await api.deleteAvoGridRow('music', rowId); setRows(rs => rs.filter(x => x.id !== rowId)); }
+    catch (e) { alert(e.message); }
+  }
+  // Rows sharing a video title collapse into one group (title cell spans them)
+  const groups = [];
+  {
+    const seen = {};
+    for (const r of rows) {
+      const key = (r.category || '').trim().toLowerCase();
+      if (key && seen[key] !== undefined) groups[seen[key]][1].push(r);
+      else { if (key) seen[key] = groups.length; groups.push([r.category || '', [r]]); }
+    }
+  }
+  const shareGroups = groups.filter(([, rs]) => rs.some(r => r.url));
+  return (
+    <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, overflow:'hidden' }}>
+      <div className="budget-tbl-wrap">
+        <table style={{ width:'100%', borderCollapse:'collapse' }}>
+          <thead>
+            <tr><th style={th}>Video Title</th><th style={th}>Link</th><th style={th}>Note</th><th style={{ ...th, width:34 }}></th></tr>
+          </thead>
+          <tbody>
+            {rows.length === 0 && (
+              <tr><td colSpan={4} style={{ ...td, padding:'12px 14px', fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>Nothing here yet.</td></tr>
+            )}
+            {groups.map(([video, grp]) => grp.map((r, j) => (
+              <tr key={r.id} style={{ borderTop: j === 0 ? '1px solid rgba(255,255,255,0.08)' : 'none' }}>
+                {j === 0 && (
+                  <td rowSpan={grp.length} style={{ ...td, minWidth:170, borderRight:'1px solid rgba(255,255,255,0.05)', verticalAlign:'top', paddingTop:8 }}>
+                    <Cell value={r.category} placeholder="Video title…" onSave={v => saveCell(r.id, 'category', v)}
+                      style={video ? { background:`${typeColor(video)}22`, border:`1px solid ${typeColor(video)}55`, color:typeColor(video), fontWeight:700, textAlign:'center', borderRadius:12 } : {}} />
+                    {grp.length > 1 && <div style={{ fontSize:9, color:'var(--muted)', textAlign:'center', marginTop:3 }}>{grp.length} options</div>}
+                  </td>
+                )}
+                <td style={{ ...td, minWidth:260 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                    <Cell value={r.url} placeholder="https://…" onSave={v => saveCell(r.id, 'url', v)} style={{ color:'#4a9eff' }} />
+                    {r.url && <a href={r.url} target="_blank" rel="noreferrer" style={{ color:'#4a9eff', fontSize:11, textDecoration:'none', flexShrink:0 }}>▶</a>}
+                  </div>
+                </td>
+                <td style={{ ...td, minWidth:130 }}><Cell value={r.note} placeholder="instrumental version…" onSave={v => saveCell(r.id, 'note', v)} /></td>
+                <td style={{ ...td, textAlign:'center' }}>
+                  <button title="Delete row" onClick={() => removeRow(r.id)}
+                    style={{ background:'none', border:'none', color:'var(--muted)', fontSize:12, cursor:'pointer' }}>✕</button>
+                </td>
+              </tr>
+            )))}
+          </tbody>
+        </table>
+      </div>
+      <div style={{ padding:'8px 14px', borderTop:'1px solid var(--border)', display:'flex', justifyContent:'space-between', gap:8, flexWrap:'wrap' }}>
+        <button onClick={addRow}
+          style={{ background:`${AVO}22`, border:`1px solid ${AVO}`, color:AVO, borderRadius:14, padding:'3px 12px', fontSize:10, fontWeight:800, cursor:'pointer' }}>
+          + Add Row
+        </button>
+        <button onClick={() => setShare(true)} disabled={!shareGroups.length}
+          style={{ background:'rgba(74,158,255,0.12)', border:'1px solid #4a9eff', color:'#4a9eff', borderRadius:14, padding:'3px 14px', fontSize:10, fontWeight:800, cursor: shareGroups.length ? 'pointer' : 'default', opacity: shareGroups.length ? 1 : 0.4 }}>
+          Share
+        </button>
+      </div>
+      {share && <MusicShareModal groups={shareGroups} code={code} title={title} onClose={() => setShare(false)} />}
+    </div>
+  );
+}
+
 const TABS = [['tracker', 'Project Video Tracker'], ['todos', 'To-Do List'], ['music', 'Music Options'], ['lower-thirds', 'Lower Thirds']];
 
 export default function AvoProject() {
@@ -171,17 +313,6 @@ export default function AvoProject() {
     if (!confirm(`Delete the project page for ${page.code} (and its grids)?`)) return;
     try { await api.deleteAvoProject(id); nav('/avo'); } catch (e) { alert(e.message); }
   }
-
-  // Music categories show as colored pills like the tracker sheet
-  const musicCell = (r, c, save) => c === 'category'
-    ? <Cell value={r.category} placeholder="Category…" onSave={save}
-        style={r.category ? { background:`${typeColor(r.category)}22`, border:`1px solid ${typeColor(r.category)}55`, color:typeColor(r.category), fontWeight:700, textAlign:'center', borderRadius:12 } : {}} />
-    : c === 'url'
-      ? <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-          <Cell value={r.url} placeholder="https://…" onSave={save} style={{ color:'#4a9eff' }} />
-          {r.url && <a href={r.url} target="_blank" rel="noreferrer" style={{ color:'#4a9eff', fontSize:11, textDecoration:'none', flexShrink:0 }}>▶</a>}
-        </div>
-      : null;
 
   const todoCell = (r, c, save) => c === 'category'
     ? <Cell value={r.category} placeholder="Category…" onSave={save}
@@ -230,8 +361,7 @@ export default function AvoProject() {
                 columns={[['category', 'Category', 'Takeaways…'], ['video', 'Video', 'Which video'], ['needs', 'Needs', 'Script, music, shot list…'], ['text', 'To Do', 'Status / who’s on it…']]} />
             )}
             {tab === 'music' && (
-              <Grid kind="music" pageId={id} rows={music} setRows={setMusic} renderCell={musicCell}
-                columns={[['category', 'Category', 'Daily Recap…'], ['url', 'Link', 'https://artlist.io/…'], ['note', 'Note', 'instrumental version…']]} />
+              <MusicGrid pageId={id} rows={music} setRows={setMusic} code={page.code} title={page.title} />
             )}
             {tab === 'lower-thirds' && (
               <Grid kind="lower-thirds" pageId={id} rows={lowerThirds} setRows={setLowerThirds}
