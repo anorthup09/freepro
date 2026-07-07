@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../App.jsx';
 import { api } from '../api.js';
@@ -53,11 +53,35 @@ export default function Team() {
   const [saving, setSaving] = useState(false);
   const [closedOpen, setClosedOpen] = useState(false);
   const [view, setView] = useState('form'); // 'form' | 'pipeline'
+  const { user } = useAuth();
+
+  const displayOf = m => [m.preferred_first_name, m.preferred_last_name].filter(Boolean).join(' ').trim() || m.name;
+  // Not selectable as requester or manager
+  const EXCLUDED = ['allison boon', 'ariel lynch', 'brandon emery', 'cole seifert', 'dylan patterson', 'melinda love'];
+  const selectable = roster.filter(m => !EXCLUDED.includes(displayOf(m).toLowerCase()));
 
   useEffect(() => {
     api.ptoList().then(setRows).catch(e => alert(e.message));
     api.getCrew().then(cs => setRoster(cs.filter(m => (m.company || '').toLowerCase().includes('unbridled')))).catch(() => setRoster([]));
   }, []);
+
+  // Requester defaults to whoever is signed in (matched by email)
+  useEffect(() => {
+    if (!roster.length || !user?.email) return;
+    const me = roster.find(m => (m.email || '').toLowerCase() === user.email.toLowerCase());
+    if (me) setF(v => v.memberId ? v : { ...v, memberId: me.id });
+  }, [roster, user?.email]);
+
+  // Title auto-fills as "Name - Type" until it's manually edited
+  const lastAuto = useRef('');
+  useEffect(() => {
+    const m = roster.find(x => x.id === f.memberId);
+    const t = m && f.ptoType ? `${displayOf(m)} - ${f.ptoType}` : '';
+    if (t) {
+      setF(v => (!v.title || v.title === lastAuto.current) ? { ...v, title: t } : v);
+      lastAuto.current = t;
+    }
+  }, [f.memberId, f.ptoType, roster.length]);
 
   const set = k => e => setF(v => ({ ...v, [k]: e.target.value }));
   const canSubmit = f.memberId && f.ptoType && f.title && f.startDate && f.endDate && f.onShoots && f.managerId;
@@ -112,7 +136,7 @@ export default function Team() {
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(260px, 1fr))', gap:14 }}>
             <div>
               <span style={lbl}>Who is requesting PTO and/or OOO? *</span>
-              <MemberSelect roster={roster} value={f.memberId} onChange={v => setF(x => ({ ...x, memberId: v }))} />
+              <MemberSelect roster={selectable} value={f.memberId} onChange={v => setF(x => ({ ...x, memberId: v }))} />
             </div>
             <div>
               <span style={lbl}>PTO Type *</span>
@@ -144,7 +168,7 @@ export default function Team() {
             </div>
             <div>
               <span style={lbl}>Manager's Name (Must be person who approves your timecards) *</span>
-              <MemberSelect roster={roster} value={f.managerId} onChange={v => setF(x => ({ ...x, managerId: v }))} />
+              <MemberSelect roster={selectable} value={f.managerId} onChange={v => setF(x => ({ ...x, managerId: v }))} />
             </div>
             <div style={{ gridColumn:'1 / -1' }}>
               <span style={lbl}>If comp, please provide project code and production dates responsible for this comp time.</span>
@@ -152,7 +176,23 @@ export default function Team() {
             </div>
             <div style={{ gridColumn:'1 / -1' }}>
               <span style={lbl}>Are there any other team members that you would like to notify about this request?</span>
-              <input value={f.notify} onChange={set('notify')} placeholder="Names…" />
+              <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+                {[...roster].sort((a, b) => displayOf(a).localeCompare(displayOf(b))).filter(m => m.id !== f.memberId).map(m => {
+                  const name = displayOf(m);
+                  const picked = f.notify.split(', ').filter(Boolean);
+                  const on = picked.includes(name);
+                  return (
+                    <button key={m.id} type="button"
+                      onClick={() => setF(v => ({ ...v, notify: (on ? picked.filter(n => n !== name) : [...picked, name]).join(', ') }))}
+                      style={{
+                        background: on ? `${BLUE}2e` : 'transparent', border:`1px solid ${on ? BLUE : 'var(--border)'}`,
+                        color: on ? BLUE : 'var(--muted)', borderRadius:14, padding:'4px 12px', fontSize:11, fontWeight:700, cursor:'pointer',
+                      }}>
+                      {on ? '✓ ' : ''}{name}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
           <div style={{ display:'flex', justifyContent:'flex-end', marginTop:16 }}>
