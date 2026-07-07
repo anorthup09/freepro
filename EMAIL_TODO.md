@@ -81,3 +81,7 @@ link (SMTP) is connected. Keep this file updated as email features are added.
   still work, mail is just skipped/501.
 - Test after connecting: submit a gear request and a Harbinger on a test
   project and confirm both emails arrive.
+- [ ] **Password reset email** — `backend/src/routes/auth.js` POST
+      /forgot-password sends "Reset your password" with a 1-hour single-use
+      link (/reset-password/:token). Dormant until SMTP; until then admins
+      can reset passwords manually.

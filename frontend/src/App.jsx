@@ -61,6 +61,7 @@ import AvoGantt from './pages/AvoGantt.jsx';
 import AvoProject from './pages/AvoProject.jsx';
 import GanttShare from './pages/GanttShare.jsx';
 import Team from './pages/Team.jsx';
+import ResetPassword from './pages/ResetPassword.jsx';
 import { api } from './api.js';
 
 export const AuthContext = createContext(null);
@@ -100,6 +101,7 @@ export default function App() {
         <Route path="/avo/project/:id" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <AvoProject />) : <Navigate to="/login" />} />
         <Route path="/avo/:id" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <AvoEdit />) : <Navigate to="/login" />} />
         <Route path="/gantt/:token" element={<GanttShare />} />
+        <Route path="/reset-password/:token" element={<ResetPassword />} />
         <Route path="/share/:token" element={<Share />} />
         <Route path="/contract/:token" element={<ContractSign />} />
         <Route path="/budget/:token" element={<BudgetShare />} />

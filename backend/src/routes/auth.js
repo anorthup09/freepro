@@ -57,6 +57,43 @@ router.get('/me', requireAuth, async (req, res, next) => {
 // ── MFA (TOTP — works with Microsoft/Google Authenticator, 1Password, etc.) ──
 
 // Complete a login that requires MFA
+// Forgot password: always answers the same way so emails can't be probed.
+// The reset email goes out via the shared mailer (dormant until SMTP is set).
+router.post('/forgot-password', async (req, res, next) => {
+  try {
+    const email = String(req.body.email || '').trim().toLowerCase();
+    if (!email) return res.status(400).json({ error: 'Email is required' });
+    const [user] = await sql`SELECT id, name, email FROM users WHERE LOWER(email) = ${email}`;
+    if (user) {
+      const token = crypto.randomBytes(32).toString('hex');
+      await sql`INSERT INTO password_resets (user_id, token, expires_at) VALUES (${user.id}, ${token}, NOW() + INTERVAL '1 hour')`;
+      const { sendMail } = require('../lib/mailer');
+      const base = process.env.APP_URL || `${req.protocol}://${req.get('host')}`;
+      sendMail({
+        to: user.email,
+        subject: 'Reset your password — Unbridled Operating Platform',
+        text: `Hi ${user.name},\n\nSomeone (hopefully you) asked to reset your password.\n\nReset it here (link expires in 1 hour):\n${base}/reset-password/${token}\n\nIf you didn't request this, you can ignore this email — your password is unchanged.`,
+      }).catch(err => console.error('Password reset email failed:', err.message));
+    }
+    res.json({ ok: true, message: 'If that email has an account, a reset link is on its way.' });
+  } catch (err) { next(err); }
+});
+
+router.post('/reset-password', async (req, res, next) => {
+  try {
+    const { token, password } = req.body;
+    if (!token || !password || String(password).length < 8) {
+      return res.status(400).json({ error: 'A reset token and a password of at least 8 characters are required' });
+    }
+    const [r] = await sql`SELECT * FROM password_resets WHERE token = ${token} AND used_at IS NULL AND expires_at > NOW()`;
+    if (!r) return res.status(400).json({ error: 'This reset link is invalid or has expired — request a new one.' });
+    const hashed = await bcrypt.hash(password, 12);
+    await sql`UPDATE users SET password = ${hashed}, updated_at = NOW() WHERE id = ${r.user_id}`;
+    await sql`UPDATE password_resets SET used_at = NOW() WHERE id = ${r.id}`;
+    res.json({ ok: true });
+  } catch (err) { next(err); }
+});
+
 router.post('/mfa/verify', async (req, res, next) => {
   try {
     const { mfaToken, code } = req.body;
