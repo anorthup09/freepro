@@ -8,6 +8,58 @@ const hint = { fontSize:10, color:'var(--muted)', marginTop:-2, marginBottom:4 }
 const req = <span style={{ color:'#e05252' }}> *</span>;
 const secHead = { fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.1em', color:'#5ABF80', margin:'10px 0 2px' };
 
+const FIELD_LABELS = [
+  ['email', 'Your Email Address'], ['clientCompany', 'Client Company Name'], ['projectName', 'Name of Project'],
+  ['proposedCode', 'Proposed Code'], ['solutionsCode', 'Existing Solutions / Client Code'],
+  ['sow', 'SOW & Project Description'], ['budgetSummary', 'Budget Summary / Breakdown'],
+  ['clientContacts', 'Client Contacts'], ['contractSigned', 'Contract (or MSA) Already Signed'],
+  ['primaryContactName', 'Primary Client Contact'], ['primaryContactEmail', 'Primary Contact Email'],
+  ['mailingAddress', 'Client Mailing Address'], ['invoiceCc', 'Contract/Invoice CC'],
+  ['mediaRevenue', 'Media Revenue'], ['capcoRevenue', 'Capture Co Revenue'],
+  ['mediaCommissionOwners', 'Media Commission Owner(s)'], ['budgetOwner', 'Budget Owner'],
+  ['mediaCommissionPct', 'Media Commission % Breakdown'], ['solutionsCommissionOwners', 'Solutions Commission Owner(s)'],
+  ['noCommissions', 'No Commissions'], ['solutionsCommissionPct', '% for Solutions Commission(s)'],
+  ['budgetLink', 'Link to Budget'], ['creativeNotes', 'Creative Direction Notes'],
+  ['videoReferences', 'Video References'], ['kickoffDate', 'Client Kickoff Call Date'],
+  ['preferredPm', 'Preferred PM(s)'], ['preferredProducer', 'Preferred Producer(s)/Director(s)'],
+  ['budgetedPositions', 'Budgeted Positions'], ['shootingLocations', 'Shooting Location(s)'],
+  ['gearScope', 'Gear Scope/Summary'], ['productionDates', 'Production and Travel Dates'],
+  ['preferredCrew', 'Preferred Crew'], ['crewNotes', 'Crew Preference Notes'],
+  ['preferredEditors', 'Preferred Editor(s)'], ['proColorist', 'Pro Colorist Needed'],
+  ['proAudio', 'Pro Audio Engineer Needed'], ['finalDelivery', 'Estimated Final Delivery'],
+  ['closeMonth', 'Estimated Close Month'], ['notes', 'Notes'],
+];
+
+// Read-only view of a submitted Harbinger
+export function HarbingerView({ harbinger, onClose }) {
+  const d = harbinger.data || {};
+  return (
+    <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.75)', zIndex:130, display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'30px 14px', overflowY:'auto' }}>
+      <div onClick={e => e.stopPropagation()} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid #5ABF80', borderRadius:12, padding:'22px 26px', width:'100%', maxWidth:680 }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14 }}>
+          <div>
+            <div style={{ fontSize:18, fontWeight:800 }}>Harbinger — Submitted</div>
+            <div style={{ fontSize:11, color:'var(--muted)', marginTop:3 }}>
+              Submitted {harbinger.created_at ? new Date(harbinger.created_at).toLocaleString() : ''}{harbinger.submitted_by ? ` · ${harbinger.submitted_by}` : ''}
+            </div>
+          </div>
+          <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
+        </div>
+        {FIELD_LABELS.map(([k, label]) => {
+          const v = d[k];
+          if (v === undefined || v === null || v === '' || v === false) return null;
+          return (
+            <div key={k} style={{ marginBottom:12 }}>
+              <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:2 }}>{label}</div>
+              <div style={{ fontSize:13, whiteSpace:'pre-wrap' }}>{v === true ? 'Yes' : String(v)}</div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // Internal kickoff form ("Harbinger") — opens the project code with accounting.
 // Shown when a budget moves from RFP to Live. `initial` carries prefills.
 export default function HarbingerModal({ pid, initial, onClose, onSubmitted }) {

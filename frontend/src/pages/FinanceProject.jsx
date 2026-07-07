@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../api.js';
 import { FinanceHeader, LogoField } from './Finance.jsx';
-import HarbingerModal from '../components/HarbingerModal.jsx';
+import HarbingerModal, { HarbingerView } from '../components/HarbingerModal.jsx';
 import { useAuth } from '../App.jsx';
 
 const fmt$ = (n, dec = 2) => '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: dec === 2 ? 2 : 0, maximumFractionDigits: dec });
@@ -61,6 +61,12 @@ export default function FinanceProject() {
   const [overview, setOverview] = useState(false);
   const [editProject, setEditProject] = useState(false);
   const [glass, setGlass] = useState(false);
+  const [harbinger, setHarbinger] = useState(null);
+  const [showHarbinger, setShowHarbinger] = useState(false);
+
+  useEffect(() => {
+    api.getHarbinger(pid).then(setHarbinger).catch(() => setHarbinger(null));
+  }, [pid]);
 
   useEffect(() => {
     const onScroll = () => setGlass(window.scrollY > 170);
@@ -95,6 +101,12 @@ export default function FinanceProject() {
             </button>
           </div>
           <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:8 }}>
+            {harbinger && (
+              <button onClick={() => setShowHarbinger(true)}
+                style={{ background:'rgba(90,191,128,0.12)', border:'1px solid #5ABF80', color:'#5ABF80', borderRadius:20, padding:'4px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
+                View Harbinger
+              </button>
+            )}
             <div style={{ display:'flex', border:'1px solid var(--border)', borderRadius:16, overflow:'hidden' }}>
               {[['budget', 'Budget'], ['vcc', 'VCC']].map(([k, label]) => (
                 <button key={k} onClick={() => setTab(k)}
@@ -164,6 +176,7 @@ export default function FinanceProject() {
           </div>
         );
       })()}
+      {showHarbinger && harbinger && <HarbingerView harbinger={harbinger} onClose={() => setShowHarbinger(false)} />}
       {editProject && (
         <EditProjectModal project={project} onClose={() => setEditProject(false)}
           onSaved={p2 => { set(() => ({ project: p2 })); setEditProject(false); }} />
