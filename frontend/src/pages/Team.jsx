@@ -52,6 +52,7 @@ export default function Team() {
   const [f, setF] = useState(BLANK);
   const [saving, setSaving] = useState(false);
   const [closedOpen, setClosedOpen] = useState(false);
+  const [view, setView] = useState('form'); // 'form' | 'pipeline'
 
   useEffect(() => {
     api.ptoList().then(setRows).catch(e => alert(e.message));
@@ -68,6 +69,7 @@ export default function Team() {
       const row = await api.createPto(f);
       setRows(rs => [...(rs || []), row]);
       setF(BLANK);
+      setView('pipeline');
     } catch (e) { alert(e.message); }
     setSaving(false);
   }
@@ -89,7 +91,19 @@ export default function Team() {
     <div style={{ minHeight:'100vh', background:'var(--bg)' }}>
       <TeamHeader />
       <div style={{ maxWidth:1150, margin:'0 auto', padding:'6px 16px 80px' }}>
-        <div className="page-title" style={{ marginBottom:4 }}>PTO Request Form</div>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, flexWrap:'wrap', marginBottom:4 }}>
+          <div className="page-title" style={{ marginBottom:0 }}>PTO / OOO Requests</div>
+          <div style={{ display:'flex', border:`1px solid ${BLUE}55`, borderRadius:16, overflow:'hidden' }}>
+            {[['form', 'Request Form'], ['pipeline', 'Pipeline']].map(([v, label]) => (
+              <button key={v} onClick={() => setView(v)}
+                style={{ background: view === v ? `${BLUE}2e` : 'transparent', border:'none', color: view === v ? BLUE : 'var(--muted)', padding:'6px 16px', fontSize:11, fontWeight:800, cursor:'pointer' }}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+        {view === 'form' && (
+        <>
         <div style={{ fontSize:12, color:'#e05252', fontWeight:700, marginBottom:16, maxWidth:640 }}>
           Please remember to send your Backup Plan document with coverage for your ongoing projects before taking PTO.
         </div>
@@ -148,8 +162,12 @@ export default function Team() {
             </button>
           </div>
         </div>
+        </>
+        )}
 
         {/* ── Pipeline ── */}
+        {view === 'pipeline' && (
+        <div style={{ marginTop:16 }}>
         {!rows && <div className="empty">Loading…</div>}
         {rows && GROUPS.map(([key, label, color]) => {
           const group = rows.filter(r => r.status === key);
@@ -213,6 +231,8 @@ export default function Team() {
         <div style={{ fontSize:10, color:'var(--muted)' }}>
           Approving a request moves it to the PTO/WFH Calendar; once the end date passes it closes automatically. All requests appear on the Crew Calendar.
         </div>
+        </div>
+        )}
       </div>
     </div>
   );
