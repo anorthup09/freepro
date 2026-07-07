@@ -147,6 +147,7 @@ const FIELD_LOGS = {
   assetRef: 'Asset Ref', musicRef: 'Music Ref', category: 'Category', status: 'Status',
   reviewLink: 'Current Review Link', startDate: 'Start Date', endDate: 'End Date',
   version: 'Version', approved: 'Approved', projectCode: 'Project Code',
+  trackerType: 'Type', style: 'Style', notes: 'Notes', videoAssets: 'Video Assets',
 };
 
 // ── Update (logs every change, ClickUp-style) ──
@@ -190,6 +191,10 @@ router.patch('/edits/:id', ...staff, async (req, res, next) => {
         end_date = ${d.endDate !== undefined ? (d.endDate || null) : sql`end_date`},
         version = ${d.version !== undefined ? Math.max(0.1, Math.round((Number(d.version) || 1) * 10) / 10) : sql`version`},
         approved = ${d.approved !== undefined ? (d.approved === true) : sql`approved`},
+        tracker_type = ${d.trackerType !== undefined ? (d.trackerType || null) : sql`tracker_type`},
+        style = ${d.style !== undefined ? (d.style || null) : sql`style`},
+        notes = ${d.notes !== undefined ? (d.notes || null) : sql`notes`},
+        video_assets = ${d.videoAssets !== undefined ? (d.videoAssets || null) : sql`video_assets`},
         milestones = ${milestones !== undefined ? sql.json(milestones) : sql`milestones`},
         updated_at = NOW()
       WHERE id = ${req.params.id} RETURNING *`;
@@ -201,6 +206,7 @@ router.patch('/edits/:id', ...staff, async (req, res, next) => {
       reviewLink: before.review_link, startDate: before.start_date ? String(before.start_date).slice(0, 10) : null,
       endDate: before.end_date ? String(before.end_date).slice(0, 10) : null,
       version: before.version, approved: before.approved, projectCode: before.project_code,
+      trackerType: before.tracker_type, style: before.style, notes: before.notes, videoAssets: before.video_assets,
     };
     for (const [k, label] of Object.entries(FIELD_LOGS)) {
       if (d[k] === undefined) continue;
@@ -352,11 +358,11 @@ router.post('/gantt-share', ...staff, async (req, res, next) => {
 // ── Live ProFi project codes (New Edit form only offers these) ──
 router.get('/project-codes', ...staff, async (req, res, next) => {
   try {
+    // Base ProFi project codes only — no -01/-02 suffixes (those are production-specific)
     const rows = await sql`
-      SELECT DISTINCT COALESCE(s.shoot_code, p.code) as code, p.title, p.client
+      SELECT DISTINCT p.code, p.title, p.client
       FROM projects p
       JOIN budgets b ON b.project_id = p.id AND COALESCE(b.kind, 'main') = 'main' AND b.status = 'Live'
-      LEFT JOIN budget_sections s ON s.budget_id = b.id AND s.kind = 'shoot' AND s.shoot_code IS NOT NULL
       WHERE p.parent_project_id IS NULL
       ORDER BY 1`;
     res.json(rows);
@@ -386,7 +392,14 @@ router.get('/projects/:id', ...staff, async (req, res, next) => {
     if (!page) return res.status(404).json({ error: 'Project page not found' });
     const lowerThirds = await sql`SELECT * FROM avo_lower_thirds WHERE page_id = ${page.id} ORDER BY sort, created_at`;
     const todos = await sql`SELECT * FROM avo_todos WHERE page_id = ${page.id} ORDER BY sort, created_at`;
-    res.json({ ...page, lowerThirds, todos });
+    const music = await sql`SELECT * FROM avo_music WHERE page_id = ${page.id} ORDER BY sort, created_at`;
+    // Video tracker: every pipeline edit carrying this project code (or one of its shoot codes)
+    const edits = await sql`
+      SELECT e.*, COALESCE((SELECT ${sql.unsafe(PREF)} FROM crew_members cm WHERE cm.id = e.lead_editor_id), e.lead_editor_name) as lead_editor
+      FROM edits e
+      WHERE e.project_code = ${page.code} OR e.project_code LIKE ${page.code + '-%'}
+      ORDER BY e.end_date NULLS LAST, e.created_at`;
+    res.json({ ...page, lowerThirds, todos, music, edits });
   } catch (e) { next(e); }
 });
 router.patch('/projects/:id', ...staff, async (req, res, next) => {
@@ -409,7 +422,8 @@ router.delete('/projects/:id', ...staff, async (req, res, next) => {
 // Grid rows: kind is 'lower-thirds' or 'todos'
 const GRID_TABLES = {
   'lower-thirds': { table: 'avo_lower_thirds', cols: ['name', 'title', 'notes', 'sort'] },
-  'todos': { table: 'avo_todos', cols: ['text', 'done', 'sort'] },
+  'todos': { table: 'avo_todos', cols: ['category', 'video', 'needs', 'text', 'done', 'sort'] },
+  'music': { table: 'avo_music', cols: ['category', 'url', 'note', 'sort'] },
 };
 router.post('/projects/:id/:kind', ...staff, async (req, res, next) => {
   try {

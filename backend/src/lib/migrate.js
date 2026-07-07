@@ -1066,6 +1066,26 @@ async function migrate() {
       sort INT DEFAULT 0,
       created_at TIMESTAMPTZ DEFAULT NOW()
     )`;
+  // To-do list matches the production tracker: Category / Video / Needs / To Do
+  await sql`ALTER TABLE avo_todos ADD COLUMN IF NOT EXISTS category TEXT DEFAULT ''`;
+  await sql`ALTER TABLE avo_todos ADD COLUMN IF NOT EXISTS video TEXT DEFAULT ''`;
+  await sql`ALTER TABLE avo_todos ADD COLUMN IF NOT EXISTS needs TEXT DEFAULT ''`;
+  // Music options per project page
+  await sql`
+    CREATE TABLE IF NOT EXISTS avo_music (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      page_id TEXT NOT NULL REFERENCES avo_project_pages(id) ON DELETE CASCADE,
+      category TEXT DEFAULT '',
+      url TEXT DEFAULT '',
+      note TEXT DEFAULT '',
+      sort INT DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`;
+  // Video-tracker columns on edits (Type / Style / Notes / Video Assets)
+  await sql`ALTER TABLE edits ADD COLUMN IF NOT EXISTS tracker_type TEXT`;
+  await sql`ALTER TABLE edits ADD COLUMN IF NOT EXISTS style TEXT`;
+  await sql`ALTER TABLE edits ADD COLUMN IF NOT EXISTS notes TEXT`;
+  await sql`ALTER TABLE edits ADD COLUMN IF NOT EXISTS video_assets TEXT`;
 
   console.log('Migration complete.');
 }
