@@ -55,6 +55,10 @@ import FinanceReport from './pages/FinanceReport.jsx';
 import MfaSetup from './pages/MfaSetup.jsx';
 import FinanceOverview from './pages/FinanceOverview.jsx';
 import Pipeline from './pages/Pipeline.jsx';
+import Avo from './pages/Avo.jsx';
+import AvoEdit from './pages/AvoEdit.jsx';
+import AvoGantt from './pages/AvoGantt.jsx';
+import GanttShare from './pages/GanttShare.jsx';
 import { api } from './api.js';
 
 export const AuthContext = createContext(null);
@@ -88,6 +92,10 @@ export default function App() {
         <Route path="/crew-views" element={user ? <CrewViews /> : <Navigate to="/login" />} />
         <Route path="/projects/:id" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <Project />) : <Navigate to="/login" />} />
         <Route path="/projects/:id/talent-callsheets" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <TalentCallSheets />) : <Navigate to="/login" />} />
+        <Route path="/avo" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <Avo />) : <Navigate to="/login" />} />
+        <Route path="/avo/gantt" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <AvoGantt />) : <Navigate to="/login" />} />
+        <Route path="/avo/:id" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <AvoEdit />) : <Navigate to="/login" />} />
+        <Route path="/gantt/:token" element={<GanttShare />} />
         <Route path="/share/:token" element={<Share />} />
         <Route path="/contract/:token" element={<ContractSign />} />
         <Route path="/budget/:token" element={<BudgetShare />} />

@@ -32,7 +32,7 @@ const TILES = [
     desc: 'Edit pipelines, review & approval, versioning, and delivery.',
     accent: '#9DC183',
     icon: '🥑',
-    to: null,
+    to: '/avo',
     status: 'In Development',
   },
 ];

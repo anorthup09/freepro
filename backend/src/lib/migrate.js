@@ -978,6 +978,61 @@ async function migrate() {
 
   await sql`ALTER TABLE crew_assignments ADD COLUMN IF NOT EXISTS invite_seq INT DEFAULT 0`;
 
+  await sql`
+    CREATE TABLE IF NOT EXISTS edits (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      project_id TEXT,
+      project_code TEXT,
+      deliverable_id TEXT,
+      title TEXT NOT NULL,
+      description TEXT,
+      lead_editor_id TEXT REFERENCES crew_members(id),
+      lead_editor_name TEXT,
+      pm_id TEXT REFERENCES crew_members(id),
+      aspect_ratio TEXT,
+      resolution TEXT,
+      asset_ref TEXT,
+      music_ref TEXT,
+      category TEXT,
+      status TEXT DEFAULT 'COMING_SOON',
+      version INT DEFAULT 1,
+      review_link TEXT,
+      start_date DATE,
+      end_date DATE,
+      approved BOOLEAN DEFAULT FALSE,
+      invite_seq INT DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    )`;
+  await sql`
+    CREATE TABLE IF NOT EXISTS edit_activity (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      edit_id TEXT NOT NULL REFERENCES edits(id) ON DELETE CASCADE,
+      kind TEXT NOT NULL,
+      author TEXT,
+      body TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`;
+  await sql`
+    CREATE TABLE IF NOT EXISTS edit_files (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      edit_id TEXT NOT NULL REFERENCES edits(id) ON DELETE CASCADE,
+      filename TEXT NOT NULL,
+      mime TEXT,
+      size INT,
+      data BYTEA,
+      uploaded_by TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`;
+  await sql`
+    CREATE TABLE IF NOT EXISTS gantt_shares (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      token TEXT UNIQUE NOT NULL DEFAULT gen_random_uuid()::text,
+      kind TEXT NOT NULL,
+      ref TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`;
+
   console.log('Migration complete.');
 }
 

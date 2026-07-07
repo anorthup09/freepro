@@ -129,7 +129,17 @@ router.get('/crew-calendar', requireAuth, async (req, res, next) => {
         AND pr.status != 'ARCHIVED'
       ORDER BY member_name, ca.start_date`;
     const codes = await displayCodes([...new Set(rows.map(r => r.project_id))]);
-    res.json(rows.map(r => codes[r.project_id] ? { ...r, project_code: codes[r.project_id] } : r));
+    const shootRows = rows.map(r => ({ ...(codes[r.project_id] ? { ...r, project_code: codes[r.project_id] } : r), kind: 'shoot' }));
+    // AvocadoPost edits appear alongside shoots
+    const editRows = await sql`
+      SELECT e.id, e.start_date, e.end_date, e.lead_editor_id as crew_member_id,
+             COALESCE(NULLIF(TRIM(CONCAT(cm.preferred_first_name, ' ', cm.preferred_last_name)), ''), cm.name) as member_name,
+             'Edit' as position_name, e.id as project_id, e.title as project_title,
+             COALESCE(e.project_code, 'EDIT') as project_code, 'EDIT' as project_status
+      FROM edits e JOIN crew_members cm ON cm.id = e.lead_editor_id
+      WHERE cm.company ILIKE '%unbridled%' AND e.start_date IS NOT NULL AND e.status != 'CLOSED'
+      ORDER BY member_name, e.start_date`;
+    res.json([...shootRows, ...editRows.map(r => ({ ...r, kind: 'edit' }))]);
   } catch (err) { next(err); }
 });
 
