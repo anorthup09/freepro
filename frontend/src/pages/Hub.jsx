@@ -78,6 +78,14 @@ function UserManagement({ user }) {
     } catch (e) { alert(e.message); }
   }
 
+  async function setPassword(id, name) {
+    const pw = prompt(`New password for ${name} (min 8 characters):`);
+    if (pw == null) return;
+    if (pw.length < 8) return alert('Password must be at least 8 characters');
+    try { await api.setUserPassword(id, pw); alert(`Password updated for ${name}. Their old password is hashed and was never visible to anyone.`); }
+    catch (e) { alert(e.message); }
+  }
+
   async function removeUser(id, name) {
     if (!confirm(`Delete user ${name}?`)) return;
     try { await api.deleteUser(id); setUsers(us => us.filter(x => x.id !== id)); }
@@ -100,7 +108,9 @@ function UserManagement({ user }) {
                       {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
                     </select>
                   </td>
-                  <td style={{ textAlign:'right' }}>
+                  <td style={{ textAlign:'right', whiteSpace:'nowrap' }}>
+                    <button onClick={() => setPassword(u.id, u.name)} title="Set a new password (the old one is hashed and never visible)"
+                      style={{ background:'none', border:'1px solid var(--border)', borderRadius:5, color:'var(--muted)', fontSize:11, padding:'3px 9px', cursor:'pointer', marginRight:6 }}>Set Password</button>
                     {u.id !== user.id && (
                       <button onClick={() => removeUser(u.id, u.name)}
                         style={{ background:'none', border:'1px solid var(--border)', borderRadius:5, color:'var(--red-text)', fontSize:11, padding:'3px 9px', cursor:'pointer' }}>Delete</button>

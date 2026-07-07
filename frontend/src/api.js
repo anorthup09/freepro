@@ -86,6 +86,7 @@ export const api = {
   avoGanttShare: (kind, ref) => req('POST', '/avo/gantt-share', { kind, ref }),
   getGanttShare: (token) => req('GET', `/gantt-share/${token}`),
   forgotPassword: (email) => req('POST', '/auth/forgot-password', { email }),
+  setUserPassword: (id, password) => req('PATCH', `/users/${id}/password`, { password }),
   resetPassword: (token, password) => req('POST', '/auth/reset-password', { token, password }),
   ptoList: () => req('GET', '/team/pto'),
   createPto: (data) => req('POST', '/team/pto', data),
