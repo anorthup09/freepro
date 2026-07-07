@@ -123,7 +123,7 @@ export default function CrewCalendar() {
                       const from = Math.max(0, idxOf(a.start_date));
                       const to = Math.min(totalDays - 1, idxOf(a.end_date || a.start_date));
                       if (to < from) return null;
-                      const c = colorFor(a.project_code);
+                      const c = a.kind === 'pto' ? '#4a9eff' : colorFor(a.project_code);
                       const isEdit = a.kind === 'edit';
                       return (
                         <a key={a.id} href={a.kind === 'pto' ? '/team' : isEdit ? `/avo/${a.project_id}` : `/projects/${a.project_id}`}
