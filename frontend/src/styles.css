@@ -461,6 +461,18 @@ textarea { resize: vertical; min-height: 70px; }
   .hub-pipeline-btn button { flex: 1; justify-content: center; }
 }
 
+/* Hub tiles on mobile: one swipeable row instead of stacking */
+@media (max-width: 700px) {
+  .hub-tiles {
+    display: flex !important;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 12px;
+  }
+  .hub-tiles > div { flex: 0 0 76%; scroll-snap-align: center; }
+}
+
 /* Avo video tracker: row edit button only shows on hover */
 .vt-row .vt-edit { opacity: 0; transition: opacity 0.12s; }
 .vt-row:hover .vt-edit { opacity: 1; }
