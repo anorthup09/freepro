@@ -121,10 +121,16 @@ export default function Hub() {
           <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height:26, filter:'brightness(0) invert(1)', opacity:0.95, display:'block' }} />
           <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.12em', marginTop:5 }}>Operating Platform</div>
         </div>
-        <button onClick={() => nav('/pipeline')} className="hub-pipeline-btn"
-          style={{ background:'rgba(232,80,10,0.2)', border:'1px solid var(--orange)', color:'var(--orange)', borderRadius:20, padding:'5px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
-          Project Pipeline
-        </button>
+        <div className="hub-pipeline-btn" style={{ display:'flex', gap:12 }}>
+          <button onClick={() => nav('/pipeline')}
+            style={{ background:'rgba(232,80,10,0.16)', border:'1.5px solid var(--orange)', color:'var(--orange)', borderRadius:12, padding:'12px 26px', fontSize:13, fontWeight:800, cursor:'pointer', display:'flex', alignItems:'center', gap:8 }}>
+            <span style={{ fontSize:16 }}>⚡</span> Project Pipeline
+          </button>
+          <button onClick={() => nav('/crew-calendar')}
+            style={{ background:'rgba(90,191,128,0.14)', border:'1.5px solid #5ABF80', color:'#5ABF80', borderRadius:12, padding:'12px 26px', fontSize:13, fontWeight:800, cursor:'pointer', display:'flex', alignItems:'center', gap:8 }}>
+            <span style={{ fontSize:16 }}>📅</span> Crew Calendar
+          </button>
+        </div>
         <div style={{ display:'flex', alignItems:'center', gap:12 }}>
           <span style={{ fontSize:11, color:'var(--muted)' }}>{user?.name}</span>
           {user?.role === 'ADMIN' && (
