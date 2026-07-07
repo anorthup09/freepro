@@ -1087,6 +1087,23 @@ async function migrate() {
   await sql`ALTER TABLE edits ADD COLUMN IF NOT EXISTS notes TEXT`;
   await sql`ALTER TABLE edits ADD COLUMN IF NOT EXISTS video_assets TEXT`;
 
+  // Team Management: PTO / OOO requests
+  await sql`
+    CREATE TABLE IF NOT EXISTS pto_requests (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      member_id TEXT REFERENCES crew_members(id),
+      title TEXT NOT NULL,
+      pto_type TEXT DEFAULT 'PTO',
+      start_date DATE,
+      end_date DATE,
+      on_shoots TEXT,
+      comp_notes TEXT,
+      manager_id TEXT REFERENCES crew_members(id),
+      notify TEXT,
+      status TEXT DEFAULT 'REVIEW',
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`;
+
   console.log('Migration complete.');
 }
 

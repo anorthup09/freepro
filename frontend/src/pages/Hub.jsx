@@ -35,6 +35,16 @@ const TILES = [
     to: '/avo',
     status: 'In Development',
   },
+  {
+    key: 'team',
+    title: 'Team Management',
+    tagline: 'People Operations',
+    desc: 'PTO & OOO requests, approvals, and team availability.',
+    accent: '#4a9eff',
+    icon: '👥',
+    to: '/team',
+    status: null,
+  },
 ];
 
 export const STATUS_COLORS = {

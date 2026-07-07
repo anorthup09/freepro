@@ -60,6 +60,7 @@ import AvoEdit from './pages/AvoEdit.jsx';
 import AvoGantt from './pages/AvoGantt.jsx';
 import AvoProject from './pages/AvoProject.jsx';
 import GanttShare from './pages/GanttShare.jsx';
+import Team from './pages/Team.jsx';
 import { api } from './api.js';
 
 export const AuthContext = createContext(null);
@@ -93,6 +94,7 @@ export default function App() {
         <Route path="/crew-views" element={user ? <CrewViews /> : <Navigate to="/login" />} />
         <Route path="/projects/:id" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <Project />) : <Navigate to="/login" />} />
         <Route path="/projects/:id/talent-callsheets" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <TalentCallSheets />) : <Navigate to="/login" />} />
+        <Route path="/team" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <Team />) : <Navigate to="/login" />} />
         <Route path="/avo" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <Avo />) : <Navigate to="/login" />} />
         <Route path="/avo/gantt" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <AvoGantt />) : <Navigate to="/login" />} />
         <Route path="/avo/project/:id" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <AvoProject />) : <Navigate to="/login" />} />

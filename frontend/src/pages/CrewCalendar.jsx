@@ -126,7 +126,7 @@ export default function CrewCalendar() {
                       const c = colorFor(a.project_code);
                       const isEdit = a.kind === 'edit';
                       return (
-                        <a key={a.id} href={isEdit ? `/avo/${a.project_id}` : `/projects/${a.project_id}`}
+                        <a key={a.id} href={a.kind === 'pto' ? '/team' : isEdit ? `/avo/${a.project_id}` : `/projects/${a.project_id}`}
                           title={`${a.project_code || ''} · ${a.project_title || ''} — ${a.position_name}`}
                           style={{
                             position: 'absolute', top: 8 + (laneOf[a.id] || 0) * 28, height: 24, zIndex: 1,

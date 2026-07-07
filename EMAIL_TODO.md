@@ -63,3 +63,13 @@ link (SMTP) is connected. Keep this file updated as email features are added.
   still work, mail is just skipped/501.
 - Test after connecting: submit a gear request and a Harbinger on a test
   project and confirm both emails arrive.
+- [ ] **PTO request → manager approval email** — `backend/src/routes/team.js` POST
+  /pto emails the selected manager ("PTO Request — {title}" with type, dates,
+  shoot conflicts, comp reference). Also TODO once SMTP is live: notify the
+  extra team members listed on the request, and confirm approval back to the
+  requester.
+
+## Feature backlog (non-email)
+- [ ] **Harbinger → send contract prompt** — after submitting a Harbinger form,
+  pop up a dialog offering to send the contract right away. (User: "this
+  feature can come later".)

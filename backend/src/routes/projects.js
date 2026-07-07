@@ -158,7 +158,20 @@ router.get('/crew-calendar', requireAuth, async (req, res, next) => {
         });
       }
     }
-    res.json([...shootRows, ...editRows.map(r => ({ ...r, kind: 'edit' })), ...milestoneRows]);
+    // PTO / OOO requests block out the calendar too
+    const ptoRows = await sql`
+      SELECT p.id, p.start_date, p.end_date, p.member_id as crew_member_id,
+             COALESCE(NULLIF(TRIM(CONCAT(cm.preferred_first_name, ' ', cm.preferred_last_name)), ''), cm.name) as member_name,
+             p.pto_type as position_name, p.id as project_id, p.title as project_title,
+             p.pto_type as project_code, p.status as project_status
+      FROM pto_requests p JOIN crew_members cm ON cm.id = p.member_id
+      WHERE p.status != 'CLOSED' AND p.start_date IS NOT NULL`;
+    res.json([
+      ...shootRows,
+      ...editRows.map(r => ({ ...r, kind: 'edit' })),
+      ...milestoneRows,
+      ...ptoRows.map(r => ({ ...r, kind: 'pto', position_name: r.project_status === 'REVIEW' ? `${r.position_name} (pending)` : r.position_name })),
+    ]);
   } catch (err) { next(err); }
 });
 
