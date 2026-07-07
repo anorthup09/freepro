@@ -6,7 +6,7 @@ const ROLES = ['ADMIN', 'PRODUCER', 'CREW', 'CLIENT', 'PENDING'];
 
 router.get('/', requireAuth, requireRole('ADMIN'), async (req, res, next) => {
   try {
-    res.json(await sql`SELECT id, name, email, role, created_at FROM users ORDER BY created_at`);
+    res.json(await sql`SELECT id, name, email, role, mfa_enabled, mfa_required, created_at FROM users ORDER BY created_at`);
   } catch (e) { next(e); }
 });
 
@@ -18,6 +18,16 @@ router.patch('/:id', requireAuth, requireRole('ADMIN'), async (req, res, next) =
       return res.status(400).json({ error: "You can't remove your own admin access" });
     }
     const [u] = await sql`UPDATE users SET role = ${role}::user_role WHERE id = ${req.params.id} RETURNING id, name, email, role`;
+    if (!u) return res.status(404).json({ error: 'User not found' });
+    res.json(u);
+  } catch (e) { next(e); }
+});
+
+// Admin requires (or un-requires) MFA for a user — they'll be walked through
+// authenticator setup on their next load if it isn't already enabled.
+router.patch('/:id/mfa-required', requireAuth, requireRole('ADMIN'), async (req, res, next) => {
+  try {
+    const [u] = await sql`UPDATE users SET mfa_required = ${req.body.required === true} WHERE id = ${req.params.id} RETURNING id, name, email, role, mfa_enabled, mfa_required`;
     if (!u) return res.status(404).json({ error: 'User not found' });
     res.json(u);
   } catch (e) { next(e); }

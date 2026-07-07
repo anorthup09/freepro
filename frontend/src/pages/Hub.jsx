@@ -97,7 +97,7 @@ function UserManagement({ user }) {
       {open && (
         <div style={{ width:'100%', maxWidth:720, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden' }}>
           <table className="pos-table" style={{ width:'100%' }}>
-            <thead><tr><th>Name</th><th>Email</th><th>Role</th><th></th></tr></thead>
+            <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>MFA</th><th></th></tr></thead>
             <tbody>
               {users.map(u => (
                 <tr key={u.id}>
@@ -107,6 +107,24 @@ function UserManagement({ user }) {
                     <select value={u.role} onChange={e => changeRole(u.id, e.target.value)} style={{ width:'auto' }}>
                       {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
                     </select>
+                  </td>
+                  <td style={{ whiteSpace:'nowrap' }}>
+                    {u.mfa_enabled ? (
+                      <span style={{ fontSize:10, fontWeight:800, color:'#5ABF80' }}>✓ Enabled</span>
+                    ) : ['ADMIN','PRODUCER'].includes(u.role) ? (
+                      <span style={{ fontSize:10, color:'var(--muted)' }} title="Admins and Producers are always required to set up MFA">Required (role)</span>
+                    ) : (
+                      <button title={u.mfa_required ? 'MFA required — they set it up on next sign-in. Click to remove.' : 'Require authenticator setup for this user'}
+                        onClick={async () => {
+                          try { const r = await api.setUserMfaRequired(u.id, !u.mfa_required); setUsers(us => us.map(x => x.id === u.id ? { ...x, ...r } : x)); }
+                          catch (e) { alert(e.message); }
+                        }}
+                        style={u.mfa_required
+                          ? { background:'rgba(74,158,255,0.15)', border:'1px solid #4a9eff', color:'#4a9eff', borderRadius:10, padding:'2px 9px', fontSize:9, fontWeight:800, cursor:'pointer' }
+                          : { background:'none', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:10, padding:'2px 9px', fontSize:9, fontWeight:700, cursor:'pointer' }}>
+                        {u.mfa_required ? 'Required ✓' : 'Require MFA'}
+                      </button>
+                    )}
                   </td>
                   <td style={{ textAlign:'right', whiteSpace:'nowrap' }}>
                     <button onClick={() => setPassword(u.id, u.name)} title="Set a new password (the old one is hashed and never visible)"
@@ -133,6 +151,11 @@ function UserManagement({ user }) {
 export default function Hub() {
   const nav = useNavigate();
   const { user, setUser } = useAuth();
+  const isCrew = user?.role === 'CREW';
+  // Crew accounts get FreePro (crew views), Avo, and Team Management only
+  const tiles = isCrew
+    ? TILES.filter(t => t.key !== 'profi').map(t => t.key === 'freepro' ? { ...t, to: '/crew-views', tagline: 'Crew Views' } : t)
+    : TILES;
 
   return (
     <div style={{ minHeight:'100vh', background:'var(--bg)', display:'flex', flexDirection:'column' }}>
@@ -141,7 +164,7 @@ export default function Hub() {
           <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height:26, filter:'brightness(0) invert(1)', opacity:0.95, display:'block' }} />
           <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.12em', marginTop:5 }}>Operating Platform</div>
         </div>
-        <div className="hub-pipeline-btn" style={{ display:'flex', gap:12 }}>
+        {!isCrew && <div className="hub-pipeline-btn" style={{ display:'flex', gap:12 }}>
           <button onClick={() => nav('/pipeline')}
             style={{ background:'rgba(232,80,10,0.16)', border:'1.5px solid var(--orange)', color:'var(--orange)', borderRadius:12, padding:'12px 26px', fontSize:13, fontWeight:800, cursor:'pointer', display:'flex', alignItems:'center', gap:8 }}>
             <span style={{ fontSize:16 }}>⚡</span> Project Pipeline
@@ -150,7 +173,7 @@ export default function Hub() {
             style={{ background:'rgba(90,191,128,0.14)', border:'1.5px solid #5ABF80', color:'#5ABF80', borderRadius:12, padding:'12px 26px', fontSize:13, fontWeight:800, cursor:'pointer', display:'flex', alignItems:'center', gap:8 }}>
             <span style={{ fontSize:16 }}>📅</span> Crew Calendar
           </button>
-        </div>
+        </div>}
         <div style={{ display:'flex', alignItems:'center', gap:12 }}>
           <span style={{ fontSize:11, color:'var(--muted)' }}>{user?.name}</span>
           {user?.role === 'ADMIN' && (
@@ -180,7 +203,7 @@ export default function Hub() {
               <div style={{ fontSize:12, color:'var(--muted)', marginTop:4 }}>Every project, from budget to delivery.</div>
             </div>
             <div className="hub-tiles" style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(260px, 1fr))', gap:16 }}>
-              {TILES.map(t => {
+              {tiles.map(t => {
                 const clickable = !!t.to;
                 return (
                   <div key={t.key}

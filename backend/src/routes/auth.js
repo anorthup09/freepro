@@ -49,7 +49,10 @@ router.post('/login', async (req, res, next) => {
 
 router.get('/me', requireAuth, async (req, res, next) => {
   try {
-    const [user] = await sql`SELECT id, name, email, role, created_at, mfa_enabled FROM users WHERE id = ${req.user.id}`;
+    const [user] = await sql`SELECT id, name, email, role, created_at, mfa_enabled, mfa_required FROM users WHERE id = ${req.user.id}`;
+    // If the role changed since this token was issued (e.g. PENDING → ADMIN),
+    // hand back a fresh token so the session picks up the new access.
+    if (user && user.role !== req.user.role) return res.json({ ...user, refreshedToken: makeToken(user) });
     res.json(user);
   } catch (err) { next(err); }
 });

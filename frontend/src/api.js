@@ -56,7 +56,12 @@ export const api = {
   // Auth
   login: (email, password) => req('POST', '/auth/login', { email, password }),
   register: (name, email, password) => req('POST', '/auth/register', { name, email, password }),
-  me: () => req('GET', '/auth/me'),
+  me: async () => {
+    const u = await req('GET', '/auth/me');
+    // Server reissues the token when the account's role changed since sign-in
+    if (u?.refreshedToken) localStorage.setItem('fp_token', u.refreshedToken);
+    return u;
+  },
   mfaVerify: (mfaToken, code) => req('POST', '/auth/mfa/verify', { mfaToken, code }),
   mfaSetup: () => req('POST', '/auth/mfa/setup'),
   mfaEnable: (code) => req('POST', '/auth/mfa/enable', { code }),
@@ -87,6 +92,7 @@ export const api = {
   getGanttShare: (token) => req('GET', `/gantt-share/${token}`),
   forgotPassword: (email) => req('POST', '/auth/forgot-password', { email }),
   setUserPassword: (id, password) => req('PATCH', `/users/${id}/password`, { password }),
+  setUserMfaRequired: (id, required) => req('PATCH', `/users/${id}/mfa-required`, { required }),
   resetPassword: (token, password) => req('POST', '/auth/reset-password', { token, password }),
   ptoList: () => req('GET', '/team/pto'),
   createPto: (data) => req('POST', '/team/pto', data),

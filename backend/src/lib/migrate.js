@@ -783,6 +783,7 @@ async function migrate() {
   await sql`ALTER TABLE budget_sections ADD COLUMN IF NOT EXISTS trip TEXT`;
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS mfa_secret TEXT`;
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS mfa_enabled BOOLEAN DEFAULT FALSE`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS mfa_required BOOLEAN DEFAULT FALSE`;
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS mfa_recovery TEXT`;
   await sql`ALTER TABLE projects ADD COLUMN IF NOT EXISTS pipeline TEXT`;
   await sql`ALTER TABLE budgets ADD COLUMN IF NOT EXISTS kind TEXT DEFAULT 'main'`;

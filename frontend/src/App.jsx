@@ -81,10 +81,10 @@ export default function App() {
   return (
     <ErrorBoundary>
     <AuthContext.Provider value={{ user, setUser }}>
-      {user?.role === 'PENDING' ? <PendingApproval setUser={setUser} /> : (user && ['ADMIN','PRODUCER'].includes(user.role) && user.mfa_enabled === false) ? <MfaSetup /> : (
+      {user?.role === 'PENDING' ? <PendingApproval setUser={setUser} /> : (user && (['ADMIN','PRODUCER'].includes(user.role) || user.mfa_required === true) && user.mfa_enabled === false) ? <MfaSetup /> : (
       <Routes>
         <Route path="/login" element={user ? <Navigate to="/" /> : <Login />} />
-        <Route path="/" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <Hub />) : <Navigate to="/login" />} />
+        <Route path="/" element={user ? <Hub /> : <Navigate to="/login" />} />
         <Route path="/projects" element={user ? <Projects /> : <Navigate to="/login" />} />
         <Route path="/crew-calendar" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <CrewCalendar />) : <Navigate to="/login" />} />
         <Route path="/finance" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <Finance />) : <Navigate to="/login" />} />
@@ -95,11 +95,11 @@ export default function App() {
         <Route path="/crew-views" element={user ? <CrewViews /> : <Navigate to="/login" />} />
         <Route path="/projects/:id" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <Project />) : <Navigate to="/login" />} />
         <Route path="/projects/:id/talent-callsheets" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <TalentCallSheets />) : <Navigate to="/login" />} />
-        <Route path="/team" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <Team />) : <Navigate to="/login" />} />
-        <Route path="/avo" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <Avo />) : <Navigate to="/login" />} />
-        <Route path="/avo/gantt" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <AvoGantt />) : <Navigate to="/login" />} />
-        <Route path="/avo/project/:id" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <AvoProject />) : <Navigate to="/login" />} />
-        <Route path="/avo/:id" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <AvoEdit />) : <Navigate to="/login" />} />
+        <Route path="/team" element={user ? <Team /> : <Navigate to="/login" />} />
+        <Route path="/avo" element={user ? <Avo /> : <Navigate to="/login" />} />
+        <Route path="/avo/gantt" element={user ? <AvoGantt /> : <Navigate to="/login" />} />
+        <Route path="/avo/project/:id" element={user ? <AvoProject /> : <Navigate to="/login" />} />
+        <Route path="/avo/:id" element={user ? <AvoEdit /> : <Navigate to="/login" />} />
         <Route path="/gantt/:token" element={<GanttShare />} />
         <Route path="/reset-password/:token" element={<ResetPassword />} />
         <Route path="/share/:token" element={<Share />} />

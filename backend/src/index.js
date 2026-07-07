@@ -79,8 +79,10 @@ app.use('/api', (req, res, next) => {
     if (u.role === 'PENDING' && !(req.path.startsWith('/auth') || req.path.startsWith('/share'))) {
       return res.status(403).json({ error: 'Your account is awaiting approval from an admin' });
     }
-    if (u.role === 'CREW' && !(req.path.startsWith('/auth') || req.path === '/crew-views' || req.path.startsWith('/share'))) {
-      return res.status(403).json({ error: 'Crew accounts can only access Crew Views' });
+    if (u.role === 'CREW' && !(req.path.startsWith('/auth') || req.path === '/crew-views' || req.path.startsWith('/share')
+      || req.path.startsWith('/avo') || req.path.startsWith('/team') || req.path.startsWith('/gantt-share')
+      || (req.path.startsWith('/crew') && req.method === 'GET'))) {
+      return res.status(403).json({ error: 'Crew accounts can only access Crew Views, AvocadoPost, and Team Management' });
     }
   } catch { /* invalid tokens are rejected by route-level auth */ }
   next();
