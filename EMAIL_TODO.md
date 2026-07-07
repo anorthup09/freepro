@@ -58,7 +58,9 @@ link (SMTP) is connected. Keep this file updated as email features are added.
 - [ ] **Harbinger → send contract** — after a Harbinger form is submitted,
       auto-populate a pop-up asking whether to send the contract, and email
       the contract/e-sign link to the client right from that prompt (uses the
-      client contacts captured on the Harbinger).
+      client contacts captured on the Harbinger). Contract format is specced
+      in `docs/CLIENT_CONTRACT_TEMPLATE.md` (from the executed ResMed ASM
+      2026 agreement); boilerplate text in `docs/contract-boilerplate.txt`.
 - [ ] **PTO request → manager approval email** — `backend/src/routes/team.js`
       POST /pto emails the selected manager ("PTO Request — {title}" with
       type, dates, shoot conflicts, comp reference). Once SMTP is live, also
