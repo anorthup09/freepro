@@ -356,11 +356,13 @@ export default function AvoEdit() {
                       if (val) prevDate = val;
                       return (
                         <div key={k} style={{ display:'flex', alignItems:'center', gap:12, padding:'6px 0', borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
-                          <span title="Business days since the previous milestone"
-                            style={{ width:44, flexShrink:0, textAlign:'center', fontSize:9, fontWeight:800, color: gap != null ? AVO : 'var(--border)' }}>
-                            {gap != null ? `+${gap}bd` : '—'}
-                          </span>
                           <span style={{ ...lbl, marginBottom:0, flex:1 }}>{label}</span>
+                          {gap != null && (
+                            <span title="Time since the previous milestone"
+                              style={{ flexShrink:0, fontSize:9, fontWeight:800, color:AVO, whiteSpace:'nowrap' }}>
+                              {gap} {tlOpts.skipWknd ? 'Business Day' : 'Day'}{gap === 1 ? '' : 's'}
+                            </span>
+                          )}
                           <input type="date" value={val || ''} style={{ width:'auto', maxWidth:190 }}
                             onChange={ev => {
                               const v = ev.target.value;
