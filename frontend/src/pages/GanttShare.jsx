@@ -10,6 +10,7 @@ export default function GanttShare() {
   const { token } = useParams();
   const [data, setData] = useState(null);
   const [err, setErr] = useState('');
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => { api.getGanttShare(token).then(setData).catch(e => setErr(e.message)); }, [token]);
 
@@ -24,7 +25,16 @@ export default function GanttShare() {
             </div>
             <div className="page-sub">Post-production schedule</div>
           </div>
-          <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height: 22, filter: 'brightness(0) invert(1)', opacity: 0.9 }} />
+          <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+            <button onClick={async () => {
+                try { await navigator.clipboard.writeText(window.location.href); setCopied(true); setTimeout(() => setCopied(false), 2500); }
+                catch { prompt('Copy this link:', window.location.href); }
+              }}
+              style={{ background: copied ? AVO : `${AVO}26`, border:`1px solid ${AVO}`, color: copied ? '#0b0b0b' : AVO, borderRadius:20, padding:'5px 16px', fontSize:11, fontWeight:800, cursor:'pointer' }}>
+              {copied ? '✓ Link Copied' : 'Share'}
+            </button>
+            <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height: 22, filter: 'brightness(0) invert(1)', opacity: 0.9 }} />
+          </div>
         </div>
 
         {err && <div className="empty">{err}</div>}

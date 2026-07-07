@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api.js';
 import { AvoHeader, EditorSelect, AVO, AVO_STATUSES, fmtV, stepV, VersionInput } from './Avo.jsx';
-import { MILESTONES, milestoneText } from '../components/GanttChart.jsx';
+import { MILESTONES, milestoneText, milestoneRunners } from '../components/GanttChart.jsx';
 
 const lbl = { fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4, display:'block' };
 const KIND_STYLE = {
@@ -35,17 +35,10 @@ const daysBetween = (a, b, skipWknd) => {
 const fmtLongD = d => new Date(d + 'T12:00:00').toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric' });
 
 // ── Month-calendar view of the timeline: runners span consecutive milestones ──
-const RUNNER_COLORS = ['#9DC183', '#4a9eff', '#e6c229', '#e8955a', '#a78bfa', '#f08080', '#40A0A0', '#d66a9b', '#5ABF80', '#E8500A', '#8ecae6', '#f4a261', '#c77dff'];
-
 function MilestoneCalendarModal({ edit, onClose }) {
   const ms = edit.milestones || {};
-  // Chain filled milestones in order into start→end runners
   const filled = MILESTONES.filter(([k]) => ms[k]);
-  const segs = [];
-  for (let i = 1; i < filled.length; i++) {
-    const [fk, fl] = filled[i - 1], [tk, tl] = filled[i];
-    segs.push({ from: ms[fk], to: ms[tk], label: tl, title: `${fl} → ${tl}`, color: RUNNER_COLORS[(i - 1) % RUNNER_COLORS.length] });
-  }
+  const segs = milestoneRunners(edit);
   const first = filled.length ? new Date(ms[filled[0][0]] + 'T12:00:00') : new Date();
   const [month, setMonth] = useState({ y: first.getFullYear(), m: first.getMonth() });
 
@@ -111,10 +104,10 @@ function MilestoneCalendarModal({ edit, onClose }) {
                         left:`calc(${(s / 7) * 100}% + 2px)`, width:`calc(${((e2 - s + 1) / 7) * 100}% - 5px)`,
                         background:`${b.color}30`, border:`1px solid ${b.color}`,
                         borderRadius: `${startsHere ? 8 : 0}px ${endsHere ? 8 : 0}px ${endsHere ? 8 : 0}px ${startsHere ? 8 : 0}px`,
-                        display:'flex', alignItems:'center', padding:'0 6px', overflow:'hidden',
+                        display:'flex', alignItems:'center', justifyContent:'flex-end', padding:'0 6px', overflow:'hidden',
                         fontSize:8.5, fontWeight:800, color:b.color, whiteSpace:'nowrap',
                       }}>
-                      {b.label}
+                      {endsHere ? b.label : ''}
                     </div>
                   );
                 })}
@@ -340,7 +333,9 @@ export default function AvoEdit() {
                         onClick={async () => {
                           try {
                             const { token } = await api.avoGanttShare('edit', id);
-                            await navigator.clipboard.writeText(`${window.location.origin}/gantt/${token}`);
+                            const url = `${window.location.origin}/gantt/${token}`;
+                            await navigator.clipboard.writeText(url).catch(() => {});
+                            window.open(url, '_blank');
                             setCopied('link'); setTimeout(() => setCopied(''), 2500);
                           } catch (err) { alert(err.message); }
                         }}>{copied === 'link' ? '✓ Link Copied' : 'Share Public Timeline'}</button>

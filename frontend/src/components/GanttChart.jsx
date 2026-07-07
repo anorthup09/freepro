@@ -24,6 +24,20 @@ export const MILESTONES = [
 ];
 const MS_LABEL = Object.fromEntries(MILESTONES);
 
+export const RUNNER_COLORS = ['#9DC183', '#4a9eff', '#e6c229', '#e8955a', '#a78bfa', '#f08080', '#40A0A0', '#d66a9b', '#5ABF80', '#E8500A', '#8ecae6', '#f4a261', '#c77dff'];
+
+// Consecutive filled milestones chained into start→end runner segments
+export function milestoneRunners(edit) {
+  const ms = edit?.milestones || {};
+  const filled = MILESTONES.filter(([k]) => ms[k]);
+  const segs = [];
+  for (let i = 1; i < filled.length; i++) {
+    const [fk, fl] = filled[i - 1], [tk, tl] = filled[i];
+    segs.push({ from: ms[fk], to: ms[tk], label: tl, title: `${fl} → ${tl}`, color: RUNNER_COLORS[(i - 1) % RUNNER_COLORS.length] });
+  }
+  return segs;
+}
+
 const day = d => new Date(String(d).slice(0, 10) + 'T12:00:00');
 const MS_DAY = 86400000;
 const fmt = d => day(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -111,14 +125,16 @@ export default function GanttChart({ edits }) {
           const from = s ? Math.round((s - min) / MS_DAY) : 0;
           const len = s ? Math.max(1, Math.round((en - s) / MS_DAY) + 1) : 0;
           const c = STATUS_COLORS[e.status] || '#9DC183';
-          const ms = MILESTONES.filter(([k]) => e.milestones?.[k]);
+          const runners = milestoneRunners(e);
+          const ms = runners.length ? [] : MILESTONES.filter(([k]) => e.milestones?.[k]);
+          const rowH = 42 + (runners.length ? 38 : 0);
           return (
-            <div key={e.id} style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.04)', minHeight: 42 }}>
+            <div key={e.id} style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.04)', minHeight: rowH }}>
               <div style={{ width: LABEL_W, flexShrink: 0, padding: '8px 12px', borderRight: '1px solid var(--border)' }}>
                 <div style={{ fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.title}</div>
                 <div style={{ fontSize: 9, color: 'var(--muted)' }}>{e.lead_editor || 'Unassigned'} · V{e.version}{e.approved ? ' · ✓ Approved' : ''}</div>
               </div>
-              <div style={{ flex: 1, position: 'relative', height: 42 }}>
+              <div style={{ flex: 1, position: 'relative', height: rowH }}>
                 {todayIdx >= 0 && todayIdx <= span && (
                   <div style={{ position: 'absolute', left: `${(todayIdx / span) * 100}%`, top: 0, bottom: 0, width: 1, background: 'var(--orange)', opacity: 0.5 }} />
                 )}
@@ -144,6 +160,24 @@ export default function GanttChart({ edits }) {
                         background: '#9DC183', border: '1px solid #0b0b0b',
                         transform: 'rotate(45deg)', borderRadius: 2, cursor: 'default',
                       }} />
+                  );
+                })}
+                {runners.map((r, i) => {
+                  const rf = Math.round((day(r.from) - min) / MS_DAY);
+                  const rt = Math.round((day(r.to) - min) / MS_DAY);
+                  const lane = i % 2;
+                  return (
+                    <div key={i} title={`${r.title}: ${fmt(r.from)} → ${fmt(r.to)}`}
+                      style={{
+                        position: 'absolute', top: 38 + lane * 18, height: 15, zIndex: 2,
+                        left: `${(rf / span) * 100}%`,
+                        width: `calc(${(Math.max(1, rt - rf + 1) / span) * 100}% - 2px)`,
+                        background: `${r.color}30`, border: `1px solid ${r.color}`, borderRadius: 6,
+                        display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: '0 5px', overflow: 'hidden',
+                        fontSize: 8, fontWeight: 800, color: r.color, whiteSpace: 'nowrap',
+                      }}>
+                      {r.label}
+                    </div>
                   );
                 })}
               </div>
