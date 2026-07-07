@@ -46,6 +46,13 @@ link (SMTP) is connected. Keep this file updated as email features are added.
       contractor e-signs their deal memo.
 - [ ] **Calendar hold cancellations** — send METHOD:CANCEL when someone is
       unassigned or an assignment is deleted.
+- [ ] **AvocadoPost edit assignments** — when AvocadoPost is built, extend
+      the same system to editors: assigning someone to an edit sends an
+      Outlook hold for the edit window, and edit assignments appear as bars
+      on the Crew Calendar alongside shoots. (The hold sender in
+      `backend/src/lib/ics.js` is generic — just wire Avo's assignment
+      events into `sendCalendarHold` and add its rows to
+      `/api/projects/crew-calendar`.)
 - [ ] **Gear request status updates** — optional reply/confirmation to the
       requester when the gear team fulfills a request.
 
