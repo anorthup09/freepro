@@ -100,7 +100,7 @@ export default function FinanceProject() {
               ✎ Edit
             </button>
           </div>
-          <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:8 }}>
+          <div className="fp-actions" style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:8 }}>
             {harbinger && (
               <button onClick={() => setShowHarbinger(true)}
                 style={{ background:'rgba(90,191,128,0.12)', border:'1px solid #5ABF80', color:'#5ABF80', borderRadius:20, padding:'4px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
@@ -164,11 +164,11 @@ export default function FinanceProject() {
           }}>
             {project.client_logo
               ? <img src={project.client_logo} alt={project.client} style={{ height:22, maxWidth:120, objectFit:'contain' }} />
-              : <span style={{ fontSize:13, fontWeight:800, color:'#fff' }}>{project.client}</span>}
-            <span style={{ color:'rgba(255,255,255,0.25)' }}>|</span>
-            <span style={{ fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.65)', letterSpacing:'0.08em' }}>{project.code}</span>
-            <span style={{ color:'rgba(255,255,255,0.25)' }}>|</span>
-            <span style={{ fontFamily:"'Syne', sans-serif", fontWeight:800, fontSize:15, color:'#fff', letterSpacing:'-0.3px' }}>{project.title}</span>
+              : <span className="glass-client" style={{ fontSize:13, fontWeight:800, color:'#fff', whiteSpace:'nowrap' }}>{project.client}</span>}
+            <span className="glass-mid" style={{ color:'rgba(255,255,255,0.25)' }}>|</span>
+            <span className="glass-mid" style={{ fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.65)', letterSpacing:'0.08em', whiteSpace:'nowrap' }}>{project.code}</span>
+            <span className="glass-mid" style={{ color:'rgba(255,255,255,0.25)' }}>|</span>
+            <span style={{ fontFamily:"'Syne', sans-serif", fontWeight:800, fontSize:15, color:'#fff', letterSpacing:'-0.3px', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', minWidth:0 }}>{project.title}</span>
             <span style={{ marginLeft:'auto', textAlign:'right' }}>
               <span style={{ fontSize:9, fontWeight:700, color:'rgba(255,255,255,0.4)', textTransform:'uppercase', letterSpacing:'0.1em', marginRight:8 }}>Total Estimate</span>
               <span style={{ fontSize:16, fontWeight:800, color:'#5ABF80', fontVariantNumeric:'tabular-nums' }}>{fmt$(grand)}</span>
@@ -416,12 +416,12 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
         }
         return (
           <div key={sec.id} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, marginBottom:14, overflow:'hidden' }}>
-            <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', borderBottom:'1px solid var(--border)' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', borderBottom:'1px solid var(--border)', flexWrap:'wrap' }}>
               <div style={{ flex:1, minWidth:0 }}>
                 <input value={sec.title} style={{ ...cellIn, fontWeight:700, fontSize:13, textTransform:'uppercase', letterSpacing:'0.04em', color:'#5ABF80' }}
                   onChange={e => patchSection(sec.id, { title: e.target.value })}
                   onBlur={e => api.updateBudgetSection(sec.id, { title: e.target.value }).catch(() => {})} />
-                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
                   {sec.shoot_code && (
                     <span title="Shoot code — used to tie VCC costs and FreePro planning to this shoot"
                       style={{ fontSize:10, fontWeight:800, letterSpacing:'0.05em', color:'#e6c229', border:'1px solid #e6c22955', borderRadius:6, padding:'2px 8px', whiteSpace:'nowrap', flexShrink:0 }}>
@@ -455,6 +455,7 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
               )}
               <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text)' }} onClick={() => delSection(sec.id)}>✕</button>
             </div>
+            <div className="budget-tbl-wrap">
             <table style={{ width:'100%', borderCollapse:'collapse' }}>
               <thead>
                 <tr style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', textAlign:'left' }}>
@@ -506,6 +507,7 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
                 )}
               </tbody>
             </table>
+            </div>
             <div style={{ display:'flex', gap:8, padding:'6px 14px 10px', alignItems:'center' }}>
               {sec.kind !== 'shoot' && <button className="btn btn-ghost btn-sm" onClick={() => addLine(sec.id, false)}>+ Line</button>}
               {sec.kind === 'shoot' && (
@@ -1474,7 +1476,7 @@ function EstimatePane({ est, feeRate, saveFeeAll, reload, onMerged }) {
         }
         return (
           <div key={sec.id} style={{ background:'var(--bg2)', border:'1px solid rgba(230,194,41,0.25)', borderRadius:10, marginBottom:14, overflow:'hidden' }}>
-            <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', borderBottom:'1px solid var(--border)' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', borderBottom:'1px solid var(--border)', flexWrap:'wrap' }}>
               <div style={{ flex:1, minWidth:0 }}>
                 <input value={sec.title} style={{ ...cellIn, fontWeight:700, fontSize:13, textTransform:'uppercase', letterSpacing:'0.04em', color:YEL }}
                   onChange={e => patchSection(sec.id, { title: e.target.value })}
@@ -1486,6 +1488,7 @@ function EstimatePane({ est, feeRate, saveFeeAll, reload, onMerged }) {
               <div style={{ fontSize:13, fontWeight:700, whiteSpace:'nowrap' }}>{fmt$(secTotal)}</div>
               <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text)' }} onClick={() => delSection(sec.id)}>✕</button>
             </div>
+            <div className="budget-tbl-wrap">
             <table style={{ width:'100%', borderCollapse:'collapse' }}>
               <thead>
                 <tr style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', textAlign:'left' }}>
@@ -1536,6 +1539,7 @@ function EstimatePane({ est, feeRate, saveFeeAll, reload, onMerged }) {
                 )}
               </tbody>
             </table>
+            </div>
             <div style={{ display:'flex', gap:8, padding:'6px 14px 10px', alignItems:'center' }}>
               {sec.kind !== 'shoot' && <button className="btn btn-ghost btn-sm" onClick={() => addLine(sec.id, false)}>+ Line</button>}
               {sec.kind === 'shoot' && (

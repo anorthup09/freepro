@@ -459,3 +459,17 @@ textarea { resize: vertical; min-height: 70px; }
 @media (max-width: 760px) {
   .hub-pipeline-btn { position: static; transform: none; order: 3; width: 100%; }
 }
+
+/* ProFi budget on mobile: tables scroll sideways instead of crushing columns */
+.budget-tbl-wrap { overflow-x: auto; }
+@media (max-width: 700px) {
+  .budget-tbl-wrap table { min-width: 620px; }
+  .fp-actions { width: 100%; align-items: stretch !important; }
+  .fp-actions > div { justify-content: flex-start !important; }
+  .fp-actions > button { width: 100%; }
+}
+
+/* ProFi glass bar: drop client/code segments on narrow screens */
+@media (max-width: 700px) {
+  .glass-mid, .glass-client { display: none !important; }
+}
