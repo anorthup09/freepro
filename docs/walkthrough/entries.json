@@ -1,24 +1,24 @@
 [
   {
-    "title": "Budget Tags \u2014 share visibility on a project",
+    "title": "Budget Tags — share visibility on a project",
     "what": "Tag teammates onto any project budget so it's clear who's working it. Each tagged person shows as a colored first/last-initial icon next to the budget's Status. Setting a Budget Owner automatically tags them, and tags drive the My Projects filter on the pipeline page.",
-    "where": "ProFi \u2192 open any project budget \u2192 the header row next to Status (labeled \"Tagged\").",
+    "where": "ProFi → open any project budget → the header row next to Status (labeled \"Tagged\").",
     "how": [
       "Open the project's budget in ProFi.",
       "In the header row (Budget Dated / Owner / Status), find <b>Tagged</b> and click <b>+ Tag</b>.",
-      "Pick a name \u2014 the list matches the Budget Owner dropdown. Their initials icon appears instantly.",
-      "Setting the <b>Budget Owner</b> tags that person automatically \u2014 no extra step.",
+      "Pick a name — the list matches the Budget Owner dropdown. Their initials icon appears instantly.",
+      "Setting the <b>Budget Owner</b> tags that person automatically — no extra step.",
       "Click an initials icon to remove someone (it asks to confirm)."
     ],
     "screenshot": "budget-tags.png"
   },
   {
     "title": "Show My Projects filter on the Finance pipeline",
-    "what": "One click filters the Project Finance list down to only the budgets you own (Budget Owner) or are tagged on \u2014 no more scrolling everyone else's projects.",
-    "where": "ProFi \u2192 Project Finance page \u2192 top right, next to + New Project.",
+    "what": "One click filters the Project Finance list down to only the budgets you own (Budget Owner) or are tagged on — no more scrolling everyone else's projects.",
+    "where": "ProFi → Project Finance page → top right, next to + New Project.",
     "how": [
       "Open Project Finance from the hub.",
-      "Click <b>Show My Projects</b> (top right) \u2014 the button turns blue \"\u2713 My Projects\" and the list filters to yours.",
+      "Click <b>Show My Projects</b> (top right) — the button turns blue \"✓ My Projects\" and the list filters to yours.",
       "It works together with the RFP / Live / Archive folders.",
       "Click it again to see everything."
     ],
@@ -27,32 +27,32 @@
   {
     "title": "Hub: Project View / Operations View toggle",
     "what": "The hub now has two modes. Project View lists every project as a tile, organized by project code, with search. Operations View shows the three apps (ProFi, FreePro, AvocadoPost). Team Management stays as a full-width bar below both views. The hub remembers which view you used last.",
-    "where": "The hub (home page) \u2014 the toggle sits centered under \"Where to today?\".",
+    "where": "The hub (home page) — the toggle sits centered under \"Where to today?\".",
     "how": [
-      "Sign in \u2014 the hub opens in the view you used last.",
-      "Click <b>\ud83d\uddc2 Project View</b> to browse all projects by code (use the search box for code, title, or client).",
-      "Click <b>\u2699 Operations View</b> to jump into ProFi, FreePro, or AvocadoPost directly.",
+      "Sign in — the hub opens in the view you used last.",
+      "Click <b>🗂 Project View</b> to browse all projects by code (use the search box for code, title, or client).",
+      "Click <b>⚙ Operations View</b> to jump into ProFi, FreePro, or AvocadoPost directly.",
       "<b>Team Management</b> is always available in the elongated blue tile below."
     ],
     "screenshot": "hub-project-view.png"
   },
   {
-    "title": "Project Workspace \u2014 Finance, Pre-Production & Post in one view",
-    "what": "Opening a project from Project View lands in a single workspace where you flip between the full ProFi budget, the FreePro production page, and the AvocadoPost project page. These are the real pages, not copies \u2014 any change made here (budget lines, schedules, edits) is instantly the same everywhere.",
-    "where": "Hub \u2192 Project View \u2192 click any project tile.",
+    "title": "Project Workspace — Finance, Pre-Production & Post in one view",
+    "what": "Opening a project from Project View lands in a single workspace where you flip between the full ProFi budget, the FreePro production page, and the AvocadoPost project page. These are the real pages, not copies — any change made here (budget lines, schedules, edits) is instantly the same everywhere.",
+    "where": "Hub → Project View → click any project tile.",
     "how": [
       "From the hub's Project View, click a project tile.",
       "Use the <b>Project Finance | Pre-Production | Post-Production</b> toggle at the top right to flip sections.",
       "If a budget has multiple productions, a shoot-code dropdown appears on the Pre-Production tab.",
       "The Post-Production tab creates the project's Avo page automatically the first time you open it.",
-      "<b>\u2039 All Projects</b> returns to the project list."
+      "<b>‹ All Projects</b> returns to the project list."
     ],
     "screenshot": "project-workspace.png"
   },
   {
-    "title": "Budget status paths (RFP \u2192 Live/Dead, Live \u2192 Reconcile/Closed)",
-    "what": "The budget status dropdown now guides the workflow instead of listing every status. From RFP you can go Live or Dead; from Live you can go Reconcile or Closed; Reconcile moves to Closed. Archived budgets can be reopened (Closed \u2192 Live, Dead \u2192 RFP).",
-    "where": "ProFi \u2192 any project budget \u2192 the Status pill in the header row.",
+    "title": "Budget status paths (RFP → Live/Dead, Live → Reconcile/Closed)",
+    "what": "The budget status dropdown now guides the workflow instead of listing every status. From RFP you can go Live or Dead; from Live you can go Reconcile or Closed; Reconcile moves to Closed. Archived budgets can be reopened (Closed → Live, Dead → RFP).",
+    "where": "ProFi → any project budget → the Status pill in the header row.",
     "how": [
       "Open a budget and click the <b>Status</b> pill.",
       "Only the valid next steps for the current status are offered (with a hint under each).",
@@ -63,23 +63,23 @@
   {
     "title": "Archive organized by Closed / Dead and by year",
     "what": "The Archive folder separates finished work from dead RFPs, and closed budgets are filed by year so the archive stays browsable as it grows.",
-    "where": "ProFi \u2192 Project Finance \u2192 the Archive folder chip.",
+    "where": "ProFi → Project Finance → the Archive folder chip.",
     "how": [
       "Open the <b>Archive</b> folder on the Project Finance page.",
-      "Use the <b>Closed | Dead</b> toggle \u2014 Closed is the default.",
+      "Use the <b>Closed | Dead</b> toggle — Closed is the default.",
       "In Closed, pick a year from the scrollable chips (defaults to the current year; the year comes from the budget's close month).",
       "Dead shows all not-approved budgets in one list."
     ],
     "screenshot": "archive-year.png"
   },
   {
-    "title": "Hub dashboard \u2014 Day in Review & Team Today",
-    "what": "The lower half of the hub is now a live dashboard. The left panel is your personal Day in Review: shoots you're on today and anything due today on edits where you're the editor, PM, or task assignee. The right panel shows where every Unbridled team member is right now with a status bubble \u2014 red for Out of Office/PTO, yellow for traveling/on a shoot (with the shoot's city as their location), green for in office (St. Louis, or Denver for our Denver folks).",
-    "where": "The hub (home page), below the tiles \u2014 visible in both Project View and Operations View.",
+    "title": "Hub dashboard — Day in Review & Team Today",
+    "what": "The lower half of the hub is now a live dashboard. The left panel is your personal Day in Review: shoots you're on today and anything due today on edits where you're the editor, PM, or task assignee. The right panel shows where every Unbridled team member is right now with a status bubble — red for Out of Office/PTO, yellow for traveling/on a shoot (with the shoot's city as their location), green for in office (St. Louis, or Denver for our Denver folks).",
+    "where": "The hub (home page), below the tiles — visible in both Project View and Operations View.",
     "how": [
-      "Sign in \u2014 <b>Day in Review</b> builds itself from your assignments for today; click any row to jump to that shoot or edit.",
+      "Sign in — <b>Day in Review</b> builds itself from your assignments for today; click any row to jump to that shoot or edit.",
       "You'll see items when you're on a shoot, when an edit or timeline milestone you own is due, when an edit window starts, or when you're on PTO.",
-      "<b>Team Today</b> lists the team with status bubbles: \ud83d\udd34 PTO/OOO, \ud83d\udfe1 traveling/on a shoot (location = shoot city), \ud83d\udfe2 in office.",
+      "<b>Team Today</b> lists the team with status bubbles: 🔴 PTO/OOO, 🟡 traveling/on a shoot (location = shoot city), 🟢 in office.",
       "The <b>Team Management</b> button sits at the top right of the Team Today panel."
     ],
     "screenshot": "hub-dashboard.png"
@@ -87,33 +87,33 @@
   {
     "title": "Reports section (Project Finance Overview moved here)",
     "what": "A new Reports area on the hub collects cross-project rollups. Project Finance Overview has moved out of ProFi into Reports, alongside the Weekly Finance Report.",
-    "where": "Hub \u2192 the \ud83d\udcc8 Reports button at the top, next to Crew Calendar.",
+    "where": "Hub → the 📈 Reports button at the top, next to Crew Calendar.",
     "how": [
-      "Click <b>\ud83d\udcc8 Reports</b> on the hub.",
-      "Pick a report card \u2014 <b>Project Finance Overview</b> (budgets, direct costs, gross profit per project) or <b>Weekly Finance Report</b>.",
-      "The overview is no longer on the ProFi page \u2014 this is its new home."
+      "Click <b>📈 Reports</b> on the hub.",
+      "Pick a report card — <b>Project Finance Overview</b> (budgets, direct costs, gross profit per project) or <b>Weekly Finance Report</b>.",
+      "The overview is no longer on the ProFi page — this is its new home."
     ],
     "screenshot": "reports.png"
   },
   {
     "title": "Vendor Invoices on the VCC (with AI reading)",
     "what": "Each project's VCC now has a Vendor Invoices library: upload the actual invoice files and they live with the project. When an invoice PDF or photo is uploaded, AI reads it and fills in the vendor name and invoice total automatically. The redundant Sync FreePro Costs button was removed (costs auto-sync).",
-    "where": "ProFi \u2192 project budget \u2192 VCC tab \u2192 the \ud83e\uddfe Vendor Invoices button on the right of the toolbar.",
+    "where": "ProFi → project budget → VCC tab → the 🧾 Vendor Invoices button on the right of the toolbar.",
     "how": [
-      "Open a project's VCC and click <b>\ud83e\uddfe Vendor Invoices</b>.",
-      "Click <b>+ Upload Invoice</b> and pick the file (PDF, photo, or spreadsheet \u2014 20MB max).",
+      "Open a project's VCC and click <b>🧾 Vendor Invoices</b>.",
+      "Click <b>+ Upload Invoice</b> and pick the file (PDF, photo, or spreadsheet — 20MB max).",
       "For PDFs and photos, the vendor name and total appear on the row automatically after upload.",
-      "Click a filename (or \u2b07) to download; \u2715 deletes with a confirm."
+      "Click a filename (or ⬇) to download; ✕ deletes with a confirm."
     ],
     "screenshot": "vendor-invoices.png"
   },
   {
     "title": "Printer-friendly PDFs (shot lists & call sheets)",
     "what": "Exporting a shot list or call sheet now produces a clean, high-contrast report instead of a screen print: white pages, black text, no browser URL/title stamped at the top and bottom, interactive buttons removed, and rows kept together across page breaks.",
-    "where": "Any shared view (shot list, call sheet) \u2192 the PDF button in the top bar, or your browser's Print.",
+    "where": "Any shared view (shot list, call sheet) → the PDF button in the top bar, or your browser's Print.",
     "how": [
       "Open the shot list (or call sheet) view and click <b>PDF</b>.",
-      "In the print dialog choose <b>Save as PDF</b> \u2014 margins and styling are handled for you.",
+      "In the print dialog choose <b>Save as PDF</b> — margins and styling are handled for you.",
       "The printed document is titled with the project code and name.",
       "Scene color-coding (INT blue / EXT green) is kept for navigation; all text prints black."
     ],
@@ -258,5 +258,16 @@
       "Click <b>Save Changes</b> — the row, maps link, and anywhere the location appears now use the corrected address."
     ],
     "screenshot": "location-edit.png"
+  },
+  {
+    "title": "Reference photos on the Shot List",
+    "what": "Every shot can now carry reference photos — framing references, location stills, storyboard frames. Upload from the shot's detail form, and a Reference Photos section at the bottom of the Shot List shows every photo in shot order, labeled with the shot number and title.",
+    "where": "FreePro → project → Logistics → Shot List. Upload from a shot's expanded detail (or its pop-out on mobile); browse the Reference Photos section at the bottom of the page.",
+    "how": [
+      "Open a shot's detail and click <b>+ Reference Photo</b> to upload an image (15MB max).",
+      "Scroll to the bottom of the Shot List — photos appear as tiles in sequential shot order with \"Shot 1A\" and the shot's description.",
+      "Click a tile to view it full size; ✕ deletes it."
+    ],
+    "screenshot": "shot-reference-photos.png"
   }
 ]
