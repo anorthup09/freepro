@@ -142,5 +142,17 @@
       "In Estimate mode, the same button reads <b>Estimate Overview</b> and reflects the estimate exactly as it's currently shown."
     ],
     "screenshot": "budget-overview.png"
+  },
+  {
+    "title": "Project Hub & Client Hub on Project View",
+    "what": "Project View is now split into two sections, each with its own search bar. Project Hub lists every project as a tile. Client Hub gives every client a mini-hub: all of their projects in one place plus a Client Resources library for logos, brand guidelines, and other shared files. Each client hub also has a Client View toggle — the future client portal (coming soon) — which marks the page with an orange border so it's obvious you're looking at what the client will see.",
+    "where": "Hub → Project View toggle (or the standalone Project View page). Client tiles sit below the project tiles.",
+    "how": [
+      "Switch the hub to <b>Project View</b> — <b>Project Hub</b> is at the top with its search bar beside it.",
+      "Scroll to <b>Client Hub</b> and use its own search bar to find a client, then click their tile.",
+      "Inside the mini-hub, click any project tile to open its full workspace, or use <b>Client Resources</b> to upload the client's logo and brand guidelines (logos show as thumbnails; everything is downloadable).",
+      "Flip the <b>Team View | Client View</b> toggle to preview the client portal — the orange top border means you're in client-access view."
+    ],
+    "screenshot": "client-hub.png"
   }
 ]
