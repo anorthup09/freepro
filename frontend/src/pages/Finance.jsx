@@ -259,10 +259,6 @@ export default function Finance() {
               style={{ background:'rgba(90,191,128,0.2)', border:'1px solid #5ABF80', color:'#5ABF80', borderRadius:20, padding:'5px 14px', fontSize:11, fontWeight:800, cursor:'pointer' }}>
               + New Project
             </button>
-            <button onClick={() => nav('/finance/overview')}
-              style={{ background:'rgba(232,80,10,0.2)', border:'1px solid var(--orange)', color:'var(--orange)', borderRadius:20, padding:'5px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
-              Project Finance Overview
-            </button>
             </div>
             <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
             {Object.entries(FOLDERS).map(([k, f]) => {

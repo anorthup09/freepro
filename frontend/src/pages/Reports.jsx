@@ -1,0 +1,55 @@
+import React from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../App.jsx';
+
+const REPORTS = [
+  {
+    title: 'Project Finance Overview',
+    desc: 'Every project with budget, direct costs, gross profit, and status — the full financial picture.',
+    icon: '📊', accent: '#5ABF80', to: '/finance/overview',
+  },
+  {
+    title: 'Weekly Finance Report',
+    desc: 'Snapshot report of budgets and close months for the finance team.',
+    icon: '🗓', accent: '#4a9eff', to: '/finance/report',
+  },
+];
+
+export default function Reports() {
+  const nav = useNavigate();
+  const { user, setUser } = useAuth();
+  return (
+    <div style={{ minHeight:'100vh', background:'var(--bg)' }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 26px', flexWrap:'wrap', gap:10 }}>
+        <div style={{ display:'flex', alignItems:'baseline', gap:14 }}>
+          <Link to="/" style={{ display:'flex', alignItems:'center' }} title="Back to the Unbridled Media hub">
+            <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height:20, filter:'brightness(0) invert(1)', opacity:0.95 }} />
+          </Link>
+          <span style={{ fontSize:12, color:'#e6c229', fontWeight:700, letterSpacing:'0.04em' }}>📈 Reports</span>
+        </div>
+        <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+          <span style={{ fontSize:11, color:'var(--muted)' }}>{user?.name}</span>
+          <Link to="/" className="btn btn-ghost btn-sm" style={{ textDecoration:'none' }}>Back to Hub</Link>
+          <button className="btn btn-ghost btn-sm" onClick={() => { localStorage.removeItem('fp_token'); setUser(null); }}>Sign out</button>
+        </div>
+      </div>
+      <div style={{ maxWidth:900, margin:'0 auto', padding:'10px 16px 60px' }}>
+        <div className="page-title">Reports</div>
+        <div className="page-sub">Cross-project rollups and recurring reports</div>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(280px, 1fr))', gap:16, marginTop:8 }}>
+          {REPORTS.map(r => (
+            <div key={r.title} onClick={() => nav(r.to)}
+              style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderTop:`3px solid ${r.accent}`, borderRadius:12, padding:'22px 22px 18px', cursor:'pointer', transition:'transform .15s ease' }}
+              onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-3px)'}
+              onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
+              <div style={{ fontSize:24 }}>{r.icon}</div>
+              <div style={{ fontSize:15, fontWeight:800, margin:'8px 0 4px' }}>{r.title}</div>
+              <div style={{ fontSize:12, color:'var(--muted)', lineHeight:1.5 }}>{r.desc}</div>
+              <div style={{ fontSize:11, color:r.accent, fontWeight:600, marginTop:12 }}>Open →</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}

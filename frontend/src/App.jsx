@@ -63,6 +63,7 @@ import GanttShare from './pages/GanttShare.jsx';
 import Team from './pages/Team.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
 import ProjectView, { ProjectViewDetail } from './pages/ProjectView.jsx';
+import Reports from './pages/Reports.jsx';
 import { api } from './api.js';
 
 export const AuthContext = createContext(null);
@@ -96,6 +97,7 @@ export default function App() {
         <Route path="/crew-views" element={user ? <CrewViews /> : <Navigate to="/login" />} />
         <Route path="/projects/:id" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <Project />) : <Navigate to="/login" />} />
         <Route path="/projects/:id/talent-callsheets" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <TalentCallSheets />) : <Navigate to="/login" />} />
+        <Route path="/reports" element={user ? (user.role === 'CREW' ? <Navigate to="/" /> : <Reports />) : <Navigate to="/login" />} />
         <Route path="/project-view" element={user ? (user.role === 'CREW' ? <Navigate to="/" /> : <ProjectView />) : <Navigate to="/login" />} />
         <Route path="/project-view/:pid" element={user ? (user.role === 'CREW' ? <Navigate to="/" /> : <ProjectViewDetail />) : <Navigate to="/login" />} />
         <Route path="/team" element={user ? <Team /> : <Navigate to="/login" />} />

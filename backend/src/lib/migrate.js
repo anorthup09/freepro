@@ -1128,6 +1128,20 @@ async function migrate() {
       UNIQUE(budget_id, user_id)
     )`;
 
+  // Vendor invoice files per project (VCC page)
+  await sql`
+    CREATE TABLE IF NOT EXISTS vendor_invoices (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      filename TEXT NOT NULL,
+      mime TEXT,
+      size INT,
+      data BYTEA,
+      note TEXT,
+      uploaded_by TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`;
+
   console.log('Migration complete.');
 }
 

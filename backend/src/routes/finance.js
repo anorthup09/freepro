@@ -949,6 +949,41 @@ router.patch('/finance/pipeline/:pid', ...finance, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// ── Vendor invoices: uploaded files per project ──
+router.get('/finance/:pid/vendor-invoices', ...finance, async (req, res, next) => {
+  try {
+    res.json(await sql`SELECT id, filename, mime, size, note, uploaded_by, created_at FROM vendor_invoices WHERE project_id = ${req.params.pid} ORDER BY created_at DESC`);
+  } catch (e) { next(e); }
+});
+router.post('/finance/:pid/vendor-invoices', ...finance, async (req, res, next) => {
+  try {
+    const { filename, mime, fileBase64, note } = req.body;
+    if (!filename || !fileBase64) return res.status(400).json({ error: 'filename and file required' });
+    const buf = Buffer.from(fileBase64, 'base64');
+    if (buf.length > 20 * 1024 * 1024) return res.status(413).json({ error: 'File too large (20MB max)' });
+    const [row] = await sql`
+      INSERT INTO vendor_invoices (project_id, filename, mime, size, data, note, uploaded_by)
+      VALUES (${req.params.pid}, ${filename}, ${mime || null}, ${buf.length}, ${buf}, ${note || null}, ${req.user?.email || null})
+      RETURNING id, filename, mime, size, note, uploaded_by, created_at`;
+    res.status(201).json(row);
+  } catch (e) { next(e); }
+});
+router.get('/finance/vendor-invoices/:id/file', ...finance, async (req, res, next) => {
+  try {
+    const [f] = await sql`SELECT filename, mime, data FROM vendor_invoices WHERE id = ${req.params.id}`;
+    if (!f) return res.status(404).json({ error: 'Invoice not found' });
+    res.setHeader('Content-Type', f.mime || 'application/octet-stream');
+    res.setHeader('Content-Disposition', `attachment; filename="${f.filename.replace(/"/g, '')}"`);
+    res.send(f.data);
+  } catch (e) { next(e); }
+});
+router.delete('/finance/vendor-invoices/:id', ...finance, async (req, res, next) => {
+  try {
+    await sql`DELETE FROM vendor_invoices WHERE id = ${req.params.id}`;
+    res.status(204).end();
+  } catch (e) { next(e); }
+});
+
 // ── Budget visibility tags ──
 router.get('/finance/budgets/:bid/tags', ...finance, async (req, res, next) => {
   try {

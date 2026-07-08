@@ -287,6 +287,10 @@ export default function Hub() {
             style={{ background:'rgba(90,191,128,0.14)', border:'1.5px solid #5ABF80', color:'#5ABF80', borderRadius:12, padding:'12px 26px', fontSize:13, fontWeight:800, cursor:'pointer', display:'flex', alignItems:'center', gap:8 }}>
             <span style={{ fontSize:16 }}>📅</span> Crew Calendar
           </button>
+          <button onClick={() => nav('/reports')}
+            style={{ background:'rgba(230,194,41,0.12)', border:'1.5px solid #e6c229', color:'#e6c229', borderRadius:12, padding:'12px 26px', fontSize:13, fontWeight:800, cursor:'pointer', display:'flex', alignItems:'center', gap:8 }}>
+            <span style={{ fontSize:16 }}>📈</span> Reports
+          </button>
         </div>}
         <div style={{ display:'flex', alignItems:'center', gap:12 }}>
           <span style={{ fontSize:11, color:'var(--muted)' }}>{user?.name}</span>

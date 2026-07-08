@@ -961,14 +961,103 @@ function VccTools({ pid, set, vcc }) {
 
   return (
     <div style={{ display:'flex', gap:10, alignItems:'center', flexWrap:'wrap', marginBottom:12 }}>
-      <button className="btn btn-ghost btn-sm" disabled={!!busy} onClick={sync}>{busy === 'sync' ? 'Syncing…' : '⟳ Sync FreePro Costs'}</button>
       <button className="btn btn-ghost btn-sm" disabled={!!busy} onClick={() => fileRef.current?.click()}>{busy === 'odc' ? 'Importing…' : '⬆ Import ODC Report'}</button>
       <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" style={{ display:'none' }} onChange={onFile} />
       {reviewCount > 0 && (
         <span style={{ fontSize:11, color:'#e05252', fontWeight:700 }}>⚠ {reviewCount} charge{reviewCount === 1 ? '' : 's'} need review</span>
       )}
       {msg && <span style={{ fontSize:11, color:'var(--muted)' }}>{msg}</span>}
+      <div style={{ flex:1 }} />
+      <VendorInvoicesButton pid={pid} />
     </div>
+  );
+}
+
+// ── Vendor invoices: per-project uploaded invoice files ──
+function VendorInvoicesButton({ pid }) {
+  const [open, setOpen] = useState(false);
+  const [files, setFiles] = useState(null);
+  const fileRef = useRef(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (open) api.vendorInvoices(pid).then(setFiles).catch(e => alert(e.message));
+  }, [open, pid]);
+
+  function pick(ev) {
+    const file = ev.target.files?.[0];
+    ev.target.value = '';
+    if (!file) return;
+    if (file.size > 20 * 1024 * 1024) return alert('File too large (20MB max)');
+    const reader = new FileReader();
+    reader.onload = async () => {
+      setBusy(true);
+      try {
+        const row = await api.uploadVendorInvoice(pid, { filename: file.name, mime: file.type, fileBase64: String(reader.result).split(',')[1] });
+        setFiles(fs => [row, ...(fs || [])]);
+      } catch (e) { alert(e.message); }
+      setBusy(false);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function download(f) {
+    try {
+      const r = await fetch(`/api/finance/vendor-invoices/${f.id}/file`, { headers: { Authorization: `Bearer ${localStorage.getItem('fp_token')}` } });
+      if (!r.ok) throw new Error('Download failed');
+      const blob = await r.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = f.filename;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } catch (e) { alert(e.message); }
+  }
+
+  async function remove(f) {
+    if (!confirm(`Delete ${f.filename}?`)) return;
+    try { await api.deleteVendorInvoice(f.id); setFiles(fs => fs.filter(x => x.id !== f.id)); }
+    catch (e) { alert(e.message); }
+  }
+
+  const fmtSize = n => n > 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB';
+
+  return (
+    <>
+      <button onClick={() => setOpen(true)}
+        style={{ background:'rgba(230,194,41,0.12)', border:'1px solid #e6c229', color:'#e6c229', borderRadius:20, padding:'4px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
+        🧾 Vendor Invoices{files ? ` (${files.length})` : ''}
+      </button>
+      {open && (
+        <div onClick={e => e.target === e.currentTarget && setOpen(false)}
+          style={{ position:'fixed', inset:0, zIndex:120, background:'rgba(0,0,0,0.7)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+          <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid #e6c229', borderRadius:12, width:'100%', maxWidth:620, maxHeight:'85vh', display:'flex', flexDirection:'column', overflow:'hidden' }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 18px', borderBottom:'1px solid var(--border)' }}>
+              <div style={{ fontSize:14, fontWeight:800 }}>🧾 Vendor Invoices</div>
+              <div style={{ display:'flex', gap:8 }}>
+                <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => fileRef.current?.click()}>{busy ? 'Uploading…' : '+ Upload Invoice'}</button>
+                <input ref={fileRef} type="file" accept=".pdf,.png,.jpg,.jpeg,.xlsx,.xls,.csv,.doc,.docx" style={{ display:'none' }} onChange={pick} />
+                <button className="btn btn-ghost btn-sm" onClick={() => setOpen(false)}>✕</button>
+              </div>
+            </div>
+            <div style={{ overflowY:'auto', padding:'8px 18px 16px' }}>
+              {!files && <div style={{ fontSize:11, color:'var(--muted)', padding:'12px 0' }}>Loading…</div>}
+              {files && files.length === 0 && <div style={{ fontSize:12, color:'var(--muted)', fontStyle:'italic', padding:'14px 0' }}>No invoices uploaded yet — drop vendor invoice files here so they live with the project.</div>}
+              {(files || []).map(f => (
+                <div key={f.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 0', borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div onClick={() => download(f)} style={{ fontSize:12, fontWeight:700, color:'#4a9eff', cursor:'pointer', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{f.filename}</div>
+                    <div style={{ fontSize:10, color:'var(--muted)' }}>{fmtSize(f.size)} · {f.uploaded_by || 'unknown'} · {new Date(f.created_at).toLocaleDateString()}</div>
+                  </div>
+                  <button className="btn btn-ghost btn-sm" onClick={() => download(f)}>⬇</button>
+                  <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text, #e05252)' }} onClick={() => remove(f)}>✕</button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
