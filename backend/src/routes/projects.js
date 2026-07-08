@@ -247,6 +247,7 @@ router.patch('/:id', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, r
       const codes = await displayCodes([req.params.id]);
       if (d.code === codes[req.params.id]) d.code = undefined;
     }
+    const [before] = await sql`SELECT code, title FROM projects WHERE id = ${req.params.id}`;
     await sql`
       UPDATE projects SET
         code = COALESCE(${d.code??null}, code),
@@ -266,6 +267,14 @@ router.patch('/:id', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, r
         include_photo = CASE WHEN ${d.includePhoto !== undefined} THEN ${d.includePhoto !== false} ELSE include_photo END,
         updated_at = NOW()
       WHERE id = ${req.params.id}`;
+    // Mirror a project rename everywhere the old name was inherited:
+    // shoot tiles created from this budget and the Avo project page
+    if (before && d.title && d.title !== before.title) {
+      await sql`UPDATE projects SET title = ${d.title}, updated_at = NOW()
+        WHERE parent_project_id = ${req.params.id} AND title = ${before.title}`;
+      await sql`UPDATE avo_project_pages SET title = ${d.title}
+        WHERE code = ${before.code} AND (title = ${before.title} OR title IS NULL OR title = '')`;
+    }
     res.json(await getFullProject(req.params.id));
   } catch (err) { next(err); }
 });
