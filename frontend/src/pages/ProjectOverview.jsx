@@ -25,6 +25,135 @@ function BlurInput({ value, onSave, placeholder, type = 'text', style }) {
   );
 }
 
+// ── Project documents (Creative Brief / VPP): preview tiles + pop-out viewer ──
+const DOC_KINDS = [['brief', 'Creative Brief', '#e8955a'], ['vpp', 'VPP', '#4a9eff']];
+
+function authBlob(path) {
+  return fetch(path, { headers: { Authorization: `Bearer ${localStorage.getItem('fp_token')}` } })
+    .then(r => r.ok ? r.blob() : null);
+}
+
+// Small inline preview of a stored file (image or PDF first page)
+function DocThumb({ doc, height = 110 }) {
+  const [url, setUrl] = useState(null);
+  const isImg = (doc.mime || '').startsWith('image/');
+  const isPdf = (doc.mime || '').includes('pdf');
+  useEffect(() => {
+    let obj;
+    if (!isImg && !isPdf) return;
+    authBlob(`/api/project-docs/${doc.id}/file?inline=1`).then(b => { if (b) { obj = URL.createObjectURL(b); setUrl(obj); } });
+    return () => obj && URL.revokeObjectURL(obj);
+  }, [doc.id]);
+  if (!isImg && !isPdf) return <div style={{ height, display:'flex', alignItems:'center', justifyContent:'center', fontSize:26, background:'rgba(255,255,255,0.04)', borderRadius:6 }}>📄</div>;
+  if (!url) return <div style={{ height, background:'rgba(255,255,255,0.04)', borderRadius:6 }} />;
+  if (isImg) return <img src={url} alt={doc.filename} style={{ width:'100%', height, objectFit:'cover', borderRadius:6, background:'#fff' }} />;
+  return (
+    <div style={{ height, borderRadius:6, overflow:'hidden', position:'relative', background:'#fff' }}>
+      <iframe title={doc.filename} src={`${url}#toolbar=0&navpanes=0&scrollbar=0`} tabIndex={-1}
+        style={{ width:'200%', height:'200%', border:'none', transform:'scale(0.5)', transformOrigin:'0 0', pointerEvents:'none' }} />
+      <div style={{ position:'absolute', inset:0 }} />
+    </div>
+  );
+}
+
+function DocViewer({ doc, onClose }) {
+  const [url, setUrl] = useState(null);
+  const isImg = (doc.mime || '').startsWith('image/');
+  const isPdf = (doc.mime || '').includes('pdf');
+  useEffect(() => {
+    let obj;
+    authBlob(`/api/project-docs/${doc.id}/file?inline=1`).then(b => { if (b) { obj = URL.createObjectURL(b); setUrl(obj); } });
+    return () => obj && URL.revokeObjectURL(obj);
+  }, [doc.id]);
+  async function download() {
+    const b = await authBlob(`/api/project-docs/${doc.id}/file`);
+    if (!b) return;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(b);
+    a.download = doc.filename;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+  return (
+    <div onClick={e => e.target === e.currentTarget && onClose()}
+      style={{ position:'fixed', inset:0, zIndex:130, background:'rgba(0,0,0,0.8)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+      <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, width:'100%', maxWidth:860, height:'88vh', display:'flex', flexDirection:'column', overflow:'hidden' }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, padding:'12px 16px', borderBottom:'1px solid var(--border)', flexWrap:'wrap' }}>
+          <div style={{ fontSize:13, fontWeight:800, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{doc.filename}</div>
+          <div style={{ display:'flex', gap:8 }}>
+            <button className="btn btn-ghost btn-sm" onClick={download}>⬇ Download</button>
+            <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
+          </div>
+        </div>
+        <div style={{ flex:1, background:'#333', display:'flex', alignItems:'center', justifyContent:'center', overflow:'auto' }}>
+          {!isImg && !isPdf && <div style={{ color:'#aaa', fontSize:12 }}>No inline preview for this file type — use Download.</div>}
+          {(isImg || isPdf) && !url && <div style={{ color:'#aaa', fontSize:12 }}>Loading…</div>}
+          {url && isPdf && <iframe title={doc.filename} src={url} style={{ width:'100%', height:'100%', border:'none', background:'#fff' }} />}
+          {url && isImg && <img src={url} alt={doc.filename} style={{ maxWidth:'100%', maxHeight:'100%', objectFit:'contain' }} />}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DocsTile({ pid, docs, setDocs }) {
+  const [busy, setBusy] = useState(null);   // kind being uploaded
+  const [view, setView] = useState(null);
+  async function pick(kind, e) {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    setBusy(kind);
+    try {
+      const b64 = await new Promise((ok, bad) => {
+        const r = new FileReader();
+        r.onload = () => ok(String(r.result).split(',')[1]);
+        r.onerror = bad;
+        r.readAsDataURL(file);
+      });
+      const d = await api.uploadProjectDoc(pid, { filename: file.name, mime: file.type, fileBase64: b64, kind });
+      setDocs(ds => [d, ...ds]);
+    } catch (err) { alert(err.message); }
+    setBusy(null);
+  }
+  return (
+    <div style={{ ...card, marginBottom:16 }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, flexWrap:'wrap', marginBottom:10 }}>
+        <div style={{ ...secHdr, marginBottom:0 }}>Project Docs</div>
+        <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+          {DOC_KINDS.map(([kind, label]) => (
+            <label key={kind} style={{ background:'var(--bg)', border:'1px solid rgba(255,255,255,0.55)', color:'#e8e8e8', borderRadius:14, padding:'3px 12px', fontSize:10, fontWeight:800, cursor:'pointer' }}>
+              {busy === kind ? 'Uploading…' : `+ ${label}`}
+              <input type="file" onChange={e => pick(kind, e)} disabled={!!busy} style={{ display:'none' }} />
+            </label>
+          ))}
+        </div>
+      </div>
+      {docs.length === 0 && <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>No documents yet — upload the creative brief and VPP.</div>}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(120px, 1fr))', gap:10 }}>
+        {docs.map(d => {
+          const [, label, color] = DOC_KINDS.find(([k]) => k === d.kind) || DOC_KINDS[0];
+          return (
+            <div key={d.id} onClick={() => setView(d)} title={`${d.filename} — click to view`}
+              style={{ cursor:'pointer', border:'1px solid var(--border)', borderRadius:8, padding:6, position:'relative' }}>
+              <DocThumb doc={d} />
+              <div style={{ fontSize:9, fontWeight:800, color, marginTop:5 }}>{label}</div>
+              <div style={{ fontSize:9, color:'var(--muted)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{d.filename}</div>
+              <button title="Delete" onClick={async e => {
+                e.stopPropagation();
+                if (!confirm(`Delete ${d.filename}?`)) return;
+                try { await api.deleteProjectDoc(d.id); setDocs(ds => ds.filter(x => x.id !== d.id)); }
+                catch (er) { alert(er.message); }
+              }} style={{ position:'absolute', top:4, right:4, background:'rgba(0,0,0,0.55)', border:'none', color:'#ccc', borderRadius:5, fontSize:10, cursor:'pointer', padding:'1px 5px' }}>✕</button>
+            </div>
+          );
+        })}
+      </div>
+      {view && <DocViewer doc={view} onClose={() => setView(null)} />}
+    </div>
+  );
+}
+
 // ── One-off task row: checkbox / task / tag / due date; click ▸ for notes ──
 function TaskRow({ t, members, onSave, onDelete }) {
   const [open, setOpen] = useState(false);
@@ -79,7 +208,8 @@ export default function ProjectOverview({ pid }) {
 
   if (err) return <div className="empty">{err}</div>;
   if (!data) return <div className="empty">Loading…</div>;
-  const { project, budgetStatus, shoots, edits, callNotes, tasks } = data;
+  const { project, budgetStatus, shoots, edits, callNotes, tasks, docs = [] } = data;
+  const setDocs = fn => setData(d => ({ ...d, docs: typeof fn === 'function' ? fn(d.docs || []) : fn }));
   const setTasks = fn => setData(d => ({ ...d, tasks: typeof fn === 'function' ? fn(d.tasks) : fn }));
   const setNotes = fn => setData(d => ({ ...d, callNotes: typeof fn === 'function' ? fn(d.callNotes) : fn }));
 
@@ -173,7 +303,9 @@ export default function ProjectOverview({ pid }) {
         </div>
       </div>
 
-      {/* ── Right: elongated to-do column ── */}
+      {/* ── Right: docs tile above the elongated to-do column ── */}
+      <div className="pv-right">
+      <DocsTile pid={pid} docs={docs} setDocs={setDocs} />
       <div className="pv-todo" style={{ ...card, minHeight:420, display:'flex', flexDirection:'column' }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
           <div style={{ ...secHdr, marginBottom:0 }}>To-Do</div>
@@ -195,6 +327,7 @@ export default function ProjectOverview({ pid }) {
               catch (e) { alert(e.message); }
             }} />
         ))}
+      </div>
       </div>
     </div>
   );

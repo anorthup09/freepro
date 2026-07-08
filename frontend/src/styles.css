@@ -549,5 +549,6 @@ textarea { resize: vertical; min-height: 70px; }
 /* Project Overview: stack to one column on phones; To-Do card shrinks to content */
 @media (max-width: 700px) {
   .pv-overview { grid-template-columns: 1fr !important; }
-  .pv-overview .pv-todo { min-height: 0 !important; order: -1; }
+  .pv-overview .pv-right { order: -1; }
+  .pv-overview .pv-todo { min-height: 0 !important; }
 }

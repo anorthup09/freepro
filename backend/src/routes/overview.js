@@ -26,7 +26,10 @@ router.get('/project-overview/:pid', ...staff, async (req, res, next) => {
       SELECT t.*, (SELECT ${sql.unsafe(PREF)} FROM crew_members cm WHERE cm.id = t.assignee_id) as assignee_name
       FROM project_tasks t WHERE t.project_id = ${project.id}
       ORDER BY t.done, t.due_date NULLS LAST, t.sort, t.created_at`;
-    res.json({ project, budgetStatus: budget?.status || null, closeMonth: budget?.close_month || null, shoots, edits, callNotes, tasks });
+    const docs = await sql`
+      SELECT id, kind, filename, mime, size, uploaded_by, created_at
+      FROM project_docs WHERE project_id = ${project.id} ORDER BY kind, created_at DESC`;
+    res.json({ project, budgetStatus: budget?.status || null, closeMonth: budget?.close_month || null, shoots, edits, callNotes, tasks, docs });
   } catch (e) { next(e); }
 });
 
@@ -89,6 +92,36 @@ router.patch('/project-tasks/:id', requireAuth, async (req, res, next) => {
 router.delete('/project-tasks/:id', ...staff, async (req, res, next) => {
   try {
     await sql`DELETE FROM project_tasks WHERE id = ${req.params.id}`;
+    res.status(204).end();
+  } catch (e) { next(e); }
+});
+
+// ── Project documents (creative briefs, VPPs) ──
+router.post('/project-overview/:pid/docs', ...staff, async (req, res, next) => {
+  try {
+    const { filename, mime, fileBase64, kind } = req.body;
+    if (!filename || !fileBase64) return res.status(400).json({ error: 'filename and file required' });
+    const buf = Buffer.from(fileBase64, 'base64');
+    if (buf.length > 25 * 1024 * 1024) return res.status(400).json({ error: 'File too large (25MB max)' });
+    const [d] = await sql`
+      INSERT INTO project_docs (project_id, kind, filename, mime, size, data, uploaded_by)
+      VALUES (${req.params.pid}, ${kind === 'vpp' ? 'vpp' : 'brief'}, ${filename}, ${mime || null}, ${buf.length}, ${buf}, ${req.user.name || req.user.email})
+      RETURNING id, kind, filename, mime, size, uploaded_by, created_at`;
+    res.status(201).json(d);
+  } catch (e) { next(e); }
+});
+router.get('/project-docs/:id/file', requireAuth, async (req, res, next) => {
+  try {
+    const [f] = await sql`SELECT filename, mime, data FROM project_docs WHERE id = ${req.params.id}`;
+    if (!f) return res.status(404).json({ error: 'Document not found' });
+    res.setHeader('Content-Type', f.mime || 'application/octet-stream');
+    res.setHeader('Content-Disposition', `${req.query.inline ? 'inline' : 'attachment'}; filename="${f.filename.replace(/"/g, '')}"`);
+    res.send(f.data);
+  } catch (e) { next(e); }
+});
+router.delete('/project-docs/:id', ...staff, async (req, res, next) => {
+  try {
+    await sql`DELETE FROM project_docs WHERE id = ${req.params.id}`;
     res.status(204).end();
   } catch (e) { next(e); }
 });
