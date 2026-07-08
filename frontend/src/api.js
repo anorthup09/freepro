@@ -110,6 +110,7 @@ export const api = {
   taggableUsers: () => req('GET', '/finance/taggable-users'),
   budgetTags: (bid) => req('GET', `/finance/budgets/${bid}/tags`),
   addBudgetTag: (bid, userId) => req('POST', `/finance/budgets/${bid}/tags`, { userId }),
+  addBudgetTagByName: (bid, name) => req('POST', `/finance/budgets/${bid}/tags`, { name }),
   removeBudgetTag: (bid, userId) => req('DELETE', `/finance/budgets/${bid}/tags/${userId}`),
   getHarbinger: (pid) => req('GET', `/finance/${pid}/harbinger`),
   submitHarbinger: (pid, data) => req('POST', `/finance/${pid}/harbinger`, data),

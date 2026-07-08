@@ -1023,7 +1023,6 @@ const tagInitials = n => { const w = (n || '?').trim().split(/\s+/); return ((w[
 
 function TagRow({ budgetId, ownerName }) {
   const [tags, setTags] = useState([]);
-  const [users, setUsers] = useState([]);
   const [open, setOpen] = useState(false);
 
   // Re-fetch when the owner changes — setting an owner auto-tags them
@@ -1031,17 +1030,21 @@ function TagRow({ budgetId, ownerName }) {
     if (!budgetId) return;
     const t = setTimeout(() => {
       api.budgetTags(budgetId).then(setTags).catch(() => setTags([]));
-      api.taggableUsers().then(setUsers).catch(() => setUsers([]));
     }, 400);
     return () => clearTimeout(t);
   }, [budgetId, ownerName]);
 
-  const available = users.filter(u => !tags.some(t => t.user_id === u.id));
+  // Options mirror the Budget Owner dropdown; hide names already tagged
+  const tagged = tags.map(t => (t.name || '').toLowerCase());
+  const available = BUDGET_OWNERS.filter(n => {
+    const last = n.trim().toLowerCase().split(/\s+/).pop();
+    return !tagged.some(t => t.split(/\s+/).pop() === last);
+  });
 
-  async function add(userId) {
+  async function add(name) {
     setOpen(false);
-    if (!userId) return;
-    try { setTags(await api.addBudgetTag(budgetId, userId)); } catch (e) { alert(e.message); }
+    if (!name) return;
+    try { setTags(await api.addBudgetTagByName(budgetId, name)); } catch (e) { alert(e.message); }
   }
   async function remove(t) {
     if (!confirm(`Remove ${t.name} from this budget?`)) return;
@@ -1068,10 +1071,10 @@ function TagRow({ budgetId, ownerName }) {
       {open && (
         <div style={{ position:'absolute', top:'110%', right:0, zIndex:50, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, minWidth:170, overflow:'hidden', boxShadow:'0 8px 24px rgba(0,0,0,0.5)' }}>
           {available.length === 0 && <div style={{ padding:'8px 12px', fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>Everyone's tagged.</div>}
-          {available.map(u => (
-            <div key={u.id} onClick={() => add(u.id)}
+          {available.map(n => (
+            <div key={n} onClick={() => add(n)}
               style={{ padding:'7px 12px', fontSize:12, cursor:'pointer', borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
-              {u.name}
+              {n}
             </div>
           ))}
         </div>

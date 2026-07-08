@@ -959,8 +959,30 @@ router.get('/finance/budgets/:bid/tags', ...finance, async (req, res, next) => {
 });
 router.post('/finance/budgets/:bid/tags', ...finance, async (req, res, next) => {
   try {
-    if (!req.body.userId) return res.status(400).json({ error: 'userId required' });
-    await sql`INSERT INTO budget_tags (budget_id, user_id) VALUES (${req.params.bid}, ${req.body.userId}) ON CONFLICT DO NOTHING`;
+    if (req.body.userId) {
+      await sql`INSERT INTO budget_tags (budget_id, user_id) VALUES (${req.params.bid}, ${req.body.userId}) ON CONFLICT DO NOTHING`;
+    } else if (req.body.name) {
+      // Tag by budget-owner name; resolved to a platform account (Alex ↔ Alexander tolerant)
+      const before = await sql`SELECT COUNT(*)::int as c FROM budget_tags WHERE budget_id = ${req.params.bid}`;
+      await autoTagOwner(req.params.bid, req.body.name);
+      const after = await sql`SELECT COUNT(*)::int as c FROM budget_tags WHERE budget_id = ${req.params.bid}`;
+      if (after[0].c === before[0].c) {
+        const dup = await sql`SELECT 1 FROM budget_tags t JOIN users u ON u.id = t.user_id WHERE t.budget_id = ${req.params.bid}`;
+        // distinguish "already tagged" (fine) from "no account" only loosely — report if truly unmatched
+        const users = await sql`SELECT name FROM users WHERE role IN ('ADMIN', 'PRODUCER')`;
+        const parts = String(req.body.name).trim().toLowerCase().split(/\s+/);
+        const matched = users.some(u => {
+          const w = (u.name || '').trim().toLowerCase().split(/\s+/);
+          const firstOk = w[0] === parts[0] || w[0]?.startsWith(parts[0]) || parts[0]?.startsWith(w[0] || '');
+          const last = parts.length > 1 ? parts[parts.length - 1] : '';
+          const ul = w.length > 1 ? w[w.length - 1] : '';
+          return w.join(' ') === parts.join(' ') || (firstOk && (last && ul ? ul === last : w[0] === parts[0]));
+        });
+        if (!matched) return res.status(404).json({ error: `${req.body.name} doesn't have a platform account yet — they need one to be tagged.` });
+      }
+    } else {
+      return res.status(400).json({ error: 'userId or name required' });
+    }
     res.json(await sql`SELECT t.user_id, u.name FROM budget_tags t JOIN users u ON u.id = t.user_id WHERE t.budget_id = ${req.params.bid} ORDER BY u.name`);
   } catch (e) { next(e); }
 });
