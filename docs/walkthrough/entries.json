@@ -356,5 +356,38 @@
       "The <b>Travel</b> column on the crew grid (between Dietary and Start Date) shows each person's flag."
     ],
     "screenshot": "travel-local.png"
+  },
+  {
+    "title": "Video Tracker — Types, grouping, and Add Deliverable",
+    "what": "The Project Video Tracker's Type column is now a dropdown — Pre-Event, On-Site, Post-Event, or Standard Edit — and the tracker groups its rows into colored sections in that order (untyped videos collect under No Type Yet). The Style column is gone, and + Add Row is now + Add Deliverable, opening the full post-production form.",
+    "where": "AvocadoPost → Project Lookup → project → Project Video Tracker tab.",
+    "how": [
+      "Pick a <b>Type</b> on any row — it moves to that section instantly.",
+      "<b>+ Add Deliverable</b> opens the full edit form (title, type, editor, specs, dates, review link, status).",
+      "Drag ⠿ to reorder within a section; filters, custom columns, and merges work as before."
+    ],
+    "screenshot": "tracker-types.png"
+  },
+  {
+    "title": "Deliverables and Post-Production are one form",
+    "what": "The FreePro Deliverables page and the AvocadoPost pipeline now share a single form and stay identical. + Add Deliverable creates a real pipeline edit; editing a deliverable patches the linked edit. The form carries the full post-production field set — including a Status dropdown that defaults to Coming Soon — and the deliverables list groups by Type (Pre-Event / On-Site / Post-Event / Standard Edit) instead of the old categories.",
+    "where": "FreePro → project → Deliverable tab; the same form opens from the Avo tracker's + Add Deliverable.",
+    "how": [
+      "<b>+ Add Deliverable</b> opens the shared form — set Status (defaults to Coming Soon), Type, editor, PM, specs, dates, and review link.",
+      "Saving creates the matching AvocadoPost edit automatically; edits made on either side sync to the other.",
+      "The list groups by Type, with legacy categories mapped onto the new types."
+    ],
+    "screenshot": "deliverable-form.png"
+  },
+  {
+    "title": "Timeline tools — Skip milestones and Copy Timeline From",
+    "what": "Two additions to an edit's Timeline Dates. A Skip button beside every milestone drops it from the flow — the row strikes through, the business-day gaps chain across it, auto-fill lays dates past it, and it disappears from the Gantt, calendar, and email copies (Skipped ✕ restores it). And a Copy Timeline From… dropdown (next to the 📅 calendar button) copies the full timeline — dates and skips — from any other edit on the same project.",
+    "where": "AvocadoPost → any edit → Timeline view.",
+    "how": [
+      "Click <b>Skip</b> to the left of a date to remove that milestone from the flow; click <b>Skipped ✕</b> to bring it back.",
+      "Use <b>Copy Timeline From…</b> at the top to pull another edit's dates — it fully replaces this edit's timeline after a confirm.",
+      "⚡ Auto-Fill respects skips, laying dates straight through the remaining milestones."
+    ],
+    "screenshot": "timeline-skip.png"
   }
 ]
