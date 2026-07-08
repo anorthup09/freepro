@@ -1,13 +1,14 @@
 [
   {
     "title": "Budget Tags \u2014 share visibility on a project",
-    "what": "Tag teammates onto any project budget so it's clear who's working it. Each tagged person shows as a colored initials icon next to the budget's Status, and tags drive the new My Projects filter on the pipeline page.",
+    "what": "Tag teammates onto any project budget so it's clear who's working it. Each tagged person shows as a colored first/last-initial icon next to the budget's Status. Setting a Budget Owner automatically tags them, and tags drive the My Projects filter on the pipeline page.",
     "where": "ProFi \u2192 open any project budget \u2192 the header row next to Status (labeled \"Tagged\").",
     "how": [
       "Open the project's budget in ProFi.",
       "In the header row (Budget Dated / Owner / Status), find <b>Tagged</b> and click <b>+ Tag</b>.",
-      "Pick a name from the dropdown \u2014 their initials icon appears instantly.",
-      "Add as many people as you need; click an initials icon to remove that person (it asks to confirm)."
+      "Pick a name \u2014 the list matches the Budget Owner dropdown. Their initials icon appears instantly.",
+      "Setting the <b>Budget Owner</b> tags that person automatically \u2014 no extra step.",
+      "Click an initials icon to remove someone (it asks to confirm)."
     ],
     "screenshot": "budget-tags.png"
   },
