@@ -1228,6 +1228,20 @@ async function migrate() {
       created_at TIMESTAMPTZ DEFAULT NOW()
     )`;
 
+  // Shot list reference photos
+  await sql`
+    CREATE TABLE IF NOT EXISTS shot_reference_photos (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      project_id TEXT NOT NULL,
+      shot_id TEXT NOT NULL REFERENCES shot_list_shots(id) ON DELETE CASCADE,
+      filename TEXT NOT NULL,
+      mime TEXT,
+      size INT,
+      data BYTEA,
+      uploaded_by TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`;
+
   // Client roster — canonical client names, selected from budgets
   await sql`
     CREATE TABLE IF NOT EXISTS clients (

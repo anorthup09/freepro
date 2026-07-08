@@ -237,6 +237,9 @@ export const api = {
   saveCatering: (projectId, dayId, data) => req('POST', `/projects/${projectId}/schedule/days/${dayId}/catering`, data),
 
   // Deliverables
+  uploadShotPhoto: (projectId, shotId, data) => req('POST', `/projects/${projectId}/shot-list/shots/${shotId}/photos`, data),
+  shotReferencePhotos: (projectId) => req('GET', `/projects/${projectId}/shot-list/reference-photos`),
+  deleteShotPhoto: (pid) => req('DELETE', `/projects/shot-photos/${pid}`),
   getDeliverables: (projectId) => req('GET', `/projects/${projectId}/deliverables`),
   createDeliverable: (projectId, data) => req('POST', `/projects/${projectId}/deliverables`, data),
   updateDeliverable: (projectId, id, data) => req('PATCH', `/projects/${projectId}/deliverables/${id}`, data),

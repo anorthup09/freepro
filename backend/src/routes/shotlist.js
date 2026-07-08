@@ -269,4 +269,41 @@ router.delete('/:id/shot-list/breaks/:breakId', requireAuth, requireRole('ADMIN'
   } catch(e) { next(e); }
 });
 
+// ── Reference photos ──
+router.post('/:id/shot-list/shots/:shotId/photos', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try {
+    const { filename, mime, fileBase64 } = req.body;
+    if (!filename || !fileBase64) return res.status(400).json({ error: 'filename and file required' });
+    const buf = Buffer.from(fileBase64, 'base64');
+    if (buf.length > 15 * 1024 * 1024) return res.status(400).json({ error: 'Photo too large (15MB max)' });
+    const [p] = await sql`
+      INSERT INTO shot_reference_photos (project_id, shot_id, filename, mime, size, data, uploaded_by)
+      VALUES (${req.params.id}, ${req.params.shotId}, ${filename}, ${mime || null}, ${buf.length}, ${buf}, ${req.user?.email || null})
+      RETURNING id, shot_id, filename, mime, size, created_at`;
+    res.status(201).json(p);
+  } catch(e) { next(e); }
+});
+router.get('/:id/shot-list/reference-photos', requireAuth, async (req, res, next) => {
+  try {
+    res.json(await sql`
+      SELECT p.id, p.shot_id, p.filename, p.mime, p.created_at
+      FROM shot_reference_photos p WHERE p.project_id = ${req.params.id} ORDER BY p.created_at`);
+  } catch(e) { next(e); }
+});
+router.get('/shot-photos/:pid/file', requireAuth, async (req, res, next) => {
+  try {
+    const [f] = await sql`SELECT filename, mime, data FROM shot_reference_photos WHERE id = ${req.params.pid}`;
+    if (!f) return res.status(404).json({ error: 'Photo not found' });
+    res.setHeader('Content-Type', f.mime || 'application/octet-stream');
+    res.setHeader('Content-Disposition', `inline; filename="${f.filename.replace(/"/g, '')}"`);
+    res.send(f.data);
+  } catch(e) { next(e); }
+});
+router.delete('/shot-photos/:pid', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try {
+    await sql`DELETE FROM shot_reference_photos WHERE id = ${req.params.pid}`;
+    res.status(204).end();
+  } catch(e) { next(e); }
+});
+
 module.exports = router;

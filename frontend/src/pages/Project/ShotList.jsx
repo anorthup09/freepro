@@ -95,6 +95,33 @@ function calcShotEstTime(sceneStartTime, shots, shotIndex) {
 }
 
 // ── Shot Row ──────────────────────────────────────────────────────────────────
+function RefPhotoButton({ projectId, shotId }) {
+  const [busy, setBusy] = useState(false);
+  async function pick(e) {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    setBusy(true);
+    try {
+      const b64 = await new Promise((ok, bad) => {
+        const r = new FileReader();
+        r.onload = () => ok(String(r.result).split(',')[1]);
+        r.onerror = bad;
+        r.readAsDataURL(file);
+      });
+      await api.uploadShotPhoto(projectId, shotId, { filename: file.name, mime: file.type, fileBase64: b64 });
+      window.dispatchEvent(new Event('shot-photos-changed'));
+    } catch (err) { alert(err.message); }
+    setBusy(false);
+  }
+  return (
+    <label style={{ background:'rgba(232,80,10,0.12)', border:'1px solid var(--orange)', color:'var(--orange)', borderRadius:14, padding:'3px 12px', fontSize:10, fontWeight:800, cursor:'pointer', flexShrink:0 }}>
+      {busy ? 'Uploading…' : '+ Reference Photo'}
+      <input type="file" accept="image/*" onChange={pick} disabled={busy} style={{ display:'none' }} />
+    </label>
+  );
+}
+
 function ShotRow({ shot, index, sceneNumber, projectId, onUpdate, onDelete, accentColor, allExpanded, talent,
                    dragHandleProps, isDragOver, sceneStartTime, allShots }) {
   const captured = shot.status === 'captured';
@@ -279,7 +306,10 @@ function ShotRow({ shot, index, sceneNumber, projectId, onUpdate, onDelete, acce
       {open && isMobileNow() && createPortal(
         <div className="modal-bg" onClick={e => e.target === e.currentTarget && setOpen(false)}>
           <div className="modal">
-            <div className="modal-title">Shot {shotLabel(sceneNumber, index)}</div>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, marginBottom:12 }}>
+              <div className="modal-title" style={{ marginBottom:0 }}>Shot {shotLabel(sceneNumber, index)}</div>
+              <RefPhotoButton projectId={projectId} shotId={shot.id} />
+            </div>
             <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(130px, 1fr))', gap:'10px 14px', marginBottom:12 }}>
               <div className="field sl-detail-move" style={{ margin:0 }}>
                 <label style={{ fontSize:10 }}>Movement</label>
@@ -377,6 +407,9 @@ function ShotRow({ shot, index, sceneNumber, projectId, onUpdate, onDelete, acce
       {isOpen && !(open && isMobileNow()) && (
         <tr style={{ borderBottom:'1px solid var(--border)', background:'rgba(255,255,255,0.025)' }}>
           <td colSpan={9} className="sl-detail-cell" style={{ padding:'12px 14px 16px 76px' }}>
+            <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:8 }}>
+              <RefPhotoButton projectId={projectId} shotId={shot.id} />
+            </div>
             <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(130px, 1fr))', gap:'10px 14px', marginBottom:12 }}>
               <div className="field sl-detail-move" style={{ margin:0 }}>
                 <label style={{ fontSize:10 }}>Movement</label>
@@ -977,6 +1010,79 @@ function LiveClock({ currentDay }) {
 }
 
 // ── Main Component ────────────────────────────────────────────────────────────
+function authPhotoBlob(id) {
+  return fetch(`/api/projects/shot-photos/${id}/file`, { headers: { Authorization: `Bearer ${localStorage.getItem('fp_token')}` } })
+    .then(r => r.ok ? r.blob() : null);
+}
+
+function RefPhotoTile({ photo, label, title, onDelete }) {
+  const [url, setUrl] = useState(null);
+  const [full, setFull] = useState(false);
+  useEffect(() => {
+    let obj;
+    authPhotoBlob(photo.id).then(b => { if (b) { obj = URL.createObjectURL(b); setUrl(obj); } });
+    return () => obj && URL.revokeObjectURL(obj);
+  }, [photo.id]);
+  return (
+    <div style={{ border:'1px solid var(--border)', borderRadius:8, overflow:'hidden', background:'var(--bg2)', position:'relative' }}>
+      <div onClick={() => url && setFull(true)} style={{ height:130, background:'rgba(255,255,255,0.04)', cursor:'pointer' }}>
+        {url && <img src={url} alt={photo.filename} style={{ width:'100%', height:'100%', objectFit:'cover' }} />}
+      </div>
+      <div style={{ padding:'7px 10px' }}>
+        <div style={{ fontSize:11, fontWeight:800, color:'var(--orange)' }}>Shot {label}</div>
+        {title && <div style={{ fontSize:10, color:'var(--muted)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{title}</div>}
+      </div>
+      <button title="Delete photo" onClick={onDelete}
+        style={{ position:'absolute', top:5, right:5, background:'rgba(0,0,0,0.55)', border:'none', color:'#ccc', borderRadius:5, fontSize:10, cursor:'pointer', padding:'1px 5px' }}>✕</button>
+      {full && (
+        <div onClick={() => setFull(false)}
+          style={{ position:'fixed', inset:0, zIndex:140, background:'rgba(0,0,0,0.85)', display:'flex', alignItems:'center', justifyContent:'center', padding:20, cursor:'zoom-out' }}>
+          <div style={{ textAlign:'center', maxWidth:'92vw' }}>
+            <img src={url} alt={photo.filename} style={{ maxWidth:'100%', maxHeight:'82vh', objectFit:'contain', borderRadius:8 }} />
+            <div style={{ color:'#eee', fontSize:13, fontWeight:800, marginTop:10 }}>Shot {label}{title ? ` — ${title}` : ''}</div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function ReferencePhotos({ project, scenes }) {
+  const [photos, setPhotos] = useState([]);
+  const load = () => api.shotReferencePhotos(project.id).then(setPhotos).catch(() => {});
+  useEffect(() => {
+    load();
+    window.addEventListener('shot-photos-changed', load);
+    return () => window.removeEventListener('shot-photos-changed', load);
+  }, [project.id]);
+  if (!photos.length) return null;
+  // Sequential order: scenes in order, shots in order within each scene
+  const meta = {};
+  const seq = [];
+  (scenes || []).forEach(sc => (sc.shots || []).forEach((sh, i) => {
+    meta[sh.id] = { label: shotLabel(sc.scene_number, i), title: sh.description || '' };
+    seq.push(sh.id);
+  }));
+  const ordered = [...photos].sort((a, b) => {
+    const ia = seq.indexOf(a.shot_id), ib = seq.indexOf(b.shot_id);
+    return (ia === -1 ? 9999 : ia) - (ib === -1 ? 9999 : ib);
+  });
+  return (
+    <div style={{ marginTop:28 }}>
+      <div className="sec-lbl" style={{ marginBottom:8 }}>Reference Photos</div>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(170px, 1fr))', gap:12 }}>
+        {ordered.map(p => (
+          <RefPhotoTile key={p.id} photo={p} label={meta[p.shot_id]?.label || '—'} title={meta[p.shot_id]?.title}
+            onDelete={async () => {
+              if (!confirm('Delete this reference photo?')) return;
+              try { await api.deleteShotPhoto(p.id); load(); } catch (e) { alert(e.message); }
+            }} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function ShotList({ project, onScenesChange, onCurrentDayChange, onOpenScheduleDay }) {
   const [scenes, setScenes] = useState([]);
   const [talent, setTalent] = useState([]);
@@ -1478,6 +1584,7 @@ export default function ShotList({ project, onScenesChange, onCurrentDayChange, 
         </div>
       )}
 
+      <ReferencePhotos project={project} scenes={scenes} />
     </div>
   );
 }
