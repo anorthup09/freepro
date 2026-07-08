@@ -355,9 +355,9 @@ export default function AvoEdit() {
           {/* ── Left: details ── */}
           <div style={{ flex:'1 1 480px', minWidth:320 }}>
             <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderTop:`3px solid ${AVO}`, borderRadius:12, padding:'18px 20px' }}>
-              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+              <div className="ae-titlebar" style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
                 <input value={e.title || ''} onChange={ev => patch({ title: ev.target.value })} onBlur={ev => save({ title: ev.target.value })}
-                  style={{ fontSize:18, fontWeight:800, background:'transparent', border:'1px solid transparent', borderRadius:6, padding:'4px 8px', width:'100%', flex:1 }} />
+                  style={{ fontSize:18, fontWeight:800, background:'transparent', border:'1px solid transparent', borderRadius:6, padding:'4px 8px', flex:'1 1 200px', minWidth:0 }} />
                 <CopyTimelineFrom edit={e} onCopied={(ms, skips) => { patch({ milestones: ms, milestone_skips: skips }); }} save={save} />
                 <button onClick={() => setShowCal(true)} title="Calendar view of the timeline dates"
                   style={{ background:'transparent', border:`1px solid ${AVO}55`, color:AVO, borderRadius:14, padding:'4px 10px', fontSize:12, cursor:'pointer', flexShrink:0 }}>
