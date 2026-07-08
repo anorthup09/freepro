@@ -422,7 +422,10 @@ router.get('/projects/:id', ...staff, async (req, res, next) => {
       FROM edits e
       WHERE e.project_code = ${page.code} OR e.project_code LIKE ${page.code + '-%'}
       ORDER BY e.tracker_sort NULLS LAST, e.end_date NULLS LAST, e.created_at`;
-    res.json({ ...page, lowerThirds, todos, music, edits });
+    const tables = await sql`SELECT * FROM avo_custom_tables WHERE page_id = ${page.id} ORDER BY sort, created_at`;
+    const tRows = tables.length ? await sql`SELECT * FROM avo_custom_rows WHERE table_id IN ${sql(tables.map(t => t.id))} ORDER BY sort, created_at` : [];
+    const customTables = tables.map(t => ({ ...t, rows: tRows.filter(r => r.table_id === t.id) }));
+    res.json({ ...page, lowerThirds, todos, music, edits, customTables });
   } catch (e) { next(e); }
 });
 router.patch('/projects/:id', ...staff, async (req, res, next) => {
@@ -439,6 +442,55 @@ router.patch('/projects/:id', ...staff, async (req, res, next) => {
 router.delete('/projects/:id', ...staff, async (req, res, next) => {
   try {
     await sql`DELETE FROM avo_project_pages WHERE id = ${req.params.id}`;
+    res.status(204).end();
+  } catch (e) { next(e); }
+});
+
+// ── Custom tables on a project page ──
+router.post('/projects/:id/tables', ...staff, async (req, res, next) => {
+  try {
+    const name = String(req.body.name || '').trim();
+    if (!name) return res.status(400).json({ error: 'Table name required' });
+    const config = { cols: [{ key: 'c' + Date.now().toString(36), label: 'Column 1' }], merges: {} };
+    const [t] = await sql`INSERT INTO avo_custom_tables (page_id, name, config) VALUES (${req.params.id}, ${name}, ${sql.json(config)}) RETURNING *`;
+    res.status(201).json({ ...t, rows: [] });
+  } catch (e) { next(e); }
+});
+router.patch('/tables/:tid', ...staff, async (req, res, next) => {
+  try {
+    const [t] = await sql`UPDATE avo_custom_tables SET
+        name = ${req.body.name !== undefined && String(req.body.name).trim() ? String(req.body.name).trim() : sql`name`},
+        config = ${req.body.config !== undefined && typeof req.body.config === 'object' ? sql.json(req.body.config || {}) : sql`config`}
+      WHERE id = ${req.params.tid} RETURNING *`;
+    if (!t) return res.status(404).json({ error: 'Table not found' });
+    res.json(t);
+  } catch (e) { next(e); }
+});
+router.delete('/tables/:tid', ...staff, async (req, res, next) => {
+  try {
+    await sql`DELETE FROM avo_custom_tables WHERE id = ${req.params.tid}`;
+    res.status(204).end();
+  } catch (e) { next(e); }
+});
+router.post('/tables/:tid/rows', ...staff, async (req, res, next) => {
+  try {
+    const [r] = await sql`INSERT INTO avo_custom_rows (table_id) VALUES (${req.params.tid}) RETURNING *`;
+    res.status(201).json(r);
+  } catch (e) { next(e); }
+});
+router.patch('/table-rows/:rid', ...staff, async (req, res, next) => {
+  try {
+    const [r] = await sql`UPDATE avo_custom_rows SET
+        extra = ${req.body.extra !== undefined && typeof req.body.extra === 'object' ? sql`COALESCE(extra, '{}'::jsonb) || ${sql.json(req.body.extra)}` : sql`extra`},
+        sort = ${req.body.sort !== undefined ? (Number(req.body.sort) || 0) : sql`sort`}
+      WHERE id = ${req.params.rid} RETURNING *`;
+    if (!r) return res.status(404).json({ error: 'Row not found' });
+    res.json(r);
+  } catch (e) { next(e); }
+});
+router.delete('/table-rows/:rid', ...staff, async (req, res, next) => {
+  try {
+    await sql`DELETE FROM avo_custom_rows WHERE id = ${req.params.rid}`;
     res.status(204).end();
   } catch (e) { next(e); }
 });

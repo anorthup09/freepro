@@ -1170,6 +1170,25 @@ async function migrate() {
   await sql`ALTER TABLE edits ADD COLUMN IF NOT EXISTS extra JSONB DEFAULT '{}'::jsonb`;
   await sql`ALTER TABLE edits ADD COLUMN IF NOT EXISTS tracker_sort INT`;
 
+  // User-defined tables on Avo project pages (fully custom columns)
+  await sql`
+    CREATE TABLE IF NOT EXISTS avo_custom_tables (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      page_id TEXT NOT NULL REFERENCES avo_project_pages(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      config JSONB DEFAULT '{}'::jsonb,
+      sort INT DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`;
+  await sql`
+    CREATE TABLE IF NOT EXISTS avo_custom_rows (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      table_id TEXT NOT NULL REFERENCES avo_custom_tables(id) ON DELETE CASCADE,
+      extra JSONB DEFAULT '{}'::jsonb,
+      sort INT DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`;
+
   // Client roster — canonical client names, selected from budgets
   await sql`
     CREATE TABLE IF NOT EXISTS clients (

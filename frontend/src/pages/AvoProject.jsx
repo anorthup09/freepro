@@ -529,6 +529,49 @@ function MusicGrid({ rows, setRows, pageId, code, title, config, onConfig }) {
   );
 }
 
+// ── User-defined table: every column is custom, full SmartTable feature set ──
+function CustomTable({ table, onChange, onDelete }) {
+  const rows = table.rows || [];
+  const setRows = fn => onChange({ ...table, rows: typeof fn === 'function' ? fn(rows) : fn });
+  async function addRow() {
+    try { const r = await api.addAvoTableRow(table.id); setRows([...rows, r]); }
+    catch (e) { alert(e.message); }
+  }
+  function reorder(next) {
+    setRows(next);
+    next.forEach((r, i) => api.updateAvoTableRow(r.id, { sort: i }).catch(() => {}));
+  }
+  function saveConfig(next) {
+    onChange({ ...table, config: next });
+    api.updateAvoTable(table.id, { config: next }).catch(e => alert(e.message));
+  }
+  async function rename() {
+    const name = prompt('Rename table:', table.name);
+    if (!name || !name.trim()) return;
+    onChange({ ...table, name: name.trim() });
+    api.updateAvoTable(table.id, { name: name.trim() }).catch(e => alert(e.message));
+  }
+  return (
+    <>
+      <SmartTable rows={rows} colDefs={[]} config={table.config || {}} onConfig={saveConfig}
+        saveExtra={(id, k, v) => api.updateAvoTableRow(id, { extra: { [k]: v } })
+          .then(r => setRows(rows.map(x => x.id === id ? r : x))).catch(e => alert(e.message))}
+        footerRight={{ addRow }} onReorder={reorder}
+        emptyText="Empty table — add rows and columns to build it out."
+        trailing={r => (
+          <button title="Delete row" onClick={async () => {
+            try { await api.deleteAvoTableRow(r.id); setRows(rows.filter(x => x.id !== r.id)); }
+            catch (e) { alert(e.message); }
+          }} style={{ background:'none', border:'none', color:'var(--muted)', fontSize:12, cursor:'pointer' }}>✕</button>
+        )} />
+      <div style={{ display:'flex', gap:10, padding:'8px 2px' }}>
+        <button onClick={rename} style={{ background:'none', border:'none', color:'var(--muted)', fontSize:10, cursor:'pointer', padding:0 }}>✎ Rename Table</button>
+        <button onClick={onDelete} style={{ background:'none', border:'none', color:'var(--red-text, #e05252)', fontSize:10, cursor:'pointer', padding:0 }}>✕ Delete Table</button>
+      </div>
+    </>
+  );
+}
+
 const TABS = [['tracker', 'Project Video Tracker'], ['todos', 'To-Do List'], ['music', 'Music Options'], ['lower-thirds', 'Lower Thirds']];
 
 export default function AvoProject({ idOverride, embedded }) {
@@ -540,14 +583,33 @@ export default function AvoProject({ idOverride, embedded }) {
   const [lowerThirds, setLowerThirds] = useState([]);
   const [todos, setTodos] = useState([]);
   const [music, setMusic] = useState([]);
+  const [tables, setTables] = useState([]);
   const [tab, setTab] = useState('tracker');
   const [err, setErr] = useState('');
 
   useEffect(() => {
     api.avoProject(id)
-      .then(p => { setPage(p); setEdits(p.edits || []); setLowerThirds(p.lowerThirds || []); setTodos(p.todos || []); setMusic(p.music || []); })
+      .then(p => { setPage(p); setEdits(p.edits || []); setLowerThirds(p.lowerThirds || []); setTodos(p.todos || []); setMusic(p.music || []); setTables(p.customTables || []); })
       .catch(e => setErr(e.message));
   }, [id]);
+
+  async function addTable() {
+    const name = prompt('Name for the new table:');
+    if (!name || !name.trim()) return;
+    try {
+      const t = await api.createAvoTable(id, name.trim());
+      setTables(ts => [...ts, t]);
+      setTab('table:' + t.id);
+    } catch (e) { alert(e.message); }
+  }
+  async function deleteTable(t) {
+    if (!confirm(`Delete the "${t.name}" table and all its rows?`)) return;
+    try {
+      await api.deleteAvoTable(t.id);
+      setTables(ts => ts.filter(x => x.id !== t.id));
+      setTab('tracker');
+    } catch (e) { alert(e.message); }
+  }
 
   const gridConfig = page?.grid_config || {};
   const cfgFor = k => gridConfig[k] || { cols: [], merges: {} };
@@ -601,6 +663,19 @@ export default function AvoProject({ idOverride, embedded }) {
                   {label}{k === 'tracker' && edits.length ? ` (${edits.length})` : ''}
                 </button>
               ))}
+              {tables.map(t => (
+                <button key={t.id} onClick={() => setTab('table:' + t.id)}
+                  style={{
+                    background: tab === 'table:' + t.id ? `${AVO}2e` : 'transparent', border:`1px solid ${tab === 'table:' + t.id ? AVO : 'var(--border)'}`,
+                    color: tab === 'table:' + t.id ? AVO : 'var(--muted)', borderRadius:16, padding:'5px 14px', fontSize:11, fontWeight:800, cursor:'pointer',
+                  }}>
+                  {t.name}
+                </button>
+              ))}
+              <button onClick={addTable} title="Add a custom table as a new tab"
+                style={{ background:'var(--bg)', border:'1px solid rgba(255,255,255,0.55)', color:'#e8e8e8', borderRadius:16, padding:'5px 14px', fontSize:11, fontWeight:800, cursor:'pointer' }}>
+                + Add Custom Table
+              </button>
             </div>
 
             {tab === 'tracker' && <VideoTracker edits={edits} setEdits={setEdits} code={page.code} config={cfgFor('tracker')} onConfig={saveCfg('tracker')} />}
@@ -613,6 +688,11 @@ export default function AvoProject({ idOverride, embedded }) {
               <MusicGrid pageId={id} rows={music} setRows={setMusic} code={page.code} title={page.title}
                 config={cfgFor('music')} onConfig={next => saveCfg('music')({ ...cfgFor('music'), ...next })} />
             )}
+            {tables.map(t => tab === 'table:' + t.id && (
+              <CustomTable key={t.id} table={t}
+                onChange={next => setTables(ts => ts.map(x => x.id === t.id ? next : x))}
+                onDelete={() => deleteTable(t)} />
+            ))}
             {tab === 'lower-thirds' && (
               <Grid kind="lower-thirds" pageId={id} rows={lowerThirds} setRows={setLowerThirds}
                 config={cfgFor('lower-thirds')} onConfig={saveCfg('lower-thirds')}
