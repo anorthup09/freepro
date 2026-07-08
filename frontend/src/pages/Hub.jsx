@@ -233,7 +233,14 @@ function HubDashboard() {
       </div>
 
       <div style={card}>
-        <div style={hdr}>Team Today</div>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
+          <div style={{ ...hdr, marginBottom:0 }}>Team Today</div>
+          <button onClick={() => nav('/team')}
+            style={{ background:'rgba(74,158,255,0.14)', border:'1.5px solid #4a9eff', color:'#4a9eff',
+              borderRadius:12, padding:'6px 14px', fontSize:11, fontWeight:800, cursor:'pointer', display:'flex', alignItems:'center', gap:6 }}>
+            <span style={{ fontSize:13 }}>👥</span> Team Management
+          </button>
+        </div>
         {!team && <div style={{ fontSize:11, color:'var(--muted)' }}>Loading…</div>}
         {team && team.length === 0 && <div style={{ fontSize:12, color:'var(--muted)', fontStyle:'italic' }}>No Unbridled team members on the roster yet.</div>}
         <div style={{ display:'flex', flexDirection:'column' }}>
@@ -357,17 +364,6 @@ export default function Hub() {
                 );
               })}
             </div>
-            )}
-
-            {/* Team Management: small constant tile below both views */}
-            {teamTile && (
-              <div style={{ display:'flex', justifyContent:'center', marginTop:22 }}>
-                <button onClick={() => nav(teamTile.to)}
-                  style={{ background:'rgba(74,158,255,0.14)', border:`1.5px solid ${teamTile.accent}`, color:teamTile.accent,
-                    borderRadius:12, padding:'12px 26px', fontSize:13, fontWeight:800, cursor:'pointer', display:'flex', alignItems:'center', gap:8 }}>
-                  <span style={{ fontSize:16 }}>{teamTile.icon}</span> Team Management
-                </button>
-              </div>
             )}
 
             <HubDashboard />
