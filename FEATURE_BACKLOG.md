@@ -27,7 +27,7 @@ Working list; check off as built. Each shipped item also gets an entry in
 - [ ] Space for call/meeting notes
 - [ ] Space for creative briefs & assets from clients
 - [ ] Place to house shared client document link
-- [ ] Reference photo space in shot list
+- [x] Reference photo space in shot list
 - [ ] Tech specs on the call sheet for crew
 - [ ] Larger client project status page (all projects for a client at a glance)
 - [ ] Individual call sheets per crew position (HMU, audio, etc. — easy to read)
