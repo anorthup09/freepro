@@ -583,3 +583,7 @@ textarea { resize: vertical; min-height: 70px; }
 @media (max-width: 700px) {
   .team-grid { grid-template-columns: 1fr !important; }
 }
+
+/* Project Hub / Client Hub tiles: one horizontally scrolling row */
+.hub-scroll > div { flex: 0 0 250px; }
+.hub-scroll { scrollbar-width: thin; -webkit-overflow-scrolling: touch; }

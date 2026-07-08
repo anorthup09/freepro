@@ -188,7 +188,7 @@ function HubProjects() {
       </div>
       {!projects && <div className="empty">Loading…</div>}
       {projects && shown.length === 0 && <div className="empty">No projects match.</div>}
-      <div className="hub-tiles" style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(250px, 1fr))', gap:14 }}>
+      <div className="hub-scroll" style={{ display:'flex', gap:14, overflowX:'auto', paddingBottom:8 }}>
         {shown.map(p => (
           <div key={p.id} onClick={() => nav(`/project-view/${p.id}`)}
             style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid rgba(232,232,232,0.35)', borderRadius:10, padding:'16px 18px', cursor:'pointer', transition:'transform .15s ease' }}
@@ -210,7 +210,7 @@ function HubProjects() {
             <div style={{ fontSize:13, fontWeight:800 }}>Client Hub</div>
             <input value={cq} onChange={e => setCq(e.target.value)} placeholder="Search clients…" style={{ width:240 }} />
           </div>
-          <div className="hub-tiles" style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(250px, 1fr))', gap:14 }}>
+          <div className="hub-scroll" style={{ display:'flex', gap:14, overflowX:'auto', paddingBottom:8 }}>
             {shownClients.map(c => (
               <div key={c.name} onClick={() => nav(`/project-view/client/${encodeURIComponent(c.name)}`)}
                 style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid rgba(74,158,255,0.5)', borderRadius:10, padding:'16px 18px', cursor:'pointer', transition:'transform .15s ease' }}
