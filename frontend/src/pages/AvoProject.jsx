@@ -39,7 +39,7 @@ function SmartTable({ rows, colDefs, config, onConfig, saveExtra, leading, trail
   const [dragCol, setDragCol] = useState(null);
   const [overRow, setOverRow] = useState(null);
   const [overCol, setOverCol] = useState(null);
-  const [showFilter, setShowFilter] = useState(false);
+  const [openFilter, setOpenFilter] = useState(null); // column key with the filter dropdown open
   const [filters, setFilters] = useState({});
 
   const customCols = config?.cols || [];
@@ -74,7 +74,7 @@ function SmartTable({ rows, colDefs, config, onConfig, saveExtra, leading, trail
 
   // Column filters — substring match on the cell's raw value
   const valOf = (r, c) => c.custom ? (r.extra?.[c.key] ?? '') : (r[c.key] ?? '');
-  const filterActive = showFilter && allCols.some(c => (filters[c.key] || '').trim());
+  const filterActive = allCols.some(c => (filters[c.key] || '').trim());
   const shownRows = filterActive
     ? rows.filter(r => allCols.every(c => {
         const f = (filters[c.key] || '').trim().toLowerCase();
@@ -167,8 +167,28 @@ function SmartTable({ rows, colDefs, config, onConfig, saveExtra, leading, trail
                   onDragLeave={() => setOverCol(o => o === c.key ? null : o)}
                   onDrop={() => { dropCol(c.key); setDragCol(null); setOverCol(null); }}
                   onDragEnd={() => { setDragCol(null); setOverCol(null); }}
-                  style={{ ...th, cursor:'grab', background: overCol === c.key && dragCol && dragCol !== c.key ? `${AVO}20` : undefined, opacity: dragCol === c.key ? 0.5 : 1 }}>
+                  style={{ ...th, cursor:'grab', position:'relative', background: overCol === c.key && dragCol && dragCol !== c.key ? `${AVO}20` : undefined, opacity: dragCol === c.key ? 0.5 : 1 }}>
                   {c.label}
+                  <button title="Filter by this column" draggable={false}
+                    onClick={e => { e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); setOpenFilter(o => o?.key === c.key ? null : { key: c.key, x: r.left, y: r.bottom }); }}
+                    style={{ background:'none', border:'none', cursor:'pointer', padding:'0 3px', fontSize:9,
+                      color: (filters[c.key] || '').trim() ? AVO : 'var(--muted)', opacity: (filters[c.key] || '').trim() ? 1 : 0.7 }}>⧩</button>
+                  {openFilter?.key === c.key && (
+                    <div onClick={e => e.stopPropagation()}
+                      style={{ position:'fixed', top:openFilter.y + 4, left:Math.min(openFilter.x, window.innerWidth - 180), zIndex:130, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:7, padding:8, boxShadow:'0 8px 20px rgba(0,0,0,0.5)', minWidth:150 }}>
+                      <div style={{ fontSize:8, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4 }}>Filter by {c.label}</div>
+                      <input autoFocus value={filters[c.key] || ''} placeholder="Contains…"
+                        onChange={e => setFilters(f => ({ ...f, [c.key]: e.target.value }))}
+                        onKeyDown={e => e.key === 'Enter' && setOpenFilter(null)}
+                        style={{ width:'100%', fontSize:11, padding:'4px 8px', background:'var(--bg)', border:'1px solid var(--border)', borderRadius:5, color:'var(--text)' }} />
+                      <div style={{ display:'flex', justifyContent:'space-between', marginTop:6 }}>
+                        <button onClick={() => { setFilters(f => ({ ...f, [c.key]: '' })); setOpenFilter(null); }}
+                          style={{ background:'none', border:'none', color:'var(--muted)', fontSize:9, cursor:'pointer', padding:0 }}>Clear</button>
+                        <button onClick={() => setOpenFilter(null)}
+                          style={{ background:'none', border:'none', color:AVO, fontSize:9, fontWeight:800, cursor:'pointer', padding:0 }}>Done</button>
+                      </div>
+                    </div>
+                  )}
                   {c.custom && (
                     <span style={{ marginLeft:5, whiteSpace:'nowrap' }}>
                       <button title="Rename column" onClick={() => renameColumn(c)} style={{ background:'none', border:'none', color:'var(--muted)', fontSize:9, cursor:'pointer', padding:'0 2px' }}>✎</button>
@@ -179,20 +199,6 @@ function SmartTable({ rows, colDefs, config, onConfig, saveExtra, leading, trail
               ))}
               {trailing && <th style={{ ...th, width:34 }}></th>}
             </tr>
-            {showFilter && (
-              <tr>
-                {onReorder && <th></th>}
-                {leading && <th></th>}
-                {allCols.map(c => (
-                  <th key={c.key} style={{ padding:'2px 6px 6px' }}>
-                    <input value={filters[c.key] || ''} placeholder="Filter…"
-                      onChange={e => setFilters(f => ({ ...f, [c.key]: e.target.value }))}
-                      style={{ width:'100%', fontSize:10, padding:'3px 7px', background:'var(--bg)', border:'1px solid var(--border)', borderRadius:5, color:'var(--text)' }} />
-                  </th>
-                ))}
-                {trailing && <th></th>}
-              </tr>
-            )}
           </thead>
           <tbody>
             {shownRows.length === 0 && (
@@ -241,11 +247,12 @@ function SmartTable({ rows, colDefs, config, onConfig, saveExtra, leading, trail
           style={mergeMode ? { ...pillBtn(), background:'rgba(255,255,255,0.9)', color:'#0b0b0b' } : pillBtn()}>
           {mergeMode ? '✕ Done Merging' : '⬚ Merge Cells'}
         </button>
-        <button onClick={() => { setShowFilter(v => !v); if (showFilter) setFilters({}); }}
-          style={showFilter ? { ...pillBtn(), background:'rgba(255,255,255,0.9)', color:'#0b0b0b' } : pillBtn()}>
-          {showFilter ? '✕ Clear Filters' : '⧩ Filter'}
-        </button>
-        {filterActive && <span style={{ fontSize:10, color:'var(--muted)' }}>{shownRows.length} of {rows.length} rows</span>}
+        {filterActive && (
+          <>
+            <button onClick={() => { setFilters({}); setOpenFilter(null); }} style={pillBtn()}>✕ Clear Filters</button>
+            <span style={{ fontSize:10, color:'var(--muted)' }}>{shownRows.length} of {rows.length} rows</span>
+          </>
+        )}
         {mergeMode && !selA && <span style={{ fontSize:10, color:'var(--muted)' }}>Click the first cell, then the last cell of the block to merge.</span>}
         {mergeMode && selA && !selB && !selAnchor && <span style={{ fontSize:10, color:'var(--muted)' }}>Now click the last cell of the block.</span>}
         {mergeMode && selAnchor && <button onClick={unmerge} style={pillBtn('#e05252')}>Unmerge This Cell</button>}
@@ -426,11 +433,11 @@ function MusicGrid({ rows, setRows, pageId, code, title, config, onConfig }) {
   const [dragId, setDragId] = useState(null);
   const [overId, setOverId] = useState(null);
   const [dragColKey, setDragColKey] = useState(null);
-  const [showFilter, setShowFilter] = useState(false);
+  const [openFilter, setOpenFilter] = useState(null);
   const [filters, setFilters] = useState({});
   const customCols = config?.cols || [];
+  const filterActive = ['category', 'url', 'note', ...customCols.map(c => c.key)].some(k => (filters[k] || '').trim());
   const filterKeys = ['category', 'url', 'note', ...customCols.map(c => c.key)];
-  const filterActive = showFilter && filterKeys.some(k => (filters[k] || '').trim());
   const musicVal = (r, k) => customCols.some(c => c.key === k) ? (r.extra?.[k] ??  '') : (r[k] ?? '');
   const shownRows = filterActive
     ? rows.filter(r => filterKeys.every(k => {
@@ -483,6 +490,31 @@ function MusicGrid({ rows, setRows, pageId, code, title, config, onConfig }) {
     if (!confirm(`Remove the "${c.label}" column? Its cell contents will be hidden.`)) return;
     onConfig({ cols: customCols.filter(x => x.key !== c.key) });
   }
+  const filterWidget = (k, label) => (
+    <>
+      <button title="Filter by this column" draggable={false}
+        onClick={e => { e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); setOpenFilter(o => o?.key === k ? null : { key: k, x: r.left, y: r.bottom }); }}
+        style={{ background:'none', border:'none', cursor:'pointer', padding:'0 3px', fontSize:9,
+          color: (filters[k] || '').trim() ? AVO : 'var(--muted)', opacity: (filters[k] || '').trim() ? 1 : 0.7 }}>⧩</button>
+      {openFilter?.key === k && (
+        <div onClick={e => e.stopPropagation()}
+          style={{ position:'fixed', top:openFilter.y + 4, left:Math.min(openFilter.x, window.innerWidth - 180), zIndex:130, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:7, padding:8, boxShadow:'0 8px 20px rgba(0,0,0,0.5)', minWidth:150 }}>
+          <div style={{ fontSize:8, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4 }}>Filter by {label}</div>
+          <input autoFocus value={filters[k] || ''} placeholder="Contains…"
+            onChange={e => setFilters(f => ({ ...f, [k]: e.target.value }))}
+            onKeyDown={e => e.key === 'Enter' && setOpenFilter(null)}
+            style={{ width:'100%', fontSize:11, padding:'4px 8px', background:'var(--bg)', border:'1px solid var(--border)', borderRadius:5, color:'var(--text)' }} />
+          <div style={{ display:'flex', justifyContent:'space-between', marginTop:6 }}>
+            <button onClick={() => { setFilters(f => ({ ...f, [k]: '' })); setOpenFilter(null); }}
+              style={{ background:'none', border:'none', color:'var(--muted)', fontSize:9, cursor:'pointer', padding:0 }}>Clear</button>
+            <button onClick={() => setOpenFilter(null)}
+              style={{ background:'none', border:'none', color:AVO, fontSize:9, fontWeight:800, cursor:'pointer', padding:0 }}>Done</button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+
   // Rows sharing a video title collapse into one group (title cell spans them)
   const groups = [];
   {
@@ -500,15 +532,18 @@ function MusicGrid({ rows, setRows, pageId, code, title, config, onConfig }) {
         <table style={{ width:'100%', borderCollapse:'collapse' }}>
           <thead>
             <tr>
-              <th style={th}>Video Title</th><th style={th}>Link</th><th style={th}>Note</th>
+              <th style={{ ...th, position:'relative' }}>Video Title{filterWidget('category', 'Video Title')}</th>
+              <th style={{ ...th, position:'relative' }}>Link{filterWidget('url', 'Link')}</th>
+              <th style={{ ...th, position:'relative' }}>Note{filterWidget('note', 'Note')}</th>
               {customCols.map(c => (
                 <th key={c.key} draggable title="Drag to reorder column"
                   onDragStart={() => setDragColKey(c.key)}
                   onDragOver={e => e.preventDefault()}
                   onDrop={() => { dropColOn(c.key); setDragColKey(null); }}
                   onDragEnd={() => setDragColKey(null)}
-                  style={{ ...th, cursor:'grab', opacity: dragColKey === c.key ? 0.5 : 1 }}>
+                  style={{ ...th, cursor:'grab', position:'relative', opacity: dragColKey === c.key ? 0.5 : 1 }}>
                   {c.label}
+                  {filterWidget(c.key, c.label)}
                   <span style={{ marginLeft:5, whiteSpace:'nowrap' }}>
                     <button title="Rename column" onClick={() => renameColumn(c)} style={{ background:'none', border:'none', color:'var(--muted)', fontSize:9, cursor:'pointer', padding:'0 2px' }}>✎</button>
                     <button title="Remove column" onClick={() => removeColumn(c)} style={{ background:'none', border:'none', color:'var(--muted)', fontSize:9, cursor:'pointer', padding:'0 2px' }}>✕</button>
@@ -517,18 +552,6 @@ function MusicGrid({ rows, setRows, pageId, code, title, config, onConfig }) {
               ))}
               <th style={{ ...th, width:34 }}></th>
             </tr>
-            {showFilter && (
-              <tr>
-                {filterKeys.map(k => (
-                  <th key={k} style={{ padding:'2px 6px 6px' }}>
-                    <input value={filters[k] || ''} placeholder="Filter…"
-                      onChange={e => setFilters(f => ({ ...f, [k]: e.target.value }))}
-                      style={{ width:'100%', fontSize:10, padding:'3px 7px', background:'var(--bg)', border:'1px solid var(--border)', borderRadius:5, color:'var(--text)' }} />
-                  </th>
-                ))}
-                <th></th>
-              </tr>
-            )}
           </thead>
           <tbody>
             {shownRows.length === 0 && (
@@ -574,10 +597,7 @@ function MusicGrid({ rows, setRows, pageId, code, title, config, onConfig }) {
       <div style={{ padding:'8px 14px', borderTop:'1px solid var(--border)', display:'flex', gap:8, flexWrap:'wrap', alignItems:'center' }}>
         <button onClick={addRow} style={pillBtn(AVO)}>+ Add Row</button>
         <button onClick={addColumn} style={pillBtn('#a78bfa')}>+ Add Column</button>
-        <button onClick={() => { setShowFilter(v => !v); if (showFilter) setFilters({}); }}
-          style={showFilter ? { ...pillBtn(), background:'rgba(255,255,255,0.9)', color:'#0b0b0b' } : pillBtn()}>
-          {showFilter ? '✕ Clear Filters' : '⧩ Filter'}
-        </button>
+        {filterActive && <button onClick={() => { setFilters({}); setOpenFilter(null); }} style={pillBtn()}>✕ Clear Filters</button>}
         <div style={{ flex:1 }} />
         <button onClick={() => setShare(true)} disabled={!shareGroups.length}
           style={{ background:'rgba(74,158,255,0.12)', border:'1px solid #4a9eff', color:'#4a9eff', borderRadius:14, padding:'3px 14px', fontSize:10, fontWeight:800, cursor: shareGroups.length ? 'pointer' : 'default', opacity: shareGroups.length ? 1 : 0.4 }}>
