@@ -280,5 +280,17 @@
       "On producer and crew share links, an <b>Additional Docs</b> tab appears automatically once at least one document exists."
     ],
     "screenshot": "additional-docs.png"
+  },
+  {
+    "title": "Testing — Feedback & Features button",
+    "what": "A big red button at the very top of the hub opens the team's one running checklist for testing feedback and feature requests. Anyone signed in — crew included — can add items, check them off when handled, and delete them. Each entry shows who added it and when, and the header counts what's still open. This is the only place the list lives.",
+    "where": "The hub (home page) — the red button above everything else.",
+    "how": [
+      "Click <b>! Testing - Feedback and Features !</b> at the top of the hub.",
+      "Type your feedback or feature request and press <b>Add</b> (or Enter).",
+      "Check an item off when it's been handled — it strikes through and drops below the open items.",
+      "✕ deletes an item (with a confirm)."
+    ],
+    "screenshot": "feedback-board.png"
   }
 ]
