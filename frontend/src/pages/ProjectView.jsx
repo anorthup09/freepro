@@ -5,9 +5,11 @@ import { api } from '../api.js';
 import FinanceProject from './FinanceProject.jsx';
 import Project from './Project/index.jsx';
 import AvoProject from './AvoProject.jsx';
+import ProjectOverview from './ProjectOverview.jsx';
 
 const WHITE = '#e8e8e8';
 const TABS = [
+  ['overview', 'Overview', '#e8e8e8'],
   ['finance', 'Project Finance', '#5ABF80'],
   ['pre', 'Pre-Production', 'var(--orange)'],
   ['post', 'Post-Production', '#9DC183'],
@@ -128,7 +130,7 @@ export function ProjectViewDetail() {
   const { pid } = useParams();
   const nav = useNavigate();
   const [project, setProject] = useState(null);
-  const [tab, setTab] = useState('finance');
+  const [tab, setTab] = useState('overview');
   const [shootId, setShootId] = useState('');   // FreePro project id for Pre-Production
   const [avoPageId, setAvoPageId] = useState('');
 
@@ -176,6 +178,7 @@ export function ProjectViewDetail() {
       </div>
 
       {project === false && <div className="empty">Project not found.</div>}
+      {project && tab === 'overview' && <ProjectOverview pid={pid} />}
       {project && tab === 'finance' && <FinanceProject pidOverride={pid} />}
       {project && tab === 'pre' && (shootId
         ? <Project idOverride={shootId} key={shootId} />

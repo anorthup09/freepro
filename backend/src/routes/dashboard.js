@@ -76,7 +76,16 @@ router.get('/today', requireAuth, async (req, res, next) => {
         }
       }
     }
-    res.json({ date: today, items });
+    // Open one-off project tasks assigned to me (fed from Project Overview pages)
+    let tasks = [];
+    if (cm) {
+      tasks = await sql`
+        SELECT t.id, t.text, t.due_date, t.done, t.notes, p.code as project_code, p.title as project_title, p.id as project_id
+        FROM project_tasks t JOIN projects p ON p.id = t.project_id
+        WHERE t.assignee_id = ${cm.id} AND t.done IS NOT TRUE
+        ORDER BY t.due_date NULLS LAST, t.created_at`;
+    }
+    res.json({ date: today, items, tasks });
   } catch (e) { next(e); }
 });
 
