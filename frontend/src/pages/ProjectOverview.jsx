@@ -216,6 +216,8 @@ function TaskRow({ t, members, onSave, onDelete }) {
       <div style={{ display:'flex', alignItems:'center', gap:6, padding:'6px 2px' }}>
         <input type="checkbox" checked={t.done || false} style={{ width:'auto', accentColor:'#5ABF80' }}
           onChange={e => onSave({ done: e.target.checked })} />
+        <AssigneeChip assigneeId={t.assignee_id} assigneeName={t.assignee_name} members={members}
+          onPick={id => onSave({ assigneeId: id })} />
         <div style={{ flex:1, minWidth:0 }}>
           <BlurInput value={t.text} placeholder="Task…" onSave={v => onSave({ text: v })}
             style={{ fontWeight:600, textDecoration: t.done ? 'line-through' : 'none' }} />
@@ -227,9 +229,7 @@ function TaskRow({ t, members, onSave, onDelete }) {
         <button title="Delete task" onClick={onDelete}
           style={{ background:'none', border:'none', color:'var(--muted)', fontSize:11, cursor:'pointer', padding:'0 2px' }}>✕</button>
       </div>
-      <div style={{ display:'flex', alignItems:'center', gap:8, padding:'0 2px 8px 24px' }}>
-        <AssigneeChip assigneeId={t.assignee_id} assigneeName={t.assignee_name} members={members}
-          onPick={id => onSave({ assigneeId: id })} />
+      <div style={{ display:'flex', alignItems:'center', gap:8, padding:'0 2px 8px 56px' }}>
         <input type="date" value={t.due_date ? String(t.due_date).slice(0, 10) : ''}
           onChange={e => onSave({ dueDate: e.target.value })}
           style={{ width:'auto', fontSize:10, padding:'3px 6px', color: overdue ? '#e05252' : undefined }} />
