@@ -1243,6 +1243,9 @@ async function migrate() {
     WHERE COALESCE(TRIM(client), '') NOT IN ('', '—')
     ON CONFLICT (name) DO NOTHING`;
 
+  // One-time ClickUp PTO/OOO import (idempotent)
+  try { await require('./seedPto')(); } catch (e) { console.error('PTO seed failed:', e.message); }
+
   console.log('Migration complete.');
 }
 
