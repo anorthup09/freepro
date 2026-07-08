@@ -31,17 +31,44 @@ const pillBtn = (color) => ({ background:`${color}22`, border:`1px solid ${color
  * config: { cols:[{key,label}], merges:{ "<rowId>|<colKey>": {rs,cs} } } (per tab, stored on the page).
  * saveExtra(rowId, key, value) persists custom-cell values (row.extra).
  */
-function SmartTable({ rows, colDefs, config, onConfig, saveExtra, leading, trailing, emptyText, footerRight, minWidth }) {
+function SmartTable({ rows, colDefs, config, onConfig, saveExtra, leading, trailing, emptyText, footerRight, minWidth, onReorder }) {
   const [mergeMode, setMergeMode] = useState(false);
   const [selA, setSelA] = useState(null);   // {ri, ci}
   const [selB, setSelB] = useState(null);
+  const [dragRow, setDragRow] = useState(null);
+  const [dragCol, setDragCol] = useState(null);
+  const [overRow, setOverRow] = useState(null);
+  const [overCol, setOverCol] = useState(null);
 
   const customCols = config?.cols || [];
   const merges = config?.merges || {};
-  const allCols = [
+  const baseCols = [
     ...colDefs.map(c => ({ ...c, custom: false })),
     ...customCols.map(c => ({ key: c.key, label: c.label, custom: true })),
   ];
+  // Saved column order (drag-to-reorder); unknown keys keep their natural spot
+  const order = config?.order || [];
+  const allCols = [...baseCols].sort((a, b) => {
+    const ia = order.indexOf(a.key), ib = order.indexOf(b.key);
+    if (ia === -1 && ib === -1) return baseCols.indexOf(a) - baseCols.indexOf(b);
+    if (ia === -1) return 1;
+    if (ib === -1) return -1;
+    return ia - ib;
+  });
+
+  function dropCol(toKey) {
+    if (!dragCol || dragCol === toKey) return;
+    const keys = allCols.map(c => c.key).filter(k => k !== dragCol);
+    keys.splice(keys.indexOf(toKey), 0, dragCol);
+    onConfig({ cols: customCols, merges, order: keys });
+  }
+  function dropRow(toIdx) {
+    if (dragRow == null || dragRow === toIdx || !onReorder) return;
+    const next = [...rows];
+    const [moved] = next.splice(dragRow, 1);
+    next.splice(toIdx, 0, moved);
+    onReorder(next);
+  }
 
   // Resolve merge anchors/covered cells from current row & column order
   const anchorAt = {}; const covered = new Set();
@@ -80,7 +107,7 @@ function SmartTable({ rows, colDefs, config, onConfig, saveExtra, leading, trail
       if (ri >= rect.r1 - (next[k].rs || 1) + 1 && ri <= rect.r2 && ci >= rect.c1 - (next[k].cs || 1) + 1 && ci <= rect.c2) delete next[k];
     }
     next[`${row.id}|${col.key}`] = { rs: rect.r2 - rect.r1 + 1, cs: rect.c2 - rect.c1 + 1 };
-    onConfig({ cols: customCols, merges: next });
+    onConfig({ ...config, cols: customCols, merges: next });
     setSelA(null); setSelB(null);
   }
   function unmerge() {
@@ -88,28 +115,28 @@ function SmartTable({ rows, colDefs, config, onConfig, saveExtra, leading, trail
     const row = rows[selA.ri]; const col = allCols[selA.ci];
     const next = { ...merges };
     delete next[`${row.id}|${col.key}`];
-    onConfig({ cols: customCols, merges: next });
+    onConfig({ ...config, cols: customCols, merges: next });
     setSelA(null); setSelB(null);
   }
   function addColumn() {
     const label = prompt('New column name:');
     if (!label || !label.trim()) return;
     const key = 'c' + Date.now().toString(36);
-    onConfig({ cols: [...customCols, { key, label: label.trim() }], merges });
+    onConfig({ ...config, cols: [...customCols, { key, label: label.trim() }], merges });
   }
   function renameColumn(c) {
     const label = prompt('Rename column:', c.label);
     if (!label || !label.trim()) return;
-    onConfig({ cols: customCols.map(x => x.key === c.key ? { ...x, label: label.trim() } : x), merges });
+    onConfig({ ...config, cols: customCols.map(x => x.key === c.key ? { ...x, label: label.trim() } : x), merges });
   }
   function removeColumn(c) {
     if (!confirm(`Remove the "${c.label}" column? Its cell contents will be hidden.`)) return;
     const next = { ...merges };
     for (const k of Object.keys(next)) if (k.endsWith('|' + c.key)) delete next[k];
-    onConfig({ cols: customCols.filter(x => x.key !== c.key), merges: next });
+    onConfig({ ...config, cols: customCols.filter(x => x.key !== c.key), merges: next });
   }
 
-  const nCols = allCols.length + (leading ? 1 : 0) + (trailing ? 1 : 0);
+  const nCols = allCols.length + (leading ? 1 : 0) + (trailing ? 1 : 0) + (onReorder ? 1 : 0);
 
   return (
     <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, overflow:'hidden' }}>
@@ -117,9 +144,16 @@ function SmartTable({ rows, colDefs, config, onConfig, saveExtra, leading, trail
         <table style={{ width:'100%', borderCollapse:'collapse', minWidth: minWidth || undefined }}>
           <thead>
             <tr>
+              {onReorder && <th style={{ ...th, width:26 }}></th>}
               {leading && <th style={{ ...th, width:34 }}></th>}
               {allCols.map(c => (
-                <th key={c.key} style={th}>
+                <th key={c.key} draggable title="Drag to reorder column"
+                  onDragStart={() => setDragCol(c.key)}
+                  onDragOver={e => { e.preventDefault(); setOverCol(c.key); }}
+                  onDragLeave={() => setOverCol(o => o === c.key ? null : o)}
+                  onDrop={() => { dropCol(c.key); setDragCol(null); setOverCol(null); }}
+                  onDragEnd={() => { setDragCol(null); setOverCol(null); }}
+                  style={{ ...th, cursor:'grab', background: overCol === c.key && dragCol && dragCol !== c.key ? `${AVO}20` : undefined, opacity: dragCol === c.key ? 0.5 : 1 }}>
                   {c.label}
                   {c.custom && (
                     <span style={{ marginLeft:5, whiteSpace:'nowrap' }}>
@@ -137,7 +171,18 @@ function SmartTable({ rows, colDefs, config, onConfig, saveExtra, leading, trail
               <tr><td colSpan={nCols} style={{ ...td, padding:'12px 14px', fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>{emptyText || 'Nothing here yet.'}</td></tr>
             )}
             {rows.map((r, ri) => (
-              <tr key={r.id} style={{ borderTop:'1px solid rgba(255,255,255,0.04)', opacity: r.__dim ? 0.5 : 1 }}>
+              <tr key={r.id}
+                onDragOver={dragRow != null ? e => { e.preventDefault(); setOverRow(ri); } : undefined}
+                onDrop={dragRow != null ? () => { dropRow(ri); setDragRow(null); setOverRow(null); } : undefined}
+                style={{ borderTop: overRow === ri && dragRow != null && dragRow !== ri ? `2px solid ${AVO}` : '1px solid rgba(255,255,255,0.04)', opacity: r.__dim ? 0.5 : dragRow === ri ? 0.4 : 1 }}>
+                {onReorder && (
+                  <td style={{ ...td, textAlign:'center', width:26 }}>
+                    <span draggable title="Drag to reorder row"
+                      onDragStart={() => setDragRow(ri)}
+                      onDragEnd={() => { setDragRow(null); setOverRow(null); }}
+                      style={{ cursor:'grab', color:'var(--muted)', fontSize:11, userSelect:'none', padding:'2px 4px' }}>⠿</span>
+                  </td>
+                )}
                 {leading && <td style={{ ...td, textAlign:'center' }}>{leading(r)}</td>}
                 {allCols.map((c, ci) => {
                   if (covered.has(`${ri},${ci}`)) return null;
@@ -182,11 +227,23 @@ function SmartTable({ rows, colDefs, config, onConfig, saveExtra, leading, trail
 }
 
 // ── Video Tracker: rows are the pipeline edits carrying this project code ──
-function VideoTracker({ edits, setEdits, config, onConfig }) {
+function VideoTracker({ edits, setEdits, config, onConfig, code }) {
   const nav = useNavigate();
   async function saveEdit(id, data) {
     try { const full = await api.updateAvoEdit(id, data); setEdits(es => es.map(x => x.id === id ? { ...x, ...full } : x)); }
     catch (e) { alert(e.message); }
+  }
+  async function addRow() {
+    const title = prompt('Video title for the new edit:');
+    if (!title || !title.trim()) return;
+    try {
+      const e = await api.createAvoEdit({ title: title.trim(), projectCode: code });
+      setEdits(es => [...es, e]);
+    } catch (err) { alert(err.message); }
+  }
+  function reorder(next) {
+    setEdits(next);
+    next.forEach((e, i) => api.updateAvoEdit(e.id, { trackerSort: i }).catch(() => {}));
   }
   const statusOf = k => AVO_STATUSES.find(([key]) => key === k);
   const colDefs = [
@@ -214,6 +271,7 @@ function VideoTracker({ edits, setEdits, config, onConfig }) {
     <>
       <SmartTable rows={edits} colDefs={colDefs} config={config} onConfig={onConfig} minWidth={1050}
         saveExtra={(id, k, v) => saveEdit(id, { extra: { [k]: v } })}
+        onReorder={reorder} footerRight={{ addRow }}
         emptyText="No edits with this project code yet — add them from the pipeline and they'll appear here automatically."
         leading={e => (
           <button className="vt-edit" title="Open this edit" onClick={() => nav(`/avo/${e.id}`)}
@@ -245,10 +303,14 @@ function Grid({ kind, columns, rows, setRows, pageId, doneKey, renderCell, confi
     render: r => renderCell?.(r, c, v => saveCell(r.id, c, v)) || <Cell value={r[c]} placeholder={placeholder} onSave={v => saveCell(r.id, c, v)} />,
   }));
   const shown = doneKey ? rows.map(r => r[doneKey] ? { ...r, __dim: true } : r) : rows;
+  function reorder(next) {
+    setRows(next.map(({ __dim, ...r }) => r));
+    next.forEach((r, i) => api.updateAvoGridRow(kind, r.id, { sort: i }).catch(() => {}));
+  }
   return (
     <SmartTable rows={shown} colDefs={colDefs} config={config} onConfig={onConfig}
       saveExtra={(id, k, v) => api.updateAvoGridRow(kind, id, { extra: { [k]: v } }).then(r => setRows(rs => rs.map(x => x.id === id ? r : x))).catch(e => alert(e.message))}
-      footerRight={{ addRow }}
+      footerRight={{ addRow }} onReorder={reorder}
       leading={doneKey ? r => (
         <input type="checkbox" checked={r[doneKey] || false} style={{ width:'auto', accentColor:AVO }}
           onChange={e => saveCell(r.id, doneKey, e.target.checked)} />
@@ -328,7 +390,25 @@ function MusicShareModal({ groups, code, title, onClose }) {
 
 function MusicGrid({ rows, setRows, pageId, code, title, config, onConfig }) {
   const [share, setShare] = useState(false);
+  const [dragId, setDragId] = useState(null);
+  const [overId, setOverId] = useState(null);
+  const [dragColKey, setDragColKey] = useState(null);
   const customCols = config?.cols || [];
+  function dropRowOn(targetId) {
+    if (!dragId || dragId === targetId) return;
+    const next = [...rows];
+    const from = next.findIndex(r => r.id === dragId);
+    const [moved] = next.splice(from, 1);
+    next.splice(next.findIndex(r => r.id === targetId), 0, moved);
+    setRows(next);
+    next.forEach((r, i) => api.updateAvoGridRow('music', r.id, { sort: i }).catch(() => {}));
+  }
+  function dropColOn(targetKey) {
+    if (!dragColKey || dragColKey === targetKey) return;
+    const next = customCols.filter(c => c.key !== dragColKey);
+    next.splice(next.findIndex(c => c.key === targetKey), 0, customCols.find(c => c.key === dragColKey));
+    onConfig({ cols: next });
+  }
   async function addRow() {
     try { const r = await api.addAvoGridRow(pageId, 'music'); setRows(rs => [...rs, r]); }
     catch (e) { alert(e.message); }
@@ -378,7 +458,12 @@ function MusicGrid({ rows, setRows, pageId, code, title, config, onConfig }) {
             <tr>
               <th style={th}>Video Title</th><th style={th}>Link</th><th style={th}>Note</th>
               {customCols.map(c => (
-                <th key={c.key} style={th}>
+                <th key={c.key} draggable title="Drag to reorder column"
+                  onDragStart={() => setDragColKey(c.key)}
+                  onDragOver={e => e.preventDefault()}
+                  onDrop={() => { dropColOn(c.key); setDragColKey(null); }}
+                  onDragEnd={() => setDragColKey(null)}
+                  style={{ ...th, cursor:'grab', opacity: dragColKey === c.key ? 0.5 : 1 }}>
                   {c.label}
                   <span style={{ marginLeft:5, whiteSpace:'nowrap' }}>
                     <button title="Rename column" onClick={() => renameColumn(c)} style={{ background:'none', border:'none', color:'var(--muted)', fontSize:9, cursor:'pointer', padding:'0 2px' }}>✎</button>
@@ -394,7 +479,10 @@ function MusicGrid({ rows, setRows, pageId, code, title, config, onConfig }) {
               <tr><td colSpan={4 + customCols.length} style={{ ...td, padding:'12px 14px', fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>Nothing here yet.</td></tr>
             )}
             {groups.map(([video, grp]) => grp.map((r, j) => (
-              <tr key={r.id} style={{ borderTop: j === 0 ? '1px solid rgba(255,255,255,0.08)' : 'none' }}>
+              <tr key={r.id}
+                onDragOver={dragId ? e => { e.preventDefault(); setOverId(r.id); } : undefined}
+                onDrop={dragId ? () => { dropRowOn(r.id); setDragId(null); setOverId(null); } : undefined}
+                style={{ borderTop: overId === r.id && dragId && dragId !== r.id ? `2px solid ${AVO}` : j === 0 ? '1px solid rgba(255,255,255,0.08)' : 'none', opacity: dragId === r.id ? 0.4 : 1 }}>
                 {j === 0 && (
                   <td rowSpan={grp.length} style={{ ...td, minWidth:170, borderRight:'1px solid rgba(255,255,255,0.05)', verticalAlign:'top', paddingTop:8 }}>
                     <Cell value={r.category} placeholder="Video title…" onSave={v => saveCell(r.id, 'category', v)}
@@ -414,7 +502,11 @@ function MusicGrid({ rows, setRows, pageId, code, title, config, onConfig }) {
                     <Cell value={r.extra?.[c.key]} placeholder="…" onSave={v => saveExtra(r.id, c.key, v)} />
                   </td>
                 ))}
-                <td style={{ ...td, textAlign:'center' }}>
+                <td style={{ ...td, textAlign:'center', whiteSpace:'nowrap' }}>
+                  <span draggable title="Drag to reorder row"
+                    onDragStart={() => setDragId(r.id)}
+                    onDragEnd={() => { setDragId(null); setOverId(null); }}
+                    style={{ cursor:'grab', color:'var(--muted)', fontSize:11, userSelect:'none', padding:'2px 3px' }}>⠿</span>
                   <button title="Delete row" onClick={() => removeRow(r.id)}
                     style={{ background:'none', border:'none', color:'var(--muted)', fontSize:12, cursor:'pointer' }}>✕</button>
                 </td>
@@ -511,7 +603,7 @@ export default function AvoProject({ idOverride, embedded }) {
               ))}
             </div>
 
-            {tab === 'tracker' && <VideoTracker edits={edits} setEdits={setEdits} config={cfgFor('tracker')} onConfig={saveCfg('tracker')} />}
+            {tab === 'tracker' && <VideoTracker edits={edits} setEdits={setEdits} code={page.code} config={cfgFor('tracker')} onConfig={saveCfg('tracker')} />}
             {tab === 'todos' && (
               <Grid kind="todos" pageId={id} doneKey="done" rows={todos} setRows={setTodos} renderCell={todoCell}
                 config={cfgFor('todos')} onConfig={saveCfg('todos')}

@@ -1168,6 +1168,7 @@ async function migrate() {
   await sql`ALTER TABLE avo_todos ADD COLUMN IF NOT EXISTS extra JSONB DEFAULT '{}'::jsonb`;
   await sql`ALTER TABLE avo_music ADD COLUMN IF NOT EXISTS extra JSONB DEFAULT '{}'::jsonb`;
   await sql`ALTER TABLE edits ADD COLUMN IF NOT EXISTS extra JSONB DEFAULT '{}'::jsonb`;
+  await sql`ALTER TABLE edits ADD COLUMN IF NOT EXISTS tracker_sort INT`;
 
   // Client roster — canonical client names, selected from budgets
   await sql`

@@ -205,6 +205,7 @@ router.patch('/edits/:id', ...staff, async (req, res, next) => {
         category = ${d.category !== undefined ? (d.category || null) : sql`category`},
         drive = ${d.drive !== undefined ? (d.drive || null) : sql`drive`},
         extra = ${d.extra !== undefined && typeof d.extra === 'object' ? sql`COALESCE(extra, '{}'::jsonb) || ${sql.json(d.extra)}` : sql`extra`},
+        tracker_sort = ${d.trackerSort !== undefined ? (Number(d.trackerSort) || 0) : sql`tracker_sort`},
         status = ${d.status !== undefined && editStatuses.includes(d.status) ? d.status : sql`status`},
         review_link = ${d.reviewLink !== undefined ? (d.reviewLink || null) : sql`review_link`},
         start_date = ${d.startDate !== undefined ? (d.startDate || null) : sql`start_date`},
@@ -420,7 +421,7 @@ router.get('/projects/:id', ...staff, async (req, res, next) => {
       SELECT e.*, COALESCE((SELECT ${sql.unsafe(PREF)} FROM crew_members cm WHERE cm.id = e.lead_editor_id), e.lead_editor_name) as lead_editor
       FROM edits e
       WHERE e.project_code = ${page.code} OR e.project_code LIKE ${page.code + '-%'}
-      ORDER BY e.end_date NULLS LAST, e.created_at`;
+      ORDER BY e.tracker_sort NULLS LAST, e.end_date NULLS LAST, e.created_at`;
     res.json({ ...page, lowerThirds, todos, music, edits });
   } catch (e) { next(e); }
 });
