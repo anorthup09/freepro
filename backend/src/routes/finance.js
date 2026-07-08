@@ -297,6 +297,18 @@ router.patch('/finance/budget/:bid', ...finance, async (req, res, next) => {
         solutions_code = ${d.solutionsCode !== undefined ? (d.solutionsCode || null) : sql`solutions_code`},
         share_mode = ${d.shareMode !== undefined ? (d.shareMode || 'lines') : sql`share_mode`}
       WHERE id = ${req.params.bid} RETURNING *`;
+    // Setting a budget owner auto-tags them on the budget (matched by name)
+    if (b && d.mediaRep) {
+      const rep = String(d.mediaRep).trim().toLowerCase();
+      const first = rep.split(/\s+/)[0];
+      const [u] = await sql`
+        SELECT id FROM users
+        WHERE role IN ('ADMIN', 'PRODUCER')
+          AND (LOWER(name) = ${rep} OR LOWER(SPLIT_PART(name, ' ', 1)) = ${first})
+        ORDER BY LOWER(name) = ${rep} DESC LIMIT 1`;
+      if (u) await sql`INSERT INTO budget_tags (budget_id, user_id) VALUES (${b.id}, ${u.id}) ON CONFLICT DO NOTHING`
+        .catch(e2 => console.error('Owner auto-tag failed:', e2.message));
+    }
     // Live budgets keep every production block paired with a FreePro project tile
     if (b && (b.kind || 'main') === 'main' && (d.status === 'Live' || b.status === 'Live')) {
       await ensureShootProjects(b.id).catch(e2 => console.error('FreePro shoot project creation failed:', e2.message));

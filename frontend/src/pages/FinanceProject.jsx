@@ -389,7 +389,7 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
         </div>
         <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
           <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Tagged</label>
-          <TagRow budgetId={budget.id} />
+          <TagRow budgetId={budget.id} ownerName={budget.media_rep} />
         </div>
       </div>
 
@@ -1021,16 +1021,20 @@ const TAG_COLORS = ['#5ABF80', '#4a9eff', '#e6c229', '#e8955a', '#a78bfa', '#f08
 const tagColor = s => { let h = 0; for (const c of s || '') h = (h * 31 + c.charCodeAt(0)) & 0xffffffff; return TAG_COLORS[Math.abs(h) % TAG_COLORS.length]; };
 const tagInitials = n => { const w = (n || '?').trim().split(/\s+/); return ((w[0]?.[0] || '') + (w.length > 1 ? w[w.length - 1][0] : '')).toUpperCase(); };
 
-function TagRow({ budgetId }) {
+function TagRow({ budgetId, ownerName }) {
   const [tags, setTags] = useState([]);
   const [users, setUsers] = useState([]);
   const [open, setOpen] = useState(false);
 
+  // Re-fetch when the owner changes — setting an owner auto-tags them
   useEffect(() => {
     if (!budgetId) return;
-    api.budgetTags(budgetId).then(setTags).catch(() => setTags([]));
-    api.taggableUsers().then(setUsers).catch(() => setUsers([]));
-  }, [budgetId]);
+    const t = setTimeout(() => {
+      api.budgetTags(budgetId).then(setTags).catch(() => setTags([]));
+      api.taggableUsers().then(setUsers).catch(() => setUsers([]));
+    }, 400);
+    return () => clearTimeout(t);
+  }, [budgetId, ownerName]);
 
   const available = users.filter(u => !tags.some(t => t.user_id === u.id));
 
