@@ -194,6 +194,63 @@ function HubProjects() {
   );
 }
 
+// ── Lower dashboard: Day in Review (left) + team whereabouts (right) ──
+const STATUS_BUBBLE = { out: '#e05252', shoot: '#e6c229', office: '#5ABF80' };
+const KIND_DOT = { due: '#e8500a', shoot: '#e6c229', pto: '#4a9eff' };
+
+function HubDashboard() {
+  const nav = useNavigate();
+  const [day, setDay] = useState(null);
+  const [team, setTeam] = useState(null);
+
+  useEffect(() => {
+    api.dashboardToday().then(setDay).catch(() => setDay({ items: [] }));
+    api.dashboardTeam().then(setTeam).catch(() => setTeam([]));
+  }, []);
+
+  const dateLabel = new Date().toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' });
+  const card = { background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, padding:'18px 20px', minHeight:220 };
+  const hdr = { fontSize:12, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.07em', marginBottom:12 };
+
+  return (
+    <div className="hub-dash" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginTop:22 }}>
+      <div style={card}>
+        <div style={hdr}>Day in Review <span style={{ color:'var(--muted)', fontWeight:600, textTransform:'none', letterSpacing:0 }}>· {dateLabel}</span></div>
+        {!day && <div style={{ fontSize:11, color:'var(--muted)' }}>Loading…</div>}
+        {day && day.items.length === 0 && (
+          <div style={{ fontSize:12, color:'var(--muted)', fontStyle:'italic' }}>Nothing on your plate today — no shoots, due dates, or deadlines assigned to you.</div>
+        )}
+        {day && day.items.map((it, i) => (
+          <div key={i} onClick={() => it.link && nav(it.link)}
+            style={{ display:'flex', alignItems:'flex-start', gap:10, padding:'8px 4px', borderBottom:'1px solid rgba(255,255,255,0.04)', cursor: it.link ? 'pointer' : 'default' }}>
+            <span style={{ width:8, height:8, borderRadius:'50%', background: KIND_DOT[it.kind] || 'var(--muted)', marginTop:5, flexShrink:0 }} />
+            <div style={{ minWidth:0 }}>
+              <div style={{ fontSize:12, fontWeight:700 }}>{it.title}</div>
+              {it.subtitle && <div style={{ fontSize:10, color:'var(--muted)', marginTop:1 }}>{it.subtitle}</div>}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div style={card}>
+        <div style={hdr}>Team Today</div>
+        {!team && <div style={{ fontSize:11, color:'var(--muted)' }}>Loading…</div>}
+        {team && team.length === 0 && <div style={{ fontSize:12, color:'var(--muted)', fontStyle:'italic' }}>No Unbridled team members on the roster yet.</div>}
+        <div style={{ display:'flex', flexDirection:'column' }}>
+          {(team || []).map(m => (
+            <div key={m.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'6px 4px', borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
+              <span title={m.status === 'out' ? 'Out of Office / PTO' : m.status === 'shoot' ? 'Traveling / on a shoot' : 'In office'}
+                style={{ width:10, height:10, borderRadius:'50%', background: STATUS_BUBBLE[m.status], boxShadow:`0 0 6px ${STATUS_BUBBLE[m.status]}66`, flexShrink:0 }} />
+              <span style={{ fontSize:12, fontWeight:700, flex:1, minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{m.name}</span>
+              <span style={{ fontSize:10, color:'var(--muted)', flexShrink:0 }}>{m.detail !== 'In office' ? `${m.detail} · ` : ''}{m.location}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Hub() {
   const nav = useNavigate();
   const { user, setUser } = useAuth();
@@ -312,6 +369,8 @@ export default function Hub() {
                 </button>
               </div>
             )}
+
+            <HubDashboard />
           </div>
         </div>
 

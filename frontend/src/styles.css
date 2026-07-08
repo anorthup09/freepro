@@ -457,6 +457,7 @@ textarea { resize: vertical; min-height: 70px; }
 /* Hub header: center the pipeline button on desktop; flow naturally on mobile */
 .hub-pipeline-btn { position: absolute; left: 50%; transform: translateX(-50%); }
 @media (max-width: 760px) {
+  .hub-dash { grid-template-columns: 1fr !important; }
   .hub-pipeline-btn { position: static; transform: none; order: 3; width: 100%; flex-wrap: wrap; }
   .hub-pipeline-btn button { flex: 1; justify-content: center; }
 }

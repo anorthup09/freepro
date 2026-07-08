@@ -80,7 +80,7 @@ app.use('/api', (req, res, next) => {
       return res.status(403).json({ error: 'Your account is awaiting approval from an admin' });
     }
     if (u.role === 'CREW' && !(req.path.startsWith('/auth') || req.path === '/crew-views' || req.path.startsWith('/share')
-      || req.path.startsWith('/avo') || req.path.startsWith('/team') || req.path.startsWith('/gantt-share')
+      || req.path.startsWith('/avo') || req.path.startsWith('/team') || req.path.startsWith('/gantt-share') || req.path.startsWith('/dashboard')
       || (req.path.startsWith('/crew') && req.method === 'GET'))) {
       return res.status(403).json({ error: 'Crew accounts can only access Crew Views, AvocadoPost, and Team Management' });
     }
@@ -120,6 +120,7 @@ app.use('/api/util', utilRoutes);
 app.use('/api', require('./routes/contracts'));
 app.use('/api/gear-requests', require('./routes/gearRequests'));
 app.use('/api/team', require('./routes/team'));
+app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/avo', require('./routes/avo'));
 app.use('/api', require('./routes/avo').publicRouter);
 app.use('/api', require('./routes/finance'));
