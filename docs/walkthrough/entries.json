@@ -1,1 +1,26 @@
-[]
+[
+  {
+    "title": "Budget Tags \u2014 share visibility on a project",
+    "what": "Tag teammates onto any project budget so it's clear who's working it. Each tagged person shows as a colored initials icon next to the budget's Status, and tags drive the new My Projects filter on the pipeline page.",
+    "where": "ProFi \u2192 open any project budget \u2192 the header row next to Status (labeled \"Tagged\").",
+    "how": [
+      "Open the project's budget in ProFi.",
+      "In the header row (Budget Dated / Owner / Status), find <b>Tagged</b> and click <b>+ Tag</b>.",
+      "Pick a name from the dropdown \u2014 their initials icon appears instantly.",
+      "Add as many people as you need; click an initials icon to remove that person (it asks to confirm)."
+    ],
+    "screenshot": "budget-tags.png"
+  },
+  {
+    "title": "Show My Projects filter on the Finance pipeline",
+    "what": "One click filters the Project Finance list down to only the budgets you own (Budget Owner) or are tagged on \u2014 no more scrolling everyone else's projects.",
+    "where": "ProFi \u2192 Project Finance page \u2192 top right, next to + New Project.",
+    "how": [
+      "Open Project Finance from the hub.",
+      "Click <b>Show My Projects</b> (top right) \u2014 the button turns blue \"\u2713 My Projects\" and the list filters to yours.",
+      "It works together with the RFP / Live / Archive folders.",
+      "Click it again to see everything."
+    ],
+    "screenshot": "my-projects-filter.png"
+  }
+]

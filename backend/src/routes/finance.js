@@ -144,10 +144,12 @@ router.get('/finance/projects', ...finance, async (req, res, next) => {
     const vcc = await sql`SELECT project_id, SUM(amount) as total FROM vcc_entries GROUP BY project_id`;
     const shoots = await sql`SELECT budget_id, shoot_code, trip, subtitle, freepro_project_id FROM budget_sections WHERE kind = 'shoot' ORDER BY sort`;
     const vccMap = Object.fromEntries(vcc.map(v => [v.project_id, Number(v.total)]));
+    const tags = await sql`SELECT t.budget_id, t.user_id, u.name FROM budget_tags t JOIN users u ON u.id = t.user_id`;
     res.json(projects.map(p => {
       const bl = lines.filter(l => l.budget_id === p.budget_id);
       const { total, fee } = budgetTotal(bl, Number(p.mgmt_fee_rate ?? 0.15));
       return { ...p, budget_total: total, fee, vcc_total: vccMap[p.id] || 0,
+        tags: tags.filter(t => t.budget_id === p.budget_id).map(t => ({ userId: t.user_id, name: t.name })),
         shoots: shoots.filter(x => x.budget_id === p.budget_id).map(x => ({ code: x.shoot_code, trip: x.trip, freeproProjectId: x.freepro_project_id })) };
     }));
   } catch (e) { next(e); }
@@ -914,6 +916,31 @@ router.patch('/finance/pipeline/:pid', ...finance, async (req, res, next) => {
     const [p] = await sql`UPDATE projects SET pipeline = ${pipeline} WHERE id = ${req.params.pid} RETURNING id, pipeline`;
     if (!p) return res.status(404).json({ error: 'Project not found' });
     res.json(p);
+  } catch (e) { next(e); }
+});
+
+// ── Budget visibility tags ──
+router.get('/finance/taggable-users', ...finance, async (req, res, next) => {
+  try {
+    res.json(await sql`SELECT id, name FROM users WHERE role IN ('ADMIN', 'PRODUCER') ORDER BY name`);
+  } catch (e) { next(e); }
+});
+router.get('/finance/budgets/:bid/tags', ...finance, async (req, res, next) => {
+  try {
+    res.json(await sql`SELECT t.user_id, u.name FROM budget_tags t JOIN users u ON u.id = t.user_id WHERE t.budget_id = ${req.params.bid} ORDER BY u.name`);
+  } catch (e) { next(e); }
+});
+router.post('/finance/budgets/:bid/tags', ...finance, async (req, res, next) => {
+  try {
+    if (!req.body.userId) return res.status(400).json({ error: 'userId required' });
+    await sql`INSERT INTO budget_tags (budget_id, user_id) VALUES (${req.params.bid}, ${req.body.userId}) ON CONFLICT DO NOTHING`;
+    res.json(await sql`SELECT t.user_id, u.name FROM budget_tags t JOIN users u ON u.id = t.user_id WHERE t.budget_id = ${req.params.bid} ORDER BY u.name`);
+  } catch (e) { next(e); }
+});
+router.delete('/finance/budgets/:bid/tags/:uid', ...finance, async (req, res, next) => {
+  try {
+    await sql`DELETE FROM budget_tags WHERE budget_id = ${req.params.bid} AND user_id = ${req.params.uid}`;
+    res.status(204).end();
   } catch (e) { next(e); }
 });
 

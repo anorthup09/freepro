@@ -387,6 +387,10 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
           <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Status</label>
           <StatusPill value={budget.status || 'RFP'} onChange={handleStatusChange} />
         </div>
+        <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
+          <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Tagged</label>
+          <TagRow budgetId={budget.id} />
+        </div>
       </div>
 
       {(() => { const lastShootId = [...sections].filter(x => x.kind === 'shoot').map(x => x.id).pop(); return sections.map(sec => {
@@ -1011,6 +1015,66 @@ const STATUS_OPTS = [
   ['Closed', '#8a8f98', 'Finished — moves to the Archive folder'],
   ['Dead', '#e05252', 'Not approved — archived under RFP'],
 ];
+
+// Tag teammates onto a budget for visibility — initials icons + a "+ Tag" picker
+const TAG_COLORS = ['#5ABF80', '#4a9eff', '#e6c229', '#e8955a', '#a78bfa', '#f08080', '#40A0A0', '#d66a9b'];
+const tagColor = s => { let h = 0; for (const c of s || '') h = (h * 31 + c.charCodeAt(0)) & 0xffffffff; return TAG_COLORS[Math.abs(h) % TAG_COLORS.length]; };
+const tagInitials = n => (n || '?').trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+
+function TagRow({ budgetId }) {
+  const [tags, setTags] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!budgetId) return;
+    api.budgetTags(budgetId).then(setTags).catch(() => setTags([]));
+    api.taggableUsers().then(setUsers).catch(() => setUsers([]));
+  }, [budgetId]);
+
+  const available = users.filter(u => !tags.some(t => t.user_id === u.id));
+
+  async function add(userId) {
+    setOpen(false);
+    if (!userId) return;
+    try { setTags(await api.addBudgetTag(budgetId, userId)); } catch (e) { alert(e.message); }
+  }
+  async function remove(t) {
+    if (!confirm(`Remove ${t.name} from this budget?`)) return;
+    try { await api.removeBudgetTag(budgetId, t.user_id); setTags(ts => ts.filter(x => x.user_id !== t.user_id)); }
+    catch (e) { alert(e.message); }
+  }
+
+  return (
+    <div style={{ display:'flex', alignItems:'center', gap:4, position:'relative' }}>
+      {tags.map(t => {
+        const c = tagColor(t.name);
+        return (
+          <span key={t.user_id} title={`${t.name} — click to remove`} onClick={() => remove(t)}
+            style={{ width:24, height:24, borderRadius:'50%', background:`${c}2e`, border:`1px solid ${c}`, color:c,
+              display:'inline-flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:800, cursor:'pointer', flexShrink:0 }}>
+            {tagInitials(t.name)}
+          </span>
+        );
+      })}
+      <button onClick={() => setOpen(o => !o)}
+        style={{ background:'transparent', border:'1px dashed var(--border)', color:'var(--muted)', borderRadius:12, padding:'3px 10px', fontSize:10, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap' }}>
+        + Tag
+      </button>
+      {open && (
+        <div style={{ position:'absolute', top:'110%', right:0, zIndex:50, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, minWidth:170, overflow:'hidden', boxShadow:'0 8px 24px rgba(0,0,0,0.5)' }}>
+          {available.length === 0 && <div style={{ padding:'8px 12px', fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>Everyone's tagged.</div>}
+          {available.map(u => (
+            <div key={u.id} onClick={() => add(u.id)}
+              style={{ padding:'7px 12px', fontSize:12, cursor:'pointer', borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
+              {u.name}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function StatusPill({ value, onChange }) {
   const [open, setOpen] = useState(false);

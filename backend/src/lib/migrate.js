@@ -1118,6 +1118,16 @@ async function migrate() {
       created_at TIMESTAMPTZ DEFAULT NOW()
     )`;
 
+  // Budget visibility tags — platform users tagged onto a project budget
+  await sql`
+    CREATE TABLE IF NOT EXISTS budget_tags (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      budget_id TEXT NOT NULL REFERENCES budgets(id) ON DELETE CASCADE,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(budget_id, user_id)
+    )`;
+
   console.log('Migration complete.');
 }
 

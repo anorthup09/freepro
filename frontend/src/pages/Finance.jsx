@@ -209,13 +209,22 @@ function TileStatusPill({ p, onClosed }) {
 
 export default function Finance() {
   const nav = useNavigate();
+  const { user } = useAuth();
   const [projects, setProjects] = useState(null);
   const [folder, setFolder] = useState('live');
   const [showNew, setShowNew] = useState(false);
+  const [mineOnly, setMineOnly] = useState(false);
 
   useEffect(() => { api.financeProjects().then(setProjects).catch(e => alert(e.message)); }, []);
 
-  const shown = (projects || []).filter(FOLDERS[folder].match);
+  // "My projects": I'm the budget owner (name match) or tagged on the budget
+  const isMine = p => {
+    if ((p.tags || []).some(t => t.userId === user?.id)) return true;
+    const me = (user?.name || '').toLowerCase().trim();
+    const owner = (p.media_rep || '').toLowerCase().trim();
+    return !!me && !!owner && (owner === me || owner.split(/\s+/)[0] === me.split(/\s+/)[0]);
+  };
+  const shown = (projects || []).filter(FOLDERS[folder].match).filter(p => !mineOnly || isMine(p));
 
   return (
     <div style={{ minHeight:'100vh', background:'var(--bg)' }}>
@@ -228,6 +237,11 @@ export default function Finance() {
           </div>
           <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:8 }}>
             <div style={{ display:'flex', gap:8 }}>
+            <button onClick={() => setMineOnly(m => !m)}
+              title="Only budgets you own or are tagged on"
+              style={{ background: mineOnly ? '#4a9eff' : 'rgba(74,158,255,0.15)', border:'1px solid #4a9eff', color: mineOnly ? '#0b0b0b' : '#4a9eff', borderRadius:20, padding:'5px 14px', fontSize:11, fontWeight:800, cursor:'pointer' }}>
+              {mineOnly ? '✓ My Projects' : 'Show My Projects'}
+            </button>
             <button onClick={() => setShowNew(true)}
               style={{ background:'rgba(90,191,128,0.2)', border:'1px solid #5ABF80', color:'#5ABF80', borderRadius:20, padding:'5px 14px', fontSize:11, fontWeight:800, cursor:'pointer' }}>
               + New Project
