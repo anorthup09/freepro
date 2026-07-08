@@ -36,16 +36,6 @@ const TILES = [
     status: null,
   },
   {
-    key: 'pview',
-    title: 'Project View',
-    tagline: 'Everything, One Project',
-    desc: 'Every project by code — flip between finance, pre-production, and post in a single view.',
-    accent: '#e8e8e8',
-    icon: '🗂',
-    to: '/project-view',
-    status: null,
-  },
-  {
     key: 'team',
     title: 'Team Management',
     tagline: 'People Operations',
@@ -168,14 +158,54 @@ function UserManagement({ user }) {
   );
 }
 
+// Project View mode: every project as a tile, sorted by code
+function HubProjects() {
+  const nav = useNavigate();
+  const [projects, setProjects] = useState(null);
+  const [q, setQ] = useState('');
+  useEffect(() => { api.financeProjects().then(setProjects).catch(e => alert(e.message)); }, []);
+  const list = [...(projects || [])].sort((a, b) => (a.code || '').localeCompare(b.code || ''));
+  const s = q.trim().toLowerCase();
+  const shown = s ? list.filter(p => (p.code || '').toLowerCase().includes(s) || (p.title || '').toLowerCase().includes(s) || (p.client || '').toLowerCase().includes(s)) : list;
+  return (
+    <div>
+      <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:14 }}>
+        <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search code, title, client…" style={{ width:240 }} />
+      </div>
+      {!projects && <div className="empty">Loading…</div>}
+      {projects && shown.length === 0 && <div className="empty">No projects match.</div>}
+      <div className="hub-tiles" style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(250px, 1fr))', gap:14 }}>
+        {shown.map(p => (
+          <div key={p.id} onClick={() => nav(`/project-view/${p.id}`)}
+            style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid rgba(232,232,232,0.35)', borderRadius:10, padding:'16px 18px', cursor:'pointer', transition:'transform .15s ease' }}
+            onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-3px)'}
+            onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
+            <div style={{ fontSize:11, fontWeight:800, color:'var(--muted)', letterSpacing:'0.04em' }}>{p.code}</div>
+            <div style={{ fontSize:14, fontWeight:800, margin:'4px 0 2px' }}>{p.title}</div>
+            <div style={{ fontSize:11, color:'var(--muted)' }}>{p.client}</div>
+            <div style={{ display:'flex', gap:6, marginTop:10, flexWrap:'wrap' }}>
+              <span style={{ fontSize:9, fontWeight:800, color:'#5ABF80', border:'1px solid #5ABF8055', borderRadius:10, padding:'2px 8px' }}>{p.budget_status || 'No budget'}</span>
+              {(p.shoots || []).length > 0 && <span style={{ fontSize:9, fontWeight:800, color:'var(--orange)', border:'1px solid rgba(232,80,10,0.4)', borderRadius:10, padding:'2px 8px' }}>{p.shoots.length} shoot{p.shoots.length !== 1 ? 's' : ''}</span>}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function Hub() {
   const nav = useNavigate();
   const { user, setUser } = useAuth();
   const isCrew = user?.role === 'CREW';
-  // Crew accounts get FreePro (crew views), Avo, and Team Management only
-  const tiles = isCrew
-    ? TILES.filter(t => t.key !== 'profi' && t.key !== 'pview').map(t => t.key === 'freepro' ? { ...t, to: '/crew-views', tagline: 'Crew Views' } : t)
-    : TILES;
+  const [mode, setMode] = useState(() => localStorage.getItem('hub_mode') || 'ops'); // 'projects' | 'ops'
+  const setHubMode = m => { setMode(m); localStorage.setItem('hub_mode', m); };
+  // Team Management sits below as a constant, elongated tile
+  const teamTile = TILES.find(t => t.key === 'team');
+  const opsTiles = isCrew
+    ? TILES.filter(t => t.key !== 'profi' && t.key !== 'team').map(t => t.key === 'freepro' ? { ...t, to: '/crew-views', tagline: 'Crew Views' } : t)
+    : TILES.filter(t => t.key !== 'team');
+  const tiles = opsTiles;
 
   return (
     <div style={{ minHeight:'100vh', background:'var(--bg)', display:'flex', flexDirection:'column' }}>
@@ -216,12 +246,25 @@ export default function Hub() {
       </div>
 
 
-        <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px 16px 60px' }}>
+        <div style={{ flex:1, display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'20px 16px 60px' }}>
           <div style={{ width:'100%', maxWidth:1150 }}>
-            <div style={{ textAlign:'center', marginBottom:28 }}>
+            <div style={{ textAlign:'center', marginBottom:24 }}>
               <div style={{ fontSize:22, fontWeight:800 }}>Where to today?</div>
               <div style={{ fontSize:12, color:'var(--muted)', marginTop:4 }}>Every project, from budget to delivery.</div>
+              {!isCrew && (
+                <div style={{ display:'inline-flex', border:'1px solid var(--border)', borderRadius:20, overflow:'hidden', marginTop:16 }}>
+                  {[['projects', '🗂 Project View'], ['ops', '⚙ Operations View']].map(([k, label]) => (
+                    <button key={k} onClick={() => setHubMode(k)}
+                      style={{ background: mode === k ? 'rgba(255,255,255,0.09)' : 'transparent', border:'none',
+                        color: mode === k ? 'var(--text)' : 'var(--muted)', fontSize:12, fontWeight:800, padding:'9px 22px', cursor:'pointer', letterSpacing:'0.03em' }}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
+            {!isCrew && mode === 'projects' && <HubProjects />}
+            {(isCrew || mode === 'ops') && (
             <div className="hub-tiles" style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(260px, 1fr))', gap:16 }}>
               {tiles.map(t => {
                 const clickable = !!t.to;
@@ -257,6 +300,26 @@ export default function Hub() {
                 );
               })}
             </div>
+            )}
+
+            {/* Team Management: constant elongated tile below both views */}
+            {teamTile && (
+              <div onClick={() => nav(teamTile.to)}
+                style={{ marginTop:18, background:'var(--bg2)', border:'1px solid var(--border)', borderLeft:`4px solid ${teamTile.accent}`,
+                  borderRadius:12, padding:'16px 24px', cursor:'pointer', display:'flex', alignItems:'center', gap:16, transition:'transform .15s ease' }}
+                onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+                onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
+                <div style={{ width:38, height:38, borderRadius:10, background:`${teamTile.accent}22`, color:teamTile.accent, display:'flex', alignItems:'center', justifyContent:'center', fontSize:18, flexShrink:0 }}>
+                  {teamTile.icon}
+                </div>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <span style={{ fontSize:15, fontWeight:800 }}>{teamTile.title}</span>
+                  <span style={{ fontSize:10, color:teamTile.accent, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', marginLeft:10 }}>{teamTile.tagline}</span>
+                  <div style={{ fontSize:11, color:'var(--muted)', marginTop:2 }}>{teamTile.desc}</div>
+                </div>
+                <div style={{ fontSize:11, color:teamTile.accent, fontWeight:600, flexShrink:0 }}>Open →</div>
+              </div>
+            )}
           </div>
         </div>
 
