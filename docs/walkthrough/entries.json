@@ -23,5 +23,30 @@
       "Click it again to see everything."
     ],
     "screenshot": "my-projects-filter.png"
+  },
+  {
+    "title": "Hub: Project View / Operations View toggle",
+    "what": "The hub now has two modes. Project View lists every project as a tile, organized by project code, with search. Operations View shows the three apps (ProFi, FreePro, AvocadoPost). Team Management stays as a full-width bar below both views. The hub remembers which view you used last.",
+    "where": "The hub (home page) \u2014 the toggle sits centered under \"Where to today?\".",
+    "how": [
+      "Sign in \u2014 the hub opens in the view you used last.",
+      "Click <b>\ud83d\uddc2 Project View</b> to browse all projects by code (use the search box for code, title, or client).",
+      "Click <b>\u2699 Operations View</b> to jump into ProFi, FreePro, or AvocadoPost directly.",
+      "<b>Team Management</b> is always available in the elongated blue tile below."
+    ],
+    "screenshot": "hub-project-view.png"
+  },
+  {
+    "title": "Project Workspace \u2014 Finance, Pre-Production & Post in one view",
+    "what": "Opening a project from Project View lands in a single workspace where you flip between the full ProFi budget, the FreePro production page, and the AvocadoPost project page. These are the real pages, not copies \u2014 any change made here (budget lines, schedules, edits) is instantly the same everywhere.",
+    "where": "Hub \u2192 Project View \u2192 click any project tile.",
+    "how": [
+      "From the hub's Project View, click a project tile.",
+      "Use the <b>Project Finance | Pre-Production | Post-Production</b> toggle at the top right to flip sections.",
+      "If a budget has multiple productions, a shoot-code dropdown appears on the Pre-Production tab.",
+      "The Post-Production tab creates the project's Avo page automatically the first time you open it.",
+      "<b>\u2039 All Projects</b> returns to the project list."
+    ],
+    "screenshot": "project-workspace.png"
   }
 ]
