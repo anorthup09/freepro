@@ -97,8 +97,10 @@ router.get('/team', requireAuth, async (req, res, next) => {
       FROM crew_assignments ca JOIN projects pr ON pr.id = ca.project_id
       WHERE pr.status != 'ARCHIVED'
         AND ca.start_date::date <= ${today} AND COALESCE(ca.end_date, ca.start_date)::date >= ${today}`;
+    const HIDDEN = ['anna parnigoni', 'ariel lynch', 'allison boon', 'brandon emery', 'cole seifert'];
+    const visible = members.filter(m => !HIDDEN.includes((m.name || '').trim().toLowerCase()));
     const DENVER = ['anabelle', 'fabrizio'];
-    res.json(members.map(m => {
+    res.json(visible.map(m => {
       const first = (m.name || '').trim().toLowerCase().split(/\s+/)[0];
       const homeOffice = DENVER.includes(first) ? 'Denver' : 'St. Louis';
       const p = pto.find(x => x.member_id === m.id);
