@@ -71,14 +71,16 @@ export default function CallSheetEmails() {
     return map;
   }, [groups]);
 
+  // The [Name] placeholder renders live as the selected recipient's first name
+  const firstName = selected.length === 1 && nameOf[selected[0]] ? String(nameOf[selected[0]]).split(/\s+/)[0] : null;
+  const displayBody = firstName ? body.replace(/\[Name\]/g, firstName) : body;
+
   function openMail() {
-    let b = body;
-    if (selected.length === 1 && nameOf[selected[0]]) {
-      b = b.replace(/\[Name\]/g, String(nameOf[selected[0]]).split(/\s+/)[0]);
+    const b = displayBody.replace(/\[Name\]/g, 'all');
+    if (selected.length === 1) {
       window.location.href = `mailto:${encodeURIComponent(selected[0])}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(b)}`;
       return;
     }
-    b = b.replace(/\[Name\]/g, 'all');
     window.location.href = `mailto:?bcc=${encodeURIComponent(selected.join(','))}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(b)}`;
   }
 
@@ -134,7 +136,7 @@ export default function CallSheetEmails() {
                 <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4 }}>Subject</div>
                 <input value={subject} onChange={e => setSubject(e.target.value)} placeholder="Call Sheet/Production Schedule — …" style={{ marginBottom:10 }} />
                 <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4 }}>Body</div>
-                <textarea value={body} onChange={e => setBody(e.target.value)} placeholder="Click Draft with AI for a synopsis of the shoot, or write your own…"
+                <textarea value={displayBody} onChange={e => setBody(e.target.value)} placeholder="Click Draft with AI for a synopsis of the shoot, or write your own…"
                   style={{ minHeight:260, fontSize:12, lineHeight:1.5 }} />
                 <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginTop:12, alignItems:'center' }}>
                   <button disabled title="Direct sending arrives when email is connected — it will send from the Main POC's inbox"
