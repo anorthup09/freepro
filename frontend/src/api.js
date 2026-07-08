@@ -110,6 +110,7 @@ export const api = {
   updateAvoGridRow: (kind, rowId, data) => req('PATCH', `/avo/grid/${kind}/${rowId}`, data),
   deleteAvoGridRow: (kind, rowId) => req('DELETE', `/avo/grid/${kind}/${rowId}`),
   vendorInvoices: (pid) => req('GET', `/finance/${pid}/vendor-invoices`),
+  searchInvoices: (params) => req('GET', `/finance/vendor-invoices/search?${new URLSearchParams(params)}`),
   uploadVendorInvoice: (pid, data) => req('POST', `/finance/${pid}/vendor-invoices`, data),
   deleteVendorInvoice: (id) => req('DELETE', `/finance/vendor-invoices/${id}`),
   taggableUsers: () => req('GET', '/finance/taggable-users'),

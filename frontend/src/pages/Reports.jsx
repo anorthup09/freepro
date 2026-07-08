@@ -9,6 +9,11 @@ const REPORTS = [
     icon: '📊', accent: '#5ABF80', to: '/finance/overview',
   },
   {
+    title: 'Invoice Search',
+    desc: 'Find any uploaded vendor invoice across all projects — by vendor, project code, or total — and preview the file.',
+    icon: '🧾', accent: '#e6c229', to: '/reports/invoices',
+  },
+  {
     title: 'Weekly Finance Report',
     desc: 'Snapshot report of budgets and close months for the finance team.',
     icon: '🗓', accent: '#4a9eff', to: '/finance/report',

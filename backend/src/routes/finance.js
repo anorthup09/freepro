@@ -1001,12 +1001,31 @@ router.post('/finance/:pid/vendor-invoices', ...finance, async (req, res, next) 
     res.status(201).json(row);
   } catch (e) { next(e); }
 });
+// Cross-project invoice search: vendor, project code, and/or total amount
+router.get('/finance/vendor-invoices/search', ...finance, async (req, res, next) => {
+  try {
+    const vendor = String(req.query.vendor || '').trim();
+    const code = String(req.query.code || '').trim();
+    const amount = req.query.amount !== undefined && req.query.amount !== '' ? Number(req.query.amount) : null;
+    const rows = await sql`
+      SELECT vi.id, vi.filename, vi.mime, vi.size, vi.vendor_name, vi.amount, vi.uploaded_by, vi.created_at,
+             p.code, p.title, p.client
+      FROM vendor_invoices vi JOIN projects p ON p.id = vi.project_id
+      WHERE (${vendor} = '' OR vi.vendor_name ILIKE ${'%' + vendor + '%'} OR vi.filename ILIKE ${'%' + vendor + '%'})
+        AND (${code} = '' OR p.code ILIKE ${'%' + code + '%'})
+        AND (${amount}::numeric IS NULL OR ABS(COALESCE(vi.amount, 0) - ${amount}::numeric) < 0.005)
+      ORDER BY vi.created_at DESC LIMIT 200`;
+    res.json(rows);
+  } catch (e) { next(e); }
+});
+
 router.get('/finance/vendor-invoices/:id/file', ...finance, async (req, res, next) => {
   try {
     const [f] = await sql`SELECT filename, mime, data FROM vendor_invoices WHERE id = ${req.params.id}`;
     if (!f) return res.status(404).json({ error: 'Invoice not found' });
     res.setHeader('Content-Type', f.mime || 'application/octet-stream');
-    res.setHeader('Content-Disposition', `attachment; filename="${f.filename.replace(/"/g, '')}"`);
+    const dispo = req.query.inline ? 'inline' : 'attachment';
+    res.setHeader('Content-Disposition', `${dispo}; filename="${f.filename.replace(/"/g, '')}"`);
     res.send(f.data);
   } catch (e) { next(e); }
 });
