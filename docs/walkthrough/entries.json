@@ -71,5 +71,17 @@
       "Dead shows all not-approved budgets in one list."
     ],
     "screenshot": "archive-year.png"
+  },
+  {
+    "title": "Hub dashboard \u2014 Day in Review & Team Today",
+    "what": "The lower half of the hub is now a live dashboard. The left panel is your personal Day in Review: shoots you're on today and anything due today on edits where you're the editor, PM, or task assignee. The right panel shows where every Unbridled team member is right now with a status bubble \u2014 red for Out of Office/PTO, yellow for traveling/on a shoot (with the shoot's city as their location), green for in office (St. Louis, or Denver for our Denver folks).",
+    "where": "The hub (home page), below the tiles \u2014 visible in both Project View and Operations View.",
+    "how": [
+      "Sign in \u2014 <b>Day in Review</b> builds itself from your assignments for today; click any row to jump to that shoot or edit.",
+      "You'll see items when you're on a shoot, when an edit or timeline milestone you own is due, when an edit window starts, or when you're on PTO.",
+      "<b>Team Today</b> lists the team with status bubbles: \ud83d\udd34 PTO/OOO, \ud83d\udfe1 traveling/on a shoot (location = shoot city), \ud83d\udfe2 in office.",
+      "The <b>Team Management</b> button sits at the top right of the Team Today panel."
+    ],
+    "screenshot": "hub-dashboard.png"
   }
 ]
