@@ -318,7 +318,7 @@ function HubDashboard() {
         </div>
         {!team && <div style={{ fontSize:11, color:'var(--muted)' }}>Loading…</div>}
         {team && team.length === 0 && <div style={{ fontSize:12, color:'var(--muted)', fontStyle:'italic' }}>No Unbridled team members on the roster yet.</div>}
-        <div style={{ display:'flex', flexDirection:'column' }}>
+        <div className="team-grid" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', columnGap:18 }}>
           {(team || []).map(m => (
             <div key={m.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'6px 4px', borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
               <span title={m.status === 'out' ? 'Out of Office / PTO' : m.status === 'shoot' ? 'Traveling / on a shoot' : 'In office'}

@@ -1181,7 +1181,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                 <div className="field span2">
                   <label>Tags</label>
                   <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:4 }}>
-                    {['VIDEO', ...(includePhoto ? ['PHOTO'] : []), 'AUDIO', 'TALENT'].map(type => (
+                    {['VIDEO', ...(includePhoto ? ['PHOTO'] : []), 'TALENT'].map(type => (
                       <button key={type} type="button"
                         className={`etag ${TAG_CLASS[type]}`}
                         style={{ cursor:'pointer', opacity: eventForm.tags.some(t=>t.type===type) ? 1 : 0.4, padding:'4px 10px' }}
@@ -1191,7 +1191,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                     ))}
                   </div>
                   {(() => {
-                    const core = includePhoto ? ['VIDEO','PHOTO','AUDIO'] : ['VIDEO','AUDIO'];
+                    const core = includePhoto ? ['VIDEO','PHOTO'] : ['VIDEO'];
                     const allOn = core.every(t => eventForm.tags.some(x => x.type === t));
                     return (
                       <div style={{ marginTop:6 }}>
@@ -1209,6 +1209,23 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                       </div>
                     );
                   })()}
+                  {eventForm.tags.some(t=>t.type==='VIDEO') && (
+                    <div style={{ marginTop:8 }}>
+                      <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4 }}>Crew on this event — leave empty for everyone</div>
+                      <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+                        {(project.crewAssignments || []).map(a => ({ id: a.id, name: a.crewMember?.name || a.cm_name || a.name, pos: a.position?.name || a.position_name })).filter(c => c.name).map(c => {
+                          const sel = eventForm.audience.includes(c.name);
+                          return (
+                            <button key={c.id} type="button"
+                              style={{ fontSize:11, padding:'3px 10px', borderRadius:12, border:'1px solid #a78bfa', background: sel ? '#a78bfa' : 'transparent', color: sel ? '#0b0b0b' : '#a78bfa', cursor:'pointer', fontWeight:600 }}
+                              onClick={() => setEventForm(f => ({ ...f, audience: sel ? f.audience.filter(n=>n!==c.name) : [...f.audience, c.name] }))}>
+                              {c.name}{c.pos ? ` · ${c.pos}` : ''}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                   {eventForm.tags.some(t=>t.type==='TALENT') && keyTalent.length > 0 && (
                     <div style={{ marginTop:8, display:'flex', gap:6, flexWrap:'wrap' }}>
                       {keyTalent.map(t => {
@@ -1299,7 +1316,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                 <div className="field span2">
                   <label>Tags</label>
                   <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:4 }}>
-                    {['VIDEO', ...(includePhoto ? ['PHOTO'] : []), 'AUDIO', 'TALENT'].map(type => (
+                    {['VIDEO', ...(includePhoto ? ['PHOTO'] : []), 'TALENT'].map(type => (
                       <button key={type} type="button"
                         className={`etag ${TAG_CLASS[type]}`}
                         style={{ cursor:'pointer', opacity: editEventForm.tags.some(t=>t.type===type) ? 1 : 0.4, padding:'4px 10px' }}
@@ -1309,7 +1326,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                     ))}
                   </div>
                   {(() => {
-                    const core = includePhoto ? ['VIDEO','PHOTO','AUDIO'] : ['VIDEO','AUDIO'];
+                    const core = includePhoto ? ['VIDEO','PHOTO'] : ['VIDEO'];
                     const allOn = core.every(t => editEventForm.tags.some(x => x.type === t));
                     return (
                       <div style={{ marginTop:6 }}>
@@ -1327,6 +1344,23 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                       </div>
                     );
                   })()}
+                  {editEventForm.tags.some(t=>t.type==='VIDEO') && (
+                    <div style={{ marginTop:8 }}>
+                      <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4 }}>Crew on this event — leave empty for everyone</div>
+                      <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+                        {(project.crewAssignments || []).map(a => ({ id: a.id, name: a.crewMember?.name || a.cm_name || a.name, pos: a.position?.name || a.position_name })).filter(c => c.name).map(c => {
+                          const sel = editEventForm.audience.includes(c.name);
+                          return (
+                            <button key={c.id} type="button"
+                              style={{ fontSize:11, padding:'3px 10px', borderRadius:12, border:'1px solid #a78bfa', background: sel ? '#a78bfa' : 'transparent', color: sel ? '#0b0b0b' : '#a78bfa', cursor:'pointer', fontWeight:600 }}
+                              onClick={() => setEditEventForm(f => ({ ...f, audience: sel ? f.audience.filter(n=>n!==c.name) : [...f.audience, c.name] }))}>
+                              {c.name}{c.pos ? ` · ${c.pos}` : ''}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                   {editEventForm.tags.some(t=>t.type==='TALENT') && keyTalent.length > 0 && (
                     <div style={{ marginTop:8, display:'flex', gap:6, flexWrap:'wrap' }}>
                       {keyTalent.map(t => {

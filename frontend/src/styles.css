@@ -578,3 +578,8 @@ textarea { resize: vertical; min-height: 70px; }
 @media (max-width: 700px) {
   .cse-grid { grid-template-columns: 1fr !important; }
 }
+
+/* Team Today: two columns on desktop, one on phones */
+@media (max-width: 700px) {
+  .team-grid { grid-template-columns: 1fr !important; }
+}
