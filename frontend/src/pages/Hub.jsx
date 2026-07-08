@@ -167,6 +167,16 @@ function HubProjects() {
   const list = [...(projects || [])].sort((a, b) => (a.code || '').localeCompare(b.code || ''));
   const s = q.trim().toLowerCase();
   const shown = s ? list.filter(p => (p.code || '').toLowerCase().includes(s) || (p.title || '').toLowerCase().includes(s) || (p.client || '').toLowerCase().includes(s)) : list;
+  // Clients running more than one project at once get a mini-hub tile
+  const byClient = new Map();
+  for (const p of projects || []) {
+    const name = (p.client || '').trim();
+    if (!name) continue;
+    const key = name.toLowerCase();
+    if (!byClient.has(key)) byClient.set(key, { name, projects: [] });
+    byClient.get(key).projects.push(p);
+  }
+  const clients = [...byClient.values()].filter(c => c.projects.length > 1).sort((a, b) => a.name.localeCompare(b.name));
   return (
     <div>
       <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:14 }}>
@@ -190,6 +200,31 @@ function HubProjects() {
           </div>
         ))}
       </div>
+      {clients.length > 0 && (
+        <>
+          <div style={{ margin:'26px 0 10px' }}>
+            <div style={{ fontSize:13, fontWeight:800 }}>Client Hub</div>
+            <div style={{ fontSize:11, color:'var(--muted)' }}>Clients with multiple projects going at once</div>
+          </div>
+          <div className="hub-tiles" style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(250px, 1fr))', gap:14 }}>
+            {clients.map(c => (
+              <div key={c.name} onClick={() => nav(`/project-view/client/${encodeURIComponent(c.name)}`)}
+                style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid rgba(74,158,255,0.5)', borderRadius:10, padding:'16px 18px', cursor:'pointer', transition:'transform .15s ease' }}
+                onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-3px)'}
+                onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
+                <div style={{ fontSize:14, fontWeight:800 }}>{c.name}</div>
+                <div style={{ fontSize:11, color:'var(--muted)', margin:'3px 0 10px' }}>{c.projects.length} projects</div>
+                <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+                  {c.projects.slice(0, 4).map(p => (
+                    <span key={p.id} style={{ fontSize:9, fontWeight:800, color:'#4a9eff', border:'1px solid rgba(74,158,255,0.4)', borderRadius:10, padding:'2px 8px' }}>{p.code}</span>
+                  ))}
+                  {c.projects.length > 4 && <span style={{ fontSize:9, color:'var(--muted)' }}>+{c.projects.length - 4} more</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
