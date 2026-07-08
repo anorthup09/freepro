@@ -281,6 +281,7 @@ export default function AvoEdit() {
   const [copied, setCopied] = useState('');
   const [shareTimeline, setShareTimeline] = useState(false);
   const [showCal, setShowCal] = useState(false);
+  const [projectPageId, setProjectPageId] = useState(null);   // Avo project page for this edit's code
   // Auto-fill knobs (defaults: business days, 2-day client reviews)
   const [tlOpts, setTlOpts] = useState({ skipWknd: true, editDaysAfterScript: 5, editDaysAfterFeedback: 3, reviewDays: 2 });
   const [busy, setBusy] = useState(false);
@@ -289,6 +290,11 @@ export default function AvoEdit() {
 
   const load = () => api.avoEdit(id).then(setE).catch(err => alert(err.message));
   useEffect(() => { load(); }, [id]);
+  useEffect(() => {
+    const code = e?.project_code;
+    if (!code) { setProjectPageId(null); return; }
+    api.avoProjectByCode(code).then(pg => setProjectPageId(pg.id)).catch(() => setProjectPageId(null));
+  }, [e?.project_code]);
   useEffect(() => { if (feedRef.current) feedRef.current.scrollTop = feedRef.current.scrollHeight; }, [e?.activity?.length]);
 
   if (!e) return <div style={{ minHeight:'100vh', background:'var(--bg)' }}><AvoHeader /><div className="empty">Loading…</div></div>;
@@ -338,7 +344,12 @@ export default function AvoEdit() {
     <div style={{ minHeight:'100vh', background:'var(--bg)' }}>
       <AvoHeader />
       <div style={{ maxWidth:1250, margin:'0 auto', padding:'6px 16px 80px' }}>
-        <button className="btn btn-ghost btn-sm" style={{ marginBottom:12 }} onClick={() => nav('/avo')}>‹ Pipeline</button>
+        <div style={{ display:'flex', gap:8, marginBottom:12, flexWrap:'wrap' }}>
+          {projectPageId && (
+            <button className="btn btn-ghost btn-sm" onClick={() => nav(`/avo/project/${projectPageId}`)}>‹ Back to Project</button>
+          )}
+          <button className="btn btn-ghost btn-sm" onClick={() => nav('/avo')}>Full Pipeline — All Projects</button>
+        </div>
         <div style={{ display:'flex', gap:18, flexWrap:'wrap', alignItems:'flex-start' }}>
 
           {/* ── Left: details ── */}

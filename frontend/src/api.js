@@ -109,6 +109,7 @@ export const api = {
   avoProjects: () => req('GET', '/avo/projects'),
   createAvoProject: (code, title) => req('POST', '/avo/projects', { code, title }),
   avoProject: (id) => req('GET', `/avo/projects/${id}`),
+  avoProjectByCode: (code) => req('GET', `/avo/projects/by-code/${encodeURIComponent(code)}`),
   updateAvoProject: (id, data) => req('PATCH', `/avo/projects/${id}`, data),
   deleteAvoProject: (id) => req('DELETE', `/avo/projects/${id}`),
   addAvoGridRow: (pageId, kind) => req('POST', `/avo/projects/${pageId}/${kind}`, {}),

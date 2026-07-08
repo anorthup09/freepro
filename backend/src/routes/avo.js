@@ -416,6 +416,19 @@ router.post('/projects', ...staff, async (req, res, next) => {
     res.status(201).json(row);
   } catch (e) { next(e); }
 });
+// Look up a project page id by code (exact, or the base code family)
+router.get('/projects/by-code/:code', ...staff, async (req, res, next) => {
+  try {
+    const code = req.params.code;
+    const base = code.replace(/-\d+$/, '');
+    const [page] = await sql`
+      SELECT id, code FROM avo_project_pages
+      WHERE code = ${code} OR code = ${base}
+      ORDER BY (code = ${code}) DESC LIMIT 1`;
+    if (!page) return res.status(404).json({ error: 'No project page for this code' });
+    res.json(page);
+  } catch (e) { next(e); }
+});
 router.get('/projects/:id', ...staff, async (req, res, next) => {
   try {
     let [page] = await sql`UPDATE avo_project_pages SET last_opened_at = NOW() WHERE id = ${req.params.id} RETURNING *`;
