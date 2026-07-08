@@ -53,8 +53,9 @@ function MoneyInput({ value, onCommit, width = 85 }) {
   );
 }
 
-export default function FinanceProject() {
-  const { pid } = useParams();
+export default function FinanceProject({ pidOverride }) {
+  const { pid: pidParam } = useParams();
+  const pid = pidOverride || pidParam;
   const [data, setData] = useState(null);
   const [tab, setTab] = useState('budget');
   const [estimateMode, setEstimateMode] = useState(false);

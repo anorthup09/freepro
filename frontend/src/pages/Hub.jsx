@@ -36,6 +36,16 @@ const TILES = [
     status: null,
   },
   {
+    key: 'pview',
+    title: 'Project View',
+    tagline: 'Everything, One Project',
+    desc: 'Every project by code — flip between finance, pre-production, and post in a single view.',
+    accent: '#e8e8e8',
+    icon: '🗂',
+    to: '/project-view',
+    status: null,
+  },
+  {
     key: 'team',
     title: 'Team Management',
     tagline: 'People Operations',
@@ -164,7 +174,7 @@ export default function Hub() {
   const isCrew = user?.role === 'CREW';
   // Crew accounts get FreePro (crew views), Avo, and Team Management only
   const tiles = isCrew
-    ? TILES.filter(t => t.key !== 'profi').map(t => t.key === 'freepro' ? { ...t, to: '/crew-views', tagline: 'Crew Views' } : t)
+    ? TILES.filter(t => t.key !== 'profi' && t.key !== 'pview').map(t => t.key === 'freepro' ? { ...t, to: '/crew-views', tagline: 'Crew Views' } : t)
     : TILES;
 
   return (

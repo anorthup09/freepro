@@ -297,8 +297,9 @@ function MusicGrid({ rows, setRows, pageId, code, title }) {
 
 const TABS = [['tracker', 'Project Video Tracker'], ['todos', 'To-Do List'], ['music', 'Music Options'], ['lower-thirds', 'Lower Thirds']];
 
-export default function AvoProject() {
-  const { id } = useParams();
+export default function AvoProject({ idOverride, embedded }) {
+  const { id: idParam } = useParams();
+  const id = idOverride || idParam;
   const nav = useNavigate();
   const [page, setPage] = useState(null);
   const [edits, setEdits] = useState([]);
@@ -328,11 +329,11 @@ export default function AvoProject() {
 
   return (
     <div style={{ minHeight:'100vh', background:'var(--bg)' }}>
-      <AvoHeader />
+      {!embedded && <AvoHeader />}
       <div style={{ maxWidth:1250, margin:'0 auto', padding:'6px 16px 80px' }}>
-        <div style={{ marginBottom:14 }}>
+        {!embedded && <div style={{ marginBottom:14 }}>
           <button className="btn btn-ghost btn-sm" onClick={() => nav('/avo')}>‹ Pipeline</button>
-        </div>
+        </div>}
         {err && <div className="empty">{err}</div>}
         {!err && !page && <div className="empty">Loading…</div>}
         {page && (

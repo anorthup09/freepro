@@ -174,8 +174,9 @@ function ShareDropdown({ projectId, showShotList }) {
   );
 }
 
-export default function Project() {
-  const { id } = useParams();
+export default function Project({ idOverride }) {
+  const { id: idParam } = useParams();
+  const id = idOverride || idParam;
   const nav = useNavigate();
   const [project, setProject] = useState(null);
   const [tab, setTab] = useState(() => new URLSearchParams(window.location.search).get('tab') || 'overview');
