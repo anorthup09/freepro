@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../App.jsx';
 import { api, onSaveState } from '../api.js';
 import { STATUS_COLORS } from './Hub.jsx';
+import ClientSelect from '../components/ClientSelect.jsx';
 
 const fmt$ = n => '$' + Number(n || 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
 
@@ -149,7 +150,10 @@ function NewProjectModal({ onClose, onCreated }) {
         <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
           <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
             {field('Project Code', 'code', 'text', 'e.g. 02.CHP00126')}
-            {field('Client', 'client')}
+            <label style={{ display:'flex', flexDirection:'column', gap:4, fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', flex:1, minWidth:120 }}>
+              Client
+              <ClientSelect value={f.client} onChange={name => setF(v => ({ ...v, client: name }))} />
+            </label>
           </div>
           {field('Project Name', 'title')}
           <LogoField value={logo} onChange={setLogo} />

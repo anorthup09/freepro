@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { api } from '../api.js';
 import { FinanceHeader, LogoField } from './Finance.jsx';
 import HarbingerModal, { HarbingerView } from '../components/HarbingerModal.jsx';
+import ClientSelect from '../components/ClientSelect.jsx';
 import { useAuth } from '../App.jsx';
 
 const fmt$ = (n, dec = 2) => '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: dec === 2 ? 2 : 0, maximumFractionDigits: dec });
@@ -1414,7 +1415,10 @@ function EditProjectModal({ project, onClose, onSaved }) {
         <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
           <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
             {field('Project Code', 'code')}
-            {field('Client', 'client')}
+            <label style={{ display:'flex', flexDirection:'column', gap:4, fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', flex:1, minWidth:120 }}>
+              Client
+              <ClientSelect value={f.client} onChange={name => setF(v => ({ ...v, client: name }))} />
+            </label>
           </div>
           {field('Project Name', 'title')}
           <LogoField value={logo} onChange={setLogo} />

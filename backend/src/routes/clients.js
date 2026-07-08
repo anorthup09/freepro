@@ -3,6 +3,79 @@ const sql = require('../lib/db');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const staff = [requireAuth, requireRole('ADMIN', 'PRODUCER')];
 
+// ── Client roster: canonical client names, with duplicate flagging ──
+
+const norm = s => String(s || '').toLowerCase()
+  .replace(/\b(inc|llc|ltd|corp|corporation|co|company|group)\b\.?/g, '')
+  .replace(/[^a-z0-9]/g, '');
+
+function levenshtein(a, b) {
+  const m = a.length, n = b.length;
+  if (!m || !n) return Math.max(m, n);
+  let prev = Array.from({ length: n + 1 }, (_, j) => j);
+  for (let i = 1; i <= m; i++) {
+    const cur = [i];
+    for (let j = 1; j <= n; j++) {
+      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    }
+    prev = cur;
+  }
+  return prev[n];
+}
+
+// Fuzzy candidates, optionally refined by AI when a key is configured
+async function findSimilar(name, existing) {
+  const n = norm(name);
+  const fuzzy = existing.filter(c => {
+    const e = norm(c.name);
+    if (!e || !n) return false;
+    if (e === n) return true;
+    if (e.includes(n) || n.includes(e)) return true;
+    return levenshtein(e, n) <= Math.max(1, Math.floor(Math.min(e.length, n.length) / 4));
+  });
+  if (!fuzzy.length || !process.env.ANTHROPIC_API_KEY) return fuzzy;
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001', max_tokens: 200,
+        messages: [{ role: 'user', content:
+          `A user wants to add a new client named ${JSON.stringify(name)} to a company roster. Existing similar-looking clients: ${JSON.stringify(fuzzy.map(c => c.name))}. Which of the existing names most likely refer to the SAME client (typo, abbreviation, alternate spelling)? Reply with ONLY a JSON array of the existing names that are likely duplicates, e.g. ["Acme Inc"] or [].` }],
+      }),
+    });
+    const j = await r.json();
+    const arr = JSON.parse((j.content?.[0]?.text || '[]').match(/\[[\s\S]*\]/)?.[0] || '[]');
+    const keep = fuzzy.filter(c => arr.includes(c.name));
+    return keep.length ? keep : fuzzy;
+  } catch (e) {
+    console.error('client duplicate AI check failed:', e.message);
+    return fuzzy;
+  }
+}
+
+router.get('/roster', ...staff, async (req, res, next) => {
+  try {
+    res.json(await sql`SELECT id, name FROM clients ORDER BY name`);
+  } catch (e) { next(e); }
+});
+
+router.post('/roster', ...staff, async (req, res, next) => {
+  try {
+    const name = String(req.body.name || '').trim();
+    if (!name) return res.status(400).json({ error: 'Client name required' });
+    const existing = await sql`SELECT id, name FROM clients ORDER BY name`;
+    const exact = existing.find(c => c.name.toLowerCase() === name.toLowerCase());
+    if (exact) return res.json(exact);
+    if (!req.body.force) {
+      const dups = await findSimilar(name, existing);
+      if (dups.length) return res.status(409).json({ possibleDuplicates: dups.map(c => c.name) });
+    }
+    const [row] = await sql`INSERT INTO clients (name, created_by) VALUES (${name}, ${req.user.name || req.user.email}) RETURNING id, name`;
+    res.status(201).json(row);
+  } catch (e) { next(e); }
+});
+
 // ── Client resources: logos & brand guidelines, keyed by client name ──
 
 router.get('/:client/resources', ...staff, async (req, res, next) => {

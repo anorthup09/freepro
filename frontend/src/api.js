@@ -41,7 +41,12 @@ async function reqInner(method, path, body) {
   const text = await res.text();
   let data = null;
   if (text) { try { data = JSON.parse(text); } catch { /* non-JSON body (proxy error page, etc.) */ } }
-  if (!res.ok) throw new Error(data?.error || `Request failed (${res.status} on ${path}) — please try again`);
+  if (!res.ok) {
+    const err = new Error(data?.error || `Request failed (${res.status} on ${path}) — please try again`);
+    err.status = res.status;
+    err.body = data;
+    throw err;
+  }
   if (data === null) throw new Error(`Server returned an unexpected response (${res.status} on ${path}${text ? ': ' + text.slice(0, 80) : ', empty body'})`);
   return data;
 }
@@ -113,6 +118,8 @@ export const api = {
   searchInvoices: (params) => req('GET', `/finance/vendor-invoices/search?${new URLSearchParams(params)}`),
   uploadVendorInvoice: (pid, data) => req('POST', `/finance/${pid}/vendor-invoices`, data),
   deleteVendorInvoice: (id) => req('DELETE', `/finance/vendor-invoices/${id}`),
+  clientRoster: () => req('GET', '/clients/roster'),
+  addClient: (name, force) => req('POST', '/clients/roster', { name, force }),
   clientResources: (client) => req('GET', `/clients/${encodeURIComponent(client)}/resources`),
   uploadClientResource: (client, data) => req('POST', `/clients/${encodeURIComponent(client)}/resources`, data),
   deleteClientResource: (id) => req('DELETE', `/clients/resources/${id}`),

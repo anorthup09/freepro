@@ -1160,6 +1160,21 @@ async function migrate() {
       created_at TIMESTAMPTZ DEFAULT NOW()
     )`;
 
+  // Client roster — canonical client names, selected from budgets
+  await sql`
+    CREATE TABLE IF NOT EXISTS clients (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      name TEXT NOT NULL UNIQUE,
+      created_by TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`;
+  // Seed the roster from client names already on projects
+  await sql`
+    INSERT INTO clients (name)
+    SELECT DISTINCT TRIM(client) FROM projects
+    WHERE COALESCE(TRIM(client), '') NOT IN ('', '—')
+    ON CONFLICT (name) DO NOTHING`;
+
   console.log('Migration complete.');
 }
 
