@@ -23,13 +23,9 @@ async function myCrewMember(email) {
 }
 
 // GET /api/dashboard/today — the user's Day in Review
-router.get('/today', requireAuth, async (req, res, next) => {
-  try {
-    const today = new Date().toISOString().slice(0, 10);
-    const items = [];
-    const cm = await myCrewMember(req.user.email);
-
-    if (cm) {
+async function itemsFor(cm, today) {
+  const items = [];
+  {
       // On a shoot today
       const shoots = await sql`
         SELECT pr.id, pr.code, pr.title, pr.city, pr.state, p.name as position_name
@@ -46,7 +42,7 @@ router.get('/today', requireAuth, async (req, res, next) => {
         SELECT title, pto_type FROM pto_requests
         WHERE member_id = ${cm.id} AND status != 'CLOSED'
           AND start_date <= ${today} AND end_date >= ${today}`;
-      for (const p of pto) items.push({ kind: 'pto', title: `${p.pto_type} today`, subtitle: p.title, link: '/team' });
+      for (const p of pto) items.push({ kind: 'pto', title: `${p.pto_type}`, subtitle: p.title, link: '/team' });
 
       // Avo edits where I'm the lead editor or PM
       const edits = await sql`
@@ -58,7 +54,7 @@ router.get('/today', requireAuth, async (req, res, next) => {
       for (const e of edits) {
         const role = e.pm_id === cm.id ? 'PM' : 'Editor';
         if (iso(e.end_date) === today) {
-          items.push({ kind: 'due', title: `Edit due today — ${e.title}`, subtitle: `${e.project_code || 'Avo'} · you're the ${role}`, link: `/avo/${e.id}` });
+          items.push({ kind: 'due', title: `Edit due — ${e.title}`, subtitle: `${e.project_code || 'Avo'} · you're the ${role}`, link: `/avo/${e.id}` });
         }
         const ms = parseJ(e.milestones);
         const assignees = parseJ(e.milestone_assignees);
@@ -67,13 +63,13 @@ router.get('/today', requireAuth, async (req, res, next) => {
           const mine = assignees[k] ? assignees[k] === cm.id : e.lead_editor_id === cm.id;
           items.push({
             kind: 'due',
-            title: `${label} due today — ${e.title}`,
+            title: `${label} due — ${e.title}`,
             subtitle: `${e.project_code || 'Avo'} · ${mine ? 'your task' : `you're the ${role}`}`,
             link: `/avo/${e.id}`,
           });
         }
         if (iso(e.start_date) === today && e.lead_editor_id === cm.id) {
-          items.push({ kind: 'shoot', title: `Edit window starts today — ${e.title}`, subtitle: e.project_code || 'Avo', link: `/avo/${e.id}` });
+          items.push({ kind: 'shoot', title: `Edit window starts — ${e.title}`, subtitle: e.project_code || 'Avo', link: `/avo/${e.id}` });
         }
         // Mirror the Crew Calendar: edit windows and editor-task runners that span today
         const sd = iso(e.start_date);
@@ -100,6 +96,17 @@ router.get('/today', requireAuth, async (req, res, next) => {
         }
       }
     }
+  return items;
+}
+
+router.get('/today', requireAuth, async (req, res, next) => {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const tomorrowDate = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+    const cm = await myCrewMember(req.user.email);
+    const items = cm ? await itemsFor(cm, today) : [];
+    // Coming Tomorrow: same signals for the next day (skip in-progress noise)
+    const tomorrow = cm ? (await itemsFor(cm, tomorrowDate)).filter(i => i.kind !== 'work') : [];
     // Open one-off project tasks assigned to me (fed from Project Overview pages)
     let tasks = [];
     if (cm) {
@@ -109,7 +116,7 @@ router.get('/today', requireAuth, async (req, res, next) => {
         WHERE t.assignee_id = ${cm.id} AND t.done IS NOT TRUE
         ORDER BY t.due_date NULLS LAST, t.created_at`;
     }
-    res.json({ date: today, items, tasks });
+    res.json({ date: today, tomorrowDate, items, tomorrow, tasks });
   } catch (e) { next(e); }
 });
 

@@ -256,7 +256,8 @@ function HubDashboard() {
   return (
     <div className="hub-dash" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginTop:22 }}>
       <div style={card}>
-        <div style={hdr}>Day in Review <span style={{ color:'var(--muted)', fontWeight:600, textTransform:'none', letterSpacing:0 }}>· {dateLabel}</span></div>
+        <div style={{ ...hdr, marginBottom:2 }}>Day in Review</div>
+        <div style={{ fontSize:12, color:'var(--muted)', fontWeight:600, marginBottom:10 }}>{dateLabel}</div>
         {!day && <div style={{ fontSize:11, color:'var(--muted)' }}>Loading…</div>}
         {day && day.items.length === 0 && (
           <div style={{ fontSize:12, color:'var(--muted)', fontStyle:'italic' }}>Nothing on your plate today — no shoots, due dates, or deadlines assigned to you.</div>
@@ -271,6 +272,26 @@ function HubDashboard() {
             </div>
           </div>
         ))}
+        {day && (day.tomorrow || []).length > 0 && (
+          <>
+            <div style={{ ...hdr, fontSize:10, margin:'16px 0 6px' }}>
+              Coming Tomorrow
+              <span style={{ color:'var(--muted)', fontWeight:600, textTransform:'none', letterSpacing:0 }}>
+                {' '}· {day.tomorrowDate ? new Date(day.tomorrowDate + 'T12:00:00').toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' }) : ''}
+              </span>
+            </div>
+            {day.tomorrow.map((it, i) => (
+              <div key={i} onClick={() => it.link && nav(it.link)}
+                style={{ display:'flex', alignItems:'flex-start', gap:10, padding:'6px 4px', borderBottom:'1px solid rgba(255,255,255,0.04)', cursor: it.link ? 'pointer' : 'default', opacity:0.75 }}>
+                <span style={{ width:8, height:8, borderRadius:'50%', background: KIND_DOT[it.kind] || 'var(--muted)', marginTop:5, flexShrink:0, opacity:0.7 }} />
+                <div style={{ minWidth:0 }}>
+                  <div style={{ fontSize:12, fontWeight:700 }}>{it.title}</div>
+                  {it.subtitle && <div style={{ fontSize:10, color:'var(--muted)', marginTop:1 }}>{it.subtitle}</div>}
+                </div>
+              </div>
+            ))}
+          </>
+        )}
         {day && (day.tasks || []).length > 0 && (
           <>
             <div style={{ ...hdr, fontSize:10, margin:'16px 0 6px', display:'flex', alignItems:'center', gap:8 }}>
