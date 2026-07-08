@@ -129,7 +129,20 @@ function FeedbackBoard() {
 function UserManagement({ user }) {
   const [open, setOpen] = useState(false);
   const [users, setUsers] = useState([]);
+  const [copiedInvite, setCopiedInvite] = useState(false);
   const ROLES = ['PENDING', 'CREW', 'CLIENT', 'PRODUCER', 'ADMIN'];
+  const inviteBlurb = `You're invited to the Unbridled Operating Platform — budgets, call sheets, schedules, and post-production in one place.
+
+1. Go to ${window.location.origin}/login
+2. Click "Create one" and sign up with your name, work email, and a password
+3. An admin will approve your account — once approved, sign in and you're set
+
+Questions? Reply to whoever sent you this.`;
+  async function copyInvite() {
+    try { await navigator.clipboard.writeText(inviteBlurb); } catch { /* older browsers */ }
+    setCopiedInvite(true);
+    setTimeout(() => setCopiedInvite(false), 2200);
+  }
 
   async function toggle() {
     if (!open) {
@@ -169,6 +182,15 @@ function UserManagement({ user }) {
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 18px', borderBottom:'1px solid var(--border)' }}>
             <div style={{ fontSize:14, fontWeight:800 }}>User Management</div>
             <button className="btn btn-ghost btn-sm" onClick={() => setOpen(false)}>✕</button>
+          </div>
+          <div style={{ padding:'12px 18px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', gap:12, flexWrap:'wrap' }}>
+            <div style={{ flex:1, minWidth:220, fontSize:11, color:'var(--muted)', lineHeight:1.5 }}>
+              Invite someone: they create a login at <span style={{ color:'var(--text)', fontWeight:700 }}>{window.location.origin}/login</span> ("Create one"), then you approve them here by changing their role from PENDING.
+            </div>
+            <button onClick={copyInvite}
+              style={{ background: copiedInvite ? '#5ABF80' : 'rgba(90,191,128,0.14)', border:'1px solid #5ABF80', color: copiedInvite ? '#0b0b0b' : '#5ABF80', borderRadius:14, padding:'6px 16px', fontSize:11, fontWeight:800, cursor:'pointer', flexShrink:0 }}>
+              {copiedInvite ? '✓ Copied' : '📋 Copy Invite Blurb'}
+            </button>
           </div>
           <div style={{ overflowY:'auto' }}>
           <table className="pos-table" style={{ width:'100%' }}>
