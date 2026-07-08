@@ -395,7 +395,12 @@ router.get('/project-codes', ...staff, async (req, res, next) => {
 router.get('/projects', ...staff, async (req, res, next) => {
   try {
     // Base project codes only — hide pages created with -01/-02 production suffixes
-    const rows = await sql`SELECT * FROM avo_project_pages WHERE code !~ '-[0-9]+$' ORDER BY last_opened_at DESC`;
+    // The ProFi project name is authoritative — pages mirror it live by code
+    const rows = await sql`
+      SELECT a.*, COALESCE(pr.title, a.title) as title
+      FROM avo_project_pages a
+      LEFT JOIN projects pr ON pr.code = a.code AND pr.parent_project_id IS NULL
+      WHERE a.code !~ '-[0-9]+$' ORDER BY a.last_opened_at DESC`;
     res.json(rows);
   } catch (e) { next(e); }
 });
@@ -411,7 +416,11 @@ router.post('/projects', ...staff, async (req, res, next) => {
 });
 router.get('/projects/:id', ...staff, async (req, res, next) => {
   try {
-    const [page] = await sql`UPDATE avo_project_pages SET last_opened_at = NOW() WHERE id = ${req.params.id} RETURNING *`;
+    let [page] = await sql`UPDATE avo_project_pages SET last_opened_at = NOW() WHERE id = ${req.params.id} RETURNING *`;
+    if (page) {
+      const [pr] = await sql`SELECT title FROM projects WHERE code = ${page.code} AND parent_project_id IS NULL LIMIT 1`;
+      if (pr?.title) page = { ...page, title: pr.title };
+    }
     if (!page) return res.status(404).json({ error: 'Project page not found' });
     const lowerThirds = await sql`SELECT * FROM avo_lower_thirds WHERE page_id = ${page.id} ORDER BY sort, created_at`;
     const todos = await sql`SELECT * FROM avo_todos WHERE page_id = ${page.id} ORDER BY sort, created_at`;
