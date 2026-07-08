@@ -247,5 +247,16 @@
       "Click the checkbox to mark it complete — it clears from your list and checks off on the project's Overview too."
     ],
     "screenshot": "hub-my-tasks.png"
+  },
+  {
+    "title": "Edit / override location addresses",
+    "what": "Location addresses on a FreePro project are no longer locked to what the map search fills in. Every location row has an ✎ edit button that reopens the location form with the current details, so a wrong or outdated address can be corrected manually — the maps link and call sheets use your override.",
+    "where": "FreePro → any project → Overview tab → Locations → the ✎ on a location row.",
+    "how": [
+      "Click <b>✎</b> on the location row.",
+      "Fix the <b>Address</b> (or Name, Type, Emoji) — type over it manually, or re-run the place search.",
+      "Click <b>Save Changes</b> — the row, maps link, and anywhere the location appears now use the corrected address."
+    ],
+    "screenshot": "location-edit.png"
   }
 ]
