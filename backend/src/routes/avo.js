@@ -36,24 +36,39 @@ async function syncSourcingTask(e) {
   try {
     const ms = typeof e.milestones === 'string' ? JSON.parse(e.milestones || '{}') : (e.milestones || {});
     const scriptDate = ms.scripting_start || ms.scripting_end || null;
-    const needs = scriptDate && !e.lead_editor_id && e.pm_id && e.project_id;
+    const needs = scriptDate && !e.lead_editor_id && e.project_id && e.status !== 'CLOSED';
     if (needs) {
       if (e.sourcing_task_id) {
         const [t] = await sql`SELECT id, done FROM project_tasks WHERE id = ${e.sourcing_task_id}`;
         if (t && !t.done) return;
       }
+      // Assignee: the edit's PM, else the project's Main POC, else unassigned
+      let assignee = e.pm_id || null;
+      if (!assignee) {
+        const [p] = await sql`SELECT poc_crew_member_id FROM projects WHERE id = ${e.project_id}`;
+        assignee = p?.poc_crew_member_id || null;
+      }
       const [t] = await sql`
         INSERT INTO project_tasks (project_id, text, assignee_id, due_date, notes, created_by)
-        VALUES (${e.project_id}, ${'Source an editor — ' + e.title}, ${e.pm_id}, ${scriptDate},
+        VALUES (${e.project_id}, ${'Source an editor — ' + e.title}, ${assignee}, ${scriptDate},
           ${'Auto-created: this edit has a scripting date but no lead editor. Assign one in AvocadoPost and this task completes itself.'},
           'AvocadoPost')
         RETURNING id`;
       await sql`UPDATE edits SET sourcing_task_id = ${t.id} WHERE id = ${e.id}`;
-    } else if (e.sourcing_task_id && e.lead_editor_id) {
+    } else if (e.sourcing_task_id && (e.lead_editor_id || e.status === 'CLOSED')) {
       await sql`UPDATE project_tasks SET done = TRUE WHERE id = ${e.sourcing_task_id} AND done IS NOT TRUE`;
     }
   } catch (err) { console.error('sourcing task sync failed:', err.message); }
 }
+
+// Backfill on boot: evaluate every open edit once (idempotent)
+async function backfillSourcingTasks() {
+  try {
+    const edits = await sql`SELECT * FROM edits WHERE status != 'CLOSED'`;
+    for (const e of edits) await syncSourcingTask(e);
+  } catch (err) { console.error('sourcing backfill failed:', err.message); }
+}
+setTimeout(backfillSourcingTasks, 5000);
 
 async function syncToDeliverable(e) {
   if (!e.deliverable_id) return;
