@@ -1,0 +1,238 @@
+[
+  { "section": "Getting Started" },
+  {
+    "title": "Signing in & getting access",
+    "what": "The platform lives at one address and every app hangs off a single login. New teammates create their own account; an admin approves it and sets their role (Producer, Admin, Crew, or Client). Admins and Producers set up an authenticator app (MFA) on first sign-in. Crew-role accounts see a simplified platform: Crew Views, AvocadoPost, and Team Management.",
+    "where": "freepro-production.up.railway.app/login",
+    "how": [
+      "Click <b>Create one</b> on the login page and sign up with your name, work email, and a password.",
+      "An admin approves you from User Management on the hub (role changes from PENDING).",
+      "Admins/Producers scan the QR code with an authenticator app the first time they sign in.",
+      "Forgot password? Use the reset link on the login page."
+    ],
+    "screenshot": "login.png"
+  },
+  {
+    "title": "The Hub — home base",
+    "what": "The hub is where every session starts. Two views: Operations View shows the three apps (ProFi for finance, FreePro for production, AvocadoPost for post) plus Team Management; Project View lists every project as a tile with search, organized by code, plus a Client Hub grouping projects by client. Below either view sits your live dashboard. The red Testing button at the very top opens the team's running feedback & feature-request checklist.",
+    "where": "The home page after sign-in.",
+    "how": [
+      "Flip between <b>Project View</b> and <b>Operations View</b> with the center toggle — the hub remembers your choice.",
+      "<b>Crew Calendar</b> and <b>Reports</b> buttons sit at the top.",
+      "<b>User Management</b> (bottom) is where admins approve accounts, set roles and passwords, and copy the invite blurb.",
+      "The red <b>! Testing - Feedback and Features !</b> button is the one place for feedback — add items, check them off."
+    ],
+    "screenshot": "hub-project-view.png"
+  },
+  {
+    "title": "Your dashboard — Day in Review & Team Today",
+    "what": "The lower hub is personal and live. Day in Review shows everything on your plate today — shoots you're on, edits and milestones due, edits in progress, PTO — plus a Coming Tomorrow preview and your My Tasks list fed from project Overview pages. Team Today shows where every Unbridled team member is right now: red for PTO/OOO, yellow for traveling/on a shoot, green for in office.",
+    "where": "The hub, below the tiles — visible in both views.",
+    "how": [
+      "Click any Day in Review row to jump to that shoot or edit.",
+      "Check off <b>My Tasks</b> right from the hub; click a task to read its description.",
+      "Team Today lists in two columns with each person's location; STL/DEN-only folks stay green with a note."
+    ],
+    "screenshot": "hub-dashboard.png"
+  },
+  {
+    "title": "Project View — one workspace per project",
+    "what": "Opening a project from Project View lands on its Overview: a cover page with budget status and totals, shoots, post-production at a glance, client call notes, creative docs (brief/VPP), and a to-do list whose tagged tasks feed people's dashboards. Tabs flip to the full ProFi budget, the FreePro production page, and the AvocadoPost project page — the real pages, not copies.",
+    "where": "Hub → Project View → any project tile.",
+    "how": [
+      "The <b>Overview</b> tab is the project's cover page — call notes, docs, tasks, statuses.",
+      "<b>Project Finance / Pre-Production / Post-Production</b> tabs open the same pages you'd reach in each app.",
+      "The <b>Client Hub</b> tiles group a client's projects with shared resources and a client password."
+    ],
+    "screenshot": "project-overview.png"
+  },
+
+  { "section": "ProFi — Project Finance" },
+  {
+    "title": "The finance pipeline",
+    "what": "Every project budget lives on the Project Finance page, organized into RFP, Live, and Archive folders. Each row shows the budget total, owner, close month, status, and who's tagged. Show My Projects filters to budgets you own or are tagged on. The Archive splits Closed (filed by year) from Dead.",
+    "where": "Hub → ProFi tile → Project Finance.",
+    "how": [
+      "<b>+ New Project</b> creates a code, title, and client (the client roster catches duplicates).",
+      "Use the folder chips (RFP / Live / Archive) and <b>Show My Projects</b> to focus the list.",
+      "Tag teammates on a budget — tags show as initials icons and drive the filter."
+    ],
+    "screenshot": "my-projects-filter.png"
+  },
+  {
+    "title": "Building a budget",
+    "what": "A project's budget starts from the 2026 template: sections of line items with quantities, rates, travel flags, and percent lines, plus a management fee. Shoot sections spawn FreePro production tiles when the budget goes Live. Additional estimates layer on extras, Budget Overview summarizes crew and costs, and Client Budget opens the client-facing share (line items or buckets).",
+    "where": "Project Finance → open a project.",
+    "how": [
+      "Edit line items inline; sections subtotal automatically and the glass bar tracks the grand total.",
+      "<b>+ Add Estimate</b> layers additional estimates; <b>Budget Overview</b> summarizes the whole budget.",
+      "<b>Client Budget</b> copies a shareable link — choose Line Items or Buckets for what the client sees.",
+      "The <b>Status</b> pill walks the workflow: RFP → Live/Dead, Live → Reconcile/Closed."
+    ],
+    "screenshot": "status-paths.png"
+  },
+  {
+    "title": "VCC — vendor cost control",
+    "what": "The VCC tab tracks actual vendor costs against the budget: entries by category and trip, a Profit Summary (billable, gross profit, profitability), deposits, and the final invoice. The Vendor Invoices library stores the actual invoice files — AI reads uploaded PDFs/photos and fills in the vendor and total.",
+    "where": "Project budget → VCC tab.",
+    "how": [
+      "Add cost entries as they land; FreePro contractor costs sync in automatically.",
+      "<b>🧾 Vendor Invoices</b> → <b>+ Upload Invoice</b>; AI extracts vendor and amount from PDFs and photos.",
+      "The Profit Summary keeps Billable, Gross Profit, and Profitability live."
+    ],
+    "screenshot": "vendor-invoices.png"
+  },
+  {
+    "title": "Reports",
+    "what": "Cross-project rollups live in Reports: the Project Finance Overview (budgets, direct costs, gross profit per project), the Weekly Finance Report, and Invoice Search, which finds any uploaded vendor invoice across every project by vendor, amount, or date.",
+    "where": "Hub → 📈 Reports.",
+    "how": [
+      "<b>Project Finance Overview</b> — the all-projects financial picture.",
+      "<b>Weekly Finance Report</b> — the week's movement.",
+      "<b>Invoice Search</b> — search every project's invoice library at once."
+    ],
+    "screenshot": "reports.png"
+  },
+
+  { "section": "FreePro — Production" },
+  {
+    "title": "Productions & the project page",
+    "what": "Every shoot gets a FreePro tile (created automatically when its budget goes Live). The project page carries the whole production: Overview (dates, Main POC, client and agency contacts, locations with editable addresses), Logistics (schedule, crew, travel, catering, shot list, scripts, additional docs), Gear, Deliverables, and Questions.",
+    "where": "Hub → FreePro tile → pick a production.",
+    "how": [
+      "Set the <b>Main POC</b> and add client/agency contacts on Overview.",
+      "Add <b>Locations</b> via map search — the ✎ lets you override any address manually.",
+      "Navigate everything else from the <b>Logistics</b> and <b>Gear</b> dropdowns."
+    ],
+    "screenshot": "freepro-projects.png"
+  },
+  {
+    "title": "Schedule & shoot days",
+    "what": "Each shoot day carries call/shooting/lunch/wrap times (with per-time notes and tags), live weather, and a timeline of events. Events can target Video/Photo/Talent, specific crew members by name, or everyone — targeted events only appear on those people's call sheets.",
+    "where": "Project → Logistics → Schedule.",
+    "how": [
+      "Set day times at the top of each day; weather fills in automatically from the shoot location.",
+      "<b>+ Add Event</b> — time, title, location, room; tag Video/Photo/Talent or pick specific crew.",
+      "Breaks and talent call times feed the talent call sheets."
+    ],
+    "screenshot": "schedule.png"
+  },
+  {
+    "title": "Crew, contractors & contracts",
+    "what": "The Crew tab assigns people from the shared roster into positions with dates, dietary flags, and a Travel/Local pill. Contract crew carry labor/gear rates that total at the bottom and sync into the VCC, and contractor contracts are generated, sent, and e-signed right in the app — the status dot shows sent/signed at a glance.",
+    "where": "Project → Logistics → Crew.",
+    "how": [
+      "<b>+ Add Position</b>, then assign someone from the roster (or add a new person).",
+      "Mark contract crew with rates — Labor and Gear totals feed the VCC.",
+      "Send the contract from the row; the dot turns yellow when sent, green when signed.",
+      "The <b>Travel</b> column shows each person's roster-level Travel/Local flag."
+    ],
+    "screenshot": "travel-local.png"
+  },
+  {
+    "title": "Travel, gear & catering",
+    "what": "Travel tracks flights (with live flight lookups), hotel blocks, and rental cars per person. The Gear pages cover the gear list, online rentals, and rental-house orders; crew can file gear requests. Catering assigns meals per day with vendors and delivery times.",
+    "where": "Project → Logistics → Travel / Catering · Gear dropdown.",
+    "how": [
+      "Add flights by number and date — details fill from the airline data.",
+      "Hotel blocks and rental cars assign to crew members and show on their call sheets.",
+      "Catering entries appear on the day's call sheet with the meal type."
+    ],
+    "screenshot": "travel.png"
+  },
+  {
+    "title": "Shot list & reference photos",
+    "what": "Scenes and shots with per-shot details (movement, angle, lens, coverage, talent, timing that rolls into a running schedule), a capture status for shoot-day tracking, and reference photos per shot — collected at the bottom of the page in shot order with the shot number and title.",
+    "where": "Project → Logistics → Shot List.",
+    "how": [
+      "Add scenes, assign them to days, and add shots — timing rolls up automatically.",
+      "Expand a shot for full details and <b>+ Reference Photo</b>.",
+      "On shoot day, tap shots as captured; the Reference Photos section keeps everything in order."
+    ],
+    "screenshot": "shot-reference-photos.png"
+  },
+  {
+    "title": "Deliverables — the bridge to post",
+    "what": "Deliverables and AvocadoPost edits are the same records. Adding a deliverable opens the full post-production form (type, editor, PM, specs, dates, review link, status — defaults to Coming Soon) and creates the pipeline edit; changes on either side sync. The list groups by Pre-Event / On-Site / Post-Event / Standard Edit.",
+    "where": "Project → Deliverable tab.",
+    "how": [
+      "<b>+ Add Deliverable</b> — fill the shared form; the Avo edit is created automatically.",
+      "Change status from the grid or the form — it moves the edit through the pipeline.",
+      "Set the <b>DIT</b> and tech specs at the top of the page."
+    ],
+    "screenshot": "deliverable-form.png"
+  },
+  {
+    "title": "Sharing call sheets (producer / crew / client / talent)",
+    "what": "The Share menu copies password-protectable links tailored per audience: Producer (everything), Crew (the working call sheet), Client (the polished view), and per-talent call sheets. Each is also downloadable as a PDF. Crew and producer views add tabs for Gear, Shot List, Scripts, Additional Docs (when present), and Questions, where recipients can ask questions that land back in the app.",
+    "where": "Project page → Share ▾ (top right).",
+    "how": [
+      "Copy the link for the audience you need — set a public password on the Overview if you want one.",
+      "Talent links live under <b>Talent</b> — one call sheet per person.",
+      "Use the PDF options for printable versions.",
+      "Answer incoming questions on the project's <b>Questions</b> tab."
+    ],
+    "screenshot": "crew-share.png"
+  },
+
+  { "section": "AvocadoPost — Post-Production" },
+  {
+    "title": "The edit pipeline",
+    "what": "Every edit moves through Coming Soon → Assigned Current Edits → Focus Edits → Closed Out. The pipeline lists each edit with its editor, PM, due date, version, latest comment, and review link. Edits linked to a project code mirror into FreePro deliverables automatically.",
+    "where": "Hub → AvocadoPost tile.",
+    "how": [
+      "<b>+ New Edit</b> — title, project code, lead editor, dates.",
+      "Click an edit to open it; drag the version, set the status, or use RFR / Sent to Client shortcuts.",
+      "The Gantt button shows every edit's window and milestones on one timeline."
+    ],
+    "screenshot": "avo-pipeline.png"
+  },
+  {
+    "title": "Inside an edit — details, timeline, files & comments",
+    "what": "An edit carries its full spec (category, aspect ratio, resolution, drive, refs, review link), a version counter with approval, uploads (briefs, music, logos), and an activity feed with @mention comments that email the mentioned person. The Timeline view holds fourteen milestone dates with assignees, business-day gap counters, auto-fill, per-milestone Skip, Copy Timeline From a sibling edit, a calendar view, a public share link, and email-ready copy.",
+    "where": "AvocadoPost → any edit. ‹ Back to Project returns to its project page.",
+    "how": [
+      "Flip <b>Details | Timeline</b> at the top right.",
+      "<b>⚡ Auto-Fill Timeline</b> builds dates forward from scripting complete; <b>Skip</b> drops a milestone from the flow.",
+      "<b>Copy Timeline From…</b> pulls another edit's dates on the same project.",
+      "Comment with <b>@Name</b> to email someone the note."
+    ],
+    "screenshot": "timeline-skip.png"
+  },
+  {
+    "title": "Avo project pages — tracker & custom grids",
+    "what": "Each project code gets a page with a Project Video Tracker (every edit on the code, grouped Pre-Event / On-Site / Post-Event / Standard Edit), a To-Do list, Music Options (client-shareable), Lower Thirds, and any custom tables you add. Every grid supports custom columns, merged cells, drag-to-reorder rows and columns, and per-column filters.",
+    "where": "AvocadoPost → Project Lookup → pick a code.",
+    "how": [
+      "The tracker feeds live from the pipeline — Type, Notes, Video Assets and custom columns edit inline.",
+      "<b>+ Add Deliverable</b> on the tracker opens the full post-production form.",
+      "<b>+ Add Custom Table</b> creates a new tab with the full grid toolkit.",
+      "Music Options groups by video title and copies into a client-ready email table."
+    ],
+    "screenshot": "tracker-types.png"
+  },
+
+  { "section": "Team Management" },
+  {
+    "title": "PTO, OOO & the roster",
+    "what": "Team Management holds the PTO/OOO request form, the approval pipeline (requests auto-close when they end), and the full crew roster with each person's travel documents, preferences, and Travel/Local flag. Approved time off drives the Crew Calendar bars and the Team Today bubbles on the hub.",
+    "where": "Hub → Team Management tile (crew accounts can access it too).",
+    "how": [
+      "<b>OOO Request</b> — requester, type (PTO / WFH / STL-DEN Only / Comp / Other), dates, supervisor.",
+      "Supervisors approve from the <b>OOO Pipeline</b>; past requests close automatically.",
+      "<b>Roster</b> — look up anyone; edit contact, travel docs, and preferences."
+    ],
+    "screenshot": "team-mgmt.png"
+  },
+  {
+    "title": "Crew Calendar",
+    "what": "One calendar for the whole team: who's on which shoot, edit windows and editor tasks, and PTO/OOO — the same ranges that feed each person's Day in Review. It's the scheduling source of truth when booking crew.",
+    "where": "Hub → 📅 Crew Calendar.",
+    "how": [
+      "Shoots show as orange bars, edit work in green, PTO in blue.",
+      "STL/DEN Only bars mean bookable locally — just not for travel.",
+      "Public share links exist for project and edit timelines (Gantt) when clients need visibility."
+    ],
+    "screenshot": "crew-calendar.png"
+  }
+]
