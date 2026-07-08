@@ -156,9 +156,9 @@ export function ProjectViewDetail() {
     <div style={{ minHeight:'100vh', background:'var(--bg)' }}>
       <PVHeader />
       <div style={{ maxWidth:1250, margin:'0 auto', padding:'0 16px' }}>
-        <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap', marginBottom:6 }}>
-          <button className="btn btn-ghost btn-sm" onClick={() => nav('/project-view')}>‹ All Projects</button>
-          {project && <div style={{ fontSize:13, fontWeight:800 }}>{project.code} — {project.title}</div>}
+        <div className="pvd-bar" style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap', marginBottom:6 }}>
+          <button className="btn btn-ghost btn-sm pvd-back" onClick={() => nav('/project-view')}>‹ All Projects</button>
+          {project && <div className="pvd-title" style={{ fontSize:13, fontWeight:800 }}>{project.code} — {project.title}</div>}
           <div style={{ flex:1 }} />
           <div style={{ display:'flex', border:'1px solid var(--border)', borderRadius:18, overflow:'hidden' }}>
             {TABS.map(([k, label, color]) => (

@@ -23,7 +23,8 @@ function budgetTotal(allLines, mgmtRate) {
       if (l.is_travel) travel += st; else nonTravel += st;
     }
   }
-  return nonTravel + travel + mgmtRate * nonTravel;
+  const fee = mgmtRate * nonTravel;
+  return { total: nonTravel + travel + fee, fee };
 }
 
 // GET /project-overview/:pid — everything the cover page needs
@@ -32,10 +33,12 @@ router.get('/project-overview/:pid', ...staff, async (req, res, next) => {
     const [project] = await sql`SELECT id, code, title, client FROM projects WHERE id = ${req.params.pid}`;
     if (!project) return res.status(404).json({ error: 'Project not found' });
     const [budget] = await sql`SELECT id, status, close_month, mgmt_fee_rate FROM budgets WHERE project_id = ${project.id} AND COALESCE(kind, 'main') = 'main' LIMIT 1`;
-    let budgetAmount = null;
+    let budgetAmount = null, budgetFee = null;
     if (budget) {
       const lines = await sql`SELECT qty, unit_cost, percent, is_travel, section_id FROM budget_lines WHERE budget_id = ${budget.id}`;
-      budgetAmount = Math.round(budgetTotal(lines, Number(budget.mgmt_fee_rate ?? 0.15)) * 100) / 100;
+      const { total, fee } = budgetTotal(lines, Number(budget.mgmt_fee_rate ?? 0.15));
+      budgetAmount = Math.round(total * 100) / 100;
+      budgetFee = Math.round(fee * 100) / 100;
     }
     const shoots = await sql`
       SELECT id, code, title, city, state, status, start_date, end_date
@@ -55,7 +58,7 @@ router.get('/project-overview/:pid', ...staff, async (req, res, next) => {
     const docs = await sql`
       SELECT id, kind, filename, mime, size, uploaded_by, created_at
       FROM project_docs WHERE project_id = ${project.id} ORDER BY kind, created_at DESC`;
-    res.json({ project, budgetStatus: budget?.status || null, budgetAmount, closeMonth: budget?.close_month || null, shoots, edits, callNotes, tasks, docs });
+    res.json({ project, budgetStatus: budget?.status || null, budgetAmount, budgetFee, closeMonth: budget?.close_month || null, shoots, edits, callNotes, tasks, docs });
   } catch (e) { next(e); }
 });
 

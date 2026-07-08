@@ -154,6 +154,59 @@ function DocsTile({ pid, docs, setDocs }) {
   );
 }
 
+// Initials chip for the task assignee (same look as budget tags)
+const CHIP_COLORS = ['#5ABF80', '#d66a9b', '#e6c229', '#e8955a', '#4a9eff', '#a78bfa', '#40A0A0', '#f08080'];
+const chipColor = n => { let h = 0; for (const c of n || '') h = (h * 31 + c.charCodeAt(0)) & 0xffffffff; return CHIP_COLORS[Math.abs(h) % CHIP_COLORS.length]; };
+const initialsOf = n => {
+  const parts = String(n || '').trim().split(/\s+/);
+  return ((parts[0]?.[0] || '') + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
+};
+
+function AssigneeChip({ assigneeId, assigneeName, members, onPick }) {
+  const [open, setOpen] = useState(false);
+  const box = React.useRef(null);
+  useEffect(() => {
+    const close = e => { if (box.current && !box.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, []);
+  const c = chipColor(assigneeName);
+  return (
+    <div ref={box} style={{ position:'relative', flexShrink:0 }}>
+      {assigneeId ? (
+        <button title={`${assigneeName} — click to change`} onClick={() => setOpen(o => !o)}
+          style={{ width:24, height:24, borderRadius:'50%', background:`${c}33`, border:`1.5px solid ${c}`, color:c, fontSize:9, fontWeight:800, cursor:'pointer', padding:0 }}>
+          {initialsOf(assigneeName)}
+        </button>
+      ) : (
+        <button title="Tag a crew member" onClick={() => setOpen(o => !o)}
+          style={{ width:24, height:24, borderRadius:'50%', background:'none', border:'1.5px dashed var(--border)', color:'var(--muted)', fontSize:12, cursor:'pointer', padding:0 }}>
+          +
+        </button>
+      )}
+      {open && (
+        <div style={{ position:'absolute', top:'110%', left:0, zIndex:40, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, minWidth:170, maxHeight:200, overflowY:'auto', boxShadow:'0 8px 20px rgba(0,0,0,0.5)' }}>
+          {assigneeId && (
+            <div onClick={() => { onPick(''); setOpen(false); }}
+              style={{ padding:'7px 12px', fontSize:11, color:'var(--muted)', cursor:'pointer', borderBottom:'1px solid var(--border)' }}>— Unassign —</div>
+          )}
+          {members.map(m => (
+            <div key={m.id} onClick={() => { onPick(m.id); setOpen(false); }}
+              style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 12px', fontSize:11, fontWeight: m.id === assigneeId ? 800 : 500, cursor:'pointer' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+              <span style={{ width:18, height:18, borderRadius:'50%', background:`${chipColor(m.name)}33`, border:`1px solid ${chipColor(m.name)}`, color:chipColor(m.name), fontSize:7, fontWeight:800, display:'inline-flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                {initialsOf(m.name)}
+              </span>
+              {m.name}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── One-off task row: checkbox / task / tag / due date; click ▸ for notes ──
 function TaskRow({ t, members, onSave, onDelete }) {
   const [open, setOpen] = useState(false);
@@ -174,12 +227,9 @@ function TaskRow({ t, members, onSave, onDelete }) {
         <button title="Delete task" onClick={onDelete}
           style={{ background:'none', border:'none', color:'var(--muted)', fontSize:11, cursor:'pointer', padding:'0 2px' }}>✕</button>
       </div>
-      <div style={{ display:'flex', alignItems:'center', gap:6, padding:'0 2px 8px 24px' }}>
-        <select value={t.assignee_id || ''} onChange={e => onSave({ assigneeId: e.target.value })}
-          style={{ width:'auto', fontSize:10, padding:'3px 6px' }}>
-          <option value="">— Tag —</option>
-          {members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-        </select>
+      <div style={{ display:'flex', alignItems:'center', gap:8, padding:'0 2px 8px 24px' }}>
+        <AssigneeChip assigneeId={t.assignee_id} assigneeName={t.assignee_name} members={members}
+          onPick={id => onSave({ assigneeId: id })} />
         <input type="date" value={t.due_date ? String(t.due_date).slice(0, 10) : ''}
           onChange={e => onSave({ dueDate: e.target.value })}
           style={{ width:'auto', fontSize:10, padding:'3px 6px', color: overdue ? '#e05252' : undefined }} />
@@ -208,7 +258,8 @@ export default function ProjectOverview({ pid }) {
 
   if (err) return <div className="empty">{err}</div>;
   if (!data) return <div className="empty">Loading…</div>;
-  const { project, budgetStatus, budgetAmount, shoots, edits, callNotes, tasks, docs = [] } = data;
+  const { project, budgetStatus, budgetAmount, budgetFee, shoots, edits, callNotes, tasks, docs = [] } = data;
+  const fmt$ = n => '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const setDocs = fn => setData(d => ({ ...d, docs: typeof fn === 'function' ? fn(d.docs || []) : fn }));
   const setTasks = fn => setData(d => ({ ...d, tasks: typeof fn === 'function' ? fn(d.tasks) : fn }));
   const setNotes = fn => setData(d => ({ ...d, callNotes: typeof fn === 'function' ? fn(d.callNotes) : fn }));
@@ -233,8 +284,10 @@ export default function ProjectOverview({ pid }) {
           <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4 }}>Budget Status</div>
           <StatusPill status={budgetStatus || 'No budget'} />
           {budgetAmount != null && (
-            <div style={{ fontSize:15, fontWeight:800, color:'#5ABF80', marginTop:6 }}>
-              ${Number(budgetAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            <div style={{ fontSize:13, fontWeight:800, marginTop:6, whiteSpace:'nowrap' }}>
+              <span style={{ color:'#5ABF80' }}>Budget {fmt$(budgetAmount)}</span>
+              <span style={{ color:'var(--muted)', fontWeight:400 }}> | </span>
+              <span style={{ color:'#e6c229' }}>Est Fee {fmt$(budgetFee || 0)}</span>
             </div>
           )}
         </div>

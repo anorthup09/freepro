@@ -555,3 +555,9 @@ textarea { resize: vertical; min-height: 70px; }
   .pv-overview .pv-right > div { margin-bottom: 0 !important; }
   .pv-overview .pv-todo { min-height: 0 !important; order: -1; }
 }
+
+/* Project View detail bar on phones: title left, back button top right */
+@media (max-width: 700px) {
+  .pvd-bar .pvd-title { order: -1; flex: 1; min-width: 0; }
+  .pvd-bar .pvd-back { order: 0; margin-left: auto; }
+}
