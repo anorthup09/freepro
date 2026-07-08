@@ -401,5 +401,16 @@
       "On shared call sheets, events tagged to specific people hide for everyone else."
     ],
     "screenshot": "event-crew-picker.png"
+  },
+  {
+    "title": "Cleaner post-production timelines",
+    "what": "Milestone pills on the Gantt timelines (the public share, the Avo Gantt, and the edit page) no longer overlap. Back-to-back phases split the shared day and every pill sits on one plane, reading left to right like a pipeline. Segments too short for their label show an ⓘ icon — hover or tap it for the full milestone and dates.",
+    "where": "AvocadoPost → an edit's Share Public Timeline link, the Gantt page, or the chart on the edit itself.",
+    "how": [
+      "Phases meet cleanly at each milestone — the shared day is split between them.",
+      "Tap <b>ⓘ</b> on a short segment to pop open its full label and dates; tap again to dismiss.",
+      "Wide segments keep their inline labels."
+    ],
+    "screenshot": "gantt-timeline.png"
   }
 ]
