@@ -76,6 +76,27 @@ router.post('/roster', ...staff, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// Per-client hub settings (client-portal password). Creates the roster row on demand.
+router.get('/:client/meta', ...staff, async (req, res, next) => {
+  try {
+    const [c] = await sql`SELECT id, name, hub_password FROM clients WHERE LOWER(name) = LOWER(${req.params.client})`;
+    res.json(c || { name: req.params.client, hub_password: null });
+  } catch (e) { next(e); }
+});
+
+router.patch('/:client/meta', ...staff, async (req, res, next) => {
+  try {
+    const name = req.params.client;
+    let [c] = await sql`SELECT id FROM clients WHERE LOWER(name) = LOWER(${name})`;
+    if (!c) [c] = await sql`INSERT INTO clients (name, created_by) VALUES (${name}, ${req.user.name || req.user.email}) RETURNING id`;
+    const pw = req.body.hubPassword === undefined ? undefined : (String(req.body.hubPassword || '').trim() || null);
+    const [row] = pw === undefined
+      ? await sql`SELECT id, name, hub_password FROM clients WHERE id = ${c.id}`
+      : await sql`UPDATE clients SET hub_password = ${pw} WHERE id = ${c.id} RETURNING id, name, hub_password`;
+    res.json(row);
+  } catch (e) { next(e); }
+});
+
 // ── Client resources: logos & brand guidelines, keyed by client name ──
 
 router.get('/:client/resources', ...staff, async (req, res, next) => {

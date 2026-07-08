@@ -115,8 +115,20 @@ export default function ClientHub() {
   const { user, setUser } = useAuth();
   const [projects, setProjects] = useState(null);
   const [view, setView] = useState('team'); // 'team' | 'client'
+  const [meta, setMeta] = useState(null);
 
   useEffect(() => { api.financeProjects().then(setProjects).catch(e => alert(e.message)); }, []);
+  useEffect(() => { api.clientMeta(client).then(setMeta).catch(() => setMeta({})); }, [client]);
+
+  async function changePassword() {
+    const pw = prompt(meta?.hub_password
+      ? `New Client Hub password for ${client} (leave empty to remove):`
+      : `Set a Client Hub password for ${client} — clients will need it to open their portal:`,
+      '');
+    if (pw == null) return;
+    try { setMeta(await api.setClientHubPassword(client, pw)); }
+    catch (e) { alert(e.message); }
+  }
 
   const mine = useMemo(() => (projects || [])
     .filter(p => (p.client || '').trim().toLowerCase() === client.trim().toLowerCase())
@@ -151,14 +163,23 @@ export default function ClientHub() {
             <div className="page-title">{client}</div>
             <div className="page-sub">{mine.length} active project{mine.length !== 1 ? 's' : ''} · client hub</div>
           </div>
-          <div style={{ display:'flex', border:'1px solid var(--border)', borderRadius:18, overflow:'hidden' }}>
-            {[['team', 'Team View'], ['client', 'Client View']].map(([k, label]) => (
-              <button key={k} onClick={() => setView(k)}
-                style={{ background: view === k ? 'rgba(255,255,255,0.07)' : 'transparent', border:'none',
-                  color: view === k ? (k === 'client' ? 'var(--orange)' : WHITE) : 'var(--muted)', fontSize:11, fontWeight:800, padding:'7px 16px', cursor:'pointer' }}>
-                {label}
-              </button>
-            ))}
+          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+            <div style={{ display:'flex', border:'1px solid var(--border)', borderRadius:18, overflow:'hidden' }}>
+              {[['team', 'Team View'], ['client', 'Client View']].map(([k, label]) => (
+                <button key={k} onClick={() => setView(k)}
+                  style={{ background: view === k ? 'rgba(255,255,255,0.07)' : 'transparent', border:'none',
+                    color: view === k ? (k === 'client' ? 'var(--orange)' : WHITE) : 'var(--muted)', fontSize:11, fontWeight:800, padding:'7px 16px', cursor:'pointer' }}>
+                  {label}
+                </button>
+              ))}
+            </div>
+            <button onClick={changePassword}
+              title={meta?.hub_password ? 'Client Hub password is set — click to change or remove it' : 'Set the password clients will use to open their portal'}
+              style={meta?.hub_password
+                ? { background:'rgba(90,191,128,0.12)', border:'1px solid #5ABF80', color:'#5ABF80', borderRadius:18, padding:'7px 14px', fontSize:11, fontWeight:800, cursor:'pointer' }
+                : { background:'none', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:18, padding:'7px 14px', fontSize:11, fontWeight:800, cursor:'pointer' }}>
+              {meta?.hub_password ? '🔒 Password Set' : '🔒 Set Hub Password'}
+            </button>
           </div>
         </div>
 

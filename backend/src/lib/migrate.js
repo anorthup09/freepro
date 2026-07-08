@@ -1168,6 +1168,7 @@ async function migrate() {
       created_by TEXT,
       created_at TIMESTAMPTZ DEFAULT NOW()
     )`;
+  await sql`ALTER TABLE clients ADD COLUMN IF NOT EXISTS hub_password TEXT`;
   // Seed the roster from client names already on projects
   await sql`
     INSERT INTO clients (name)
