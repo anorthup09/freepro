@@ -454,7 +454,7 @@ textarea { resize: vertical; min-height: 70px; }
   .share-section, .share-section * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   /* Anything still using rgba(255,…) text or pale colors falls back to black */
   .wrap [style*="rgba(255,255,255"] { color: #000 !important; }
-  .wrap [style*="fbbf24"], .wrap [style*="251, 191, 36"] { color: #7a5c00 !important; }
+  .wrap [style*="fbbf24"], .wrap [style*="251, 191, 36"] { color: #000 !important; }
   .sl-scene-foot button { display: none !important; }
   .sl-shot-table th:first-child, .sl-shot-table td:first-child,
   .sl-shot-table th:nth-child(3), .sl-shot-table td:nth-child(3) { display: none !important; }

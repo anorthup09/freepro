@@ -126,7 +126,7 @@ export default function FinanceProject({ pidOverride }) {
                   </button>
                   <button onClick={() => setOverview(true)}
                     style={{ background:'rgba(90,191,128,0.12)', border:'1px solid #5ABF80', color:'#5ABF80', borderRadius:20, padding:'4px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
-                    Estimate Overview
+                    Budget Overview
                   </button>
                   <ShareBudgetButton budget={budget} />
                 </div>
@@ -188,7 +188,7 @@ export default function FinanceProject({ pidOverride }) {
       )}
       {overview && budget && (
         <OverviewEstimateModal sections={sections} lines={lines} feeRate={Number(budget.mgmt_fee_rate ?? 0.15)}
-          heading={`Estimate Overview — ${project.title}`} onClose={() => setOverview(false)} />
+          heading={`Budget Overview — ${project.title}`} onClose={() => setOverview(false)} />
       )}
     </div>
   );
@@ -1284,14 +1284,16 @@ function OverviewEstimateModal({ sections, lines, feeRate, heading, onClose }) {
     const secLines = lines.filter(l => l.section_id === s.id);
     let cost = 0;
     const inclusions = [];
+    const counts = new Map(); // scope → crew-member count (one line = one person)
     for (const l of secLines) {
       const st = lineSubtotal(l, secLines);
       if (st <= 0) continue;
       cost += st;
       if (s.kind !== 'photo' && !l.is_travel) feeBase += st;
-      const q = num(l.qty);
-      inclusions.push((l.percent == null && q > 1 ? `${q}x ` : '') + (l.scope || 'Line item'));
+      const scope = (l.scope || 'Line item').trim();
+      counts.set(scope, (counts.get(scope) || 0) + 1);
     }
+    for (const [scope, n] of counts) inclusions.push((n > 1 ? `${n}x ` : '') + scope);
     if (cost <= 0) continue;
     rows.push({ name: OVERVIEW_LABELS[s.kind] || s.title || 'Costs', cost, inclusions });
   }
@@ -1445,6 +1447,8 @@ function EstimateMode({ pid, estimates, onExit, reload }) {
   const [busy, setBusy] = useState(false);
   const feeRate = estimates.length ? Number(estimates[0].mgmt_fee_rate ?? 0.15) : 0.15;
   const [overview, setOverview] = useState(false);
+  // Live sections/lines reported up from each pane so the overview reflects edits
+  const paneData = useRef({});
 
   useEffect(() => { requestAnimationFrame(() => setEntered(true)); }, []);
   useEffect(() => {
@@ -1508,25 +1512,28 @@ function EstimateMode({ pid, estimates, onExit, reload }) {
         <div style={{ display:'flex', height:'100%', width:'100%', transform:`translateX(-${idx * 100}%)`, transition:'transform .32s ease' }}>
           {estimates.map(est => (
             <div key={est.id} style={{ minWidth:'100%', height:'100%', overflowY:'auto', padding:'18px 26px 60px' }}>
-              <EstimatePane est={est} feeRate={feeRate} saveFeeAll={saveFeeAll} reload={reload} onMerged={exit} />
+              <EstimatePane est={est} feeRate={feeRate} saveFeeAll={saveFeeAll} reload={reload} onMerged={exit}
+                onData={(secs, lns) => { paneData.current[est.id] = { sections: secs, lines: lns }; }} />
             </div>
           ))}
           {!estimates.length && <div style={{ minWidth:'100%', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--muted)' }}>Creating your first estimate…</div>}
         </div>
       </div>
-      {overview && estimates[idx] && (
-        <OverviewEstimateModal sections={estimates[idx].sections} lines={estimates[idx].lines} feeRate={feeRate}
-          heading={`Estimate Overview — ${estimates[idx].label || 'Estimate'}`} onClose={() => setOverview(false)} />
-      )}
+      {overview && estimates[idx] && (() => {
+        const live = paneData.current[estimates[idx].id] || estimates[idx];
+        return <OverviewEstimateModal sections={live.sections} lines={live.lines} feeRate={feeRate}
+          heading={`Estimate Overview — ${estimates[idx].label || 'Estimate'}`} onClose={() => setOverview(false)} />;
+      })()}
     </div>
   );
 }
 
-function EstimatePane({ est, feeRate, saveFeeAll, reload, onMerged }) {
+function EstimatePane({ est, feeRate, saveFeeAll, reload, onMerged, onData }) {
   const [feeDraft, setFeeDraft] = useState(Math.round(feeRate * 1000) / 10);
   useEffect(() => { setFeeDraft(Math.round(feeRate * 1000) / 10); }, [feeRate]);
   const [sections, setSections] = useState(est.sections);
   const [lines, setLines] = useState(est.lines);
+  useEffect(() => { onData?.(sections, lines); }, [sections, lines]);
   const [label, setLabel] = useState(est.label || 'Estimate');
   const [busy, setBusy] = useState(false);
   const [expandedSecs, setExpandedSecs] = useState({});
