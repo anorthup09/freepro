@@ -13,6 +13,7 @@ const MS_LABELS = {
   final_comp: 'Final Comp Complete', final_delivery: 'Final Delivery',
 };
 const parseJ = v => typeof v === 'string' ? JSON.parse(v || '{}') : (v || {});
+const iso = d => d ? new Date(d).toISOString().slice(0, 10) : null;
 
 // The signed-in user's crew_members row (matched by email)
 async function myCrewMember(email) {
@@ -56,7 +57,7 @@ router.get('/today', requireAuth, async (req, res, next) => {
           OR e.milestone_assignees::text LIKE ${'%' + cm.id + '%'})`;
       for (const e of edits) {
         const role = e.pm_id === cm.id ? 'PM' : 'Editor';
-        if (e.end_date && String(e.end_date).slice(0, 10) === today) {
+        if (iso(e.end_date) === today) {
           items.push({ kind: 'due', title: `Edit due today — ${e.title}`, subtitle: `${e.project_code || 'Avo'} · you're the ${role}`, link: `/avo/${e.id}` });
         }
         const ms = parseJ(e.milestones);
@@ -71,8 +72,31 @@ router.get('/today', requireAuth, async (req, res, next) => {
             link: `/avo/${e.id}`,
           });
         }
-        if (e.start_date && String(e.start_date).slice(0, 10) === today && e.lead_editor_id === cm.id) {
+        if (iso(e.start_date) === today && e.lead_editor_id === cm.id) {
           items.push({ kind: 'shoot', title: `Edit window starts today — ${e.title}`, subtitle: e.project_code || 'Avo', link: `/avo/${e.id}` });
+        }
+        // Mirror the Crew Calendar: edit windows and editor-task runners that span today
+        const sd = iso(e.start_date);
+        const ed = iso(e.end_date);
+        if (e.lead_editor_id === cm.id && sd && ed && sd < today && ed > today) {
+          items.push({ kind: 'work', title: `Edit in progress — ${e.title}`, subtitle: `${e.project_code || 'Avo'} · due ${ed.slice(5).replace('-', '/')}`, link: `/avo/${e.id}` });
+        }
+        const EDITOR_TASKS = { icr_v1_due: 'ICR v1', client_v1_due: 'Client v1', client_v2_due: 'Client v2', client_v3_due: 'Client v3', color_audio_send: 'Send to Color & Audio', final_comp: 'Final Comp' };
+        const MS_ORDER = ['scripting_start', 'scripting_end', 'icr_v1_due', 'icr_feedback', 'client_v1_due', 'client_v1_feedback', 'client_v2_due', 'client_v2_feedback', 'client_v3_due', 'client_v3_feedback', 'color_audio_send', 'color_audio_complete', 'final_comp', 'final_delivery'];
+        for (const [k, label] of Object.entries(EDITOR_TASKS)) {
+          const due = ms[k];
+          if (!due || due <= today) continue;   // due-today already listed above
+          const mine = assignees[k] ? assignees[k] === cm.id : e.lead_editor_id === cm.id;
+          if (!mine) continue;
+          // Runner starts at the closest earlier filled milestone (same walk as the Crew Calendar)
+          let start = null;
+          for (const pk of MS_ORDER) {
+            if (pk === k) break;
+            if (ms[pk] && ms[pk] < due) start = ms[pk];
+          }
+          if (start && start <= today) {
+            items.push({ kind: 'work', title: `Working: ${label} — ${e.title}`, subtitle: `${e.project_code || 'Avo'} · due ${due.slice(5).replace('-', '/')}`, link: `/avo/${e.id}` });
+          }
         }
       }
     }

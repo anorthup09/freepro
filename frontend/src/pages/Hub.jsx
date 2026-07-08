@@ -235,7 +235,7 @@ function HubProjects() {
 
 // ── Lower dashboard: Day in Review (left) + team whereabouts (right) ──
 const STATUS_BUBBLE = { out: '#e05252', shoot: '#e6c229', office: '#5ABF80' };
-const KIND_DOT = { due: '#e8500a', shoot: '#e6c229', pto: '#4a9eff' };
+const KIND_DOT = { due: '#e8500a', shoot: '#e6c229', pto: '#4a9eff', work: '#9DC183' };
 
 function HubDashboard() {
   const nav = useNavigate();
