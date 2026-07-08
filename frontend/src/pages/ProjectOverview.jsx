@@ -280,11 +280,11 @@ export default function ProjectOverview({ pid }) {
           <div style={{ fontSize:18, fontWeight:800 }}>{project.title}</div>
           <div style={{ fontSize:12, color:'var(--muted)' }}>{project.client}</div>
         </div>
-        <div style={{ textAlign:'right' }}>
+        <div className="pv-status" style={{ textAlign:'right' }}>
           <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4 }}>Budget Status</div>
           <StatusPill status={budgetStatus || 'No budget'} />
           {budgetAmount != null && (
-            <div style={{ fontSize:13, fontWeight:800, marginTop:6, whiteSpace:'nowrap' }}>
+            <div className="pv-amt" style={{ fontSize:13, fontWeight:800, marginTop:6, whiteSpace:'nowrap' }}>
               <span style={{ color:'#5ABF80' }}>Budget {fmt$(budgetAmount)}</span>
               <span style={{ color:'var(--muted)', fontWeight:400 }}> | </span>
               <span style={{ color:'#e6c229' }}>Est Fee {fmt$(budgetFee || 0)}</span>

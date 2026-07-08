@@ -561,3 +561,20 @@ textarea { resize: vertical; min-height: 70px; }
   .pvd-bar .pvd-title { order: -1; flex: 1; min-width: 0; }
   .pvd-bar .pvd-back { order: 0; margin-left: auto; }
 }
+
+/* ProFi budget page controls on phones */
+@media (max-width: 700px) {
+  .seg-toggle { width: 100%; }
+  .seg-toggle > button { flex: 1; }
+  .fp-btnrow { width: 100%; flex-wrap: nowrap !important; }
+  .fp-btnrow > button { flex: 1; padding: 4px 6px !important; font-size: 10px !important; white-space: nowrap; }
+}
+
+/* Overview header on phones: status pinned top right, back button top right */
+@media (max-width: 700px) {
+  .pvd-bar { align-items: flex-start; }
+  .pv-head { position: relative; align-items: flex-start !important; }
+  .pv-head > div:first-child { padding-right: 96px; }
+  .pv-head .pv-status { position: absolute; top: 12px; right: 14px; max-width: 170px; }
+  .pv-head .pv-amt { white-space: normal !important; }
+}

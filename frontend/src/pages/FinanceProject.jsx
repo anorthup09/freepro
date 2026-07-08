@@ -109,7 +109,7 @@ export default function FinanceProject({ pidOverride }) {
                 View Harbinger
               </button>
             )}
-            <div style={{ display:'flex', border:'1px solid var(--border)', borderRadius:16, overflow:'hidden' }}>
+            <div className="seg-toggle" style={{ display:'flex', border:'1px solid var(--border)', borderRadius:16, overflow:'hidden' }}>
               {[['budget', 'Budget'], ['vcc', 'VCC']].map(([k, label]) => (
                 <button key={k} onClick={() => setTab(k)}
                   style={{ background: tab === k ? 'rgba(232,80,10,0.25)' : 'transparent', border:'none',
@@ -120,10 +120,10 @@ export default function FinanceProject({ pidOverride }) {
             </div>
             {budget && (
               <>
-                <div style={{ display:'flex', gap:8, flexWrap:'wrap', justifyContent:'flex-end' }}>
+                <div className="fp-btnrow" style={{ display:'flex', gap:8, flexWrap:'wrap', justifyContent:'flex-end' }}>
                   <button onClick={() => setEstimateMode(true)}
                     style={{ background:'rgba(230,194,41,0.15)', border:'1px solid #e6c229', color:'#e6c229', borderRadius:20, padding:'4px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
-                    ⚡ Additional Estimate{estimates.length ? ` (${estimates.length})` : ''}
+                    + Add Estimate{estimates.length ? ` (${estimates.length})` : ''}
                   </button>
                   <button onClick={() => setOverview(true)}
                     style={{ background:'rgba(90,191,128,0.12)', border:'1px solid #5ABF80', color:'#5ABF80', borderRadius:20, padding:'4px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
@@ -380,18 +380,18 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
           </select>
         </div>
         <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
-          <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Mgmt Fee %</label>
-          <input type="number" step="0.5" value={Math.round(mgmtRate * 1000) / 10} style={{ width:80, fontSize:12, textAlign:'right' }}
-            onChange={e => patchBudget({ mgmt_fee_rate: Number(e.target.value) / 100 })}
-            onBlur={e => saveBudget({ mgmtFeeRate: Number(e.target.value) / 100 })} />
-        </div>
-        <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
           <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Status</label>
           <StatusPill value={budget.status || 'RFP'} onChange={handleStatusChange} />
         </div>
         <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
           <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Tagged</label>
           <TagRow budgetId={budget.id} ownerName={budget.media_rep} />
+        </div>
+        <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
+          <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Mgmt Fee %</label>
+          <input type="number" step="0.5" value={Math.round(mgmtRate * 1000) / 10} style={{ width:80, fontSize:12, textAlign:'right' }}
+            onChange={e => patchBudget({ mgmt_fee_rate: Number(e.target.value) / 100 })}
+            onBlur={e => saveBudget({ mgmtFeeRate: Number(e.target.value) / 100 })} />
         </div>
       </div>
 
@@ -1093,7 +1093,7 @@ function ShareModeToggle({ budget, patchBudget, saveBudget }) {
     saveBudget({ shareMode: m });
   }
   return (
-    <div title="What the client sees on the shared budget page"
+    <div className="seg-toggle" title="What the client sees on the shared budget page"
       style={{ display:'flex', border:'1px solid var(--border)', borderRadius:14, overflow:'hidden' }}>
       {[['lines', 'Line Items'], ['buckets', 'Buckets']].map(([m, label]) => (
         <button key={m} type="button" onClick={() => setMode(m)}
