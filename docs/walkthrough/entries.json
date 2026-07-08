@@ -83,5 +83,28 @@
       "The <b>Team Management</b> button sits at the top right of the Team Today panel."
     ],
     "screenshot": "hub-dashboard.png"
+  },
+  {
+    "title": "Reports section (Project Finance Overview moved here)",
+    "what": "A new Reports area on the hub collects cross-project rollups. Project Finance Overview has moved out of ProFi into Reports, alongside the Weekly Finance Report.",
+    "where": "Hub \u2192 the \ud83d\udcc8 Reports button at the top, next to Crew Calendar.",
+    "how": [
+      "Click <b>\ud83d\udcc8 Reports</b> on the hub.",
+      "Pick a report card \u2014 <b>Project Finance Overview</b> (budgets, direct costs, gross profit per project) or <b>Weekly Finance Report</b>.",
+      "The overview is no longer on the ProFi page \u2014 this is its new home."
+    ],
+    "screenshot": "reports.png"
+  },
+  {
+    "title": "Vendor Invoices on the VCC (with AI reading)",
+    "what": "Each project's VCC now has a Vendor Invoices library: upload the actual invoice files and they live with the project. When an invoice PDF or photo is uploaded, AI reads it and fills in the vendor name and invoice total automatically. The redundant Sync FreePro Costs button was removed (costs auto-sync).",
+    "where": "ProFi \u2192 project budget \u2192 VCC tab \u2192 the \ud83e\uddfe Vendor Invoices button on the right of the toolbar.",
+    "how": [
+      "Open a project's VCC and click <b>\ud83e\uddfe Vendor Invoices</b>.",
+      "Click <b>+ Upload Invoice</b> and pick the file (PDF, photo, or spreadsheet \u2014 20MB max).",
+      "For PDFs and photos, the vendor name and total appear on the row automatically after upload.",
+      "Click a filename (or \u2b07) to download; \u2715 deletes with a confirm."
+    ],
+    "screenshot": "vendor-invoices.png"
   }
 ]
