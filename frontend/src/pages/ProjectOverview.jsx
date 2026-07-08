@@ -119,7 +119,7 @@ function DocsTile({ pid, docs, setDocs }) {
   return (
     <div style={{ ...card, marginBottom:16 }}>
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, flexWrap:'wrap', marginBottom:10 }}>
-        <div style={{ ...secHdr, marginBottom:0 }}>Project Docs</div>
+        <div style={{ ...secHdr, marginBottom:0 }}>Creative Docs</div>
         <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
           {DOC_KINDS.map(([kind, label]) => (
             <label key={kind} style={{ background:'var(--bg)', border:'1px solid rgba(255,255,255,0.55)', color:'#e8e8e8', borderRadius:14, padding:'3px 12px', fontSize:10, fontWeight:800, cursor:'pointer' }}>
