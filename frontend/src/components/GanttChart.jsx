@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 const STATUS_COLORS = {
   FOCUS: '#e05252',
@@ -76,6 +76,7 @@ export function milestoneText(edit) {
 
 // Renders a horizontal timeline of edits (bars from start_date to end_date).
 export default function GanttChart({ edits }) {
+  const [info, setInfo] = useState(null);   // { key, text, x, y } — tapped runner info bubble
   const hasMs = e => MILESTONES.some(([k]) => e.milestones?.[k]);
   const dated = (edits || []).filter(e => e.start_date || hasMs(e));
   const undated = (edits || []).filter(e => !e.start_date && !hasMs(e));
@@ -168,8 +169,8 @@ export default function GanttChart({ edits }) {
                   const lane = i % 2;
                   // Segments run center-of-day to center-of-day, so back-to-back
                   // runners split the shared day at the milestone instead of overlapping
-                  const narrow = (rt - rf) <= 3;   // short runner: center a compact label and let it overflow
-                  const shortLabel = String(r.label).replace('Creative/Scripting Complete', 'Scripting').replace(' Complete', '').replace('Send to ', '');
+                  const narrow = (rt - rf) <= 3;   // short runner: show an info icon instead of clipped text
+                  const infoKey = `${e.id}-${i}`;
                   return (
                     <div key={i} title={`${r.title}: ${fmt(r.from)} → ${fmt(r.to)}`}
                       style={{
@@ -177,11 +178,17 @@ export default function GanttChart({ edits }) {
                         left: `${((rf + 0.5) / span) * 100}%`,
                         width: `calc(${(Math.max(0.9, rt - rf) / span) * 100}% - 2px)`,
                         background: `${r.color}30`, border: `1px solid ${r.color}`, borderRadius: 6,
-                        display: 'flex', alignItems: 'center', justifyContent: narrow ? 'center' : 'flex-end',
-                        padding: '0 5px', overflow: narrow ? 'visible' : 'hidden',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        padding: '0 5px', overflow: 'hidden',
                         fontSize: 8, fontWeight: 800, color: r.color, whiteSpace: 'nowrap',
-                      }}>
-                      {narrow ? shortLabel : r.label}
+                        cursor: narrow ? 'pointer' : 'default',
+                      }}
+                      onClick={narrow ? ev => {
+                        ev.stopPropagation();
+                        const rect = ev.currentTarget.getBoundingClientRect();
+                        setInfo(info?.key === infoKey ? null : { key: infoKey, text: `${r.title}: ${fmt(r.from)} → ${fmt(r.to)}`, x: rect.left + rect.width / 2, y: rect.top, color: r.color });
+                      } : undefined}>
+                      {narrow ? '👁' : r.label}
                     </div>
                   );
                 })}
@@ -189,6 +196,14 @@ export default function GanttChart({ edits }) {
             </div>
           );
         })}
+        {info && (
+          <div onClick={() => setInfo(null)}
+            style={{ position:'fixed', zIndex:200, left: Math.max(8, Math.min(info.x - 90, window.innerWidth - 190)), top: info.y - 40,
+              background:'var(--bg2, #16160f)', border:`1px solid ${info.color}`, borderRadius:8, padding:'6px 10px',
+              fontSize:11, fontWeight:700, color:'var(--text, #eee)', boxShadow:'0 8px 20px rgba(0,0,0,0.5)', whiteSpace:'nowrap', cursor:'pointer' }}>
+            {info.text}
+          </div>
+        )}
         {undated.map(e => (
           <div key={e.id} style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.04)', minHeight: 42 }}>
             <div style={{ width: LABEL_W, flexShrink: 0, padding: '8px 12px', borderRight: '1px solid var(--border)' }}>
