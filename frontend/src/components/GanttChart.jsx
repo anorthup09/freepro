@@ -188,7 +188,7 @@ export default function GanttChart({ edits }) {
                         const rect = ev.currentTarget.getBoundingClientRect();
                         setInfo(info?.key === infoKey ? null : { key: infoKey, text: `${r.title}: ${fmt(r.from)} → ${fmt(r.to)}`, x: rect.left + rect.width / 2, y: rect.top, color: r.color });
                       } : undefined}>
-                      {narrow ? '👁' : r.label}
+                      {narrow ? 'ⓘ' : r.label}
                     </div>
                   );
                 })}
