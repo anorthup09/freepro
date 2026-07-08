@@ -214,6 +214,8 @@ export default function Finance() {
   const [folder, setFolder] = useState('live');
   const [showNew, setShowNew] = useState(false);
   const [mineOnly, setMineOnly] = useState(false);
+  const [archTab, setArchTab] = useState('Closed');   // Archive: 'Closed' (default) | 'Dead'
+  const [archYear, setArchYear] = useState(new Date().getFullYear());
 
   useEffect(() => { api.financeProjects().then(setProjects).catch(e => alert(e.message)); }, []);
 
@@ -224,7 +226,18 @@ export default function Finance() {
     const owner = (p.media_rep || '').toLowerCase().trim();
     return !!me && !!owner && (owner === me || owner.split(/\s+/)[0] === me.split(/\s+/)[0]);
   };
-  const shown = (projects || []).filter(FOLDERS[folder].match).filter(p => !mineOnly || isMine(p));
+  const yearOf = p => {
+    const src = p.close_month || p.end_date || p.start_date || '';
+    const y = parseInt(String(src).slice(0, 4), 10);
+    return Number.isFinite(y) ? y : null;
+  };
+  const closedYears = [...new Set((projects || []).filter(p => p.budget_status === 'Closed').map(yearOf).filter(Boolean))].sort((a, b) => b - a);
+  const shown = (projects || [])
+    .filter(FOLDERS[folder].match)
+    .filter(p => !mineOnly || isMine(p))
+    .filter(p => folder !== 'archive' ? true
+      : archTab === 'Dead' ? p.budget_status === 'Dead'
+      : (p.budget_status === 'Closed' && yearOf(p) === archYear));
 
   return (
     <div style={{ minHeight:'100vh', background:'var(--bg)' }}>
@@ -271,10 +284,34 @@ export default function Finance() {
             </div>
           </div>
         </div>
+        {folder === 'archive' && (
+          <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap', marginBottom:14 }}>
+            <div style={{ display:'flex', border:'1px solid var(--border)', borderRadius:16, overflow:'hidden' }}>
+              {['Closed', 'Dead'].map(t => (
+                <button key={t} onClick={() => setArchTab(t)}
+                  style={{ background: archTab === t ? (t === 'Dead' ? 'rgba(224,82,82,0.2)' : 'rgba(255,255,255,0.08)') : 'transparent', border:'none',
+                    color: archTab === t ? (t === 'Dead' ? '#e05252' : 'var(--text)') : 'var(--muted)', fontSize:11, fontWeight:800, padding:'6px 16px', cursor:'pointer' }}>
+                  {t}
+                </button>
+              ))}
+            </div>
+            {archTab === 'Closed' && (
+              <div style={{ display:'flex', gap:6, overflowX:'auto', paddingBottom:2 }}>
+                {(closedYears.length ? closedYears : [new Date().getFullYear()]).map(y => (
+                  <button key={y} onClick={() => setArchYear(y)}
+                    style={{ background: archYear === y ? '#8a8f98' : 'transparent', border:'1px solid ' + (archYear === y ? '#8a8f98' : 'var(--border)'),
+                      color: archYear === y ? '#0b0b0b' : 'var(--muted)', borderRadius:14, padding:'4px 12px', fontSize:11, fontWeight:800, cursor:'pointer', flexShrink:0 }}>
+                    {y}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
         {!projects && <div className="empty">Loading…</div>}
         {projects && shown.length === 0 && (
           <div className="empty">
-            {folder === 'rfp' ? 'No budgets in RFP right now.' : folder === 'archive' ? 'No archived (dead) budgets.' : 'No live projects yet — create one in FreePro first.'}
+            {folder === 'rfp' ? 'No budgets in RFP right now.' : folder === 'archive' ? (archTab === 'Dead' ? 'No dead budgets.' : `No budgets closed in ${archYear}.`) : 'No live projects yet — create one in FreePro first.'}
           </div>
         )}
         {projects && shown.map(p => (

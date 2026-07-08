@@ -1014,8 +1014,17 @@ const STATUS_OPTS = [
   ['Live', '#5ABF80', 'Approved — moves to Live Projects'],
   ['Reconcile', '#9DC183', 'Project complete, finalize budget'],
   ['Closed', '#8a8f98', 'Finished — moves to the Archive folder'],
-  ['Dead', '#e05252', 'Not approved — archived under RFP'],
+  ['Dead', '#e05252', 'Not approved — moves to the Archive folder'],
 ];
+// Allowed paths: RFP → Live/Dead · Live → Reconcile/Closed · Reconcile → Closed
+// (archived statuses can be reopened)
+const STATUS_PATHS = {
+  RFP: ['Live', 'Dead'],
+  Live: ['Reconcile', 'Closed'],
+  Reconcile: ['Closed', 'Live'],
+  Closed: ['Live'],
+  Dead: ['RFP'],
+};
 
 // Tag teammates onto a budget for visibility — initials icons + a "+ Tag" picker
 const TAG_COLORS = ['#5ABF80', '#4a9eff', '#e6c229', '#e8955a', '#a78bfa', '#f08080', '#40A0A0', '#d66a9b'];
@@ -1095,7 +1104,7 @@ function StatusPill({ value, onChange }) {
       </button>
       {open && (
         <div style={{ position:'absolute', top:'110%', left:0, zIndex:50, background:'var(--bg)', border:'1px solid var(--border)', borderRadius:10, padding:6, boxShadow:'0 8px 24px rgba(0,0,0,0.5)', minWidth:250 }}>
-          {STATUS_OPTS.map(([name, color, hint]) => (
+          {STATUS_OPTS.filter(([name]) => (STATUS_PATHS[value] || []).includes(name) || name === value).map(([name, color, hint]) => (
             <div key={name} onClick={() => { setOpen(false); if (name !== value) onChange(name); }}
               style={{ display:'flex', alignItems:'center', gap:10, padding:'7px 10px', borderRadius:7, cursor:'pointer', background: name === value ? 'rgba(255,255,255,0.04)' : 'transparent' }}
               onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
