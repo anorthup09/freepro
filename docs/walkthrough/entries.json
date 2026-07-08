@@ -154,5 +154,17 @@
       "Flip the <b>Team View | Client View</b> toggle to preview the client portal — the orange top border means you're in client-access view."
     ],
     "screenshot": "client-hub.png"
+  },
+  {
+    "title": "Client roster with duplicate detection",
+    "what": "The Client field on budgets is now a searchable dropdown backed by a company-wide client roster, so every project uses the exact same client spelling (which keeps Client Hubs from splitting). New names can be added on the spot — and if a new name looks too much like an existing client (typo, abbreviation, alternate spelling), AI flags it as a possible duplicate before it's added, with a one-click override if it really is a different client.",
+    "where": "ProFi → + New Project, or any budget → ✎ Edit → the Client field.",
+    "how": [
+      "Start typing in the <b>Client</b> field — matching roster clients appear; click one to select it.",
+      "If the client isn't listed, click <b>+ Add “…” as a new client</b>.",
+      "If the name resembles an existing client, a <b>⚠ Possible duplicate</b> panel appears: click <b>Use “…”</b> to pick the existing client, or <b>It's a different client — add anyway</b> to override.",
+      "The roster started pre-loaded with every client name already on your projects."
+    ],
+    "screenshot": "client-roster.png"
   }
 ]
