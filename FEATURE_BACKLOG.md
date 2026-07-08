@@ -34,3 +34,4 @@ Working list; check off as built. Each shipped item also gets an entry in
 - [ ] Pre-shoot emails for crew / client / talent (→ EMAIL_TODO)
 - [ ] Things that are due today
 - [ ] Hightail API integration for large-file uploads (Spaces per project code, files go straight to Hightail S3, platform stores links — needs Teams/Business account + API token; confirm API access with Hightail support first)
+- [ ] DocuSign API integration for client-only binding contracts — feed budget/Harbinger info into DocuSign envelopes for client signature; contractor contracts stay on the in-app e-sign flow

@@ -242,6 +242,7 @@ function HubDashboard() {
   const [day, setDay] = useState(null);
   const [team, setTeam] = useState(null);
   const [hiddenTasks, setHiddenTasks] = useState([]); // checked-off this session
+  const [openTask, setOpenTask] = useState(null);      // expanded to show description/notes
 
   useEffect(() => {
     api.dashboardToday().then(setDay).catch(() => setDay({ items: [] }));
@@ -285,14 +286,18 @@ function HubDashboard() {
               const dueToday = t.due_date && String(t.due_date).slice(0, 10) === today;
               const overdue = t.due_date && String(t.due_date).slice(0, 10) < today;
               return (
-                <div key={t.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'6px 4px', borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
+                <React.Fragment key={t.id}>
+                <div style={{ display:'flex', alignItems:'center', gap:10, padding:'6px 4px', borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
                   <input type="checkbox" checked={false} style={{ width:'auto', accentColor:'#5ABF80', flexShrink:0 }}
                     onChange={() => {
                       api.updateProjectTask(t.id, { done: true }).catch(e => alert(e.message));
                       setHiddenTasks(h => [...h, t.id]);
                     }} />
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontSize:12, fontWeight:700, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{t.text || '—'}</div>
+                  <div style={{ flex:1, minWidth:0, cursor:'pointer' }} onClick={() => setOpenTask(o => o === t.id ? null : t.id)}
+                    title="Click to view the description / notes">
+                    <div style={{ fontSize:12, fontWeight:700, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                      {t.text || '—'} <span style={{ color:'var(--muted)', fontWeight:400, fontSize:10 }}>{openTask === t.id ? '▾' : '▸'}</span>
+                    </div>
                     <div style={{ fontSize:10, color:'var(--muted)' }}>{t.project_code} · {t.project_title}</div>
                   </div>
                   {t.due_date && (
@@ -301,6 +306,13 @@ function HubDashboard() {
                     </span>
                   )}
                 </div>
+                {openTask === t.id && (
+                  <div onClick={() => nav(`/project-view/${t.project_id}`)}
+                    style={{ margin:'0 4px 8px 28px', padding:'8px 10px', background:'rgba(255,255,255,0.03)', border:'1px solid var(--border)', borderRadius:7, fontSize:11, lineHeight:1.5, cursor:'pointer', whiteSpace:'pre-wrap' }}>
+                    {t.notes ? t.notes : <span style={{ color:'var(--muted)', fontStyle:'italic' }}>No description yet — click to open the project's Overview.</span>}
+                  </div>
+                )}
+                </React.Fragment>
               );
             })}
           </>
