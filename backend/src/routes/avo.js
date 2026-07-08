@@ -30,6 +30,31 @@ const FULL_EDIT = editId => sql`
   WHERE e.id = ${editId}`;
 
 // Sync a subset of edit fields onto the linked FreePro deliverable
+// A scripted edit with no editor needs one sourced: auto-task the PM.
+// Task completes itself once a lead editor is assigned.
+async function syncSourcingTask(e) {
+  try {
+    const ms = typeof e.milestones === 'string' ? JSON.parse(e.milestones || '{}') : (e.milestones || {});
+    const scriptDate = ms.scripting_start || ms.scripting_end || null;
+    const needs = scriptDate && !e.lead_editor_id && e.pm_id && e.project_id;
+    if (needs) {
+      if (e.sourcing_task_id) {
+        const [t] = await sql`SELECT id, done FROM project_tasks WHERE id = ${e.sourcing_task_id}`;
+        if (t && !t.done) return;
+      }
+      const [t] = await sql`
+        INSERT INTO project_tasks (project_id, text, assignee_id, due_date, notes, created_by)
+        VALUES (${e.project_id}, ${'Source an editor — ' + e.title}, ${e.pm_id}, ${scriptDate},
+          ${'Auto-created: this edit has a scripting date but no lead editor. Assign one in AvocadoPost and this task completes itself.'},
+          'AvocadoPost')
+        RETURNING id`;
+      await sql`UPDATE edits SET sourcing_task_id = ${t.id} WHERE id = ${e.id}`;
+    } else if (e.sourcing_task_id && e.lead_editor_id) {
+      await sql`UPDATE project_tasks SET done = TRUE WHERE id = ${e.sourcing_task_id} AND done IS NOT TRUE`;
+    }
+  } catch (err) { console.error('sourcing task sync failed:', err.message); }
+}
+
 async function syncToDeliverable(e) {
   if (!e.deliverable_id) return;
   const statusMap = { COMING_SOON: 'WAITING_ON_ASSETS', ASSIGNED: 'IN_PROGRESS', FOCUS: 'IN_REVIEW', CLOSED: 'DELIVERED' };
@@ -118,6 +143,7 @@ router.post('/edits', ...staff, async (req, res, next) => {
     }
     if (d.leadEditorId && d.startDate) sendEditHold(e.id);
     const [full] = await FULL_EDIT(e.id);
+    syncSourcingTask(full);
     res.status(201).json(full);
   } catch (e) { next(e); }
 });
@@ -259,6 +285,7 @@ router.patch('/edits/:id', ...staff, async (req, res, next) => {
     }
     const [full] = await FULL_EDIT(e.id);
     await syncToDeliverable(full);
+    syncSourcingTask(full);
     if ((d.leadEditorId !== undefined || d.startDate !== undefined || d.endDate !== undefined) && full.lead_editor_id && full.start_date) {
       sendEditHold(e.id);
     }
