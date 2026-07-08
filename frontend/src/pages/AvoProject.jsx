@@ -204,7 +204,13 @@ function SmartTable({ rows, colDefs, config, onConfig, saveExtra, leading, trail
             {shownRows.length === 0 && (
               <tr><td colSpan={nCols} style={{ ...td, padding:'12px 14px', fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>{emptyText || 'Nothing here yet.'}</td></tr>
             )}
-            {shownRows.map((r, ri) => (
+            {shownRows.map((r, ri) => r.__header ? (
+              <tr key={r.id}>
+                <td colSpan={nCols} style={{ padding:'7px 12px', background:'rgba(255,255,255,0.04)', borderTop:'1px solid var(--border)' }}>
+                  <span style={{ fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.08em', color:r.__color || 'var(--muted)' }}>{r.__header}</span>
+                </td>
+              </tr>
+            ) : (
               <tr key={r.id}
                 onDragOver={dragRow != null ? e => { e.preventDefault(); setOverRow(ri); } : undefined}
                 onDrop={dragRow != null ? () => { dropRow(ri); setDragRow(null); setOverRow(null); } : undefined}
@@ -282,8 +288,9 @@ function VideoTracker({ edits, setEdits, config, onConfig, code }) {
     } catch (err) { alert(err.message); }
   }
   function reorder(next) {
-    setEdits(next);
-    next.forEach((e, i) => api.updateAvoEdit(e.id, { trackerSort: i }).catch(() => {}));
+    const real = next.filter(r => !r.__header);
+    setEdits(real);
+    real.forEach((e, i) => api.updateAvoEdit(e.id, { trackerSort: i }).catch(() => {}));
   }
   const statusOf = k => AVO_STATUSES.find(([key]) => key === k);
   const colDefs = [
@@ -314,9 +321,20 @@ function VideoTracker({ edits, setEdits, config, onConfig, code }) {
       return st ? <span style={{ background:`${st[2]}22`, border:`1px solid ${st[2]}`, color:st[2], borderRadius:12, padding:'2px 10px', fontSize:9, fontWeight:800, whiteSpace:'nowrap' }}>{st[1]}</span> : null;
     } },
   ];
+  const GROUPS = [['Pre-Event', '#4a9eff'], ['On-Site', '#e6c229'], ['Post-Event', '#9DC183']];
+  const grouped = [];
+  for (const [g, color] of GROUPS) {
+    const members = edits.filter(e => e.tracker_type === g);
+    if (members.length) grouped.push({ id: 'hdr-' + g, __header: g, __color: color }, ...members);
+  }
+  const untyped = edits.filter(e => !GROUPS.some(([g]) => g === e.tracker_type));
+  if (untyped.length) {
+    if (grouped.length) grouped.push({ id: 'hdr-other', __header: 'No Type Yet', __color: 'var(--muted)' });
+    grouped.push(...untyped);
+  }
   return (
     <>
-      <SmartTable rows={edits} colDefs={colDefs} config={config} onConfig={onConfig} minWidth={1050}
+      <SmartTable rows={grouped} colDefs={colDefs} config={config} onConfig={onConfig} minWidth={1050}
         saveExtra={(id, k, v) => saveEdit(id, { extra: { [k]: v } })}
         onReorder={reorder} footerRight={{ addRow }}
         emptyText="No edits with this project code yet — add them from the pipeline and they'll appear here automatically."
