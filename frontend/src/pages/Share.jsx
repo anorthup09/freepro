@@ -484,7 +484,7 @@ function ProducerView({ data, hideGear, onOpenShotList }) {
           </div>
           {schedule?.length > 0 && (
             <button onClick={() => scheduleRef.current?.scrollIntoView({ behavior:'smooth' })} style={{ flexShrink:0, marginTop:4, padding:'6px 14px', fontSize:12, fontWeight:600, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:6, color:'var(--text)', cursor:'pointer', whiteSpace:'nowrap' }}>
-              Jump to Schedule ↓
+              <span className='jump-sched-label'>Jump to Schedule ↓</span>
             </button>
           )}
         </div>
@@ -692,7 +692,7 @@ function CrewView({ data, shareToken, hideGear, onOpenShotList }) {
           </div>
           {schedule?.length > 0 && (
             <button onClick={() => scheduleRef.current?.scrollIntoView({ behavior:'smooth' })} style={{ flexShrink:0, marginTop:4, padding:'6px 14px', fontSize:12, fontWeight:600, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:6, color:'var(--text)', cursor:'pointer', whiteSpace:'nowrap' }}>
-              Jump to Schedule ↓
+              <span className='jump-sched-label'>Jump to Schedule ↓</span>
             </button>
           )}
         </div>
@@ -1624,7 +1624,7 @@ function TalentView({ data }) {
           </div>
           {filteredSchedule.length > 0 && (
             <button onClick={() => scheduleRef.current?.scrollIntoView({ behavior:'smooth' })} style={{ flexShrink:0, marginTop:4, padding:'6px 14px', fontSize:12, fontWeight:600, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:6, color:'var(--text)', cursor:'pointer', whiteSpace:'nowrap' }}>
-              Jump to Schedule ↓
+              <span className='jump-sched-label'>Jump to Schedule ↓</span>
             </button>
           )}
         </div>
@@ -2293,7 +2293,7 @@ function GlassHeader({ project, showTime, clientMode, crewMode }) {
   }, []);
 
   return (
-    <div style={{
+    <div className="no-print" style={{
       position: 'fixed',
       top: navH,
       left: 0,
@@ -2411,6 +2411,16 @@ export default function Share() {
       setTimeout(() => window.print(), 400);
     }
   }, [isPdf, data]);
+
+  // Print with a clean report title instead of the app title/URL
+  useEffect(() => {
+    if (!data?.project) return;
+    const before = () => { document.title = `${data.project.code || ''} ${data.project.title || ''}`.trim() || 'Unbridled Media'; };
+    const after = () => { document.title = 'FreePro'; };
+    window.addEventListener('beforeprint', before);
+    window.addEventListener('afterprint', after);
+    return () => { window.removeEventListener('beforeprint', before); window.removeEventListener('afterprint', after); };
+  }, [data]);
 
   async function submitPassword(e) {
     e.preventDefault();
