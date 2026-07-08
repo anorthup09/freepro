@@ -545,3 +545,9 @@ textarea { resize: vertical; min-height: 70px; }
 @media (max-width: 700px) {
   .glass-mid, .glass-client { display: none !important; }
 }
+
+/* Project Overview: stack to one column on phones; To-Do card shrinks to content */
+@media (max-width: 700px) {
+  .pv-overview { grid-template-columns: 1fr !important; }
+  .pv-overview .pv-todo { min-height: 0 !important; order: -1; }
+}

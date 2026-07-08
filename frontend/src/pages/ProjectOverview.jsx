@@ -174,7 +174,7 @@ export default function ProjectOverview({ pid }) {
       </div>
 
       {/* ── Right: elongated to-do column ── */}
-      <div style={{ ...card, minHeight:420, display:'flex', flexDirection:'column' }}>
+      <div className="pv-todo" style={{ ...card, minHeight:420, display:'flex', flexDirection:'column' }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
           <div style={{ ...secHdr, marginBottom:0 }}>To-Do</div>
           <button onClick={async () => {
