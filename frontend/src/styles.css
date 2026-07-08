@@ -429,17 +429,22 @@ textarea { resize: vertical; min-height: 70px; }
 @media print {
   /* Flip the theme variables so var()-based inline styles print light */
   :root {
-    --bg: #fff; --bg2: #f7f7f7; --bg3: #efefef; --bg4: #eaeaea;
-    --border: #ccc; --border2: #bbb;
-    --text: #1a1a1a; --muted: #555; --tan: #444;
+    --bg: #fff; --bg2: #f5f5f5; --bg3: #ececec; --bg4: #e4e4e4;
+    --border: #999; --border2: #888;
+    --text: #000; --muted: #333; --tan: #222;
   }
   html, body { background: #fff !important; }
   body { padding: 0.45in 0.55in !important; }
   .wrap { padding: 0 !important; }
   button:has(.jump-sched-label) { display: none !important; }
-  /* Shot list: printed as a clean report */
-  .sl-day-tiles { background: #f0f0f0 !important; }
-  .sl-day-tiles * { color: #333 !important; }
+  /* Shot list: printed as a clean report — darker ink for easy scanning */
+  .sl-day-tiles { background: #e2e2e2 !important; border: 1px solid #999 !important; }
+  .sl-day-tiles * { color: #111 !important; }
+  .sl-shot-table th { color: #000 !important; border-bottom: 1.5px solid #666 !important; }
+  .sl-shot-table td { color: #000 !important; border-bottom: 1px solid #bbb !important; }
+  .sl-shot-table td span, .sl-shot-table td div { color: #000 !important; }
+  .sl-scene-foot { border-top: 1.5px solid #666 !important; }
+  .sl-scene-foot span, .sl-scene-foot div { color: #000 !important; }
   .sl-scene-foot button { display: none !important; }
   .sl-shot-table th:first-child, .sl-shot-table td:first-child,
   .sl-shot-table th:nth-child(3), .sl-shot-table td:nth-child(3) { display: none !important; }
