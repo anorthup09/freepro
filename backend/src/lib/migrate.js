@@ -1145,6 +1145,21 @@ async function migrate() {
   await sql`ALTER TABLE vendor_invoices ADD COLUMN IF NOT EXISTS vendor_name TEXT`;
   await sql`ALTER TABLE vendor_invoices ADD COLUMN IF NOT EXISTS amount NUMERIC(12,2)`;
 
+  // Client hub resources (logos, brand guidelines) keyed by client name
+  await sql`
+    CREATE TABLE IF NOT EXISTS client_resources (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      client TEXT NOT NULL,
+      kind TEXT DEFAULT 'other',
+      filename TEXT NOT NULL,
+      mime TEXT,
+      size INT,
+      data BYTEA,
+      note TEXT,
+      uploaded_by TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`;
+
   console.log('Migration complete.');
 }
 

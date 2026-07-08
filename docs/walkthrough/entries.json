@@ -118,5 +118,29 @@
       "Scene color-coding (INT blue / EXT green) is kept for navigation; all text prints black."
     ],
     "screenshot": "print-shotlist.png"
+  },
+  {
+    "title": "Invoice Search report",
+    "what": "A cross-project invoice finder in Reports. Search every uploaded vendor invoice by vendor name, project code, or exact invoice total, and click any result to preview the actual file in a pop-out viewer (PDFs and photos render inline).",
+    "where": "Hub → 📈 Reports → Invoice Search.",
+    "how": [
+      "Open <b>Reports</b> from the hub and click <b>Invoice Search</b>.",
+      "Type in any of the three filters — <b>Vendor</b> (matches the AI-read vendor name or the filename), <b>Project Code</b>, or <b>Invoice Total</b> (exact amount). Results update as you type.",
+      "Click a row to pop out a quick view of the invoice file; use <b>⬇ Download</b> to save it.",
+      "Invoices get here automatically — anything uploaded on a project's VCC → Vendor Invoices is searchable."
+    ],
+    "screenshot": "invoice-search.png"
+  },
+  {
+    "title": "Budget Overview (renamed, counts crew correctly)",
+    "what": "The client-facing summary on each budget is now called Budget Overview (it stays \"Estimate Overview\" on estimates). Cost Inclusions now count crew members — one line item equals one person, shown as \"2x Director\" style when a role repeats — instead of counting billable days. On budgets in Estimate mode, the overview pulls live from the estimate you're viewing, including unsaved edits.",
+    "where": "ProFi → project budget → the Budget Overview button (top of the budget); in Estimate mode, the Estimate Overview button.",
+    "how": [
+      "Open a budget and click <b>Budget Overview</b>.",
+      "Each section lists its estimate total and the crew/services included — headcount, not days.",
+      "<b>📋 Copy for Email</b> pastes the formatted table straight into Outlook or Gmail.",
+      "In Estimate mode, the same button reads <b>Estimate Overview</b> and reflects the estimate exactly as it's currently shown."
+    ],
+    "screenshot": "budget-overview.png"
   }
 ]

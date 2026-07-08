@@ -124,6 +124,7 @@ app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/avo', require('./routes/avo'));
 app.use('/api', require('./routes/avo').publicRouter);
 app.use('/api', require('./routes/finance'));
+app.use('/api/clients', require('./routes/clients'));
 
 // Admin backup: download now, or trigger a cloud push
 const { buildBackup, uploadBackup, scheduleNightlyBackup } = require('./lib/backup');

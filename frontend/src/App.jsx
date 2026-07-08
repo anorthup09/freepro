@@ -63,6 +63,7 @@ import GanttShare from './pages/GanttShare.jsx';
 import Team from './pages/Team.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
 import ProjectView, { ProjectViewDetail } from './pages/ProjectView.jsx';
+import ClientHub from './pages/ClientHub.jsx';
 import Reports from './pages/Reports.jsx';
 import InvoiceSearch from './pages/InvoiceSearch.jsx';
 import { api } from './api.js';
@@ -101,6 +102,7 @@ export default function App() {
         <Route path="/reports" element={user ? (user.role === 'CREW' ? <Navigate to="/" /> : <Reports />) : <Navigate to="/login" />} />
         <Route path="/reports/invoices" element={user ? (user.role === 'CREW' ? <Navigate to="/" /> : <InvoiceSearch />) : <Navigate to="/login" />} />
         <Route path="/project-view" element={user ? (user.role === 'CREW' ? <Navigate to="/" /> : <ProjectView />) : <Navigate to="/login" />} />
+        <Route path="/project-view/client/:client" element={user ? (user.role === 'CREW' ? <Navigate to="/" /> : <ClientHub />) : <Navigate to="/login" />} />
         <Route path="/project-view/:pid" element={user ? (user.role === 'CREW' ? <Navigate to="/" /> : <ProjectViewDetail />) : <Navigate to="/login" />} />
         <Route path="/team" element={user ? <Team /> : <Navigate to="/login" />} />
         <Route path="/avo" element={user ? <Avo /> : <Navigate to="/login" />} />
