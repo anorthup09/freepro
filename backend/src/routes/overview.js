@@ -136,9 +136,18 @@ router.post('/project-overview/:pid/docs', ...staff, async (req, res, next) => {
     if (buf.length > 25 * 1024 * 1024) return res.status(400).json({ error: 'File too large (25MB max)' });
     const [d] = await sql`
       INSERT INTO project_docs (project_id, kind, filename, mime, size, data, uploaded_by)
-      VALUES (${req.params.pid}, ${kind === 'vpp' ? 'vpp' : 'brief'}, ${filename}, ${mime || null}, ${buf.length}, ${buf}, ${req.user.name || req.user.email})
+      VALUES (${req.params.pid}, ${['vpp', 'extra'].includes(kind) ? kind : 'brief'}, ${filename}, ${mime || null}, ${buf.length}, ${buf}, ${req.user.name || req.user.email})
       RETURNING id, kind, filename, mime, size, uploaded_by, created_at`;
     res.status(201).json(d);
+  } catch (e) { next(e); }
+});
+router.get('/project-overview/:pid/docs', ...staff, async (req, res, next) => {
+  try {
+    const kind = req.query.kind;
+    res.json(await sql`
+      SELECT id, kind, filename, mime, size, uploaded_by, created_at FROM project_docs
+      WHERE project_id = ${req.params.pid} AND (${kind || null}::text IS NULL OR kind = ${kind || null})
+      ORDER BY created_at DESC`);
   } catch (e) { next(e); }
 });
 router.get('/project-docs/:id/file', requireAuth, async (req, res, next) => {

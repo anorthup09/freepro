@@ -123,6 +123,13 @@ router.get('/:token', async (req, res, next) => {
 
     let responseData = { view_type: viewType, talent_name: talentName, project };
 
+    if (['producer','crew'].includes(viewType)) {
+      try {
+        responseData.extraDocs = await sql`
+          SELECT id, filename, mime FROM project_docs
+          WHERE project_id = ${projectId} AND kind = 'extra' ORDER BY created_at`;
+      } catch (e) { console.error('share extra docs failed:', e.message); }
+    }
     if (project.show_scripts && ['producer','crew','client'].includes(viewType)) {
       try {
         responseData.scripts = await sql`SELECT id, name, file_name, mime FROM scripts WHERE project_id = ${projectId} AND data IS NOT NULL ORDER BY lower(name)`;
@@ -414,6 +421,19 @@ router.get('/:token/scripts/:sid/file', async (req, res, next) => {
     res.setHeader('Content-Type', s.mime || 'application/octet-stream');
     res.setHeader('Content-Disposition', `inline; filename="${(s.file_name || s.name).replace(/"/g, '')}"`);
     res.send(Buffer.from(s.data));
+  } catch(e) { next(e); }
+});
+
+// GET /share/:token/docs/:did/file — public additional-doc download/view
+router.get('/:token/docs/:did/file', async (req, res, next) => {
+  try {
+    const r = await resolveShare(req.params.token, req.query.pw, req);
+    if (r.error) return res.status(r.status).json({ error: r.error });
+    const [f] = await sql`SELECT filename, mime, data FROM project_docs WHERE id = ${req.params.did} AND project_id = ${r.share.project_id} AND kind = 'extra'`;
+    if (!f?.data) return res.status(404).json({ error: 'Document not found' });
+    res.setHeader('Content-Type', f.mime || 'application/octet-stream');
+    res.setHeader('Content-Disposition', `inline; filename="${f.filename.replace(/"/g, '')}"`);
+    res.send(Buffer.from(f.data));
   } catch(e) { next(e); }
 });
 

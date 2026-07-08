@@ -131,6 +131,7 @@ export const api = {
   deleteCallNote: (id) => req('DELETE', `/call-notes/${id}`),
   addProjectTask: (pid, data) => req('POST', `/project-overview/${pid}/tasks`, data),
   uploadProjectDoc: (pid, data) => req('POST', `/project-overview/${pid}/docs`, data),
+  listProjectDocs: (pid, kind) => req('GET', `/project-overview/${pid}/docs${kind ? `?kind=${kind}` : ''}`),
   deleteProjectDoc: (id) => req('DELETE', `/project-docs/${id}`),
   updateProjectTask: (id, data) => req('PATCH', `/project-tasks/${id}`, data),
   deleteProjectTask: (id) => req('DELETE', `/project-tasks/${id}`),

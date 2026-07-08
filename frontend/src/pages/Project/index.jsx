@@ -5,6 +5,7 @@ import Overview from './Overview.jsx';
 import Schedule from './Schedule.jsx';
 import Crew from './Crew.jsx';
 import Deliverables from './Deliverables.jsx';
+import AdditionalDocs from './AdditionalDocs.jsx';
 import Travel from './Travel.jsx';
 import Gear from './Gear.jsx';
 import GearList from './GearList.jsx';
@@ -401,7 +402,7 @@ export default function Project({ idOverride }) {
         </div>
         <div className="tabs">
           <button className={`tab${tab === 'overview' ? ' on' : ''}`} onClick={() => setTab('overview')}>Overview</button>
-          <DropdownTab label="Logistics" subtabs={[...BASE_LOGISTICS_TABS, ...(showTravel ? [{ id:'travel', label:'Travel' }] : []), ...(showCateringGrid ? [{ id:'catering', label:'Catering/Meals' }] : []), ...(showShotList ? [{ id:'shot-list', label:'Shot List' }] : []), ...(showScripts ? [{ id:'scripts', label:'Scripts' }] : [])]} tab={tab} setTab={setTab} />
+          <DropdownTab label="Logistics" subtabs={[...BASE_LOGISTICS_TABS, ...(showTravel ? [{ id:'travel', label:'Travel' }] : []), ...(showCateringGrid ? [{ id:'catering', label:'Catering/Meals' }] : []), ...(showShotList ? [{ id:'shot-list', label:'Shot List' }] : []), ...(showScripts ? [{ id:'scripts', label:'Scripts' }] : []), { id:'additional-docs', label:'Additional Docs' }]} tab={tab} setTab={setTab} />
           <DropdownTab label="Gear" subtabs={GEAR_TABS} tab={tab} setTab={setTab} />
           <button className={`tab${tab === 'deliverable-overview' ? ' on' : ''}`} onClick={() => setTab('deliverable-overview')}>Deliverable</button>
           <button
@@ -431,6 +432,7 @@ export default function Project({ idOverride }) {
         {tab === 'gear'                 && <Gear         project={project} setProject={setProject} />}
         {tab === 'gear-list'            && <GearList     project={project} />}
         {tab === 'deliverable-overview' && <Deliverables project={project} />}
+        {tab === 'additional-docs' && <AdditionalDocs project={project} />}
         {tab === 'space-info'           && <SpaceInfo    project={project} setProject={setProject} />}
         {tab === 'questions'            && <Questions    project={project} />}
       </div>

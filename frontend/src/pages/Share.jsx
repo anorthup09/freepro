@@ -2376,6 +2376,30 @@ function ScriptsShareView({ scripts, shareToken, pw }) {
   );
 }
 
+function ExtraDocsShareView({ docs, shareToken, pw }) {
+  const base = `${window.location.origin}/api/share/${shareToken}`;
+  return (
+    <div className="share-view">
+      <div className="share-header" style={{ paddingBottom:16 }}>
+        <div style={{ fontSize:16, fontWeight:700, letterSpacing:'-0.01em' }}>Additional Docs</div>
+        <div style={{ fontSize:12, color:'var(--muted)', marginTop:4 }}>Reference documents, lighting grids, show flows — tap to view or download.</div>
+      </div>
+      {(docs || []).map(d => (
+        <a key={d.id}
+          href={`${base}/docs/${d.id}/file${pw ? `?pw=${encodeURIComponent(pw)}` : ''}`}
+          target="_blank" rel="noreferrer"
+          style={{ display:'flex', alignItems:'center', gap:12, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding:'14px 16px', marginBottom:10, textDecoration:'none', color:'var(--text)' }}>
+          <span style={{ fontSize:20 }}>📄</span>
+          <div style={{ minWidth:0 }}>
+            <div style={{ fontSize:14, fontWeight:700, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{d.filename}</div>
+          </div>
+          <span style={{ marginLeft:'auto', color:'var(--muted)', fontSize:14 }}>›</span>
+        </a>
+      ))}
+    </div>
+  );
+}
+
 // ── Main Share Page ──────────────────────────────────────────────────────────
 export default function Share() {
   const { token } = useParams();
@@ -2477,6 +2501,7 @@ export default function Share() {
   const hasGearTab = view_type === 'producer' || view_type === 'crew';
   const hasShotList = (view_type === 'producer' || view_type === 'crew' || view_type === 'client') && !!data.project.show_shot_list;
   const hasScripts = (view_type === 'producer' || view_type === 'crew' || view_type === 'client') && !!data.project.show_scripts && (data.scripts || []).length > 0;
+  const hasExtraDocs = (view_type === 'producer' || view_type === 'crew') && (data.extraDocs || []).length > 0;
 
   return (
     <>
@@ -2499,6 +2524,7 @@ export default function Share() {
             {hasGearTab && <button className={`tab${sharePage === 'gear' ? ' on' : ''}`} onClick={() => setSharePage('gear')}>Gear</button>}
             {hasShotList && <button className={`tab${sharePage === 'shot-list' ? ' on' : ''}`} onClick={() => setSharePage('shot-list')}>Shot List</button>}
             {hasScripts && <button className={`tab${sharePage === 'scripts' ? ' on' : ''}`} onClick={() => setSharePage('scripts')}>Script</button>}
+            {hasExtraDocs && <button className={`tab${sharePage === 'extra-docs' ? ' on' : ''}`} onClick={() => setSharePage('extra-docs')}>Additional Docs</button>}
             {hasQuestions && <button className={`tab${sharePage === 'questions' ? ' on' : ''}`} onClick={() => setSharePage('questions')}>Questions</button>}
             <button
               onClick={() => window.print()}
@@ -2522,6 +2548,8 @@ export default function Share() {
       <div className="wrap">
         {hasQuestions && sharePage === 'questions' ? (
           <QuestionsView shareToken={token} pw={resolvedPw} canAnswer={view_type === 'producer'} project={data.project} />
+        ) : hasExtraDocs && sharePage === 'extra-docs' ? (
+          <ExtraDocsShareView docs={data.extraDocs} shareToken={token} pw={resolvedPw} />
         ) : hasScripts && sharePage === 'scripts' ? (
           <ScriptsShareView scripts={data.scripts} shareToken={token} pw={resolvedPw} />
         ) : hasGearTab && sharePage === 'gear' ? (
