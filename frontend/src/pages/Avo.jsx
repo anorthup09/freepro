@@ -183,16 +183,60 @@ function NewEditModal({ onClose, onCreated }) {
 
 export function EditorSelect({ value, onChange, placeholder = '— Unassigned —' }) {
   const [roster, setRoster] = useState([]);
+  const [adding, setAdding] = useState(false);
+  const [form, setForm] = useState({ name: '', email: '', phone: '' });
+  const [saving, setSaving] = useState(false);
   useEffect(() => { api.getCrew().then(setRoster).catch(() => setRoster([])); }, []);
   const display = m => {
     const p = [m.preferred_first_name, m.preferred_last_name].filter(Boolean).join(' ').trim();
     return p || m.name;
   };
+  async function saveNew() {
+    if (!form.name.trim() || saving) return;
+    setSaving(true);
+    try {
+      const m = await api.createCrewMember({ name: form.name.trim(), email: form.email.trim(), phone: form.phone.trim() });
+      setRoster(r => [...r, m]);
+      onChange(m.id);
+      setAdding(false); setForm({ name: '', email: '', phone: '' });
+    } catch (e) { alert(e.message); }
+    setSaving(false);
+  }
   return (
-    <select value={value || ''} onChange={e => onChange(e.target.value)}>
-      <option value="">{placeholder}</option>
-      {[...roster].sort((a, b) => display(a).localeCompare(display(b))).map(m => <option key={m.id} value={m.id}>{display(m)}</option>)}
-    </select>
+    <>
+      <select value={value || ''} onChange={e => {
+        if (e.target.value === '__add__') { setAdding(true); return; }
+        onChange(e.target.value);
+      }}>
+        <option value="">{placeholder}</option>
+        <option value="__add__">＋ Add New Editor…</option>
+        {[...roster].sort((a, b) => display(a).localeCompare(display(b))).map(m => <option key={m.id} value={m.id}>{display(m)}</option>)}
+      </select>
+      {adding && (
+        <div onClick={e => e.target === e.currentTarget && setAdding(false)}
+          style={{ position:'fixed', inset:0, zIndex:140, background:'rgba(0,0,0,0.7)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+          <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderTop:`3px solid ${AVO}`, borderRadius:12, padding:'20px 22px', width:'100%', maxWidth:380 }}>
+            <div style={{ fontSize:14, fontWeight:800, marginBottom:14 }}>Add New Editor</div>
+            {[['name', 'Name', 'Full name'], ['email', 'Email', 'name@example.com'], ['phone', 'Phone Number', '(555) 555-5555']].map(([k, label, ph]) => (
+              <label key={k} style={{ display:'block', fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:10 }}>
+                {label}
+                <input value={form[k]} placeholder={ph} autoFocus={k === 'name'}
+                  onChange={e => setForm(f => ({ ...f, [k]: e.target.value }))}
+                  onKeyDown={e => e.key === 'Enter' && saveNew()}
+                  style={{ marginTop:4 }} />
+              </label>
+            ))}
+            <div style={{ display:'flex', justifyContent:'flex-end', gap:8, marginTop:6 }}>
+              <button className="btn btn-ghost btn-sm" onClick={() => setAdding(false)}>Cancel</button>
+              <button disabled={!form.name.trim() || saving} onClick={saveNew}
+                style={{ background: form.name.trim() ? AVO : 'var(--border)', color:'#0b0b0b', border:'none', borderRadius:8, padding:'7px 16px', fontSize:12, fontWeight:800, cursor: form.name.trim() ? 'pointer' : 'default', opacity: saving ? 0.6 : 1 }}>
+                {saving ? 'Adding…' : 'Add to Roster'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
