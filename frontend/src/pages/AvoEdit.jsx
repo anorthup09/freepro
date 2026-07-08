@@ -236,6 +236,42 @@ function TimelineShareModal({ edit, onClose }) {
 
 const fmtDT = d => new Date(d).toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' });
 
+// Copy the timeline dates from another edit on the same project
+function CopyTimelineFrom({ edit, onCopied, save }) {
+  const [options, setOptions] = useState(null);
+  const base = (edit.project_code || '').replace(/-\d+$/, '');
+  useEffect(() => {
+    if (!edit.project_code) { setOptions([]); return; }
+    api.avoEdits().then(all => {
+      setOptions(all.filter(x => x.id !== edit.id
+        && x.project_code && x.project_code.replace(/-\d+$/, '') === base
+        && Object.values(parseMs(x.milestones)).some(Boolean)));
+    }).catch(() => setOptions([]));
+  }, [edit.id, edit.project_code]);
+  function parseMsLocal(v) { return typeof v === 'string' ? JSON.parse(v || '{}') : (v || {}); }
+  if (!options || options.length === 0) return null;
+  return (
+    <select value="" title="Copy the timeline dates from another edit on this project"
+      onChange={ev => {
+        const src = options.find(x => x.id === ev.target.value);
+        if (!src) return;
+        if (!confirm(`Copy the timeline dates from "${src.title}"? This overwrites this edit's dates.`)) return;
+        const srcMs = parseMsLocal(src.milestones);
+        // Full replace: every milestone key is sent (empty clears leftovers)
+        const payload = Object.fromEntries(MILESTONES.map(([k]) => [k, srcMs[k] || '']));
+        const clean = Object.fromEntries(Object.entries(srcMs).filter(([, v]) => v));
+        const skips = Array.isArray(src.milestone_skips) ? src.milestone_skips : [];
+        onCopied(clean, skips);
+        save({ milestones: payload, milestoneSkips: skips });
+      }}
+      style={{ width:'auto', maxWidth:170, fontSize:11, flexShrink:0, border:`1px solid ${AVO}55`, borderRadius:14, color:AVO, background:'transparent', padding:'4px 8px' }}>
+      <option value="">Copy Timeline From…</option>
+      {options.map(x => <option key={x.id} value={x.id}>{x.title}</option>)}
+    </select>
+  );
+}
+const parseMs = v => typeof v === 'string' ? JSON.parse(v || '{}') : (v || {});
+
 export default function AvoEdit() {
   const { id } = useParams();
   const nav = useNavigate();
@@ -311,6 +347,7 @@ export default function AvoEdit() {
               <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                 <input value={e.title || ''} onChange={ev => patch({ title: ev.target.value })} onBlur={ev => save({ title: ev.target.value })}
                   style={{ fontSize:18, fontWeight:800, background:'transparent', border:'1px solid transparent', borderRadius:6, padding:'4px 8px', width:'100%', flex:1 }} />
+                <CopyTimelineFrom edit={e} onCopied={(ms, skips) => { patch({ milestones: ms, milestone_skips: skips }); }} save={save} />
                 <button onClick={() => setShowCal(true)} title="Calendar view of the timeline dates"
                   style={{ background:'transparent', border:`1px solid ${AVO}55`, color:AVO, borderRadius:14, padding:'4px 10px', fontSize:12, cursor:'pointer', flexShrink:0 }}>
                   📅
