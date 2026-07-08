@@ -11,7 +11,7 @@ Working list; check off as built. Each shipped item also gets an entry in
 - [ ] Fix Estimate Overview for Estimates
 - [ ] Filter by Budget
 - [ ] Organize Archive by year
-- [ ] Edit address capability for locations
+- [x] Edit address capability for locations
 - [ ] Auto-populate crew in Add Event
 - [ ] Export to Excel
 - [ ] Data cap
