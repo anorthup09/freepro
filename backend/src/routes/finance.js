@@ -131,6 +131,26 @@ async function seedShootLines(budgetId, sectionId) {
   }
 }
 
+// Match a Budget Owner label ("Alex Northup") to a platform user, tolerating
+// nicknames (Alex/Alexander) — last names must match, first names prefix-match.
+async function autoTagOwner(budgetId, ownerName) {
+  if (!budgetId || !ownerName) return;
+  const parts = String(ownerName).trim().toLowerCase().split(/\s+/);
+  const first = parts[0] || '';
+  const last = parts.length > 1 ? parts[parts.length - 1] : '';
+  const users = await sql`SELECT id, name FROM users WHERE role IN ('ADMIN', 'PRODUCER')`;
+  const match = users.find(u => {
+    const w = (u.name || '').trim().toLowerCase().split(/\s+/);
+    const uf = w[0] || '', ul = w.length > 1 ? w[w.length - 1] : '';
+    if (w.join(' ') === parts.join(' ')) return true;
+    const firstOk = uf === first || uf.startsWith(first) || first.startsWith(uf);
+    return firstOk && (!last || !ul ? uf === first : ul === last);
+  });
+  if (match) {
+    await sql`INSERT INTO budget_tags (budget_id, user_id) VALUES (${budgetId}, ${match.id}) ON CONFLICT DO NOTHING`;
+  }
+}
+
 // Finance overview: all projects with budget + vcc rollups
 router.get('/finance/projects', ...finance, async (req, res, next) => {
   try {
@@ -305,15 +325,7 @@ router.patch('/finance/budget/:bid', ...finance, async (req, res, next) => {
       WHERE id = ${req.params.bid} RETURNING *`;
     // Setting a budget owner auto-tags them on the budget (matched by name)
     if (b && d.mediaRep) {
-      const rep = String(d.mediaRep).trim().toLowerCase();
-      const first = rep.split(/\s+/)[0];
-      const [u] = await sql`
-        SELECT id FROM users
-        WHERE role IN ('ADMIN', 'PRODUCER')
-          AND (LOWER(name) = ${rep} OR LOWER(SPLIT_PART(name, ' ', 1)) = ${first})
-        ORDER BY LOWER(name) = ${rep} DESC LIMIT 1`;
-      if (u) await sql`INSERT INTO budget_tags (budget_id, user_id) VALUES (${b.id}, ${u.id}) ON CONFLICT DO NOTHING`
-        .catch(e2 => console.error('Owner auto-tag failed:', e2.message));
+      await autoTagOwner(b.id, d.mediaRep).catch(e2 => console.error('Owner auto-tag failed:', e2.message));
     }
     // Live budgets keep every production block paired with a FreePro project tile
     if (b && (b.kind || 'main') === 'main' && (d.status === 'Live' || b.status === 'Live')) {
@@ -940,6 +952,8 @@ router.patch('/finance/pipeline/:pid', ...finance, async (req, res, next) => {
 // ── Budget visibility tags ──
 router.get('/finance/budgets/:bid/tags', ...finance, async (req, res, next) => {
   try {
+    const [b] = await sql`SELECT media_rep FROM budgets WHERE id = ${req.params.bid}`;
+    if (b?.media_rep) await autoTagOwner(req.params.bid, b.media_rep).catch(() => {});
     res.json(await sql`SELECT t.user_id, u.name FROM budget_tags t JOIN users u ON u.id = t.user_id WHERE t.budget_id = ${req.params.bid} ORDER BY u.name`);
   } catch (e) { next(e); }
 });
