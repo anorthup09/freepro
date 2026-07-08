@@ -112,11 +112,13 @@ router.get('/team', requireAuth, async (req, res, next) => {
     res.json(visible.map(m => {
       const first = (m.name || '').trim().toLowerCase().split(/\s+/)[0];
       const homeOffice = DENVER.includes(first) ? 'Denver' : 'St. Louis';
-      const p = pto.find(x => x.member_id === m.id);
+      // STL/DEN Only is a scheduling notation (no travel) — the person is still in office
+      const p = pto.find(x => x.member_id === m.id && x.pto_type !== 'STL/DEN Only');
       if (p) return { id: m.id, name: m.name, status: 'out', location: homeOffice, detail: p.pto_type };
       const s = shoots.find(x => x.crew_member_id === m.id);
       if (s) return { id: m.id, name: m.name, status: 'shoot', location: s.city ? `${s.city}, ${s.state}` : 'On location', detail: s.code };
-      return { id: m.id, name: m.name, status: 'office', location: homeOffice, detail: 'In office' };
+      const stlOnly = pto.find(x => x.member_id === m.id && x.pto_type === 'STL/DEN Only');
+      return { id: m.id, name: m.name, status: 'office', location: homeOffice, detail: stlOnly ? 'STL/DEN only' : 'In office' };
     }));
   } catch (e) { next(e); }
 });
