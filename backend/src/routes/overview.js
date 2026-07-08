@@ -36,9 +36,11 @@ router.get('/project-overview/:pid', ...staff, async (req, res, next) => {
     let budgetAmount = null, budgetFee = null;
     if (budget) {
       const lines = await sql`SELECT qty, unit_cost, percent, is_travel, section_id FROM budget_lines WHERE budget_id = ${budget.id}`;
-      const { total, fee } = budgetTotal(lines, Number(budget.mgmt_fee_rate ?? 0.15));
+      const { total } = budgetTotal(lines, Number(budget.mgmt_fee_rate ?? 0.15));
       budgetAmount = Math.round(total * 100) / 100;
-      budgetFee = Math.round(fee * 100) / 100;
+      // "Est Fee" = billable profit from the VCC: budget total minus vendor costs
+      const [vcc] = await sql`SELECT COALESCE(SUM(amount), 0) as total FROM vcc_entries WHERE project_id = ${project.id}`;
+      budgetFee = Math.round((total - Number(vcc.total)) * 100) / 100;
     }
     const shoots = await sql`
       SELECT id, code, title, city, state, status, start_date, end_date

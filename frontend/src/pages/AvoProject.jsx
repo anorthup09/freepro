@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api.js';
 import { AvoHeader, AVO, AVO_STATUSES } from './Avo.jsx';
+import { AvoForm, BLANK_DELIVERABLE_FORM } from './Project/Deliverables.jsx';
 
 const th = { padding:'7px 10px', fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', textAlign:'left', whiteSpace:'nowrap' };
 const td = { padding:'4px 6px', verticalAlign:'middle' };
@@ -247,7 +248,7 @@ function SmartTable({ rows, colDefs, config, onConfig, saveExtra, leading, trail
         </table>
       </div>
       <div style={{ padding:'8px 14px', borderTop:'1px solid var(--border)', display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
-        {footerRight?.addRow && <button onClick={footerRight.addRow} style={pillBtn(AVO)}>+ Add Row</button>}
+        {footerRight?.addRow && <button onClick={footerRight.addRow} style={pillBtn()}>{footerRight.label || '+ Add Row'}</button>}
         <button onClick={addColumn} style={pillBtn('#a78bfa')}>+ Add Column</button>
         <button onClick={() => { setMergeMode(m => !m); setSelA(null); setSelB(null); }}
           style={mergeMode ? { ...pillBtn(), background:'rgba(255,255,255,0.9)', color:'#0b0b0b' } : pillBtn()}>
@@ -279,13 +280,18 @@ function VideoTracker({ edits, setEdits, config, onConfig, code }) {
     try { const full = await api.updateAvoEdit(id, data); setEdits(es => es.map(x => x.id === id ? { ...x, ...full } : x)); }
     catch (e) { alert(e.message); }
   }
-  async function addRow() {
-    const title = prompt('Video title for the new edit:');
-    if (!title || !title.trim()) return;
+  const [addForm, setAddForm] = useState(null);   // BLANK form when the pop-out is open
+  const [savingAdd, setSavingAdd] = useState(false);
+  async function submitAdd(ev) {
+    ev.preventDefault();
+    if (savingAdd) return;
+    setSavingAdd(true);
     try {
-      const e = await api.createAvoEdit({ title: title.trim(), projectCode: code });
+      const e = await api.createAvoEdit({ ...addForm, projectCode: code });
       setEdits(es => [...es, e]);
+      setAddForm(null);
     } catch (err) { alert(err.message); }
+    setSavingAdd(false);
   }
   function reorder(next) {
     const real = next.filter(r => !r.__header);
@@ -336,7 +342,7 @@ function VideoTracker({ edits, setEdits, config, onConfig, code }) {
     <>
       <SmartTable rows={grouped} colDefs={colDefs} config={config} onConfig={onConfig} minWidth={1050}
         saveExtra={(id, k, v) => saveEdit(id, { extra: { [k]: v } })}
-        onReorder={reorder} footerRight={{ addRow }}
+        onReorder={reorder} footerRight={{ addRow: () => setAddForm({ ...BLANK_DELIVERABLE_FORM }), label: '+ Add Deliverable' }}
         emptyText="No edits with this project code yet — add them from the pipeline and they'll appear here automatically."
         leading={e => (
           <button className="vt-edit" title="Open this edit" onClick={() => nav(`/avo/${e.id}`)}
@@ -345,6 +351,10 @@ function VideoTracker({ edits, setEdits, config, onConfig, code }) {
       <div style={{ padding:'8px 2px', fontSize:10, color:'var(--muted)' }}>
         Feeds live from the editing pipeline. Title, due date, editor, review link, and status come from each edit; Type, Notes, Video Assets, and any custom columns are editable here.
       </div>
+      {addForm && (
+        <AvoForm title="Add Deliverable" form={addForm} setForm={setAddForm}
+          onSubmit={submitAdd} onCancel={() => setAddForm(null)} saving={savingAdd} />
+      )}
     </>
   );
 }

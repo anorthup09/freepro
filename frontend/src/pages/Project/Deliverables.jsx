@@ -1,26 +1,75 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../../api.js';
 import { displayName } from '../../utils/displayName.js';
+import { EditorSelect } from '../Avo.jsx';
 
 const STATUSES = ['WAITING_ON_ASSETS','IN_PROGRESS','ROUGH_CUT','IN_REVIEW','APPROVED','DELIVERED'];
 const STATUS_LABEL = { WAITING_ON_ASSETS:'Waiting on Assets', IN_PROGRESS:'In Progress', ROUGH_CUT:'Rough Cut', IN_REVIEW:'In Review', APPROVED:'Approved', DELIVERED:'Delivered' };
 const STATUS_DOT = { WAITING_ON_ASSETS:'wait', IN_PROGRESS:'prog', ROUGH_CUT:'prog', IN_REVIEW:'prog', APPROVED:'done', DELIVERED:'done' };
 
-const CATEGORIES = [
-  { value:'PRE_PRODUCED', label:'Pre-Produced Videos' },
-  { value:'ON_SITE',      label:'On-Site Videos' },
-  { value:'POST_SHOOT',   label:'Post-Shoot Videos' },
-];
-const CATEGORY_LABEL = Object.fromEntries(CATEGORIES.map(c => [c.value, c.label]));
+// Grouped by the Avo tracker Type; legacy category values map onto it
+const TYPE_GROUPS = [['Pre-Event', '#4a9eff'], ['On-Site', '#e6c229'], ['Post-Event', '#9DC183']];
+const LEGACY_TYPE = { PRE_PRODUCED:'Pre-Event', ON_SITE:'On-Site', POST_SHOOT:'Post-Event' };
+const typeOf = item => item.tracker_type || LEGACY_TYPE[item.category] || item.category || null;
+const AVO_CATEGORIES = ['Event Recap', 'Sizzle', 'Interstitial', 'Documentary', 'Teaser', 'Social Cutdown', 'Photo Slideshow', 'Other'];
+export const BLANK_DELIVERABLE_FORM = { title:'', description:'', trackerType:'', category:'', leadEditorId:'', pmId:'', aspectRatio:'', resolution:'', assetRef:'', musicRef:'', startDate:'', endDate:'', reviewLink:'' };
+
+// Same fields as the AvocadoPost edit form — one form for add and edit
+export function AvoForm({ title, form, setForm, onSubmit, onCancel, saving }) {
+  const inp = (k, ph, type='text') => (
+    <input type={type} value={form[k] || ''} placeholder={ph} onChange={e => setForm(f => ({ ...f, [k]: e.target.value }))} />
+  );
+  return (
+    <div className="modal-bg" onClick={e => e.target === e.currentTarget && onCancel()}>
+      <div className="modal">
+        <div className="modal-title">{title}</div>
+        <form onSubmit={onSubmit}>
+          <div className="form-grid" style={{ marginBottom:12 }}>
+            <div className="field span2"><label>Video Title</label><input value={form.title} required onChange={e => setForm(f=>({...f,title:e.target.value}))} /></div>
+            <div className="field span2"><label>Description</label>{inp('description', 'Plays Day 4 GS · 2 min')}</div>
+            <div className="field"><label>Type</label>
+              <select value={form.trackerType || ''} onChange={e => setForm(f=>({...f,trackerType:e.target.value}))}>
+                <option value="">—</option>
+                {TYPE_GROUPS.map(([t]) => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+            <div className="field"><label>Category</label>
+              <select value={form.category || ''} onChange={e => setForm(f=>({...f,category:e.target.value}))}>
+                <option value="">—</option>
+                {form.category && !AVO_CATEGORIES.includes(form.category) && <option value={form.category}>{form.category}</option>}
+                {AVO_CATEGORIES.map(c => <option key={c}>{c}</option>)}
+              </select>
+            </div>
+            <div className="field"><label>Lead Editor</label><EditorSelect value={form.leadEditorId} onChange={v => setForm(f=>({...f,leadEditorId:v}))} /></div>
+            <div className="field"><label>Project Manager</label><EditorSelect value={form.pmId} placeholder="— No PM —" onChange={v => setForm(f=>({...f,pmId:v}))} /></div>
+            <div className="field"><label>Aspect Ratio</label>{inp('aspectRatio', '16:9')}</div>
+            <div className="field"><label>Resolution</label>{inp('resolution', '1920×1080')}</div>
+            <div className="field"><label>Asset Ref</label>{inp('assetRef', 'Asset #801_')}</div>
+            <div className="field"><label>Music Ref</label>{inp('musicRef', 'C3 Recap Music')}</div>
+            <div className="field"><label>Start Date</label>{inp('startDate', '', 'date')}</div>
+            <div className="field"><label>Due Date</label>{inp('endDate', '', 'date')}</div>
+            <div className="field span2"><label>Review Link</label>{inp('reviewLink', 'https://frame.io/…')}</div>
+          </div>
+          <div style={{ fontSize:10, color:'var(--muted)', marginBottom:10 }}>These fields mirror the AvocadoPost edit — changes here update the pipeline and vice versa.</div>
+          <div className="btn-row">
+            <button className="btn btn-primary" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
+            <button type="button" className="btn btn-ghost" onClick={onCancel}>Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
 
 export default function Deliverables({ project }) {
   const [items, setItems] = useState([]);
   const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState({ title:'', description:'', editorName:'', aspectRatio:'', resolution:'', dueDate:'', assetRef:'', musicRef:'', isUrgent:false, category:'PRE_PRODUCED' });
+  const [form, setForm] = useState(BLANK_DELIVERABLE_FORM);
   const [editId, setEditId] = useState(null);
   const [editStatus, setEditStatus] = useState('');
-  const [editItemId, setEditItemId] = useState(null);
-  const [editForm, setEditForm] = useState({ title:'', description:'', editorName:'', aspectRatio:'', resolution:'', dueDate:'', assetRef:'', musicRef:'', isUrgent:false, status:'', category:'PRE_PRODUCED' });
+  const [editItemId, setEditItemId] = useState(null);   // deliverable being edited
+  const [editForm, setEditForm] = useState(BLANK_DELIVERABLE_FORM);
+  const [saving, setSaving] = useState(false);
   const [detailItem, setDetailItem] = useState(null);
 
   const [ditId, setDitId] = useState(project.techSpecs?.dit_crew_member_id || '');
@@ -95,14 +144,20 @@ export default function Deliverables({ project }) {
     catch(err) { alert(err.message); }
   }
 
+  const reload = () => api.getDeliverables(project.id).then(setItems);
+
   async function add(e) {
     e.preventDefault();
+    if (saving) return;
+    setSaving(true);
     try {
-      const item = await api.createDeliverable(project.id, form);
-      setItems(d => [...d, item]);
+      // Creating through Avo keeps the pipeline and this list identical
+      await api.createAvoEdit({ ...form, projectCode: project.code });
+      await reload();
       setShowAdd(false);
-      setForm({ title:'', description:'', editorName:'', aspectRatio:'', resolution:'', dueDate:'', assetRef:'', musicRef:'', isUrgent:false, category:'PRE_PRODUCED' });
+      setForm(BLANK_DELIVERABLE_FORM);
     } catch(e) { alert(e.message); }
+    setSaving(false);
   }
 
   async function updateStatus(id, status) {
@@ -111,18 +166,38 @@ export default function Deliverables({ project }) {
     setEditId(null);
   }
 
+  const isoD = d => d ? String(d).slice(0, 10) : '';
   function openEdit(item) {
-    setEditItemId(item.id);
-    setEditForm({ title: item.title||'', description: item.description||'', editorName: item.editorName||'', aspectRatio: item.aspectRatio||'', resolution: item.resolution||'', dueDate: item.dueDate||'', assetRef: item.assetRef||'', musicRef: item.musicRef||'', isUrgent: item.isUrgent||false, status: item.status||'', category: item.category||'POST_SHOOT' });
+    setEditItemId(item);
+    setEditForm({
+      title: item.title || '', description: item.description || '',
+      trackerType: item.tracker_type || LEGACY_TYPE[item.category] || '',
+      category: item.avo_category || '',
+      leadEditorId: item.lead_editor_id || '', pmId: item.pm_id || '',
+      aspectRatio: item.aspect_ratio || '', resolution: item.resolution || '',
+      assetRef: item.asset_ref || '', musicRef: item.music_ref || '',
+      startDate: isoD(item.start_date), endDate: isoD(item.due_date), reviewLink: item.review_link || '',
+    });
   }
 
   async function saveEdit(e) {
     e.preventDefault();
+    if (saving) return;
+    setSaving(true);
     try {
-      const updated = await api.updateDeliverable(project.id, editItemId, editForm);
-      setItems(d => d.map(i => i.id === editItemId ? updated : i));
+      if (editItemId.edit_id) {
+        await api.updateAvoEdit(editItemId.edit_id, editForm);
+      } else {
+        await api.updateDeliverable(project.id, editItemId.id, {
+          title: editForm.title, description: editForm.description,
+          aspectRatio: editForm.aspectRatio, resolution: editForm.resolution,
+          dueDate: editForm.endDate, musicRef: editForm.musicRef, category: editForm.trackerType,
+        });
+      }
+      await reload();
       setEditItemId(null);
     } catch(e) { alert(e.message); }
+    setSaving(false);
   }
 
   async function remove(id) {
@@ -180,18 +255,20 @@ export default function Deliverables({ project }) {
             {items.length === 0 && (
               <tr><td colSpan={6} className="empty">No deliverables yet.</td></tr>
             )}
-            {CATEGORIES.map(cat => {
-              const catItems = items.filter(i => (i.category || 'POST_SHOOT') === cat.value);
+            {[...TYPE_GROUPS, ['No Type Yet', 'var(--muted)']].map(([t, color]) => {
+              const catItems = t === 'No Type Yet'
+                ? items.filter(i => !TYPE_GROUPS.some(([g]) => g === typeOf(i)))
+                : items.filter(i => typeOf(i) === t);
               if (catItems.length === 0) return null;
               return (
-                <React.Fragment key={cat.value}>
-                  <tr><td colSpan={6} style={{ padding:'8px 12px', fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'.12em', color:'var(--orange)', background:'rgba(232,80,10,0.08)' }}>{cat.label}</td></tr>
+                <React.Fragment key={t}>
+                  <tr><td colSpan={6} style={{ padding:'8px 12px', fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'.12em', color, background:'rgba(255,255,255,0.04)' }}>{t}</td></tr>
                   {catItems.map(item => (
               <tr key={item.id} onClick={() => { if (window.matchMedia('(max-width: 640px)').matches) setDetailItem(item); }}>
                 <td>
                   <div style={{ fontWeight:500 }}>{item.isUrgent && <span style={{ color:'var(--orange)' }}>⚠ </span>}{item.title}</div>
                   {item.description && <div style={{ fontSize:10, color:'var(--muted)' }}>{item.description}</div>}
-                  {item.musicRef && <div className="dv-hide-m" style={{ fontSize:10, color:'var(--purple-text)', marginTop:2 }}>♪ {item.musicRef}</div>}
+                  {(item.music_ref || item.musicRef) && <div className="dv-hide-m" style={{ fontSize:10, color:'var(--purple-text)', marginTop:2 }}>♪ {item.music_ref || item.musicRef}</div>}
                 </td>
                 <td onClick={e => e.stopPropagation()}>
                   {editId === item.id ? (
@@ -205,12 +282,12 @@ export default function Deliverables({ project }) {
                     </div>
                   )}
                 </td>
-                <td><span className="epill">{item.editorName || '—'}</span></td>
+                <td><span className="epill">{item.editor_name || item.editorName || '—'}</span></td>
                 <td className="dv-hide-m" style={{ fontSize:11, color:'var(--tan)' }}>
-                  {item.aspectRatio}{item.resolution && ` · ${item.resolution}`}
+                  {item.aspect_ratio || item.aspectRatio}{item.resolution ? ` · ${item.resolution}` : ''}
                 </td>
                 <td className="dv-hide-m" style={{ fontSize:11, color: item.isUrgent ? 'var(--orange)' : 'var(--muted)', fontWeight: item.isUrgent ? 500 : 400 }}>
-                  {item.dueDate || '—'}
+                  {item.due_date ? String(item.due_date).slice(0,10) : (item.dueDate || '—')}
                 </td>
                 <td className="dv-hide-m" style={{ display:'flex', gap:4 }}>
                   <button className="btn btn-ghost btn-sm" onClick={() => openEdit(item)}>✎</button>
@@ -233,15 +310,15 @@ export default function Deliverables({ project }) {
             {detailItem.description && <div style={{ fontSize:13, color:'var(--muted)', marginBottom:14, lineHeight:1.5 }}>{detailItem.description}</div>}
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px 14px', marginBottom:16 }}>
               {[
-                ['Category', CATEGORY_LABEL[detailItem.category] || 'Post-Shoot Videos'],
+                ['Type', typeOf(detailItem) || '—'],
                 ['Status', STATUS_LABEL[detailItem.status] || detailItem.status],
-                ['Editor', detailItem.editorName || '—'],
-                ['Aspect Ratio', detailItem.aspectRatio || '—'],
+                ['Editor', detailItem.editor_name || '—'],
+                ['Aspect Ratio', detailItem.aspect_ratio || '—'],
                 ['Resolution', detailItem.resolution || '—'],
-                ['Due Date', detailItem.dueDate || '—'],
-                ['Asset Ref', detailItem.assetRef || '—'],
-                ['Music Ref', detailItem.musicRef || '—'],
-                ['Urgent', detailItem.isUrgent ? 'Yes' : 'No'],
+                ['Due Date', detailItem.due_date ? String(detailItem.due_date).slice(0,10) : '—'],
+                ['Asset Ref', detailItem.asset_ref || '—'],
+                ['Music Ref', detailItem.music_ref || '—'],
+                ['Review Link', detailItem.review_link || '—'],
               ].map(([label, val]) => (
                 <div key={label}>
                   <div style={{ fontSize:9, fontWeight:700, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.1em', marginBottom:2 }}>{label}</div>
@@ -259,69 +336,13 @@ export default function Deliverables({ project }) {
       )}
 
       {editItemId && (
-        <div className="modal-bg" onClick={e => e.target === e.currentTarget && setEditItemId(null)}>
-          <div className="modal">
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, flexWrap:'wrap', marginBottom:12 }}>
-              <div className="modal-title" style={{ marginBottom:0 }}>Edit Deliverable</div>
-              <select value={editForm.status} onChange={e => setEditForm(f=>({...f,status:e.target.value}))}
-                title="Feeds the matching AvocadoPost edit" style={{ width:'auto' }}>
-                {STATUSES.map(s => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
-              </select>
-            </div>
-            <form onSubmit={saveEdit}>
-              <div className="form-grid" style={{ marginBottom:12 }}>
-                <div className="field span2"><label>Title</label><input value={editForm.title} onChange={e => setEditForm(f=>({...f,title:e.target.value}))} required /></div>
-                <div className="field span2"><label>Description</label><input value={editForm.description} onChange={e => setEditForm(f=>({...f,description:e.target.value}))} /></div>
-                <div className="field"><label>Editor</label><EditorPick value={editForm.editorName} onChange={v => setEditForm(f=>({...f,editorName:v}))} /></div>
-                <div className="field"><label>Due Date</label><input value={editForm.dueDate} onChange={e => setEditForm(f=>({...f,dueDate:e.target.value}))} /></div>
-                <div className="field"><label>Aspect Ratio</label><input value={editForm.aspectRatio} onChange={e => setEditForm(f=>({...f,aspectRatio:e.target.value}))} /></div>
-                <div className="field"><label>Resolution</label><input value={editForm.resolution} onChange={e => setEditForm(f=>({...f,resolution:e.target.value}))} /></div>
-                <div className="field"><label>Asset Ref</label><input value={editForm.assetRef} onChange={e => setEditForm(f=>({...f,assetRef:e.target.value}))} /></div>
-                <div className="field"><label>Music Ref</label><input value={editForm.musicRef} onChange={e => setEditForm(f=>({...f,musicRef:e.target.value}))} /></div>
-                <div className="field span2"><label>Category</label>
-                  <select value={editForm.category} onChange={e => setEditForm(f=>({...f,category:e.target.value}))}>
-                    {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-                  </select>
-                </div>
-                <div className="field span2" style={{ flexDirection:'row', alignItems:'center', gap:10 }}>
-                  <input type="checkbox" id="editUrgent" checked={editForm.isUrgent} onChange={e => setEditForm(f=>({...f,isUrgent:e.target.checked}))} style={{ width:'auto' }} />
-                  <label htmlFor="editUrgent" style={{ textTransform:'none', letterSpacing:0, fontSize:12, color:'var(--text)' }}>Mark as urgent</label>
-                </div>
-              </div>
-              <div className="btn-row"><button className="btn btn-primary">Save</button><button type="button" className="btn btn-ghost" onClick={() => setEditItemId(null)}>Cancel</button></div>
-            </form>
-          </div>
-        </div>
+        <AvoForm title="Edit Deliverable" form={editForm} setForm={setEditForm}
+          onSubmit={saveEdit} onCancel={() => setEditItemId(null)} saving={saving} />
       )}
 
       {showAdd && (
-        <div className="modal-bg" onClick={e => e.target === e.currentTarget && setShowAdd(false)}>
-          <div className="modal">
-            <div className="modal-title">Add Deliverable</div>
-            <form onSubmit={add}>
-              <div className="form-grid" style={{ marginBottom:12 }}>
-                <div className="field span2"><label>Title</label><input value={form.title} onChange={e => setForm(f=>({...f,title:e.target.value}))} placeholder="Onsite Recap Video" required /></div>
-                <div className="field span2"><label>Description</label><input value={form.description} onChange={e => setForm(f=>({...f,description:e.target.value}))} placeholder="Plays Day 4 GS · 2 min" /></div>
-                <div className="field"><label>Editor</label><EditorPick value={form.editorName} onChange={v => setForm(f=>({...f,editorName:v}))} /></div>
-                <div className="field"><label>Due Date</label><input value={form.dueDate} onChange={e => setForm(f=>({...f,dueDate:e.target.value}))} placeholder="7 AM, 5/6" /></div>
-                <div className="field"><label>Aspect Ratio</label><input value={form.aspectRatio} onChange={e => setForm(f=>({...f,aspectRatio:e.target.value}))} placeholder="16:9" /></div>
-                <div className="field"><label>Resolution</label><input value={form.resolution} onChange={e => setForm(f=>({...f,resolution:e.target.value}))} placeholder="1920×1080" /></div>
-                <div className="field"><label>Asset Ref</label><input value={form.assetRef} onChange={e => setForm(f=>({...f,assetRef:e.target.value}))} placeholder="Asset #801_" /></div>
-                <div className="field"><label>Music Ref</label><input value={form.musicRef} onChange={e => setForm(f=>({...f,musicRef:e.target.value}))} placeholder="C3 Recap Music" /></div>
-                <div className="field span2"><label>Category</label>
-                  <select value={form.category} onChange={e => setForm(f=>({...f,category:e.target.value}))}>
-                    {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-                  </select>
-                </div>
-                <div className="field span2" style={{ flexDirection:'row', alignItems:'center', gap:10 }}>
-                  <input type="checkbox" id="urgent" checked={form.isUrgent} onChange={e => setForm(f=>({...f,isUrgent:e.target.checked}))} style={{ width:'auto' }} />
-                  <label htmlFor="urgent" style={{ textTransform:'none', letterSpacing:0, fontSize:12, color:'var(--text)' }}>Mark as urgent</label>
-                </div>
-              </div>
-              <div className="btn-row"><button className="btn btn-primary">Add Deliverable</button><button type="button" className="btn btn-ghost" onClick={() => setShowAdd(false)}>Cancel</button></div>
-            </form>
-          </div>
-        </div>
+        <AvoForm title="Add Deliverable" form={form} setForm={setForm}
+          onSubmit={add} onCancel={() => setShowAdd(false)} saving={saving} />
       )}
     </div>
   );

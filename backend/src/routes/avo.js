@@ -41,6 +41,7 @@ async function syncToDeliverable(e) {
       aspect_ratio = ${e.aspect_ratio || null}, resolution = ${e.resolution || null},
       asset_ref = ${e.asset_ref || null}, music_ref = ${e.music_ref || null},
       status = ${status}::deliverable_status,
+      category = COALESCE(${e.tracker_type || null}, category),
       due_date = ${e.end_date ? String(e.end_date).slice(0, 10) : null}
     WHERE id = ${e.deliverable_id}`.catch(err => console.error('Deliverable sync failed:', err.message));
 }
@@ -97,11 +98,11 @@ router.post('/edits', ...staff, async (req, res, next) => {
     }
     const [e] = await sql`
       INSERT INTO edits (project_id, project_code, title, description, lead_editor_id, pm_id,
-        aspect_ratio, resolution, asset_ref, music_ref, category, status, review_link, start_date, end_date)
+        aspect_ratio, resolution, asset_ref, music_ref, category, status, review_link, start_date, end_date, tracker_type)
       VALUES (${projectId}, ${d.projectCode || null}, ${d.title}, ${d.description || null}, ${d.leadEditorId || null}, ${d.pmId || null},
         ${d.aspectRatio || null}, ${d.resolution || null}, ${d.assetRef || null}, ${d.musicRef || null},
         ${d.category || null}, ${editStatuses.includes(d.status) ? d.status : 'COMING_SOON'}, ${d.reviewLink || null},
-        ${d.startDate || null}, ${d.endDate || null})
+        ${d.startDate || null}, ${d.endDate || null}, ${d.trackerType || null})
       RETURNING *`;
     const who = req.user?.email || 'someone';
     await logAct(e.id, 'log', who, 'created this edit');
@@ -110,7 +111,7 @@ router.post('/edits', ...staff, async (req, res, next) => {
       const editor = (await memberName(d.leadEditorId))?.n || null;
       const [del] = await sql`
         INSERT INTO deliverables (id, project_id, title, description, editor_name, aspect_ratio, resolution, due_date, asset_ref, music_ref, category)
-        VALUES (gen_random_uuid()::text, ${projectId}, ${d.title}, ${d.description || null}, ${editor}, ${d.aspectRatio || null}, ${d.resolution || null}, ${d.endDate || null}, ${d.assetRef || null}, ${d.musicRef || null}, 'POST_SHOOT')
+        VALUES (gen_random_uuid()::text, ${projectId}, ${d.title}, ${d.description || null}, ${editor}, ${d.aspectRatio || null}, ${d.resolution || null}, ${d.endDate || null}, ${d.assetRef || null}, ${d.musicRef || null}, ${d.trackerType || 'POST_SHOOT'})
         RETURNING id`;
       await sql`UPDATE edits SET deliverable_id = ${del.id} WHERE id = ${e.id}`;
       await logAct(e.id, 'log', who, 'linked to FreePro deliverable');
