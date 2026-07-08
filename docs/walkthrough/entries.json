@@ -389,5 +389,17 @@
       "⚡ Auto-Fill respects skips, laying dates straight through the remaining milestones."
     ],
     "screenshot": "timeline-skip.png"
+  },
+  {
+    "title": "Schedule events for specific crew",
+    "what": "The Add Event pop-out on the schedule now lets you target events at individual crew members. Selecting the Video tag reveals a chip for every person on the project (name · position) — pick who the event applies to, or leave them all unselected and it applies to everyone. The separate Audio tag is gone; individual selection covers it. Targeted events only show on those people's call sheets and role-specific views.",
+    "where": "FreePro → project → Logistics → Schedule → + Add Event (or editing an event).",
+    "how": [
+      "In Add Event, tap the <b>Video</b> tag — crew chips appear below.",
+      "Tap the people the event applies to; leave all unselected for everyone.",
+      "<b>All Crew</b> still toggles the whole team in one tap.",
+      "On shared call sheets, events tagged to specific people hide for everyone else."
+    ],
+    "screenshot": "event-crew-picker.png"
   }
 ]
