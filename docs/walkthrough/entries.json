@@ -224,5 +224,28 @@
       "Row dragging and merging pause while a filter is hiding rows, and come right back when cleared."
     ],
     "screenshot": "avo-column-filter.png"
+  },
+  {
+    "title": "Project Overview — cover page with call notes & to-dos",
+    "what": "Every project in Project View now opens on an Overview tab: a cover page showing the budget status, each shoot with dates and status, post-production at a glance (every edit with its pipeline status), and a Client Call Notes section for dated takeaways from client calls. On the right is a project To-Do list for one-off tasks — checkbox, task, a tag for any Unbridled crew member, and a complete-by date, with a click-to-expand description on each task.",
+    "where": "Hub → Project View → any project (Overview is the first tab and the default).",
+    "how": [
+      "Open a project — the Overview loads first. Click any shoot or edit row to jump to its full page.",
+      "<b>+ Add Note</b> under Client Call Notes creates a dated entry; the date and text edit inline.",
+      "<b>+ Add Task</b> on the To-Do column adds a task: type it, pick a crew member in the <b>Tag</b> dropdown, set the <b>complete-by date</b> (red when overdue), and click <b>▸</b> to add a description.",
+      "Check the box when it's done — completed tasks strike through and drop to the bottom."
+    ],
+    "screenshot": "project-overview.png"
+  },
+  {
+    "title": "My Tasks on the hub dashboard",
+    "what": "Tasks tagged to you on any Project Overview follow you home: the Day in Review panel on the hub now has a My Tasks section listing your open tasks with a checkbox, the task and its project, and the due date (red when overdue). Checking the box completes the task everywhere.",
+    "where": "The hub (home page) → Day in Review panel, below today's items.",
+    "how": [
+      "Sign in — any open task tagged to you appears under <b>My Tasks</b>.",
+      "Due dates show on the right; overdue dates are red.",
+      "Click the checkbox to mark it complete — it clears from your list and checks off on the project's Overview too."
+    ],
+    "screenshot": "hub-my-tasks.png"
   }
 ]
