@@ -292,5 +292,69 @@
       "✕ deletes an item (with a confirm)."
     ],
     "screenshot": "feedback-board.png"
+  },
+  {
+    "title": "Creative Docs on the Project Overview",
+    "what": "The Overview's right column has a Creative Docs tile for the project's creative brief and VPP. Uploads show live preview thumbnails (images render directly, PDFs show their first page) and open in a pop-out viewer with a download button.",
+    "where": "Hub → Project View → project → Overview tab → Creative Docs tile (above To-Do).",
+    "how": [
+      "Click <b>+ Creative Brief</b> or <b>+ VPP</b> and pick the file (25MB max).",
+      "Each doc shows as a labeled preview card — click it to open the full pop-out viewer.",
+      "⬇ Download saves the original; the small ✕ on a card deletes it."
+    ],
+    "screenshot": "creative-docs.png"
+  },
+  {
+    "title": "Overview budget tile — status, totals, and client identity",
+    "what": "The Overview's budget tile is now a slim strip: Budget Status on the left, the running totals on the right — Budget (the live ProFi budget total) and Est Fee (the billable profit from the VCC: budget total minus vendor costs). The client's logo (or name) now sits above the project code at the top of the page.",
+    "where": "Hub → Project View → project → Overview tab.",
+    "how": [
+      "<b>Budget $x</b> uses the same math as the ProFi pipeline, live.",
+      "<b>Est Fee $y</b> matches the VCC Profit Summary — it moves as vendor costs land.",
+      "The client logo above the code comes from the budget's stored client logo; projects without one show the client name."
+    ],
+    "screenshot": "budget-tile.png"
+  },
+  {
+    "title": "Task polish — initials chips, notes, and due badges",
+    "what": "Project tasks got a round of polish. Assignees show as colored first/last-initial chips beside the task name (click to reassign or unassign). On the hub, My Tasks dates read “Due 7/9”, anything due today shows ❗ Due Today with an orange (!) Task Due Today badge on the section header, and clicking a task expands its description/notes — click the note to jump to the project's Overview.",
+    "where": "Project Overview → To-Do column, and the hub's Day in Review → My Tasks.",
+    "how": [
+      "On a task, click the initials chip (or dashed +) to pick a crew member from the roster.",
+      "On the hub, click a task's name to expand its description; click the panel to open the project.",
+      "Due dates show as “Due x/x”; overdue turns red and due-today shows ❗ Due Today."
+    ],
+    "screenshot": "task-polish.png"
+  },
+  {
+    "title": "Day in Review — today's date, Coming Tomorrow, and in-progress work",
+    "what": "The Day in Review panel now shows today's date under its header, mirrors everything from the Crew Calendar that spans today (green “Edit in progress” and “Working: …” rows alongside shoots, due dates, and PTO), and previews the next day in a Coming Tomorrow section above My Tasks.",
+    "where": "The hub (home page) → Day in Review panel.",
+    "how": [
+      "Today's items list first — shoots, due milestones, edits in progress, PTO.",
+      "<b>Coming Tomorrow</b> (with tomorrow's date) previews the same signals for the next day, slightly dimmed.",
+      "Every row clicks through to its shoot or edit."
+    ],
+    "screenshot": "day-in-review.png"
+  },
+  {
+    "title": "Team Today — two columns and STL/DEN Only handling",
+    "what": "The Team Today roster now lists in two columns (one on phones), halving the tile's height. STL/DEN Only requests no longer mark someone as out — they stay green in-office with an “STL/DEN only” note, since it's a no-travel scheduling notation, not time off.",
+    "where": "The hub (home page) → Team Today panel.",
+    "how": [
+      "🔴 PTO/OOO · 🟡 traveling/on a shoot · 🟢 in office.",
+      "Someone on an STL/DEN Only request shows green with “STL/DEN only” beside their office — bookable locally, not for travel."
+    ],
+    "screenshot": "team-today.png"
+  },
+  {
+    "title": "Travel/Local flag on the crew roster",
+    "what": "Every crew member can be flagged Travel (default) or Local. The toggle lives on the crew edit form, and the assigned-crew grid on each project shows a TRAVEL (blue) or LOCAL (gray) pill per person — one flag on the roster record, consistent across every project.",
+    "where": "FreePro → project → Crew tab (form + grid), and the Roster Lookup in Team Management.",
+    "how": [
+      "Open a crew member's edit form and flip the <b>Travel / Local</b> toggle next to Home Airport.",
+      "The <b>Travel</b> column on the crew grid (between Dietary and Start Date) shows each person's flag."
+    ],
+    "screenshot": "travel-local.png"
   }
 ]
