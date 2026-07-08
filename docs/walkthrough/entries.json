@@ -177,5 +177,15 @@
       "Click it again to change the password, or leave the prompt empty to remove it."
     ],
     "screenshot": "client-hub-password.png"
+  },
+  {
+    "title": "Drive field on the edit form",
+    "what": "Each AvocadoPost edit now records which drive its media lives on, right next to Category on the edit form. Changes are tracked in the edit's activity feed like every other field.",
+    "where": "AvocadoPost → open any edit → the Drive field beside Category.",
+    "how": [
+      "Open an edit from the pipeline.",
+      "Type the drive name or number in <b>Drive</b> (next to Category) — it saves automatically when you click away."
+    ],
+    "screenshot": "avo-drive.png"
   }
 ]

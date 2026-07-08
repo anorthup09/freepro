@@ -318,10 +318,6 @@ export default function Hub() {
           <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.12em', marginTop:5 }}>Operating Platform</div>
         </div>
         {!isCrew && <div className="hub-pipeline-btn" style={{ display:'flex', gap:12 }}>
-          <button onClick={() => nav('/pipeline')}
-            style={{ background:'rgba(232,80,10,0.16)', border:'1.5px solid var(--orange)', color:'var(--orange)', borderRadius:12, padding:'12px 26px', fontSize:13, fontWeight:800, cursor:'pointer', display:'flex', alignItems:'center', gap:8 }}>
-            <span style={{ fontSize:16 }}>⚡</span> Project Pipeline
-          </button>
           <button onClick={() => nav('/crew-calendar')}
             style={{ background:'rgba(90,191,128,0.14)', border:'1.5px solid #5ABF80', color:'#5ABF80', borderRadius:12, padding:'12px 26px', fontSize:13, fontWeight:800, cursor:'pointer', display:'flex', alignItems:'center', gap:8 }}>
             <span style={{ fontSize:16 }}>📅</span> Crew Calendar
