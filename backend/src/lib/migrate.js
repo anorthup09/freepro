@@ -1162,6 +1162,13 @@ async function migrate() {
 
   await sql`ALTER TABLE edits ADD COLUMN IF NOT EXISTS drive TEXT`;
 
+  // Custom grid columns + cell merges on Avo project pages
+  await sql`ALTER TABLE avo_project_pages ADD COLUMN IF NOT EXISTS grid_config JSONB DEFAULT '{}'::jsonb`;
+  await sql`ALTER TABLE avo_lower_thirds ADD COLUMN IF NOT EXISTS extra JSONB DEFAULT '{}'::jsonb`;
+  await sql`ALTER TABLE avo_todos ADD COLUMN IF NOT EXISTS extra JSONB DEFAULT '{}'::jsonb`;
+  await sql`ALTER TABLE avo_music ADD COLUMN IF NOT EXISTS extra JSONB DEFAULT '{}'::jsonb`;
+  await sql`ALTER TABLE edits ADD COLUMN IF NOT EXISTS extra JSONB DEFAULT '{}'::jsonb`;
+
   // Client roster — canonical client names, selected from budgets
   await sql`
     CREATE TABLE IF NOT EXISTS clients (

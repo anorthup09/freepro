@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api.js';
 import { AvoHeader, AVO, AVO_STATUSES } from './Avo.jsx';
 
@@ -23,76 +23,211 @@ function Cell({ value, onSave, placeholder, style }) {
   );
 }
 
+const pillBtn = (color) => ({ background:`${color}22`, border:`1px solid ${color}`, color, borderRadius:14, padding:'3px 12px', fontSize:10, fontWeight:800, cursor:'pointer' });
+
+/*
+ * SmartTable — shared grid with custom text columns and cell merging.
+ * colDefs: [{ key, label, render(row) | null, minWidth }] — base columns.
+ * config: { cols:[{key,label}], merges:{ "<rowId>|<colKey>": {rs,cs} } } (per tab, stored on the page).
+ * saveExtra(rowId, key, value) persists custom-cell values (row.extra).
+ */
+function SmartTable({ rows, colDefs, config, onConfig, saveExtra, leading, trailing, emptyText, footerRight, minWidth }) {
+  const [mergeMode, setMergeMode] = useState(false);
+  const [selA, setSelA] = useState(null);   // {ri, ci}
+  const [selB, setSelB] = useState(null);
+
+  const customCols = config?.cols || [];
+  const merges = config?.merges || {};
+  const allCols = [
+    ...colDefs.map(c => ({ ...c, custom: false })),
+    ...customCols.map(c => ({ key: c.key, label: c.label, custom: true })),
+  ];
+
+  // Resolve merge anchors/covered cells from current row & column order
+  const anchorAt = {}; const covered = new Set();
+  rows.forEach((r, ri) => allCols.forEach((c, ci) => {
+    const m = merges[`${r.id}|${c.key}`];
+    if (!m) return;
+    const rs = Math.max(1, Math.min(m.rs || 1, rows.length - ri));
+    const cs = Math.max(1, Math.min(m.cs || 1, allCols.length - ci));
+    if (rs < 2 && cs < 2) return;
+    anchorAt[`${ri},${ci}`] = { rs, cs };
+    for (let i = 0; i < rs; i++) for (let j = 0; j < cs; j++) if (i || j) covered.add(`${ri + i},${ci + j}`);
+  }));
+
+  const rect = selA && selB ? {
+    r1: Math.min(selA.ri, selB.ri), r2: Math.max(selA.ri, selB.ri),
+    c1: Math.min(selA.ci, selB.ci), c2: Math.max(selA.ci, selB.ci),
+  } : null;
+  const inRect = (ri, ci) => rect ? ri >= rect.r1 && ri <= rect.r2 && ci >= rect.c1 && ci <= rect.c2
+    : selA ? selA.ri === ri && selA.ci === ci : false;
+
+  function cellClick(ri, ci) {
+    if (!mergeMode) return;
+    if (!selA || (selA && selB)) { setSelA({ ri, ci }); setSelB(null); }
+    else setSelB({ ri, ci });
+  }
+  const selAnchor = selA && !selB ? anchorAt[`${selA.ri},${selA.ci}`] : null;
+
+  function applyMerge() {
+    if (!rect || (rect.r1 === rect.r2 && rect.c1 === rect.c2)) return;
+    const row = rows[rect.r1]; const col = allCols[rect.c1];
+    const next = { ...merges };
+    // Clear any existing merges overlapping the new rectangle
+    for (const k of Object.keys(next)) {
+      const [rid, ck] = k.split('|');
+      const ri = rows.findIndex(r => r.id === rid); const ci = allCols.findIndex(c => c.key === ck);
+      if (ri >= rect.r1 - (next[k].rs || 1) + 1 && ri <= rect.r2 && ci >= rect.c1 - (next[k].cs || 1) + 1 && ci <= rect.c2) delete next[k];
+    }
+    next[`${row.id}|${col.key}`] = { rs: rect.r2 - rect.r1 + 1, cs: rect.c2 - rect.c1 + 1 };
+    onConfig({ cols: customCols, merges: next });
+    setSelA(null); setSelB(null);
+  }
+  function unmerge() {
+    if (!selA) return;
+    const row = rows[selA.ri]; const col = allCols[selA.ci];
+    const next = { ...merges };
+    delete next[`${row.id}|${col.key}`];
+    onConfig({ cols: customCols, merges: next });
+    setSelA(null); setSelB(null);
+  }
+  function addColumn() {
+    const label = prompt('New column name:');
+    if (!label || !label.trim()) return;
+    const key = 'c' + Date.now().toString(36);
+    onConfig({ cols: [...customCols, { key, label: label.trim() }], merges });
+  }
+  function renameColumn(c) {
+    const label = prompt('Rename column:', c.label);
+    if (!label || !label.trim()) return;
+    onConfig({ cols: customCols.map(x => x.key === c.key ? { ...x, label: label.trim() } : x), merges });
+  }
+  function removeColumn(c) {
+    if (!confirm(`Remove the "${c.label}" column? Its cell contents will be hidden.`)) return;
+    const next = { ...merges };
+    for (const k of Object.keys(next)) if (k.endsWith('|' + c.key)) delete next[k];
+    onConfig({ cols: customCols.filter(x => x.key !== c.key), merges: next });
+  }
+
+  const nCols = allCols.length + (leading ? 1 : 0) + (trailing ? 1 : 0);
+
+  return (
+    <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, overflow:'hidden' }}>
+      <div className="budget-tbl-wrap">
+        <table style={{ width:'100%', borderCollapse:'collapse', minWidth: minWidth || undefined }}>
+          <thead>
+            <tr>
+              {leading && <th style={{ ...th, width:34 }}></th>}
+              {allCols.map(c => (
+                <th key={c.key} style={th}>
+                  {c.label}
+                  {c.custom && (
+                    <span style={{ marginLeft:5, whiteSpace:'nowrap' }}>
+                      <button title="Rename column" onClick={() => renameColumn(c)} style={{ background:'none', border:'none', color:'var(--muted)', fontSize:9, cursor:'pointer', padding:'0 2px' }}>✎</button>
+                      <button title="Remove column" onClick={() => removeColumn(c)} style={{ background:'none', border:'none', color:'var(--muted)', fontSize:9, cursor:'pointer', padding:'0 2px' }}>✕</button>
+                    </span>
+                  )}
+                </th>
+              ))}
+              {trailing && <th style={{ ...th, width:34 }}></th>}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.length === 0 && (
+              <tr><td colSpan={nCols} style={{ ...td, padding:'12px 14px', fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>{emptyText || 'Nothing here yet.'}</td></tr>
+            )}
+            {rows.map((r, ri) => (
+              <tr key={r.id} style={{ borderTop:'1px solid rgba(255,255,255,0.04)', opacity: r.__dim ? 0.5 : 1 }}>
+                {leading && <td style={{ ...td, textAlign:'center' }}>{leading(r)}</td>}
+                {allCols.map((c, ci) => {
+                  if (covered.has(`${ri},${ci}`)) return null;
+                  const span = anchorAt[`${ri},${ci}`];
+                  const sel = mergeMode && inRect(ri, ci);
+                  const content = c.custom
+                    ? <Cell value={r.extra?.[c.key]} placeholder="…" onSave={v => saveExtra(r.id, c.key, v)} />
+                    : c.render(r);
+                  return (
+                    <td key={c.key} rowSpan={span?.rs} colSpan={span?.cs} onClick={() => cellClick(ri, ci)}
+                      style={{ ...td, minWidth: c.minWidth,
+                        ...(span ? { border:'1px solid rgba(255,255,255,0.09)', verticalAlign:'middle' } : {}),
+                        ...(mergeMode ? { cursor:'pointer', background: sel ? `${AVO}30` : span ? 'rgba(255,255,255,0.03)' : undefined } : {}) }}>
+                      <div style={mergeMode ? { pointerEvents:'none' } : undefined}>{content}</div>
+                    </td>
+                  );
+                })}
+                {trailing && <td style={{ ...td, textAlign:'center' }}>{trailing(r)}</td>}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div style={{ padding:'8px 14px', borderTop:'1px solid var(--border)', display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
+        {footerRight?.addRow && <button onClick={footerRight.addRow} style={pillBtn(AVO)}>+ Add Row</button>}
+        <button onClick={addColumn} style={pillBtn('#a78bfa')}>+ Add Column</button>
+        <button onClick={() => { setMergeMode(m => !m); setSelA(null); setSelB(null); }}
+          style={mergeMode ? { ...pillBtn('#e6c229'), background:'#e6c229', color:'#0b0b0b' } : pillBtn('#e6c229')}>
+          {mergeMode ? '✕ Done Merging' : '⬚ Merge Cells'}
+        </button>
+        {mergeMode && !selA && <span style={{ fontSize:10, color:'var(--muted)' }}>Click the first cell, then the last cell of the block to merge.</span>}
+        {mergeMode && selA && !selB && !selAnchor && <span style={{ fontSize:10, color:'var(--muted)' }}>Now click the last cell of the block.</span>}
+        {mergeMode && selAnchor && <button onClick={unmerge} style={pillBtn('#e05252')}>Unmerge This Cell</button>}
+        {mergeMode && rect && (rect.r1 !== rect.r2 || rect.c1 !== rect.c2) && (
+          <button onClick={applyMerge} style={{ ...pillBtn('#5ABF80'), background:'#5ABF80', color:'#0b0b0b' }}>✓ Apply Merge</button>
+        )}
+        <div style={{ flex:1 }} />
+        {footerRight?.node}
+      </div>
+    </div>
+  );
+}
+
 // ── Video Tracker: rows are the pipeline edits carrying this project code ──
-function VideoTracker({ edits, setEdits }) {
+function VideoTracker({ edits, setEdits, config, onConfig }) {
   const nav = useNavigate();
   async function saveEdit(id, data) {
     try { const full = await api.updateAvoEdit(id, data); setEdits(es => es.map(x => x.id === id ? { ...x, ...full } : x)); }
     catch (e) { alert(e.message); }
   }
   const statusOf = k => AVO_STATUSES.find(([key]) => key === k);
+  const colDefs = [
+    { key:'tracker_type', label:'Type', minWidth:110, render: e => {
+      const tc = typeColor(e.tracker_type);
+      return <Cell value={e.tracker_type} placeholder="Type…" onSave={v => saveEdit(e.id, { trackerType: v })}
+        style={e.tracker_type ? { background:`${tc}22`, border:`1px solid ${tc}55`, color:tc, fontWeight:700, textAlign:'center', borderRadius:12 } : {}} />;
+    } },
+    { key:'title', label:'Video Title', minWidth:150, render: e =>
+      <span onClick={() => nav(`/avo/${e.id}`)} style={{ fontSize:12, fontWeight:700, cursor:'pointer', padding:'5px 6px', display:'inline-block' }}>{e.title}</span> },
+    { key:'style', label:'Style', minWidth:140, render: e => <Cell value={e.style} placeholder="Style…" onSave={v => saveEdit(e.id, { style: v })} /> },
+    { key:'notes', label:'Notes', minWidth:170, render: e => <Cell value={e.notes} placeholder="Notes…" onSave={v => saveEdit(e.id, { notes: v })} /> },
+    { key:'end_date', label:'Due Date', render: e => <span style={{ whiteSpace:'nowrap', fontSize:12 }}>{fmtD(e.end_date)}</span> },
+    { key:'video_assets', label:'Video Assets', minWidth:160, render: e => <Cell value={e.video_assets} placeholder="iPhone videos, music…" onSave={v => saveEdit(e.id, { videoAssets: v })} /> },
+    { key:'lead_editor', label:'Editor', render: e => <span style={{ fontSize:12, whiteSpace:'nowrap' }}>{e.lead_editor || '—'}</span> },
+    { key:'review_link', label:'Review Link', render: e => e.review_link
+      ? <a href={e.review_link} target="_blank" rel="noreferrer" style={{ color:'#4a9eff', fontSize:11 }}>▶ {e.review_link.replace(/^https?:\/\/(www\.)?/, '').slice(0, 22)}</a>
+      : <span style={{ color:'var(--muted)', fontSize:11 }}>—</span> },
+    { key:'status', label:'Status', render: e => {
+      const st = statusOf(e.status);
+      return st ? <span style={{ background:`${st[2]}22`, border:`1px solid ${st[2]}`, color:st[2], borderRadius:12, padding:'2px 10px', fontSize:9, fontWeight:800, whiteSpace:'nowrap' }}>{st[1]}</span> : null;
+    } },
+  ];
   return (
-    <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, overflow:'hidden' }}>
-      <div className="budget-tbl-wrap">
-        <table style={{ width:'100%', borderCollapse:'collapse', minWidth:1050 }}>
-          <thead>
-            <tr>
-              <th style={{ ...th, width:30 }}></th>
-              <th style={th}>Type</th><th style={th}>Video Title</th><th style={th}>Style</th><th style={th}>Notes</th>
-              <th style={th}>Due Date</th><th style={th}>Video Assets</th><th style={th}>Editor</th>
-              <th style={th}>Review Link</th><th style={th}>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {edits.length === 0 && (
-              <tr><td colSpan={10} style={{ ...td, padding:'14px', fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>
-                No edits with this project code yet — add them from the pipeline and they'll appear here automatically.
-              </td></tr>
-            )}
-            {edits.map(e => {
-              const st = statusOf(e.status);
-              const tc = typeColor(e.tracker_type);
-              return (
-                <tr key={e.id} className="vt-row" style={{ borderTop:'1px solid rgba(255,255,255,0.04)' }}>
-                  <td style={{ ...td, textAlign:'center' }}>
-                    <button className="vt-edit" title="Open this edit" onClick={() => nav(`/avo/${e.id}`)}
-                      style={{ background:'none', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:5, padding:'2px 6px', fontSize:11, cursor:'pointer' }}>✎</button>
-                  </td>
-                  <td style={{ ...td, minWidth:110 }}>
-                    <Cell value={e.tracker_type} placeholder="Type…" onSave={v => saveEdit(e.id, { trackerType: v })}
-                      style={e.tracker_type ? { background:`${tc}22`, border:`1px solid ${tc}55`, color:tc, fontWeight:700, textAlign:'center', borderRadius:12 } : {}} />
-                  </td>
-                  <td style={{ ...td, minWidth:150 }}>
-                    <span onClick={() => nav(`/avo/${e.id}`)} style={{ fontSize:12, fontWeight:700, cursor:'pointer', padding:'5px 6px', display:'inline-block' }}>{e.title}</span>
-                  </td>
-                  <td style={{ ...td, minWidth:140 }}><Cell value={e.style} placeholder="Style…" onSave={v => saveEdit(e.id, { style: v })} /></td>
-                  <td style={{ ...td, minWidth:170 }}><Cell value={e.notes} placeholder="Notes…" onSave={v => saveEdit(e.id, { notes: v })} /></td>
-                  <td style={{ ...td, whiteSpace:'nowrap', fontSize:12 }}>{fmtD(e.end_date)}</td>
-                  <td style={{ ...td, minWidth:160 }}><Cell value={e.video_assets} placeholder="iPhone videos, music…" onSave={v => saveEdit(e.id, { videoAssets: v })} /></td>
-                  <td style={{ ...td, fontSize:12, whiteSpace:'nowrap' }}>{e.lead_editor || '—'}</td>
-                  <td style={{ ...td, maxWidth:160 }}>
-                    {e.review_link
-                      ? <a href={e.review_link} target="_blank" rel="noreferrer" style={{ color:'#4a9eff', fontSize:11 }}>▶ {e.review_link.replace(/^https?:\/\/(www\.)?/, '').slice(0, 22)}</a>
-                      : <span style={{ color:'var(--muted)', fontSize:11 }}>—</span>}
-                  </td>
-                  <td style={td}>
-                    {st && <span style={{ background:`${st[2]}22`, border:`1px solid ${st[2]}`, color:st[2], borderRadius:12, padding:'2px 10px', fontSize:9, fontWeight:800, whiteSpace:'nowrap' }}>{st[1]}</span>}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+    <>
+      <SmartTable rows={edits} colDefs={colDefs} config={config} onConfig={onConfig} minWidth={1050}
+        saveExtra={(id, k, v) => saveEdit(id, { extra: { [k]: v } })}
+        emptyText="No edits with this project code yet — add them from the pipeline and they'll appear here automatically."
+        leading={e => (
+          <button className="vt-edit" title="Open this edit" onClick={() => nav(`/avo/${e.id}`)}
+            style={{ background:'none', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:5, padding:'2px 6px', fontSize:11, cursor:'pointer' }}>✎</button>
+        )} />
+      <div style={{ padding:'8px 2px', fontSize:10, color:'var(--muted)' }}>
+        Feeds live from the editing pipeline. Title, due date, editor, review link, and status come from each edit; Type, Style, Notes, Video Assets, and any custom columns are editable here.
       </div>
-      <div style={{ padding:'8px 14px', fontSize:10, color:'var(--muted)', borderTop:'1px solid var(--border)' }}>
-        Feeds live from the editing pipeline. Title, due date, editor, review link, and status come from each edit; Type, Style, Notes, and Video Assets are editable here.
-      </div>
-    </div>
+    </>
   );
 }
 
-// ── Generic editable grid (to-dos, music, lower thirds) ──
-function Grid({ kind, columns, rows, setRows, pageId, doneKey, renderCell }) {
+// ── Generic editable grid (to-dos, lower thirds) ──
+function Grid({ kind, columns, rows, setRows, pageId, doneKey, renderCell, config, onConfig }) {
   async function addRow() {
     try { const r = await api.addAvoGridRow(pageId, kind); setRows(rs => [...rs, r]); }
     catch (e) { alert(e.message); }
@@ -105,51 +240,23 @@ function Grid({ kind, columns, rows, setRows, pageId, doneKey, renderCell }) {
     try { await api.deleteAvoGridRow(kind, rowId); setRows(rs => rs.filter(x => x.id !== rowId)); }
     catch (e) { alert(e.message); }
   }
+  const colDefs = columns.map(([c, label, placeholder]) => ({
+    key: c, label,
+    render: r => renderCell?.(r, c, v => saveCell(r.id, c, v)) || <Cell value={r[c]} placeholder={placeholder} onSave={v => saveCell(r.id, c, v)} />,
+  }));
+  const shown = doneKey ? rows.map(r => r[doneKey] ? { ...r, __dim: true } : r) : rows;
   return (
-    <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, overflow:'hidden' }}>
-      <div className="budget-tbl-wrap">
-        <table style={{ width:'100%', borderCollapse:'collapse' }}>
-          <thead>
-            <tr>
-              {doneKey && <th style={{ ...th, width:34 }}></th>}
-              {columns.map(([c, label]) => <th key={c} style={th}>{label}</th>)}
-              <th style={{ ...th, width:34 }}></th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length === 0 && (
-              <tr><td colSpan={columns.length + 2} style={{ ...td, padding:'12px 14px', fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>Nothing here yet.</td></tr>
-            )}
-            {rows.map(r => (
-              <tr key={r.id} style={{ borderTop:'1px solid rgba(255,255,255,0.04)', opacity: doneKey && r[doneKey] ? 0.5 : 1 }}>
-                {doneKey && (
-                  <td style={{ ...td, textAlign:'center' }}>
-                    <input type="checkbox" checked={r[doneKey] || false} style={{ width:'auto', accentColor:AVO }}
-                      onChange={e => saveCell(r.id, doneKey, e.target.checked)} />
-                  </td>
-                )}
-                {columns.map(([c, , placeholder]) => (
-                  <td key={c} style={td}>
-                    {renderCell?.(r, c, v => saveCell(r.id, c, v))
-                      || <Cell value={r[c]} placeholder={placeholder} onSave={v => saveCell(r.id, c, v)} />}
-                  </td>
-                ))}
-                <td style={{ ...td, textAlign:'center' }}>
-                  <button title="Delete row" onClick={() => removeRow(r.id)}
-                    style={{ background:'none', border:'none', color:'var(--muted)', fontSize:12, cursor:'pointer' }}>✕</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <div style={{ padding:'8px 14px', borderTop:'1px solid var(--border)' }}>
-        <button onClick={addRow}
-          style={{ background:`${AVO}22`, border:`1px solid ${AVO}`, color:AVO, borderRadius:14, padding:'3px 12px', fontSize:10, fontWeight:800, cursor:'pointer' }}>
-          + Add Row
-        </button>
-      </div>
-    </div>
+    <SmartTable rows={shown} colDefs={colDefs} config={config} onConfig={onConfig}
+      saveExtra={(id, k, v) => api.updateAvoGridRow(kind, id, { extra: { [k]: v } }).then(r => setRows(rs => rs.map(x => x.id === id ? r : x))).catch(e => alert(e.message))}
+      footerRight={{ addRow }}
+      leading={doneKey ? r => (
+        <input type="checkbox" checked={r[doneKey] || false} style={{ width:'auto', accentColor:AVO }}
+          onChange={e => saveCell(r.id, doneKey, e.target.checked)} />
+      ) : undefined}
+      trailing={r => (
+        <button title="Delete row" onClick={() => removeRow(r.id)}
+          style={{ background:'none', border:'none', color:'var(--muted)', fontSize:12, cursor:'pointer' }}>✕</button>
+      )} />
   );
 }
 
@@ -219,8 +326,9 @@ function MusicShareModal({ groups, code, title, onClose }) {
   );
 }
 
-function MusicGrid({ rows, setRows, pageId, code, title }) {
+function MusicGrid({ rows, setRows, pageId, code, title, config, onConfig }) {
   const [share, setShare] = useState(false);
+  const customCols = config?.cols || [];
   async function addRow() {
     try { const r = await api.addAvoGridRow(pageId, 'music'); setRows(rs => [...rs, r]); }
     catch (e) { alert(e.message); }
@@ -229,9 +337,27 @@ function MusicGrid({ rows, setRows, pageId, code, title }) {
     try { const r = await api.updateAvoGridRow('music', rowId, { [col]: val }); setRows(rs => rs.map(x => x.id === rowId ? r : x)); }
     catch (e) { alert(e.message); }
   }
+  async function saveExtra(rowId, key, val) {
+    try { const r = await api.updateAvoGridRow('music', rowId, { extra: { [key]: val } }); setRows(rs => rs.map(x => x.id === rowId ? r : x)); }
+    catch (e) { alert(e.message); }
+  }
   async function removeRow(rowId) {
     try { await api.deleteAvoGridRow('music', rowId); setRows(rs => rs.filter(x => x.id !== rowId)); }
     catch (e) { alert(e.message); }
+  }
+  function addColumn() {
+    const label = prompt('New column name:');
+    if (!label || !label.trim()) return;
+    onConfig({ cols: [...customCols, { key: 'c' + Date.now().toString(36), label: label.trim() }] });
+  }
+  function renameColumn(c) {
+    const label = prompt('Rename column:', c.label);
+    if (!label || !label.trim()) return;
+    onConfig({ cols: customCols.map(x => x.key === c.key ? { ...x, label: label.trim() } : x) });
+  }
+  function removeColumn(c) {
+    if (!confirm(`Remove the "${c.label}" column? Its cell contents will be hidden.`)) return;
+    onConfig({ cols: customCols.filter(x => x.key !== c.key) });
   }
   // Rows sharing a video title collapse into one group (title cell spans them)
   const groups = [];
@@ -249,11 +375,23 @@ function MusicGrid({ rows, setRows, pageId, code, title }) {
       <div className="budget-tbl-wrap">
         <table style={{ width:'100%', borderCollapse:'collapse' }}>
           <thead>
-            <tr><th style={th}>Video Title</th><th style={th}>Link</th><th style={th}>Note</th><th style={{ ...th, width:34 }}></th></tr>
+            <tr>
+              <th style={th}>Video Title</th><th style={th}>Link</th><th style={th}>Note</th>
+              {customCols.map(c => (
+                <th key={c.key} style={th}>
+                  {c.label}
+                  <span style={{ marginLeft:5, whiteSpace:'nowrap' }}>
+                    <button title="Rename column" onClick={() => renameColumn(c)} style={{ background:'none', border:'none', color:'var(--muted)', fontSize:9, cursor:'pointer', padding:'0 2px' }}>✎</button>
+                    <button title="Remove column" onClick={() => removeColumn(c)} style={{ background:'none', border:'none', color:'var(--muted)', fontSize:9, cursor:'pointer', padding:'0 2px' }}>✕</button>
+                  </span>
+                </th>
+              ))}
+              <th style={{ ...th, width:34 }}></th>
+            </tr>
           </thead>
           <tbody>
             {rows.length === 0 && (
-              <tr><td colSpan={4} style={{ ...td, padding:'12px 14px', fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>Nothing here yet.</td></tr>
+              <tr><td colSpan={4 + customCols.length} style={{ ...td, padding:'12px 14px', fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>Nothing here yet.</td></tr>
             )}
             {groups.map(([video, grp]) => grp.map((r, j) => (
               <tr key={r.id} style={{ borderTop: j === 0 ? '1px solid rgba(255,255,255,0.08)' : 'none' }}>
@@ -271,6 +409,11 @@ function MusicGrid({ rows, setRows, pageId, code, title }) {
                   </div>
                 </td>
                 <td style={{ ...td, minWidth:130 }}><Cell value={r.note} placeholder="instrumental version…" onSave={v => saveCell(r.id, 'note', v)} /></td>
+                {customCols.map(c => (
+                  <td key={c.key} style={{ ...td, minWidth:110 }}>
+                    <Cell value={r.extra?.[c.key]} placeholder="…" onSave={v => saveExtra(r.id, c.key, v)} />
+                  </td>
+                ))}
                 <td style={{ ...td, textAlign:'center' }}>
                   <button title="Delete row" onClick={() => removeRow(r.id)}
                     style={{ background:'none', border:'none', color:'var(--muted)', fontSize:12, cursor:'pointer' }}>✕</button>
@@ -280,11 +423,10 @@ function MusicGrid({ rows, setRows, pageId, code, title }) {
           </tbody>
         </table>
       </div>
-      <div style={{ padding:'8px 14px', borderTop:'1px solid var(--border)', display:'flex', justifyContent:'space-between', gap:8, flexWrap:'wrap' }}>
-        <button onClick={addRow}
-          style={{ background:`${AVO}22`, border:`1px solid ${AVO}`, color:AVO, borderRadius:14, padding:'3px 12px', fontSize:10, fontWeight:800, cursor:'pointer' }}>
-          + Add Row
-        </button>
+      <div style={{ padding:'8px 14px', borderTop:'1px solid var(--border)', display:'flex', gap:8, flexWrap:'wrap', alignItems:'center' }}>
+        <button onClick={addRow} style={pillBtn(AVO)}>+ Add Row</button>
+        <button onClick={addColumn} style={pillBtn('#a78bfa')}>+ Add Column</button>
+        <div style={{ flex:1 }} />
         <button onClick={() => setShare(true)} disabled={!shareGroups.length}
           style={{ background:'rgba(74,158,255,0.12)', border:'1px solid #4a9eff', color:'#4a9eff', borderRadius:14, padding:'3px 14px', fontSize:10, fontWeight:800, cursor: shareGroups.length ? 'pointer' : 'default', opacity: shareGroups.length ? 1 : 0.4 }}>
           Share
@@ -314,6 +456,14 @@ export default function AvoProject({ idOverride, embedded }) {
       .then(p => { setPage(p); setEdits(p.edits || []); setLowerThirds(p.lowerThirds || []); setTodos(p.todos || []); setMusic(p.music || []); })
       .catch(e => setErr(e.message));
   }, [id]);
+
+  const gridConfig = page?.grid_config || {};
+  const cfgFor = k => gridConfig[k] || { cols: [], merges: {} };
+  const saveCfg = k => next => {
+    const gc = { ...gridConfig, [k]: next };
+    setPage(p => ({ ...p, grid_config: gc }));
+    api.updateAvoProject(id, { gridConfig: gc }).catch(e => alert(e.message));
+  };
 
   async function removePage() {
     if (!confirm(`Delete the project page for ${page.code} (and its grids)?`)) return;
@@ -361,16 +511,19 @@ export default function AvoProject({ idOverride, embedded }) {
               ))}
             </div>
 
-            {tab === 'tracker' && <VideoTracker edits={edits} setEdits={setEdits} />}
+            {tab === 'tracker' && <VideoTracker edits={edits} setEdits={setEdits} config={cfgFor('tracker')} onConfig={saveCfg('tracker')} />}
             {tab === 'todos' && (
               <Grid kind="todos" pageId={id} doneKey="done" rows={todos} setRows={setTodos} renderCell={todoCell}
+                config={cfgFor('todos')} onConfig={saveCfg('todos')}
                 columns={[['category', 'Category', 'Takeaways…'], ['video', 'Video', 'Which video'], ['needs', 'Needs', 'Script, music, shot list…'], ['text', 'To Do', 'Status / who’s on it…']]} />
             )}
             {tab === 'music' && (
-              <MusicGrid pageId={id} rows={music} setRows={setMusic} code={page.code} title={page.title} />
+              <MusicGrid pageId={id} rows={music} setRows={setMusic} code={page.code} title={page.title}
+                config={cfgFor('music')} onConfig={next => saveCfg('music')({ ...cfgFor('music'), ...next })} />
             )}
             {tab === 'lower-thirds' && (
               <Grid kind="lower-thirds" pageId={id} rows={lowerThirds} setRows={setLowerThirds}
+                config={cfgFor('lower-thirds')} onConfig={saveCfg('lower-thirds')}
                 columns={[['name', 'Name', 'Full name'], ['title', 'Title', 'On-screen title / role'], ['notes', 'Notes', '']]} />
             )}
           </>

@@ -204,6 +204,7 @@ router.patch('/edits/:id', ...staff, async (req, res, next) => {
         music_ref = ${d.musicRef !== undefined ? (d.musicRef || null) : sql`music_ref`},
         category = ${d.category !== undefined ? (d.category || null) : sql`category`},
         drive = ${d.drive !== undefined ? (d.drive || null) : sql`drive`},
+        extra = ${d.extra !== undefined && typeof d.extra === 'object' ? sql`COALESCE(extra, '{}'::jsonb) || ${sql.json(d.extra)}` : sql`extra`},
         status = ${d.status !== undefined && editStatuses.includes(d.status) ? d.status : sql`status`},
         review_link = ${d.reviewLink !== undefined ? (d.reviewLink || null) : sql`review_link`},
         start_date = ${d.startDate !== undefined ? (d.startDate || null) : sql`start_date`},
@@ -427,7 +428,8 @@ router.patch('/projects/:id', ...staff, async (req, res, next) => {
   try {
     const [row] = await sql`UPDATE avo_project_pages SET
         title = ${req.body.title !== undefined ? (req.body.title || null) : sql`title`},
-        code = ${req.body.code !== undefined && String(req.body.code).trim() ? String(req.body.code).trim() : sql`code`}
+        code = ${req.body.code !== undefined && String(req.body.code).trim() ? String(req.body.code).trim() : sql`code`},
+        grid_config = ${req.body.gridConfig !== undefined && typeof req.body.gridConfig === 'object' ? sql.json(req.body.gridConfig || {}) : sql`grid_config`}
       WHERE id = ${req.params.id} RETURNING *`;
     if (!row) return res.status(404).json({ error: 'Project page not found' });
     res.json(row);
@@ -464,8 +466,11 @@ router.patch('/grid/:kind/:rowId', ...staff, async (req, res, next) => {
       data[c] = c === 'done' ? req.body[c] === true : c === 'sort' ? (Number(req.body[c]) || 0) : String(req.body[c]);
     }
     const keys = Object.keys(data);
-    if (!keys.length) return res.status(400).json({ error: 'Nothing to update' });
-    const [row] = await sql`UPDATE ${sql.unsafe(g.table)} SET ${sql(data, ...keys)} WHERE id = ${req.params.rowId} RETURNING *`;
+    const hasExtra = req.body.extra && typeof req.body.extra === 'object';
+    if (!keys.length && !hasExtra) return res.status(400).json({ error: 'Nothing to update' });
+    let row;
+    if (keys.length) [row] = await sql`UPDATE ${sql.unsafe(g.table)} SET ${sql(data, ...keys)} WHERE id = ${req.params.rowId} RETURNING *`;
+    if (hasExtra) [row] = await sql`UPDATE ${sql.unsafe(g.table)} SET extra = COALESCE(extra, '{}'::jsonb) || ${sql.json(req.body.extra)} WHERE id = ${req.params.rowId} RETURNING *`;
     if (!row) return res.status(404).json({ error: 'Row not found' });
     res.json(row);
   } catch (e) { next(e); }
