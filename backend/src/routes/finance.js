@@ -177,6 +177,12 @@ function budgetTotal(allLines, mgmtRate) {
 }
 
 // Full finance bundle for a project
+router.get('/finance/taggable-users', ...finance, async (req, res, next) => {
+  try {
+    res.json(await sql`SELECT id, name FROM users WHERE role IN ('ADMIN', 'PRODUCER') ORDER BY name`);
+  } catch (e) { next(e); }
+});
+
 router.get('/finance/:pid', ...finance, async (req, res, next) => {
   try {
     const [project] = await sql`SELECT id, code, title, client, status, start_date, end_date FROM projects WHERE id = ${req.params.pid}`;
@@ -932,11 +938,6 @@ router.patch('/finance/pipeline/:pid', ...finance, async (req, res, next) => {
 });
 
 // ── Budget visibility tags ──
-router.get('/finance/taggable-users', ...finance, async (req, res, next) => {
-  try {
-    res.json(await sql`SELECT id, name FROM users WHERE role IN ('ADMIN', 'PRODUCER') ORDER BY name`);
-  } catch (e) { next(e); }
-});
 router.get('/finance/budgets/:bid/tags', ...finance, async (req, res, next) => {
   try {
     res.json(await sql`SELECT t.user_id, u.name FROM budget_tags t JOIN users u ON u.id = t.user_id WHERE t.budget_id = ${req.params.bid} ORDER BY u.name`);
