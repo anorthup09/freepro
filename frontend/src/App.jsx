@@ -61,6 +61,7 @@ import AvoGantt from './pages/AvoGantt.jsx';
 import AvoProject from './pages/AvoProject.jsx';
 import GanttShare from './pages/GanttShare.jsx';
 import Team from './pages/Team.jsx';
+import CallSheetEmails from './pages/Project/CallSheetEmails.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
 import ProjectView, { ProjectViewDetail } from './pages/ProjectView.jsx';
 import ClientHub from './pages/ClientHub.jsx';
@@ -99,6 +100,7 @@ export default function App() {
         <Route path="/crew-views" element={user ? <CrewViews /> : <Navigate to="/login" />} />
         <Route path="/projects/:id" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <Project />) : <Navigate to="/login" />} />
         <Route path="/projects/:id/talent-callsheets" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <TalentCallSheets />) : <Navigate to="/login" />} />
+        <Route path="/projects/:id/emails" element={user ? <CallSheetEmails /> : <Navigate to="/login" />} />
         <Route path="/reports" element={user ? (user.role === 'CREW' ? <Navigate to="/" /> : <Reports />) : <Navigate to="/login" />} />
         <Route path="/reports/invoices" element={user ? (user.role === 'CREW' ? <Navigate to="/" /> : <InvoiceSearch />) : <Navigate to="/login" />} />
         <Route path="/project-view" element={user ? (user.role === 'CREW' ? <Navigate to="/" /> : <ProjectView />) : <Navigate to="/login" />} />

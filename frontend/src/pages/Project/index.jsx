@@ -149,7 +149,11 @@ function ShareDropdown({ projectId, showShotList }) {
       </button>
       {open && (
         <div className="share-menu">
-          <div style={{ padding:'6px 14px 3px', fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em' }}>Copy Link</div>
+          <div className="share-menu-item" onClick={() => { setOpen(false); navigate(`/projects/${projectId}/emails`); }}
+            style={{ border:'1px solid rgba(255,255,255,0.5)', borderRadius:5, margin:'6px 8px 2px', padding:'6px 10px', color:'#fff' }}>
+            ✉ Send Call Sheet Emails
+          </div>
+          <div style={{ borderTop:'1px solid var(--border)', margin:'4px 0', padding:'6px 14px 3px', fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em' }}>Copy Link</div>
           <div className="share-menu-item" onClick={() => handleOption('producer')}>Producer View</div>
           <div className="share-menu-item" onClick={() => handleOption('crew')}>Crew View</div>
           <div className="share-menu-item" onClick={() => handleOption('client')}>Client View</div>

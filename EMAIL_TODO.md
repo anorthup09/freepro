@@ -87,3 +87,4 @@ link (SMTP) is connected. Keep this file updated as email features are added.
       /forgot-password sends "Reset your password" with a 1-hour single-use
       link (/reset-password/:token). Dormant until SMTP; until then admins
       can reset passwords manually.
+- **Call sheet email sending (FreePro → Send Call Sheet Emails page)** — the page, recipient picker (producers/crew/client/talent), and AI draft are live; the "Send Emails" button is waiting on email. Requirement: send directly from the Main POC's inbox (per-user Gmail/Outlook OAuth, not a shared SMTP identity). Until then the page hands off via "Open in Mail App" with recipients in BCC.

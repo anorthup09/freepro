@@ -647,4 +647,49 @@ router.delete('/:id/questions/:qid', requireAuth, requireRole('ADMIN','PRODUCER'
   } catch(e){next(e);}
 });
 
+// AI-drafted call sheet email: high-level synopsis of the shoot
+router.post('/:id/call-sheet-email-draft', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try {
+    const [p] = await sql`
+      SELECT p.*, COALESCE(NULLIF(TRIM(CONCAT(cm.preferred_first_name, ' ', cm.preferred_last_name)), ''), cm.name) as poc_name
+      FROM projects p LEFT JOIN crew_members cm ON cm.id = p.poc_crew_member_id
+      WHERE p.id = ${req.params.id}`;
+    if (!p) return res.status(404).json({ error: 'Project not found' });
+    const locations = await sql`SELECT name, address, type FROM locations WHERE project_id = ${p.id}`;
+    const days = await sql`SELECT date as day_date, day_type FROM shoot_days WHERE project_id = ${p.id} ORDER BY date`;
+    const fmt = d => d ? new Date(d).toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', timeZone:'UTC' }) : '';
+    const dateRange = p.start_date ? `${fmt(p.start_date)}${p.end_date && fmt(p.end_date) !== fmt(p.start_date) ? ' through ' + fmt(p.end_date) : ''}` : 'TBD';
+    const venue = locations.find(l => l.type === 'PRIMARY_VENUE');
+    const fallback = {
+      subject: `Call Sheet — ${p.title}${p.start_date ? ' · ' + fmt(p.start_date) : ''}`,
+      body: `Hi all,\n\nAttached is the call sheet for ${p.title} (${p.code}).\n\nShoot dates: ${dateRange}\nLocation: ${venue ? `${venue.name}${venue.address ? ' — ' + venue.address : ''}` : `${p.city || ''}${p.state ? ', ' + p.state : ''}`}\n\nPlease review your call times, location details, and schedule in the call sheet link. Reply here with any questions.\n\nThanks,\n${p.poc_name || 'The Unbridled Media Team'}`,
+    };
+    if (!process.env.ANTHROPIC_API_KEY) return res.json(fallback);
+    try {
+      const context = {
+        title: p.title, code: p.code, client: p.client, city: p.city, state: p.state,
+        dates: dateRange, notes: p.notes || null, poc: p.poc_name || null,
+        locations: locations.map(l => ({ name: l.name, address: l.address, type: l.type })),
+        scheduleDays: days.map(d => ({ date: new Date(d.day_date).toISOString().slice(0,10), type: d.day_type })),
+      };
+      const r = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001', max_tokens: 700,
+          messages: [{ role: 'user', content:
+            `Draft a short, professional call sheet email for a video production shoot. It goes to the crew/client/talent along with a link to the interactive call sheet. Include a friendly greeting, a 2-3 sentence high-level synopsis of the shoot (what/when/where), a reminder to check call times and location details in the call sheet, and a sign-off from the point of contact. No subject placeholders or brackets — write final copy. Shoot data: ${JSON.stringify(context)}. Reply with ONLY JSON: {"subject": "...", "body": "..."} (body uses \\n newlines, plain text).` }],
+        }),
+      });
+      const j = await r.json();
+      const parsed = JSON.parse((j.content?.[0]?.text || '').match(/\{[\s\S]*\}/)?.[0] || '{}');
+      if (parsed.subject && parsed.body) return res.json(parsed);
+      return res.json(fallback);
+    } catch (e2) {
+      console.error('call sheet email draft AI failed:', e2.message);
+      return res.json(fallback);
+    }
+  } catch (e) { next(e); }
+});
+
 module.exports = router;

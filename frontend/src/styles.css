@@ -574,3 +574,7 @@ textarea { resize: vertical; min-height: 70px; }
   .pvd-bar { align-items: flex-start; }
   .pv-head .pv-amt { font-size: 11px !important; }
 }
+
+@media (max-width: 700px) {
+  .cse-grid { grid-template-columns: 1fr !important; }
+}

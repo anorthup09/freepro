@@ -186,6 +186,7 @@ export const api = {
 
   // Crew assignments
   getProjectCrew: (projectId) => req('GET', `/projects/${projectId}/crew`),
+  draftCallSheetEmail: (projectId) => req('POST', `/projects/${projectId}/call-sheet-email-draft`, {}),
   addCrewSlot: (projectId, data) => req('POST', `/projects/${projectId}/crew`, data),
   updateCrewSlot: (projectId, id, data) => req('PATCH', `/projects/${projectId}/crew/${id}`, data),
   removeCrewSlot: (projectId, id) => req('DELETE', `/projects/${projectId}/crew/${id}`),
