@@ -163,6 +163,7 @@ function HubProjects() {
   const nav = useNavigate();
   const [projects, setProjects] = useState(null);
   const [q, setQ] = useState('');
+  const [cq, setCq] = useState('');
   useEffect(() => { api.financeProjects().then(setProjects).catch(e => alert(e.message)); }, []);
   const list = [...(projects || [])].sort((a, b) => (a.code || '').localeCompare(b.code || ''));
   const s = q.trim().toLowerCase();
@@ -176,10 +177,13 @@ function HubProjects() {
     if (!byClient.has(key)) byClient.set(key, { name, projects: [] });
     byClient.get(key).projects.push(p);
   }
-  const clients = [...byClient.values()].filter(c => c.projects.length > 1).sort((a, b) => a.name.localeCompare(b.name));
+  const clients = [...byClient.values()].sort((a, b) => a.name.localeCompare(b.name));
+  const cs = cq.trim().toLowerCase();
+  const shownClients = cs ? clients.filter(c => c.name.toLowerCase().includes(cs)) : clients;
   return (
     <div>
-      <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:14 }}>
+      <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:14 }}>
+        <div style={{ fontSize:13, fontWeight:800 }}>Project Hub</div>
         <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search code, title, client…" style={{ width:240 }} />
       </div>
       {!projects && <div className="empty">Loading…</div>}
@@ -202,18 +206,18 @@ function HubProjects() {
       </div>
       {clients.length > 0 && (
         <>
-          <div style={{ margin:'26px 0 10px' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:14, margin:'26px 0 10px' }}>
             <div style={{ fontSize:13, fontWeight:800 }}>Client Hub</div>
-            <div style={{ fontSize:11, color:'var(--muted)' }}>Clients with multiple projects going at once</div>
+            <input value={cq} onChange={e => setCq(e.target.value)} placeholder="Search clients…" style={{ width:240 }} />
           </div>
           <div className="hub-tiles" style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(250px, 1fr))', gap:14 }}>
-            {clients.map(c => (
+            {shownClients.map(c => (
               <div key={c.name} onClick={() => nav(`/project-view/client/${encodeURIComponent(c.name)}`)}
                 style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid rgba(74,158,255,0.5)', borderRadius:10, padding:'16px 18px', cursor:'pointer', transition:'transform .15s ease' }}
                 onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-3px)'}
                 onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
                 <div style={{ fontSize:14, fontWeight:800 }}>{c.name}</div>
-                <div style={{ fontSize:11, color:'var(--muted)', margin:'3px 0 10px' }}>{c.projects.length} projects</div>
+                <div style={{ fontSize:11, color:'var(--muted)', margin:'3px 0 10px' }}>{c.projects.length} project{c.projects.length !== 1 ? 's' : ''}</div>
                 <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
                   {c.projects.slice(0, 4).map(p => (
                     <span key={p.id} style={{ fontSize:9, fontWeight:800, color:'#4a9eff', border:'1px solid rgba(74,158,255,0.4)', borderRadius:10, padding:'2px 8px' }}>{p.code}</span>

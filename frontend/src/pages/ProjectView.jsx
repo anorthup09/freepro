@@ -37,6 +37,7 @@ export default function ProjectView() {
   const nav = useNavigate();
   const [projects, setProjects] = useState(null);
   const [q, setQ] = useState('');
+  const [cq, setCq] = useState('');
 
   useEffect(() => { api.financeProjects().then(setProjects).catch(e => alert(e.message)); }, []);
 
@@ -50,9 +51,13 @@ export default function ProjectView() {
       if (!byClient.has(key)) byClient.set(key, { name, projects: [] });
       byClient.get(key).projects.push(p);
     }
-    return [...byClient.values()].filter(c => c.projects.length > 1)
-      .sort((a, b) => a.name.localeCompare(b.name));
+    return [...byClient.values()].sort((a, b) => a.name.localeCompare(b.name));
   }, [projects]);
+
+  const shownClients = useMemo(() => {
+    const s = cq.trim().toLowerCase();
+    return s ? clients.filter(c => c.name.toLowerCase().includes(s)) : clients;
+  }, [clients, cq]);
 
   const shown = useMemo(() => {
     const list = [...(projects || [])].sort((a, b) => (a.code || '').localeCompare(b.code || ''));
@@ -65,11 +70,12 @@ export default function ProjectView() {
     <div style={{ minHeight:'100vh', background:'var(--bg)' }}>
       <PVHeader />
       <div style={{ maxWidth:1100, margin:'0 auto', padding:'6px 16px 80px' }}>
-        <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'space-between', gap:10, flexWrap:'wrap', marginBottom:18 }}>
-          <div>
-            <div className="page-title">Project View</div>
-            <div className="page-sub">Every project — finance, pre-production, and post in one place</div>
-          </div>
+        <div style={{ marginBottom:18 }}>
+          <div className="page-title">Project View</div>
+          <div className="page-sub">Every project — finance, pre-production, and post in one place</div>
+        </div>
+        <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:14 }}>
+          <div style={{ fontSize:14, fontWeight:800 }}>Project Hub</div>
           <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search code, title, client…" style={{ width:240 }} />
         </div>
         {!projects && <div className="empty">Loading…</div>}
@@ -91,16 +97,16 @@ export default function ProjectView() {
 
         {clients.length > 0 && (
           <>
-            <div style={{ margin:'34px 0 12px' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:14, margin:'34px 0 12px' }}>
               <div style={{ fontSize:14, fontWeight:800 }}>Client Hub</div>
-              <div style={{ fontSize:11, color:'var(--muted)' }}>Clients with multiple projects going at once — resources, branding, and every project in one place</div>
+              <input value={cq} onChange={e => setCq(e.target.value)} placeholder="Search clients…" style={{ width:240 }} />
             </div>
             <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(250px, 1fr))', gap:14 }}>
-              {clients.map(c => (
+              {shownClients.map(c => (
                 <div key={c.name} onClick={() => nav(`/project-view/client/${encodeURIComponent(c.name)}`)}
                   style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid rgba(74,158,255,0.5)', borderRadius:10, padding:'16px 18px', cursor:'pointer' }}>
                   <div style={{ fontSize:14, fontWeight:800 }}>{c.name}</div>
-                  <div style={{ fontSize:11, color:'var(--muted)', margin:'3px 0 10px' }}>{c.projects.length} projects</div>
+                  <div style={{ fontSize:11, color:'var(--muted)', margin:'3px 0 10px' }}>{c.projects.length} project{c.projects.length !== 1 ? 's' : ''}</div>
                   <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
                     {c.projects.slice(0, 4).map(p => (
                       <span key={p.id} style={{ fontSize:9, fontWeight:800, color:'#4a9eff', border:'1px solid rgba(74,158,255,0.4)', borderRadius:10, padding:'2px 8px' }}>{p.code}</span>
