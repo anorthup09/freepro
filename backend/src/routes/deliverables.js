@@ -40,7 +40,7 @@ async function mirrorToAvo(item, actor) {
 router.get('/:id/deliverables', requireAuth, async (req, res, next) => {
   try {
     res.json(await sql`
-      SELECT d.*, e.id as edit_id, e.tracker_type, e.pm_id, e.lead_editor_id, e.start_date, e.review_link, e.category as avo_category
+      SELECT d.*, e.id as edit_id, e.tracker_type, e.pm_id, e.lead_editor_id, e.start_date, e.review_link, e.category as avo_category, e.status as avo_status
       FROM deliverables d
       LEFT JOIN edits e ON e.deliverable_id = d.id
       WHERE d.project_id = ${req.params.id} ORDER BY d.created_at`);
