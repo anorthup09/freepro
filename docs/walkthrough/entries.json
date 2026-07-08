@@ -106,5 +106,17 @@
       "Click a filename (or \u2b07) to download; \u2715 deletes with a confirm."
     ],
     "screenshot": "vendor-invoices.png"
+  },
+  {
+    "title": "Printer-friendly PDFs (shot lists & call sheets)",
+    "what": "Exporting a shot list or call sheet now produces a clean, high-contrast report instead of a screen print: white pages, black text, no browser URL/title stamped at the top and bottom, interactive buttons removed, and rows kept together across page breaks.",
+    "where": "Any shared view (shot list, call sheet) \u2192 the PDF button in the top bar, or your browser's Print.",
+    "how": [
+      "Open the shot list (or call sheet) view and click <b>PDF</b>.",
+      "In the print dialog choose <b>Save as PDF</b> \u2014 margins and styling are handled for you.",
+      "The printed document is titled with the project code and name.",
+      "Scene color-coding (INT blue / EXT green) is kept for navigation; all text prints black."
+    ],
+    "screenshot": "print-shotlist.png"
   }
 ]
