@@ -302,22 +302,14 @@ export default function Hub() {
             </div>
             )}
 
-            {/* Team Management: constant elongated tile below both views */}
+            {/* Team Management: small constant tile below both views */}
             {teamTile && (
-              <div onClick={() => nav(teamTile.to)}
-                style={{ marginTop:18, background:'var(--bg2)', border:'1px solid var(--border)', borderLeft:`4px solid ${teamTile.accent}`,
-                  borderRadius:12, padding:'16px 24px', cursor:'pointer', display:'flex', alignItems:'center', gap:16, transition:'transform .15s ease' }}
-                onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
-                onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
-                <div style={{ width:38, height:38, borderRadius:10, background:`${teamTile.accent}22`, color:teamTile.accent, display:'flex', alignItems:'center', justifyContent:'center', fontSize:18, flexShrink:0 }}>
-                  {teamTile.icon}
-                </div>
-                <div style={{ flex:1, minWidth:0 }}>
-                  <span style={{ fontSize:15, fontWeight:800 }}>{teamTile.title}</span>
-                  <span style={{ fontSize:10, color:teamTile.accent, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', marginLeft:10 }}>{teamTile.tagline}</span>
-                  <div style={{ fontSize:11, color:'var(--muted)', marginTop:2 }}>{teamTile.desc}</div>
-                </div>
-                <div style={{ fontSize:11, color:teamTile.accent, fontWeight:600, flexShrink:0 }}>Open →</div>
+              <div style={{ display:'flex', justifyContent:'center', marginTop:22 }}>
+                <button onClick={() => nav(teamTile.to)}
+                  style={{ background:'rgba(74,158,255,0.14)', border:`1.5px solid ${teamTile.accent}`, color:teamTile.accent,
+                    borderRadius:12, padding:'12px 26px', fontSize:13, fontWeight:800, cursor:'pointer', display:'flex', alignItems:'center', gap:8 }}>
+                  <span style={{ fontSize:16 }}>{teamTile.icon}</span> Team Management
+                </button>
               </div>
             )}
           </div>
