@@ -144,7 +144,7 @@ const MILESTONE_LABELS = {
 
 const FIELD_LOGS = {
   title: 'Title', description: 'Description', aspectRatio: 'Aspect Ratio', resolution: 'Resolution',
-  assetRef: 'Asset Ref', musicRef: 'Music Ref', category: 'Category', status: 'Status',
+  assetRef: 'Asset Ref', musicRef: 'Music Ref', category: 'Category', drive: 'Drive', status: 'Status',
   reviewLink: 'Current Review Link', startDate: 'Start Date', endDate: 'End Date',
   version: 'Version', approved: 'Approved', projectCode: 'Project Code',
   trackerType: 'Type', style: 'Style', notes: 'Notes', videoAssets: 'Video Assets',
@@ -203,6 +203,7 @@ router.patch('/edits/:id', ...staff, async (req, res, next) => {
         asset_ref = ${d.assetRef !== undefined ? (d.assetRef || null) : sql`asset_ref`},
         music_ref = ${d.musicRef !== undefined ? (d.musicRef || null) : sql`music_ref`},
         category = ${d.category !== undefined ? (d.category || null) : sql`category`},
+        drive = ${d.drive !== undefined ? (d.drive || null) : sql`drive`},
         status = ${d.status !== undefined && editStatuses.includes(d.status) ? d.status : sql`status`},
         review_link = ${d.reviewLink !== undefined ? (d.reviewLink || null) : sql`review_link`},
         start_date = ${d.startDate !== undefined ? (d.startDate || null) : sql`start_date`},
@@ -221,7 +222,7 @@ router.patch('/edits/:id', ...staff, async (req, res, next) => {
     // Postmarked change log
     const beforeVals = {
       title: before.title, description: before.description, aspectRatio: before.aspect_ratio, resolution: before.resolution,
-      assetRef: before.asset_ref, musicRef: before.music_ref, category: before.category, status: before.status,
+      assetRef: before.asset_ref, musicRef: before.music_ref, category: before.category, drive: before.drive, status: before.status,
       reviewLink: before.review_link, startDate: before.start_date ? String(before.start_date).slice(0, 10) : null,
       endDate: before.end_date ? String(before.end_date).slice(0, 10) : null,
       version: before.version, approved: before.approved, projectCode: before.project_code,

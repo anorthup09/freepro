@@ -487,6 +487,8 @@ export default function AvoEdit() {
                 <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
                   {field('Aspect Ratio', 'aspect_ratio', 'aspectRatio')}
                   {field('Resolution', 'resolution', 'resolution')}
+                </div>
+                <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
                   <div style={{ flex:1, minWidth:150 }}>
                     <span style={lbl}>Category</span>
                     <select value={e.category || ''} onChange={ev => { patch({ category: ev.target.value }); save({ category: ev.target.value }); }}>
@@ -495,6 +497,7 @@ export default function AvoEdit() {
                       {CATEGORIES.map(c => <option key={c}>{c}</option>)}
                     </select>
                   </div>
+                  {field('Drive', 'drive', 'drive')}
                 </div>
                 <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
                   {field('Asset Ref', 'asset_ref', 'assetRef')}

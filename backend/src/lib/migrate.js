@@ -1160,6 +1160,8 @@ async function migrate() {
       created_at TIMESTAMPTZ DEFAULT NOW()
     )`;
 
+  await sql`ALTER TABLE edits ADD COLUMN IF NOT EXISTS drive TEXT`;
+
   // Client roster — canonical client names, selected from budgets
   await sql`
     CREATE TABLE IF NOT EXISTS clients (
