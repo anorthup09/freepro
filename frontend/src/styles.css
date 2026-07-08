@@ -572,8 +572,5 @@ textarea { resize: vertical; min-height: 70px; }
 /* Overview header on phones: status pinned top right, back button top right */
 @media (max-width: 700px) {
   .pvd-bar { align-items: flex-start; }
-  .pv-head { position: relative; align-items: flex-start !important; }
-  .pv-head > div:first-child { padding-right: 82px; }
-  .pv-head .pv-status { position: absolute; top: 12px; right: 14px; }
   .pv-head .pv-amt { font-size: 11px !important; }
 }

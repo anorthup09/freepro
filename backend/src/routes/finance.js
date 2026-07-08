@@ -155,7 +155,7 @@ async function autoTagOwner(budgetId, ownerName) {
 router.get('/finance/projects', ...finance, async (req, res, next) => {
   try {
     const projects = await sql`
-      SELECT p.id, p.code, p.title, p.client, p.status, p.start_date, p.end_date, p.pipeline, b.id as budget_id, b.status as budget_status,
+      SELECT p.id, p.code, p.title, p.client, p.client_logo, p.status, p.start_date, p.end_date, p.pipeline, b.id as budget_id, b.status as budget_status,
              b.mgmt_fee_rate, b.total_cap_co, b.deposit, b.additional_deposit, b.media_rep, b.close_month
       FROM projects p LEFT JOIN budgets b ON b.project_id = p.id AND COALESCE(b.kind, 'main') = 'main'
       WHERE p.status != 'ARCHIVED' AND p.parent_project_id IS NULL

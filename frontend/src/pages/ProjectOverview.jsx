@@ -273,26 +273,19 @@ export default function ProjectOverview({ pid }) {
 
   return (
     <div className="pv-overview" style={{ maxWidth:1250, margin:'0 auto', padding:'8px 16px 60px', display:'grid', gridTemplateColumns:'1fr 320px', gridTemplateRows:'auto 1fr', gap:16, alignItems:'start' }}>
-      {/* ── Budget/header card (own grid child so mobile can order it first) ── */}
+      {/* ── Budget tile: status left, running total right ── */}
       <div className="pv-head" style={{ gridColumn:1, ...card, display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap' }}>
-        <div>
-          <div style={{ fontSize:11, color:'var(--muted)', fontWeight:800, letterSpacing:'0.04em' }}>{project.code}</div>
-          <div style={{ fontSize:18, fontWeight:800 }}>{project.title}</div>
-          <div style={{ display:'flex', alignItems:'baseline', gap:12, flexWrap:'wrap' }}>
-            <span style={{ fontSize:12, color:'var(--muted)' }}>{project.client}</span>
-            {budgetAmount != null && (
-              <span className="pv-amt" style={{ fontSize:12, fontWeight:800, whiteSpace:'nowrap' }}>
-                <span style={{ color:'#5ABF80' }}>Budget {fmt$(budgetAmount)}</span>
-                <span style={{ color:'var(--muted)', fontWeight:400 }}> | </span>
-                <span style={{ color:'#e6c229' }}>Est Fee {fmt$(budgetFee || 0)}</span>
-              </span>
-            )}
-          </div>
-        </div>
-        <div className="pv-status" style={{ textAlign:'right' }}>
-          <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4 }}>Budget Status</div>
+        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+          <span style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Budget Status</span>
           <StatusPill status={budgetStatus || 'No budget'} />
         </div>
+        {budgetAmount != null && (
+          <span className="pv-amt" style={{ fontSize:13, fontWeight:800, whiteSpace:'nowrap' }}>
+            <span style={{ color:'#5ABF80' }}>Budget {fmt$(budgetAmount)}</span>
+            <span style={{ color:'var(--muted)', fontWeight:400 }}> | </span>
+            <span style={{ color:'#e6c229' }}>Est Fee {fmt$(budgetFee || 0)}</span>
+          </span>
+        )}
       </div>
 
       {/* ── Left: cover page ── */}
