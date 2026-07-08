@@ -1141,6 +1141,9 @@ async function migrate() {
       uploaded_by TEXT,
       created_at TIMESTAMPTZ DEFAULT NOW()
     )`;
+  // AI-extracted fields from the invoice file
+  await sql`ALTER TABLE vendor_invoices ADD COLUMN IF NOT EXISTS vendor_name TEXT`;
+  await sql`ALTER TABLE vendor_invoices ADD COLUMN IF NOT EXISTS amount NUMERIC(12,2)`;
 
   console.log('Migration complete.');
 }

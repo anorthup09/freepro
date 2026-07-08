@@ -950,9 +950,35 @@ router.patch('/finance/pipeline/:pid', ...finance, async (req, res, next) => {
 });
 
 // ── Vendor invoices: uploaded files per project ──
+// Claude reads the invoice and pulls out the vendor + total (needs ANTHROPIC_API_KEY)
+async function extractInvoiceFields(mime, base64) {
+  if (!process.env.ANTHROPIC_API_KEY) return null;
+  const isPdf = (mime || '').includes('pdf');
+  const isImg = /image\/(png|jpe?g|webp|gif)/.test(mime || '');
+  if (!isPdf && !isImg) return null;
+  const block = isPdf
+    ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } }
+    : { type: 'image', source: { type: 'base64', media_type: mime, data: base64 } };
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001', max_tokens: 300,
+      messages: [{ role: 'user', content: [block, { type: 'text', text: 'This is a vendor invoice. Reply with ONLY a JSON object: {"vendor": "<the vendor/company issuing the invoice>", "total": <the invoice total as a number, no currency symbol>}. Use null for anything you cannot find.' }] }],
+    }),
+  });
+  if (!r.ok) throw new Error(`AI extract failed (${r.status})`);
+  const d = await r.json();
+  const text = (d.content || []).map(c => c.text || '').join('');
+  const m2 = text.match(/\{[\s\S]*\}/);
+  if (!m2) return null;
+  const parsed = JSON.parse(m2[0]);
+  return { vendor: parsed.vendor || null, total: Number.isFinite(Number(parsed.total)) ? Number(parsed.total) : null };
+}
+
 router.get('/finance/:pid/vendor-invoices', ...finance, async (req, res, next) => {
   try {
-    res.json(await sql`SELECT id, filename, mime, size, note, uploaded_by, created_at FROM vendor_invoices WHERE project_id = ${req.params.pid} ORDER BY created_at DESC`);
+    res.json(await sql`SELECT id, filename, mime, size, note, uploaded_by, vendor_name, amount, created_at FROM vendor_invoices WHERE project_id = ${req.params.pid} ORDER BY created_at DESC`);
   } catch (e) { next(e); }
 });
 router.post('/finance/:pid/vendor-invoices', ...finance, async (req, res, next) => {
@@ -961,10 +987,17 @@ router.post('/finance/:pid/vendor-invoices', ...finance, async (req, res, next) 
     if (!filename || !fileBase64) return res.status(400).json({ error: 'filename and file required' });
     const buf = Buffer.from(fileBase64, 'base64');
     if (buf.length > 20 * 1024 * 1024) return res.status(413).json({ error: 'File too large (20MB max)' });
-    const [row] = await sql`
+    let [row] = await sql`
       INSERT INTO vendor_invoices (project_id, filename, mime, size, data, note, uploaded_by)
       VALUES (${req.params.pid}, ${filename}, ${mime || null}, ${buf.length}, ${buf}, ${note || null}, ${req.user?.email || null})
-      RETURNING id, filename, mime, size, note, uploaded_by, created_at`;
+      RETURNING id, filename, mime, size, note, uploaded_by, vendor_name, amount, created_at`;
+    try {
+      const ai = await extractInvoiceFields(mime, fileBase64);
+      if (ai && (ai.vendor || ai.total != null)) {
+        [row] = await sql`UPDATE vendor_invoices SET vendor_name = ${ai.vendor}, amount = ${ai.total}
+          WHERE id = ${row.id} RETURNING id, filename, mime, size, note, uploaded_by, vendor_name, amount, created_at`;
+      }
+    } catch (e2) { console.error('Invoice AI extract failed:', e2.message); }
     res.status(201).json(row);
   } catch (e) { next(e); }
 });

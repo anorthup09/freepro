@@ -1047,8 +1047,16 @@ function VendorInvoicesButton({ pid }) {
                 <div key={f.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 0', borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
                   <div style={{ flex:1, minWidth:0 }}>
                     <div onClick={() => download(f)} style={{ fontSize:12, fontWeight:700, color:'#4a9eff', cursor:'pointer', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{f.filename}</div>
-                    <div style={{ fontSize:10, color:'var(--muted)' }}>{fmtSize(f.size)} · {f.uploaded_by || 'unknown'} · {new Date(f.created_at).toLocaleDateString()}</div>
+                    <div style={{ fontSize:10, color:'var(--muted)' }}>
+                      {f.vendor_name && <span style={{ color:'var(--text)', fontWeight:700 }}>{f.vendor_name} · </span>}
+                      {fmtSize(f.size)} · {f.uploaded_by || 'unknown'} · {new Date(f.created_at).toLocaleDateString()}
+                    </div>
                   </div>
+                  {f.amount != null && (
+                    <div style={{ fontSize:13, fontWeight:800, color:'#e6c229', whiteSpace:'nowrap' }}>
+                      {'$' + Number(f.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    </div>
+                  )}
                   <button className="btn btn-ghost btn-sm" onClick={() => download(f)}>⬇</button>
                   <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text, #e05252)' }} onClick={() => remove(f)}>✕</button>
                 </div>
