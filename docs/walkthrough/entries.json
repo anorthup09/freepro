@@ -187,5 +187,18 @@
       "Type the drive name or number in <b>Drive</b> (next to Category) — it saves automatically when you click away."
     ],
     "screenshot": "avo-drive.png"
+  },
+  {
+    "title": "Customizable grids on Avo project pages",
+    "what": "Every tab on an Avo project page (Video Tracker, To-Do List, Music Options, Lower Thirds) is now a customizable grid: add your own text columns, merge cells into blocks, drag rows and columns into any order, and add rows from every tab — including the Video Tracker, where a new row creates a real pipeline edit. Layouts are saved per project.",
+    "where": "AvocadoPost → Project Lookup → open a project → any tab. The toolbar sits under each grid.",
+    "how": [
+      "<b>+ Add Row</b> — on the Video Tracker it asks for a title and creates a pipeline edit under this project's code.",
+      "<b>+ Add Column</b> — name it and a text column appears; hover its header for ✎ rename / ✕ remove.",
+      "<b>Merge Cells</b> — click the button, click the first and last cell of the block (any rectangle), then <b>✓ Apply Merge</b>. Click a merged cell in merge mode to Unmerge.",
+      "Drag the ⠿ grip to reorder rows; drag a column header onto another to reorder columns.",
+      "Everything (columns, merges, order) is remembered per project page."
+    ],
+    "screenshot": "avo-custom-grids.png"
   }
 ]
