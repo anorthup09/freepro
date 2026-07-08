@@ -166,5 +166,16 @@
       "The roster started pre-loaded with every client name already on your projects."
     ],
     "screenshot": "client-roster.png"
+  },
+  {
+    "title": "Client Hub password",
+    "what": "Each client hub now has its own password, set from a button right of the Team View / Client View toggle. This is the password clients will use to open their portal once the Client View ships — set it now and it's ready when the portal is.",
+    "where": "Project View → any client's hub → the 🔒 button next to the view toggle.",
+    "how": [
+      "Open a client's hub and look right of the <b>Team View | Client View</b> toggle.",
+      "Click <b>🔒 Set Hub Password</b> and type the password — the button turns green (<b>🔒 Password Set</b>).",
+      "Click it again to change the password, or leave the prompt empty to remove it."
+    ],
+    "screenshot": "client-hub-password.png"
   }
 ]
