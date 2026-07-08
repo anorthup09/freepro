@@ -166,17 +166,22 @@ export default function GanttChart({ edits }) {
                   const rf = Math.round((day(r.from) - min) / MS_DAY);
                   const rt = Math.round((day(r.to) - min) / MS_DAY);
                   const lane = i % 2;
+                  // Segments run center-of-day to center-of-day, so back-to-back
+                  // runners split the shared day at the milestone instead of overlapping
+                  const narrow = (rt - rf) <= 3;   // short runner: center a compact label and let it overflow
+                  const shortLabel = String(r.label).replace('Creative/Scripting Complete', 'Scripting').replace(' Complete', '').replace('Send to ', '');
                   return (
                     <div key={i} title={`${r.title}: ${fmt(r.from)} → ${fmt(r.to)}`}
                       style={{
                         position: 'absolute', top: 38 + lane * 18, height: 15, zIndex: 2,
-                        left: `${(rf / span) * 100}%`,
-                        width: `calc(${(Math.max(1, rt - rf + 1) / span) * 100}% - 2px)`,
+                        left: `${((rf + 0.5) / span) * 100}%`,
+                        width: `calc(${(Math.max(0.9, rt - rf) / span) * 100}% - 2px)`,
                         background: `${r.color}30`, border: `1px solid ${r.color}`, borderRadius: 6,
-                        display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: '0 5px', overflow: 'hidden',
+                        display: 'flex', alignItems: 'center', justifyContent: narrow ? 'center' : 'flex-end',
+                        padding: '0 5px', overflow: narrow ? 'visible' : 'hidden',
                         fontSize: 8, fontWeight: 800, color: r.color, whiteSpace: 'nowrap',
                       }}>
-                      {r.label}
+                      {narrow ? shortLabel : r.label}
                     </div>
                   );
                 })}
