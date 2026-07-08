@@ -48,5 +48,28 @@
       "<b>\u2039 All Projects</b> returns to the project list."
     ],
     "screenshot": "project-workspace.png"
+  },
+  {
+    "title": "Budget status paths (RFP \u2192 Live/Dead, Live \u2192 Reconcile/Closed)",
+    "what": "The budget status dropdown now guides the workflow instead of listing every status. From RFP you can go Live or Dead; from Live you can go Reconcile or Closed; Reconcile moves to Closed. Archived budgets can be reopened (Closed \u2192 Live, Dead \u2192 RFP).",
+    "where": "ProFi \u2192 any project budget \u2192 the Status pill in the header row.",
+    "how": [
+      "Open a budget and click the <b>Status</b> pill.",
+      "Only the valid next steps for the current status are offered (with a hint under each).",
+      "<b>Dead</b> and <b>Closed</b> both send the budget to the Archive folder; closing also archives its FreePro shoot tiles."
+    ],
+    "screenshot": "status-paths.png"
+  },
+  {
+    "title": "Archive organized by Closed / Dead and by year",
+    "what": "The Archive folder separates finished work from dead RFPs, and closed budgets are filed by year so the archive stays browsable as it grows.",
+    "where": "ProFi \u2192 Project Finance \u2192 the Archive folder chip.",
+    "how": [
+      "Open the <b>Archive</b> folder on the Project Finance page.",
+      "Use the <b>Closed | Dead</b> toggle \u2014 Closed is the default.",
+      "In Closed, pick a year from the scrollable chips (defaults to the current year; the year comes from the budget's close month).",
+      "Dead shows all not-approved budgets in one list."
+    ],
+    "screenshot": "archive-year.png"
   }
 ]
