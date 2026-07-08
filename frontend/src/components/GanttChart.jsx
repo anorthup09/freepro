@@ -166,7 +166,7 @@ export default function GanttChart({ edits }) {
                 {runners.map((r, i) => {
                   const rf = Math.round((day(r.from) - min) / MS_DAY);
                   const rt = Math.round((day(r.to) - min) / MS_DAY);
-                  const lane = i % 2;
+                  const lane = 0;   // split-day segments butt cleanly — one shared plane
                   // Segments run center-of-day to center-of-day, so back-to-back
                   // runners split the shared day at the milestone instead of overlapping
                   const narrow = (rt - rf) <= 3;   // short runner: show an info icon instead of clipped text
