@@ -131,6 +131,7 @@ export default function Overview({ project, setProject, onTabChange }) {
   const [info, setInfo] = useState({ code: project.code, title: project.title, client: project.client, city: project.city, state: project.state, startDate: (project.start_date||project.startDate)?.slice(0,10), endDate: (project.end_date||project.endDate)?.slice(0,10), status: project.status, notes: project.notes || '' });
   const [showLocModal, setShowLocModal] = useState(false);
   const [locForm, setLocForm] = useState({ name:'', address:'', type:'PRIMARY_VENUE', emoji:'' });
+  const [editLocId, setEditLocId] = useState(null);   // location being edited in the modal
   const [showContactModal, setShowContactModal] = useState(false);
   const [contactForm, setContactForm] = useState({ name:'', title:'', email:'', phone:'' });
   const [editContactId, setEditContactId] = useState(null);
@@ -213,10 +214,21 @@ export default function Overview({ project, setProject, onTabChange }) {
   async function addLocation(e) {
     e.preventDefault();
     try {
-      const loc = await api.createLocation(project.id, locForm);
-      setProject(p => ({ ...p, locations: [...p.locations, loc] }));
-      setShowLocModal(false); setLocForm({ name:'', address:'', type:'PRIMARY_VENUE', emoji:'' });
+      if (editLocId) {
+        const loc = await api.updateLocation(project.id, editLocId, locForm);
+        setProject(p => ({ ...p, locations: p.locations.map(l => l.id === editLocId ? loc : l) }));
+      } else {
+        const loc = await api.createLocation(project.id, locForm);
+        setProject(p => ({ ...p, locations: [...p.locations, loc] }));
+      }
+      setShowLocModal(false); setEditLocId(null); setLocForm({ name:'', address:'', type:'PRIMARY_VENUE', emoji:'' });
     } catch(e) { alert(e.message); }
+  }
+
+  function openEditLocation(l) {
+    setLocForm({ name: l.name || '', address: l.address || '', type: l.type || 'PRIMARY_VENUE', emoji: l.emoji || '' });
+    setEditLocId(l.id);
+    setShowLocModal(true);
   }
 
   async function deleteLocation(id) {
@@ -533,7 +545,11 @@ export default function Overview({ project, setProject, onTabChange }) {
                     ? <a href={`https://maps.google.com/?q=${encodeURIComponent(l.address)}`} target="_blank" rel="noreferrer" style={{ fontSize:12, color:'var(--tan)', textDecoration:'none' }}>{l.address}</a>
                     : <span style={{ fontSize:12, color:'var(--muted)' }}>—</span>
                   }
-                  <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => deleteLocation(l.id)}>✕</button>
+                  <div style={{ whiteSpace:'nowrap' }}>
+                    <button title="Edit name / address (override what the map search filled in)"
+                      style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11, marginRight:6 }} onClick={() => openEditLocation(l)}>✎</button>
+                    <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => deleteLocation(l.id)}>✕</button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -588,9 +604,9 @@ export default function Overview({ project, setProject, onTabChange }) {
 
       {/* Add Location Modal */}
       {showLocModal && (
-        <div className="modal-bg" onClick={e => e.target === e.currentTarget && setShowLocModal(false)}>
+        <div className="modal-bg" onClick={e => e.target === e.currentTarget && (setShowLocModal(false), setEditLocId(null))}>
           <div className="modal">
-            <div className="modal-title">Add Location</div>
+            <div className="modal-title">{editLocId ? 'Edit Location' : 'Add Location'}</div>
             <form onSubmit={addLocation}>
               <div className="form-grid" style={{ marginBottom:12 }}>
                 <div className="field span2">
@@ -609,7 +625,7 @@ export default function Overview({ project, setProject, onTabChange }) {
                 </div>
                 <div className="field"><label>Emoji</label><input value={locForm.emoji} onChange={e => setLocForm(f=>({...f,emoji:e.target.value}))} placeholder="🏛" /></div>
               </div>
-              <div className="btn-row"><button className="btn btn-primary">Add Location</button><button type="button" className="btn btn-ghost" onClick={() => setShowLocModal(false)}>Cancel</button></div>
+              <div className="btn-row"><button className="btn btn-primary">{editLocId ? 'Save Changes' : 'Add Location'}</button><button type="button" className="btn btn-ghost" onClick={() => { setShowLocModal(false); setEditLocId(null); setLocForm({ name:'', address:'', type:'PRIMARY_VENUE', emoji:'' }); }}>Cancel</button></div>
             </form>
           </div>
         </div>
