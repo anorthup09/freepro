@@ -675,15 +675,21 @@ router.post('/:id/call-sheet-email-draft', requireAuth, requireRole('ADMIN','PRO
         title: p.title, code: p.code, client: p.client, city: p.city, state: p.state,
         dates: dateRange, notes: p.notes || null, poc: p.poc_name || null, callSheetLink: shareUrl,
         locations: locations.map(l => ({ name: l.name, address: l.address, type: l.type })),
-        scheduleDays: days.map(d => ({ date: new Date(d.day_date).toISOString().slice(0,10), type: d.day_type })),
+        scheduleDays: days.map(d => ({ date: new Date(d.day_date).toISOString().slice(0,10), type: d.day_type, callTime: d.call_time, wrapTime: d.wrap_time, notes: d.notes })),
+      };
+      const length = ['short', 'medium', 'long'].includes(req.body.length) ? req.body.length : 'medium';
+      const LENGTH_SPEC = {
+        short: 'Keep it very short: greeting, one sentence with the link, one sentence on when/where, sign-off. No day-by-day detail.',
+        medium: 'Medium length: greeting, link, a 2-3 sentence synopsis of the shoot (what/when/where), a reminder to check call times, sign-off.',
+        long: 'Longer and more detailed: greeting, link, a synopsis paragraph, then a short day-by-day rundown (date, day type, call time when available), the key locations with addresses, and a closing reminder to confirm call times and reply with questions.',
       };
       const r = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
         body: JSON.stringify({
-          model: 'claude-haiku-4-5-20251001', max_tokens: 700,
+          model: 'claude-haiku-4-5-20251001', max_tokens: 1000,
           messages: [{ role: 'user', content:
-            `Draft a short, professional call sheet email for a video production shoot. It goes to the crew/client/talent along with a link to the interactive call sheet. The subject line must start with "Call Sheet/Production Schedule". Open the body with exactly "Hi [Name]," on its own line — the [Name] placeholder is replaced per recipient. The body MUST include the call sheet link (callSheetLink) verbatim on its own line early in the email. Then include a 2-3 sentence high-level synopsis of the shoot (what/when/where), a reminder to check call times and location details in the call sheet, and a sign-off from the point of contact. No subject placeholders or brackets — write final copy. Shoot data: ${JSON.stringify(context)}. Reply with ONLY JSON: {"subject": "...", "body": "..."} (body uses \\n newlines, plain text).` }],
+            `Draft a professional call sheet email for a video production shoot. It goes to the crew/client/talent along with a link to the interactive call sheet. The subject line must start with "Call Sheet/Production Schedule". Open the body with exactly "Hi [Name]," on its own line — the [Name] placeholder is replaced per recipient. The body MUST include the call sheet link (callSheetLink) verbatim on its own line early in the email. ${LENGTH_SPEC[length]} End with a sign-off from the point of contact. No subject placeholders or brackets — write final copy. Shoot data: ${JSON.stringify(context)}. Reply with ONLY JSON: {"subject": "...", "body": "..."} (body uses \\n newlines, plain text).` }],
         }),
       });
       const j = await r.json();

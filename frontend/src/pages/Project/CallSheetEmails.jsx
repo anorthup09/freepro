@@ -6,13 +6,17 @@ const KEY_PRODUCTION_POSITIONS = ['Director', 'Executive Producer', 'Field Produ
 const card = { background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, padding:'16px 18px' };
 const secHdr = { fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.07em', marginBottom:8 };
 
-function Row({ checked, onToggle, name, sub, noEmail }) {
+function Row({ checked, onToggle, name, sub, noEmail, onPreview }) {
   return (
-    <label style={{ display:'flex', alignItems:'center', gap:9, padding:'5px 2px', cursor: noEmail ? 'default' : 'pointer', opacity: noEmail ? 0.45 : 1 }}>
-      <input type="checkbox" checked={checked} disabled={noEmail} onChange={onToggle} style={{ width:'auto', accentColor:'var(--orange)' }} />
-      <span style={{ fontSize:12, fontWeight:700 }}>{name}</span>
-      <span style={{ fontSize:10, color:'var(--muted)' }}>{noEmail ? 'no email on file' : sub}</span>
-    </label>
+    <div style={{ display:'flex', alignItems:'center', gap:9, padding:'5px 2px', opacity: noEmail ? 0.45 : 1 }}>
+      <input type="checkbox" checked={checked} disabled={noEmail} onChange={onToggle} style={{ width:'auto', accentColor:'var(--orange)', cursor: noEmail ? 'default' : 'pointer' }} />
+      <span style={{ fontSize:12, fontWeight:700, cursor: noEmail ? 'default' : 'pointer' }} onClick={() => !noEmail && onToggle()}>{name}</span>
+      <span style={{ fontSize:10, color:'var(--muted)', flex:1 }}>{noEmail ? 'no email on file' : sub}</span>
+      {onPreview && (
+        <button title={`Quick view — ${name}'s call sheet (only their events)`} onClick={onPreview}
+          style={{ background:'none', border:'none', color:'var(--muted)', fontSize:12, cursor:'pointer', padding:'0 2px' }}>👁</button>
+      )}
+    </div>
   );
 }
 
@@ -24,13 +28,21 @@ export default function CallSheetEmails() {
   const [drafting, setDrafting] = useState(false);
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
+  const [preview, setPreview] = useState(null);   // { name, url }
+
+  async function previewFor(name) {
+    try {
+      const share = await api.createShare(id, { viewType: 'crew' });
+      setPreview({ name, url: `/share/${share.token}?for=${encodeURIComponent(name)}` });
+    } catch (e) { alert(e.message); }
+  }
 
   useEffect(() => { api.getProject(id).then(setProject).catch(e => alert(e.message)); }, [id]);
 
   const groups = useMemo(() => {
     if (!project) return null;
     const crew = (project.crewAssignments || []).map(a => ({
-      name: a.cm_name || a.name, email: a.cm_email || a.email, sub: a.position_name,
+      name: a.cm_name || a.name, email: a.cm_email || a.email, sub: a.position_name, crew: true,
     }));
     const seen = new Set();
     const uniqCrew = crew.filter(c => c.name && !seen.has(c.name + '|' + c.email) && seen.add(c.name + '|' + c.email));
@@ -56,13 +68,13 @@ export default function CallSheetEmails() {
   });
   const selected = Object.keys(sel).filter(e => sel[e]);
 
-  async function draft() {
-    setDrafting(true);
+  async function draft(length) {
+    setDrafting(length);
     try {
-      const d = await api.draftCallSheetEmail(id);
+      const d = await api.draftCallSheetEmail(id, length);
       setSubject(d.subject); setBody(d.body);
     } catch (e) { alert(e.message); }
-    setDrafting(false);
+    setDrafting(null);
   }
 
   const nameOf = useMemo(() => {
@@ -71,12 +83,16 @@ export default function CallSheetEmails() {
     return map;
   }, [groups]);
 
-  // The [Name] placeholder renders live as the selected recipient's first name
+  // The [Name] placeholder renders live: one recipient → their first name; several → "Hey everyone,"
   const firstName = selected.length === 1 && nameOf[selected[0]] ? String(nameOf[selected[0]]).split(/\s+/)[0] : null;
-  const displayBody = firstName ? body.replace(/\[Name\]/g, firstName) : body;
+  const displayBody = firstName
+    ? body.replace(/\[Name\]/g, firstName)
+    : selected.length > 1
+      ? body.replace(/\b(Hi|Hello|Hey) \[Name\]/g, 'Hey everyone').replace(/\[Name\]/g, 'everyone')
+      : body;
 
   function openMail() {
-    const b = displayBody.replace(/\[Name\]/g, 'all');
+    const b = displayBody.replace(/\[Name\]/g, 'everyone');
     if (selected.length === 1) {
       window.location.href = `mailto:${encodeURIComponent(selected[0])}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(b)}`;
       return;
@@ -98,6 +114,7 @@ export default function CallSheetEmails() {
       {list.length === 0 && <div style={{ fontSize:10, color:'var(--muted)', fontStyle:'italic', padding:'4px 2px' }}>None on this project.</div>}
       {list.map((p, i) => (
         <Row key={i} name={p.name} sub={p.sub} noEmail={!p.email}
+          onPreview={p.crew ? () => previewFor(p.name) : undefined}
           checked={!!(p.email && sel[p.email])} onToggle={() => p.email && toggle(p.email)} />
       ))}
     </div>
@@ -128,10 +145,15 @@ export default function CallSheetEmails() {
               <div style={card}>
                 <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, flexWrap:'wrap', marginBottom:12 }}>
                   <div style={{ ...secHdr, marginBottom:0 }}>Email</div>
-                  <button onClick={draft} disabled={drafting}
-                    style={{ background:'rgba(230,194,41,0.15)', border:'1px solid #e6c229', color:'#e6c229', borderRadius:16, padding:'4px 14px', fontSize:11, fontWeight:800, cursor:'pointer', opacity: drafting ? 0.6 : 1 }}>
-                    {drafting ? 'Drafting…' : '✨ Draft with AI'}
-                  </button>
+                  <div style={{ display:'flex', alignItems:'center', gap:6, flexWrap:'wrap' }}>
+                    <span style={{ fontSize:10, color:'#e6c229', fontWeight:800 }}>✨ Draft with AI:</span>
+                    {['short', 'medium', 'long'].map(len => (
+                      <button key={len} onClick={() => draft(len)} disabled={!!drafting}
+                        style={{ background:'rgba(230,194,41,0.15)', border:'1px solid #e6c229', color:'#e6c229', borderRadius:16, padding:'4px 12px', fontSize:10, fontWeight:800, cursor:'pointer', opacity: drafting && drafting !== len ? 0.4 : 1, textTransform:'capitalize' }}>
+                        {drafting === len ? 'Drafting…' : len}
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4 }}>Subject</div>
                 <input value={subject} onChange={e => setSubject(e.target.value)} placeholder="Call Sheet/Production Schedule — …" style={{ marginBottom:10 }} />
@@ -147,11 +169,26 @@ export default function CallSheetEmails() {
                     style={{ background:'rgba(232,80,10,0.16)', border:'1px solid var(--orange)', color:'var(--orange)', borderRadius:16, padding:'6px 18px', fontSize:12, fontWeight:800, cursor: selected.length && subject ? 'pointer' : 'default', opacity: selected.length && subject ? 1 : 0.5 }}>
                     Open in Mail App ({selected.length})
                   </button>
-                  <span style={{ fontSize:10, color:'var(--muted)' }}>"Hi [Name]" becomes each recipient's first name (one recipient now; every recipient once sending connects). Multiple recipients go in BCC as "Hi all".</span>
+                  <span style={{ fontSize:10, color:'var(--muted)' }}>"Hi [Name]" becomes the recipient's first name; multiple recipients read "Hey everyone," and go in BCC.</span>
                 </div>
               </div>
             </div>
           </>
+        )}
+        {preview && (
+          <div onClick={e => e.target === e.currentTarget && setPreview(null)}
+            style={{ position:'fixed', inset:0, zIndex:130, background:'rgba(0,0,0,0.8)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+            <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, width:'100%', maxWidth:1000, height:'90vh', display:'flex', flexDirection:'column', overflow:'hidden' }}>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, padding:'10px 16px', borderBottom:'1px solid var(--border)' }}>
+                <div style={{ fontSize:12, fontWeight:800 }}>Call sheet — {preview.name} <span style={{ color:'var(--muted)', fontWeight:400 }}>(their events only)</span></div>
+                <div style={{ display:'flex', gap:8 }}>
+                  <a href={preview.url} target="_blank" rel="noreferrer" className="btn btn-ghost btn-sm" style={{ textDecoration:'none' }}>Open in Tab ↗</a>
+                  <button className="btn btn-ghost btn-sm" onClick={() => setPreview(null)}>✕</button>
+                </div>
+              </div>
+              <iframe title="call sheet preview" src={preview.url} style={{ flex:1, border:'none', background:'#0b0b0b' }} />
+            </div>
+          </div>
         )}
       </div>
     </div>

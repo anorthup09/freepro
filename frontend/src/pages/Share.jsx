@@ -470,6 +470,7 @@ function ProducerView({ data, hideGear, onOpenShotList }) {
   const { project, locations, techSpecs, clientContacts, agencyContacts = [], keyTalent, crewAssignments, schedule, flights, hotelBlocks, rentalCars, deliverables, gear, onlineRentals = [], shotList = [], slDays = [], slBreaks = [] } = data;
   const scheduleRef = useRef(null);
   const [tagFilter, setTagFilter] = useState(null);
+  const personFilter = new URLSearchParams(window.location.search).get('for') || null;
   return (
     <div className="share-view">
       <div className="share-header">
@@ -665,7 +666,7 @@ function ProducerView({ data, hideGear, onOpenShotList }) {
           return [day.call_time_tags, day.shooting_call_tags, day.lunch_tags, day.wrap_time_tags]
             .some(tags => Array.isArray(tags) && (tags.includes(tagFilter) || tags.includes('ALL_CREW')));
         }).map((day, i) => (
-          <DaySection key={day.id} day={day} showCalls flights={flights} dayIndex={i} tagFilter={tagFilter} cateringDetail="full" shotList={shotList} slDays={slDays} slBreaks={slBreaks} onOpenShotList={onOpenShotList} crewAssignments={crewAssignments} includePhoto={project.include_photo !== false} projectCity={[project.city, project.state].filter(Boolean).join(', ')} />
+          <DaySection key={day.id} day={day} showCalls flights={flights} dayIndex={i} tagFilter={tagFilter} personFilter={personFilter} cateringDetail="full" shotList={shotList} slDays={slDays} slBreaks={slBreaks} onOpenShotList={onOpenShotList} crewAssignments={crewAssignments} includePhoto={project.include_photo !== false} projectCity={[project.city, project.state].filter(Boolean).join(', ')} />
         ))}
       </div>
     </div>
@@ -678,6 +679,7 @@ function CrewView({ data, shareToken, hideGear, onOpenShotList }) {
   const sortedSchedule = [...(schedule || [])].sort((a,b) => (a.date||'').localeCompare(b.date||''));
   const scheduleRef = useRef(null);
   const [tagFilter, setTagFilter] = useState(null);
+  const personFilter = new URLSearchParams(window.location.search).get('for') || null;
   return (
     <div className="share-view">
       <div className="share-header">
@@ -863,7 +865,7 @@ function CrewView({ data, shareToken, hideGear, onOpenShotList }) {
           return [day.call_time_tags, day.shooting_call_tags, day.lunch_tags, day.wrap_time_tags]
             .some(tags => Array.isArray(tags) && (tags.includes(tagFilter) || tags.includes('ALL_CREW')));
         }).map((day, i) => (
-          <DaySection key={day.id} day={day} showCalls flights={flights} dayIndex={i} tagFilter={tagFilter} cateringDetail="name" shotList={shotList} slDays={slDays} slBreaks={slBreaks} onOpenShotList={onOpenShotList} crewAssignments={crewAssignments} includePhoto={project.include_photo !== false} projectCity={[project.city, project.state].filter(Boolean).join(', ')} />
+          <DaySection key={day.id} day={day} showCalls flights={flights} dayIndex={i} tagFilter={tagFilter} personFilter={personFilter} cateringDetail="name" shotList={shotList} slDays={slDays} slBreaks={slBreaks} onOpenShotList={onOpenShotList} crewAssignments={crewAssignments} includePhoto={project.include_photo !== false} projectCity={[project.city, project.state].filter(Boolean).join(', ')} />
         ))}
       </div>
     </div>
@@ -1879,7 +1881,7 @@ function CateringBadge({ catering, detail }) {
   );
 }
 
-function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCallWrap, tagFilter, cateringDetail, shotList, slDays, slBreaks, onOpenShotList, crewAssignments, projectCity, talentMode, includePhoto }) {
+function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCallWrap, tagFilter, personFilter, cateringDetail, shotList, slDays, slBreaks, onOpenShotList, crewAssignments, projectCity, talentMode, includePhoto }) {
   const [clapEvent, setClapEvent] = useState(null);
   const crewByPosition = (posName) => {
     const a = (crewAssignments || []).find(x => (x.position?.name || '').toLowerCase() === posName && x.crewMember);
@@ -1889,9 +1891,11 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
   const now = useNow();
   const [driveTimes, setDriveTimes] = useState({});
 
-  const filteredDay = tagFilter
-    ? { ...day, events: day.events.filter(e => (e.tags || []).some(t => t.type === tagFilter || t.type === 'ALL_CREW')) }
-    : day;
+  const personOk = e => !personFilter || !(e.audience || []).length || (e.audience || []).some(n => String(n).toLowerCase() === personFilter.toLowerCase());
+  const filteredDay = {
+    ...day,
+    events: day.events.filter(e => personOk(e) && (!tagFilter || (e.tags || []).some(t => t.type === tagFilter || t.type === 'ALL_CREW'))),
+  };
 
   const dayStr = filteredDay.date ? isoDate(new Date(filteredDay.date)) : null;
   const dayMD = dayStr ? dayStr.slice(5) : null; // "MM-DD"
