@@ -269,5 +269,16 @@
       "Click a tile to view it full size; ✕ deletes it."
     ],
     "screenshot": "shot-reference-photos.png"
+  },
+  {
+    "title": "Additional Docs — reference documents on every shoot",
+    "what": "A new Additional Docs tab under FreePro's Logistics dropdown stores reference documents for the shoot — lighting grids, show flows, floor plans, run-of-show decks. When documents exist, the producer and crew call sheet views grow a matching Additional Docs tab with tap-to-view links; with nothing uploaded, the tab stays out of the crew's nav entirely.",
+    "where": "FreePro → project → Logistics → Additional Docs. Crew/producers see them on their shared call sheet views.",
+    "how": [
+      "Open <b>Logistics → Additional Docs</b> and click <b>+ Upload Doc</b> (any file type, 25MB max).",
+      "Click a row to view or download; ✕ deletes it.",
+      "On producer and crew share links, an <b>Additional Docs</b> tab appears automatically once at least one document exists."
+    ],
+    "screenshot": "additional-docs.png"
   }
 ]
