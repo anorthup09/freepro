@@ -272,9 +272,18 @@ function HubDashboard() {
         ))}
         {day && (day.tasks || []).length > 0 && (
           <>
-            <div style={{ ...hdr, fontSize:10, margin:'16px 0 6px' }}>My Tasks</div>
+            <div style={{ ...hdr, fontSize:10, margin:'16px 0 6px', display:'flex', alignItems:'center', gap:8 }}>
+              My Tasks
+              {(day.tasks || []).some(t => !hiddenTasks.includes(t.id) && t.due_date && String(t.due_date).slice(0, 10) === new Date().toISOString().slice(0, 10)) && (
+                <span style={{ background:'rgba(232,80,10,0.16)', border:'1px solid var(--orange)', color:'var(--orange)', borderRadius:10, padding:'1px 8px', fontSize:9, fontWeight:800, textTransform:'none', letterSpacing:0 }}>
+                  (!) Task Due Today
+                </span>
+              )}
+            </div>
             {(day.tasks || []).filter(t => !hiddenTasks.includes(t.id)).map(t => {
-              const overdue = t.due_date && String(t.due_date).slice(0, 10) < new Date().toISOString().slice(0, 10);
+              const today = new Date().toISOString().slice(0, 10);
+              const dueToday = t.due_date && String(t.due_date).slice(0, 10) === today;
+              const overdue = t.due_date && String(t.due_date).slice(0, 10) < today;
               return (
                 <div key={t.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'6px 4px', borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
                   <input type="checkbox" checked={false} style={{ width:'auto', accentColor:'#5ABF80', flexShrink:0 }}
@@ -287,8 +296,8 @@ function HubDashboard() {
                     <div style={{ fontSize:10, color:'var(--muted)' }}>{t.project_code} · {t.project_title}</div>
                   </div>
                   {t.due_date && (
-                    <span style={{ fontSize:10, fontWeight:700, color: overdue ? '#e05252' : 'var(--muted)', whiteSpace:'nowrap' }}>
-                      {new Date(String(t.due_date).slice(0, 10) + 'T12:00:00').toLocaleDateString('en-US', { month:'numeric', day:'numeric' })}
+                    <span style={{ fontSize:10, fontWeight:700, color: overdue ? '#e05252' : dueToday ? 'var(--orange)' : 'var(--muted)', whiteSpace:'nowrap' }}>
+                      {dueToday ? '❗ Due Today' : `Due ${new Date(String(t.due_date).slice(0, 10) + 'T12:00:00').toLocaleDateString('en-US', { month:'numeric', day:'numeric' })}`}
                     </span>
                   )}
                 </div>

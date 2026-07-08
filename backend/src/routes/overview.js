@@ -5,12 +5,38 @@ const staff = [requireAuth, requireRole('ADMIN', 'PRODUCER')];
 
 const PREF = "COALESCE(NULLIF(TRIM(CONCAT(cm.preferred_first_name, ' ', cm.preferred_last_name)), ''), cm.name)";
 
+// Same math as ProFi's pipeline rollup (finance.js)
+function lineSubtotal(l, sectionLines) {
+  if (l.percent != null) {
+    const base = sectionLines.filter(x => x.percent == null && !x.is_travel).reduce((s, x) => s + Number(x.qty || 0) * Number(x.unit_cost || 0), 0);
+    return Number(l.percent) * base * Number(l.qty || 0);
+  }
+  return Number(l.qty || 0) * Number(l.unit_cost || 0);
+}
+function budgetTotal(allLines, mgmtRate) {
+  const bySection = {};
+  for (const l of allLines) (bySection[l.section_id] ||= []).push(l);
+  let nonTravel = 0, travel = 0;
+  for (const secLines of Object.values(bySection)) {
+    for (const l of secLines) {
+      const st = lineSubtotal(l, secLines);
+      if (l.is_travel) travel += st; else nonTravel += st;
+    }
+  }
+  return nonTravel + travel + mgmtRate * nonTravel;
+}
+
 // GET /project-overview/:pid — everything the cover page needs
 router.get('/project-overview/:pid', ...staff, async (req, res, next) => {
   try {
     const [project] = await sql`SELECT id, code, title, client FROM projects WHERE id = ${req.params.pid}`;
     if (!project) return res.status(404).json({ error: 'Project not found' });
-    const [budget] = await sql`SELECT status, close_month FROM budgets WHERE project_id = ${project.id} AND COALESCE(kind, 'main') = 'main' LIMIT 1`;
+    const [budget] = await sql`SELECT id, status, close_month, mgmt_fee_rate FROM budgets WHERE project_id = ${project.id} AND COALESCE(kind, 'main') = 'main' LIMIT 1`;
+    let budgetAmount = null;
+    if (budget) {
+      const lines = await sql`SELECT qty, unit_cost, percent, is_travel, section_id FROM budget_lines WHERE budget_id = ${budget.id}`;
+      budgetAmount = Math.round(budgetTotal(lines, Number(budget.mgmt_fee_rate ?? 0.15)) * 100) / 100;
+    }
     const shoots = await sql`
       SELECT id, code, title, city, state, status, start_date, end_date
       FROM projects WHERE parent_project_id = ${project.id} ORDER BY start_date NULLS LAST, code`;
@@ -29,7 +55,7 @@ router.get('/project-overview/:pid', ...staff, async (req, res, next) => {
     const docs = await sql`
       SELECT id, kind, filename, mime, size, uploaded_by, created_at
       FROM project_docs WHERE project_id = ${project.id} ORDER BY kind, created_at DESC`;
-    res.json({ project, budgetStatus: budget?.status || null, closeMonth: budget?.close_month || null, shoots, edits, callNotes, tasks, docs });
+    res.json({ project, budgetStatus: budget?.status || null, budgetAmount, closeMonth: budget?.close_month || null, shoots, edits, callNotes, tasks, docs });
   } catch (e) { next(e); }
 });
 

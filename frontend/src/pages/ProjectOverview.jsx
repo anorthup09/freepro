@@ -208,7 +208,7 @@ export default function ProjectOverview({ pid }) {
 
   if (err) return <div className="empty">{err}</div>;
   if (!data) return <div className="empty">Loading…</div>;
-  const { project, budgetStatus, shoots, edits, callNotes, tasks, docs = [] } = data;
+  const { project, budgetStatus, budgetAmount, shoots, edits, callNotes, tasks, docs = [] } = data;
   const setDocs = fn => setData(d => ({ ...d, docs: typeof fn === 'function' ? fn(d.docs || []) : fn }));
   const setTasks = fn => setData(d => ({ ...d, tasks: typeof fn === 'function' ? fn(d.tasks) : fn }));
   const setNotes = fn => setData(d => ({ ...d, callNotes: typeof fn === 'function' ? fn(d.callNotes) : fn }));
@@ -221,21 +221,27 @@ export default function ProjectOverview({ pid }) {
   const avoStatus = k => AVO_STATUSES.find(([key]) => key === k);
 
   return (
-    <div className="pv-overview" style={{ maxWidth:1250, margin:'0 auto', padding:'8px 16px 60px', display:'grid', gridTemplateColumns:'1fr 320px', gap:16, alignItems:'start' }}>
-      {/* ── Left: cover page ── */}
-      <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
-        <div style={{ ...card, display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap' }}>
-          <div>
-            <div style={{ fontSize:11, color:'var(--muted)', fontWeight:800, letterSpacing:'0.04em' }}>{project.code}</div>
-            <div style={{ fontSize:18, fontWeight:800 }}>{project.title}</div>
-            <div style={{ fontSize:12, color:'var(--muted)' }}>{project.client}</div>
-          </div>
-          <div style={{ textAlign:'right' }}>
-            <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4 }}>Budget Status</div>
-            <StatusPill status={budgetStatus || 'No budget'} />
-          </div>
+    <div className="pv-overview" style={{ maxWidth:1250, margin:'0 auto', padding:'8px 16px 60px', display:'grid', gridTemplateColumns:'1fr 320px', gridTemplateRows:'auto 1fr', gap:16, alignItems:'start' }}>
+      {/* ── Budget/header card (own grid child so mobile can order it first) ── */}
+      <div className="pv-head" style={{ gridColumn:1, ...card, display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap' }}>
+        <div>
+          <div style={{ fontSize:11, color:'var(--muted)', fontWeight:800, letterSpacing:'0.04em' }}>{project.code}</div>
+          <div style={{ fontSize:18, fontWeight:800 }}>{project.title}</div>
+          <div style={{ fontSize:12, color:'var(--muted)' }}>{project.client}</div>
         </div>
+        <div style={{ textAlign:'right' }}>
+          <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4 }}>Budget Status</div>
+          <StatusPill status={budgetStatus || 'No budget'} />
+          {budgetAmount != null && (
+            <div style={{ fontSize:15, fontWeight:800, color:'#5ABF80', marginTop:6 }}>
+              ${Number(budgetAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </div>
+          )}
+        </div>
+      </div>
 
+      {/* ── Left: cover page ── */}
+      <div className="pv-left" style={{ gridColumn:1, display:'flex', flexDirection:'column', gap:16 }}>
         <div style={card}>
           <div style={secHdr}>Shoots</div>
           {shoots.length === 0 && <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>No production shoots yet — they appear when the budget goes Live.</div>}
@@ -304,7 +310,7 @@ export default function ProjectOverview({ pid }) {
       </div>
 
       {/* ── Right: docs tile above the elongated to-do column ── */}
-      <div className="pv-right">
+      <div className="pv-right" style={{ gridColumn:2, gridRow:'1 / span 2' }}>
       <DocsTile pid={pid} docs={docs} setDocs={setDocs} />
       <div className="pv-todo" style={{ ...card, minHeight:420, display:'flex', flexDirection:'column' }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
