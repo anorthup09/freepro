@@ -328,6 +328,17 @@ export default function AvoEdit() {
       {showCal && <MilestoneCalendarModal edit={e} onClose={() => setShowCal(false)} />}
       {showTimeline && (() => {
                 const ms = e.milestones || {};
+                const skips = Array.isArray(e.milestone_skips) ? e.milestone_skips : [];
+                const toggleSkip = (k) => {
+                  const next = skips.includes(k) ? skips.filter(x => x !== k) : [...skips, k];
+                  if (!skips.includes(k) && ms[k]) {
+                    patch({ milestone_skips: next, milestones: { ...ms, [k]: undefined } });
+                    save({ milestoneSkips: next, milestones: { [k]: '' } });
+                  } else {
+                    patch({ milestone_skips: next });
+                    save({ milestoneSkips: next });
+                  }
+                };
                 const setOpt = (k, v) => setTlOpts(o => ({ ...o, [k]: v }));
                 function autoFill() {
                   const end = ms.scripting_end;
@@ -335,16 +346,21 @@ export default function AvoEdit() {
                   const { skipWknd, editDaysAfterScript, editDaysAfterFeedback, reviewDays } = tlOpts;
                   const next = { ...ms };
                   let cur = end;
-                  cur = next.icr_v1_due = addDaysStr(cur, Number(editDaysAfterScript) || 0, skipWknd);
-                  cur = next.icr_feedback = addDaysStr(cur, Number(reviewDays) || 0, skipWknd);
+                  // Skipped milestones are left out and the chain continues without them
+                  const step = (key, days) => {
+                    if (skips.includes(key)) { delete next[key]; return; }
+                    cur = next[key] = addDaysStr(cur, days, skipWknd);
+                  };
+                  step('icr_v1_due', Number(editDaysAfterScript) || 0);
+                  step('icr_feedback', Number(reviewDays) || 0);
                   for (const v of ['v1', 'v2', 'v3']) {
-                    cur = next[`client_${v}_due`] = addDaysStr(cur, Number(editDaysAfterFeedback) || 0, skipWknd);
-                    cur = next[`client_${v}_feedback`] = addDaysStr(cur, Number(reviewDays) || 0, skipWknd);
+                    step(`client_${v}_due`, Number(editDaysAfterFeedback) || 0);
+                    step(`client_${v}_feedback`, Number(reviewDays) || 0);
                   }
-                  cur = next.color_audio_send = addDaysStr(cur, Number(editDaysAfterFeedback) || 0, skipWknd);
-                  cur = next.color_audio_complete = addDaysStr(cur, 3, skipWknd);
-                  cur = next.final_comp = addDaysStr(cur, 2, skipWknd);
-                  next.final_delivery = addDaysStr(cur, 1, skipWknd);
+                  step('color_audio_send', Number(editDaysAfterFeedback) || 0);
+                  step('color_audio_complete', 3);
+                  step('final_comp', 2);
+                  step('final_delivery', 1);
                   patch({ milestones: next });
                   save({ milestones: next });
                 }
@@ -387,13 +403,14 @@ export default function AvoEdit() {
                   </div>
                   <div style={{ display:'flex', flexDirection:'column' }}>
                     {MILESTONES.map(([k, label]) => {
-                      const val = ms[k];
+                      const skipped = skips.includes(k);
+                      const val = skipped ? null : ms[k];
                       let gap = null;
                       if (val && prevDate) gap = daysBetween(prevDate, val, tlOpts.skipWknd);
                       if (val) prevDate = val;
                       return (
-                        <div key={k} style={{ display:'flex', alignItems:'center', gap:12, padding:'6px 0', borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
-                          <span style={{ ...lbl, marginBottom:0, flex:1, display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
+                        <div key={k} style={{ display:'flex', alignItems:'center', gap:12, padding:'6px 0', borderBottom:'1px solid rgba(255,255,255,0.04)', opacity: skipped ? 0.45 : 1 }}>
+                          <span style={{ ...lbl, marginBottom:0, flex:1, display:'flex', alignItems:'center', gap:8, flexWrap:'wrap', textDecoration: skipped ? 'line-through' : 'none' }}>
                             {label}
                             {EDITOR_TASKS.includes(k) && (
                               <span title="Who's responsible for this task — shows on the Crew Calendar"
@@ -413,12 +430,19 @@ export default function AvoEdit() {
                               {gap} {tlOpts.skipWknd ? 'Business Day' : 'Day'}{gap === 1 ? '' : 's'}
                             </span>
                           )}
-                          <input type="date" value={val || ''} style={{ width:'auto', maxWidth:190 }}
-                            onChange={ev => {
-                              const v = ev.target.value;
-                              patch({ milestones: { ...ms, [k]: v || undefined } });
-                              save({ milestones: { [k]: v } });
-                            }} />
+                          <button type="button" onClick={() => toggleSkip(k)}
+                            title={skipped ? 'Bring this milestone back into the timeline' : 'Skip this milestone — the timeline continues without it'}
+                            style={{ flexShrink:0, background: skipped ? 'rgba(224,82,82,0.15)' : 'none', border:`1px solid ${skipped ? '#e05252' : 'var(--border)'}`, color: skipped ? '#e05252' : 'var(--muted)', borderRadius:10, padding:'2px 9px', fontSize:9, fontWeight:800, cursor:'pointer' }}>
+                            {skipped ? 'Skipped ✕' : 'Skip'}
+                          </button>
+                          {skipped
+                            ? <span style={{ width:'auto', minWidth:120, maxWidth:190, textAlign:'center', fontSize:10, color:'var(--muted)', fontStyle:'italic' }}>— skipped —</span>
+                            : <input type="date" value={val || ''} style={{ width:'auto', maxWidth:190 }}
+                                onChange={ev => {
+                                  const v = ev.target.value;
+                                  patch({ milestones: { ...ms, [k]: v || undefined } });
+                                  save({ milestones: { [k]: v } });
+                                }} />}
                         </div>
                       );
                     })}

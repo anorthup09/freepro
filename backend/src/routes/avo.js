@@ -217,6 +217,7 @@ router.patch('/edits/:id', ...staff, async (req, res, next) => {
         notes = ${d.notes !== undefined ? (d.notes || null) : sql`notes`},
         video_assets = ${d.videoAssets !== undefined ? (d.videoAssets || null) : sql`video_assets`},
         milestones = ${milestones !== undefined ? sql.json(milestones) : sql`milestones`},
+        milestone_skips = ${Array.isArray(d.milestoneSkips) ? sql.json(d.milestoneSkips) : sql`milestone_skips`},
         milestone_assignees = ${msAssignees !== undefined ? sql.json(msAssignees) : sql`milestone_assignees`},
         updated_at = NOW()
       WHERE id = ${req.params.id} RETURNING *`;

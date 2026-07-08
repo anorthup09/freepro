@@ -1169,6 +1169,7 @@ async function migrate() {
   await sql`ALTER TABLE avo_music ADD COLUMN IF NOT EXISTS extra JSONB DEFAULT '{}'::jsonb`;
   await sql`ALTER TABLE edits ADD COLUMN IF NOT EXISTS extra JSONB DEFAULT '{}'::jsonb`;
   await sql`ALTER TABLE edits ADD COLUMN IF NOT EXISTS tracker_sort INT`;
+  await sql`ALTER TABLE edits ADD COLUMN IF NOT EXISTS milestone_skips JSONB DEFAULT '[]'::jsonb`;
 
   // User-defined tables on Avo project pages (fully custom columns)
   await sql`
