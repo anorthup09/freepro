@@ -287,14 +287,21 @@ function VideoTracker({ edits, setEdits, config, onConfig, code }) {
   }
   const statusOf = k => AVO_STATUSES.find(([key]) => key === k);
   const colDefs = [
-    { key:'tracker_type', label:'Type', minWidth:110, render: e => {
-      const tc = typeColor(e.tracker_type);
-      return <Cell value={e.tracker_type} placeholder="Type…" onSave={v => saveEdit(e.id, { trackerType: v })}
-        style={e.tracker_type ? { background:`${tc}22`, border:`1px solid ${tc}55`, color:tc, fontWeight:700, textAlign:'center', borderRadius:12 } : {}} />;
+    { key:'tracker_type', label:'Type', minWidth:120, render: e => {
+      const TRACKER_TYPES = [['Pre-Event', '#4a9eff'], ['On-Site', '#e6c229'], ['Post-Event', '#9DC183']];
+      const tc = (TRACKER_TYPES.find(([t]) => t === e.tracker_type) || [null, null])[1];
+      return (
+        <select value={e.tracker_type || ''} onChange={ev => saveEdit(e.id, { trackerType: ev.target.value })}
+          style={{ fontSize:11, fontWeight:700, padding:'4px 8px', borderRadius:12, width:'100%',
+            background: tc ? `${tc}22` : 'transparent', border: `1px solid ${tc ? tc + '55' : 'var(--border)'}`, color: tc || 'var(--muted)', textAlign:'center' }}>
+          <option value="">—</option>
+          {e.tracker_type && !TRACKER_TYPES.some(([t]) => t === e.tracker_type) && <option value={e.tracker_type}>{e.tracker_type}</option>}
+          {TRACKER_TYPES.map(([t]) => <option key={t} value={t}>{t}</option>)}
+        </select>
+      );
     } },
     { key:'title', label:'Video Title', minWidth:150, render: e =>
       <span onClick={() => nav(`/avo/${e.id}`)} style={{ fontSize:12, fontWeight:700, cursor:'pointer', padding:'5px 6px', display:'inline-block' }}>{e.title}</span> },
-    { key:'style', label:'Style', minWidth:140, render: e => <Cell value={e.style} placeholder="Style…" onSave={v => saveEdit(e.id, { style: v })} /> },
     { key:'notes', label:'Notes', minWidth:170, render: e => <Cell value={e.notes} placeholder="Notes…" onSave={v => saveEdit(e.id, { notes: v })} /> },
     { key:'end_date', label:'Due Date', render: e => <span style={{ whiteSpace:'nowrap', fontSize:12 }}>{fmtD(e.end_date)}</span> },
     { key:'video_assets', label:'Video Assets', minWidth:160, render: e => <Cell value={e.video_assets} placeholder="iPhone videos, music…" onSave={v => saveEdit(e.id, { videoAssets: v })} /> },
@@ -318,7 +325,7 @@ function VideoTracker({ edits, setEdits, config, onConfig, code }) {
             style={{ background:'none', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:5, padding:'2px 6px', fontSize:11, cursor:'pointer' }}>✎</button>
         )} />
       <div style={{ padding:'8px 2px', fontSize:10, color:'var(--muted)' }}>
-        Feeds live from the editing pipeline. Title, due date, editor, review link, and status come from each edit; Type, Style, Notes, Video Assets, and any custom columns are editable here.
+        Feeds live from the editing pipeline. Title, due date, editor, review link, and status come from each edit; Type, Notes, Video Assets, and any custom columns are editable here.
       </div>
     </>
   );
