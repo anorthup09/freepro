@@ -23,7 +23,7 @@ function Cell({ value, onSave, placeholder, style }) {
   );
 }
 
-const pillBtn = (color) => ({ background:`${color}22`, border:`1px solid ${color}`, color, borderRadius:14, padding:'3px 12px', fontSize:10, fontWeight:800, cursor:'pointer' });
+const pillBtn = () => ({ background:'var(--bg)', border:'1px solid rgba(255,255,255,0.55)', color:'#e8e8e8', borderRadius:14, padding:'3px 12px', fontSize:10, fontWeight:800, cursor:'pointer' });
 
 /*
  * SmartTable — shared grid with custom text columns and cell merging.
@@ -210,14 +210,14 @@ function SmartTable({ rows, colDefs, config, onConfig, saveExtra, leading, trail
         {footerRight?.addRow && <button onClick={footerRight.addRow} style={pillBtn(AVO)}>+ Add Row</button>}
         <button onClick={addColumn} style={pillBtn('#a78bfa')}>+ Add Column</button>
         <button onClick={() => { setMergeMode(m => !m); setSelA(null); setSelB(null); }}
-          style={mergeMode ? { ...pillBtn('#e6c229'), background:'#e6c229', color:'#0b0b0b' } : pillBtn('#e6c229')}>
+          style={mergeMode ? { ...pillBtn(), background:'rgba(255,255,255,0.9)', color:'#0b0b0b' } : pillBtn()}>
           {mergeMode ? '✕ Done Merging' : '⬚ Merge Cells'}
         </button>
         {mergeMode && !selA && <span style={{ fontSize:10, color:'var(--muted)' }}>Click the first cell, then the last cell of the block to merge.</span>}
         {mergeMode && selA && !selB && !selAnchor && <span style={{ fontSize:10, color:'var(--muted)' }}>Now click the last cell of the block.</span>}
         {mergeMode && selAnchor && <button onClick={unmerge} style={pillBtn('#e05252')}>Unmerge This Cell</button>}
         {mergeMode && rect && (rect.r1 !== rect.r2 || rect.c1 !== rect.c2) && (
-          <button onClick={applyMerge} style={{ ...pillBtn('#5ABF80'), background:'#5ABF80', color:'#0b0b0b' }}>✓ Apply Merge</button>
+          <button onClick={applyMerge} style={{ ...pillBtn(), background:'rgba(255,255,255,0.9)', color:'#0b0b0b' }}>✓ Apply Merge</button>
         )}
         <div style={{ flex:1 }} />
         {footerRight?.node}
