@@ -11,7 +11,9 @@ commit, push both branches.
 ## Feature walkthrough PDF (standing instruction)
 
 Every new user-facing function added from 2026-07-08 onward gets documented
-for the team walkthrough:
+for the team walkthrough — but ONLY after the user says the feature is
+approved. Until then, build and deploy the feature and wait; add the
+walkthrough entry + screenshot + PDF regen only on their approval.
 
 1. Append an entry to `docs/walkthrough/entries.json`:
    `{ "title", "what", "where", "how": [steps], "screenshot": "file.png" }`

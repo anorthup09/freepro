@@ -1019,7 +1019,7 @@ const STATUS_OPTS = [
 // Tag teammates onto a budget for visibility — initials icons + a "+ Tag" picker
 const TAG_COLORS = ['#5ABF80', '#4a9eff', '#e6c229', '#e8955a', '#a78bfa', '#f08080', '#40A0A0', '#d66a9b'];
 const tagColor = s => { let h = 0; for (const c of s || '') h = (h * 31 + c.charCodeAt(0)) & 0xffffffff; return TAG_COLORS[Math.abs(h) % TAG_COLORS.length]; };
-const tagInitials = n => (n || '?').trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+const tagInitials = n => { const w = (n || '?').trim().split(/\s+/); return ((w[0]?.[0] || '') + (w.length > 1 ? w[w.length - 1][0] : '')).toUpperCase(); };
 
 function TagRow({ budgetId }) {
   const [tags, setTags] = useState([]);
