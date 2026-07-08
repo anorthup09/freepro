@@ -15,8 +15,9 @@ const TABS = [
   ['post', 'Post-Production', '#9DC183'],
 ];
 
-function PVHeader() {
+function PVHeader({ showBack }) {
   const { user, setUser } = useAuth();
+  const nav = useNavigate();
   return (
     <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 26px', flexWrap:'wrap', gap:10 }}>
       <div style={{ display:'flex', alignItems:'baseline', gap:14 }}>
@@ -27,6 +28,7 @@ function PVHeader() {
       </div>
       <div style={{ display:'flex', alignItems:'center', gap:12 }}>
         <span style={{ fontSize:11, color:'var(--muted)' }}>{user?.name}</span>
+        {showBack && <button className="btn btn-ghost btn-sm" onClick={() => nav('/project-view')}>‹ All Projects</button>}
         <Link to="/" className="btn btn-ghost btn-sm" style={{ textDecoration:'none' }}>Back to Hub</Link>
         <button className="btn btn-ghost btn-sm" onClick={() => { localStorage.removeItem('fp_token'); setUser(null); }}>Sign out</button>
       </div>
@@ -154,10 +156,9 @@ export function ProjectViewDetail() {
 
   return (
     <div style={{ minHeight:'100vh', background:'var(--bg)' }}>
-      <PVHeader />
+      <PVHeader showBack />
       <div style={{ maxWidth:1250, margin:'0 auto', padding:'0 16px' }}>
         <div className="pvd-bar" style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap', marginBottom:6 }}>
-          <button className="btn btn-ghost btn-sm pvd-back" onClick={() => nav('/project-view')}>‹ All Projects</button>
           {project && <div className="pvd-title" style={{ fontSize:13, fontWeight:800 }}>{project.code} — {project.title}</div>}
           <div style={{ flex:1 }} />
           <div style={{ display:'flex', border:'1px solid var(--border)', borderRadius:18, overflow:'hidden' }}>

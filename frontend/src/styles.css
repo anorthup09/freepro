@@ -558,8 +558,7 @@ textarea { resize: vertical; min-height: 70px; }
 
 /* Project View detail bar on phones: title left, back button top right */
 @media (max-width: 700px) {
-  .pvd-bar .pvd-title { order: -1; flex: 1; min-width: 0; }
-  .pvd-bar .pvd-back { order: 0; margin-left: auto; }
+
 }
 
 /* ProFi budget page controls on phones */
@@ -574,7 +573,7 @@ textarea { resize: vertical; min-height: 70px; }
 @media (max-width: 700px) {
   .pvd-bar { align-items: flex-start; }
   .pv-head { position: relative; align-items: flex-start !important; }
-  .pv-head > div:first-child { padding-right: 96px; }
-  .pv-head .pv-status { position: absolute; top: 12px; right: 14px; max-width: 170px; }
-  .pv-head .pv-amt { white-space: normal !important; }
+  .pv-head > div:first-child { padding-right: 82px; }
+  .pv-head .pv-status { position: absolute; top: 12px; right: 14px; }
+  .pv-head .pv-amt { font-size: 11px !important; }
 }
