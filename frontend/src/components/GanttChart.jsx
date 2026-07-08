@@ -77,6 +77,7 @@ export function milestoneText(edit) {
 // Renders a horizontal timeline of edits (bars from start_date to end_date).
 export default function GanttChart({ edits }) {
   const [info, setInfo] = useState(null);   // { key, text, x, y } — tapped runner info bubble
+  const [zoom, setZoom] = useState(1);      // 1 = fit everything; higher = fewer days per screen
   const hasMs = e => MILESTONES.some(([k]) => e.milestones?.[k]);
   const dated = (edits || []).filter(e => e.start_date || hasMs(e));
   const undated = (edits || []).filter(e => !e.start_date && !hasMs(e));
@@ -99,7 +100,8 @@ export default function GanttChart({ edits }) {
   // month/tick header: one tick per day if short, weekly if long
   const ticks = [];
   if (min) {
-    const step = span > 45 ? 7 : span > 20 ? 2 : 1;
+    const effSpan = span / zoom;   // days visible per viewport at this zoom
+    const step = effSpan > 45 ? 7 : effSpan > 20 ? 2 : 1;
     for (let i = 0; i < span; i += step) {
       const d = new Date(min.getTime() + i * MS_DAY);
       ticks.push({ i, label: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) });
@@ -111,8 +113,20 @@ export default function GanttChart({ edits }) {
   const LABEL_W = 190;
 
   return (
-    <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 10, overflowX: 'auto' }}>
-      <div style={{ minWidth: 700 }}>
+    <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 10 }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 6, padding: '8px 12px 0' }}>
+        <span style={{ fontSize: 9, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Timeline zoom</span>
+        {[['−', () => setZoom(z => Math.max(1, Math.round(z / 1.5 * 100) / 100))],
+          ['Fit', () => setZoom(1)],
+          ['+', () => setZoom(z => Math.min(8, Math.round(z * 1.5 * 100) / 100))]].map(([label, fn]) => (
+          <button key={label} onClick={fn}
+            style={{ background: (label === 'Fit' && zoom === 1) ? 'rgba(157,193,131,0.25)' : 'transparent', border: '1px solid var(--border)', color: 'var(--text, #ddd)', borderRadius: 8, padding: '2px 10px', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}>
+            {label}
+          </button>
+        ))}
+      </div>
+      <div style={{ overflowX: 'auto' }}>
+      <div style={{ minWidth: Math.round(700 * zoom), width: zoom > 1 ? `${Math.round(zoom * 100)}%` : undefined }}>
         {min && (
           <div style={{ position: 'relative', height: 26, borderBottom: '1px solid var(--border)', marginLeft: LABEL_W }}>
             {ticks.map(t => (
@@ -213,6 +227,7 @@ export default function GanttChart({ edits }) {
             <div style={{ flex: 1, padding: '0 12px', fontSize: 10, color: 'var(--muted)' }}>No dates set</div>
           </div>
         ))}
+      </div>
       </div>
     </div>
   );
