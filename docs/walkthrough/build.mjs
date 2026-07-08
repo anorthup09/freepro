@@ -9,6 +9,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const dir = path.dirname(fileURLToPath(import.meta.url));
+const VERSION = '1.3';
 const entries = JSON.parse(fs.readFileSync(path.join(dir, 'entries.json'), 'utf8'));
 const out = process.argv[2] || path.join(dir, 'whats-new.pdf');
 
@@ -38,7 +39,7 @@ const html = `<!doctype html><html><head><meta charset="utf-8"><style>
   <div class="cover">
     <div style="font-size:44px">🐎</div>
     <h1>Unbridled Media Operating Platform</h1>
-    <div class="tag">WHAT'S NEW — FEATURE WALKTHROUGH</div>
+    <div class="tag">WHAT'S NEW — FEATURE WALKTHROUGH · PLATFORM VERSION ${VERSION}</div>
     <div class="tag" style="color:#E8500A">Project Finance · Production · Post · Team Management</div>
     <div class="date">${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} · ${entries.length} feature${entries.length === 1 ? '' : 's'}</div>
   </div>
