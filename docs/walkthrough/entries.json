@@ -200,5 +200,29 @@
       "Everything (columns, merges, order) is remembered per project page."
     ],
     "screenshot": "avo-custom-grids.png"
+  },
+  {
+    "title": "Custom tables on Avo project pages",
+    "what": "Build your own tables on any Avo project page. + Add Custom Table creates a new tab next to the built-in four, starting with one column — from there it has the full grid toolkit: add rows and columns, merge cells, drag to reorder, and per-column filters. Each project keeps its own set of tables.",
+    "where": "AvocadoPost → open a project page → + Add Custom Table at the end of the tab row.",
+    "how": [
+      "Click <b>+ Add Custom Table</b> and name it (e.g. \"Graphics Requests\") — it opens as a new tab.",
+      "Use <b>+ Add Row</b> / <b>+ Add Column</b> to build it out; every cell is editable text.",
+      "Merge, drag-reorder, and filter work exactly like the built-in tabs.",
+      "<b>✎ Rename Table</b> and <b>✕ Delete Table</b> sit under the grid."
+    ],
+    "screenshot": "avo-custom-table.png"
+  },
+  {
+    "title": "Column filters on every Avo grid",
+    "what": "Every column header on every Avo grid — built-in tabs and custom tables — has a small ⧩ filter icon. Click it for a dropdown that narrows rows to matches as you type. Filter several columns at once; active filters tint their icon green and the toolbar shows the match count with a one-click reset.",
+    "where": "Any Avo project page tab → the ⧩ icon beside each column name.",
+    "how": [
+      "Click the <b>⧩</b> icon on a column and type in the <b>Contains…</b> box — rows filter live.",
+      "<b>Enter</b> or <b>Done</b> closes the dropdown; <b>Clear</b> resets that column.",
+      "Stack filters on multiple columns; the toolbar shows \"N of M rows\" and <b>✕ Clear Filters</b> resets everything.",
+      "Row dragging and merging pause while a filter is hiding rows, and come right back when cleared."
+    ],
+    "screenshot": "avo-column-filter.png"
   }
 ]
