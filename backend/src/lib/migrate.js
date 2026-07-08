@@ -1242,6 +1242,16 @@ async function migrate() {
       created_at TIMESTAMPTZ DEFAULT NOW()
     )`;
 
+  // Testing feedback & feature requests checklist (hub red button)
+  await sql`
+    CREATE TABLE IF NOT EXISTS feedback_items (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      text TEXT NOT NULL,
+      done BOOLEAN DEFAULT FALSE,
+      created_by TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`;
+
   // Client roster — canonical client names, selected from budgets
   await sql`
     CREATE TABLE IF NOT EXISTS clients (

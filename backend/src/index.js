@@ -80,7 +80,7 @@ app.use('/api', (req, res, next) => {
       return res.status(403).json({ error: 'Your account is awaiting approval from an admin' });
     }
     if (u.role === 'CREW' && !(req.path.startsWith('/auth') || req.path === '/crew-views' || req.path.startsWith('/share')
-      || req.path.startsWith('/avo') || req.path.startsWith('/team') || req.path.startsWith('/gantt-share') || req.path.startsWith('/dashboard')
+      || req.path.startsWith('/avo') || req.path.startsWith('/team') || req.path.startsWith('/gantt-share') || req.path.startsWith('/dashboard') || req.path.startsWith('/feedback')
       || (req.path.startsWith('/project-tasks') && req.method === 'PATCH')
       || (req.path.startsWith('/crew') && req.method === 'GET'))) {
       return res.status(403).json({ error: 'Crew accounts can only access Crew Views, AvocadoPost, and Team Management' });
@@ -127,6 +127,7 @@ app.use('/api', require('./routes/avo').publicRouter);
 app.use('/api', require('./routes/finance'));
 app.use('/api/clients', require('./routes/clients'));
 app.use('/api', require('./routes/overview'));
+app.use('/api/feedback', require('./routes/feedback'));
 
 // Admin backup: download now, or trigger a cloud push
 const { buildBackup, uploadBackup, scheduleNightlyBackup } = require('./lib/backup');

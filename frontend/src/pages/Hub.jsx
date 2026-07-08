@@ -59,6 +59,73 @@ function fmtCloseMonth(m) {
   return new Date(Number(y), Number(mo) - 1, 15).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 }
 
+function FeedbackBoard() {
+  const [open, setOpen] = useState(false);
+  const [items, setItems] = useState([]);
+  const [text, setText] = useState('');
+  const load = () => api.feedbackList().then(setItems).catch(() => {});
+  async function toggle() {
+    if (!open) await load();
+    setOpen(o => !o);
+  }
+  async function add() {
+    if (!text.trim()) return;
+    try { const i = await api.addFeedback(text.trim()); setItems(xs => [i, ...xs]); setText(''); }
+    catch (e) { alert(e.message); }
+  }
+  const openCount = items.filter(i => !i.done).length;
+  return (
+    <>
+      <div style={{ display:'flex', justifyContent:'center', padding:'14px 16px 0' }}>
+        <button onClick={toggle}
+          style={{ background:'#e05252', border:'2px solid #ff6b6b', color:'#fff', borderRadius:12, padding:'10px 26px', fontSize:14, fontWeight:900, letterSpacing:'0.03em', cursor:'pointer', boxShadow:'0 4px 18px rgba(224,82,82,0.35)' }}>
+          ! Testing - Feedback and Features !
+        </button>
+      </div>
+      {open && (
+        <div onClick={e => e.target === e.currentTarget && setOpen(false)}
+          style={{ position:'fixed', inset:0, zIndex:130, background:'rgba(0,0,0,0.75)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+          <div style={{ width:'100%', maxWidth:640, maxHeight:'85vh', display:'flex', flexDirection:'column', background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid #e05252', borderRadius:12, overflow:'hidden' }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 18px', borderBottom:'1px solid var(--border)' }}>
+              <div style={{ fontSize:14, fontWeight:800 }}>Testing — Feedback & Features <span style={{ color:'var(--muted)', fontWeight:400 }}>· {openCount} open</span></div>
+              <button className="btn btn-ghost btn-sm" onClick={() => setOpen(false)}>✕</button>
+            </div>
+            <div style={{ padding:'12px 18px', borderBottom:'1px solid var(--border)', display:'flex', gap:8 }}>
+              <input value={text} placeholder="Add feedback or a feature request…" onChange={e => setText(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && add()} style={{ flex:1 }} />
+              <button onClick={add} disabled={!text.trim()}
+                style={{ background:'#e05252', border:'none', color:'#fff', borderRadius:8, padding:'7px 16px', fontSize:12, fontWeight:800, cursor:'pointer', opacity: text.trim() ? 1 : 0.5 }}>
+                Add
+              </button>
+            </div>
+            <div style={{ overflowY:'auto', padding:'6px 18px 14px' }}>
+              {items.length === 0 && <div style={{ fontSize:12, color:'var(--muted)', fontStyle:'italic', padding:'12px 0' }}>Nothing yet — this is the one running list for testing feedback and feature requests.</div>}
+              {items.map(i => (
+                <div key={i.id} style={{ display:'flex', alignItems:'flex-start', gap:10, padding:'8px 0', borderBottom:'1px solid rgba(255,255,255,0.05)', opacity: i.done ? 0.5 : 1 }}>
+                  <input type="checkbox" checked={i.done || false} style={{ width:'auto', accentColor:'#5ABF80', marginTop:2 }}
+                    onChange={async e => {
+                      try { const u = await api.updateFeedback(i.id, { done: e.target.checked }); setItems(xs => xs.map(x => x.id === i.id ? u : x)); }
+                      catch (er) { alert(er.message); }
+                    }} />
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontSize:13, fontWeight:600, textDecoration: i.done ? 'line-through' : 'none', overflowWrap:'anywhere' }}>{i.text}</div>
+                    <div style={{ fontSize:10, color:'var(--muted)' }}>{i.created_by || 'someone'} · {new Date(i.created_at).toLocaleDateString('en-US', { month:'numeric', day:'numeric' })}</div>
+                  </div>
+                  <button title="Delete" onClick={async () => {
+                    if (!confirm('Delete this item?')) return;
+                    try { await api.deleteFeedback(i.id); setItems(xs => xs.filter(x => x.id !== i.id)); }
+                    catch (er) { alert(er.message); }
+                  }} style={{ background:'none', border:'none', color:'var(--muted)', fontSize:12, cursor:'pointer' }}>✕</button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 function UserManagement({ user }) {
   const [open, setOpen] = useState(false);
   const [users, setUsers] = useState([]);
@@ -381,6 +448,7 @@ export default function Hub() {
 
   return (
     <div style={{ minHeight:'100vh', background:'var(--bg)', display:'flex', flexDirection:'column' }}>
+      <FeedbackBoard />
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 26px', flexWrap:'wrap', gap:10, position:'relative' }}>
         <div>
           <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height:26, filter:'brightness(0) invert(1)', opacity:0.95, display:'block' }} />
