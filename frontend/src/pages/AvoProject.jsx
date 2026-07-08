@@ -301,7 +301,7 @@ function VideoTracker({ edits, setEdits, config, onConfig, code }) {
   const statusOf = k => AVO_STATUSES.find(([key]) => key === k);
   const colDefs = [
     { key:'tracker_type', label:'Type', minWidth:120, render: e => {
-      const TRACKER_TYPES = [['Pre-Event', '#4a9eff'], ['On-Site', '#e6c229'], ['Post-Event', '#9DC183']];
+      const TRACKER_TYPES = [['Pre-Event', '#4a9eff'], ['On-Site', '#e6c229'], ['Post-Event', '#9DC183'], ['Standard Edit', '#a78bfa']];
       const tc = (TRACKER_TYPES.find(([t]) => t === e.tracker_type) || [null, null])[1];
       return (
         <select value={e.tracker_type || ''} onChange={ev => saveEdit(e.id, { trackerType: ev.target.value })}
@@ -327,7 +327,7 @@ function VideoTracker({ edits, setEdits, config, onConfig, code }) {
       return st ? <span style={{ background:`${st[2]}22`, border:`1px solid ${st[2]}`, color:st[2], borderRadius:12, padding:'2px 10px', fontSize:9, fontWeight:800, whiteSpace:'nowrap' }}>{st[1]}</span> : null;
     } },
   ];
-  const GROUPS = [['Pre-Event', '#4a9eff'], ['On-Site', '#e6c229'], ['Post-Event', '#9DC183']];
+  const GROUPS = [['Pre-Event', '#4a9eff'], ['On-Site', '#e6c229'], ['Post-Event', '#9DC183'], ['Standard Edit', '#a78bfa']];
   const grouped = [];
   for (const [g, color] of GROUPS) {
     const members = edits.filter(e => e.tracker_type === g);
