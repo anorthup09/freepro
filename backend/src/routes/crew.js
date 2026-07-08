@@ -61,6 +61,7 @@ const crewSchema = z.object({
   legalMiddleName: z.string().optional().nullable(),
   legalLastName: z.string().optional().nullable(),
   dietaryRestrictions: z.string().optional().nullable(),
+  travelLocal: z.string().optional().nullable(),
 });
 
 router.get('/', requireAuth, async (req, res, next) => {
@@ -123,6 +124,7 @@ router.patch('/:id', requireAuth, requireRole('ADMIN', 'PRODUCER'), async (req, 
         preferred_first_name = ${data.preferredFirstName !== undefined ? (data.preferredFirstName||null) : sql`preferred_first_name`},
         preferred_last_name = ${data.preferredLastName !== undefined ? (data.preferredLastName||null) : sql`preferred_last_name`},
         dietary_restrictions = ${data.dietaryRestrictions !== undefined ? (data.dietaryRestrictions||null) : sql`dietary_restrictions`},
+        travel_local = ${data.travelLocal !== undefined ? (data.travelLocal || 'TRAVEL') : sql`travel_local`},
         updated_at = NOW()
       WHERE id = ${req.params.id} RETURNING *`;
     res.json(m);

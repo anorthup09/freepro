@@ -248,6 +248,7 @@ export default function Crew({ project, onProjectUpdate }) {
       phone: memberDetail.phone || '',
       company: memberDetail.company || '',
       homeAirport: memberDetail.home_airport || '',
+      travelLocal: memberDetail.travel_local || 'TRAVEL',
       notes: memberDetail.notes || '',
       dateOfBirth: memberDetail.date_of_birth?.slice(0,10) || '',
       passportNumber: memberDetail.passport_number || '',
@@ -425,6 +426,13 @@ export default function Crew({ project, onProjectUpdate }) {
                       ? <span>⚠️ {a.crewMember.dietaryRestrictions}</span>
                       : <span style={{ color:'var(--muted)' }}>—</span>}
                   </td>
+                  <td>
+                    {a.crewMember
+                      ? ((a.crewMember.travelLocal || 'TRAVEL') === 'LOCAL'
+                          ? <span style={{ fontSize:9, fontWeight:800, color:'#8a8f98', border:'1px solid #8a8f98', borderRadius:10, padding:'1px 8px' }}>LOCAL</span>
+                          : <span style={{ fontSize:9, fontWeight:800, color:'#4a9eff', border:'1px solid #4a9eff', borderRadius:10, padding:'1px 8px' }}>TRAVEL</span>)
+                      : <span style={{ color:'var(--muted)', fontSize:11 }}>—</span>}
+                  </td>
                   <td><span style={{ fontSize:11, color:'var(--orange)' }}>{fmtDate(a.start_date)}</span></td>
                   <td><span style={{ fontSize:11, color:'var(--orange)' }}>{fmtDate(a.end_date)}</span></td>
                   <td style={{ whiteSpace:'nowrap' }}>
@@ -462,6 +470,7 @@ export default function Crew({ project, onProjectUpdate }) {
                 <th>Phone</th>
                 <th>Email</th>
                 <th>Dietary</th>
+                <th>Travel</th>
                 <th>Start Date</th>
                 <th>End Date</th>
                 <th></th>
@@ -474,7 +483,7 @@ export default function Crew({ project, onProjectUpdate }) {
               {staff.map(renderRow)}
               {contractors.length > 0 && (
                 <tr>
-                  <td colSpan={7} style={{ padding:'6px 14px', background:'rgba(230,194,41,0.08)', borderTop:'1px solid var(--border)' }}>
+                  <td colSpan={8} style={{ padding:'6px 14px', background:'rgba(230,194,41,0.08)', borderTop:'1px solid var(--border)' }}>
                     <span style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'#e6c229' }}>Contract Crew</span>
                   </td>
                   <td style={{ padding:'6px 8px', background:'rgba(230,194,41,0.08)', borderTop:'1px solid var(--border)', whiteSpace:'nowrap' }}>
@@ -489,7 +498,7 @@ export default function Crew({ project, onProjectUpdate }) {
               {contractors.map(renderRow)}
               {contractors.length > 0 && (
                 <tr>
-                  <td colSpan={7} style={{ textAlign:'right', padding:'8px 14px', borderTop:'1px solid var(--border)', fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)' }}>Totals</td>
+                  <td colSpan={8} style={{ textAlign:'right', padding:'8px 14px', borderTop:'1px solid var(--border)', fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)' }}>Totals</td>
                   <td style={{ borderTop:'1px solid var(--border)', whiteSpace:'nowrap' }}>
                     <span style={{ fontSize:10, color:'var(--muted)' }}>Labor </span>
                     <span style={{ fontSize:12, color:'var(--green)', fontWeight:700 }}>{fmt$(laborTotal)}</span>
@@ -655,6 +664,17 @@ export default function Crew({ project, onProjectUpdate }) {
                 <div className="field"><label>Phone</label><input value={memberForm.phone} onChange={e => setMemberForm(f=>({...f,phone:e.target.value}))} /></div>
                 <div className="field"><label>Company / Role</label><input value={memberForm.company} onChange={e => setMemberForm(f=>({...f,company:e.target.value}))} /></div>
                 <div className="field"><label>Home Airport</label><input value={memberForm.homeAirport} onChange={e => setMemberForm(f=>({...f,homeAirport:e.target.value}))} placeholder="STL" /></div>
+                <div className="field"><label>Travel / Local</label>
+                  <div style={{ display:'flex', border:'1px solid var(--border)', borderRadius:14, overflow:'hidden', marginTop:2, width:'fit-content' }}>
+                    {[['TRAVEL','Travel'],['LOCAL','Local']].map(([v,label]) => (
+                      <button key={v} type="button" onClick={() => setMemberForm(f=>({...f,travelLocal:v}))}
+                        style={{ background: (memberForm.travelLocal||'TRAVEL') === v ? (v==='TRAVEL' ? 'rgba(74,158,255,0.25)' : 'rgba(255,255,255,0.1)') : 'transparent', border:'none',
+                          color: (memberForm.travelLocal||'TRAVEL') === v ? (v==='TRAVEL' ? '#4a9eff' : '#e8e8e8') : 'var(--muted)', fontSize:11, fontWeight:800, padding:'5px 16px', cursor:'pointer' }}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <div className="field span2">
                   <label>Dietary Restrictions</label>
                   <div style={{ display:'flex', gap:10, alignItems:'center' }}>

@@ -40,7 +40,7 @@ export default function RosterLookup() {
       legalMiddleName: d.legal_middle_name || '',
       legalLastName: d.legal_last_name || ((d.name || '').trim().split(/\s+/).length > 1 ? (d.name || '').trim().split(/\s+/).slice(-1)[0] : ''),
       email: d.email || '', phone: d.phone || '', company: d.company || '',
-      homeAirport: d.home_airport || '', notes: d.notes || '',
+      homeAirport: d.home_airport || '', travelLocal: d.travel_local || 'TRAVEL', notes: d.notes || '',
       dateOfBirth: d.date_of_birth?.slice(0, 10) || '',
       passportNumber: d.passport_number || '', passportExpiry: d.passport_expiry?.slice(0, 10) || '',
       knownTravelerNumber: d.known_traveler_number || '', seatPreference: d.seat_preference || '',
@@ -145,6 +145,17 @@ export default function RosterLookup() {
                 <div className="field"><label>Phone</label><input value={form.phone} onChange={e => setForm(f=>({...f,phone:e.target.value}))} /></div>
                 <div className="field"><label>Company / Role</label><input value={form.company} onChange={e => setForm(f=>({...f,company:e.target.value}))} /></div>
                 <div className="field"><label>Home Airport</label><input value={form.homeAirport} onChange={e => setForm(f=>({...f,homeAirport:e.target.value}))} placeholder="STL" /></div>
+                <div className="field"><label>Travel / Local</label>
+                  <div style={{ display:'flex', border:'1px solid var(--border)', borderRadius:14, overflow:'hidden', marginTop:2, width:'fit-content' }}>
+                    {[['TRAVEL','Travel'],['LOCAL','Local']].map(([v,label]) => (
+                      <button key={v} type="button" onClick={() => setForm(f=>({...f,travelLocal:v}))}
+                        style={{ background: (form.travelLocal||'TRAVEL') === v ? (v==='TRAVEL' ? 'rgba(74,158,255,0.25)' : 'rgba(255,255,255,0.1)') : 'transparent', border:'none',
+                          color: (form.travelLocal||'TRAVEL') === v ? (v==='TRAVEL' ? '#4a9eff' : '#e8e8e8') : 'var(--muted)', fontSize:11, fontWeight:800, padding:'5px 16px', cursor:'pointer' }}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <div className="field span2">
                   <label>Dietary Restrictions</label>
                   <div style={{ display:'flex', gap:10, alignItems:'center' }}>

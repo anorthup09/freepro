@@ -50,7 +50,7 @@ async function getFullProject(id) {
     sql`SELECT * FROM key_talent WHERE project_id = ${id}`,
     sql`SELECT ca.*, p.name as position_name, p.sort_order,
                cm.id as cm_id, cm.name as cm_name, cm.email as cm_email, cm.phone as cm_phone, cm.company as cm_company, cm.initials, cm.avatar_color,
-               cm.preferred_first_name as cm_pref_first, cm.preferred_last_name as cm_pref_last
+               cm.preferred_first_name as cm_pref_first, cm.preferred_last_name as cm_pref_last, cm.travel_local as cm_travel_local
         FROM crew_assignments ca
         JOIN positions p ON p.id = ca.position_id
         LEFT JOIN crew_members cm ON cm.id = ca.crew_member_id
@@ -81,7 +81,7 @@ async function getFullProject(id) {
     crewAssignments: crewAssignments.map(a => ({
       ...a,
       position: { id: a.position_id, name: a.position_name, sortOrder: a.sort_order },
-      crewMember: a.cm_id ? { id: a.cm_id, name: a.cm_name, preferredFirstName: a.cm_pref_first, preferredLastName: a.cm_pref_last, email: a.cm_email, phone: a.cm_phone, company: a.cm_company, initials: a.initials, avatarColor: a.avatar_color } : null,
+      crewMember: a.cm_id ? { id: a.cm_id, name: a.cm_name, preferredFirstName: a.cm_pref_first, preferredLastName: a.cm_pref_last, email: a.cm_email, phone: a.cm_phone, company: a.cm_company, initials: a.initials, avatarColor: a.avatar_color, travelLocal: a.cm_travel_local } : null,
     })),
     deliverables,
   };
@@ -424,7 +424,7 @@ router.get('/:id/crew', requireAuth, async (req, res, next) => {
     const rows = await sql`
       SELECT ca.*, p.name as position_name, p.sort_order,
              cm.id as cm_id, cm.name as cm_name, cm.email as cm_email, cm.phone as cm_phone, cm.company as cm_company, cm.initials, cm.avatar_color,
-             cm.preferred_first_name as cm_pref_first, cm.preferred_last_name as cm_pref_last, cm.dietary_restrictions as cm_dietary
+             cm.preferred_first_name as cm_pref_first, cm.preferred_last_name as cm_pref_last, cm.dietary_restrictions as cm_dietary, cm.travel_local as cm_travel_local
       FROM crew_assignments ca
       JOIN positions p ON p.id = ca.position_id
       LEFT JOIN crew_members cm ON cm.id = ca.crew_member_id
@@ -433,7 +433,7 @@ router.get('/:id/crew', requireAuth, async (req, res, next) => {
     res.json(rows.map(a => ({
       ...a,
       position: { id: a.position_id, name: a.position_name, sortOrder: a.sort_order },
-      crewMember: a.cm_id ? { id: a.cm_id, name: a.cm_name, preferredFirstName: a.cm_pref_first, preferredLastName: a.cm_pref_last, email: a.cm_email, phone: a.cm_phone, company: a.cm_company, initials: a.initials, avatarColor: a.avatar_color, dietaryRestrictions: a.cm_dietary } : null,
+      crewMember: a.cm_id ? { id: a.cm_id, name: a.cm_name, preferredFirstName: a.cm_pref_first, preferredLastName: a.cm_pref_last, email: a.cm_email, phone: a.cm_phone, company: a.cm_company, initials: a.initials, avatarColor: a.avatar_color, dietaryRestrictions: a.cm_dietary, travelLocal: a.cm_travel_local } : null,
     })));
   } catch(e){next(e);}
 });
@@ -445,7 +445,7 @@ router.post('/:id/crew', requireAuth, requireRole('ADMIN','PRODUCER'), async (re
       VALUES (gen_random_uuid()::text, ${req.params.id}, ${positionId}, ${crewMemberId||null}, ${slotNumber}, ${notes||null}, ${startDate||null}, ${endDate||null}, ${isContractor === true}, ${dayRate ?? null}, ${laborDays ?? null}, ${gearCost ?? null}, ${gearDays ?? null})
       RETURNING *`;
     const [full] = await sql`
-      SELECT ca.*, p.name as position_name, cm.id as cm_id, cm.name as cm_name, cm.email as cm_email, cm.phone as cm_phone, cm.initials, cm.avatar_color, cm.preferred_first_name as cm_pref_first, cm.preferred_last_name as cm_pref_last, cm.dietary_restrictions as cm_dietary
+      SELECT ca.*, p.name as position_name, cm.id as cm_id, cm.name as cm_name, cm.email as cm_email, cm.phone as cm_phone, cm.initials, cm.avatar_color, cm.preferred_first_name as cm_pref_first, cm.preferred_last_name as cm_pref_last, cm.dietary_restrictions as cm_dietary, cm.travel_local as cm_travel_local
       FROM crew_assignments ca JOIN positions p ON p.id=ca.position_id LEFT JOIN crew_members cm ON cm.id=ca.crew_member_id
       WHERE ca.id = ${a.id}`;
     if (crewMemberId && startDate) sendAssignmentHold(a.id);
@@ -471,7 +471,7 @@ router.patch('/:id/crew/:aid', requireAuth, requireRole('ADMIN','PRODUCER'), asy
         gear_days = ${gearDays !== undefined ? (gearDays === '' || gearDays === null ? null : gearDays) : sql`gear_days`}
       WHERE id = ${req.params.aid}`;
     const [full] = await sql`
-      SELECT ca.*, p.name as position_name, cm.id as cm_id, cm.name as cm_name, cm.email as cm_email, cm.phone as cm_phone, cm.initials, cm.avatar_color, cm.preferred_first_name as cm_pref_first, cm.preferred_last_name as cm_pref_last, cm.dietary_restrictions as cm_dietary
+      SELECT ca.*, p.name as position_name, cm.id as cm_id, cm.name as cm_name, cm.email as cm_email, cm.phone as cm_phone, cm.initials, cm.avatar_color, cm.preferred_first_name as cm_pref_first, cm.preferred_last_name as cm_pref_last, cm.dietary_restrictions as cm_dietary, cm.travel_local as cm_travel_local
       FROM crew_assignments ca JOIN positions p ON p.id=ca.position_id LEFT JOIN crew_members cm ON cm.id=ca.crew_member_id
       WHERE ca.id = ${req.params.aid}`;
     if ((crewMemberId !== undefined || startDate !== undefined || endDate !== undefined) && full.cm_id && full.start_date) {
