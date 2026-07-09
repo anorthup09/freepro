@@ -252,10 +252,23 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
       summaryLines.push(`${name} — ${fmt$(cost)}`);
     }
     summaryLines.push(`Production Management — ${fmt$(t.mgmt)}`, `Total — ${fmt$(t.total)}`);
-    const positions = [...new Set(sections.filter(x => x.kind === 'shoot').flatMap(sec =>
-      lines.filter(l => l.section_id === sec.id && !l.is_travel && l.percent == null && num(l.qty) > 0 && l.scope).map(l => l.scope)))];
-    const shootSec = sections.find(x => x.kind === 'shoot');
     const fmtD = d => d ? new Date(String(d).slice(0, 10) + 'T12:00:00').toLocaleDateString() : '';
+    const shootSecs = sections.filter(x => x.kind === 'shoot');
+    const shootName = (sec, i) => (sec.subtitle || '').trim() || (sec.trip || '').trim() || sec.shoot_code || `Shoot ${i + 1}`;
+    // Budgeted positions grouped by shoot: every labor position within each shoot
+    const positionsBlock = shootSecs.map((sec, i) => {
+      const pos = [...new Set(lines
+        .filter(l => l.section_id === sec.id && !l.is_travel && l.percent == null && num(l.qty) > 0 && l.scope)
+        .map(l => (num(l.qty) > 1 ? `${num(l.qty)}x ` : '') + l.scope))];
+      if (!pos.length) return null;
+      return `${shootName(sec, i)}:\n${pos.map(p => `- ${p}`).join('\n')}`;
+    }).filter(Boolean).join('\n\n');
+    // Every shoot's production dates
+    const datesBlock = shootSecs.map((sec, i) => {
+      if (!sec.fp_start_date) return null;
+      const range = `${fmtD(sec.fp_start_date)}${sec.fp_end_date && sec.fp_end_date !== sec.fp_start_date ? ` – ${fmtD(sec.fp_end_date)}` : ''}`;
+      return `${shootName(sec, i)}: ${range}`;
+    }).filter(Boolean).join('\n');
     return {
       email: user?.email || '',
       clientCompany: project?.client || '',
@@ -268,8 +281,8 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
       capcoRevenue: Number(budget.total_cap_co || 0) ? fmt$(budget.total_cap_co) : '',
       budgetOwner: budget.media_rep || '',
       budgetLink: `${window.location.origin}/finance/${project?.id || ''}`,
-      budgetedPositions: positions.join('\n'),
-      productionDates: shootSec?.fp_start_date ? `${fmtD(shootSec.fp_start_date)} – ${fmtD(shootSec.fp_end_date || shootSec.fp_start_date)}` : '',
+      budgetedPositions: positionsBlock,
+      productionDates: datesBlock,
       closeMonth: budget.close_month || '',
     };
   }

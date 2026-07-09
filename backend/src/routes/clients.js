@@ -60,6 +60,36 @@ router.get('/roster', ...staff, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// Full roster with saved contact info — powers the Harbinger client search / autofill
+router.get('/contacts', ...staff, async (req, res, next) => {
+  try {
+    res.json(await sql`
+      SELECT id, name, primary_contact_name, primary_contact_email, mailing_address, invoice_cc, contacts_note
+      FROM clients ORDER BY name`);
+  } catch (e) { next(e); }
+});
+
+// Save (upsert) a client's contact info for reuse. Only overwrites fields provided.
+router.patch('/:client/contact', ...staff, async (req, res, next) => {
+  try {
+    const name = String(req.params.client || '').trim();
+    if (!name) return res.status(400).json({ error: 'Client name required' });
+    let [c] = await sql`SELECT * FROM clients WHERE LOWER(name) = LOWER(${name})`;
+    if (!c) [c] = await sql`INSERT INTO clients (name, created_by) VALUES (${name}, ${req.user.name || req.user.email}) RETURNING *`;
+    const b = req.body || {};
+    const [row] = await sql`
+      UPDATE clients SET
+        primary_contact_name  = COALESCE(${b.primaryContactName ?? null}, primary_contact_name),
+        primary_contact_email = COALESCE(${b.primaryContactEmail ?? null}, primary_contact_email),
+        mailing_address       = COALESCE(${b.mailingAddress ?? null}, mailing_address),
+        invoice_cc            = COALESCE(${b.invoiceCc ?? null}, invoice_cc),
+        contacts_note         = COALESCE(${b.contactsNote ?? null}, contacts_note)
+      WHERE id = ${c.id}
+      RETURNING id, name, primary_contact_name, primary_contact_email, mailing_address, invoice_cc, contacts_note`;
+    res.json(row);
+  } catch (e) { next(e); }
+});
+
 router.post('/roster', ...staff, async (req, res, next) => {
   try {
     const name = String(req.body.name || '').trim();

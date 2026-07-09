@@ -1265,6 +1265,12 @@ async function migrate() {
       created_at TIMESTAMPTZ DEFAULT NOW()
     )`;
   await sql`ALTER TABLE clients ADD COLUMN IF NOT EXISTS hub_password TEXT`;
+  // Saved client contact info — reused to auto-fill the Harbinger for repeat clients
+  await sql`ALTER TABLE clients ADD COLUMN IF NOT EXISTS primary_contact_name TEXT`;
+  await sql`ALTER TABLE clients ADD COLUMN IF NOT EXISTS primary_contact_email TEXT`;
+  await sql`ALTER TABLE clients ADD COLUMN IF NOT EXISTS mailing_address TEXT`;
+  await sql`ALTER TABLE clients ADD COLUMN IF NOT EXISTS invoice_cc TEXT`;
+  await sql`ALTER TABLE clients ADD COLUMN IF NOT EXISTS contacts_note TEXT`;
   // Seed the roster from client names already on projects
   await sql`
     INSERT INTO clients (name)

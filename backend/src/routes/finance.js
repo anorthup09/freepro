@@ -863,6 +863,22 @@ router.post('/finance/:pid/harbinger', ...finance, async (req, res, next) => {
     await sql`UPDATE budgets SET status = 'Live' WHERE id = ${budget.id}`;
     await ensureShootProjects(budget.id).catch(e2 => console.error('Shoot tiles on harbinger failed:', e2.message));
 
+    // Save the client's contact info to the roster for future reuse (idempotent upsert)
+    try {
+      const cname = String(d.clientCompany || project.client || '').trim();
+      if (cname) {
+        let [c] = await sql`SELECT id FROM clients WHERE LOWER(name) = LOWER(${cname})`;
+        if (!c) [c] = await sql`INSERT INTO clients (name, created_by) VALUES (${cname}, ${req.user?.email || null}) RETURNING id`;
+        await sql`UPDATE clients SET
+          primary_contact_name  = COALESCE(NULLIF(${d.primaryContactName || ''}, ''), primary_contact_name),
+          primary_contact_email = COALESCE(NULLIF(${d.primaryContactEmail || ''}, ''), primary_contact_email),
+          mailing_address       = COALESCE(NULLIF(${d.mailingAddress || ''}, ''), mailing_address),
+          invoice_cc            = COALESCE(NULLIF(${d.invoiceCc || ''}, ''), invoice_cc),
+          contacts_note         = COALESCE(NULLIF(${d.clientContacts || ''}, ''), contacts_note)
+          WHERE id = ${c.id}`;
+      }
+    } catch (e2) { console.error('Client contact save failed:', e2.message); }
+
     const to = process.env.HARBINGER_EMAIL;
     if (to) {
       const line = (label, v) => `${label}: ${v || '—'}`;
@@ -898,6 +914,68 @@ router.post('/finance/:pid/harbinger', ...finance, async (req, res, next) => {
         .catch(err => console.error('Harbinger email failed:', err.message));
     }
     res.status(201).json(row);
+  } catch (e) { next(e); }
+});
+
+// AI synopsis of the budget allocations for the Harbinger SOW field. Builds a
+// per-section allocation breakdown from the budget and asks Claude to write a
+// concise scope-of-work paragraph. Falls back to a plain breakdown with no key.
+router.post('/finance/:pid/harbinger-sow', ...finance, async (req, res, next) => {
+  try {
+    const pid = req.params.pid;
+    const [project] = await sql`SELECT code, title, client FROM projects WHERE id = ${pid}`;
+    const [budget] = await sql`SELECT * FROM budgets WHERE project_id = ${pid} AND COALESCE(kind, 'main') = 'main'`;
+    if (!budget) return res.status(400).json({ error: 'No budget for this project' });
+    const sections = await sql`SELECT * FROM budget_sections WHERE budget_id = ${budget.id} ORDER BY sort`;
+    const lines = await sql`SELECT * FROM budget_lines WHERE budget_id = ${budget.id}`;
+    const money = n => '$' + Math.round(Number(n) || 0).toLocaleString('en-US');
+
+    // Per-section allocation: flat lines are qty×unit; percent lines apply to the
+    // section's flat subtotal. Good enough to characterize where the money goes.
+    const breakdown = [];
+    let grand = 0;
+    for (const s of sections) {
+      const secLines = lines.filter(l => l.section_id === s.id);
+      const flat = secLines.filter(l => l.percent == null)
+        .reduce((sum, l) => sum + (Number(l.qty) || 0) * (Number(l.unit_cost) || 0), 0);
+      const pct = secLines.filter(l => l.percent != null)
+        .reduce((sum, l) => sum + flat * (Number(l.percent) || 0), 0);
+      const cost = flat + pct;
+      if (cost <= 0) continue;
+      grand += cost;
+      const items = secLines.filter(l => l.percent == null && (Number(l.qty) || 0) > 0 && l.scope)
+        .map(l => l.scope);
+      breakdown.push({ section: s.title || s.kind, kind: s.kind, cost, items });
+    }
+
+    const fallback = () => breakdown
+      .map(b => `${b.section} — ${money(b.cost)}` + (b.items.length ? `\n- ${b.items.join('\n- ')}` : ''))
+      .join('\n\n') + `\n\nTotal — ${money(grand)}`;
+
+    let sow = fallback();
+    if (process.env.ANTHROPIC_API_KEY && breakdown.length) {
+      try {
+        const prompt = `You are writing the Scope of Work / Project Description for an internal project-initiation form ("Harbinger") at a video production company.
+
+Project: ${project.title} (${project.code}) for client ${project.client}.
+Budget allocations by section (dollar amounts show where the budget is concentrated):
+${breakdown.map(b => `- ${b.section} (${b.kind}): ${money(b.cost)}${b.items.length ? ` — includes: ${b.items.join(', ')}` : ''}`).join('\n')}
+Total budget: ${money(grand)}.
+
+Write a concise, professional synopsis (2-4 short paragraphs or a tight bulleted summary) describing the scope of work implied by these allocations: what will be produced, the production/crew footprint, and where the budget is focused. Do NOT restate every dollar figure line-by-line; instead characterize the work. Return ONLY the synopsis text, no preamble.`;
+        const r = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+          body: JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 1200, messages: [{ role: 'user', content: prompt }] }),
+        });
+        const out = await r.json();
+        const text = (out?.content?.[0]?.text || '').trim();
+        if (text) sow = text;
+      } catch (err) {
+        console.error('Harbinger SOW AI failed, using breakdown fallback:', err.message);
+      }
+    }
+    res.json({ sow, total: money(grand) });
   } catch (e) { next(e); }
 });
 

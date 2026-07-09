@@ -1,5 +1,69 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { api } from '../api.js';
+
+// Close-month options: 6 months back through ~3 years out. Value stays YYYY-MM
+// (matches how the budget stores close_month); label shows MM-YYYY.
+function closeMonthOptions() {
+  const opts = [];
+  const start = new Date();
+  start.setMonth(start.getMonth() - 6, 1);
+  for (let i = 0; i < 43; i++) {
+    const d = new Date(start.getFullYear(), start.getMonth() + i, 1);
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    opts.push({ value: `${d.getFullYear()}-${mm}`, label: `${mm}-${d.getFullYear()}` });
+  }
+  return opts;
+}
+
+const isUnbridled = m => (m.company || '').toLowerCase().includes('unbridled');
+const crewLabel = m => [m.preferred_first_name, m.preferred_last_name].filter(Boolean).join(' ').trim() || m.name || '';
+
+// Tag Unbridled crew members into a comma-joined text field (chips + search).
+function CrewTagField({ label, value, onChange, crew }) {
+  const [q, setQ] = useState('');
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const tags = String(value || '').split(',').map(s => s.trim()).filter(Boolean);
+  useEffect(() => {
+    const h = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, []);
+  const add = name => {
+    if (!tags.some(t => t.toLowerCase() === name.toLowerCase())) onChange([...tags, name].join(', '));
+    setQ(''); setOpen(false);
+  };
+  const remove = name => onChange(tags.filter(t => t !== name).join(', '));
+  const matches = crew
+    .filter(isUnbridled)
+    .map(crewLabel).filter(Boolean)
+    .filter(n => !tags.some(t => t.toLowerCase() === n.toLowerCase()))
+    .filter(n => !q.trim() || n.toLowerCase().includes(q.trim().toLowerCase()));
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <label style={lbl}>{label}</label>
+      <div style={{ ...inS, display: 'flex', flexWrap: 'wrap', gap: 5, alignItems: 'center', minHeight: 38, padding: '5px 7px' }}>
+        {tags.map(t => (
+          <span key={t} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(90,191,128,0.16)', border: '1px solid #5ABF80', color: '#5ABF80', borderRadius: 12, padding: '2px 8px', fontSize: 11, fontWeight: 700 }}>
+            {t}<span onClick={() => remove(t)} style={{ cursor: 'pointer', fontWeight: 800 }}>✕</span>
+          </span>
+        ))}
+        <input value={q} onChange={e => { setQ(e.target.value); setOpen(true); }} onFocus={() => setOpen(true)}
+          placeholder={tags.length ? '' : 'Search Unbridled crew…'}
+          style={{ flex: 1, minWidth: 90, background: 'transparent', border: 'none', outline: 'none', color: 'var(--text)', fontSize: 13 }} />
+      </div>
+      {open && matches.length > 0 && (
+        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 140, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 7, marginTop: 3, maxHeight: 200, overflowY: 'auto', boxShadow: '0 8px 22px rgba(0,0,0,0.5)' }}>
+          {matches.slice(0, 30).map(n => (
+            <div key={n} onClick={() => add(n)} style={{ padding: '7px 10px', fontSize: 13, cursor: 'pointer', borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>{n}</div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 const inS = { background:'var(--bg)', border:'1px solid var(--border)', borderRadius:6, color:'var(--text)', padding:'8px 10px', fontSize:13, width:'100%', minWidth:0 };
 const areaS = { ...inS, minHeight:70, fontFamily:'inherit', resize:'vertical' };
@@ -77,6 +141,76 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted }) {
   });
   const [saving, setSaving] = useState(false);
   const set = k => e => setF(v => ({ ...v, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
+  const setVal = (k, val) => setF(v => ({ ...v, [k]: val }));
+
+  const [crew, setCrew] = useState([]);
+  const [contacts, setContacts] = useState([]);
+  const [sowLoading, setSowLoading] = useState(false);
+  const cmOptions = useMemo(closeMonthOptions, []);
+
+  // Load crew roster + saved client contacts, and draft the SOW synopsis with AI
+  useEffect(() => {
+    api.getCrew().then(setCrew).catch(() => {});
+    api.clientContacts().then(setContacts).catch(() => {});
+    generateSow();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function generateSow() {
+    setSowLoading(true);
+    try {
+      const { sow } = await api.harbingerSow(pid);
+      if (sow) setF(v => ({ ...v, sow }));
+    } catch { /* keep the existing prefill */ }
+    setSowLoading(false);
+  }
+
+  // Client search / autofill: match the typed company to the saved roster
+  const clientMatch = useMemo(() => contacts.find(c =>
+    (c.name || '').trim().toLowerCase() === (f.clientCompany || '').trim().toLowerCase()), [contacts, f.clientCompany]);
+  const clientSuggestions = useMemo(() => {
+    const q = (f.clientCompany || '').trim().toLowerCase();
+    if (!q) return [];
+    return contacts.filter(c => (c.name || '').toLowerCase().includes(q) && (c.name || '').toLowerCase() !== q).slice(0, 8);
+  }, [contacts, f.clientCompany]);
+  const [clientOpen, setClientOpen] = useState(false);
+
+  // When the typed company exactly matches a saved client, fill any empty
+  // contact fields (never clobbering values already entered/prefilled)
+  useEffect(() => {
+    if (!clientMatch) return;
+    setF(v => ({
+      ...v,
+      primaryContactName: v.primaryContactName || clientMatch.primary_contact_name || '',
+      primaryContactEmail: v.primaryContactEmail || clientMatch.primary_contact_email || '',
+      mailingAddress: v.mailingAddress || clientMatch.mailing_address || '',
+      invoiceCc: v.invoiceCc || clientMatch.invoice_cc || '',
+      clientContacts: v.clientContacts || clientMatch.contacts_note || '',
+    }));
+  }, [clientMatch]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function applyClient(c) {
+    setF(v => ({
+      ...v,
+      clientCompany: c.name || v.clientCompany,
+      primaryContactName: c.primary_contact_name || v.primaryContactName,
+      primaryContactEmail: c.primary_contact_email || v.primaryContactEmail,
+      mailingAddress: c.mailing_address || v.mailingAddress,
+      invoiceCc: c.invoice_cc || v.invoiceCc,
+      clientContacts: c.contacts_note || v.clientContacts,
+    }));
+    setClientOpen(false);
+  }
+
+  async function addNewClient() {
+    const name = (f.clientCompany || '').trim();
+    if (!name) return;
+    try {
+      await api.addClient(name, true);
+      const list = await api.clientContacts().catch(() => contacts);
+      setContacts(list);
+      alert(`"${name}" added to the client roster.`);
+    } catch (e) { alert(e.message); }
+  }
 
   const ok = f.email && f.clientCompany && f.projectName && f.proposedCode && f.sow
     && f.primaryContactName && f.primaryContactEmail && f.mailingAddress && f.invoiceCc
@@ -140,11 +274,43 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted }) {
         <div style={{ display:'flex', flexDirection:'column', gap:12, marginTop:12 }}>
           <div style={secHead}>Project</div>
           {row(text('Your Email Address', 'email', true, 'Shows on the contract sent to the client.'),
-               text('Client Company Name', 'clientCompany', true))}
+            <div style={{ position:'relative' }}>
+              <label style={lbl}>Client Company Name{req}</label>
+              <div style={hint}>Search the client roster to auto-fill saved contact info, or add a new client.</div>
+              <input style={inS} value={f.clientCompany}
+                onChange={e => { setVal('clientCompany', e.target.value); setClientOpen(true); }}
+                onFocus={() => setClientOpen(true)}
+                onBlur={() => setTimeout(() => setClientOpen(false), 150)} />
+              {clientOpen && (clientSuggestions.length > 0 || (f.clientCompany.trim() && !clientMatch)) && (
+                <div style={{ position:'absolute', top:'100%', left:0, right:0, zIndex:140, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:7, marginTop:3, maxHeight:220, overflowY:'auto', boxShadow:'0 8px 22px rgba(0,0,0,0.5)' }}>
+                  {clientSuggestions.map(c => (
+                    <div key={c.id} onMouseDown={() => applyClient(c)} style={{ padding:'7px 10px', fontSize:13, cursor:'pointer', borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
+                      {c.name}{c.primary_contact_name ? <span style={{ color:'var(--muted)', fontSize:11 }}> · {c.primary_contact_name}</span> : null}
+                    </div>
+                  ))}
+                  {f.clientCompany.trim() && !clientMatch && (
+                    <div onMouseDown={addNewClient} style={{ padding:'8px 10px', fontSize:13, fontWeight:700, color:'#5ABF80', cursor:'pointer' }}>
+                      + Add “{f.clientCompany.trim()}” as a new client
+                    </div>
+                  )}
+                </div>
+              )}
+              {clientMatch && <div style={{ ...hint, color:'#5ABF80' }}>Saved client — contact info auto-filled below.</div>}
+            </div>)}
           {row(text('Name of Project', 'projectName', true),
                text('Proposed Code', 'proposedCode', true))}
           {text('Existing Solutions Code or Client Specific Code (If Applicable)', 'solutionsCode')}
-          {area('SOW & Project Description (Summary of Project, # of deliverables, etc…)', 'sow', true)}
+          <div>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4 }}>
+              <label style={{ ...lbl, marginBottom:0 }}>SOW & Project Description{req}</label>
+              <button type="button" onClick={generateSow} disabled={sowLoading}
+                style={{ background:'rgba(90,191,128,0.14)', border:'1px solid #5ABF80', color:'#5ABF80', borderRadius:8, padding:'4px 10px', fontSize:11, fontWeight:800, cursor: sowLoading ? 'default' : 'pointer', opacity: sowLoading ? 0.6 : 1 }}>
+                {sowLoading ? 'Generating…' : '✨ AI synopsis from budget'}
+              </button>
+            </div>
+            <div style={hint}>Auto-drafted from the budget allocations. Edit freely or regenerate.</div>
+            <textarea style={{ ...areaS, minHeight:120, opacity: sowLoading ? 0.6 : 1 }} value={f.sow} onChange={set('sow')} />
+          </div>
           {area('Budget Summary / Breakdown', 'budgetSummary', false, 'Optional — only if the client needs a budget breakdown on the contract. The total project estimate appears on the contract regardless.')}
 
           <div style={secHead}>Client</div>
@@ -182,7 +348,9 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted }) {
           {text('Shooting Location(s) (Enter NO SHOOT if applicable)', 'shootingLocations')}
           {area('Gear Scope/Summary (Enter NO SHOOT if applicable)', 'gearScope')}
           {area('Production and Travel Dates (all key shooting dates and anticipated crew travel dates)', 'productionDates')}
-          {row(text('Preferred Crew', 'preferredCrew'), text('Preferred Editor(s)', 'preferredEditors'))}
+          {row(
+            <CrewTagField label="Preferred Crew" value={f.preferredCrew} onChange={val => setVal('preferredCrew', val)} crew={crew} />,
+            <CrewTagField label="Preferred Editor(s)" value={f.preferredEditors} onChange={val => setVal('preferredEditors', val)} crew={crew} />)}
           {area('Crew Preference Notes', 'crewNotes')}
           {row(yesNo('Pro Colorist Needed?', 'proColorist'), yesNo('Pro Audio Engineer Needed?', 'proAudio'))}
 
@@ -192,7 +360,16 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted }) {
               <label style={lbl}>Estimated Final Delivery{req}</label>
               <input type="date" style={inS} value={f.finalDelivery} onChange={set('finalDelivery')} />
             </div>,
-            text('Estimated Close Month', 'closeMonth', true))}
+            <div>
+              <label style={lbl}>Estimated Close Month{req}</label>
+              <select style={inS} value={f.closeMonth} onChange={set('closeMonth')}>
+                <option value="">— Select MM-YYYY —</option>
+                {f.closeMonth && !cmOptions.some(o => o.value === f.closeMonth) && (
+                  <option value={f.closeMonth}>{f.closeMonth}</option>
+                )}
+                {cmOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </div>)}
           {area('Notes', 'notes')}
 
           <div style={{ display:'flex', justifyContent:'flex-end', gap:8, marginTop:4 }}>
