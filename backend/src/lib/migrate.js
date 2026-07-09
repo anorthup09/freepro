@@ -1287,6 +1287,22 @@ async function migrate() {
       WHERE name ILIKE ${pattern} AND (company IS NULL OR company ILIKE '%unbridled%')`;
   }
 
+  // One-time merger: marry FreePro shoot tiles to their ProFi budget sections
+  // for productions added before the auto-link rule existed. Non-destructive —
+  // only fills a NULL freepro_project_id, matched by project code; idempotent.
+  // (a) Multi-shoot sections → the FreePro project whose code = the shoot code.
+  await sql`UPDATE budget_sections bs SET freepro_project_id = p.id
+    FROM projects p, budgets b
+    WHERE bs.budget_id = b.id AND bs.kind = 'shoot' AND bs.freepro_project_id IS NULL
+      AND bs.shoot_code IS NOT NULL AND p.code = bs.shoot_code
+      AND COALESCE(b.status, '') <> 'Closed'`;
+  // (b) Single-shoot budgets → the parent ProFi project is the tile.
+  await sql`UPDATE budget_sections bs SET freepro_project_id = b.project_id
+    FROM budgets b
+    WHERE bs.budget_id = b.id AND bs.kind = 'shoot' AND bs.freepro_project_id IS NULL
+      AND COALESCE(b.status, '') <> 'Closed'
+      AND (SELECT COUNT(*) FROM budget_sections x WHERE x.budget_id = b.id AND x.kind = 'shoot') = 1`;
+
   // One-time ClickUp PTO/OOO import (idempotent)
   try { await require('./seedPto')(); } catch (e) { console.error('PTO seed failed:', e.message); }
 
