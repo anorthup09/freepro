@@ -13,7 +13,7 @@ function Row({ checked, onToggle, name, sub, noEmail, onPreview }) {
       <span style={{ fontSize:12, fontWeight:700, cursor: noEmail ? 'default' : 'pointer' }} onClick={() => !noEmail && onToggle()}>{name}</span>
       <span style={{ fontSize:10, color:'var(--muted)', flex:1 }}>{noEmail ? 'no email on file' : sub}</span>
       {onPreview && (
-        <button title={`Quick view — ${name}'s call sheet (only their events)`} onClick={onPreview}
+        <button title={`Review ${name}'s call sheet`} onClick={onPreview}
           style={{ background:'none', border:'1px solid var(--border)', borderRadius:12, color:'var(--muted)', fontSize:10, fontWeight:700, cursor:'pointer', padding:'2px 10px', whiteSpace:'nowrap' }}>Review</button>
       )}
     </div>
@@ -30,10 +30,15 @@ export default function CallSheetEmails() {
   const [body, setBody] = useState('');
   const [preview, setPreview] = useState(null);   // { name, url }
 
-  async function previewFor(name) {
+  // kind: 'crew' opens the shared crew view filtered to this person via ?for=;
+  // 'client' opens the client call sheet; 'talent' opens that talent's sheet.
+  async function previewFor(name, kind = 'crew') {
     try {
-      const share = await api.createShare(id, { viewType: 'crew' });
-      setPreview({ name, url: `/share/${share.token}?for=${encodeURIComponent(name)}` });
+      const viewType = kind === 'talent' ? 'talent' : kind === 'client' ? 'client' : 'crew';
+      const body = kind === 'talent' ? { viewType, talentName: name } : { viewType };
+      const share = await api.createShare(id, body);
+      const suffix = kind === 'crew' ? `?for=${encodeURIComponent(name)}` : '';
+      setPreview({ name, kind, url: `/share/${share.token}${suffix}` });
     } catch (e) { alert(e.message); }
   }
 
@@ -100,7 +105,7 @@ export default function CallSheetEmails() {
     window.location.href = `mailto:?bcc=${encodeURIComponent(selected.join(','))}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(b)}`;
   }
 
-  const section = (title, list, color) => (
+  const section = (title, list, color, previewKind) => (
     <div style={{ marginBottom:14 }}>
       <div style={{ display:'flex', alignItems:'center', gap:10 }}>
         <div style={{ ...secHdr, marginBottom:0, color }}>{title}</div>
@@ -114,7 +119,7 @@ export default function CallSheetEmails() {
       {list.length === 0 && <div style={{ fontSize:10, color:'var(--muted)', fontStyle:'italic', padding:'4px 2px' }}>None on this project.</div>}
       {list.map((p, i) => (
         <Row key={i} name={p.name} sub={p.sub} noEmail={!p.email}
-          onPreview={p.crew ? () => previewFor(p.name) : undefined}
+          onPreview={previewKind ? () => previewFor(p.name, previewKind) : undefined}
           checked={!!(p.email && sel[p.email])} onToggle={() => p.email && toggle(p.email)} />
       ))}
     </div>
@@ -136,10 +141,10 @@ export default function CallSheetEmails() {
             <div className="cse-grid" style={{ display:'grid', gridTemplateColumns:'320px 1fr', gap:16, alignItems:'start' }}>
               <div style={card}>
                 <div style={{ ...secHdr, marginBottom:12 }}>Recipients {selected.length > 0 && <span style={{ color:'var(--orange)' }}>({selected.length})</span>}</div>
-                {section('Producers', groups.producers, '#5ABF80')}
-                {section('Crew', groups.crew, 'var(--orange)')}
-                {section('Client', groups.clients, '#4a9eff')}
-                {section('Talent', groups.talent, '#e6c229')}
+                {section('Producers', groups.producers, '#5ABF80', 'crew')}
+                {section('Crew', groups.crew, 'var(--orange)', 'crew')}
+                {section('Client', groups.clients, '#4a9eff', 'client')}
+                {section('Talent', groups.talent, '#e6c229', 'talent')}
               </div>
 
               <div style={card}>
@@ -180,7 +185,7 @@ export default function CallSheetEmails() {
             style={{ position:'fixed', inset:0, zIndex:130, background:'rgba(0,0,0,0.8)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
             <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, width:'100%', maxWidth:1000, height:'90vh', display:'flex', flexDirection:'column', overflow:'hidden' }}>
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, padding:'10px 16px', borderBottom:'1px solid var(--border)' }}>
-                <div style={{ fontSize:12, fontWeight:800 }}>Call sheet — {preview.name} <span style={{ color:'var(--muted)', fontWeight:400 }}>(their events only)</span></div>
+                <div style={{ fontSize:12, fontWeight:800 }}>{preview.kind === 'client' ? 'Client call sheet' : `Call sheet — ${preview.name}`} <span style={{ color:'var(--muted)', fontWeight:400 }}>{preview.kind === 'client' ? '(client view)' : '(their events only)'}</span></div>
                 <div style={{ display:'flex', gap:8 }}>
                   <a href={preview.url} target="_blank" rel="noreferrer" className="btn btn-ghost btn-sm" style={{ textDecoration:'none' }}>Open in Tab ↗</a>
                   <button className="btn btn-ghost btn-sm" onClick={() => setPreview(null)}>✕</button>
