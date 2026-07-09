@@ -2166,29 +2166,35 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
                 return (
                   <div key={`f-${item.id}-${item._leg}`} className="ev">
                     <div className="ev-time">✈ {item._time}</div>
-                    <div className="ev-body" style={{ borderLeft:`2px solid ${fs.alert ? fs.color : 'var(--orange)'}`, position:'relative', ...(fs.alert ? { background: `${fs.color}11` } : {}) }}>
-                      {item._leg === 'depart' && !fs.cancelled && (
-                        <div style={{ position:'absolute', top:8, right:10, background:'rgba(0,0,0,0.25)', borderRadius:12, padding:'2px 10px' }}>
-                          <FlightStatusPill s={fs} />
+                    <div className="ev-body" style={{ borderLeft:`2px solid ${fs.alert ? fs.color : 'var(--orange)'}`, ...(fs.alert ? { background: `${fs.color}11` } : {}) }}>
+                      {/* Flows and wraps on narrow screens — the pill and Arrives label drop
+                          to their own line instead of overlapping the text (mobile fix) */}
+                      <div style={{ display:'flex', alignItems:'flex-start', gap:'4px 10px', flexWrap:'wrap' }}>
+                        <div style={{ display:'flex', alignItems:'center', gap:6, flex:'1 1 auto', minWidth:0 }}>
+                          {fs.alert && <span style={{ fontSize:14 }}>❗</span>}
+                          <div className="ev-title" style={fs.alert ? { color: fs.color } : {}}>
+                            {item._leg === 'depart' ? 'Departure' : 'Arrival'} — {item.crew_name || item.passenger_name}
+                          </div>
                         </div>
-                      )}
-                      <div style={{ display:'flex', alignItems:'center', gap:6, paddingRight:150 }}>
-                        {fs.alert && <span style={{ fontSize:14 }}>❗</span>}
-                        <div className="ev-title" style={fs.alert ? { color: fs.color } : {}}>
-                          {item._leg === 'depart' ? 'Departure' : 'Arrival'} — {item.crew_name || item.passenger_name}
-                        </div>
+                        {item._leg === 'depart' && !fs.cancelled && (
+                          <div style={{ background:'rgba(0,0,0,0.25)', borderRadius:12, padding:'2px 10px', flexShrink:0 }}>
+                            <FlightStatusPill s={fs} />
+                          </div>
+                        )}
                       </div>
-                      <div className="ev-detail">
-                        {item.origin} → {item.destination}
-                        {(item.airline || item.flight_number) && <span style={{ color:'var(--muted)', marginLeft:8 }}>{[item.airline, item.flight_number].filter(Boolean).join(' ')}</span>}
-                        {item.confirmation && <span style={{ color:'var(--muted)', marginLeft:8 }}>#{item.confirmation}</span>}
-                      </div>
-                      {adjustedArrival && (
-                        <div style={{ position:'absolute', bottom:8, right:10, fontSize:11 }}>
-                          <span style={{ color:'var(--orange)', fontWeight:700 }}>Arrives</span>
-                          <span style={{ color:'var(--text)', marginLeft:6 }}>{adjustedArrival}</span>
+                      <div style={{ display:'flex', alignItems:'baseline', gap:'2px 14px', flexWrap:'wrap' }}>
+                        <div className="ev-detail" style={{ flex:'1 1 auto', minWidth:0 }}>
+                          {item.origin} → {item.destination}
+                          {(item.airline || item.flight_number) && <span style={{ color:'var(--muted)', marginLeft:8 }}>{[item.airline, item.flight_number].filter(Boolean).join(' ')}</span>}
+                          {item.confirmation && <span style={{ color:'var(--muted)', marginLeft:8 }}>#{item.confirmation}</span>}
                         </div>
-                      )}
+                        {adjustedArrival && (
+                          <div style={{ fontSize:11, whiteSpace:'nowrap', flexShrink:0 }}>
+                            <span style={{ color:'var(--orange)', fontWeight:700 }}>Arrives</span>
+                            <span style={{ color:'var(--text)', marginLeft:6 }}>{adjustedArrival}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
