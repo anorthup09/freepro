@@ -14,7 +14,7 @@ function Row({ checked, onToggle, name, sub, noEmail, onPreview }) {
       <span style={{ fontSize:10, color:'var(--muted)', flex:1 }}>{noEmail ? 'no email on file' : sub}</span>
       {onPreview && (
         <button title={`Quick view — ${name}'s call sheet (only their events)`} onClick={onPreview}
-          style={{ background:'none', border:'none', color:'var(--muted)', fontSize:12, cursor:'pointer', padding:'0 2px' }}>👁</button>
+          style={{ background:'none', border:'1px solid var(--border)', borderRadius:12, color:'var(--muted)', fontSize:10, fontWeight:700, cursor:'pointer', padding:'2px 10px', whiteSpace:'nowrap' }}>Review</button>
       )}
     </div>
   );

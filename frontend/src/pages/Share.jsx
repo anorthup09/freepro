@@ -467,10 +467,20 @@ function FlightsTable({ flights }) {
 
 // ── Producer View ────────────────────────────────────────────────────────────
 function ProducerView({ data, hideGear, onOpenShotList }) {
-  const { project, locations, techSpecs, clientContacts, agencyContacts = [], keyTalent, crewAssignments, schedule, flights, hotelBlocks, rentalCars, deliverables, gear, onlineRentals = [], shotList = [], slDays = [], slBreaks = [] } = data;
+  const { project, locations, techSpecs, clientContacts, agencyContacts = [], keyTalent, crewAssignments, schedule, flights: allFlights, hotelBlocks: allHotelBlocks, rentalCars: allRentalCars, deliverables, gear, onlineRentals = [], shotList = [], slDays = [], slBreaks = [] } = data;
   const scheduleRef = useRef(null);
   const [tagFilter, setTagFilter] = useState(null);
   const personFilter = new URLSearchParams(window.location.search).get('for') || null;
+  // Local crew don't travel — their personal call sheet hides all travel info
+  const isLocalPerson = !!personFilter && (crewAssignments || []).some(a => {
+    const cm = a.crewMember;
+    if (!cm || cm.travelLocal !== 'LOCAL') return false;
+    const disp = ([cm.preferredFirstName, cm.preferredLastName].filter(Boolean).join(' ').trim() || cm.name || '').toLowerCase();
+    return disp === personFilter.toLowerCase() || (cm.name || '').toLowerCase() === personFilter.toLowerCase();
+  });
+  const flights = isLocalPerson ? [] : allFlights;
+  const hotelBlocks = isLocalPerson ? [] : allHotelBlocks;
+  const rentalCars = isLocalPerson ? [] : allRentalCars;
   return (
     <div className="share-view">
       <div className="share-header">
@@ -675,11 +685,21 @@ function ProducerView({ data, hideGear, onOpenShotList }) {
 
 // ── Crew View ────────────────────────────────────────────────────────────────
 function CrewView({ data, shareToken, hideGear, onOpenShotList }) {
-  const { project, locations, techSpecs, clientContacts, agencyContacts = [], keyTalent, crewAssignments, schedule, flights, hotelBlocks, rentalCars, deliverables, gear, onlineRentals = [], shotList = [], slDays = [], slBreaks = [] } = data;
+  const { project, locations, techSpecs, clientContacts, agencyContacts = [], keyTalent, crewAssignments, schedule, flights: allFlights, hotelBlocks: allHotelBlocks, rentalCars: allRentalCars, deliverables, gear, onlineRentals = [], shotList = [], slDays = [], slBreaks = [] } = data;
   const sortedSchedule = [...(schedule || [])].sort((a,b) => (a.date||'').localeCompare(b.date||''));
   const scheduleRef = useRef(null);
   const [tagFilter, setTagFilter] = useState(null);
   const personFilter = new URLSearchParams(window.location.search).get('for') || null;
+  // Local crew don't travel — their personal call sheet hides all travel info
+  const isLocalPerson = !!personFilter && (crewAssignments || []).some(a => {
+    const cm = a.crewMember;
+    if (!cm || cm.travelLocal !== 'LOCAL') return false;
+    const disp = ([cm.preferredFirstName, cm.preferredLastName].filter(Boolean).join(' ').trim() || cm.name || '').toLowerCase();
+    return disp === personFilter.toLowerCase() || (cm.name || '').toLowerCase() === personFilter.toLowerCase();
+  });
+  const flights = isLocalPerson ? [] : allFlights;
+  const hotelBlocks = isLocalPerson ? [] : allHotelBlocks;
+  const rentalCars = isLocalPerson ? [] : allRentalCars;
   return (
     <div className="share-view">
       <div className="share-header">

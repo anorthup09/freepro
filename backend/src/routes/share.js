@@ -54,7 +54,7 @@ router.get('/:token', async (req, res, next) => {
 
     const crewAssignments = await sql`
       SELECT ca.*, p.name as position_name, p.sort_order,
-             cm.id as cm_id, cm.name as cm_name, cm.email as cm_email, cm.phone as cm_phone, cm.company as cm_company, cm.initials, cm.avatar_color, cm.preferred_first_name as cm_pref_first, cm.preferred_last_name as cm_pref_last, cm.dietary_restrictions as cm_dietary
+             cm.id as cm_id, cm.name as cm_name, cm.email as cm_email, cm.phone as cm_phone, cm.company as cm_company, cm.initials, cm.avatar_color, cm.preferred_first_name as cm_pref_first, cm.preferred_last_name as cm_pref_last, cm.dietary_restrictions as cm_dietary, cm.travel_local as cm_travel_local
       FROM crew_assignments ca
       JOIN positions p ON p.id = ca.position_id
       LEFT JOIN crew_members cm ON cm.id = ca.crew_member_id
@@ -64,7 +64,7 @@ router.get('/:token', async (req, res, next) => {
     const mappedCrew = crewAssignments.map(({ is_contractor, day_rate, labor_days, gear_cost, gear_days, ...a }) => ({
       ...a,
       position: { id: a.position_id, name: a.position_name, sortOrder: a.sort_order },
-      crewMember: a.cm_id ? { id: a.cm_id, name: a.cm_name, preferredFirstName: a.cm_pref_first, preferredLastName: a.cm_pref_last, email: a.cm_email, phone: a.cm_phone, company: a.cm_company, initials: a.initials, avatarColor: a.avatar_color, dietaryRestrictions: a.cm_dietary } : null,
+      crewMember: a.cm_id ? { id: a.cm_id, name: a.cm_name, preferredFirstName: a.cm_pref_first, preferredLastName: a.cm_pref_last, email: a.cm_email, phone: a.cm_phone, company: a.cm_company, initials: a.initials, avatarColor: a.avatar_color, dietaryRestrictions: a.cm_dietary, travelLocal: a.cm_travel_local } : null,
     }));
 
     // Load schedule
