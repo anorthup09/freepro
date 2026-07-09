@@ -282,22 +282,23 @@ function HubProjects() {
   const shownClients = cs ? clients.filter(c => c.name.toLowerCase().includes(cs)) : clients;
   return (
     <div>
-      <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:14 }}>
-        <div style={{ fontSize:13, fontWeight:800 }}>Project Hub</div>
+      <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:12 }}>
+        <div onClick={() => nav('/project-view')} title="Open the full Project View — every project"
+          style={{ fontSize:13, fontWeight:800, cursor:'pointer', textDecoration:'underline', textUnderlineOffset:3, textDecorationColor:'var(--border)' }}>Project Hub</div>
         <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search code, title, client…" style={{ width:240 }} />
       </div>
       {!projects && <div className="empty">Loading…</div>}
       {projects && shown.length === 0 && <div className="empty">No projects match.</div>}
-      <div className="hub-scroll" style={{ display:'flex', gap:14, overflowX:'auto', paddingBottom:8 }}>
+      <div className="hub-scroll" style={{ display:'flex', gap:10, overflowX:'auto', paddingBottom:8 }}>
         {shown.map(p => (
           <div key={p.id} onClick={() => nav(`/project-view/${p.id}`)}
-            style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid rgba(232,232,232,0.35)', borderRadius:10, padding:'16px 18px', cursor:'pointer', transition:'transform .15s ease' }}
+            style={{ flex:'0 0 auto', width:180, background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid rgba(232,232,232,0.35)', borderRadius:10, padding:'11px 13px', cursor:'pointer', transition:'transform .15s ease' }}
             onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-3px)'}
             onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
-            <div style={{ fontSize:11, fontWeight:800, color:'var(--muted)', letterSpacing:'0.04em' }}>{p.code}</div>
-            <div style={{ fontSize:14, fontWeight:800, margin:'4px 0 2px' }}>{p.title}</div>
-            <div style={{ fontSize:11, color:'var(--muted)' }}>{p.client}</div>
-            <div style={{ display:'flex', gap:6, marginTop:10, flexWrap:'wrap' }}>
+            <div style={{ fontSize:10, fontWeight:800, color:'var(--muted)', letterSpacing:'0.04em' }}>{p.code}</div>
+            <div style={{ fontSize:12.5, fontWeight:800, margin:'3px 0 2px' }}>{p.title}</div>
+            <div style={{ fontSize:10.5, color:'var(--muted)' }}>{p.client}</div>
+            <div style={{ display:'flex', gap:5, marginTop:8, flexWrap:'wrap' }}>
               <span style={{ fontSize:9, fontWeight:800, color:'#5ABF80', border:'1px solid #5ABF8055', borderRadius:10, padding:'2px 8px' }}>{p.budget_status || 'No budget'}</span>
               {(p.shoots || []).length > 0 && <span style={{ fontSize:9, fontWeight:800, color:'var(--orange)', border:'1px solid rgba(232,80,10,0.4)', borderRadius:10, padding:'2px 8px' }}>{p.shoots.length} shoot{p.shoots.length !== 1 ? 's' : ''}</span>}
             </div>
@@ -307,18 +308,19 @@ function HubProjects() {
       {clients.length > 0 && (
         <>
           <div style={{ display:'flex', alignItems:'center', gap:14, margin:'26px 0 10px' }}>
-            <div style={{ fontSize:13, fontWeight:800 }}>Client Hub</div>
-            <input value={cq} onChange={e => setCq(e.target.value)} placeholder="Search clients…" style={{ width:240 }} />
+            <div onClick={() => nav('/project-view')} title="Open the full Project View — every client"
+              style={{ fontSize:13, fontWeight:800, cursor:'pointer', textDecoration:'underline', textUnderlineOffset:3, textDecorationColor:'var(--border)' }}>Client Hub</div>
+            <input value={cq} onChange={e => setCq(e.target.value)} placeholder="Search clients…" style={{ width:240, marginLeft:'auto' }} />
           </div>
-          <div className="hub-scroll" style={{ display:'flex', gap:14, overflowX:'auto', paddingBottom:8 }}>
+          <div className="hub-scroll" style={{ display:'flex', gap:10, overflowX:'auto', paddingBottom:8 }}>
             {shownClients.map(c => (
               <div key={c.name} onClick={() => nav(`/project-view/client/${encodeURIComponent(c.name)}`)}
-                style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid rgba(74,158,255,0.5)', borderRadius:10, padding:'16px 18px', cursor:'pointer', transition:'transform .15s ease' }}
+                style={{ flex:'0 0 auto', width:180, background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid rgba(74,158,255,0.5)', borderRadius:10, padding:'11px 13px', cursor:'pointer', transition:'transform .15s ease' }}
                 onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-3px)'}
                 onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
-                <div style={{ fontSize:14, fontWeight:800 }}>{c.name}</div>
-                <div style={{ fontSize:11, color:'var(--muted)', margin:'3px 0 10px' }}>{c.projects.length} project{c.projects.length !== 1 ? 's' : ''}</div>
-                <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+                <div style={{ fontSize:12.5, fontWeight:800 }}>{c.name}</div>
+                <div style={{ fontSize:10.5, color:'var(--muted)', margin:'3px 0 8px' }}>{c.projects.length} project{c.projects.length !== 1 ? 's' : ''}</div>
+                <div style={{ display:'flex', gap:5, flexWrap:'wrap' }}>
                   {c.projects.slice(0, 4).map(p => (
                     <span key={p.id} style={{ fontSize:9, fontWeight:800, color:'#4a9eff', border:'1px solid rgba(74,158,255,0.4)', borderRadius:10, padding:'2px 8px' }}>{p.code}</span>
                   ))}
