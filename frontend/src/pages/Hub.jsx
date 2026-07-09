@@ -417,6 +417,7 @@ function HubDashboard() {
                 </span>
               )}
             </div>
+            <div style={{ maxHeight:280, overflowY:'auto' }}>
             {(day.tasks || []).filter(t => !hiddenTasks.includes(t.id)).map(t => {
               const today = day?.date || new Date().toISOString().slice(0, 10);
               const dueToday = t.due_date && String(t.due_date).slice(0, 10) === today;
@@ -451,6 +452,7 @@ function HubDashboard() {
                 </React.Fragment>
               );
             })}
+            </div>
           </>
         )}
       </div>
