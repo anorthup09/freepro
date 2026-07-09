@@ -158,7 +158,7 @@ function NewEditModal({ onClose, onCreated }) {
             <div style={{ flex:1, minWidth:150 }}><div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4 }}>Project Code</div>
               <select value={f.projectCode} onChange={set('projectCode')}>
                 <option value="">— No project (Avo only) —</option>
-                {codes.map(c => <option key={c.code} value={c.code}>{c.code}{c.title ? ` — ${c.title}` : ''}</option>)}
+                {codes.map(c => <option key={c.code} value={c.code}>{c.code.replace(/-\d+$/, '')}{c.title ? ` — ${c.title}` : ''}</option>)}
               </select></div>
             <div style={{ flex:1, minWidth:150 }}><div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4 }}>Lead Editor</div>
               <EditorSelect value={f.leadEditorId} onChange={v => setF(x => ({ ...x, leadEditorId: v }))} /></div>
