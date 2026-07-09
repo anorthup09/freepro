@@ -49,7 +49,7 @@ export function GearRequestView({ r }) {
 
 // Modal: shows the submitted request read-only, or the form to submit one.
 // Props: projectId (optional — locks the project dropdown), existing (request row or null), onClose, onSubmitted
-export default function GearRequestModal({ projectId, existing, onClose, onSubmitted }) {
+export default function GearRequestModal({ projectId, existing, onClose, onSubmitted, embedded }) {
   const [projects, setProjects] = useState(null);
   const [f, setF] = useState({
     projectId: projectId || '', name: '', crew: '', checkOut: '', checkIn: '',
@@ -80,16 +80,15 @@ export default function GearRequestModal({ projectId, existing, onClose, onSubmi
     setF(v => ({ ...v, drives: v.drives.includes(opt) ? v.drives.filter(x => x !== opt) : [...v.drives, opt] }));
   }
 
-  return (
-    <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.7)', zIndex:120, display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'40px 16px', overflowY:'auto' }}>
+  const inner = (
       <div onClick={e => e.stopPropagation()} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid var(--orange)', borderRadius:12, padding:'22px 26px', width:'100%', maxWidth:640 }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
-          <div style={{ fontSize:17, fontWeight:800 }}>Gear Request</div>
-          <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
+          <div style={{ fontSize:17, fontWeight:800 }}>Gear Request{isView ? <span style={{ fontSize:9, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)', border:'1px solid var(--border)', borderRadius:10, padding:'2px 8px', marginLeft:10, verticalAlign:'middle' }}>🔒 Submitted</span> : null}</div>
+          {!embedded && <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>}
         </div>
         {isView ? (
           <>
-            <div style={{ fontSize:11, color:'var(--muted)', marginBottom:16 }}>{existing.code} · {existing.title}</div>
+            {(existing.code || existing.title) && <div style={{ fontSize:11, color:'var(--muted)', marginBottom:16 }}>{existing.code} · {existing.title}</div>}
             <GearRequestView r={existing} />
           </>
         ) : (
@@ -184,6 +183,12 @@ export default function GearRequestModal({ projectId, existing, onClose, onSubmi
           </div>
         )}
       </div>
+  );
+
+  if (embedded) return inner;
+  return (
+    <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.7)', zIndex:120, display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'40px 16px', overflowY:'auto' }}>
+      {inner}
     </div>
   );
 }

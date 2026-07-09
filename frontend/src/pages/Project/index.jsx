@@ -10,6 +10,7 @@ import AdditionalDocs from './AdditionalDocs.jsx';
 import Travel from './Travel.jsx';
 import Gear from './Gear.jsx';
 import GearList from './GearList.jsx';
+import GearRequestModal from '../../components/GearRequestModal.jsx';
 import Catering from './Catering.jsx';
 import SpaceInfo from './SpaceInfo.jsx';
 import Questions from './Questions.jsx';
@@ -30,9 +31,25 @@ const BASE_LOGISTICS_TABS = [
 ];
 
 const GEAR_TABS = [
+  { id: 'gear-request', label: 'Gear Request' },
   { id: 'gear',      label: 'Gear Management' },
   { id: 'gear-list', label: 'Gear List' },
 ];
+
+// Gear Request tab: fill out the request inline, or view it locked once submitted
+function GearRequestTab({ project }) {
+  const [request, setRequest] = useState(undefined); // undefined=loading, null=none
+  useEffect(() => {
+    api.gearRequestForProject(project.id).then(setRequest).catch(() => setRequest(null));
+  }, [project.id]);
+  if (request === undefined) return <div className="empty">Loading…</div>;
+  return (
+    <div style={{ maxWidth: 660 }}>
+      <GearRequestModal embedded projectId={project.id} existing={request || null}
+        onClose={() => {}} onSubmitted={r => setRequest({ ...r, code: project.code, title: project.title })} />
+    </div>
+  );
+}
 
 // shooting_call / est_wrap may be stored as 24h "HH:MM" — display as 12h
 function fmt12(t) {
@@ -436,6 +453,7 @@ export default function Project({ idOverride }) {
         {tab === 'shot-list'            && <ShotList     project={project} onScenesChange={setShotListScenes} onCurrentDayChange={setCurrentShotListDay} onOpenScheduleDay={(iso) => { setScheduleFocusDate(iso); setTab('schedule'); }} />}
         {tab === 'crew'                 && <Crew         project={project} onProjectUpdate={setProject} />}
         {tab === 'travel'               && <Travel       project={project} />}
+        {tab === 'gear-request'         && <GearRequestTab project={project} />}
         {tab === 'gear'                 && <Gear         project={project} setProject={setProject} />}
         {tab === 'gear-list'            && <GearList     project={project} />}
         {tab === 'deliverable-overview' && <Deliverables project={project} />}
