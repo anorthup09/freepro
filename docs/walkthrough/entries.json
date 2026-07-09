@@ -69,5 +69,41 @@
       "Confirm it looks right, then draft and send."
     ],
     "screenshot": "callsheet-review.png"
+  },
+  {
+    "title": "Arrival notes on locations",
+    "what": "Every location can carry Arrival Notes — parking, entrance, check-in, loading dock — and they show up wherever the location appears, including the crew, producer, and client call sheets. Crew call sheets also no longer list Airport or Hotel locations, since crew get those from their own flights and hotel blocks.",
+    "where": "A project's Overview tab, in the Locations section. Add a location or edit an existing one to find the Arrival Notes field.",
+    "how": [
+      "Open a project and go to its Overview tab.",
+      "In Locations, click + Add (or the pencil to edit a location).",
+      "Type parking, entrance, and check-in details into Arrival Notes and save.",
+      "The note appears under the location on the Overview and on call sheets."
+    ],
+    "screenshot": "location-arrival-notes.png"
+  },
+  {
+    "title": "Start a new project from the hub",
+    "what": "A Start New Project button on the hub opens the New Project form and drops you straight into the new project’s view — no need to detour through Finance first.",
+    "where": "The hub in Project View — the green Start New Project button sits just below the Project View / Operations View toggle.",
+    "how": [
+      "On the hub, make sure you're in Project View.",
+      "Click the green + Start New Project button under the view toggle.",
+      "Fill in project code, client, and name (a budget is created in RFP).",
+      "You land in the new project's Project View, ready to build it out."
+    ],
+    "screenshot": "start-new-project.png"
+  },
+  {
+    "title": "Tag Unbridled crew on project to-dos",
+    "what": "Assign any Project View to-do to an Unbridled crew member. Their First + Last initials show as a colored chip, and tagged tasks surface on that person’s hub dashboard so nothing slips.",
+    "where": "Project View, Overview tab, the To-Do panel on the right — click the + chip on any task.",
+    "how": [
+      "Open a project in Project View and stay on the Overview tab.",
+      "In the To-Do panel, click + Add Task (or use an existing task).",
+      "Click the dashed + chip and pick an Unbridled crew member from the list.",
+      "Their initials chip appears, and the task shows on their hub dashboard."
+    ],
+    "screenshot": "todo-tagging.png"
   }
 ]
