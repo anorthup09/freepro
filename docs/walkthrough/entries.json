@@ -9,5 +9,17 @@
       "Click Fit to snap back to the full schedule."
     ],
     "screenshot": "gantt-zoom.png"
+  },
+  {
+    "title": "Admin role preview (View as\u2026)",
+    "what": "Admins can preview the entire platform exactly as any other role sees it \u2014 Producer, Finance, Crew, Agency, or Client \u2014 without signing out. Tiles, pages, and menus all follow the previewed role.",
+    "where": "Hub header, next to the Backup button: the 'View as\u2026' dropdown. A purple banner at the top of every page shows which role you're previewing.",
+    "how": [
+      "On the hub, open the 'View as\u2026' dropdown in the top-right header.",
+      "Pick a role \u2014 the platform immediately re-renders as that role would see it.",
+      "Browse anywhere; the purple 'Previewing as \u2026' banner stays at the top.",
+      "Click Exit Preview on the banner (or reset the dropdown) to return to your admin view."
+    ],
+    "screenshot": "role-preview.png"
   }
 ]

@@ -507,7 +507,7 @@ export default function Hub() {
             <select value={preview || ''} title="Preview the platform as another role"
               onChange={e => setPreview(e.target.value)}
               style={{ width:'auto', fontSize:11, padding:'5px 8px', borderRadius:8, background:'var(--bg2)', color: preview ? '#a78bfa' : 'var(--muted)', border:`1px solid ${preview ? '#a78bfa' : 'var(--border)'}` }}>
-              <option value="">👁 View as…</option>
+              <option value="">View as…</option>
               {['PRODUCER', 'FINANCE', 'CREW', 'AGENCY', 'CLIENT'].map(r => <option key={r} value={r}>View as {r}</option>)}
             </select>
           )}
