@@ -1,5 +1,48 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { api } from '../api.js';
+import { useAuth } from '../App.jsx';
+
+const isUnbridled = m => (m.company || '').toLowerCase().includes('unbridled');
+const crewName = m => [m.preferred_first_name, m.preferred_last_name].filter(Boolean).join(' ').trim() || m.name || '';
+
+// Multi-select of Unbridled crew stored as a comma-joined string
+function CrewMultiSelect({ value, onChange, crew }) {
+  const [q, setQ] = useState('');
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const tags = String(value || '').split(',').map(s => s.trim()).filter(Boolean);
+  useEffect(() => {
+    const h = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, []);
+  const add = n => { if (!tags.some(t => t.toLowerCase() === n.toLowerCase())) onChange([...tags, n].join(', ')); setQ(''); };
+  const remove = n => onChange(tags.filter(t => t !== n).join(', '));
+  const matches = crew.filter(isUnbridled).map(crewName).filter(Boolean)
+    .filter(n => !tags.some(t => t.toLowerCase() === n.toLowerCase()))
+    .filter(n => !q.trim() || n.toLowerCase().includes(q.trim().toLowerCase()));
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '5px 7px', display: 'flex', flexWrap: 'wrap', gap: 5, alignItems: 'center', minHeight: 40 }}>
+        {tags.map(t => (
+          <span key={t} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(232,80,10,0.16)', border: '1px solid var(--orange)', color: 'var(--orange)', borderRadius: 12, padding: '2px 8px', fontSize: 11, fontWeight: 700 }}>
+            {t}<span onClick={() => remove(t)} style={{ cursor: 'pointer', fontWeight: 800 }}>✕</span>
+          </span>
+        ))}
+        <input value={q} onChange={e => { setQ(e.target.value); setOpen(true); }} onFocus={() => setOpen(true)}
+          placeholder={tags.length ? '' : 'Select Unbridled crew…'}
+          style={{ flex: 1, minWidth: 100, background: 'transparent', border: 'none', outline: 'none', color: 'var(--text)', fontSize: 13 }} />
+      </div>
+      {open && matches.length > 0 && (
+        <div style={{ position: 'absolute', top: 'calc(100% + 3px)', left: 0, right: 0, zIndex: 999, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 6, maxHeight: 200, overflowY: 'auto', boxShadow: '0 4px 16px rgba(0,0,0,0.4)' }}>
+          {matches.slice(0, 30).map(n => (
+            <div key={n} onMouseDown={() => add(n)} style={{ padding: '7px 12px', fontSize: 13, cursor: 'pointer', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>{n}</div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 const MOVING_OPTS = ['Flying', 'Local/Driving', 'In-house (not moving)'];
 const DRIVE_OPTS = ['Editing Drive', 'SSD', 'No, I do not need a drive provided to me.'];
@@ -50,19 +93,42 @@ export function GearRequestView({ r }) {
 // Modal: shows the submitted request read-only, or the form to submit one.
 // Props: projectId (optional — locks the project dropdown), existing (request row or null), onClose, onSubmitted
 export default function GearRequestModal({ projectId, existing, onClose, onSubmitted, embedded }) {
+  const { user } = useAuth();
   const [projects, setProjects] = useState(null);
+  const [crew, setCrew] = useState([]);
+  const [amending, setAmending] = useState(false);
   const [f, setF] = useState({
-    projectId: projectId || '', name: '', crew: '', checkOut: '', checkIn: '',
+    projectId: projectId || '', name: user?.name || '', crew: '', checkOut: '', checkIn: '',
     moving: '', camera: '', lights: '', grip: '', other: '',
     drives: [], driveSize: '', driveQty: '', notes: '',
   });
   const [saving, setSaving] = useState(false);
   const set = k => e => setF(v => ({ ...v, [k]: e.target.value }));
-  const isView = !!existing;
+  const isView = !!existing && !amending;
+  const showForm = !existing || amending;
 
   useEffect(() => {
-    if (!isView) api.gearRequestProjects().then(setProjects).catch(() => setProjects([]));
-  }, [isView]);
+    if (showForm) {
+      api.gearRequestProjects().then(setProjects).catch(() => setProjects([]));
+      api.getCrew().then(setCrew).catch(() => {});
+    }
+  }, [showForm]);
+
+  // Prefill the form from the existing request when amending
+  function startAmend() {
+    setF({
+      projectId: existing.project_id || projectId || '',
+      name: user?.name || existing.name || '',
+      crew: existing.crew || '',
+      checkOut: existing.check_out ? String(existing.check_out).slice(0, 10) : '',
+      checkIn: existing.check_in ? String(existing.check_in).slice(0, 10) : '',
+      moving: existing.moving || '',
+      camera: existing.camera || '', lights: existing.lights || '', grip: existing.grip || '', other: existing.other || '',
+      drives: String(existing.drives || '').split(',').map(s => s.trim()).filter(Boolean),
+      driveSize: existing.drive_size || '', driveQty: existing.drive_qty || '', notes: existing.notes || '',
+    });
+    setAmending(true);
+  }
 
   const ok = f.projectId && f.name && f.crew && f.checkOut && f.checkIn && f.moving && f.drives.length > 0;
 
@@ -70,8 +136,11 @@ export default function GearRequestModal({ projectId, existing, onClose, onSubmi
     if (!ok || saving) return;
     setSaving(true);
     try {
-      const r = await api.createGearRequest(f);
+      const r = amending
+        ? await api.amendGearRequest(existing.project_id, f)
+        : await api.createGearRequest(f);
       onSubmitted && onSubmitted(r);
+      if (amending && embedded) { setAmending(false); setSaving(false); return; }
       onClose();
     } catch (e) { alert(e.message); setSaving(false); }
   }
@@ -82,9 +151,18 @@ export default function GearRequestModal({ projectId, existing, onClose, onSubmi
 
   const inner = (
       <div onClick={e => e.stopPropagation()} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid var(--orange)', borderRadius:12, padding:'22px 26px', width:'100%', maxWidth:640 }}>
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
-          <div style={{ fontSize:17, fontWeight:800 }}>Gear Request{isView ? <span style={{ fontSize:9, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)', border:'1px solid var(--border)', borderRadius:10, padding:'2px 8px', marginLeft:10, verticalAlign:'middle' }}>🔒 Submitted</span> : null}</div>
-          {!embedded && <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>}
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6, gap:10 }}>
+          <div style={{ fontSize:17, fontWeight:800 }}>
+            {amending ? 'Amend Gear Request' : 'Gear Request'}
+            {isView ? <span style={{ fontSize:9, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)', border:'1px solid var(--border)', borderRadius:10, padding:'2px 8px', marginLeft:10, verticalAlign:'middle' }}>🔒 Submitted</span> : null}
+          </div>
+          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+            {isView && <button onClick={startAmend}
+              style={{ background:'rgba(232,80,10,0.14)', border:'1px solid var(--orange)', color:'var(--orange)', borderRadius:14, padding:'4px 12px', fontSize:11, fontWeight:800, cursor:'pointer', whiteSpace:'nowrap' }}>
+              Amend Gear Request
+            </button>}
+            {!embedded && <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>}
+          </div>
         </div>
         {isView ? (
           <>
@@ -93,13 +171,14 @@ export default function GearRequestModal({ projectId, existing, onClose, onSubmi
           </>
         ) : (
           <div style={{ display:'flex', flexDirection:'column', gap:14, marginTop:10 }}>
+            {amending && <div style={{ fontSize:11, color:'var(--muted)' }}>Update the request below. On submit, a change report (what's added and removed) is posted to the gear activity feed.</div>}
             <div>
               <label style={lbl}>1. Your name?{req}</label>
-              <input style={inStyle} value={f.name} onChange={set('name')} />
+              <input style={{ ...inStyle, opacity:0.85 }} value={f.name} onChange={set('name')} readOnly />
             </div>
             <div>
-              <label style={lbl}>2. Who from Media is traveling with gear for this shoot? (name crew){req}</label>
-              <textarea style={areaStyle} value={f.crew} onChange={set('crew')} />
+              <label style={lbl}>2. Who from Media is traveling with gear for this shoot?{req}</label>
+              <CrewMultiSelect value={f.crew} onChange={val => setF(v => ({ ...v, crew: val }))} crew={crew} />
             </div>
             <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
               <div style={{ flex:1, minWidth:180 }}>
@@ -174,10 +253,10 @@ export default function GearRequestModal({ projectId, existing, onClose, onSubmi
               <textarea style={areaStyle} value={f.notes} onChange={set('notes')} />
             </div>
             <div style={{ display:'flex', justifyContent:'flex-end', gap:8 }}>
-              <button className="btn btn-ghost btn-sm" onClick={onClose}>Cancel</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => amending ? setAmending(false) : onClose()}>Cancel</button>
               <button disabled={!ok || saving} onClick={submit}
                 style={{ background: ok ? 'var(--orange)' : 'var(--border)', color:'#fff', border:'none', borderRadius:8, padding:'9px 20px', fontSize:12, fontWeight:800, cursor: ok ? 'pointer' : 'default', opacity: saving ? 0.6 : 1 }}>
-                {saving ? 'Submitting…' : 'Submit Gear Request'}
+                {saving ? 'Submitting…' : amending ? 'Submit Amendment' : 'Submit Gear Request'}
               </button>
             </div>
           </div>

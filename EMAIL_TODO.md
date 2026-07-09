@@ -34,6 +34,13 @@ link (SMTP) is connected. Keep this file updated as email features are added.
 
 ## To build once email works
 
+- [ ] **Gear request amendment notification** — when a locked gear request is
+      amended (FreePro → Gear Request → Amend Gear Request), the change report is
+      already posted to the shoot's gear activity feed. Once SMTP is live, also
+      tag Mason Vitro and email him the amendment report. Hook: the amend endpoint
+      in `backend/src/routes/gearRequests.js` (POST /project/:pid/amend) — send to
+      `mvitro@unbridledmedia.com` with the diff.
+
 - [ ] **Client invoice send** — the ✉ Send Invoice buttons on VCC deposits
       currently auto-date the invoice; wire them to actually email the client
       (invoice PDF or summary, using the budget's client contacts from the

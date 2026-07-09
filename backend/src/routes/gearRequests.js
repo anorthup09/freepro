@@ -6,6 +6,51 @@ const { displayCodes } = require('../lib/displayCode');
 
 const GEAR_REQUEST_TO = 'mvitro@unbridledmedia.com';
 
+// Build a human-readable change report between an old and a new gear request.
+// List fields (camera/lights/grip/other/crew/drives) diff item-by-item —
+// showing what's new (+) and what's been removed (-). Scalars show old → new.
+function amendmentReport(oldR, newR, author) {
+  const clean = x => x.trim();
+  const keep = x => x && !/^[—–-]+$/.test(x); // drop empty + placeholder dashes
+  const splitLines = s => String(s || '').split(/\r?\n/).map(clean).filter(keep);
+  const splitCommas = s => String(s || '').split(',').map(clean).filter(keep);
+  const isoDate = d => { if (!d) return ''; const dt = new Date(d); return isNaN(dt) ? String(d).slice(0, 10) : dt.toISOString().slice(0, 10); };
+  const listFields = [
+    ['Crew traveling with gear', splitCommas(oldR.crew), splitCommas(newR.crew)],
+    ['Camera gear', splitLines(oldR.camera), splitLines(newR.camera)],
+    ['Lights', splitLines(oldR.lights), splitLines(newR.lights)],
+    ['Grip', splitLines(oldR.grip), splitLines(newR.grip)],
+    ['Other', splitLines(oldR.other), splitLines(newR.other)],
+    ['Media drives', splitCommas(oldR.drives), splitCommas(newR.drives)],
+  ];
+  const scalars = [
+    ['Check-Out', isoDate(oldR.check_out), newR.checkOut],
+    ['Check-In', isoDate(oldR.check_in), newR.checkIn],
+    ['How gear is moving', oldR.moving, newR.moving],
+    ['Drive size', oldR.drive_size, newR.driveSize],
+    ['Drive quantity', oldR.drive_qty, newR.driveQty],
+    ['Special instructions', oldR.notes, newR.notes],
+  ];
+
+  const sections = [];
+  for (const [label, oldList, newList] of listFields) {
+    const added = newList.filter(x => !oldList.some(o => o.toLowerCase() === x.toLowerCase()));
+    const removed = oldList.filter(x => !newList.some(n => n.toLowerCase() === x.toLowerCase()));
+    if (!added.length && !removed.length) continue;
+    const lines = [...added.map(x => `+ ${x}`), ...removed.map(x => `- ${x}`)];
+    sections.push(`${label}:\n${lines.map(l => '  ' + l).join('\n')}`);
+  }
+  for (const [label, oldV, newV] of scalars) {
+    const o = (oldV || '').toString().trim(); const n = (newV || '').toString().trim();
+    if (o === n) continue;
+    sections.push(`${label}: ${o || '—'} → ${n || '—'}`);
+  }
+
+  const header = `Gear request amended${author ? ` by ${author}` : ''}.`;
+  if (!sections.length) return `${header}\nNo changes to the gear list.`;
+  return `${header}\n\n${sections.join('\n\n')}`;
+}
+
 // All gear requests (gear management view)
 router.get('/', requireAuth, async (req, res, next) => {
   try {
@@ -130,6 +175,36 @@ router.post('/', requireAuth, async (req, res, next) => {
       text: lines,
     }).catch(err => console.error('Gear request email failed:', err.message));
     res.status(201).json(row);
+  } catch (e) { next(e); }
+});
+
+// Amend an existing (locked) gear request. Diffs the submitted values against the
+// stored ones, posts a change report to the activity feed, then saves the update.
+router.post('/project/:pid/amend', requireAuth, async (req, res, next) => {
+  try {
+    const pid = req.params.pid;
+    const d = req.body || {};
+    if (!d.name || !d.crew || !d.checkOut || !d.checkIn || !d.moving || !(d.drives || []).length) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    const [oldR] = await sql`SELECT * FROM gear_requests WHERE project_id = ${pid}`;
+    if (!oldR) return res.status(404).json({ error: 'No gear request to amend' });
+
+    const report = amendmentReport(oldR, d, d.name || req.user?.name || req.user?.email);
+    const [row] = await sql`
+      UPDATE gear_requests SET
+        name = ${d.name}, crew = ${d.crew}, check_out = ${d.checkOut}, check_in = ${d.checkIn}, moving = ${d.moving},
+        camera = ${d.camera || null}, lights = ${d.lights || null}, grip = ${d.grip || null}, other = ${d.other || null},
+        drives = ${(d.drives || []).join(', ')}, drive_size = ${d.driveSize || null}, drive_qty = ${d.driveQty || null},
+        notes = ${d.notes || null}, submitted_by = ${req.user?.email || null}
+      WHERE project_id = ${pid} RETURNING *`;
+
+    // The change report lands in the activity feed for this shoot's gear dashboard.
+    // TODO(email): tag Mason Vitro and email him the amendment — see EMAIL_TODO.md.
+    await sql`INSERT INTO gear_activity (project_id, kind, body, author)
+      VALUES (${pid}, 'event', ${report}, ${d.name || req.user?.email || null})`.catch(() => {});
+
+    res.json(row);
   } catch (e) { next(e); }
 });
 

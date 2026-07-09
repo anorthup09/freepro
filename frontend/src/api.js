@@ -163,6 +163,7 @@ export const api = {
   gearRequestProjects: () => req('GET', '/gear-requests/available-projects'),
   gearRequestForProject: (pid) => req('GET', `/gear-requests/project/${pid}`),
   createGearRequest: (data) => req('POST', '/gear-requests', data),
+  amendGearRequest: (pid, data) => req('POST', `/gear-requests/project/${pid}/amend`, data),
   gearActivity: (pid) => req('GET', `/gear-requests/project/${pid}/activity`),
   addGearActivity: (pid, body) => req('POST', `/gear-requests/project/${pid}/activity`, { body }),
   updateProject: (id, data) => req('PATCH', `/projects/${id}`, data),
