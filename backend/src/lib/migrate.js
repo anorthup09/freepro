@@ -614,6 +614,7 @@ async function migrate() {
   // No-access role for fresh signups until an admin promotes them
   try { await sql`ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'PENDING'`; } catch (e) { /* older PG without IF NOT EXISTS */ }
   try { await sql`ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'AGENCY'`; } catch (e) { /* older PG without IF NOT EXISTS */ }
+  try { await sql`ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'FINANCE'`; } catch (e) { /* older PG without IF NOT EXISTS */ }
 
   // Deliverable category (Pre-Produced / On-Site / Post-Shoot)
   await sql`ALTER TABLE deliverables ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'POST_SHOOT'`;

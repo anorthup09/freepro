@@ -1,7 +1,7 @@
 const router = require('express').Router();
 const sql = require('../lib/db');
 const { requireAuth, requireRole } = require('../middleware/auth');
-const staff = [requireAuth, requireRole('ADMIN', 'PRODUCER')];
+const staff = [requireAuth, requireRole('ADMIN', 'PRODUCER', 'FINANCE')];
 
 // ── Client roster: canonical client names, with duplicate flagging ──
 

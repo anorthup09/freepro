@@ -93,6 +93,15 @@ app.use('/api', (req, res, next) => {
       || req.path.startsWith('/gear-requests'))) {
       return res.status(403).json({ error: 'Agency accounts have view access to project logistics and edit access to gear and deliverables' });
     }
+    // FINANCE = ProFi + Reports + dashboard (My Tasks / Team Today) + Team Management
+    if (u.role === 'FINANCE' && !(req.path.startsWith('/auth') || req.path.startsWith('/share')
+      || req.path.startsWith('/dashboard') || req.path.startsWith('/feedback') || req.path.startsWith('/team')
+      || (req.path.startsWith('/crew') && req.method === 'GET')
+      || (req.path.startsWith('/project-tasks') && req.method === 'PATCH')
+      || req.path.startsWith('/finance') || req.path.startsWith('/budget-share') || req.path.startsWith('/clients')
+      || (req.method === 'GET' && req.path.startsWith('/projects')))) {
+      return res.status(403).json({ error: 'Finance accounts can access ProFi, Reports, and Team Management' });
+    }
   } catch { /* invalid tokens are rejected by route-level auth */ }
   next();
 });

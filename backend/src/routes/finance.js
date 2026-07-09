@@ -2,7 +2,7 @@ const router = require('express').Router();
 const sql = require('../lib/db');
 const { requireAuth, requireRole } = require('../middleware/auth');
 
-const finance = [requireAuth, requireRole('ADMIN', 'PRODUCER')];
+const finance = [requireAuth, requireRole('ADMIN', 'PRODUCER', 'FINANCE')];
 
 // 2026 budget template (mirrors the Excel master; qty starts at 0)
 const CREW_LINES = [
@@ -200,6 +200,21 @@ function budgetTotal(allLines, mgmtRate) {
 router.get('/finance/taggable-users', ...finance, async (req, res, next) => {
   try {
     res.json(await sql`SELECT id, name FROM users WHERE role IN ('ADMIN', 'PRODUCER') ORDER BY name`);
+  } catch (e) { next(e); }
+});
+
+// All VCC entries across every project, with the main budget's status/close month
+// (drives the All VCCs report — Live vs Closed grouping). Registered before
+// /finance/:pid/vcc so 'vcc-report' isn't swallowed as a :pid.
+router.get('/finance/vcc-report', ...finance, async (req, res, next) => {
+  try {
+    const rows = await sql`
+      SELECT v.*, p.code, p.title as project_title, p.client, b.status as budget_status, b.close_month
+      FROM vcc_entries v
+      JOIN projects p ON p.id = v.project_id
+      LEFT JOIN budgets b ON b.project_id = p.id AND COALESCE(b.kind, 'main') = 'main'
+      ORDER BY p.code, v.entry_date NULLS LAST, v.created_at`;
+    res.json(rows);
   } catch (e) { next(e); }
 });
 

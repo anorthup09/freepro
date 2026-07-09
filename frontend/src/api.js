@@ -88,6 +88,7 @@ export const api = {
   createAvoEdit: (data) => req('POST', '/avo/edits', data),
   updateAvoEdit: (id, data) => req('PATCH', `/avo/edits/${id}`, data),
   holdEditCost: (id) => req('POST', `/avo/edits/${id}/hold-cost`),
+  vccReport: () => req('GET', '/finance/vcc-report'),
   deleteAvoEdit: (id) => req('DELETE', `/avo/edits/${id}`),
   avoComment: (id, body) => req('POST', `/avo/edits/${id}/comments`, { body }),
   avoRfr: (id) => req('POST', `/avo/edits/${id}/rfr`, {}),

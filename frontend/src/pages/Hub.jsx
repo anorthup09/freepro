@@ -134,7 +134,7 @@ function UserManagement({ user }) {
   useEffect(() => {
     api.getUsers().then(us => setPendingCount(us.filter(u => u.role === 'PENDING').length)).catch(() => {});
   }, []);
-  const ROLES = ['PENDING', 'CREW', 'AGENCY', 'CLIENT', 'PRODUCER', 'ADMIN'];
+  const ROLES = ['PENDING', 'CREW', 'AGENCY', 'CLIENT', 'FINANCE', 'PRODUCER', 'ADMIN'];
   const inviteBlurb = `You're invited to the Unbridled Operating Platform — budgets, call sheets, schedules, and post-production in one place.
 
 1. Go to ${window.location.origin}/login
@@ -349,7 +349,8 @@ function HubDashboard() {
     api.dashboardTeam().then(setTeam).catch(() => setTeam([]));
   }, []);
 
-  const dateLabel = new Date().toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' });
+  // Server sends 'today' in the business timezone — trust it over the browser clock
+  const dateLabel = (day?.date ? new Date(day.date + 'T12:00:00') : new Date()).toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' });
   const card = { background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, padding:'18px 20px', minHeight:220 };
   const hdr = { fontSize:12, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.07em', marginBottom:12 };
 
@@ -396,14 +397,14 @@ function HubDashboard() {
           <>
             <div style={{ ...hdr, fontSize:10, margin:'16px 0 6px', display:'flex', alignItems:'center', gap:8 }}>
               My Tasks
-              {(day.tasks || []).some(t => !hiddenTasks.includes(t.id) && t.due_date && String(t.due_date).slice(0, 10) === new Date().toISOString().slice(0, 10)) && (
+              {(day.tasks || []).some(t => !hiddenTasks.includes(t.id) && t.due_date && String(t.due_date).slice(0, 10) === (day?.date || new Date().toISOString().slice(0, 10))) && (
                 <span style={{ background:'rgba(232,80,10,0.16)', border:'1px solid var(--orange)', color:'var(--orange)', borderRadius:10, padding:'1px 8px', fontSize:9, fontWeight:800, textTransform:'none', letterSpacing:0 }}>
                   (!) Task Due Today
                 </span>
               )}
             </div>
             {(day.tasks || []).filter(t => !hiddenTasks.includes(t.id)).map(t => {
-              const today = new Date().toISOString().slice(0, 10);
+              const today = day?.date || new Date().toISOString().slice(0, 10);
               const dueToday = t.due_date && String(t.due_date).slice(0, 10) === today;
               const overdue = t.due_date && String(t.due_date).slice(0, 10) < today;
               return (
@@ -468,14 +469,17 @@ function HubDashboard() {
 
 export default function Hub() {
   const nav = useNavigate();
-  const { user, setUser } = useAuth();
+  const { user, setUser, realUser, preview, setPreview } = useAuth();
   const isCrew = ['CREW','AGENCY'].includes(user?.role);
+  const isFinance = user?.role === 'FINANCE';
   const [mode, setMode] = useState(() => localStorage.getItem('hub_mode') || 'ops'); // 'projects' | 'ops'
   const setHubMode = m => { setMode(m); localStorage.setItem('hub_mode', m); };
   // Team Management sits below as a constant, elongated tile
   const teamTile = TILES.find(t => t.key === 'team');
   const opsTiles = isCrew
     ? TILES.filter(t => t.key !== 'profi' && t.key !== 'team').map(t => t.key === 'freepro' ? { ...t, to: '/crew-views', tagline: 'Crew Views' } : t)
+    : isFinance
+    ? TILES.filter(t => t.key === 'profi')
     : TILES.filter(t => t.key !== 'team');
   const tiles = opsTiles;
 
@@ -488,10 +492,10 @@ export default function Hub() {
           <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.12em', marginTop:5 }}>Operating Platform</div>
         </div>
         {!isCrew && <div className="hub-pipeline-btn" style={{ display:'flex', gap:12 }}>
-          <button onClick={() => nav('/crew-calendar')}
+          {!isFinance && <button onClick={() => nav('/crew-calendar')}
             style={{ background:'rgba(90,191,128,0.14)', border:'1.5px solid #5ABF80', color:'#5ABF80', borderRadius:12, padding:'12px 26px', fontSize:13, fontWeight:800, cursor:'pointer', display:'flex', alignItems:'center', gap:8 }}>
             <span style={{ fontSize:16 }}>📅</span> Crew Calendar
-          </button>
+          </button>}
           <button onClick={() => nav('/reports')}
             style={{ background:'rgba(230,194,41,0.12)', border:'1.5px solid #e6c229', color:'#e6c229', borderRadius:12, padding:'12px 26px', fontSize:13, fontWeight:800, cursor:'pointer', display:'flex', alignItems:'center', gap:8 }}>
             <span style={{ fontSize:16 }}>📈</span> Reports
@@ -499,6 +503,14 @@ export default function Hub() {
         </div>}
         <div style={{ display:'flex', alignItems:'center', gap:12 }}>
           <span style={{ fontSize:11, color:'var(--muted)' }}>{user?.name}</span>
+          {realUser?.role === 'ADMIN' && (
+            <select value={preview || ''} title="Preview the platform as another role"
+              onChange={e => setPreview(e.target.value)}
+              style={{ width:'auto', fontSize:11, padding:'5px 8px', borderRadius:8, background:'var(--bg2)', color: preview ? '#a78bfa' : 'var(--muted)', border:`1px solid ${preview ? '#a78bfa' : 'var(--border)'}` }}>
+              <option value="">👁 View as…</option>
+              {['PRODUCER', 'FINANCE', 'CREW', 'AGENCY', 'CLIENT'].map(r => <option key={r} value={r}>View as {r}</option>)}
+            </select>
+          )}
           {user?.role === 'ADMIN' && (
             <button className="btn btn-ghost btn-sm" title="Download a full database backup (all projects, budgets, contracts, roster)"
               onClick={async () => {
@@ -524,7 +536,7 @@ export default function Hub() {
             <div style={{ textAlign:'center', marginBottom:24 }}>
               <div style={{ fontSize:22, fontWeight:800 }}>Where to today?</div>
               <div style={{ fontSize:12, color:'var(--muted)', marginTop:4 }}>Every project, from budget to delivery.</div>
-              {!isCrew && (
+              {!isCrew && !isFinance && (
                 <div style={{ display:'inline-flex', border:'1px solid var(--border)', borderRadius:20, overflow:'hidden', marginTop:16 }}>
                   {[['projects', '🗂 Project View'], ['ops', '⚙ Operations View']].map(([k, label]) => (
                     <button key={k} onClick={() => setHubMode(k)}
@@ -536,8 +548,8 @@ export default function Hub() {
                 </div>
               )}
             </div>
-            {!isCrew && mode === 'projects' && <HubProjects />}
-            {(isCrew || mode === 'ops') && (
+            {!isCrew && !isFinance && mode === 'projects' && <HubProjects />}
+            {(isCrew || isFinance || mode === 'ops') && (
             <div className="hub-tiles" style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(260px, 1fr))', gap:16 }}>
               {tiles.map(t => {
                 const clickable = !!t.to;

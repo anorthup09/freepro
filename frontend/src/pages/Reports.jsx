@@ -19,6 +19,11 @@ const REPORTS = [
     icon: '🧾', accent: '#e6c229', to: '/reports/invoices',
   },
   {
+    title: 'All VCCs',
+    desc: 'Every virtual card entry across all projects — live cards up top, closed cards filterable by close month.',
+    icon: '💳', accent: '#c084fc', to: '/reports/vcc',
+  },
+  {
     title: 'Weekly Finance Report',
     desc: 'Snapshot report of budgets and close months for the finance team.',
     icon: '🗓', accent: '#4a9eff', to: '/finance/report',

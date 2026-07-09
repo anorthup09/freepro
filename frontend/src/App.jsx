@@ -67,13 +67,23 @@ import ProjectView, { ProjectViewDetail } from './pages/ProjectView.jsx';
 import ClientHub from './pages/ClientHub.jsx';
 import Reports from './pages/Reports.jsx';
 import InvoiceSearch from './pages/InvoiceSearch.jsx';
+import VccReport from './pages/VccReport.jsx';
 import { api } from './api.js';
 
 export const AuthContext = createContext(null);
 export function useAuth() { return useContext(AuthContext); }
 
 export default function App() {
-  const [user, setUser] = useState(undefined); // undefined = loading
+  const [realUser, setUser] = useState(undefined); // undefined = loading
+  // Admin role preview: browse the platform as another role (UI-only — the
+  // API still sees the admin token, but every route guard and menu follows
+  // the previewed role).
+  const [preview, setPreviewState] = useState(() => localStorage.getItem('fp_role_preview') || '');
+  const setPreview = r => {
+    setPreviewState(r || '');
+    if (r) localStorage.setItem('fp_role_preview', r); else localStorage.removeItem('fp_role_preview');
+  };
+  const user = realUser && realUser.role === 'ADMIN' && preview ? { ...realUser, role: preview, previewing: true } : realUser;
 
   useEffect(() => {
     const t = localStorage.getItem('fp_token');
@@ -81,36 +91,47 @@ export default function App() {
     api.me().then(setUser).catch(() => { localStorage.removeItem('fp_token'); setUser(null); });
   }, []);
 
-  if (user === undefined) return null; // splash
+  if (realUser === undefined) return null; // splash
 
   return (
     <ErrorBoundary>
-    <AuthContext.Provider value={{ user, setUser }}>
-      {user?.role === 'PENDING' ? <PendingApproval setUser={setUser} /> : (user && (['ADMIN','PRODUCER'].includes(user.role) || user.mfa_required === true) && user.mfa_enabled === false) ? <MfaSetup /> : (
+    <AuthContext.Provider value={{ user, setUser, realUser, preview, setPreview }}>
+      {realUser?.role === 'ADMIN' && preview && (
+        <div style={{ position:'sticky', top:0, zIndex:400, background:'#2a1a4a', borderBottom:'1px solid #a78bfa',
+          display:'flex', alignItems:'center', justifyContent:'center', gap:14, padding:'7px 14px' }}>
+          <span style={{ fontSize:12, fontWeight:800, color:'#c9b8f5' }}>👁 Previewing as {preview}</span>
+          <button onClick={() => setPreview('')}
+            style={{ background:'#a78bfa', border:'none', color:'#14092e', borderRadius:14, padding:'3px 14px', fontSize:11, fontWeight:800, cursor:'pointer' }}>
+            Exit Preview
+          </button>
+        </div>
+      )}
+      {user?.role === 'PENDING' ? <PendingApproval setUser={setUser} /> : (realUser && (['ADMIN','PRODUCER'].includes(realUser.role) || realUser.mfa_required === true) && realUser.mfa_enabled === false) ? <MfaSetup /> : (
       <Routes>
         <Route path="/login" element={user ? <Navigate to="/" /> : <Login />} />
         <Route path="/" element={user ? <Hub /> : <Navigate to="/login" />} />
-        <Route path="/projects" element={user ? <Projects /> : <Navigate to="/login" />} />
-        <Route path="/crew-calendar" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/crew-views" /> : <CrewCalendar />) : <Navigate to="/login" />} />
+        <Route path="/projects" element={user ? (user.role === 'FINANCE' ? <Navigate to="/" /> : <Projects />) : <Navigate to="/login" />} />
+        <Route path="/crew-calendar" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/crew-views" /> : user.role === 'FINANCE' ? <Navigate to="/" /> : <CrewCalendar />) : <Navigate to="/login" />} />
         <Route path="/finance" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/crew-views" /> : <Finance />) : <Navigate to="/login" />} />
         <Route path="/pipeline" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/crew-views" /> : <Pipeline />) : <Navigate to="/login" />} />
         <Route path="/finance/overview" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/crew-views" /> : <FinanceOverview />) : <Navigate to="/login" />} />
         <Route path="/finance/report" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/crew-views" /> : <FinanceReport />) : <Navigate to="/login" />} />
         <Route path="/finance/:pid" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/crew-views" /> : <FinanceProject />) : <Navigate to="/login" />} />
         <Route path="/crew-views" element={user ? <CrewViews /> : <Navigate to="/login" />} />
-        <Route path="/projects/:id" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <Project />) : <Navigate to="/login" />} />
+        <Route path="/projects/:id" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : user.role === 'FINANCE' ? <Navigate to="/" /> : <Project />) : <Navigate to="/login" />} />
         <Route path="/projects/:id/talent-callsheets" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/crew-views" /> : <TalentCallSheets />) : <Navigate to="/login" />} />
         <Route path="/projects/:id/emails" element={user ? <CallSheetEmails /> : <Navigate to="/login" />} />
         <Route path="/reports" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/" /> : <Reports />) : <Navigate to="/login" />} />
+        <Route path="/reports/vcc" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/" /> : <VccReport />) : <Navigate to="/login" />} />
         <Route path="/reports/invoices" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/" /> : <InvoiceSearch />) : <Navigate to="/login" />} />
-        <Route path="/project-view" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/" /> : <ProjectView />) : <Navigate to="/login" />} />
-        <Route path="/project-view/client/:client" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/" /> : <ClientHub />) : <Navigate to="/login" />} />
-        <Route path="/project-view/:pid" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/" /> : <ProjectViewDetail />) : <Navigate to="/login" />} />
+        <Route path="/project-view" element={user ? (['CREW','AGENCY','FINANCE'].includes(user.role) ? <Navigate to="/" /> : <ProjectView />) : <Navigate to="/login" />} />
+        <Route path="/project-view/client/:client" element={user ? (['CREW','AGENCY','FINANCE'].includes(user.role) ? <Navigate to="/" /> : <ClientHub />) : <Navigate to="/login" />} />
+        <Route path="/project-view/:pid" element={user ? (['CREW','AGENCY','FINANCE'].includes(user.role) ? <Navigate to="/" /> : <ProjectViewDetail />) : <Navigate to="/login" />} />
         <Route path="/team" element={user ? <Team /> : <Navigate to="/login" />} />
-        <Route path="/avo" element={user ? <Avo /> : <Navigate to="/login" />} />
-        <Route path="/avo/gantt" element={user ? <AvoGantt /> : <Navigate to="/login" />} />
-        <Route path="/avo/project/:id" element={user ? <AvoProject /> : <Navigate to="/login" />} />
-        <Route path="/avo/:id" element={user ? <AvoEdit /> : <Navigate to="/login" />} />
+        <Route path="/avo" element={user ? (user.role === 'FINANCE' ? <Navigate to="/" /> : <Avo />) : <Navigate to="/login" />} />
+        <Route path="/avo/gantt" element={user ? (user.role === 'FINANCE' ? <Navigate to="/" /> : <AvoGantt />) : <Navigate to="/login" />} />
+        <Route path="/avo/project/:id" element={user ? (user.role === 'FINANCE' ? <Navigate to="/" /> : <AvoProject />) : <Navigate to="/login" />} />
+        <Route path="/avo/:id" element={user ? (user.role === 'FINANCE' ? <Navigate to="/" /> : <AvoEdit />) : <Navigate to="/login" />} />
         <Route path="/gantt/:token" element={<GanttShare />} />
         <Route path="/reset-password/:token" element={<ResetPassword />} />
         <Route path="/share/:token" element={<Share />} />
