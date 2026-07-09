@@ -1320,31 +1320,32 @@ async function migrate() {
       AND COALESCE(b.status, '') <> 'Closed'
       AND (SELECT COUNT(*) FROM budget_sections x WHERE x.budget_id = b.id AND x.kind = 'shoot') = 1`;
 
-  // One-time: give single-production shoots a coding suffix in place. These reuse
-  // the parent ProFi project as their FreePro tile, so historically they showed
-  // the bare project code (02.SCC90126) while multi-shoot productions got suffixed
-  // child codes (…-01). Rename the parent code to its shoot_code so every shoot is
-  // coded consistently, cascading to the string keys that reference it (edits +
-  // AvocadoPost pages). Idempotent — only fires while the project code is bare.
+  // One-time: undo the earlier single-production "rename in place". The overall
+  // project (parent) code must stay bare (02.SCC90126) — only the budget's
+  // Production Costs sections carry a suffix (…-01, -02), and FreePro views render
+  // that suffix through displayCodes(). An earlier migration wrongly renamed the
+  // parent project code to the shoot_code; strip that suffix back off and revert
+  // the string keys it cascaded to (edits + AvocadoPost pages). Only touches
+  // top-level projects that are their own single-production tile — never real
+  // multi-shoot child projects (those legitimately keep their suffixed code).
   try {
-    const renameCandidates = await sql`
-      SELECT bs.shoot_code AS newcode, p.id AS pid, p.code AS oldcode
-      FROM budget_sections bs
-      JOIN budgets b ON b.id = bs.budget_id AND COALESCE(b.kind, 'main') = 'main'
-      JOIN projects p ON p.id = bs.freepro_project_id
-      WHERE bs.kind = 'shoot'
-        AND bs.freepro_project_id = b.project_id
-        AND bs.shoot_code IS NOT NULL
-        AND bs.shoot_code <> p.code
-        AND p.code !~ '-[0-9]+$'`;
-    for (const c of renameCandidates) {
-      const [clash] = await sql`SELECT id FROM projects WHERE code = ${c.newcode} AND id <> ${c.pid}`;
+    const revertCandidates = await sql`
+      SELECT p.id AS pid, p.code AS oldcode, regexp_replace(p.code, '-[0-9]+$', '') AS basecode
+      FROM projects p
+      JOIN budget_sections bs ON bs.freepro_project_id = p.id AND bs.kind = 'shoot'
+      JOIN budgets b ON b.id = bs.budget_id AND COALESCE(b.kind, 'main') = 'main' AND b.project_id = p.id
+      WHERE p.parent_project_id IS NULL
+        AND p.code ~ '-[0-9]+$'
+        AND bs.shoot_code = p.code`;
+    for (const c of revertCandidates) {
+      if (c.basecode === c.oldcode) continue;
+      const [clash] = await sql`SELECT id FROM projects WHERE code = ${c.basecode} AND id <> ${c.pid}`;
       if (clash) continue;
-      await sql`UPDATE projects SET code = ${c.newcode} WHERE id = ${c.pid}`;
-      await sql`UPDATE edits SET project_code = ${c.newcode} WHERE project_code = ${c.oldcode}`;
-      await sql`UPDATE avo_project_pages SET code = ${c.newcode} WHERE code = ${c.oldcode}`;
+      await sql`UPDATE projects SET code = ${c.basecode} WHERE id = ${c.pid}`;
+      await sql`UPDATE edits SET project_code = ${c.basecode} WHERE project_code = ${c.oldcode}`;
+      await sql`UPDATE avo_project_pages SET code = ${c.basecode} WHERE code = ${c.oldcode}`;
     }
-  } catch (e) { console.error('Single-production shoot recoding failed:', e.message); }
+  } catch (e) { console.error('Single-production shoot code revert failed:', e.message); }
 
   // One-time ClickUp PTO/OOO import (idempotent)
   try { await require('./seedPto')(); } catch (e) { console.error('PTO seed failed:', e.message); }
