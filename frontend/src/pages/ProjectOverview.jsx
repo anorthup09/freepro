@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
+import { displayName } from '../utils/displayName.js';
 import { STATUS_COLORS } from './Hub.jsx';
 import { AVO_STATUSES } from './Avo.jsx';
 
@@ -253,7 +254,8 @@ export default function ProjectOverview({ pid }) {
 
   useEffect(() => {
     api.projectOverview(pid).then(setData).catch(e => setErr(e.message));
-    api.dashboardTeam().then(ms => setMembers(ms.map(m => ({ id: m.id, name: m.name })))).catch(() => {});
+    // Tag from the full crew roster (project_tasks.assignee_id references crew_members)
+    api.getCrew().then(rs => setMembers([...rs].map(m => ({ id: m.id, name: displayName(m) })).sort((a, b) => a.name.localeCompare(b.name)))).catch(() => {});
   }, [pid]);
 
   if (err) return <div className="empty">{err}</div>;

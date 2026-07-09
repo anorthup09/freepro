@@ -283,6 +283,9 @@ router.patch('/:id', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, r
 // DELETE /api/projects/:id
 router.delete('/:id', requireAuth, requireRole('ADMIN'), async (req, res, next) => {
   try {
+    // Clear any finance-side shoot link so a budget section doesn't keep
+    // pointing at a deleted shoot (freepro_project_id has no FK constraint).
+    await sql`UPDATE budget_sections SET freepro_project_id = NULL WHERE freepro_project_id = ${req.params.id}`;
     await sql`DELETE FROM projects WHERE id = ${req.params.id}`;
     res.status(204).end();
   } catch (err) { next(err); }

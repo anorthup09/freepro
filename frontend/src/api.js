@@ -160,6 +160,7 @@ export const api = {
   gearRequestForProject: (pid) => req('GET', `/gear-requests/project/${pid}`),
   createGearRequest: (data) => req('POST', '/gear-requests', data),
   updateProject: (id, data) => req('PATCH', `/projects/${id}`, data),
+  deleteProject: (id) => req('DELETE', `/projects/${id}`),
 
   // Locations
   createLocation: (projectId, data) => req('POST', `/projects/${projectId}/locations`, data),

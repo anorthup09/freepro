@@ -81,6 +81,17 @@ export default function Projects() {
     setProjects(ps => ps.map(p => p.id === id ? { ...p, status: 'PLANNING' } : p));
   }
 
+  async function deleteProject(e, p) {
+    e.preventDefault(); e.stopPropagation();
+    if (!confirm(`Permanently delete "${p.code} — ${p.title}"?\n\nThis removes the shoot and all its crew, schedule, gear, and call-sheet data. This cannot be undone.`)) return;
+    try {
+      await api.deleteProject(p.id);
+      setProjects(ps => ps.filter(x => x.id !== p.id));
+    } catch (err) { alert(err.message); }
+  }
+
+  const isAdmin = user?.role === 'ADMIN';
+
   function logout() {
     localStorage.removeItem('fp_token');
     setUser(null);
@@ -192,6 +203,10 @@ export default function Projects() {
                 onClick={e => archiveProject(e, p.id)}
                 style={{ background:'none', border:'1px solid var(--border)', borderRadius:5, color:'var(--muted)', fontSize:11, padding:'3px 9px', cursor:'pointer', whiteSpace:'nowrap', flexShrink:0 }}
               >Archive</button>}
+              {isAdmin && <button
+                onClick={e => deleteProject(e, p)} title="Permanently delete this shoot"
+                style={{ background:'none', border:'1px solid rgba(224,82,82,0.4)', borderRadius:5, color:'var(--red-text, #e08080)', fontSize:11, padding:'3px 9px', cursor:'pointer', whiteSpace:'nowrap', flexShrink:0 }}
+              >Delete</button>}
               <span className="proj-card-arrow">›</span>
             </Link>
             );
@@ -214,6 +229,10 @@ export default function Projects() {
                   {!isAgency && <button onClick={e => archiveProject(e, p.id)}
                     style={{ background:'none', border:'1px solid var(--border)', borderRadius:5, color:'var(--muted)', fontSize:10, padding:'2px 8px', cursor:'pointer', whiteSpace:'nowrap', flexShrink:0 }}>
                     Archive
+                  </button>}
+                  {isAdmin && <button onClick={e => deleteProject(e, p)} title="Permanently delete this shoot"
+                    style={{ background:'none', border:'1px solid rgba(224,82,82,0.4)', borderRadius:5, color:'var(--red-text, #e08080)', fontSize:10, padding:'2px 8px', cursor:'pointer', whiteSpace:'nowrap', flexShrink:0 }}>
+                    Delete
                   </button>}
                   <span className="proj-card-arrow">›</span>
                 </Link>
