@@ -61,6 +61,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
 .etag.p { background: rgba(251,191,36,0.12); color: var(--amber-text); border: 1px solid rgba(251,191,36,0.25); }
 .etag.a { background: rgba(74,222,128,0.12); color: var(--green-text); border: 1px solid rgba(74,222,128,0.25); }
 .etag.t { background: rgba(248,113,113,0.12); color: var(--red-text); border: 1px solid rgba(248,113,113,0.25); }
+.etag.tr { background: rgba(74,158,255,0.12); color: #4a9eff; border: 1px solid rgba(74,158,255,0.3); }
 
 /* ── Stats ── */
 .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 20px 0; }

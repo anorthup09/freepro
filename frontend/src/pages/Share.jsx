@@ -8,6 +8,10 @@ import Clapboard from '../components/Clapboard.jsx';
 
 const isMobileNow = () => typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches;
 
+// Travel-tagged schedule events are stripped from a local person's call sheet.
+const eventIsTravel = e => (e.tags || []).some(t => (t?.type || t) === 'TRAVEL');
+const stripTravelEvents = schedule => (schedule || []).map(day => ({ ...day, events: (day.events || []).filter(e => !eventIsTravel(e)) }));
+
 function useNow() {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -467,7 +471,7 @@ function FlightsTable({ flights }) {
 
 // ── Producer View ────────────────────────────────────────────────────────────
 function ProducerView({ data, hideGear, onOpenShotList }) {
-  const { project, locations, techSpecs, clientContacts, agencyContacts = [], keyTalent, crewAssignments, schedule, flights: allFlights, hotelBlocks: allHotelBlocks, rentalCars: allRentalCars, deliverables, gear, onlineRentals = [], shotList = [], slDays = [], slBreaks = [] } = data;
+  const { project, locations, techSpecs, clientContacts, agencyContacts = [], keyTalent, crewAssignments, schedule: rawSchedule, flights: allFlights, hotelBlocks: allHotelBlocks, rentalCars: allRentalCars, deliverables, gear, onlineRentals = [], shotList = [], slDays = [], slBreaks = [] } = data;
   const scheduleRef = useRef(null);
   const [tagFilter, setTagFilter] = useState(null);
   const personFilter = new URLSearchParams(window.location.search).get('for') || null;
@@ -478,6 +482,7 @@ function ProducerView({ data, hideGear, onOpenShotList }) {
     const disp = ([cm.preferredFirstName, cm.preferredLastName].filter(Boolean).join(' ').trim() || cm.name || '').toLowerCase();
     return disp === personFilter.toLowerCase() || (cm.name || '').toLowerCase() === personFilter.toLowerCase();
   });
+  const schedule = isLocalPerson ? stripTravelEvents(rawSchedule) : rawSchedule;
   const flights = isLocalPerson ? [] : allFlights;
   const hotelBlocks = isLocalPerson ? [] : allHotelBlocks;
   const rentalCars = isLocalPerson ? [] : allRentalCars;
@@ -685,8 +690,7 @@ function ProducerView({ data, hideGear, onOpenShotList }) {
 
 // ── Crew View ────────────────────────────────────────────────────────────────
 function CrewView({ data, shareToken, hideGear, onOpenShotList }) {
-  const { project, locations, techSpecs, clientContacts, agencyContacts = [], keyTalent, crewAssignments, schedule, flights: allFlights, hotelBlocks: allHotelBlocks, rentalCars: allRentalCars, deliverables, gear, onlineRentals = [], shotList = [], slDays = [], slBreaks = [] } = data;
-  const sortedSchedule = [...(schedule || [])].sort((a,b) => (a.date||'').localeCompare(b.date||''));
+  const { project, locations, techSpecs, clientContacts, agencyContacts = [], keyTalent, crewAssignments, schedule: rawSchedule, flights: allFlights, hotelBlocks: allHotelBlocks, rentalCars: allRentalCars, deliverables, gear, onlineRentals = [], shotList = [], slDays = [], slBreaks = [] } = data;
   const scheduleRef = useRef(null);
   const [tagFilter, setTagFilter] = useState(null);
   const personFilter = new URLSearchParams(window.location.search).get('for') || null;
@@ -697,6 +701,8 @@ function CrewView({ data, shareToken, hideGear, onOpenShotList }) {
     const disp = ([cm.preferredFirstName, cm.preferredLastName].filter(Boolean).join(' ').trim() || cm.name || '').toLowerCase();
     return disp === personFilter.toLowerCase() || (cm.name || '').toLowerCase() === personFilter.toLowerCase();
   });
+  const schedule = isLocalPerson ? stripTravelEvents(rawSchedule) : rawSchedule;
+  const sortedSchedule = [...(schedule || [])].sort((a,b) => (a.date||'').localeCompare(b.date||''));
   const flights = isLocalPerson ? [] : allFlights;
   const hotelBlocks = isLocalPerson ? [] : allHotelBlocks;
   const rentalCars = isLocalPerson ? [] : allRentalCars;
@@ -1626,10 +1632,13 @@ function TalentView({ data }) {
   const { project, talent_name, locations, techSpecs, clientContacts, keyTalent, productionCrew, schedule } = data;
   const scheduleRef = useRef(null);
 
+  // Local talent don't travel — strip travel-tagged events from their call sheet
+  const isLocalTalent = (keyTalent || []).some(t => t.name === talent_name && t.travel_local === 'LOCAL');
+
   // Only show days that have at least one event tagged for this talent
   const filteredSchedule = [...(schedule || [])].sort((a,b) => (a.date||'').localeCompare(b.date||'')).map(day => ({
     ...day,
-    events: day.events.filter(e => (e.audience || []).includes(talent_name)),
+    events: day.events.filter(e => (e.audience || []).includes(talent_name) && !(isLocalTalent && eventIsTravel(e))),
   })).filter(day => day.events.length > 0);
 
   return (

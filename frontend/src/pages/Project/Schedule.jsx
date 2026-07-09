@@ -258,9 +258,9 @@ const MEAL_COLORS = {
   LUNCH:     { color:'#4ade80', bg:'rgba(74,222,128,0.08)',  emoji:'🥗', label:'Lunch' },
 };
 
-const TAG_TYPES = ['VIDEO','PHOTO','AUDIO','ALL_CREW','TALENT'];
-const TAG_CLASS = { VIDEO:'v', PHOTO:'p', AUDIO:'a', ALL_CREW:'a', TALENT:'t', CUSTOM:'v' };
-const TAG_LABEL = { VIDEO:'Video', PHOTO:'Photo', AUDIO:'Audio', ALL_CREW:'All Crew', TALENT:'Talent', CUSTOM:'Custom' };
+const TAG_TYPES = ['VIDEO','PHOTO','AUDIO','ALL_CREW','TALENT','TRAVEL'];
+const TAG_CLASS = { VIDEO:'v', PHOTO:'p', AUDIO:'a', ALL_CREW:'a', TALENT:'t', TRAVEL:'tr', CUSTOM:'v' };
+const TAG_LABEL = { VIDEO:'Video', PHOTO:'Photo', AUDIO:'Audio', ALL_CREW:'All Crew', TALENT:'Talent', TRAVEL:'Travel', CUSTOM:'Custom' };
 
 const SYNTHETIC_META = {
   ct:  { color:'#4a9eff', bg:'rgba(74,158,255,0.08)',  notesKey:'callTimeNotes',      tagsKey:'callTimeTags',      locationKey:'callTimeLocationId' },
@@ -1181,22 +1181,11 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                 <div className="field span2">
                   <label>Tags</label>
                   <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:4 }}>
-                    {['VIDEO', ...(includePhoto ? ['PHOTO'] : []), 'TALENT'].map(type => (
-                      <button key={type} type="button"
-                        className={`etag ${TAG_CLASS[type]}`}
-                        style={{ cursor:'pointer', opacity: eventForm.tags.some(t=>t.type===type) ? 1 : 0.4, padding:'4px 10px' }}
-                        onClick={() => toggleTag(type)}>
-                        {TAG_LABEL[type]}
-                      </button>
-                    ))}
-                  </div>
-                  {(() => {
-                    const core = includePhoto ? ['VIDEO','PHOTO'] : ['VIDEO'];
-                    const allOn = core.every(t => eventForm.tags.some(x => x.type === t));
-                    return (
-                      <div style={{ marginTop:6 }}>
-                        <button type="button"
-                          className="etag a"
+                    {(() => {
+                      const core = includePhoto ? ['VIDEO','PHOTO'] : ['VIDEO'];
+                      const allOn = core.every(t => eventForm.tags.some(x => x.type === t));
+                      return (
+                        <button type="button" className="etag a"
                           style={{ cursor:'pointer', opacity: allOn ? 1 : 0.4, padding:'4px 10px' }}
                           onClick={() => setEventForm(f => ({
                             ...f,
@@ -1206,9 +1195,17 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                           }))}>
                           All Crew
                         </button>
-                      </div>
-                    );
-                  })()}
+                      );
+                    })()}
+                    {['VIDEO', ...(includePhoto ? ['PHOTO'] : []), 'TALENT', 'TRAVEL'].map(type => (
+                      <button key={type} type="button"
+                        className={`etag ${TAG_CLASS[type]}`}
+                        style={{ cursor:'pointer', opacity: eventForm.tags.some(t=>t.type===type) ? 1 : 0.4, padding:'4px 10px' }}
+                        onClick={() => toggleTag(type)}>
+                        {TAG_LABEL[type]}
+                      </button>
+                    ))}
+                  </div>
                   {eventForm.tags.some(t=>t.type==='VIDEO') && (
                     <div style={{ marginTop:8 }}>
                       <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4 }}>Crew on this event — leave empty for everyone</div>
@@ -1316,22 +1313,11 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                 <div className="field span2">
                   <label>Tags</label>
                   <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:4 }}>
-                    {['VIDEO', ...(includePhoto ? ['PHOTO'] : []), 'TALENT'].map(type => (
-                      <button key={type} type="button"
-                        className={`etag ${TAG_CLASS[type]}`}
-                        style={{ cursor:'pointer', opacity: editEventForm.tags.some(t=>t.type===type) ? 1 : 0.4, padding:'4px 10px' }}
-                        onClick={() => toggleEditTag(type)}>
-                        {TAG_LABEL[type]}
-                      </button>
-                    ))}
-                  </div>
-                  {(() => {
-                    const core = includePhoto ? ['VIDEO','PHOTO'] : ['VIDEO'];
-                    const allOn = core.every(t => editEventForm.tags.some(x => x.type === t));
-                    return (
-                      <div style={{ marginTop:6 }}>
-                        <button type="button"
-                          className="etag a"
+                    {(() => {
+                      const core = includePhoto ? ['VIDEO','PHOTO'] : ['VIDEO'];
+                      const allOn = core.every(t => editEventForm.tags.some(x => x.type === t));
+                      return (
+                        <button type="button" className="etag a"
                           style={{ cursor:'pointer', opacity: allOn ? 1 : 0.4, padding:'4px 10px' }}
                           onClick={() => setEditEventForm(f => ({
                             ...f,
@@ -1341,9 +1327,17 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                           }))}>
                           All Crew
                         </button>
-                      </div>
-                    );
-                  })()}
+                      );
+                    })()}
+                    {['VIDEO', ...(includePhoto ? ['PHOTO'] : []), 'TALENT', 'TRAVEL'].map(type => (
+                      <button key={type} type="button"
+                        className={`etag ${TAG_CLASS[type]}`}
+                        style={{ cursor:'pointer', opacity: editEventForm.tags.some(t=>t.type===type) ? 1 : 0.4, padding:'4px 10px' }}
+                        onClick={() => toggleEditTag(type)}>
+                        {TAG_LABEL[type]}
+                      </button>
+                    ))}
+                  </div>
                   {editEventForm.tags.some(t=>t.type==='VIDEO') && (
                     <div style={{ marginTop:8 }}>
                       <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4 }}>Crew on this event — leave empty for everyone</div>
