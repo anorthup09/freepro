@@ -2,6 +2,7 @@ const router = require('express').Router();
 const { z } = require('zod');
 const sql = require('../lib/db');
 const { requireAuth, requireRole } = require('../middleware/auth');
+const { bizToday } = require('../lib/dates');
 const { displayCodes, applyDisplayCode } = require('../lib/displayCode');
 const { sendCalendarHold } = require('../lib/ics');
 
@@ -100,7 +101,7 @@ router.get('/', requireAuth, async (req, res, next) => {
 async function maybeAutoStatus(project) {
   const { id, status, start_date, end_date } = project;
   if (!start_date || !end_date) return project;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = bizToday();
   const start = new Date(start_date).toISOString().slice(0, 10);
   const end = new Date(end_date).toISOString().slice(0, 10);
   let next = null;

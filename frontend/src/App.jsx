@@ -91,21 +91,21 @@ export default function App() {
         <Route path="/login" element={user ? <Navigate to="/" /> : <Login />} />
         <Route path="/" element={user ? <Hub /> : <Navigate to="/login" />} />
         <Route path="/projects" element={user ? <Projects /> : <Navigate to="/login" />} />
-        <Route path="/crew-calendar" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <CrewCalendar />) : <Navigate to="/login" />} />
-        <Route path="/finance" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <Finance />) : <Navigate to="/login" />} />
-        <Route path="/pipeline" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <Pipeline />) : <Navigate to="/login" />} />
-        <Route path="/finance/overview" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <FinanceOverview />) : <Navigate to="/login" />} />
-        <Route path="/finance/report" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <FinanceReport />) : <Navigate to="/login" />} />
-        <Route path="/finance/:pid" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <FinanceProject />) : <Navigate to="/login" />} />
+        <Route path="/crew-calendar" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/crew-views" /> : <CrewCalendar />) : <Navigate to="/login" />} />
+        <Route path="/finance" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/crew-views" /> : <Finance />) : <Navigate to="/login" />} />
+        <Route path="/pipeline" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/crew-views" /> : <Pipeline />) : <Navigate to="/login" />} />
+        <Route path="/finance/overview" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/crew-views" /> : <FinanceOverview />) : <Navigate to="/login" />} />
+        <Route path="/finance/report" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/crew-views" /> : <FinanceReport />) : <Navigate to="/login" />} />
+        <Route path="/finance/:pid" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/crew-views" /> : <FinanceProject />) : <Navigate to="/login" />} />
         <Route path="/crew-views" element={user ? <CrewViews /> : <Navigate to="/login" />} />
-        <Route path="/projects/:id" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <Project />) : <Navigate to="/login" />} />
-        <Route path="/projects/:id/talent-callsheets" element={user ? (user.role === 'CREW' ? <Navigate to="/crew-views" /> : <TalentCallSheets />) : <Navigate to="/login" />} />
+        <Route path="/projects/:id" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/crew-views" /> : <Project />) : <Navigate to="/login" />} />
+        <Route path="/projects/:id/talent-callsheets" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/crew-views" /> : <TalentCallSheets />) : <Navigate to="/login" />} />
         <Route path="/projects/:id/emails" element={user ? <CallSheetEmails /> : <Navigate to="/login" />} />
-        <Route path="/reports" element={user ? (user.role === 'CREW' ? <Navigate to="/" /> : <Reports />) : <Navigate to="/login" />} />
-        <Route path="/reports/invoices" element={user ? (user.role === 'CREW' ? <Navigate to="/" /> : <InvoiceSearch />) : <Navigate to="/login" />} />
-        <Route path="/project-view" element={user ? (user.role === 'CREW' ? <Navigate to="/" /> : <ProjectView />) : <Navigate to="/login" />} />
-        <Route path="/project-view/client/:client" element={user ? (user.role === 'CREW' ? <Navigate to="/" /> : <ClientHub />) : <Navigate to="/login" />} />
-        <Route path="/project-view/:pid" element={user ? (user.role === 'CREW' ? <Navigate to="/" /> : <ProjectViewDetail />) : <Navigate to="/login" />} />
+        <Route path="/reports" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/" /> : <Reports />) : <Navigate to="/login" />} />
+        <Route path="/reports/invoices" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/" /> : <InvoiceSearch />) : <Navigate to="/login" />} />
+        <Route path="/project-view" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/" /> : <ProjectView />) : <Navigate to="/login" />} />
+        <Route path="/project-view/client/:client" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/" /> : <ClientHub />) : <Navigate to="/login" />} />
+        <Route path="/project-view/:pid" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/" /> : <ProjectViewDetail />) : <Navigate to="/login" />} />
         <Route path="/team" element={user ? <Team /> : <Navigate to="/login" />} />
         <Route path="/avo" element={user ? <Avo /> : <Navigate to="/login" />} />
         <Route path="/avo/gantt" element={user ? <AvoGantt /> : <Navigate to="/login" />} />

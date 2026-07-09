@@ -117,7 +117,7 @@ export default function Team() {
       <TeamHeader />
       <div style={{ maxWidth:1150, margin:'0 auto', padding:'6px 16px 80px' }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, flexWrap:'wrap', marginBottom:4 }}>
-          <div className="page-title" style={{ marginBottom:0 }}>PTO / OOO Requests</div>
+          <div className="page-title" style={{ marginBottom:0 }}>Team Management</div>
           <div style={{ display:'flex', border:`1px solid ${BLUE}55`, borderRadius:16, overflow:'hidden' }}>
             {[['roster', 'Roster'], ['form', 'OOO Request'], ['pipeline', 'OOO Pipeline']].map(([v, label]) => (
               <button key={v} onClick={() => setView(v)}

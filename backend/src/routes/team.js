@@ -2,6 +2,7 @@ const router = require('express').Router();
 const sql = require('../lib/db');
 const { requireAuth } = require('../middleware/auth');
 const { sendMail } = require('../lib/mailer');
+const { bizToday } = require('../lib/dates');
 
 const PREF = "COALESCE(NULLIF(TRIM(CONCAT(cm.preferred_first_name, ' ', cm.preferred_last_name)), ''), cm.name)";
 const STATUSES = ['REVIEW', 'APPROVED', 'CLOSED'];
@@ -17,7 +18,10 @@ const LIST = () => sql`
 // GET /api/team/pto — list (requests whose end date has passed auto-close)
 router.get('/pto', requireAuth, async (req, res, next) => {
   try {
-    await sql`UPDATE pto_requests SET status = 'CLOSED' WHERE end_date < CURRENT_DATE AND status != 'CLOSED'`;
+    // Auto-close in the business timezone (UTC CURRENT_DATE closed PTO a day early),
+    // and reopen anything the old UTC logic closed prematurely.
+    await sql`UPDATE pto_requests SET status = 'CLOSED' WHERE end_date < ${bizToday()} AND status != 'CLOSED'`;
+    await sql`UPDATE pto_requests SET status = 'APPROVED' WHERE end_date >= ${bizToday()} AND status = 'CLOSED'`;
     res.json(await LIST());
   } catch (e) { next(e); }
 });

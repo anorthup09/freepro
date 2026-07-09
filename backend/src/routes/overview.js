@@ -69,7 +69,7 @@ router.post('/project-overview/:pid/call-notes', ...staff, async (req, res, next
   try {
     const [n] = await sql`
       INSERT INTO project_call_notes (project_id, call_date, note, created_by)
-      VALUES (${req.params.pid}, ${req.body.callDate || new Date().toISOString().slice(0, 10)}, ${req.body.note || ''}, ${req.user.name || req.user.email})
+      VALUES (${req.params.pid}, ${req.body.callDate || bizToday()}, ${req.body.note || ''}, ${req.user.name || req.user.email})
       RETURNING *`;
     res.status(201).json(n);
   } catch (e) { next(e); }

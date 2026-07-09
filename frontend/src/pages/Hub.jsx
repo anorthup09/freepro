@@ -130,7 +130,11 @@ function UserManagement({ user }) {
   const [open, setOpen] = useState(false);
   const [users, setUsers] = useState([]);
   const [copiedInvite, setCopiedInvite] = useState(false);
-  const ROLES = ['PENDING', 'CREW', 'CLIENT', 'PRODUCER', 'ADMIN'];
+  const [pendingCount, setPendingCount] = useState(0);
+  useEffect(() => {
+    api.getUsers().then(us => setPendingCount(us.filter(u => u.role === 'PENDING').length)).catch(() => {});
+  }, []);
+  const ROLES = ['PENDING', 'CREW', 'AGENCY', 'CLIENT', 'PRODUCER', 'ADMIN'];
   const inviteBlurb = `You're invited to the Unbridled Operating Platform — budgets, call sheets, schedules, and post-production in one place.
 
 1. Go to ${window.location.origin}/login
@@ -154,7 +158,11 @@ Questions? Reply to whoever sent you this.`;
   async function changeRole(id, role) {
     try {
       const u = await api.updateUserRole(id, role);
-      setUsers(us => us.map(x => x.id === id ? { ...x, role: u.role } : x));
+      setUsers(us => {
+        const next = us.map(x => x.id === id ? { ...x, role: u.role } : x);
+        setPendingCount(next.filter(x => x.role === 'PENDING').length);
+        return next;
+      });
     } catch (e) { alert(e.message); }
   }
 
@@ -241,7 +249,10 @@ Questions? Reply to whoever sent you this.`;
       )}
       <button onClick={toggle}
         style={{ background:'none', border:'1px solid var(--border)', borderRadius:14, padding:'4px 12px', color:'var(--muted)', fontSize:10, fontWeight:600, letterSpacing:'.05em', cursor:'pointer' }}>
-        User Management ▸
+        User Management{pendingCount > 0 && (
+          <span title={`${pendingCount} pending signup${pendingCount === 1 ? '' : 's'} awaiting approval`}
+            style={{ color:'#ff5c5c', fontWeight:800, marginLeft:6 }}>(!)</span>
+        )} ▸
       </button>
     </div>
   );
@@ -458,7 +469,7 @@ function HubDashboard() {
 export default function Hub() {
   const nav = useNavigate();
   const { user, setUser } = useAuth();
-  const isCrew = user?.role === 'CREW';
+  const isCrew = ['CREW','AGENCY'].includes(user?.role);
   const [mode, setMode] = useState(() => localStorage.getItem('hub_mode') || 'ops'); // 'projects' | 'ops'
   const setHubMode = m => { setMode(m); localStorage.setItem('hub_mode', m); };
   // Team Management sits below as a constant, elongated tile

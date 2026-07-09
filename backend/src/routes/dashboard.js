@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const sql = require('../lib/db');
 const { requireAuth } = require('../middleware/auth');
+const { bizToday } = require('../lib/dates');
 
 const PREF = "COALESCE(NULLIF(TRIM(CONCAT(cm.preferred_first_name, ' ', cm.preferred_last_name)), ''), cm.name)";
 const MS_LABELS = {
@@ -101,8 +102,8 @@ async function itemsFor(cm, today) {
 
 router.get('/today', requireAuth, async (req, res, next) => {
   try {
-    const today = new Date().toISOString().slice(0, 10);
-    const tomorrowDate = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+    const today = bizToday();
+    const tomorrowDate = bizToday(1);
     const cm = await myCrewMember(req.user.email);
     const items = cm ? await itemsFor(cm, today) : [];
     // Coming Tomorrow: same signals for the next day (skip in-progress noise)
@@ -123,7 +124,7 @@ router.get('/today', requireAuth, async (req, res, next) => {
 // GET /api/dashboard/team — where every Unbridled team member is today
 router.get('/team', requireAuth, async (req, res, next) => {
   try {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = bizToday();
     const members = await sql`
       SELECT cm.id, ${sql.unsafe(PREF)} as name
       FROM crew_members cm

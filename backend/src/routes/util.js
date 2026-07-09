@@ -19,6 +19,7 @@ function fetchJson(url, headers = {}, timeout = 9000) {
   });
 }
 const { requireAuth } = require('../middleware/auth');
+const { bizToday } = require('../lib/dates');
 
 // ─── Hotel Search (OpenStreetMap Nominatim) ───────────────────────────────────
 router.get('/hotel-search', requireAuth, async (req, res, next) => {
@@ -120,7 +121,7 @@ router.get('/flight-lookup', requireAuth, async (req, res, next) => {
     const key = process.env.AERODATABOX_API_KEY;
     if (!key) return res.status(503).json({ error: 'AERODATABOX_API_KEY not configured' });
 
-    const targetDate = date || new Date().toISOString().slice(0, 10);
+    const targetDate = date || bizToday();
     const url = `https://aerodatabox.p.rapidapi.com/flights/number/${encodeURIComponent(flight.toUpperCase())}/${targetDate}`;
     const r = await fetchJson(url, aeroHeaders(key));
 
@@ -159,7 +160,7 @@ router.get('/flight-status', requireAuth, async (req, res, next) => {
     const key = process.env.AERODATABOX_API_KEY;
     if (!key) return res.status(503).json({ error: 'AERODATABOX_API_KEY not configured' });
 
-    const targetDate = date || new Date().toISOString().slice(0, 10);
+    const targetDate = date || bizToday();
     const url = `https://aerodatabox.p.rapidapi.com/flights/number/${encodeURIComponent(flight.toUpperCase())}/${targetDate}`;
     const r = await fetchJson(url, aeroHeaders(key));
     if (!r.ok) return res.status(r.status || 502).json({ error: 'lookup failed' });

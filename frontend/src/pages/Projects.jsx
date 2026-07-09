@@ -63,7 +63,7 @@ export default function Projects() {
   const [saving, setSaving] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [view, setView] = useState('production');
-  const isCrew = user?.role === 'CREW';
+  const isCrew = ['CREW','AGENCY'].includes(user?.role);
 
   useEffect(() => { api.getProjects().then(setProjects).catch(console.error); }, []);
 
