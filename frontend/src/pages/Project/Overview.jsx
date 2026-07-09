@@ -527,44 +527,6 @@ export default function Overview({ project, setProject, onTabChange }) {
         </div>
       </div>
 
-      {/* Locations */}
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
-        <div className="sec-lbl" style={{ marginBottom:0, fontWeight:700, fontSize:12, color:'var(--text)' }}>Locations</div>
-        <button className="btn btn-ghost btn-sm" onClick={() => setShowLocModal(true)}>+ Add</button>
-      </div>
-      {!(project.locations?.length) && (
-        <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'12px 16px', fontSize:12, color:'var(--muted)', fontStyle:'italic', marginBottom:20 }}>No locations added yet.</div>
-      )}
-      {LOC_TYPES.filter(t => (project.locations||[]).some(l => l.type === t)).map(type => {
-        const group = (project.locations||[]).filter(l => l.type === type);
-        return (
-          <div key={type} style={{ marginBottom:12 }}>
-            <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--muted)', marginBottom:4 }}>{LOC_LABELS[type]}</div>
-            <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden' }}>
-              {group.map((l, i) => (
-                <div key={l.id} style={{ padding:'10px 16px', borderBottom: i < group.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr auto', alignItems:'center', gap:12 }}>
-                    <span style={{ fontWeight:600, fontSize:13 }}>{l.name}</span>
-                    {l.address
-                      ? <a href={`https://maps.google.com/?q=${encodeURIComponent(l.address)}`} target="_blank" rel="noreferrer" style={{ fontSize:12, color:'var(--tan)', textDecoration:'none' }}>{l.address}</a>
-                      : <span style={{ fontSize:12, color:'var(--muted)' }}>—</span>
-                    }
-                    <div style={{ whiteSpace:'nowrap' }}>
-                      <button title="Edit name / address (override what the map search filled in)"
-                        style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11, marginRight:6 }} onClick={() => openEditLocation(l)}>✎</button>
-                      <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => deleteLocation(l.id)}>✕</button>
-                    </div>
-                  </div>
-                  {l.arrival_notes && <div style={{ fontSize:11, color:'var(--muted)', marginTop:6, whiteSpace:'pre-wrap' }}><span style={{ fontWeight:700, color:'var(--tan)' }}>Arrival: </span>{l.arrival_notes}</div>}
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-      })}
-      <div style={{ marginBottom:20 }} />
-
-
       {/* Edit Info Modal */}
       {editInfo && (
         <div className="modal-bg" onClick={e => e.target === e.currentTarget && setEditInfo(false)}>
@@ -603,36 +565,6 @@ export default function Overview({ project, setProject, onTabChange }) {
                   );
                 })()}
               </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Add Location Modal */}
-      {showLocModal && (
-        <div className="modal-bg" onClick={e => e.target === e.currentTarget && (setShowLocModal(false), setEditLocId(null))}>
-          <div className="modal">
-            <div className="modal-title">{editLocId ? 'Edit Location' : 'Add Location'}</div>
-            <form onSubmit={addLocation}>
-              <div className="form-grid" style={{ marginBottom:12 }}>
-                <div className="field span2">
-                  <label>Search Place</label>
-                  <PlaceSearch onSelect={({ name, address }) => setLocForm(f => ({ ...f, name, address }))} />
-                </div>
-                <div className="field span2"><label>Name</label><input value={locForm.name} onChange={e => setLocForm(f=>({...f,name:e.target.value}))} required placeholder="Auto-filled from search or type manually" /></div>
-                <div className="field span2"><label>Address</label><input value={locForm.address} onChange={e => setLocForm(f=>({...f,address:e.target.value}))} required placeholder="Auto-filled from search or type manually" /></div>
-                <div className="field"><label>Type</label>
-                  <select value={locForm.type} onChange={e => setLocForm(f=>({...f,type:e.target.value}))}>
-                    <option value="PRIMARY_VENUE">Shooting Location</option>
-                    <option value="CREW_HOTEL">Hotel</option>
-                    <option value="AIRPORT">Airport</option>
-                    <option value="OTHER">Other</option>
-                  </select>
-                </div>
-                <div className="field"><label>Emoji</label><input value={locForm.emoji} onChange={e => setLocForm(f=>({...f,emoji:e.target.value}))} placeholder="🏛" /></div>
-                <div className="field span2"><label>Arrival Notes</label><textarea value={locForm.arrivalNotes} onChange={e => setLocForm(f=>({...f,arrivalNotes:e.target.value}))} rows={2} placeholder="Parking, entrance, check-in, loading dock…" /></div>
-              </div>
-              <div className="btn-row"><button className="btn btn-primary">{editLocId ? 'Save Changes' : 'Add Location'}</button><button type="button" className="btn btn-ghost" onClick={() => { setShowLocModal(false); setEditLocId(null); setLocForm({ name:'', address:'', type:'PRIMARY_VENUE', emoji:'', arrivalNotes:'' }); }}>Cancel</button></div>
             </form>
           </div>
         </div>

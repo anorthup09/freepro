@@ -17,6 +17,7 @@ import Questions from './Questions.jsx';
 import Scripts from './Scripts.jsx';
 import ShotList from './ShotList.jsx';
 import ProducerChecklist from './ProducerChecklist.jsx';
+import Locations from './Locations.jsx';
 
 const BASE_TABS = [
   { id: 'overview',            label: 'Overview' },
@@ -26,8 +27,8 @@ const BASE_TABS = [
 const BASE_LOGISTICS_TABS = [
   { id: 'schedule',    label: 'Schedule' },
   { id: 'crew',        label: 'Crew' },
+  { id: 'locations',   label: 'Locations' },
   { id: 'space-info',  label: 'Room / Space Info' },
-  { id: 'producer-checklist', label: 'Producer Checklist' },
 ];
 
 const GEAR_TABS = [
@@ -434,7 +435,7 @@ export default function Project({ idOverride }) {
           {!isAgency && !isCrew && <button className={`tab${tab === 'overview' ? ' on' : ''}`} onClick={() => setTab('overview')}>Overview</button>}
           {!isCrew && <DropdownTab label="Logistics" subtabs={isAgency
             ? [{ id:'schedule', label:'Schedule' }, { id:'travel', label:'Travel' }, { id:'shot-list', label:'Shot List' }, { id:'additional-docs', label:'Additional Docs' }]
-            : [...BASE_LOGISTICS_TABS, ...(showTravel ? [{ id:'travel', label:'Travel' }] : []), ...(showCateringGrid ? [{ id:'catering', label:'Catering/Meals' }] : []), ...(showShotList ? [{ id:'shot-list', label:'Shot List' }] : []), ...(showScripts ? [{ id:'scripts', label:'Scripts' }] : []), { id:'additional-docs', label:'Additional Docs' }]} tab={tab} setTab={setTab} />}
+            : [...BASE_LOGISTICS_TABS, ...(showTravel ? [{ id:'travel', label:'Travel' }] : []), ...(showCateringGrid ? [{ id:'catering', label:'Catering/Meals' }] : []), ...(showShotList ? [{ id:'shot-list', label:'Shot List' }] : []), ...(showScripts ? [{ id:'scripts', label:'Scripts' }] : []), { id:'additional-docs', label:'Additional Docs' }, { id:'producer-checklist', label:'Producer Checklist' }]} tab={tab} setTab={setTab} />}
           <DropdownTab label="Gear" subtabs={GEAR_TABS} tab={tab} setTab={setTab} />
           {!isCrew && <button className={`tab${tab === 'deliverable-overview' ? ' on' : ''}`} onClick={() => setTab('deliverable-overview')}>Deliverable</button>}
           {!isAgency && !isCrew && <button
@@ -467,6 +468,7 @@ export default function Project({ idOverride }) {
         {tab === 'deliverable-overview' && <Deliverables project={project} />}
         {tab === 'producer-checklist'   && <ProducerChecklist project={project} />}
         {tab === 'additional-docs' && <AdditionalDocs project={project} />}
+        {tab === 'locations'            && <Locations    project={project} setProject={setProject} />}
         {tab === 'space-info'           && <SpaceInfo    project={project} setProject={setProject} />}
         {tab === 'questions'            && <Questions    project={project} />}
       </div>

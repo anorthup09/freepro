@@ -75,7 +75,10 @@ async function getFullProject(id) {
     SELECT subtitle, trip FROM budget_sections
     WHERE freepro_project_id = ${id} AND kind = 'shoot'
     ORDER BY sort LIMIT 1`;
-  const shootName = (shootSec?.subtitle || '').trim() || (shootSec?.trip || '').trim() || (project.subtitle || '').trim() || null;
+  // "Shoot: [Trip] - [Description]" — Trip name first, then the Shoot Description
+  const trip = (shootSec?.trip || '').trim();
+  const desc = (shootSec?.subtitle || '').trim();
+  const shootName = [trip, desc].filter(Boolean).join(' - ') || (project.subtitle || '').trim() || null;
   return {
     ...project,
     shoot_name: shootName,
