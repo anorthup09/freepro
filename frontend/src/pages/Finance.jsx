@@ -117,7 +117,7 @@ export function LogoField({ value, onChange }) {
   );
 }
 
-function NewProjectModal({ onClose, onCreated }) {
+export function NewProjectModal({ onClose, onCreated }) {
   const [f, setF] = useState({ code:'', title:'', client:'' });
   const [logo, setLogo] = useState(null);
   const [saving, setSaving] = useState(false);

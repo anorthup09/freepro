@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App.jsx';
 import { api } from '../api.js';
+import { NewProjectModal } from './Finance.jsx';
 
 const TILES = [
   {
@@ -487,6 +488,7 @@ export default function Hub() {
   const isFinance = user?.role === 'FINANCE';
   const [mode, setMode] = useState(() => localStorage.getItem('hub_mode') || 'ops'); // 'projects' | 'ops'
   const setHubMode = m => { setMode(m); localStorage.setItem('hub_mode', m); };
+  const [showNewProject, setShowNewProject] = useState(false);
   // Team Management sits below as a constant, elongated tile
   const teamTile = TILES.find(t => t.key === 'team');
   const isAgency = user?.role === 'AGENCY';
@@ -563,6 +565,18 @@ export default function Hub() {
                   ))}
                 </div>
               )}
+              {!isCrew && !isFinance && mode === 'projects' && (
+                <div style={{ marginTop:16 }}>
+                  <button onClick={() => setShowNewProject(true)}
+                    style={{ background:'#000', color:'#5ABF80', border:'1px solid #5ABF80', borderRadius:22,
+                      padding:'10px 24px', fontSize:12.5, fontWeight:800, letterSpacing:'0.03em', cursor:'pointer',
+                      boxShadow:'0 0 16px rgba(90,191,128,0.55)', transition:'box-shadow .15s ease, transform .15s ease' }}
+                    onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 0 24px rgba(90,191,128,0.85)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 0 16px rgba(90,191,128,0.55)'; e.currentTarget.style.transform = 'none'; }}>
+                    + Start New Project
+                  </button>
+                </div>
+              )}
             </div>
             {!isCrew && !isFinance && mode === 'projects' && <HubProjects />}
             {(isCrew || isFinance || mode === 'ops') && (
@@ -607,6 +621,12 @@ export default function Hub() {
           </div>
         </div>
 
+      {showNewProject && (
+        <NewProjectModal
+          onClose={() => setShowNewProject(false)}
+          onCreated={p => { setShowNewProject(false); nav(`/project-view/${p.id}`); }}
+        />
+      )}
       {user?.role === 'ADMIN' && <UserManagement user={user} />}
     </div>
   );
