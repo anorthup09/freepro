@@ -47,6 +47,7 @@ export default function CrewViews() {
   const nav = useNavigate();
   const [projects, setProjects] = useState([]);
   const [showArchived, setShowArchived] = useState(false);
+  const [showWrapped, setShowWrapped] = useState(false);
   const [openingId, setOpeningId] = useState(null);
   const [loadError, setLoadError] = useState('');
 
@@ -69,9 +70,17 @@ export default function CrewViews() {
     return Math.ceil((new Date(startDate.slice(0, 10) + 'T12:00:00') - today) / 86400000);
   }
 
-  const activeProjects = projects
-    .filter(p => p.status !== 'ARCHIVED')
-    .sort((a, b) => (a.start_date || '').localeCompare(b.start_date || ''));
+  // Shoots grouped by status — wrapped ones drop to a minimized section at the bottom
+  const byDate = (a, b) => (a.start_date || '').localeCompare(b.start_date || '');
+  const GROUPS = [
+    ['ACTIVE',    'Active',    '#5ABF80'],
+    ['PLANNING',  'Planning',  '#e6c229'],
+    ['DELIVERED', 'Delivered', '#5ABF80'],
+  ];
+  const grouped = GROUPS
+    .map(([st, label, color]) => [label, color, projects.filter(p => p.status === st).sort(byDate)])
+    .filter(([, , list]) => list.length > 0);
+  const wrapped = projects.filter(p => p.status === 'WRAPPED').sort(byDate);
   const archived = projects.filter(p => p.status === 'ARCHIVED');
 
   function card(p, showDays) {
@@ -121,9 +130,27 @@ export default function CrewViews() {
         {loadError && <div className="login-err" style={{ marginBottom:12 }}>{loadError}</div>}
         {projects.length === 0 && !loadError && <div className="empty">No projects yet.</div>}
 
-        <div className="proj-list">
-          {activeProjects.map(p => card(p, true))}
-        </div>
+        {grouped.map(([label, color, list]) => (
+          <div key={label} style={{ marginBottom:20 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:8, margin:'0 0 8px 2px' }}>
+              <span style={{ width:8, height:8, borderRadius:'50%', background:color, flexShrink:0 }} />
+              <span style={{ fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--muted)' }}>
+                {label} ({list.length})
+              </span>
+            </div>
+            <div className="proj-list">{list.map(p => card(p, true))}</div>
+          </div>
+        ))}
+
+        {wrapped.length > 0 && (
+          <div style={{ marginTop:8 }}>
+            <button className="btn btn-ghost btn-sm" onClick={() => setShowWrapped(s => !s)}
+              style={{ marginBottom:10, color:'var(--muted)' }}>
+              {showWrapped ? '▾' : '▸'} Wrapped ({wrapped.length})
+            </button>
+            {showWrapped && <div className="proj-list" style={{ opacity:0.75 }}>{wrapped.map(p => card(p, false))}</div>}
+          </div>
+        )}
 
         {archived.length > 0 && (
           <div style={{ marginTop:24 }}>
