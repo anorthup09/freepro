@@ -296,18 +296,19 @@ async function ensureShootProjects(budgetId) {
   const [parent] = await sql`SELECT * FROM projects WHERE id = ${b.project_id}`;
   if (!parent) return;
   const shootSecs = await sql`SELECT * FROM budget_sections WHERE budget_id = ${b.id} AND kind = 'shoot'`;
-  // A single production block IS the parent project — no separate tile
-  if (shootSecs.length === 1) {
-    const sec = shootSecs[0];
-    if (!sec.freepro_project_id) await sql`UPDATE budget_sections SET freepro_project_id = ${parent.id} WHERE id = ${sec.id}`;
-    // The single production block IS the parent project; its name is set by the
-    // user (Edit Project), so the shoot description must not overwrite it.
-    return;
-  }
   for (const sec of shootSecs) {
     if (sec.freepro_project_id || !sec.shoot_code) continue;
     const nn = sec.shoot_code.split('-').pop();
-    const title = (sec.subtitle || '').trim() || `${parent.title} — ${sec.trip || 'Shoot ' + nn}`;
+    const named = (sec.subtitle || '').trim() || (sec.trip || '').trim();
+    // A single, unnamed production block just uses the parent project as its
+    // tile (no redundant record). Any shoot with a Trip or Shoot Description
+    // gets its own FreePro tile named distinctly so it never collides with the
+    // ProFi project name: the Shoot Description if set, else "[Title] - [Trip]".
+    if (shootSecs.length === 1 && !named) {
+      await sql`UPDATE budget_sections SET freepro_project_id = ${parent.id} WHERE id = ${sec.id}`;
+      continue;
+    }
+    const title = (sec.subtitle || '').trim() || `${parent.title} - ${sec.trip || 'Shoot ' + nn}`;
     let [proj] = await sql`SELECT id FROM projects WHERE code = ${sec.shoot_code}`;
     if (!proj) {
       [proj] = await sql`INSERT INTO projects (id, code, title, client, city, state, start_date, end_date, status, parent_project_id)
