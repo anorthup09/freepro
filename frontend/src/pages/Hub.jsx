@@ -281,7 +281,8 @@ function HubProjects() {
   const cs = cq.trim().toLowerCase();
   const shownClients = cs ? clients.filter(c => c.name.toLowerCase().includes(cs)) : clients;
   return (
-    <div>
+    <div style={{ display:'flex', gap:24, alignItems:'flex-start', flexWrap:'wrap' }}>
+      <div style={{ flex:'2 1 420px', minWidth:0 }}>
       <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:12 }}>
         <div onClick={() => nav('/project-view')} title="Open the full Project View — every project"
           style={{ fontSize:13, fontWeight:800, cursor:'pointer', textDecoration:'underline', textUnderlineOffset:3, textDecorationColor:'var(--border)' }}>Project Hub</div>
@@ -305,12 +306,13 @@ function HubProjects() {
           </div>
         ))}
       </div>
+      </div>
       {clients.length > 0 && (
-        <>
-          <div style={{ display:'flex', alignItems:'center', gap:14, margin:'26px 0 10px' }}>
+        <div style={{ flex:'1 1 300px', minWidth:0 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:12 }}>
             <div onClick={() => nav('/project-view')} title="Open the full Project View — every client"
               style={{ fontSize:13, fontWeight:800, cursor:'pointer', textDecoration:'underline', textUnderlineOffset:3, textDecorationColor:'var(--border)' }}>Client Hub</div>
-            <input value={cq} onChange={e => setCq(e.target.value)} placeholder="Search clients…" style={{ width:240, marginLeft:'auto' }} />
+            <input value={cq} onChange={e => setCq(e.target.value)} placeholder="Search clients…" style={{ width:240 }} />
           </div>
           <div className="hub-scroll" style={{ display:'flex', gap:10, overflowX:'auto', paddingBottom:8 }}>
             {shownClients.map(c => (
@@ -329,7 +331,7 @@ function HubProjects() {
               </div>
             ))}
           </div>
-        </>
+        </div>
       )}
     </div>
   );
