@@ -116,6 +116,16 @@ export default function ClientHub() {
   const [projects, setProjects] = useState(null);
   const [view, setView] = useState('team'); // 'team' | 'client'
   const [meta, setMeta] = useState(null);
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  async function copyClientLink() {
+    const url = `${window.location.origin}/project-view/client/${encodeURIComponent(client)}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    } catch { window.prompt('Client link:', url); }
+  }
 
   useEffect(() => { api.financeProjects().then(setProjects).catch(e => alert(e.message)); }, []);
   useEffect(() => { api.clientMeta(client).then(setMeta).catch(() => setMeta({})); }, [client]);
@@ -173,6 +183,14 @@ export default function ClientHub() {
                 </button>
               ))}
             </div>
+            {clientView && (
+              <button onClick={copyClientLink} title="Copy the link to this client's view"
+                style={linkCopied
+                  ? { background:'#5ABF80', border:'1px solid #5ABF80', color:'#0b0b0b', borderRadius:18, padding:'7px 14px', fontSize:11, fontWeight:800, cursor:'pointer' }
+                  : { background:'rgba(74,158,255,0.12)', border:'1px solid #4a9eff', color:'#4a9eff', borderRadius:18, padding:'7px 14px', fontSize:11, fontWeight:800, cursor:'pointer' }}>
+                {linkCopied ? '✓ Copied' : '🔗 Copy Client Link'}
+              </button>
+            )}
             <button onClick={changePassword}
               title={meta?.hub_password ? 'Client Hub password is set — click to change or remove it' : 'Set the password clients will use to open their portal'}
               style={meta?.hub_password
