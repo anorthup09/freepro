@@ -127,6 +127,22 @@ function FeedbackBoard() {
   );
 }
 
+// Admin-only red flag in the Hub header when signups are awaiting a role
+function NewUserAlert({ onOpen }) {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    api.getUsers().then(us => setCount(us.filter(u => u.role === 'PENDING').length)).catch(() => {});
+  }, []);
+  if (!count) return null;
+  return (
+    <button onClick={onOpen}
+      title={`${count} pending signup${count === 1 ? '' : 's'} awaiting approval`}
+      style={{ display:'inline-flex', alignItems:'center', gap:6, background:'#e05252', border:'1px solid #ff6b6b', color:'#fff', borderRadius:20, padding:'5px 13px', fontSize:11, fontWeight:900, letterSpacing:'0.02em', cursor:'pointer', boxShadow:'0 2px 10px rgba(224,82,82,0.4)' }}>
+      (!) New User{count > 1 ? `s · ${count}` : ''}
+    </button>
+  );
+}
+
 function UserManagement({ user }) {
   const [open, setOpen] = useState(false);
   const [users, setUsers] = useState([]);
@@ -522,6 +538,7 @@ export default function Hub() {
           </button>
         </div>}
         <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+          {realUser?.role === 'ADMIN' && <NewUserAlert onOpen={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })} />}
           <span style={{ fontSize:11, color:'var(--muted)' }}>{user?.name}</span>
           {realUser?.role === 'ADMIN' && (
             <select value={preview || ''} title="Preview the platform as another role"

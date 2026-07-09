@@ -283,6 +283,8 @@ export default function Avo() {
 
         {edits && AVO_STATUSES.map(([key, label, color]) => {
           const group = edits.filter(e => e.status === key);
+          // Hide the Focus status entirely when nothing is assigned to it
+          if (key === 'FOCUS' && group.length === 0) return null;
           const collapsed = key === 'CLOSED' && !closedOpen;
           return (
             <div key={key} style={{ marginBottom:20 }}>
