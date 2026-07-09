@@ -354,8 +354,8 @@ router.get('/:id/talent', requireAuth, async (req, res, next) => {
 });
 router.post('/:id/talent', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const { name, role, notes, phone, email, dietaryRestrictions, callTime, videoTitle, wardrobeNotes, arrivalNotes } = req.body;
-    const [t] = await sql`INSERT INTO key_talent (id, project_id, name, role, notes, phone, email, dietary_restrictions, call_time, video_title, wardrobe_notes, arrival_notes) VALUES (gen_random_uuid()::text, ${req.params.id}, ${name}, ${role||null}, ${notes||null}, ${phone||null}, ${email||null}, ${dietaryRestrictions||null}, ${callTime||null}, ${videoTitle||null}, ${wardrobeNotes||null}, ${arrivalNotes||null}) RETURNING *`;
+    const { name, role, notes, phone, email, dietaryRestrictions, callTime, videoTitle, wardrobeNotes, arrivalNotes, travelLocal } = req.body;
+    const [t] = await sql`INSERT INTO key_talent (id, project_id, name, role, notes, phone, email, dietary_restrictions, call_time, video_title, wardrobe_notes, arrival_notes, travel_local) VALUES (gen_random_uuid()::text, ${req.params.id}, ${name}, ${role||null}, ${notes||null}, ${phone||null}, ${email||null}, ${dietaryRestrictions||null}, ${callTime||null}, ${videoTitle||null}, ${wardrobeNotes||null}, ${arrivalNotes||null}, ${travelLocal||'TRAVEL'}) RETURNING *`;
     // Auto-create a share token for this talent
     await sql`INSERT INTO project_shares (id, project_id, token, view_type, talent_name) VALUES (gen_random_uuid()::text, ${req.params.id}, gen_random_uuid()::text, 'talent', ${name})`;
     res.status(201).json(t);
@@ -364,7 +364,7 @@ router.post('/:id/talent', requireAuth, requireRole('ADMIN','PRODUCER'), async (
 router.patch('/:id/talent/:tid', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
     const d = req.body;
-    const [t] = await sql`UPDATE key_talent SET name=COALESCE(${d.name??null},name), role=COALESCE(${d.role??null},role), phone=${d.phone!==undefined?(d.phone||null):sql`phone`}, email=${d.email!==undefined?(d.email||null):sql`email`}, notes=${d.notes!==undefined?(d.notes||null):sql`notes`}, dietary_restrictions=${d.dietaryRestrictions!==undefined?(d.dietaryRestrictions||null):sql`dietary_restrictions`}, call_time=${d.callTime!==undefined?(d.callTime||null):sql`call_time`}, wardrobe_notes=${d.wardrobeNotes!==undefined?(d.wardrobeNotes||null):sql`wardrobe_notes`}, arrival_notes=${d.arrivalNotes!==undefined?(d.arrivalNotes||null):sql`arrival_notes`}, video_title=${d.videoTitle!==undefined?(d.videoTitle||null):sql`video_title`} WHERE id=${req.params.tid} RETURNING *`;
+    const [t] = await sql`UPDATE key_talent SET name=COALESCE(${d.name??null},name), role=COALESCE(${d.role??null},role), phone=${d.phone!==undefined?(d.phone||null):sql`phone`}, email=${d.email!==undefined?(d.email||null):sql`email`}, notes=${d.notes!==undefined?(d.notes||null):sql`notes`}, dietary_restrictions=${d.dietaryRestrictions!==undefined?(d.dietaryRestrictions||null):sql`dietary_restrictions`}, call_time=${d.callTime!==undefined?(d.callTime||null):sql`call_time`}, wardrobe_notes=${d.wardrobeNotes!==undefined?(d.wardrobeNotes||null):sql`wardrobe_notes`}, arrival_notes=${d.arrivalNotes!==undefined?(d.arrivalNotes||null):sql`arrival_notes`}, video_title=${d.videoTitle!==undefined?(d.videoTitle||null):sql`video_title`}, travel_local=${d.travelLocal!==undefined?(d.travelLocal||'TRAVEL'):sql`travel_local`} WHERE id=${req.params.tid} RETURNING *`;
     res.json(t);
   } catch(e){next(e);}
 });

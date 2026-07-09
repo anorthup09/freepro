@@ -1273,6 +1273,7 @@ async function migrate() {
     ON CONFLICT (name) DO NOTHING`;
 
   await sql`ALTER TABLE crew_members ADD COLUMN IF NOT EXISTS travel_local TEXT DEFAULT 'TRAVEL'`;
+  await sql`ALTER TABLE key_talent ADD COLUMN IF NOT EXISTS travel_local TEXT DEFAULT 'TRAVEL'`;
 
   // One-time ClickUp PTO/OOO import (idempotent)
   try { await require('./seedPto')(); } catch (e) { console.error('PTO seed failed:', e.message); }

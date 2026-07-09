@@ -44,7 +44,7 @@ export default function Crew({ project, onProjectUpdate }) {
   const [roster, setRoster] = useState([]);
   const [flights, setFlights] = useState([]);
   const [showAddSlot, setShowAddSlot] = useState(false);
-  const [slotForm, setSlotForm] = useState({ positionId:'', crewMemberId:'', slotNumber:1, startDate:'', endDate:'', isContractor:false, dayRate:'', laborDays:'', gearCost:'', gearDays:'' });
+  const [slotForm, setSlotForm] = useState({ positionId:'', crewMemberId:'', slotNumber:1, startDate:'', endDate:'', isContractor:false, dayRate:'', laborDays:'', gearCost:'', gearDays:'', travelLocal:'TRAVEL' });
   const [showAddCrew, setShowAddCrew] = useState(false);
   const [crewForm, setCrewForm] = useState({ name:'', email:'', phone:'', company:'' });
   const [rosterQuery, setRosterQuery] = useState('');
@@ -56,9 +56,9 @@ export default function Crew({ project, onProjectUpdate }) {
   const [editId, setEditId] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [showTalentModal, setShowTalentModal] = useState(false);
-  const [talentForm, setTalentForm] = useState({ name:'', role:'', videoTitle:'', phone:'', email:'', notes:'', dietaryRestrictions:'', callTime:'', wardrobeNotes:'', arrivalNotes:'' });
+  const [talentForm, setTalentForm] = useState({ name:'', role:'', videoTitle:'', phone:'', email:'', notes:'', dietaryRestrictions:'', callTime:'', wardrobeNotes:'', arrivalNotes:'', travelLocal:'TRAVEL' });
   const [editTalent, setEditTalent] = useState(null);
-  const [editTalentForm, setEditTalentForm] = useState({ name:'', role:'', videoTitle:'', phone:'', email:'', notes:'', dietaryRestrictions:'', callTime:'', wardrobeNotes:'', arrivalNotes:'' });
+  const [editTalentForm, setEditTalentForm] = useState({ name:'', role:'', videoTitle:'', phone:'', email:'', notes:'', dietaryRestrictions:'', callTime:'', wardrobeNotes:'', arrivalNotes:'', travelLocal:'TRAVEL' });
   const [talentDays, setTalentDays] = useState([]);
   const [addTalentDayCalls, setAddTalentDayCalls] = useState({});
   const [talentDayCallsForm, setTalentDayCallsForm] = useState({});
@@ -166,10 +166,25 @@ export default function Crew({ project, onProjectUpdate }) {
         gearCost: isContractorMember(slotForm.crewMemberId) === true && slotForm.gearCost !== '' ? Number(slotForm.gearCost) : null,
         gearDays: isContractorMember(slotForm.crewMemberId) === true && slotForm.gearDays !== '' ? Number(slotForm.gearDays) : null,
       });
+      await applyTravelLocal(slotForm.crewMemberId, slotForm.travelLocal, a);
       setAssignments(prev => [...prev, a]);
       setShowAddSlot(false);
-      setSlotForm({ positionId:'', crewMemberId:'', slotNumber:1, startDate:'', endDate:'', isContractor:false, dayRate:'', laborDays:'', gearCost:'', gearDays:'' });
+      setSlotForm({ positionId:'', crewMemberId:'', slotNumber:1, startDate:'', endDate:'', isContractor:false, dayRate:'', laborDays:'', gearCost:'', gearDays:'', travelLocal:'TRAVEL' });
     } catch(e) { alert(e.message); }
+  }
+
+  // Persist a Travel/Local choice against a roster member, and mirror it onto
+  // the assignment we just built so the table renders the chosen value.
+  async function applyTravelLocal(memberId, travelLocal, assignment) {
+    if (!memberId || !travelLocal) return;
+    const member = roster.find(m => m.id === memberId);
+    if (assignment?.crewMember) assignment.crewMember.travelLocal = travelLocal;
+    if ((member?.travelLocal || member?.travel_local || 'TRAVEL') === travelLocal) return;
+    try {
+      await api.updateCrewMember(memberId, { travelLocal });
+      setRoster(r => r.map(m => m.id === memberId ? { ...m, travelLocal, travel_local: travelLocal } : m));
+      setAssignments(prev => prev.map(x => x.crewMember?.id === memberId ? { ...x, crewMember: { ...x.crewMember, travelLocal } } : x));
+    } catch(err) { /* non-fatal: slot was still added */ }
   }
 
   async function addSlotAndContract(send) {
@@ -189,6 +204,7 @@ export default function Crew({ project, onProjectUpdate }) {
         gearCost: slotForm.gearCost !== '' ? Number(slotForm.gearCost) : null,
         gearDays: slotForm.gearDays !== '' ? Number(slotForm.gearDays) : null,
       });
+      await applyTravelLocal(slotForm.crewMemberId, slotForm.travelLocal, a);
       setAssignments(prev => [...prev, a]);
       const scope = contractScope.trim() || defaultScope(a);
       const c = await api.createContract(project.id, a.id, { scope });
@@ -364,7 +380,7 @@ export default function Crew({ project, onProjectUpdate }) {
       if (dayCalls.length) await api.saveTalentDayCalls(project.id, t.id, dayCalls).catch(() => {});
       if (onProjectUpdate) onProjectUpdate(p => ({ ...p, keyTalent: [...(p.keyTalent||[]), t] }));
       setShowTalentModal(false);
-      setTalentForm({ name:'', role:'', videoTitle:'', phone:'', email:'', notes:'', dietaryRestrictions:'', callTime:'', wardrobeNotes:'', arrivalNotes:'' });
+      setTalentForm({ name:'', role:'', videoTitle:'', phone:'', email:'', notes:'', dietaryRestrictions:'', callTime:'', wardrobeNotes:'', arrivalNotes:'', travelLocal:'TRAVEL' });
     } catch(e) { alert(e.message); }
   }
 
@@ -387,6 +403,17 @@ export default function Crew({ project, onProjectUpdate }) {
     if (!confirm('Remove this talent?')) return;
     await api.deleteTalent(project.id, id);
     if (onProjectUpdate) onProjectUpdate(p => ({ ...p, keyTalent: p.keyTalent.filter(t => t.id !== id) }));
+  }
+
+  async function toggleTalentTravelLocal(t) {
+    const next = (t.travel_local || 'TRAVEL') === 'TRAVEL' ? 'LOCAL' : 'TRAVEL';
+    if (onProjectUpdate) onProjectUpdate(p => ({ ...p, keyTalent: p.keyTalent.map(x => x.id === t.id ? { ...x, travel_local: next } : x) }));
+    try {
+      await api.updateTalent(project.id, t.id, { travelLocal: next });
+    } catch(err) {
+      if (onProjectUpdate) onProjectUpdate(p => ({ ...p, keyTalent: p.keyTalent.map(x => x.id === t.id ? { ...x, travel_local: t.travel_local || 'TRAVEL' } : x) }));
+      alert(err.message);
+    }
   }
 
   // Count existing slots per position so we can suggest next slot number
@@ -554,6 +581,7 @@ export default function Crew({ project, onProjectUpdate }) {
                   <th>Phone</th>
                   <th>Email</th>
                   <th>Dietary</th>
+                  <th>Travel</th>
                   <th>Call Time</th>
                   <th></th>
                 </tr>
@@ -572,12 +600,17 @@ export default function Crew({ project, onProjectUpdate }) {
                     <td style={{ fontSize:11, color:'var(--tan)', whiteSpace:'nowrap' }}>{t.phone || '—'}</td>
                     <td style={{ fontSize:11, color:'var(--muted)' }}>{t.email || '—'}</td>
                     <td style={{ fontSize:11, color:'var(--muted)' }}>{t.dietary_restrictions || '—'}</td>
+                    <td>
+                      {(t.travel_local || 'TRAVEL') === 'LOCAL'
+                        ? <button type="button" onClick={() => toggleTalentTravelLocal(t)} title="Click to switch to Travel" style={{ fontSize:9, fontWeight:800, color:'#8a8f98', background:'transparent', border:'1px solid #8a8f98', borderRadius:10, padding:'1px 8px', cursor:'pointer' }}>LOCAL</button>
+                        : <button type="button" onClick={() => toggleTalentTravelLocal(t)} title="Click to switch to Local" style={{ fontSize:9, fontWeight:800, color:'#4a9eff', background:'transparent', border:'1px solid #4a9eff', borderRadius:10, padding:'1px 8px', cursor:'pointer' }}>TRAVEL</button>}
+                    </td>
                     <td style={{ fontSize:11, color:'var(--muted)', whiteSpace:'nowrap' }}>{t.call_time ? fmtTime(t.call_time) : '—'}</td>
                     <td style={{ textAlign:'right' }}>
                       <div style={{ display:'flex', gap:6, justifyContent:'flex-end' }}>
                         <button className="btn btn-ghost btn-sm" onClick={() => {
                           setEditTalent(t);
-                          setEditTalentForm({ name: t.name, role: t.role, videoTitle: t.video_title||'', phone: t.phone||'', email: t.email||'', notes: t.notes||'', dietaryRestrictions: t.dietary_restrictions||'', callTime: t.call_time||'', wardrobeNotes: t.wardrobe_notes||'', arrivalNotes: t.arrival_notes||'' });
+                          setEditTalentForm({ name: t.name, role: t.role, videoTitle: t.video_title||'', phone: t.phone||'', email: t.email||'', notes: t.notes||'', dietaryRestrictions: t.dietary_restrictions||'', callTime: t.call_time||'', wardrobeNotes: t.wardrobe_notes||'', arrivalNotes: t.arrival_notes||'', travelLocal: t.travel_local||'TRAVEL' });
                           setTalentDayCallsForm({});
                           Promise.all([
                             api.getSchedule(project.id),
@@ -787,8 +820,9 @@ export default function Crew({ project, onProjectUpdate }) {
                   <select value={slotForm.crewMemberId} onChange={e => {
                     const id = e.target.value;
                     const dates = flightDatesFor(id);
+                    const member = roster.find(m => m.id === id);
                     setSlotForm(f => {
-                      const next = { ...f, crewMemberId: id, startDate: dates.startDate || f.startDate, endDate: dates.endDate || f.endDate };
+                      const next = { ...f, crewMemberId: id, startDate: dates.startDate || f.startDate, endDate: dates.endDate || f.endDate, travelLocal: member?.travelLocal || member?.travel_local || 'TRAVEL' };
                       if (isContractorMember(id) === true) {
                         const posName = positions.find(x => x.id === next.positionId)?.name || 'crew';
                         setContractScope(defaultScope({ position: { name: posName }, start_date: next.startDate, end_date: next.endDate }));
@@ -807,6 +841,20 @@ export default function Crew({ project, onProjectUpdate }) {
                   </select>
                   <span style={{ fontSize:10, color:'var(--muted)', marginTop:2 }}>Can't find them? Add via "New Person" first.</span>
                 </div>
+                {slotForm.crewMemberId && (
+                  <div className="field">
+                    <label>Travel / Local</label>
+                    <div style={{ display:'inline-flex', border:'1px solid var(--border)', borderRadius:20, overflow:'hidden', width:'fit-content' }}>
+                      {[['TRAVEL','Travel'],['LOCAL','Local']].map(([v,label]) => (
+                        <button key={v} type="button" onClick={() => setSlotForm(f=>({...f,travelLocal:v}))}
+                          style={{ background: (slotForm.travelLocal||'TRAVEL') === v ? (v==='TRAVEL' ? 'rgba(74,158,255,0.25)' : 'rgba(255,255,255,0.1)') : 'transparent', border:'none',
+                            color: (slotForm.travelLocal||'TRAVEL') === v ? (v==='TRAVEL' ? '#4a9eff' : '#e8e8e8') : 'var(--muted)', fontSize:11, fontWeight:800, padding:'5px 16px', cursor:'pointer' }}>
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div className="field">
                   <label>Start Date</label>
                   <input type="date" value={slotForm.startDate} onChange={e => setSlotForm(f=>({...f,startDate:e.target.value}))} />
@@ -1039,6 +1087,18 @@ export default function Crew({ project, onProjectUpdate }) {
                 <div className="field span2"><label>Dietary Restrictions</label><input value={editTalentForm.dietaryRestrictions} onChange={e => setEditTalentForm(f=>({...f,dietaryRestrictions:e.target.value}))} placeholder="Vegetarian, nut allergy…" /></div>
                 <div className="field span2"><label>Wardrobe Notes</label><textarea value={editTalentForm.wardrobeNotes} onChange={e => setEditTalentForm(f=>({...f,wardrobeNotes:e.target.value}))} rows={2} /></div>
                 <div className="field span2"><label>Arrival Notes</label><textarea value={editTalentForm.arrivalNotes} onChange={e => setEditTalentForm(f=>({...f,arrivalNotes:e.target.value}))} rows={2} /></div>
+                <div className="field">
+                  <label>Travel / Local</label>
+                  <div style={{ display:'inline-flex', border:'1px solid var(--border)', borderRadius:20, overflow:'hidden', width:'fit-content' }}>
+                    {[['TRAVEL','Travel'],['LOCAL','Local']].map(([v,label]) => (
+                      <button key={v} type="button" onClick={() => setEditTalentForm(f=>({...f,travelLocal:v}))}
+                        style={{ background: (editTalentForm.travelLocal||'TRAVEL') === v ? (v==='TRAVEL' ? 'rgba(74,158,255,0.25)' : 'rgba(255,255,255,0.1)') : 'transparent', border:'none',
+                          color: (editTalentForm.travelLocal||'TRAVEL') === v ? (v==='TRAVEL' ? '#4a9eff' : '#e8e8e8') : 'var(--muted)', fontSize:11, fontWeight:800, padding:'5px 16px', cursor:'pointer' }}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
               {talentDays.length > 0 && (
                 <div style={{ marginBottom:12 }}>
@@ -1082,6 +1142,18 @@ export default function Crew({ project, onProjectUpdate }) {
                 <div className="field"><label>Dietary Restrictions</label><input value={talentForm.dietaryRestrictions} onChange={e => setTalentForm(f=>({...f,dietaryRestrictions:e.target.value}))} /></div>
                 <div className="field"><label>Wardrobe Notes</label><input value={talentForm.wardrobeNotes} onChange={e => setTalentForm(f=>({...f,wardrobeNotes:e.target.value}))} /></div>
                 <div className="field span2"><label>Arrival Notes</label><input value={talentForm.arrivalNotes} onChange={e => setTalentForm(f=>({...f,arrivalNotes:e.target.value}))} /></div>
+                <div className="field">
+                  <label>Travel / Local</label>
+                  <div style={{ display:'inline-flex', border:'1px solid var(--border)', borderRadius:20, overflow:'hidden', width:'fit-content' }}>
+                    {[['TRAVEL','Travel'],['LOCAL','Local']].map(([v,label]) => (
+                      <button key={v} type="button" onClick={() => setTalentForm(f=>({...f,travelLocal:v}))}
+                        style={{ background: (talentForm.travelLocal||'TRAVEL') === v ? (v==='TRAVEL' ? 'rgba(74,158,255,0.25)' : 'rgba(255,255,255,0.1)') : 'transparent', border:'none',
+                          color: (talentForm.travelLocal||'TRAVEL') === v ? (v==='TRAVEL' ? '#4a9eff' : '#e8e8e8') : 'var(--muted)', fontSize:11, fontWeight:800, padding:'5px 16px', cursor:'pointer' }}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
               {talentDays.length > 0 && (
                 <div style={{ marginBottom:12 }}>
