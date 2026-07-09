@@ -94,22 +94,14 @@ export default function FinanceProject({ pidOverride }) {
       <div style={{ maxWidth:1100, margin:'0 auto', padding:'6px 16px 80px' }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:10, marginBottom:14 }}>
           <div>
+            <button onClick={() => setEditProject(true)}
+              style={{ marginBottom:6, background:'none', border:'1px solid var(--border)', borderRadius:12, padding:'2px 12px', fontSize:10, fontWeight:600, color:'var(--muted)', cursor:'pointer' }}>
+              ✎ Edit
+            </button>
             <div style={{ fontSize:10, color:'var(--muted)' }}>{project.code}</div>
             <div className="page-title">{project.title}</div>
             <div className="page-sub">{project.client}</div>
-            <button onClick={() => setEditProject(true)}
-              style={{ marginTop:6, background:'none', border:'1px solid var(--border)', borderRadius:12, padding:'2px 12px', fontSize:10, fontWeight:600, color:'var(--muted)', cursor:'pointer' }}>
-              ✎ Edit
-            </button>
-          </div>
-          <div className="fp-actions" style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:8 }}>
-            {harbinger && (
-              <button onClick={() => setShowHarbinger(true)}
-                style={{ background:'rgba(90,191,128,0.12)', border:'1px solid #5ABF80', color:'#5ABF80', borderRadius:20, padding:'4px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
-                View Harbinger
-              </button>
-            )}
-            <div className="seg-toggle" style={{ display:'flex', border:'1px solid var(--border)', borderRadius:16, overflow:'hidden' }}>
+            <div className="seg-toggle" style={{ display:'inline-flex', marginTop:8, border:'1px solid var(--border)', borderRadius:16, overflow:'hidden' }}>
               {[['budget', 'Budget'], ['vcc', 'VCC']].map(([k, label]) => (
                 <button key={k} onClick={() => setTab(k)}
                   style={{ background: tab === k ? 'rgba(232,80,10,0.25)' : 'transparent', border:'none',
@@ -118,6 +110,14 @@ export default function FinanceProject({ pidOverride }) {
                 </button>
               ))}
             </div>
+          </div>
+          <div className="fp-actions" style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:8 }}>
+            {harbinger && (
+              <button onClick={() => setShowHarbinger(true)}
+                style={{ background:'rgba(90,191,128,0.12)', border:'1px solid #5ABF80', color:'#5ABF80', borderRadius:20, padding:'4px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
+                View Harbinger
+              </button>
+            )}
             {budget && (
               <>
                 <div className="fp-btnrow" style={{ display:'flex', gap:8, flexWrap:'wrap', justifyContent:'flex-end' }}>
@@ -380,18 +380,15 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
           </select>
         </div>
         <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
-          <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Status</label>
-          <StatusPill value={budget.status || 'RFP'} onChange={handleStatusChange} />
-        </div>
-        <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
           <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Tagged</label>
           <TagRow budgetId={budget.id} ownerName={budget.media_rep} />
         </div>
-        <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
-          <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Mgmt Fee %</label>
-          <input type="number" step="0.5" value={Math.round(mgmtRate * 1000) / 10} style={{ width:80, fontSize:12, textAlign:'right' }}
-            onChange={e => patchBudget({ mgmt_fee_rate: Number(e.target.value) / 100 })}
-            onBlur={e => saveBudget({ mgmtFeeRate: Number(e.target.value) / 100 })} />
+        <div style={{ marginLeft:'auto', display:'flex', flexDirection:'column', alignItems:'flex-end', gap:8 }}>
+          <StatusPill value={budget.status || 'RFP'} onChange={handleStatusChange} small />
+          <div style={{ textAlign:'right' }}>
+            <span style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.08em', marginRight:8 }}>Total Budget</span>
+            <span style={{ fontSize:18, fontWeight:800, color:'#5ABF80', fontVariantNumeric:'tabular-nums' }}>{fmt$(t.total)}</span>
+          </div>
         </div>
       </div>
 
@@ -541,9 +538,15 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
         return [el];
       }); })()}
 
-      <div style={{ display:'flex', gap:10, marginBottom:18 }}>
+      <div style={{ display:'flex', gap:10, marginBottom:18, alignItems:'center', flexWrap:'wrap' }}>
         <button className="btn btn-ghost btn-sm" onClick={() => addSection(true)}>+ Add Shoot Block</button>
         <button className="btn btn-ghost btn-sm" onClick={() => addSection(false)}>+ Add Section</button>
+        <div style={{ marginLeft:8, display:'flex', alignItems:'center', gap:6 }}>
+          <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Mgmt Fee %</label>
+          <input type="number" step="0.5" value={Math.round(mgmtRate * 1000) / 10} style={{ width:80, fontSize:12, textAlign:'right' }}
+            onChange={e => patchBudget({ mgmt_fee_rate: Number(e.target.value) / 100 })}
+            onBlur={e => saveBudget({ mgmtFeeRate: Number(e.target.value) / 100 })} />
+        </div>
       </div>
 
       {/* summary */}
@@ -1191,17 +1194,17 @@ function TagRow({ budgetId, ownerName }) {
   );
 }
 
-function StatusPill({ value, onChange }) {
+function StatusPill({ value, onChange, small }) {
   const [open, setOpen] = useState(false);
   const cur = STATUS_OPTS.find(o => o[0] === value) || STATUS_OPTS[0];
   return (
     <div style={{ position:'relative' }}>
       <button type="button" onClick={() => setOpen(o => !o)}
-        style={{ display:'inline-flex', alignItems:'center', gap:6, background:`${cur[1]}1c`, border:`1px solid ${cur[1]}`, color:cur[1], borderRadius:20, padding:'5px 14px', fontSize:11, fontWeight:800, letterSpacing:'0.05em', textTransform:'uppercase', cursor:'pointer' }}>
-        {cur[0]} <span style={{ fontSize:8 }}>▼</span>
+        style={{ display:'inline-flex', alignItems:'center', gap:5, background:`${cur[1]}1c`, border:`1px solid ${cur[1]}`, color:cur[1], borderRadius:20, padding: small ? '3px 10px' : '5px 14px', fontSize: small ? 9 : 11, fontWeight:800, letterSpacing:'0.05em', textTransform:'uppercase', cursor:'pointer' }}>
+        {cur[0]} <span style={{ fontSize: small ? 7 : 8 }}>▼</span>
       </button>
       {open && (
-        <div style={{ position:'absolute', top:'110%', left:0, zIndex:50, background:'var(--bg)', border:'1px solid var(--border)', borderRadius:10, padding:6, boxShadow:'0 8px 24px rgba(0,0,0,0.5)', minWidth:250 }}>
+        <div style={{ position:'absolute', top:'110%', right:0, zIndex:50, background:'var(--bg)', border:'1px solid var(--border)', borderRadius:10, padding:6, boxShadow:'0 8px 24px rgba(0,0,0,0.5)', minWidth:250 }}>
           {STATUS_OPTS.filter(([name]) => (STATUS_PATHS[value] || []).includes(name) || name === value).map(([name, color, hint]) => (
             <div key={name} onClick={() => { setOpen(false); if (name !== value) onChange(name); }}
               style={{ display:'flex', alignItems:'center', gap:10, padding:'7px 10px', borderRadius:7, cursor:'pointer', background: name === value ? 'rgba(255,255,255,0.04)' : 'transparent' }}
