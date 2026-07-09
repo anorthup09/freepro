@@ -46,7 +46,12 @@ router.get('/project-overview/:pid', ...staff, async (req, res, next) => {
     // (multi-shoot) and any project linked from a budget shoot section (which
     // includes the parent itself for a single-production budget).
     const shoots = await sql`
-      SELECT DISTINCT p.id, p.code, p.title, p.city, p.state, p.status, p.start_date, p.end_date
+      SELECT DISTINCT p.id, p.code, p.title, p.city, p.state, p.status, p.start_date, p.end_date,
+             (SELECT bs.shoot_code FROM budget_sections bs
+                JOIN budgets b ON b.id = bs.budget_id
+                WHERE b.project_id = ${project.id} AND COALESCE(b.kind, 'main') = 'main'
+                  AND bs.kind = 'shoot' AND bs.freepro_project_id = p.id AND bs.shoot_code IS NOT NULL
+                ORDER BY bs.sort LIMIT 1) AS shoot_code
       FROM projects p
       WHERE p.parent_project_id = ${project.id}
          OR p.id IN (

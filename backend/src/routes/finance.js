@@ -114,10 +114,26 @@ const VCC_CATEGORIES = [
   '6050 Non-Billable',
 ];
 
+// Shoot codes always derive from the project's ROOT code (strip any trailing
+// "-NN") so a project whose own code already carries a suffix never produces a
+// doubled code like 02.LPL-01-01.
+const rootCode = c => String(c || '').replace(/-\d+$/, '');
+// Rename a project's code in place, cascading to the string keys that reference
+// it (edits + AvocadoPost pages). No-op when the code is unchanged or the target
+// code is already taken by another project.
+async function renameProjectCode(projectId, oldCode, newCode) {
+  if (!newCode || newCode === oldCode) return false;
+  const [clash] = await sql`SELECT id FROM projects WHERE code = ${newCode} AND id <> ${projectId}`;
+  if (clash) return false;
+  await sql`UPDATE projects SET code = ${newCode} WHERE id = ${projectId}`;
+  await sql`UPDATE edits SET project_code = ${newCode} WHERE project_code = ${oldCode}`;
+  await sql`UPDATE avo_project_pages SET code = ${newCode} WHERE code = ${oldCode}`.catch(() => {});
+  return true;
+}
 async function nextShootCode(budgetId) {
   const [b] = await sql`SELECT p.code FROM budgets b JOIN projects p ON p.id = b.project_id WHERE b.id = ${budgetId}`;
   const [{ n }] = await sql`SELECT COUNT(*) as n FROM budget_sections WHERE budget_id = ${budgetId} AND kind = 'shoot'`;
-  return `${b.code}-${String(Number(n) + 1).padStart(2, '0')}`;
+  return `${rootCode(b.code)}-${String(Number(n) + 1).padStart(2, '0')}`;
 }
 
 async function seedShootLines(budgetId, sectionId) {
@@ -236,7 +252,7 @@ router.get('/finance/:pid', ...finance, async (req, res, next) => {
         const [pr] = await sql`SELECT code FROM projects WHERE id = ${budget.project_id}`;
         for (let i = 0; i < shootSecs.length; i++) {
           if (shootSecs[i].shoot_code) continue;
-          shootSecs[i].shoot_code = `${pr.code}-${String(i + 1).padStart(2, '0')}`;
+          shootSecs[i].shoot_code = `${rootCode(pr.code)}-${String(i + 1).padStart(2, '0')}`;
           await sql`UPDATE budget_sections SET shoot_code = ${shootSecs[i].shoot_code} WHERE id = ${shootSecs[i].id}`;
         }
       }
@@ -300,11 +316,13 @@ async function ensureShootProjects(budgetId) {
     if (sec.freepro_project_id || !sec.shoot_code) continue;
     const nn = sec.shoot_code.split('-').pop();
     const named = (sec.subtitle || '').trim() || (sec.trip || '').trim();
-    // A single, unnamed production block just uses the parent project as its
-    // tile (no redundant record). Any shoot with a Trip or Shoot Description
-    // gets its own FreePro tile named distinctly so it never collides with the
-    // ProFi project name: the Shoot Description if set, else "[Title] - [Trip]".
+    // A single, unnamed production block reuses the parent project as its tile
+    // (no redundant record) but its code carries the shoot suffix (…-01) so every
+    // shoot is coded consistently. Any shoot with a Trip or Shoot Description gets
+    // its own FreePro tile named distinctly so it never collides with the ProFi
+    // project name: the Shoot Description if set, else "[Title] - [Trip]".
     if (shootSecs.length === 1 && !named) {
+      await renameProjectCode(parent.id, parent.code, sec.shoot_code);
       await sql`UPDATE budget_sections SET freepro_project_id = ${parent.id} WHERE id = ${sec.id}`;
       continue;
     }

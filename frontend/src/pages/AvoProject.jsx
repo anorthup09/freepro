@@ -463,7 +463,7 @@ function MusicShareModal({ groups, code, title, onClose }) {
   );
 }
 
-function MusicGrid({ rows, setRows, pageId, code, title, config, onConfig }) {
+function MusicGrid({ rows, setRows, pageId, code, title, config, onConfig, edits = [], setEdits }) {
   const [share, setShare] = useState(false);
   const [dragId, setDragId] = useState(null);
   const [overId, setOverId] = useState(null);
@@ -495,9 +495,22 @@ function MusicGrid({ rows, setRows, pageId, code, title, config, onConfig }) {
     next.splice(next.findIndex(c => c.key === targetKey), 0, customCols.find(c => c.key === dragColKey));
     onConfig({ cols: next });
   }
-  async function addRow() {
-    try { const r = await api.addAvoGridRow(pageId, 'music'); setRows(rs => [...rs, r]); }
+  async function addRow(category) {
+    try {
+      let r = await api.addAvoGridRow(pageId, 'music');
+      if (category) r = await api.updateAvoGridRow('music', r.id, { category });
+      setRows(rs => [...rs, r]);
+    }
     catch (e) { alert(e.message); }
+  }
+  // Fill the matching video edit's "Music Ref" with a chosen song link
+  async function selectSong(videoTitle, url) {
+    const ed = edits.find(e => (e.title || '').trim().toLowerCase() === (videoTitle || '').trim().toLowerCase());
+    if (!ed) { alert('No matching video in the Project Video Tracker for this title.'); return; }
+    try {
+      const full = await api.updateAvoEdit(ed.id, { musicRef: url });
+      setEdits && setEdits(es => es.map(x => x.id === ed.id ? { ...x, ...full } : x));
+    } catch (e) { alert(e.message); }
   }
   async function saveCell(rowId, col, val) {
     try { const r = await api.updateAvoGridRow('music', rowId, { [col]: val }); setRows(rs => rs.map(x => x.id === rowId ? r : x)); }
@@ -559,7 +572,21 @@ function MusicGrid({ rows, setRows, pageId, code, title, config, onConfig }) {
       if (key && seen[key] !== undefined) groups[seen[key]][1].push(r);
       else { if (key) seen[key] = groups.length; groups.push([r.category || '', [r]]); }
     }
+    // Every video deliverable in the Project Video Tracker gets a group here,
+    // even before any song options are added (empty group → title bubble + "+")
+    if (!filterActive) {
+      for (const e of edits) {
+        const t = (e.title || '').trim();
+        if (!t) continue;
+        const key = t.toLowerCase();
+        if (seen[key] === undefined) { seen[key] = groups.length; groups.push([t, []]); }
+      }
+    }
   }
+  const musicRefOf = video => {
+    const ed = edits.find(e => (e.title || '').trim().toLowerCase() === (video || '').trim().toLowerCase());
+    return ed ? (ed.music_ref || '') : null;   // null = no matching video
+  };
   const shareGroups = groups.filter(([, rs]) => rs.some(r => r.url));
   return (
     <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, overflow:'hidden' }}>
@@ -568,6 +595,7 @@ function MusicGrid({ rows, setRows, pageId, code, title, config, onConfig }) {
           <thead>
             <tr>
               <th style={{ ...th, position:'relative' }}>Video Title{filterWidget('category', 'Video Title')}</th>
+              <th style={{ ...th, width:60, textAlign:'center' }}>Select</th>
               <th style={{ ...th, position:'relative' }}>Link{filterWidget('url', 'Link')}</th>
               <th style={{ ...th, position:'relative' }}>Note{filterWidget('note', 'Note')}</th>
               {customCols.map(c => (
@@ -589,21 +617,40 @@ function MusicGrid({ rows, setRows, pageId, code, title, config, onConfig }) {
             </tr>
           </thead>
           <tbody>
-            {shownRows.length === 0 && (
-              <tr><td colSpan={4 + customCols.length} style={{ ...td, padding:'12px 14px', fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>Nothing here yet.</td></tr>
+            {groups.length === 0 && (
+              <tr><td colSpan={5 + customCols.length} style={{ ...td, padding:'12px 14px', fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>Nothing here yet.</td></tr>
             )}
-            {groups.map(([video, grp]) => grp.map((r, j) => (
-              <tr key={r.id}
-                onDragOver={dragId ? e => { e.preventDefault(); setOverId(r.id); } : undefined}
-                onDrop={dragId ? () => { dropRowOn(r.id); setDragId(null); setOverId(null); } : undefined}
-                style={{ borderTop: overId === r.id && dragId && dragId !== r.id ? `2px solid ${AVO}` : j === 0 ? '1px solid rgba(255,255,255,0.08)' : 'none', opacity: dragId === r.id ? 0.4 : 1 }}>
+            {groups.map(([video, grp]) => {
+              const rowsForVideo = grp.length ? grp : [null];   // videos with no songs yet still show a row
+              const mref = musicRefOf(video);                   // null = title not in the Video Tracker
+              return rowsForVideo.map((r, j) => (
+              <tr key={r ? r.id : 'empty-' + video}
+                onDragOver={r && dragId ? e => { e.preventDefault(); setOverId(r.id); } : undefined}
+                onDrop={r && dragId ? () => { dropRowOn(r.id); setDragId(null); setOverId(null); } : undefined}
+                style={{ borderTop: r && overId === r.id && dragId && dragId !== r.id ? `2px solid ${AVO}` : j === 0 ? '1px solid rgba(255,255,255,0.08)' : 'none', opacity: r && dragId === r.id ? 0.4 : 1 }}>
                 {j === 0 && (
-                  <td rowSpan={grp.length} style={{ ...td, minWidth:170, borderRight:'1px solid rgba(255,255,255,0.05)', verticalAlign:'top', paddingTop:8 }}>
-                    <Cell value={r.category} placeholder="Video title…" onSave={v => saveCell(r.id, 'category', v)}
-                      style={video ? { background:`${typeColor(video)}22`, border:`1px solid ${typeColor(video)}55`, color:typeColor(video), fontWeight:700, textAlign:'center', borderRadius:12 } : {}} />
+                  <td rowSpan={rowsForVideo.length} style={{ ...td, minWidth:170, borderRight:'1px solid rgba(255,255,255,0.05)', verticalAlign:'top', paddingTop:8 }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+                      <div style={{ flex:1 }}>
+                        <Cell value={r ? r.category : video} placeholder="Video title…" onSave={v => r ? saveCell(r.id, 'category', v) : addRow(v)}
+                          style={video ? { background:`${typeColor(video)}22`, border:`1px solid ${typeColor(video)}55`, color:typeColor(video), fontWeight:700, textAlign:'center', borderRadius:12 } : {}} />
+                      </div>
+                      <button title="Add a song option for this video" onClick={() => addRow(video)}
+                        style={{ background:'none', border:`1px solid ${typeColor(video)}77`, color:typeColor(video), borderRadius:'50%', width:20, height:20, lineHeight:'16px', fontSize:14, fontWeight:800, cursor:'pointer', flexShrink:0, padding:0 }}>+</button>
+                    </div>
                     {grp.length > 1 && <div style={{ fontSize:9, color:'var(--muted)', textAlign:'center', marginTop:3 }}>{grp.length} options</div>}
                   </td>
                 )}
+                <td style={{ ...td, width:60, textAlign:'center' }}>
+                  {r && (mref === null
+                    ? <span title="No matching video in the Project Video Tracker" style={{ color:'var(--muted)', fontSize:10 }}>—</span>
+                    : mref && r.url && mref === r.url
+                      ? <span title="This song fills the video's Music Ref" style={{ color:AVO, fontSize:14 }}>✓</span>
+                      : <button title="Set this song as the video's Music Ref" onClick={() => selectSong(video, r.url)} disabled={!r.url}
+                          style={{ background:'rgba(90,191,128,0.12)', border:`1px solid ${AVO}`, color:AVO, borderRadius:10, padding:'2px 9px', fontSize:9, fontWeight:800, cursor: r.url ? 'pointer' : 'default', opacity: r.url ? 1 : 0.4 }}>Select</button>)}
+                </td>
+                {r ? (
+                <>
                 <td style={{ ...td, minWidth:260 }}>
                   <div style={{ display:'flex', alignItems:'center', gap:6 }}>
                     <Cell value={r.url} placeholder="https://…" onSave={v => saveCell(r.id, 'url', v)} style={{ color:'#4a9eff' }} />
@@ -624,13 +671,18 @@ function MusicGrid({ rows, setRows, pageId, code, title, config, onConfig }) {
                   <button title="Delete row" onClick={() => removeRow(r.id)}
                     style={{ background:'none', border:'none', color:'var(--muted)', fontSize:12, cursor:'pointer' }}>✕</button>
                 </td>
+                </>
+                ) : (
+                <td colSpan={2 + customCols.length + 1} style={{ ...td, fontSize:10, color:'var(--muted)', fontStyle:'italic' }}>No song options yet — click + to add one.</td>
+                )}
               </tr>
-            )))}
+            ));
+            })}
           </tbody>
         </table>
       </div>
       <div style={{ padding:'8px 14px', borderTop:'1px solid var(--border)', display:'flex', gap:8, flexWrap:'wrap', alignItems:'center' }}>
-        <button onClick={addRow} style={pillBtn(AVO)}>+ Add Row</button>
+        <button onClick={() => addRow()} style={pillBtn(AVO)}>+ Add Row</button>
         <button onClick={addColumn} style={pillBtn('#a78bfa')}>+ Add Column</button>
         {filterActive && <button onClick={() => { setFilters({}); setOpenFilter(null); }} style={pillBtn()}>✕ Clear Filters</button>}
         <div style={{ flex:1 }} />
@@ -801,6 +853,7 @@ export default function AvoProject({ idOverride, embedded }) {
             )}
             {tab === 'music' && (
               <MusicGrid pageId={id} rows={music} setRows={setMusic} code={page.code} title={page.title}
+                edits={edits} setEdits={setEdits}
                 config={cfgFor('music')} onConfig={next => saveCfg('music')({ ...cfgFor('music'), ...next })} />
             )}
             {tables.map(t => tab === 'table:' + t.id && (

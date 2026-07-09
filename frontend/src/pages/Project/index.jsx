@@ -15,6 +15,7 @@ import SpaceInfo from './SpaceInfo.jsx';
 import Questions from './Questions.jsx';
 import Scripts from './Scripts.jsx';
 import ShotList from './ShotList.jsx';
+import ProducerChecklist from './ProducerChecklist.jsx';
 
 const BASE_TABS = [
   { id: 'overview',            label: 'Overview' },
@@ -25,6 +26,7 @@ const BASE_LOGISTICS_TABS = [
   { id: 'schedule',    label: 'Schedule' },
   { id: 'crew',        label: 'Crew' },
   { id: 'space-info',  label: 'Room / Space Info' },
+  { id: 'producer-checklist', label: 'Producer Checklist' },
 ];
 
 const GEAR_TABS = [
@@ -437,6 +439,7 @@ export default function Project({ idOverride }) {
         {tab === 'gear'                 && <Gear         project={project} setProject={setProject} />}
         {tab === 'gear-list'            && <GearList     project={project} />}
         {tab === 'deliverable-overview' && <Deliverables project={project} />}
+        {tab === 'producer-checklist'   && <ProducerChecklist project={project} />}
         {tab === 'additional-docs' && <AdditionalDocs project={project} />}
         {tab === 'space-info'           && <SpaceInfo    project={project} setProject={setProject} />}
         {tab === 'questions'            && <Questions    project={project} />}
