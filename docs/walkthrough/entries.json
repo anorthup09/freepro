@@ -105,5 +105,29 @@
       "Their initials chip appears, and the task shows on their hub dashboard."
     ],
     "screenshot": "todo-tagging.png"
+  },
+  {
+    "title": "Gear Management overview & per-shoot dashboards",
+    "what": "Gear Management is now a report of every production shoot, sorted by start date, with a calendar timeline up top. Each row shows the shoot code (with its suffix), the shoot title, who is responsible for gear, the dates, and the form of travel — plus a Quick View of the submitted gear request. Toggle between shoots that have a gear request and those that still need one. Click any shoot to open its own gear dashboard: a locked copy of the submitted request beside a live activity feed.",
+    "where": "FreePro → Gear Management (toggle at the top of the Production Management page).",
+    "how": [
+      "Open FreePro and switch to Gear Management at the top.",
+      "Use the Gear Requested / No Gear Request toggle to filter the shoots.",
+      "Scan the calendar timeline and the orange Countdown column to see what is coming up.",
+      "Click Quick View to preview a submitted request, or click a row to open that shoot’s gear dashboard (locked request + activity feed)."
+    ],
+    "screenshot": "gear-management.png"
+  },
+  {
+    "title": "Gear Request tab",
+    "what": "The gear request form is now its own tab at the top of the Gear dropdown on a shoot. Fill it out inline; once it is submitted the tab locks to a read-only copy so the request can’t be changed after the fact.",
+    "where": "FreePro → open a shoot → Gear dropdown → Gear Request.",
+    "how": [
+      "Open a shoot in FreePro and click the Gear dropdown.",
+      "Choose Gear Request (the first item).",
+      "Fill out the form and submit it.",
+      "After submitting, the tab shows the locked, read-only request."
+    ],
+    "screenshot": "gear-request.png"
   }
 ]
