@@ -79,11 +79,19 @@ app.use('/api', (req, res, next) => {
     if (u.role === 'PENDING' && !(req.path.startsWith('/auth') || req.path.startsWith('/share'))) {
       return res.status(403).json({ error: 'Your account is awaiting approval from an admin' });
     }
-    if ((u.role === 'CREW' || u.role === 'AGENCY') && !(req.path.startsWith('/auth') || req.path === '/crew-views' || req.path.startsWith('/share')
-      || req.path.startsWith('/avo') || req.path.startsWith('/team') || req.path.startsWith('/gantt-share') || req.path.startsWith('/dashboard') || req.path.startsWith('/feedback')
-      || (req.path.startsWith('/project-tasks') && req.method === 'PATCH')
-      || (req.path.startsWith('/crew') && req.method === 'GET'))) {
+    const crewAllowed = (p, m) => p.startsWith('/auth') || p === '/crew-views' || p.startsWith('/share')
+      || p.startsWith('/avo') || p.startsWith('/team') || p.startsWith('/gantt-share') || p.startsWith('/dashboard') || p.startsWith('/feedback')
+      || (p.startsWith('/project-tasks') && m === 'PATCH')
+      || (p.startsWith('/crew') && m === 'GET');
+    if (u.role === 'CREW' && !crewAllowed(req.path, req.method)) {
       return res.status(403).json({ error: 'Crew accounts can only access Crew Views, AvocadoPost, and Team Management' });
+    }
+    // AGENCY = crew access + read-only project logistics + editable gear & deliverables
+    if (u.role === 'AGENCY' && !(crewAllowed(req.path, req.method)
+      || (req.method === 'GET' && (req.path.startsWith('/projects') || req.path.startsWith('/gear-requests')))
+      || /^\/projects\/[^/]+\/(gear|gear-items|online-rentals|deliverables)(\/|$)/.test(req.path)
+      || req.path.startsWith('/gear-requests'))) {
+      return res.status(403).json({ error: 'Agency accounts have view access to project logistics and edit access to gear and deliverables' });
     }
   } catch { /* invalid tokens are rejected by route-level auth */ }
   next();

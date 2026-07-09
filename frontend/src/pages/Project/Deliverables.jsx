@@ -12,13 +12,30 @@ const TYPE_GROUPS = [['Pre-Event', '#4a9eff'], ['On-Site', '#e6c229'], ['Post-Ev
 const LEGACY_TYPE = { PRE_PRODUCED:'Pre-Event', ON_SITE:'On-Site', POST_SHOOT:'Post-Event' };
 const typeOf = item => item.tracker_type || LEGACY_TYPE[item.category] || item.category || null;
 const AVO_CATEGORIES = ['Event Recap', 'Sizzle', 'Interstitial', 'Documentary', 'Teaser', 'Social Cutdown', 'Photo Slideshow', 'Other'];
-export const BLANK_DELIVERABLE_FORM = { title:'', description:'', status:'COMING_SOON', trackerType:'', category:'', leadEditorId:'', pmId:'', aspectRatio:'', resolution:'', assetRef:'', musicRef:'', startDate:'', endDate:'', reviewLink:'' };
+export const BLANK_DELIVERABLE_FORM = { title:'', description:'', status:'COMING_SOON', trackerType:'', category:'', leadEditorId:'', pmId:'', aspectRatio:'', resolution:'', assetRef:'', musicRef:'', startDate:'', endDate:'', reviewLink:'', costEstimate:'' };
 
 // Same fields as the AvocadoPost edit form — one form for add and edit
-export function AvoForm({ title, form, setForm, onSubmit, onCancel, saving }) {
+export function AvoForm({ title, form, setForm, onSubmit, onCancel, saving, editId }) {
   const inp = (k, ph, type='text') => (
     <input type={type} value={form[k] || ''} placeholder={ph} onChange={e => setForm(f => ({ ...f, [k]: e.target.value }))} />
   );
+  // Contract editors (not on Unbridled staff) reveal a cost estimate + VCC hold
+  const [roster, setRoster] = useState([]);
+  const [holding, setHolding] = useState(false);
+  const [held, setHeld] = useState(false);
+  useEffect(() => { api.getCrew().then(setRoster).catch(() => {}); }, []);
+  const leadEditor = roster.find(m => m.id === form.leadEditorId);
+  const isContractEditor = !!leadEditor && !(leadEditor.company || '').toLowerCase().includes('unbridled');
+  async function holdOnVcc() {
+    if (!editId || holding) return;
+    setHolding(true);
+    try {
+      await api.updateAvoEdit(editId, { costEstimate: form.costEstimate });
+      await api.holdEditCost(editId);
+      setHeld(true); setTimeout(() => setHeld(false), 2500);
+    } catch (e) { alert(e.message); }
+    setHolding(false);
+  }
   return (
     <div className="modal-bg" onClick={e => e.target === e.currentTarget && onCancel()}>
       <div className="modal">
@@ -46,6 +63,22 @@ export function AvoForm({ title, form, setForm, onSubmit, onCancel, saving }) {
               </select>
             </div>
             <div className="field"><label>Lead Editor</label><EditorSelect value={form.leadEditorId} onChange={v => setForm(f=>({...f,leadEditorId:v}))} /></div>
+            {isContractEditor && (
+              <div className="field span2" style={{ background:'rgba(230,194,41,0.06)', border:'1px solid rgba(230,194,41,0.35)', borderRadius:8, padding:'10px 12px' }}>
+                <label style={{ color:'#e6c229' }}>Contract Editor — Cost Estimate ($)</label>
+                <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+                  <input type="number" min="0" step="0.01" value={form.costEstimate || ''} placeholder="0.00"
+                    onChange={e => setForm(f => ({ ...f, costEstimate: e.target.value }))} style={{ flex:1 }} />
+                  <button type="button" className="btn btn-ghost btn-sm" disabled={!editId || !form.costEstimate || holding}
+                    title={editId ? 'Adds a HOLD line to the project VCC' : 'Save this deliverable first, then hold the cost'}
+                    onClick={holdOnVcc}
+                    style={{ whiteSpace:'nowrap', borderColor:'#e6c229', color: held ? '#0b0b0b' : '#e6c229', background: held ? '#e6c229' : 'transparent' }}>
+                    {held ? '✓ Held on VCC' : holding ? 'Holding…' : 'Hold Cost on VCC'}
+                  </button>
+                </div>
+                {!editId && <div style={{ fontSize:10, color:'var(--muted)', marginTop:4 }}>Save first, then reopen to hold the cost on the VCC.</div>}
+              </div>
+            )}
             <div className="field"><label>Project Manager</label><EditorSelect value={form.pmId} placeholder="— No PM —" onChange={v => setForm(f=>({...f,pmId:v}))} /></div>
             <div className="field"><label>Aspect Ratio</label>{inp('aspectRatio', '16:9')}</div>
             <div className="field"><label>Resolution</label>{inp('resolution', '1920×1080')}</div>
@@ -183,6 +216,7 @@ export default function Deliverables({ project }) {
       aspectRatio: item.aspect_ratio || '', resolution: item.resolution || '',
       assetRef: item.asset_ref || '', musicRef: item.music_ref || '',
       startDate: isoD(item.start_date), endDate: isoD(item.due_date), reviewLink: item.review_link || '',
+      costEstimate: item.cost_estimate != null ? String(item.cost_estimate) : '',
     });
   }
 
@@ -342,7 +376,7 @@ export default function Deliverables({ project }) {
       )}
 
       {editItemId && (
-        <AvoForm title="Edit Deliverable" form={editForm} setForm={setEditForm}
+        <AvoForm title="Edit Deliverable" form={editForm} setForm={setEditForm} editId={editItemId.edit_id}
           onSubmit={saveEdit} onCancel={() => setEditItemId(null)} saving={saving} />
       )}
 

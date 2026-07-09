@@ -1162,6 +1162,7 @@ async function migrate() {
     )`;
 
   await sql`ALTER TABLE edits ADD COLUMN IF NOT EXISTS drive TEXT`;
+  await sql`ALTER TABLE edits ADD COLUMN IF NOT EXISTS cost_estimate NUMERIC`;
 
   // Custom grid columns + cell merges on Avo project pages
   await sql`ALTER TABLE avo_project_pages ADD COLUMN IF NOT EXISTS grid_config JSONB DEFAULT '{}'::jsonb`;

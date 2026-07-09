@@ -138,11 +138,11 @@ router.post('/edits', ...staff, async (req, res, next) => {
     }
     const [e] = await sql`
       INSERT INTO edits (project_id, project_code, title, description, lead_editor_id, pm_id,
-        aspect_ratio, resolution, asset_ref, music_ref, category, status, review_link, start_date, end_date, tracker_type)
+        aspect_ratio, resolution, asset_ref, music_ref, category, status, review_link, start_date, end_date, tracker_type, cost_estimate)
       VALUES (${projectId}, ${d.projectCode || null}, ${d.title}, ${d.description || null}, ${d.leadEditorId || null}, ${d.pmId || null},
         ${d.aspectRatio || null}, ${d.resolution || null}, ${d.assetRef || null}, ${d.musicRef || null},
         ${d.category || null}, ${editStatuses.includes(d.status) ? d.status : 'COMING_SOON'}, ${d.reviewLink || null},
-        ${d.startDate || null}, ${d.endDate || null}, ${d.trackerType || null})
+        ${d.startDate || null}, ${d.endDate || null}, ${d.trackerType || null}, ${d.costEstimate ? Number(d.costEstimate) || null : null})
       RETURNING *`;
     const who = req.user?.email || 'someone';
     await logAct(e.id, 'log', who, 'created this edit');
@@ -186,7 +186,7 @@ const MILESTONE_LABELS = {
 
 const FIELD_LOGS = {
   title: 'Title', description: 'Description', aspectRatio: 'Aspect Ratio', resolution: 'Resolution',
-  assetRef: 'Asset Ref', musicRef: 'Music Ref', category: 'Category', drive: 'Drive', status: 'Status',
+  assetRef: 'Asset Ref', musicRef: 'Music Ref', category: 'Category', drive: 'Drive', costEstimate: 'Cost Estimate', status: 'Status',
   reviewLink: 'Current Review Link', startDate: 'Start Date', endDate: 'End Date',
   version: 'Version', approved: 'Approved', projectCode: 'Project Code',
   trackerType: 'Type', style: 'Style', notes: 'Notes', videoAssets: 'Video Assets',
@@ -246,6 +246,7 @@ router.patch('/edits/:id', ...staff, async (req, res, next) => {
         music_ref = ${d.musicRef !== undefined ? (d.musicRef || null) : sql`music_ref`},
         category = ${d.category !== undefined ? (d.category || null) : sql`category`},
         drive = ${d.drive !== undefined ? (d.drive || null) : sql`drive`},
+        cost_estimate = ${d.costEstimate !== undefined ? (d.costEstimate === '' || d.costEstimate == null ? null : Number(d.costEstimate) || 0) : sql`cost_estimate`},
         extra = ${d.extra !== undefined && typeof d.extra === 'object' ? sql`COALESCE(extra, '{}'::jsonb) || ${sql.json(d.extra)}` : sql`extra`},
         tracker_sort = ${d.trackerSort !== undefined ? (Number(d.trackerSort) || 0) : sql`tracker_sort`},
         status = ${d.status !== undefined && editStatuses.includes(d.status) ? d.status : sql`status`},
@@ -267,7 +268,7 @@ router.patch('/edits/:id', ...staff, async (req, res, next) => {
     // Postmarked change log
     const beforeVals = {
       title: before.title, description: before.description, aspectRatio: before.aspect_ratio, resolution: before.resolution,
-      assetRef: before.asset_ref, musicRef: before.music_ref, category: before.category, drive: before.drive, status: before.status,
+      assetRef: before.asset_ref, musicRef: before.music_ref, category: before.category, drive: before.drive, costEstimate: before.cost_estimate, status: before.status,
       reviewLink: before.review_link, startDate: before.start_date ? String(before.start_date).slice(0, 10) : null,
       endDate: before.end_date ? String(before.end_date).slice(0, 10) : null,
       version: before.version, approved: before.approved, projectCode: before.project_code,
@@ -305,6 +306,32 @@ router.patch('/edits/:id', ...staff, async (req, res, next) => {
       sendEditHold(e.id);
     }
     res.json(full);
+  } catch (e) { next(e); }
+});
+
+// Hold a contract editor's cost estimate on the project VCC (idempotent per edit)
+router.post('/edits/:id/hold-cost', ...staff, async (req, res, next) => {
+  try {
+    const [e] = await FULL_EDIT(req.params.id);
+    if (!e) return res.status(404).json({ error: 'Edit not found' });
+    if (!e.project_id) return res.status(400).json({ error: 'This edit is not linked to a project, so there is no VCC to hold against' });
+    const amount = Number(e.cost_estimate);
+    if (!amount) return res.status(400).json({ error: 'Set a cost estimate first' });
+    const editor = (await memberName(e.lead_editor_id))?.n || null;
+    const source = `editcost:${e.id}`;
+    const description = `Contract editor — ${e.title}${editor ? ` (${editor})` : ''}`;
+    const [existing] = await sql`SELECT id FROM vcc_entries WHERE source = ${source}`;
+    let entry;
+    if (existing) {
+      [entry] = await sql`UPDATE vcc_entries SET amount = ${amount}, description = ${description}, vendor = ${editor}
+        WHERE id = ${existing.id} RETURNING *`;
+    } else {
+      [entry] = await sql`INSERT INTO vcc_entries (project_id, entry_date, vendor, description, category, amount, status, source)
+        VALUES (${e.project_id}, ${require('../lib/dates').bizToday()}, ${editor}, ${description}, ${'Post-Production'}, ${amount}, 'HOLD', ${source})
+        RETURNING *`;
+    }
+    await logAct(e.id, 'log', req.user?.email || 'someone', `held $${amount.toLocaleString()} on the project VCC for the contract editor`);
+    res.json(entry);
   } catch (e) { next(e); }
 });
 

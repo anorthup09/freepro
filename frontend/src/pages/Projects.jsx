@@ -63,7 +63,8 @@ export default function Projects() {
   const [saving, setSaving] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [view, setView] = useState('production');
-  const isCrew = ['CREW','AGENCY'].includes(user?.role);
+  const isCrew = user?.role === 'CREW';
+  const isAgency = user?.role === 'AGENCY';
 
   useEffect(() => { api.getProjects().then(setProjects).catch(console.error); }, []);
 
@@ -150,9 +151,9 @@ export default function Projects() {
           </div>
           {view === 'production' && (
             <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
-              {!isCrew && <Link to="/crew-calendar" className="btn btn-ghost">Crew Calendar</Link>}
+              {!isCrew && !isAgency && <Link to="/crew-calendar" className="btn btn-ghost">Crew Calendar</Link>}
               <Link to="/crew-views" className="btn btn-ghost">Crew Views</Link>
-              {!isCrew && <button className="btn btn-primary" onClick={() => setShowNew(true)}>+ New Project</button>}
+              {!isCrew && !isAgency && <button className="btn btn-primary" onClick={() => setShowNew(true)}>+ New Project</button>}
             </div>
           )}
         </div>
@@ -187,10 +188,10 @@ export default function Projects() {
                 <div style={{ fontSize:11, fontWeight:700, color:'var(--orange)', flexShrink:0 }}>Today!</div>
               )}
               <span className={`pill ${STATUS_PILL[p.status] || ''}`}>{p.status.replace(/_/g,' ')}</span>
-              <button
+              {!isAgency && <button
                 onClick={e => archiveProject(e, p.id)}
                 style={{ background:'none', border:'1px solid var(--border)', borderRadius:5, color:'var(--muted)', fontSize:11, padding:'3px 9px', cursor:'pointer', whiteSpace:'nowrap', flexShrink:0 }}
-              >Archive</button>
+              >Archive</button>}
               <span className="proj-card-arrow">›</span>
             </Link>
             );
@@ -210,10 +211,10 @@ export default function Projects() {
                   <span style={{ fontSize:11, fontWeight:800, color:'var(--muted)', flexShrink:0 }}>{p.code}</span>
                   <span style={{ fontSize:12, fontWeight:600, flex:1, minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{p.title}</span>
                   <span className={`pill ${STATUS_PILL.WRAPPED || ''}`} style={{ flexShrink:0 }}>WRAPPED</span>
-                  <button onClick={e => archiveProject(e, p.id)}
+                  {!isAgency && <button onClick={e => archiveProject(e, p.id)}
                     style={{ background:'none', border:'1px solid var(--border)', borderRadius:5, color:'var(--muted)', fontSize:10, padding:'2px 8px', cursor:'pointer', whiteSpace:'nowrap', flexShrink:0 }}>
                     Archive
-                  </button>
+                  </button>}
                   <span className="proj-card-arrow">›</span>
                 </Link>
               ))}
