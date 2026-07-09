@@ -327,11 +327,14 @@ async function ensureShootProjects(budgetId) {
       continue;
     }
     const title = (sec.subtitle || '').trim() || `${parent.title} - ${sec.trip || 'Shoot ' + nn}`;
+    const shootName = named; // Shoot Description if set, else the Trip label
     let [proj] = await sql`SELECT id FROM projects WHERE code = ${sec.shoot_code}`;
     if (!proj) {
-      [proj] = await sql`INSERT INTO projects (id, code, title, client, city, state, start_date, end_date, status, parent_project_id)
-        VALUES (gen_random_uuid()::text, ${sec.shoot_code}, ${title}, ${parent.client}, ${parent.city}, ${parent.state}, ${parent.start_date}, ${parent.end_date}, 'PLANNING', ${parent.id})
+      [proj] = await sql`INSERT INTO projects (id, code, title, subtitle, client, city, state, start_date, end_date, status, parent_project_id)
+        VALUES (gen_random_uuid()::text, ${sec.shoot_code}, ${title}, ${shootName || null}, ${parent.client}, ${parent.city}, ${parent.state}, ${parent.start_date}, ${parent.end_date}, 'PLANNING', ${parent.id})
         RETURNING id`;
+    } else if (shootName) {
+      await sql`UPDATE projects SET subtitle = ${shootName} WHERE id = ${proj.id} AND (subtitle IS NULL OR subtitle = '')`;
     }
     await sql`UPDATE budget_sections SET freepro_project_id = ${proj.id} WHERE id = ${sec.id}`;
   }
