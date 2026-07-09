@@ -26,8 +26,8 @@ const BASE_TABS = [
 
 const BASE_LOGISTICS_TABS = [
   { id: 'schedule',    label: 'Schedule' },
-  { id: 'crew',        label: 'Crew' },
   { id: 'locations',   label: 'Locations' },
+  { id: 'crew',        label: 'Crew' },
   { id: 'space-info',  label: 'Room / Space Info' },
 ];
 
