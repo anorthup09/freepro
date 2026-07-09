@@ -309,8 +309,8 @@ export default function Overview({ project, setProject, onTabChange }) {
         <div>
           <div className="proj-code">{project.code}</div>
           <div className="proj-title">{project.title}</div>
-          {project.subtitle && (
-            <div style={{ fontSize:13, fontWeight:700, color:'var(--orange)', marginTop:2 }}>Shoot: {project.subtitle}</div>
+          {(project.shoot_name || project.subtitle) && (
+            <div style={{ fontSize:13, fontWeight:700, color:'var(--orange)', marginTop:2 }}>Shoot: {project.shoot_name || project.subtitle}</div>
           )}
           <div className="proj-meta">
             <div className="meta"><span className="dot6" />{fmtDate(startDate)} – {fmtDate(endDate)}</div>

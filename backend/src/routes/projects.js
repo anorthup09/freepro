@@ -69,8 +69,16 @@ async function getFullProject(id) {
         WHERE pg.project_id = ${id}`,
     sql`SELECT * FROM online_rentals WHERE project_id = ${id} ORDER BY created_at`,
   ]);
+  // Shoot name for the Overview header — the Shoot Description (subtitle) or Trip
+  // from the budget's Production Costs section this tile is linked to.
+  const [shootSec] = await sql`
+    SELECT subtitle, trip FROM budget_sections
+    WHERE freepro_project_id = ${id} AND kind = 'shoot'
+    ORDER BY sort LIMIT 1`;
+  const shootName = (shootSec?.subtitle || '').trim() || (shootSec?.trip || '').trim() || (project.subtitle || '').trim() || null;
   return {
     ...project,
+    shoot_name: shootName,
     locations,
     techSpecs: techSpecs[0] || null,
     clientContacts,
