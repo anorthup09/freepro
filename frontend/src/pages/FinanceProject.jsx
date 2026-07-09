@@ -676,13 +676,23 @@ export function VccTab({ pid, budget, sections, lines, vcc, categories, set, vcc
     set(d => ({ vcc: d.vcc.filter(x => x.id !== id) }));
   }
 
+  // A shoot can be coded on entries by its shoot code or its trip name; both map
+  // to one canonical option (the shoot code) shown as "NN - Trip", so it never
+  // appears twice in the dropdown.
+  const shootSecs = sections.filter(x => x.kind === 'shoot');
+  const shootCodes = new Set(shootSecs.map(x => x.shoot_code).filter(Boolean));
+  const shootTrips = new Set(shootSecs.map(x => x.trip).filter(Boolean));
+  const canonTrip = t => shootSecs.find(x => x.trip && x.trip === t)?.shoot_code || t;
+  const tripLabel = t => {
+    const sec = shootSecs.find(x => x.shoot_code === t || (x.trip && x.trip === t));
+    if (!sec) return t;
+    const nn = (sec.shoot_code || '').split('-').pop() || '';
+    return `${nn} - ${sec.trip || 'Shoot ' + nn}`;
+  };
   const byTrip = {};
-  for (const e of vcc) (byTrip[e.trip || '—'] ||= []).push(e);
-  const shootOpts = sections.filter(x => x.kind === 'shoot').map(x => {
-    const nn = (x.shoot_code || '').split('-').pop() || '';
-    return { value: x.trip || x.shoot_code, label: `${nn} - ${x.trip || 'Shoot ' + nn}` };
-  });
-  const extraTrips = [...new Set(vcc.map(e => e.trip).filter(t => t && !shootOpts.some(o => o.value === t)))];
+  for (const e of vcc) (byTrip[canonTrip(e.trip) || '—'] ||= []).push(e);
+  const shootOpts = shootSecs.map(x => ({ value: x.shoot_code || x.trip, label: tripLabel(x.shoot_code || x.trip) }));
+  const extraTrips = [...new Set(vcc.map(e => canonTrip(e.trip)).filter(t => t && !shootCodes.has(t) && !shootTrips.has(t) && !shootOpts.some(o => o.value === t)))];
   const tripOptions = [...shootOpts, ...['Pre-Pro', 'Post'].filter(t => !extraTrips.includes(t) && !shootOpts.some(o => o.value === t)).map(t => ({ value: t, label: t })), ...extraTrips.map(t => ({ value: t, label: t }))];
   const catTotals = {};
   for (const e of vcc) catTotals[e.category || 'Uncategorized'] = (catTotals[e.category || 'Uncategorized'] || 0) + num(e.amount);
@@ -801,7 +811,7 @@ export function VccTab({ pid, budget, sections, lines, vcc, categories, set, vcc
             {Object.entries(byTrip).map(([trip, entries]) => (
               <React.Fragment key={trip}>
                 <tr style={{ background:'rgba(90,191,128,0.06)' }}>
-                  <td colSpan={5} style={{ padding:'5px 14px', fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'#5ABF80' }}>{trip}</td>
+                  <td colSpan={5} style={{ padding:'5px 14px', fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'#5ABF80' }}>{tripLabel(trip)}</td>
                   <td style={{ textAlign:'right', padding:'5px 6px', fontWeight:700, color:'#5ABF80' }}>{fmt$(entries.reduce((s, e) => s + num(e.amount), 0))}</td>
                   <td colSpan={2} />
                 </tr>
@@ -823,7 +833,7 @@ export function VccTab({ pid, budget, sections, lines, vcc, categories, set, vcc
                       </select>
                     </td>
                     <td style={{ padding:'2px 6px' }}>
-                      <select value={e.trip || ''} style={{ ...cellIn, fontSize:10, color:'var(--muted)' }}
+                      <select value={canonTrip(e.trip) || ''} style={{ ...cellIn, fontSize:10, color:'var(--muted)' }}
                         onChange={ev => { patchEntry(e.id, { trip: ev.target.value }); saveEntry(e.id, { trip: ev.target.value }); }}>
                         <option value="">—</option>
                         {tripOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
