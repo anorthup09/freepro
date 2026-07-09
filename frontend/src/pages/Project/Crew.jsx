@@ -38,6 +38,23 @@ function initials(name) {
 const COLORS = ['#E8A030','#5ABF80','#8080E0','#E08080','#B080E0','#40A0A0','#D0A030','#C08080'];
 function colorFor(str) { let h = 0; for (let c of str||'') h = (h*31+c.charCodeAt(0))&0xffffffff; return COLORS[Math.abs(h)%COLORS.length]; }
 
+function TravelLocalSwitch({ value, onChange }) {
+  return (
+    <div style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
+      <span style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)' }}>Travel / Local</span>
+      <div style={{ display:'inline-flex', border:'1px solid var(--border)', borderRadius:14, overflow:'hidden' }}>
+        {[['TRAVEL','Travel'],['LOCAL','Local']].map(([v,label]) => (
+          <button key={v} type="button" onClick={() => onChange(v)}
+            style={{ background: (value||'TRAVEL') === v ? (v==='TRAVEL' ? 'rgba(74,158,255,0.25)' : 'rgba(255,255,255,0.1)') : 'transparent', border:'none',
+              color: (value||'TRAVEL') === v ? (v==='TRAVEL' ? '#4a9eff' : '#e8e8e8') : 'var(--muted)', fontSize:11, fontWeight:800, padding:'5px 16px', cursor:'pointer' }}>
+            {label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function Crew({ project, onProjectUpdate }) {
   const [assignments, setAssignments] = useState([]);
   const [positions, setPositions] = useState([]);
@@ -682,7 +699,8 @@ export default function Crew({ project, onProjectUpdate }) {
                 <div style={{ fontSize:11, color:'var(--muted)' }}>{[memberDetail.company, memberDetail.home_airport].filter(Boolean).join(' · ')}</div>
               </div>
             </div>
-            <div style={{ display:'flex', gap:6 }}>
+            <div style={{ display:'flex', gap:10, alignItems:'center' }}>
+              {memberEditing && <TravelLocalSwitch value={memberForm.travelLocal} onChange={v => setMemberForm(f=>({...f,travelLocal:v}))} />}
               {!memberEditing && <button className="btn btn-ghost btn-sm" onClick={startEditMember}>Edit</button>}
               {!memberEditing && <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text, #e08080)' }} onClick={deleteMember}>Delete</button>}
               <button className="btn btn-ghost btn-sm" onClick={() => { setSelectedMember(null); setMemberEditing(false); }}>✕</button>
@@ -713,17 +731,6 @@ export default function Crew({ project, onProjectUpdate }) {
                 <div className="field"><label>Phone</label><input value={memberForm.phone} onChange={e => setMemberForm(f=>({...f,phone:e.target.value}))} /></div>
                 <div className="field"><label>Company / Role</label><input value={memberForm.company} onChange={e => setMemberForm(f=>({...f,company:e.target.value}))} /></div>
                 <div className="field"><label>Home Airport</label><input value={memberForm.homeAirport} onChange={e => setMemberForm(f=>({...f,homeAirport:e.target.value}))} placeholder="STL" /></div>
-                <div className="field"><label>Travel / Local</label>
-                  <div style={{ display:'flex', border:'1px solid var(--border)', borderRadius:14, overflow:'hidden', marginTop:2, width:'fit-content' }}>
-                    {[['TRAVEL','Travel'],['LOCAL','Local']].map(([v,label]) => (
-                      <button key={v} type="button" onClick={() => setMemberForm(f=>({...f,travelLocal:v}))}
-                        style={{ background: (memberForm.travelLocal||'TRAVEL') === v ? (v==='TRAVEL' ? 'rgba(74,158,255,0.25)' : 'rgba(255,255,255,0.1)') : 'transparent', border:'none',
-                          color: (memberForm.travelLocal||'TRAVEL') === v ? (v==='TRAVEL' ? '#4a9eff' : '#e8e8e8') : 'var(--muted)', fontSize:11, fontWeight:800, padding:'5px 16px', cursor:'pointer' }}>
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
                 <div className="field span2">
                   <label>Dietary Restrictions</label>
                   <div style={{ display:'flex', gap:10, alignItems:'center' }}>
@@ -802,7 +809,10 @@ export default function Crew({ project, onProjectUpdate }) {
       {showAddSlot && (
         <div className="modal-bg" onClick={e => e.target === e.currentTarget && setShowAddSlot(false)}>
           <div className="modal">
-            <div className="modal-title">Add Position to Project</div>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap' }}>
+              <div className="modal-title" style={{ marginBottom:0 }}>Add Position to Project</div>
+              {slotForm.crewMemberId && <TravelLocalSwitch value={slotForm.travelLocal} onChange={v => setSlotForm(f=>({...f,travelLocal:v}))} />}
+            </div>
             <form onSubmit={addSlot}>
               <div className="form-grid" style={{ marginBottom:12 }}>
                 <div className="field span2">
@@ -841,20 +851,6 @@ export default function Crew({ project, onProjectUpdate }) {
                   </select>
                   <span style={{ fontSize:10, color:'var(--muted)', marginTop:2 }}>Can't find them? Add via "New Person" first.</span>
                 </div>
-                {slotForm.crewMemberId && (
-                  <div className="field">
-                    <label>Travel / Local</label>
-                    <div style={{ display:'inline-flex', border:'1px solid var(--border)', borderRadius:20, overflow:'hidden', width:'fit-content' }}>
-                      {[['TRAVEL','Travel'],['LOCAL','Local']].map(([v,label]) => (
-                        <button key={v} type="button" onClick={() => setSlotForm(f=>({...f,travelLocal:v}))}
-                          style={{ background: (slotForm.travelLocal||'TRAVEL') === v ? (v==='TRAVEL' ? 'rgba(74,158,255,0.25)' : 'rgba(255,255,255,0.1)') : 'transparent', border:'none',
-                            color: (slotForm.travelLocal||'TRAVEL') === v ? (v==='TRAVEL' ? '#4a9eff' : '#e8e8e8') : 'var(--muted)', fontSize:11, fontWeight:800, padding:'5px 16px', cursor:'pointer' }}>
-                          {label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
                 <div className="field">
                   <label>Start Date</label>
                   <input type="date" value={slotForm.startDate} onChange={e => setSlotForm(f=>({...f,startDate:e.target.value}))} />
@@ -1076,7 +1072,10 @@ export default function Crew({ project, onProjectUpdate }) {
       {editTalent && (
         <div className="modal-bg" onClick={e => e.target === e.currentTarget && setEditTalent(null)}>
           <div className="modal">
-            <div className="modal-title">Edit Talent — {editTalent.name}</div>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap' }}>
+              <div className="modal-title" style={{ marginBottom:0 }}>Edit Talent — {editTalent.name}</div>
+              <TravelLocalSwitch value={editTalentForm.travelLocal} onChange={v => setEditTalentForm(f=>({...f,travelLocal:v}))} />
+            </div>
             <form onSubmit={saveEditTalent}>
               <div className="form-grid" style={{ marginBottom:12 }}>
                 <div className="field"><label>Name</label><input value={editTalentForm.name} onChange={e => setEditTalentForm(f=>({...f,name:e.target.value}))} required /></div>
@@ -1087,18 +1086,6 @@ export default function Crew({ project, onProjectUpdate }) {
                 <div className="field span2"><label>Dietary Restrictions</label><input value={editTalentForm.dietaryRestrictions} onChange={e => setEditTalentForm(f=>({...f,dietaryRestrictions:e.target.value}))} placeholder="Vegetarian, nut allergy…" /></div>
                 <div className="field span2"><label>Wardrobe Notes</label><textarea value={editTalentForm.wardrobeNotes} onChange={e => setEditTalentForm(f=>({...f,wardrobeNotes:e.target.value}))} rows={2} /></div>
                 <div className="field span2"><label>Arrival Notes</label><textarea value={editTalentForm.arrivalNotes} onChange={e => setEditTalentForm(f=>({...f,arrivalNotes:e.target.value}))} rows={2} /></div>
-                <div className="field">
-                  <label>Travel / Local</label>
-                  <div style={{ display:'inline-flex', border:'1px solid var(--border)', borderRadius:20, overflow:'hidden', width:'fit-content' }}>
-                    {[['TRAVEL','Travel'],['LOCAL','Local']].map(([v,label]) => (
-                      <button key={v} type="button" onClick={() => setEditTalentForm(f=>({...f,travelLocal:v}))}
-                        style={{ background: (editTalentForm.travelLocal||'TRAVEL') === v ? (v==='TRAVEL' ? 'rgba(74,158,255,0.25)' : 'rgba(255,255,255,0.1)') : 'transparent', border:'none',
-                          color: (editTalentForm.travelLocal||'TRAVEL') === v ? (v==='TRAVEL' ? '#4a9eff' : '#e8e8e8') : 'var(--muted)', fontSize:11, fontWeight:800, padding:'5px 16px', cursor:'pointer' }}>
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
               </div>
               {talentDays.length > 0 && (
                 <div style={{ marginBottom:12 }}>
@@ -1131,7 +1118,10 @@ export default function Crew({ project, onProjectUpdate }) {
       {showTalentModal && (
         <div className="modal-bg" onClick={e => e.target === e.currentTarget && setShowTalentModal(false)}>
           <div className="modal" style={{ maxWidth: 520 }}>
-            <div className="modal-title">Add Talent</div>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap' }}>
+              <div className="modal-title" style={{ marginBottom:0 }}>Add Talent</div>
+              <TravelLocalSwitch value={talentForm.travelLocal} onChange={v => setTalentForm(f=>({...f,travelLocal:v}))} />
+            </div>
             <form onSubmit={addTalent}>
               <div className="form-grid" style={{ marginBottom:12 }}>
                 <div className="field"><label>Name *</label><input value={talentForm.name} onChange={e => setTalentForm(f=>({...f,name:e.target.value}))} required /></div>
@@ -1142,18 +1132,6 @@ export default function Crew({ project, onProjectUpdate }) {
                 <div className="field"><label>Dietary Restrictions</label><input value={talentForm.dietaryRestrictions} onChange={e => setTalentForm(f=>({...f,dietaryRestrictions:e.target.value}))} /></div>
                 <div className="field"><label>Wardrobe Notes</label><input value={talentForm.wardrobeNotes} onChange={e => setTalentForm(f=>({...f,wardrobeNotes:e.target.value}))} /></div>
                 <div className="field span2"><label>Arrival Notes</label><input value={talentForm.arrivalNotes} onChange={e => setTalentForm(f=>({...f,arrivalNotes:e.target.value}))} /></div>
-                <div className="field">
-                  <label>Travel / Local</label>
-                  <div style={{ display:'inline-flex', border:'1px solid var(--border)', borderRadius:20, overflow:'hidden', width:'fit-content' }}>
-                    {[['TRAVEL','Travel'],['LOCAL','Local']].map(([v,label]) => (
-                      <button key={v} type="button" onClick={() => setTalentForm(f=>({...f,travelLocal:v}))}
-                        style={{ background: (talentForm.travelLocal||'TRAVEL') === v ? (v==='TRAVEL' ? 'rgba(74,158,255,0.25)' : 'rgba(255,255,255,0.1)') : 'transparent', border:'none',
-                          color: (talentForm.travelLocal||'TRAVEL') === v ? (v==='TRAVEL' ? '#4a9eff' : '#e8e8e8') : 'var(--muted)', fontSize:11, fontWeight:800, padding:'5px 16px', cursor:'pointer' }}>
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
               </div>
               {talentDays.length > 0 && (
                 <div style={{ marginBottom:12 }}>
