@@ -44,7 +44,7 @@ function GearRequestTab({ project }) {
   }, [project.id]);
   if (request === undefined) return <div className="empty">Loading…</div>;
   return (
-    <div style={{ maxWidth: 660 }}>
+    <div style={{ maxWidth: 660, margin: '0 auto' }}>
       <GearRequestModal embedded projectId={project.id} existing={request || null}
         onClose={() => {}} onSubmitted={r => setRequest({ ...r, code: project.code, title: project.title })} />
     </div>
