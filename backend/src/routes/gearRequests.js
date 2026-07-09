@@ -18,6 +18,47 @@ router.get('/', requireAuth, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// Gear Management overview — one row per production shoot, sorted by start date.
+// A shoot is a production project: it has a budget shoot section, or it's a
+// FreePro production project with no main budget (excludes post-only projects).
+router.get('/overview', requireAuth, async (req, res, next) => {
+  try {
+    const rows = await sql`
+      SELECT p.id, p.code, p.title, p.subtitle, p.start_date, p.end_date, p.status,
+             COALESCE(NULLIF(TRIM(CONCAT(cm.preferred_first_name, ' ', cm.preferred_last_name)), ''), cm.name) AS person_responsible,
+             g.id AS request_id, g.moving AS form_of_travel
+      FROM projects p
+      LEFT JOIN project_gear pg ON pg.project_id = p.id
+      LEFT JOIN crew_members cm ON cm.id = pg.gear_person_id
+      LEFT JOIN gear_requests g ON g.project_id = p.id
+      WHERE p.status != 'ARCHIVED'
+        AND (NOT EXISTS (SELECT 1 FROM budgets b WHERE b.project_id = p.id AND COALESCE(b.kind, 'main') = 'main')
+             OR EXISTS (SELECT 1 FROM budgets b JOIN budget_sections bs ON bs.budget_id = b.id
+                        WHERE b.project_id = p.id AND COALESCE(b.kind, 'main') = 'main' AND bs.kind = 'shoot'))
+      ORDER BY p.start_date NULLS LAST, p.code`;
+    const codes = await displayCodes(rows.map(r => r.id));
+    res.json(rows.map(r => ({ ...r, code: codes[r.id] || r.code, hasRequest: !!r.request_id })));
+  } catch (e) { next(e); }
+});
+
+// Activity feed for one shoot's gear (comments + events)
+router.get('/project/:pid/activity', requireAuth, async (req, res, next) => {
+  try {
+    res.json(await sql`SELECT * FROM gear_activity WHERE project_id = ${req.params.pid} ORDER BY created_at`);
+  } catch (e) { next(e); }
+});
+
+router.post('/project/:pid/activity', requireAuth, async (req, res, next) => {
+  try {
+    const body = String(req.body.body || '').trim();
+    if (!body) return res.status(400).json({ error: 'Comment required' });
+    const author = req.user?.name || req.user?.email || null;
+    const [row] = await sql`INSERT INTO gear_activity (project_id, kind, body, author)
+      VALUES (${req.params.pid}, 'comment', ${body}, ${author}) RETURNING *`;
+    res.status(201).json(row);
+  } catch (e) { next(e); }
+});
+
 // Projects that don't have a gear request yet (dropdown of unused codes)
 router.get('/available-projects', requireAuth, async (req, res, next) => {
   try {
@@ -57,6 +98,8 @@ router.post('/', requireAuth, async (req, res, next) => {
       VALUES (${d.projectId}, ${d.name}, ${d.crew}, ${d.checkOut}, ${d.checkIn}, ${d.moving}, ${d.camera || null}, ${d.lights || null}, ${d.grip || null}, ${d.other || null},
               ${(d.drives || []).join(', ')}, ${d.driveSize || null}, ${d.driveQty || null}, ${d.notes || null}, ${req.user?.email || null})
       RETURNING *`;
+    await sql`INSERT INTO gear_activity (project_id, kind, body, author)
+      VALUES (${d.projectId}, 'event', ${'Gear request submitted'}, ${d.name || req.user?.email || null})`.catch(() => {});
     const [proj] = await sql`SELECT code, title, client FROM projects WHERE id = ${d.projectId}`;
     const codes = await displayCodes([d.projectId]);
     const code = codes[d.projectId] || proj?.code || '';

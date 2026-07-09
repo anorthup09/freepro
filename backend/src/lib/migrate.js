@@ -884,6 +884,17 @@ async function migrate() {
       created_at TIMESTAMPTZ DEFAULT NOW()
     )`;
 
+  // Per-shoot gear activity feed (comments + system events) for the gear dashboard
+  await sql`
+    CREATE TABLE IF NOT EXISTS gear_activity (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      kind TEXT DEFAULT 'comment',
+      body TEXT NOT NULL,
+      author TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`;
+
   // Backfill: shoots under closed/dead budgets should be archived in FreePro
   try {
     const archived = await sql`

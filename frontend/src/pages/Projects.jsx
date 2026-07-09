@@ -12,42 +12,82 @@ const STATUS_PILL = {
   ARCHIVED:  '',
 };
 
+const gth = { padding:'8px 12px', fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', textAlign:'left', whiteSpace:'nowrap', borderBottom:'1px solid var(--border)' };
+const gtd = { padding:'10px 12px', fontSize:12, borderBottom:'1px solid rgba(255,255,255,0.05)', verticalAlign:'middle' };
+const fmtGD = d => d ? new Date(String(d).slice(0,10)+'T12:00:00').toLocaleDateString('en-US', { month:'numeric', day:'numeric', year:'2-digit' }) : '—';
+
 function GearManagement() {
-  const [requests, setRequests] = useState(null);
+  const nav = useNavigate();
+  const [rows, setRows] = useState(null);
+  const [tab, setTab] = useState('requested'); // 'requested' | 'none'
   const [showForm, setShowForm] = useState(false);
   const [viewing, setViewing] = useState(null);
-  const load = () => api.gearRequests().then(setRequests).catch(e => alert(e.message));
+  const load = () => api.gearOverview().then(setRows).catch(e => alert(e.message));
   useEffect(() => { load(); }, []);
+
+  async function quickView(e, pid) {
+    e.stopPropagation();
+    try { setViewing(await api.gearRequestForProject(pid)); }
+    catch { alert('Could not load the gear request.'); }
+  }
+
+  const shown = (rows || []).filter(r => tab === 'requested' ? r.hasRequest : !r.hasRequest);
 
   return (
     <div>
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14, flexWrap:'wrap', gap:8 }}>
-        <div className="page-sub">Internal gear requests — submissions email the gear team automatically.</div>
+        <div className="page-sub">Each production shoot has its own gear tile — click a row to open its gear dashboard.</div>
         <button className="btn btn-primary" onClick={() => setShowForm(true)}>+ New Gear Request</button>
       </div>
-      {!requests && <div className="empty">Loading…</div>}
-      {requests && requests.length === 0 && <div className="empty">No gear requests yet — submit the first one.</div>}
-      {requests && requests.map(r => (
-        <div key={r.id} onClick={() => setViewing(r)}
-          style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding:'13px 18px', marginBottom:10, cursor:'pointer', display:'flex', alignItems:'center', gap:14, flexWrap:'wrap' }}>
-          <div style={{ flex:1, minWidth:180 }}>
-            <div style={{ fontSize:10, color:'var(--muted)' }}>{r.code}</div>
-            <div style={{ fontSize:14, fontWeight:700 }}>{r.title}</div>
-            <div style={{ fontSize:11, color:'var(--muted)' }}>{r.client} · requested by {r.name}</div>
-          </div>
-          <div style={{ textAlign:'right' }}>
-            <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Check-Out → Check-In</div>
-            <div style={{ fontSize:12, fontWeight:600 }}>
-              {r.check_out ? new Date(String(r.check_out).slice(0,10)+'T12:00:00').toLocaleDateString() : '—'}
-              {' → '}
-              {r.check_in ? new Date(String(r.check_in).slice(0,10)+'T12:00:00').toLocaleDateString() : '—'}
-            </div>
-          </div>
-          <span style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--orange)', border:'1px solid rgba(232,80,10,0.4)', borderRadius:10, padding:'2px 8px', whiteSpace:'nowrap' }}>
-            {r.moving || 'Submitted'}
-          </span>
+
+      {/* Requested / No Request toggle */}
+      <div style={{ display:'inline-flex', border:'1px solid var(--border)', borderRadius:18, overflow:'hidden', marginBottom:14 }}>
+        {[['requested', 'Gear Requested'], ['none', 'No Gear Request']].map(([k, label]) => (
+          <button key={k} onClick={() => setTab(k)}
+            style={{ background: tab === k ? 'rgba(232,80,10,0.22)' : 'transparent', border:'none',
+              color: tab === k ? 'var(--orange)' : 'var(--muted)', fontSize:11, fontWeight:800, padding:'7px 18px', cursor:'pointer' }}>
+            {label} {rows ? `(${(rows).filter(r => k === 'requested' ? r.hasRequest : !r.hasRequest).length})` : ''}
+          </button>
+        ))}
+      </div>
+
+      {!rows && <div className="empty">Loading…</div>}
+      {rows && shown.length === 0 && (
+        <div className="empty">{tab === 'requested' ? 'No shoots with a gear request yet.' : 'Every shoot has a gear request.'}</div>
+      )}
+      {rows && shown.length > 0 && (
+        <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, overflowX:'auto' }}>
+          <table style={{ width:'100%', borderCollapse:'collapse', minWidth:820 }}>
+            <thead>
+              <tr>
+                <th style={gth}>Shoot Code</th><th style={gth}>Shoot Title</th>
+                <th style={gth}>Person Responsible</th><th style={gth}>Start</th><th style={gth}>End</th>
+                <th style={gth}>Form of Travel</th><th style={{ ...gth, textAlign:'center' }}>Gear Request</th>
+              </tr>
+            </thead>
+            <tbody>
+              {shown.map(r => (
+                <tr key={r.id} onClick={() => nav(`/gear/${r.id}`)} style={{ cursor:'pointer' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                  <td style={{ ...gtd, fontWeight:800, whiteSpace:'nowrap' }}>{r.code}</td>
+                  <td style={gtd}>{r.subtitle || r.title}</td>
+                  <td style={gtd}>{r.person_responsible || <span style={{ color:'var(--muted)' }}>—</span>}</td>
+                  <td style={{ ...gtd, whiteSpace:'nowrap' }}>{fmtGD(r.start_date)}</td>
+                  <td style={{ ...gtd, whiteSpace:'nowrap' }}>{fmtGD(r.end_date)}</td>
+                  <td style={gtd}>{r.form_of_travel || <span style={{ color:'var(--muted)' }}>—</span>}</td>
+                  <td style={{ ...gtd, textAlign:'center' }}>
+                    {r.hasRequest
+                      ? <button onClick={e => quickView(e, r.id)}
+                          style={{ background:'rgba(232,80,10,0.14)', border:'1px solid var(--orange)', color:'var(--orange)', borderRadius:10, padding:'3px 12px', fontSize:10, fontWeight:800, cursor:'pointer', whiteSpace:'nowrap' }}>Quick View</button>
+                      : <span style={{ fontSize:10, color:'var(--muted)' }}>—</span>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      ))}
+      )}
       {showForm && <GearRequestModal onClose={() => setShowForm(false)} onSubmitted={load} />}
       {viewing && <GearRequestModal existing={viewing} onClose={() => setViewing(null)} />}
     </div>

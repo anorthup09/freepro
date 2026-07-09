@@ -16,7 +16,7 @@ function fmtDate(d) {
 }
 
 // Read-only rendering of a submitted request
-function GearRequestView({ r }) {
+export function GearRequestView({ r }) {
   const row = (label, value, pre) => (
     <div style={{ marginBottom:12 }}>
       <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:2 }}>{label}</div>

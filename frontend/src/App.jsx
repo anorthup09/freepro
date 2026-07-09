@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login.jsx';
 import Projects from './pages/Projects.jsx';
+import GearDashboard from './pages/GearDashboard.jsx';
 import CrewCalendar from './pages/CrewCalendar.jsx';
 import Project from './pages/Project/index.jsx';
 import TalentCallSheets from './pages/Project/TalentCallSheets.jsx';
@@ -112,6 +113,7 @@ export default function App() {
         <Route path="/login" element={user ? <Navigate to="/" /> : <Login />} />
         <Route path="/" element={user ? <Hub /> : <Navigate to="/login" />} />
         <Route path="/projects" element={user ? (user.role === 'FINANCE' ? <Navigate to="/" /> : <Projects />) : <Navigate to="/login" />} />
+        <Route path="/gear/:pid" element={user ? (user.role === 'FINANCE' ? <Navigate to="/" /> : <GearDashboard />) : <Navigate to="/login" />} />
         <Route path="/crew-calendar" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/crew-views" /> : user.role === 'FINANCE' ? <Navigate to="/" /> : <CrewCalendar />) : <Navigate to="/login" />} />
         <Route path="/finance" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/crew-views" /> : <Finance />) : <Navigate to="/login" />} />
         <Route path="/pipeline" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/crew-views" /> : <Pipeline />) : <Navigate to="/login" />} />

@@ -159,9 +159,12 @@ export const api = {
   submitHarbinger: (pid, data) => req('POST', `/finance/${pid}/harbinger`, data),
   harbingerSow: (pid) => req('POST', `/finance/${pid}/harbinger-sow`, {}),
   gearRequests: () => req('GET', '/gear-requests'),
+  gearOverview: () => req('GET', '/gear-requests/overview'),
   gearRequestProjects: () => req('GET', '/gear-requests/available-projects'),
   gearRequestForProject: (pid) => req('GET', `/gear-requests/project/${pid}`),
   createGearRequest: (data) => req('POST', '/gear-requests', data),
+  gearActivity: (pid) => req('GET', `/gear-requests/project/${pid}/activity`),
+  addGearActivity: (pid, body) => req('POST', `/gear-requests/project/${pid}/activity`, { body }),
   updateProject: (id, data) => req('PATCH', `/projects/${id}`, data),
   deleteProject: (id) => req('DELETE', `/projects/${id}`),
 
