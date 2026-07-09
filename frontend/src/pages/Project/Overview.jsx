@@ -130,7 +130,7 @@ export default function Overview({ project, setProject, onTabChange }) {
   const [scheduleDays, setScheduleDays] = useState([]);
   const [info, setInfo] = useState({ code: project.code, title: project.title, client: project.client, city: project.city, state: project.state, startDate: (project.start_date||project.startDate)?.slice(0,10), endDate: (project.end_date||project.endDate)?.slice(0,10), status: project.status, notes: project.notes || '' });
   const [showLocModal, setShowLocModal] = useState(false);
-  const [locForm, setLocForm] = useState({ name:'', address:'', type:'PRIMARY_VENUE', emoji:'' });
+  const [locForm, setLocForm] = useState({ name:'', address:'', type:'PRIMARY_VENUE', emoji:'', arrivalNotes:'' });
   const [editLocId, setEditLocId] = useState(null);   // location being edited in the modal
   const [showContactModal, setShowContactModal] = useState(false);
   const [contactForm, setContactForm] = useState({ name:'', title:'', email:'', phone:'' });
@@ -221,12 +221,12 @@ export default function Overview({ project, setProject, onTabChange }) {
         const loc = await api.createLocation(project.id, locForm);
         setProject(p => ({ ...p, locations: [...p.locations, loc] }));
       }
-      setShowLocModal(false); setEditLocId(null); setLocForm({ name:'', address:'', type:'PRIMARY_VENUE', emoji:'' });
+      setShowLocModal(false); setEditLocId(null); setLocForm({ name:'', address:'', type:'PRIMARY_VENUE', emoji:'', arrivalNotes:'' });
     } catch(e) { alert(e.message); }
   }
 
   function openEditLocation(l) {
-    setLocForm({ name: l.name || '', address: l.address || '', type: l.type || 'PRIMARY_VENUE', emoji: l.emoji || '' });
+    setLocForm({ name: l.name || '', address: l.address || '', type: l.type || 'PRIMARY_VENUE', emoji: l.emoji || '', arrivalNotes: l.arrival_notes || '' });
     setEditLocId(l.id);
     setShowLocModal(true);
   }
@@ -539,17 +539,20 @@ export default function Overview({ project, setProject, onTabChange }) {
             <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--muted)', marginBottom:4 }}>{LOC_LABELS[type]}</div>
             <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden' }}>
               {group.map((l, i) => (
-                <div key={l.id} style={{ display:'grid', gridTemplateColumns:'1fr 1fr auto', alignItems:'center', gap:12, padding:'10px 16px', borderBottom: i < group.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                  <span style={{ fontWeight:600, fontSize:13 }}>{l.name}</span>
-                  {l.address
-                    ? <a href={`https://maps.google.com/?q=${encodeURIComponent(l.address)}`} target="_blank" rel="noreferrer" style={{ fontSize:12, color:'var(--tan)', textDecoration:'none' }}>{l.address}</a>
-                    : <span style={{ fontSize:12, color:'var(--muted)' }}>—</span>
-                  }
-                  <div style={{ whiteSpace:'nowrap' }}>
-                    <button title="Edit name / address (override what the map search filled in)"
-                      style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11, marginRight:6 }} onClick={() => openEditLocation(l)}>✎</button>
-                    <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => deleteLocation(l.id)}>✕</button>
+                <div key={l.id} style={{ padding:'10px 16px', borderBottom: i < group.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr auto', alignItems:'center', gap:12 }}>
+                    <span style={{ fontWeight:600, fontSize:13 }}>{l.name}</span>
+                    {l.address
+                      ? <a href={`https://maps.google.com/?q=${encodeURIComponent(l.address)}`} target="_blank" rel="noreferrer" style={{ fontSize:12, color:'var(--tan)', textDecoration:'none' }}>{l.address}</a>
+                      : <span style={{ fontSize:12, color:'var(--muted)' }}>—</span>
+                    }
+                    <div style={{ whiteSpace:'nowrap' }}>
+                      <button title="Edit name / address (override what the map search filled in)"
+                        style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11, marginRight:6 }} onClick={() => openEditLocation(l)}>✎</button>
+                      <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => deleteLocation(l.id)}>✕</button>
+                    </div>
                   </div>
+                  {l.arrival_notes && <div style={{ fontSize:11, color:'var(--muted)', marginTop:6, whiteSpace:'pre-wrap' }}><span style={{ fontWeight:700, color:'var(--tan)' }}>Arrival: </span>{l.arrival_notes}</div>}
                 </div>
               ))}
             </div>
@@ -624,8 +627,9 @@ export default function Overview({ project, setProject, onTabChange }) {
                   </select>
                 </div>
                 <div className="field"><label>Emoji</label><input value={locForm.emoji} onChange={e => setLocForm(f=>({...f,emoji:e.target.value}))} placeholder="🏛" /></div>
+                <div className="field span2"><label>Arrival Notes</label><textarea value={locForm.arrivalNotes} onChange={e => setLocForm(f=>({...f,arrivalNotes:e.target.value}))} rows={2} placeholder="Parking, entrance, check-in, loading dock…" /></div>
               </div>
-              <div className="btn-row"><button className="btn btn-primary">{editLocId ? 'Save Changes' : 'Add Location'}</button><button type="button" className="btn btn-ghost" onClick={() => { setShowLocModal(false); setEditLocId(null); setLocForm({ name:'', address:'', type:'PRIMARY_VENUE', emoji:'' }); }}>Cancel</button></div>
+              <div className="btn-row"><button className="btn btn-primary">{editLocId ? 'Save Changes' : 'Add Location'}</button><button type="button" className="btn btn-ghost" onClick={() => { setShowLocModal(false); setEditLocId(null); setLocForm({ name:'', address:'', type:'PRIMARY_VENUE', emoji:'', arrivalNotes:'' }); }}>Cancel</button></div>
             </form>
           </div>
         </div>

@@ -588,6 +588,7 @@ function ProducerView({ data, hideGear, onOpenShotList }) {
                   {l.address
                     ? <a href={mapsUrl(l.address)} target="_blank" rel="noreferrer" className="loc-addr" style={{ color:'var(--tan)', textDecoration:'underline', display:'block' }}>{l.address}</a>
                     : null}
+                  {l.arrival_notes && <div style={{ fontSize:11, color:'var(--muted)', marginTop:5, whiteSpace:'pre-wrap' }}><span style={{ fontWeight:700, color:'var(--tan)' }}>Arrival: </span>{l.arrival_notes}</div>}
                 </div>
                 {l.address && (
                   <a href={mapsUrl(l.address)} target="_blank" rel="noreferrer"
@@ -690,7 +691,10 @@ function ProducerView({ data, hideGear, onOpenShotList }) {
 
 // ── Crew View ────────────────────────────────────────────────────────────────
 function CrewView({ data, shareToken, hideGear, onOpenShotList }) {
-  const { project, locations, techSpecs, clientContacts, agencyContacts = [], keyTalent, crewAssignments, schedule: rawSchedule, flights: allFlights, hotelBlocks: allHotelBlocks, rentalCars: allRentalCars, deliverables, gear, onlineRentals = [], shotList = [], slDays = [], slBreaks = [] } = data;
+  // Crew get airport/hotel from their own flight & hotel blocks, so those
+  // location types are dropped from the crew call sheet's Locations list below.
+  const { project, locations: rawLocations, techSpecs, clientContacts, agencyContacts = [], keyTalent, crewAssignments, schedule: rawSchedule, flights: allFlights, hotelBlocks: allHotelBlocks, rentalCars: allRentalCars, deliverables, gear, onlineRentals = [], shotList = [], slDays = [], slBreaks = [] } = data;
+  const locations = (rawLocations || []).filter(l => l.type !== 'AIRPORT' && l.type !== 'CREW_HOTEL');
   const scheduleRef = useRef(null);
   const [tagFilter, setTagFilter] = useState(null);
   const personFilter = new URLSearchParams(window.location.search).get('for') || null;
@@ -800,6 +804,7 @@ function CrewView({ data, shareToken, hideGear, onOpenShotList }) {
                   {l.address
                     ? <a href={mapsUrl(l.address)} target="_blank" rel="noreferrer" className="loc-addr" style={{ color:'var(--tan)', textDecoration:'underline', display:'block' }}>{l.address}</a>
                     : null}
+                  {l.arrival_notes && <div style={{ fontSize:11, color:'var(--muted)', marginTop:5, whiteSpace:'pre-wrap' }}><span style={{ fontWeight:700, color:'var(--tan)' }}>Arrival: </span>{l.arrival_notes}</div>}
                 </div>
                 {l.address && (
                   <a href={mapsUrl(l.address)} target="_blank" rel="noreferrer"
@@ -1588,6 +1593,7 @@ function ClientView({ data, onOpenShotList }) {
                   {l.address
                     ? <a href={mapsUrl(l.address)} target="_blank" rel="noreferrer" className="loc-addr" style={{ color:'var(--tan)', textDecoration:'underline', display:'block' }}>{l.address}</a>
                     : null}
+                  {l.arrival_notes && <div style={{ fontSize:11, color:'var(--muted)', marginTop:5, whiteSpace:'pre-wrap' }}><span style={{ fontWeight:700, color:'var(--tan)' }}>Arrival: </span>{l.arrival_notes}</div>}
                 </div>
                 {l.address && (
                   <a href={mapsUrl(l.address)} target="_blank" rel="noreferrer"

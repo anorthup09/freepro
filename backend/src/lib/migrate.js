@@ -1275,6 +1275,7 @@ async function migrate() {
   await sql`ALTER TABLE crew_members ADD COLUMN IF NOT EXISTS travel_local TEXT DEFAULT 'TRAVEL'`;
   await sql`ALTER TABLE key_talent ADD COLUMN IF NOT EXISTS travel_local TEXT DEFAULT 'TRAVEL'`;
   await sql`ALTER TYPE event_tag_type ADD VALUE IF NOT EXISTS 'TRAVEL'`;
+  await sql`ALTER TABLE locations ADD COLUMN IF NOT EXISTS arrival_notes TEXT`;
 
   // One-time ClickUp PTO/OOO import (idempotent)
   try { await require('./seedPto')(); } catch (e) { console.error('PTO seed failed:', e.message); }

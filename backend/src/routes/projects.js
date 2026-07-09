@@ -294,15 +294,15 @@ router.get('/:id/locations', requireAuth, async (req, res, next) => {
 });
 router.post('/:id/locations', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const { name, address, type, emoji, notes } = req.body;
-    const [l] = await sql`INSERT INTO locations (id, project_id, name, address, type, emoji, notes) VALUES (gen_random_uuid()::text, ${req.params.id}, ${name}, ${address}, ${type}::location_type, ${emoji||null}, ${notes||null}) RETURNING *`;
+    const { name, address, type, emoji, notes, arrivalNotes } = req.body;
+    const [l] = await sql`INSERT INTO locations (id, project_id, name, address, type, emoji, notes, arrival_notes) VALUES (gen_random_uuid()::text, ${req.params.id}, ${name}, ${address}, ${type}::location_type, ${emoji||null}, ${notes||null}, ${arrivalNotes||null}) RETURNING *`;
     res.status(201).json(l);
   } catch(e){next(e);}
 });
 router.patch('/:id/locations/:lid', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
     const d = req.body;
-    const [l] = await sql`UPDATE locations SET name=COALESCE(${d.name??null},name), address=COALESCE(${d.address??null},address), type=COALESCE(${d.type??null}::location_type,type), emoji=COALESCE(${d.emoji??null},emoji), space_map=CASE WHEN ${d.spaceMap!==undefined} THEN ${d.spaceMap||null} ELSE space_map END WHERE id=${req.params.lid} RETURNING *`;
+    const [l] = await sql`UPDATE locations SET name=COALESCE(${d.name??null},name), address=COALESCE(${d.address??null},address), type=COALESCE(${d.type??null}::location_type,type), emoji=COALESCE(${d.emoji??null},emoji), arrival_notes=CASE WHEN ${d.arrivalNotes!==undefined} THEN ${d.arrivalNotes||null} ELSE arrival_notes END, space_map=CASE WHEN ${d.spaceMap!==undefined} THEN ${d.spaceMap||null} ELSE space_map END WHERE id=${req.params.lid} RETURNING *`;
     res.json(l);
   } catch(e){next(e);}
 });
