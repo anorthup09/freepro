@@ -476,7 +476,10 @@ export default function Hub() {
   const setHubMode = m => { setMode(m); localStorage.setItem('hub_mode', m); };
   // Team Management sits below as a constant, elongated tile
   const teamTile = TILES.find(t => t.key === 'team');
-  const opsTiles = isCrew
+  const isAgency = user?.role === 'AGENCY';
+  const opsTiles = isAgency
+    ? TILES.filter(t => t.key !== 'profi' && t.key !== 'team')
+    : isCrew
     ? TILES.filter(t => t.key !== 'profi' && t.key !== 'team').map(t => t.key === 'freepro' ? { ...t, to: '/crew-views', tagline: 'Crew Views' } : t)
     : isFinance
     ? TILES.filter(t => t.key === 'profi')
