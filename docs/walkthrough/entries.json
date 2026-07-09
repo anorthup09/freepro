@@ -1,37 +1,73 @@
 [
   {
     "title": "Timeline zoom on the Gantt views",
-    "what": "Zoom controls on every Gantt timeline let you expand or condense how many days are visible \u2014 zoom in for a tight look at a busy week, zoom out to see the whole schedule.",
-    "where": "Any Gantt timeline \u2014 an edit's Timeline tab, the project Gantt share link, or the Full Pipeline view. Controls sit at the top right of the chart.",
+    "what": "Zoom controls on every Gantt timeline let you expand or condense how many days are visible — zoom in for a tight look at a busy week, zoom out to see the whole schedule.",
+    "where": "Any Gantt timeline — an edit's Timeline tab, the project Gantt share link, or the Full Pipeline view. Controls sit at the top right of the chart.",
     "how": [
       "Open any Gantt timeline view.",
-      "Click + to zoom in (fewer days, more detail) or \u2212 to zoom out (more days visible).",
+      "Click + to zoom in (fewer days, more detail) or − to zoom out (more days visible).",
       "Click Fit to snap back to the full schedule."
     ],
     "screenshot": "gantt-zoom.png"
   },
   {
-    "title": "Admin role preview (View as\u2026)",
-    "what": "Admins can preview the entire platform exactly as any other role sees it \u2014 Producer, Finance, Crew, Agency, or Client \u2014 without signing out. Tiles, pages, and menus all follow the previewed role.",
-    "where": "Hub header, next to the Backup button: the 'View as\u2026' dropdown. A purple banner at the top of every page shows which role you're previewing.",
+    "title": "Admin role preview (View as…)",
+    "what": "Admins can preview the entire platform exactly as any other role sees it — Producer, Finance, Crew, Agency, or Client — without signing out. Tiles, pages, and menus all follow the previewed role.",
+    "where": "Hub header, next to the Backup button: the 'View as…' dropdown. A purple banner at the top of every page shows which role you're previewing.",
     "how": [
-      "On the hub, open the 'View as\u2026' dropdown in the top-right header.",
-      "Pick a role \u2014 the platform immediately re-renders as that role would see it.",
-      "Browse anywhere; the purple 'Previewing as \u2026' banner stays at the top.",
+      "On the hub, open the 'View as…' dropdown in the top-right header.",
+      "Pick a role — the platform immediately re-renders as that role would see it.",
+      "Browse anywhere; the purple 'Previewing as …' banner stays at the top.",
       "Click Exit Preview on the banner (or reset the dropdown) to return to your admin view."
     ],
     "screenshot": "role-preview.png"
   },
   {
     "title": "Agency role",
-    "what": "A new user role for agency partners. Agency accounts see the hub dashboard (Day in Review, My Tasks, Team Today), Team Management, AvocadoPost, and each project's logistics \u2014 with edit access only where they need it: the Gear and Deliverable tabs. Everything else stays view-only and finance stays hidden.",
+    "what": "A new user role for agency partners. Agency accounts see the hub dashboard (Day in Review, My Tasks, Team Today), Team Management, AvocadoPost, and each project's logistics — with edit access only where they need it: the Gear and Deliverable tabs. Everything else stays view-only and finance stays hidden.",
     "where": "User Management (set a user's role to AGENCY). Agency users open projects from the FreePro tile; each project shows the Logistics dropdown (Schedule, Travel, Shot List, Additional Docs), Gear, and Deliverable.",
     "how": [
       "Open User Management on the hub and set the member's role to AGENCY.",
       "The agency user signs in and opens a project from the FreePro tile.",
-      "Logistics dropdown: Schedule, Travel, Shot List, and Additional Docs \u2014 view-only.",
+      "Logistics dropdown: Schedule, Travel, Shot List, and Additional Docs — view-only.",
       "Gear and Deliverable tabs are fully editable for agency users."
     ],
     "screenshot": "agency-role.png"
+  },
+  {
+    "title": "Travel / Local, clickable everywhere",
+    "what": "Mark any crew member or talent as Travel or Local and flip it with one click. Anyone set to Local has all travel detail — flights, hotel blocks, rental cars, and travel-tagged schedule items — stripped from their personal call sheet.",
+    "where": "A project's Crew tab. The Travel/Local badge sits in the Travel column of both the crew positions table and the Talent list. The same switch is pinned to the top-right of the Add Position, crew Edit, Add Talent, and Edit Talent forms.",
+    "how": [
+      "Open a project and go to the Crew tab.",
+      "In the Travel column, click a crew member's or talent's badge to flip it between TRAVEL and LOCAL — it saves instantly.",
+      "Or set it while adding/editing: the Travel / Local switch is at the top-right of the Add Position and Add/Edit Talent forms.",
+      "Local people automatically lose flights, hotels, rental cars, and travel-tagged events from their call sheet."
+    ],
+    "screenshot": "travel-local-toggle.png"
+  },
+  {
+    "title": "Travel tag on schedule events",
+    "what": "Schedule events can now carry a Travel tag. Any event tagged Travel is automatically hidden from the call sheets of anyone marked Local, so local crew and talent never see departures and transfers that do not apply to them. The tag row is ordered All Crew, Video, Photo, Talent, Travel.",
+    "where": "A project's Schedule tab. Add an event or edit an existing one, then use the Tags row near the bottom of the form.",
+    "how": [
+      "Open a project's Schedule tab and click + Add Event, or edit an event.",
+      "In the Tags row, click Travel to tag the event as travel.",
+      "Tag order is All Crew, Video, Photo, Talent, Travel.",
+      "Save — the event now hides from every Local person's call sheet."
+    ],
+    "screenshot": "event-travel-tag.png"
+  },
+  {
+    "title": "Review any call sheet before sending",
+    "what": "Preview the exact call sheet each recipient will get, right from the email screen. Crew and producers open their personal filtered view, client contacts open the client call sheet, and talent open their own tagged sheet.",
+    "where": "A project, then Send Call Sheet Emails. A Review button sits on every recipient row across the Producers, Crew, Client, and Talent groups.",
+    "how": [
+      "Open a project and click Send Call Sheet Emails.",
+      "Find any recipient — producer, crew, client, or talent.",
+      "Click Review to open their call sheet in a preview window, with an Open in Tab link.",
+      "Confirm it looks right, then draft and send."
+    ],
+    "screenshot": "callsheet-review.png"
   }
 ]
