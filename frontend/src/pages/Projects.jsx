@@ -15,6 +15,59 @@ const STATUS_PILL = {
 const gth = { padding:'8px 12px', fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', textAlign:'left', whiteSpace:'nowrap', borderBottom:'1px solid var(--border)' };
 const gtd = { padding:'10px 12px', fontSize:12, borderBottom:'1px solid rgba(255,255,255,0.05)', verticalAlign:'middle' };
 const fmtGD = d => d ? new Date(String(d).slice(0,10)+'T12:00:00').toLocaleDateString('en-US', { month:'numeric', day:'numeric', year:'2-digit' }) : '—';
+const dayMs = 86400000;
+const gTime = d => new Date(String(d).slice(0,10)+'T00:00:00').getTime();
+function daysUntilStart(d) {
+  if (!d) return null;
+  const today = new Date(); today.setHours(0,0,0,0);
+  return Math.round((gTime(d) - today.getTime()) / dayMs);
+}
+function countdownLabel(d) {
+  const n = daysUntilStart(d);
+  if (n === null) return '—';
+  if (n > 0) return `${n} day${n === 1 ? '' : 's'}`;
+  if (n === 0) return 'Today';
+  return 'Started';
+}
+
+// Timeline of the shoots, each bar labeled with its shoot title
+function GearGantt({ rows, onOpen }) {
+  const dated = (rows || []).filter(r => r.start_date);
+  if (!dated.length) return null;
+  const starts = dated.map(r => gTime(r.start_date));
+  const ends = dated.map(r => gTime(r.end_date || r.start_date));
+  const min = Math.min(...starts);
+  let max = Math.max(...ends);
+  if (max <= min) max = min + dayMs;
+  const span = max - min;
+  const pct = t => ((t - min) / span) * 100;
+  const sorted = [...dated].sort((a, b) => gTime(a.start_date) - gTime(b.start_date));
+  return (
+    <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding:'14px 16px', marginBottom:16 }}>
+      <div style={{ fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)', marginBottom:10 }}>Shoot Timeline</div>
+      <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+        {sorted.map(r => {
+          const s = pct(gTime(r.start_date));
+          const e = pct(gTime(r.end_date || r.start_date));
+          const w = Math.max(e - s, 1.5);
+          const title = r.subtitle || r.title || r.code;
+          return (
+            <div key={r.id} onClick={() => onOpen && onOpen(r.id)} title={`${title} · ${fmtGD(r.start_date)} – ${fmtGD(r.end_date || r.start_date)}`}
+              style={{ position:'relative', height:26, background:'rgba(255,255,255,0.03)', borderRadius:6, cursor:'pointer' }}>
+              <div style={{ position:'absolute', left:`${s}%`, minWidth:`${w}%`, top:3, bottom:3, background:'rgba(232,80,10,0.22)', border:'1px solid var(--orange)', borderRadius:6, display:'flex', alignItems:'center', padding:'0 8px', whiteSpace:'nowrap' }}>
+                <span style={{ fontSize:10, fontWeight:800, color:'var(--orange)' }}>{title}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ display:'flex', justifyContent:'space-between', marginTop:8, fontSize:9, color:'var(--muted)' }}>
+        <span>{fmtGD(new Date(min).toISOString())}</span>
+        <span>{fmtGD(new Date(max).toISOString())}</span>
+      </div>
+    </div>
+  );
+}
 
 function GearManagement() {
   const nav = useNavigate();
@@ -51,15 +104,18 @@ function GearManagement() {
         ))}
       </div>
 
+      {rows && shown.length > 0 && <GearGantt rows={shown} onOpen={pid => nav(`/gear/${pid}`)} />}
+
       {!rows && <div className="empty">Loading…</div>}
       {rows && shown.length === 0 && (
         <div className="empty">{tab === 'requested' ? 'No shoots with a gear request yet.' : 'Every shoot has a gear request.'}</div>
       )}
       {rows && shown.length > 0 && (
         <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, overflowX:'auto' }}>
-          <table style={{ width:'100%', borderCollapse:'collapse', minWidth:820 }}>
+          <table style={{ width:'100%', borderCollapse:'collapse', minWidth:900 }}>
             <thead>
               <tr>
+                <th style={{ ...gth, background:'rgba(232,80,10,0.15)', color:'var(--orange)', textAlign:'center' }}>Countdown</th>
                 <th style={gth}>Shoot Code</th><th style={gth}>Shoot Title</th>
                 <th style={gth}>Person Responsible</th><th style={gth}>Start</th><th style={gth}>End</th>
                 <th style={gth}>Form of Travel</th><th style={{ ...gth, textAlign:'center' }}>Gear Request</th>
@@ -70,6 +126,7 @@ function GearManagement() {
                 <tr key={r.id} onClick={() => nav(`/gear/${r.id}`)} style={{ cursor:'pointer' }}
                   onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                  <td style={{ ...gtd, background:'rgba(232,80,10,0.12)', color:'var(--orange)', fontWeight:800, textAlign:'center', whiteSpace:'nowrap' }}>{countdownLabel(r.start_date)}</td>
                   <td style={{ ...gtd, fontWeight:800, whiteSpace:'nowrap' }}>{r.code}</td>
                   <td style={gtd}>{r.subtitle || r.title}</td>
                   <td style={gtd}>{r.person_responsible || <span style={{ color:'var(--muted)' }}>—</span>}</td>
