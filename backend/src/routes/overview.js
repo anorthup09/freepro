@@ -42,9 +42,20 @@ router.get('/project-overview/:pid', ...staff, async (req, res, next) => {
       const [vcc] = await sql`SELECT COALESCE(SUM(amount), 0) as total FROM vcc_entries WHERE project_id = ${project.id}`;
       budgetFee = Math.round((total - Number(vcc.total)) * 100) / 100;
     }
+    // Shoots = the FreePro production tiles for this project: child projects
+    // (multi-shoot) and any project linked from a budget shoot section (which
+    // includes the parent itself for a single-production budget).
     const shoots = await sql`
-      SELECT id, code, title, city, state, status, start_date, end_date
-      FROM projects WHERE parent_project_id = ${project.id} ORDER BY start_date NULLS LAST, code`;
+      SELECT DISTINCT p.id, p.code, p.title, p.city, p.state, p.status, p.start_date, p.end_date
+      FROM projects p
+      WHERE p.parent_project_id = ${project.id}
+         OR p.id IN (
+           SELECT bs.freepro_project_id FROM budget_sections bs
+           JOIN budgets b ON b.id = bs.budget_id
+           WHERE b.project_id = ${project.id} AND COALESCE(b.kind, 'main') = 'main'
+             AND bs.kind = 'shoot' AND bs.freepro_project_id IS NOT NULL
+         )
+      ORDER BY start_date NULLS LAST, code`;
     const edits = await sql`
       SELECT e.id, e.title, e.status, e.version, e.end_date,
              COALESCE((SELECT ${sql.unsafe(PREF)} FROM crew_members cm WHERE cm.id = e.lead_editor_id), e.lead_editor_name) as lead_editor
