@@ -1,1 +1,13 @@
-[]
+[
+  {
+    "title": "Timeline zoom on the Gantt views",
+    "what": "Zoom controls on every Gantt timeline let you expand or condense how many days are visible \u2014 zoom in for a tight look at a busy week, zoom out to see the whole schedule.",
+    "where": "Any Gantt timeline \u2014 an edit's Timeline tab, the project Gantt share link, or the Full Pipeline view. Controls sit at the top right of the chart.",
+    "how": [
+      "Open any Gantt timeline view.",
+      "Click + to zoom in (fewer days, more detail) or \u2212 to zoom out (more days visible).",
+      "Click Fit to snap back to the full schedule."
+    ],
+    "screenshot": "gantt-zoom.png"
+  }
+]
