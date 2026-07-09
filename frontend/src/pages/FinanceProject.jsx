@@ -644,7 +644,7 @@ function LineRow({ l, secLines, patchLine, saveLine, delLine, dupLine, dragCtl }
   );
 }
 
-function VccTab({ pid, budget, sections, lines, vcc, categories, set }) {
+export function VccTab({ pid, budget, sections, lines, vcc, categories, set, vccOnly }) {
   const mgmtRate = budget.mgmt_fee_rate != null ? Number(budget.mgmt_fee_rate) : 0.15;
   const t = useMemo(() => totals(sections, lines, mgmtRate), [sections, lines, mgmtRate]);
   const [form, setForm] = useState({ entryDate:'', vendor:'', description:'', category:'', trip:'', amount:'', status:'HOLD' });
@@ -693,8 +693,8 @@ function VccTab({ pid, budget, sections, lines, vcc, categories, set }) {
 
   return (
     <div>
-      {/* profit summary + deposits */}
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(280px, 1fr))', gap:14, marginBottom:16 }}>
+      {/* profit summary + deposits (hidden in the VCC-only report view) */}
+      {!vccOnly && <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(280px, 1fr))', gap:14, marginBottom:16 }}>
         <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding:'12px 16px' }}>
           <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'#5ABF80', marginBottom:10 }}>Profit Summary</div>
           <div style={{ display:'flex', justifyContent:'space-between', gap:8, flexWrap:'wrap' }}>
@@ -754,7 +754,7 @@ function VccTab({ pid, budget, sections, lines, vcc, categories, set }) {
             );
           })()}
         </div>
-      </div>
+      </div>}
 
       {/* tools */}
       <VccTools pid={pid} set={set} vcc={vcc} />
