@@ -678,10 +678,20 @@ router.post('/:id/call-sheet-email-draft', requireAuth, requireRole('ADMIN','PRO
     const fmt = d => d ? new Date(d).toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', timeZone:'UTC' }) : '';
     const dateRange = p.start_date ? `${fmt(p.start_date)}${p.end_date && fmt(p.end_date) !== fmt(p.start_date) ? ' through ' + fmt(p.end_date) : ''}` : 'TBD';
     const venue = locations.find(l => l.type === 'PRIMARY_VENUE');
-    const fallback = {
-      subject: `Call Sheet/Production Schedule — ${p.title}${p.start_date ? ' · ' + fmt(p.start_date) : ''}`,
-      body: `Hi [Name],\n\nHere is the call sheet for ${p.title} (${p.code}):\n${shareUrl}\n\nShoot dates: ${dateRange}\nLocation: ${venue ? `${venue.name}${venue.address ? ' — ' + venue.address : ''}` : `${p.city || ''}${p.state ? ', ' + p.state : ''}`}\n\nPlease review your call times, location details, and schedule in the call sheet link. Reply here with any questions.\n\nThanks,\n${p.poc_name || 'The Unbridled Media Team'}`,
-    };
+    const length = ['short', 'medium', 'long'].includes(req.body.length) ? req.body.length : 'medium';
+    const subject = `Call Sheet/Production Schedule — ${p.title}${p.start_date ? ' · ' + fmt(p.start_date) : ''}`;
+    const sign = p.poc_name || 'The Unbridled Media Team';
+    const dayList = days.map(d => `• ${fmt(d.day_date)}${d.day_type ? ' — ' + String(d.day_type).replace(/_/g, ' ').toLowerCase() : ''}`).join('\n');
+    const locList = locations.map(l => `• ${l.name}${l.address ? ' — ' + l.address : ''}`).join('\n');
+    const venueLine = venue ? `${venue.name}${venue.address ? ' — ' + venue.address : ''}` : `${p.city || ''}${p.state ? ', ' + p.state : ''}`.trim();
+    // Length-aware fallback (also used when no AI key / the AI call fails) so the
+    // three lengths always differ and reflect the shoot's dates/schedule/locations.
+    const fallbackBody = length === 'short'
+      ? `Hi [Name],\n\nHere's the call sheet for ${p.title}:\n${shareUrl}\n\n${dateRange}${venue ? ' · ' + venue.name : ''}. Please review your call times.\n\nThanks,\n${sign}`
+      : length === 'long'
+        ? `Hi [Name],\n\nHere is the full call sheet and production schedule for ${p.title} (${p.code}):\n${shareUrl}\n\nWe're shooting ${dateRange}${p.client ? ' for ' + p.client : ''}. Please open the link for call times, crew, and full details.\n\nSchedule:\n${dayList || '• See the call sheet for the day-by-day schedule.'}\n\nLocations:\n${locList || (venueLine ? '• ' + venueLine : '• See the call sheet.')}\n\nPlease confirm your call times and reply here with any questions.\n\nThanks,\n${sign}`
+        : `Hi [Name],\n\nHere is the call sheet for ${p.title} (${p.code}):\n${shareUrl}\n\nWe're shooting ${dateRange}${venue ? ' at ' + venue.name + (venue.address ? ' (' + venue.address + ')' : '') : ''}. Please review your call times, location details, and schedule in the link above.\n\nReply here with any questions.\n\nThanks,\n${sign}`;
+    const fallback = { subject, body: fallbackBody };
     if (!process.env.ANTHROPIC_API_KEY) return res.json(fallback);
     try {
       const context = {
@@ -690,7 +700,6 @@ router.post('/:id/call-sheet-email-draft', requireAuth, requireRole('ADMIN','PRO
         locations: locations.map(l => ({ name: l.name, address: l.address, type: l.type })),
         scheduleDays: days.map(d => ({ date: new Date(d.day_date).toISOString().slice(0,10), type: d.day_type, callTime: d.call_time, wrapTime: d.wrap_time, notes: d.notes })),
       };
-      const length = ['short', 'medium', 'long'].includes(req.body.length) ? req.body.length : 'medium';
       const LENGTH_SPEC = {
         short: 'Keep it very short: greeting, one sentence with the link, one sentence on when/where, sign-off. No day-by-day detail.',
         medium: 'Medium length: greeting, link, a 2-3 sentence synopsis of the shoot (what/when/where), a reminder to check call times, sign-off.',

@@ -47,7 +47,8 @@ export default function CallSheetEmails() {
   const groups = useMemo(() => {
     if (!project) return null;
     const crew = (project.crewAssignments || []).map(a => ({
-      name: a.cm_name || a.name, email: a.cm_email || a.email, sub: a.position_name, crew: true,
+      name: [a.cm_pref_first, a.cm_pref_last].filter(Boolean).join(' ').trim() || a.cm_name || a.name,
+      email: a.cm_email || a.email, sub: a.position_name, crew: true,
     }));
     const seen = new Set();
     const uniqCrew = crew.filter(c => c.name && !seen.has(c.name + '|' + c.email) && seen.add(c.name + '|' + c.email));
