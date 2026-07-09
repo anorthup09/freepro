@@ -119,7 +119,7 @@ export default function ClientHub() {
   const [linkCopied, setLinkCopied] = useState(false);
 
   async function copyClientLink() {
-    const url = `${window.location.origin}/project-view/client/${encodeURIComponent(client)}`;
+    const url = `${window.location.origin}/client/${encodeURIComponent(client)}`;
     try {
       await navigator.clipboard.writeText(url);
       setLinkCopied(true);

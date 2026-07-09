@@ -65,6 +65,7 @@ import CallSheetEmails from './pages/Project/CallSheetEmails.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
 import ProjectView, { ProjectViewDetail } from './pages/ProjectView.jsx';
 import ClientHub from './pages/ClientHub.jsx';
+import ClientPortal from './pages/ClientPortal.jsx';
 import Reports from './pages/Reports.jsx';
 import InvoiceSearch from './pages/InvoiceSearch.jsx';
 import VccReport, { VccProjectPage } from './pages/VccReport.jsx';
@@ -138,6 +139,7 @@ export default function App() {
         <Route path="/share/:token" element={<Share />} />
         <Route path="/contract/:token" element={<ContractSign />} />
         <Route path="/budget/:token" element={<BudgetShare />} />
+        <Route path="/client/:client" element={<ClientPortal />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
       )}
