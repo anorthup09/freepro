@@ -285,6 +285,22 @@ export default function Crew({ project, onProjectUpdate }) {
     setMemberSaving(false);
   }
 
+  async function toggleTravelLocal(cm) {
+    if (!cm?.id) return;
+    const next = (cm.travelLocal || 'TRAVEL') === 'TRAVEL' ? 'LOCAL' : 'TRAVEL';
+    // Optimistic flip across every row this member appears in, plus the roster.
+    setAssignments(prev => prev.map(x => x.crewMember?.id === cm.id ? { ...x, crewMember: { ...x.crewMember, travelLocal: next } } : x));
+    setRoster(r => r.map(m => m.id === cm.id ? { ...m, travelLocal: next, travel_local: next } : m));
+    try {
+      await api.updateCrewMember(cm.id, { travelLocal: next });
+    } catch(err) {
+      // Revert on failure.
+      setAssignments(prev => prev.map(x => x.crewMember?.id === cm.id ? { ...x, crewMember: { ...x.crewMember, travelLocal: cm.travelLocal || 'TRAVEL' } } : x));
+      setRoster(r => r.map(m => m.id === cm.id ? { ...m, travelLocal: cm.travelLocal || 'TRAVEL', travel_local: cm.travelLocal || 'TRAVEL' } : m));
+      alert(err.message);
+    }
+  }
+
   function openEditSlot(a) {
     const cmId = a.crewMember?.id || a.crew_member_id || '';
     const dates = flightDatesFor(cmId);
@@ -429,8 +445,8 @@ export default function Crew({ project, onProjectUpdate }) {
                   <td>
                     {a.crewMember
                       ? ((a.crewMember.travelLocal || 'TRAVEL') === 'LOCAL'
-                          ? <span style={{ fontSize:9, fontWeight:800, color:'#8a8f98', border:'1px solid #8a8f98', borderRadius:10, padding:'1px 8px' }}>LOCAL</span>
-                          : <span style={{ fontSize:9, fontWeight:800, color:'#4a9eff', border:'1px solid #4a9eff', borderRadius:10, padding:'1px 8px' }}>TRAVEL</span>)
+                          ? <button type="button" onClick={() => toggleTravelLocal(a.crewMember)} title="Click to switch to Travel" style={{ fontSize:9, fontWeight:800, color:'#8a8f98', background:'transparent', border:'1px solid #8a8f98', borderRadius:10, padding:'1px 8px', cursor:'pointer' }}>LOCAL</button>
+                          : <button type="button" onClick={() => toggleTravelLocal(a.crewMember)} title="Click to switch to Local" style={{ fontSize:9, fontWeight:800, color:'#4a9eff', background:'transparent', border:'1px solid #4a9eff', borderRadius:10, padding:'1px 8px', cursor:'pointer' }}>TRAVEL</button>)
                       : <span style={{ color:'var(--muted)', fontSize:11 }}>—</span>}
                   </td>
                   <td><span style={{ fontSize:11, color:'var(--orange)' }}>{fmtDate(a.start_date)}</span></td>
