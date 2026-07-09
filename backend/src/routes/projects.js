@@ -91,7 +91,17 @@ async function getFullProject(id) {
 // GET /api/projects
 router.get('/', requireAuth, async (req, res, next) => {
   try {
-    const projects = await sql`SELECT * FROM projects ORDER BY start_date DESC`;
+    // has_production: a project belongs in FreePro only when its budget has a
+    // Production (shoot) section. Post-only projects have a main budget with no
+    // shoot section — those are excluded. Projects with no main budget at all
+    // (created directly in FreePro, or child shoot tiles) always count as production.
+    const projects = await sql`
+      SELECT p.*,
+        (NOT EXISTS (SELECT 1 FROM budgets b WHERE b.project_id = p.id AND COALESCE(b.kind, 'main') = 'main')
+         OR EXISTS (SELECT 1 FROM budgets b JOIN budget_sections bs ON bs.budget_id = b.id
+                    WHERE b.project_id = p.id AND COALESCE(b.kind, 'main') = 'main' AND bs.kind = 'shoot')
+        ) AS has_production
+      FROM projects p ORDER BY p.start_date DESC`;
     const codes = await displayCodes(projects.map(p => p.id));
     res.json(projects.map(p => codes[p.id] ? { ...p, code: codes[p.id] } : p));
   } catch (err) { next(err); }

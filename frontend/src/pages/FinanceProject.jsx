@@ -271,6 +271,7 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
     }).filter(Boolean).join('\n');
     return {
       email: user?.email || '',
+      invoiceCc: user?.email || '',
       clientCompany: project?.client || '',
       projectName: project?.title || '',
       proposedCode: project?.code || '',

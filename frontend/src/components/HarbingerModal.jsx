@@ -183,7 +183,6 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted }) {
       primaryContactName: v.primaryContactName || clientMatch.primary_contact_name || '',
       primaryContactEmail: v.primaryContactEmail || clientMatch.primary_contact_email || '',
       mailingAddress: v.mailingAddress || clientMatch.mailing_address || '',
-      invoiceCc: v.invoiceCc || clientMatch.invoice_cc || '',
       clientContacts: v.clientContacts || clientMatch.contacts_note || '',
     }));
   }, [clientMatch]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -195,10 +194,30 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted }) {
       primaryContactName: c.primary_contact_name || v.primaryContactName,
       primaryContactEmail: c.primary_contact_email || v.primaryContactEmail,
       mailingAddress: c.mailing_address || v.mailingAddress,
-      invoiceCc: c.invoice_cc || v.invoiceCc,
       clientContacts: c.contacts_note || v.clientContacts,
     }));
     setClientOpen(false);
+  }
+
+  // Contact search on the Primary Client Contact field — fills name/email/mailing
+  const [contactOpen, setContactOpen] = useState(false);
+  const contactSuggestions = useMemo(() => {
+    const withContact = contacts.filter(c => (c.primary_contact_name || '').trim());
+    const q = (f.primaryContactName || '').trim().toLowerCase();
+    const list = q
+      ? withContact.filter(c => c.primary_contact_name.toLowerCase().includes(q) || (c.name || '').toLowerCase().includes(q))
+      : withContact;
+    return list.slice(0, 8);
+  }, [contacts, f.primaryContactName]);
+  function applyContact(c) {
+    setF(v => ({
+      ...v,
+      primaryContactName: c.primary_contact_name || v.primaryContactName,
+      primaryContactEmail: c.primary_contact_email || v.primaryContactEmail,
+      mailingAddress: c.mailing_address || v.mailingAddress,
+      clientCompany: v.clientCompany || c.name || '',
+    }));
+    setContactOpen(false);
   }
 
   async function addNewClient() {
@@ -316,10 +335,28 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted }) {
           <div style={secHead}>Client</div>
           {area('Client Contacts (Names, positions, involvement, who to send invoices to, etc…)', 'clientContacts')}
           {check('Contract (or MSA) is Already Signed', 'contractSigned')}
-          {row(text('Primary Client Contact — Full Name', 'primaryContactName', true),
-               text('Primary Client Contact — Email Address', 'primaryContactEmail', true))}
+          {row(
+            <div style={{ position:'relative' }}>
+              <label style={lbl}>Primary Client Contact — Full Name{req}</label>
+              <div style={hint}>Search a saved contact to auto-fill email &amp; mailing address, or type a new one.</div>
+              <input style={inS} value={f.primaryContactName}
+                onChange={e => { setVal('primaryContactName', e.target.value); setContactOpen(true); }}
+                onFocus={() => setContactOpen(true)}
+                onBlur={() => setTimeout(() => setContactOpen(false), 150)} />
+              {contactOpen && contactSuggestions.length > 0 && (
+                <div style={{ position:'absolute', top:'100%', left:0, right:0, zIndex:140, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:7, marginTop:3, maxHeight:220, overflowY:'auto', boxShadow:'0 8px 22px rgba(0,0,0,0.5)' }}>
+                  {contactSuggestions.map(c => (
+                    <div key={c.id} onMouseDown={() => applyContact(c)} style={{ padding:'7px 10px', fontSize:13, cursor:'pointer', borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
+                      <div style={{ fontWeight:700 }}>{c.primary_contact_name}</div>
+                      <div style={{ color:'var(--muted)', fontSize:11 }}>{c.name}{c.primary_contact_email ? ` · ${c.primary_contact_email}` : ''}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>,
+            text('Primary Client Contact — Email Address', 'primaryContactEmail', true))}
           {text('Client/Company Mailing Address', 'mailingAddress', true)}
-          {text('Contract/Invoice CC', 'invoiceCc', true, 'Anyone else who receives a copy of the contract or invoices.')}
+          {text('Contract/Invoice CC', 'invoiceCc', true, 'Auto-filled with your email — anyone else who receives a copy of the contract or invoices.')}
 
           <div style={secHead}>Revenue & Commissions</div>
           {row(text('Media Revenue (Total Budget minus CapCo Allocation)', 'mediaRevenue', true),

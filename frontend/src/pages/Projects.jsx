@@ -120,11 +120,15 @@ export default function Projects() {
     return Math.ceil((new Date(startDate.slice(0,10)+'T12:00:00') - today) / 86400000);
   }
 
-  const activeProjects = projects
+  // Only production projects belong in FreePro — post-only projects (a budget with
+  // no Production/shoot section) are excluded. has_production is undefined on older
+  // payloads, which reads as included.
+  const prodProjects = projects.filter(p => p.has_production !== false);
+  const activeProjects = prodProjects
     .filter(p => p.status !== 'ARCHIVED' && p.status !== 'WRAPPED')
     .sort((a, b) => (a.start_date || '').localeCompare(b.start_date || ''));
   // Wrapped shoots drop to a condensed strip above Archived
-  const wrappedProjects = projects
+  const wrappedProjects = prodProjects
     .filter(p => p.status === 'WRAPPED')
     .sort((a, b) => (b.start_date || '').localeCompare(a.start_date || ''));
 
@@ -155,8 +159,8 @@ export default function Projects() {
               ))}
             </div>
             {view === 'production' && !isCrew && (() => {
-              const planning = projects.filter(p => p.status === 'PLANNING').length;
-              const live = projects.filter(p => p.status === 'ACTIVE').length;
+              const planning = prodProjects.filter(p => p.status === 'PLANNING').length;
+              const live = prodProjects.filter(p => p.status === 'ACTIVE').length;
               return <div className="page-sub">{planning} planning · {live} live shoot{live !== 1 ? 's' : ''}</div>;
             })()}
           </div>
@@ -247,10 +251,10 @@ export default function Projects() {
               className="btn btn-ghost btn-sm"
               onClick={() => setShowArchived(s => !s)}
               style={{ marginBottom:10, color:'var(--muted)' }}
-            >{showArchived ? '▾' : '▸'} Archived ({projects.filter(p => p.status === 'ARCHIVED').length})</button>
+            >{showArchived ? '▾' : '▸'} Archived ({prodProjects.filter(p => p.status === 'ARCHIVED').length})</button>
             {showArchived && (
               <div className="proj-list" style={{ opacity:0.6 }}>
-                {projects.filter(p => p.status === 'ARCHIVED').map(p => (
+                {prodProjects.filter(p => p.status === 'ARCHIVED').map(p => (
                   <Link key={p.id} to={`/projects/${p.id}`} className="proj-card">
                     <div className="proj-card-info">
                       <div className="proj-card-code">{p.code}</div>

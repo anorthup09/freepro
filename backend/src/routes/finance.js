@@ -873,7 +873,6 @@ router.post('/finance/:pid/harbinger', ...finance, async (req, res, next) => {
           primary_contact_name  = COALESCE(NULLIF(${d.primaryContactName || ''}, ''), primary_contact_name),
           primary_contact_email = COALESCE(NULLIF(${d.primaryContactEmail || ''}, ''), primary_contact_email),
           mailing_address       = COALESCE(NULLIF(${d.mailingAddress || ''}, ''), mailing_address),
-          invoice_cc            = COALESCE(NULLIF(${d.invoiceCc || ''}, ''), invoice_cc),
           contacts_note         = COALESCE(NULLIF(${d.clientContacts || ''}, ''), contacts_note)
           WHERE id = ${c.id}`;
       }

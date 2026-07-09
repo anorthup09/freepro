@@ -140,9 +140,11 @@ export function ProjectViewDetail() {
     api.financeProjects().then(list => {
       const p = list.find(x => x.id === pid);
       setProject(p || false);
-      const withTiles = (p?.shoots || []).filter(s => s.freeproProjectId);
+      const prod = (p?.shoots || []);
+      const withTiles = prod.filter(s => s.freeproProjectId);
       if (withTiles.length) setShootId(withTiles[0].freeproProjectId);
-      else setShootId(pid); // single-production budgets link the section to the parent tile
+      else if (prod.length) setShootId(pid); // single-production budgets link the section to the parent tile
+      else setShootId(''); // post-only project — no pre-production tile
     }).catch(e => alert(e.message));
   }, [pid]);
 
@@ -153,6 +155,12 @@ export function ProjectViewDetail() {
   }, [tab, project]);
 
   const shoots = (project?.shoots || []).filter(s => s.freeproProjectId);
+  // Pre-Production only exists when the budget has a Production (shoot) section.
+  const hasProduction = (project?.shoots || []).length > 0;
+  const tabs = TABS.filter(([k]) => k !== 'pre' || hasProduction);
+
+  // If the user was on Pre and it disappears, fall back to Finance
+  useEffect(() => { if (tab === 'pre' && project && !hasProduction) setTab('finance'); }, [tab, project, hasProduction]);
 
   return (
     <div style={{ minHeight:'100vh', background:'var(--bg)' }}>
@@ -169,7 +177,7 @@ export function ProjectViewDetail() {
           )}
           <div style={{ flex:1 }} />
           <div style={{ display:'flex', border:'1px solid var(--border)', borderRadius:18, overflow:'hidden' }}>
-            {TABS.map(([k, label, color]) => (
+            {tabs.map(([k, label, color]) => (
               <button key={k} onClick={() => setTab(k)}
                 style={{ background: tab === k ? 'rgba(255,255,255,0.07)' : 'transparent', border:'none',
                   color: tab === k ? color : 'var(--muted)', fontSize:11, fontWeight:800, padding:'7px 16px', cursor:'pointer' }}>
