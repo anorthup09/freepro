@@ -1277,11 +1277,15 @@ async function migrate() {
   await sql`ALTER TYPE event_tag_type ADD VALUE IF NOT EXISTS 'TRAVEL'`;
   await sql`ALTER TABLE locations ADD COLUMN IF NOT EXISTS arrival_notes TEXT`;
 
-  // One-time reclassification: move Anna Parnigoni from Unbridled crew to
-  // contractor status (contractor = company that isn't Unbridled). Guarded so
-  // it only fires while she's still tagged Unbridled — safe to keep/re-run.
-  await sql`UPDATE crew_members SET company = 'Freelance', updated_at = NOW()
-    WHERE name ILIKE '%parnigoni%' AND (company IS NULL OR company ILIKE '%unbridled%')`;
+  // Reclassify these people from Unbridled crew to contractor status
+  // (contractor = company that isn't Unbridled). Guarded so each only fires
+  // while still tagged Unbridled — safe to keep and re-run.
+  for (const name of ['Anna Parnigoni', 'Cole Seifert', 'Dylan Patterson', 'Melinda Love']) {
+    const [first, ...rest] = name.split(' ');
+    const pattern = `${first}%${rest[rest.length - 1]}`;
+    await sql`UPDATE crew_members SET company = 'Freelance', updated_at = NOW()
+      WHERE name ILIKE ${pattern} AND (company IS NULL OR company ILIKE '%unbridled%')`;
+  }
 
   // One-time ClickUp PTO/OOO import (idempotent)
   try { await require('./seedPto')(); } catch (e) { console.error('PTO seed failed:', e.message); }
