@@ -206,7 +206,15 @@ export default function Project({ idOverride }) {
   const [project, setProject] = useState(null);
   const { user } = useAuth();
   const isAgency = user?.role === 'AGENCY';
-  const [tab, setTab] = useState(() => new URLSearchParams(window.location.search).get('tab') || (user?.role === 'AGENCY' ? 'schedule' : 'overview'));
+  const isCrew = user?.role === 'CREW';
+  const GEAR_TAB_IDS = ['gear-request', 'gear', 'gear-list'];
+  const [tab, setTab] = useState(() => {
+    const q = new URLSearchParams(window.location.search).get('tab');
+    if (isCrew) return GEAR_TAB_IDS.includes(q) ? q : 'gear-request';
+    return q || (user?.role === 'AGENCY' ? 'schedule' : 'overview');
+  });
+  // Crew are scoped to the Gear dropdown only — clamp any non-gear tab
+  useEffect(() => { if (isCrew && !GEAR_TAB_IDS.includes(tab)) setTab('gear-request'); }, [isCrew, tab]);
 
   // Keep the active tab in the URL so a refresh returns to the same tab
   useEffect(() => {
@@ -423,13 +431,13 @@ export default function Project({ idOverride }) {
           <span style={{ fontSize:9, color:'var(--muted)', letterSpacing:'0.06em', paddingLeft:1 }}>Powered by Unbridled Media</span>
         </div>
         <div className="tabs">
-          {!isAgency && <button className={`tab${tab === 'overview' ? ' on' : ''}`} onClick={() => setTab('overview')}>Overview</button>}
-          <DropdownTab label="Logistics" subtabs={isAgency
+          {!isAgency && !isCrew && <button className={`tab${tab === 'overview' ? ' on' : ''}`} onClick={() => setTab('overview')}>Overview</button>}
+          {!isCrew && <DropdownTab label="Logistics" subtabs={isAgency
             ? [{ id:'schedule', label:'Schedule' }, { id:'travel', label:'Travel' }, { id:'shot-list', label:'Shot List' }, { id:'additional-docs', label:'Additional Docs' }]
-            : [...BASE_LOGISTICS_TABS, ...(showTravel ? [{ id:'travel', label:'Travel' }] : []), ...(showCateringGrid ? [{ id:'catering', label:'Catering/Meals' }] : []), ...(showShotList ? [{ id:'shot-list', label:'Shot List' }] : []), ...(showScripts ? [{ id:'scripts', label:'Scripts' }] : []), { id:'additional-docs', label:'Additional Docs' }]} tab={tab} setTab={setTab} />
+            : [...BASE_LOGISTICS_TABS, ...(showTravel ? [{ id:'travel', label:'Travel' }] : []), ...(showCateringGrid ? [{ id:'catering', label:'Catering/Meals' }] : []), ...(showShotList ? [{ id:'shot-list', label:'Shot List' }] : []), ...(showScripts ? [{ id:'scripts', label:'Scripts' }] : []), { id:'additional-docs', label:'Additional Docs' }]} tab={tab} setTab={setTab} />}
           <DropdownTab label="Gear" subtabs={GEAR_TABS} tab={tab} setTab={setTab} />
-          <button className={`tab${tab === 'deliverable-overview' ? ' on' : ''}`} onClick={() => setTab('deliverable-overview')}>Deliverable</button>
-          {!isAgency && <button
+          {!isCrew && <button className={`tab${tab === 'deliverable-overview' ? ' on' : ''}`} onClick={() => setTab('deliverable-overview')}>Deliverable</button>}
+          {!isAgency && !isCrew && <button
             className={`tab tab-questions${tab === 'questions' ? ' on' : ''}`}
             onClick={() => setTab('questions')}
             style={{ border:'1px solid var(--orange)', borderRadius:6, color:'#fff', flexShrink:0, display:'flex', alignItems:'center', gap:5 }}
@@ -442,7 +450,7 @@ export default function Project({ idOverride }) {
         <Link to="/" title="Back to the Unbridled Media hub" style={{ display:'flex', alignItems:'center', marginLeft:'auto', marginRight:10 }}>
           <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height:18, filter:'brightness(0) invert(1)', opacity:0.9 }} />
         </Link>
-        {!glassVisible && !isAgency && <ShareDropdown projectId={id} showShotList={showShotList} />}
+        {!glassVisible && !isAgency && !isCrew && <ShareDropdown projectId={id} showShotList={showShotList} />}
       </nav>
 
       <div className="wrap">

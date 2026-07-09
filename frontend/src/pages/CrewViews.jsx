@@ -103,6 +103,11 @@ export default function CrewViews() {
         )}
         {d === 0 && <div style={{ fontSize:11, fontWeight:700, color:'var(--orange)', flexShrink:0 }}>Today!</div>}
         <span className={`pill ${STATUS_PILL[p.status] || ''}`}>{p.status.replace(/_/g, ' ')}</span>
+        <button onClick={e => { e.preventDefault(); e.stopPropagation(); nav(`/projects/${p.id}?tab=gear-request`); }}
+          title="Open gear request, management, and list for this shoot"
+          style={{ background:'rgba(232,80,10,0.14)', border:'1px solid var(--orange)', color:'var(--orange)', borderRadius:14, padding:'4px 12px', fontSize:11, fontWeight:800, cursor:'pointer', flexShrink:0, whiteSpace:'nowrap' }}>
+          Gear
+        </button>
         <span className="proj-card-arrow">›</span>
       </a>
     );
