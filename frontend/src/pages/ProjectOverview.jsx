@@ -254,8 +254,12 @@ export default function ProjectOverview({ pid }) {
 
   useEffect(() => {
     api.projectOverview(pid).then(setData).catch(e => setErr(e.message));
-    // Tag from the full crew roster (project_tasks.assignee_id references crew_members)
-    api.getCrew().then(rs => setMembers([...rs].map(m => ({ id: m.id, name: displayName(m) })).sort((a, b) => a.name.localeCompare(b.name)))).catch(() => {});
+    // Tag from the Unbridled crew only (company = Unbridled Media); contractors
+    // are excluded. project_tasks.assignee_id references crew_members.
+    api.getCrew().then(rs => setMembers(rs
+      .filter(m => (m.company || '').toLowerCase().includes('unbridled'))
+      .map(m => ({ id: m.id, name: displayName(m) }))
+      .sort((a, b) => a.name.localeCompare(b.name)))).catch(() => {});
   }, [pid]);
 
   if (err) return <div className="empty">{err}</div>;
