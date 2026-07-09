@@ -21,5 +21,17 @@
       "Click Exit Preview on the banner (or reset the dropdown) to return to your admin view."
     ],
     "screenshot": "role-preview.png"
+  },
+  {
+    "title": "Agency role",
+    "what": "A new user role for agency partners. Agency accounts see the hub dashboard (Day in Review, My Tasks, Team Today), Team Management, AvocadoPost, and each project's logistics \u2014 with edit access only where they need it: the Gear and Deliverable tabs. Everything else stays view-only and finance stays hidden.",
+    "where": "User Management (set a user's role to AGENCY). Agency users open projects from the FreePro tile; each project shows the Logistics dropdown (Schedule, Travel, Shot List, Additional Docs), Gear, and Deliverable.",
+    "how": [
+      "Open User Management on the hub and set the member's role to AGENCY.",
+      "The agency user signs in and opens a project from the FreePro tile.",
+      "Logistics dropdown: Schedule, Travel, Shot List, and Additional Docs \u2014 view-only.",
+      "Gear and Deliverable tabs are fully editable for agency users."
+    ],
+    "screenshot": "agency-role.png"
   }
 ]
