@@ -258,6 +258,9 @@ Questions? Reply to whoever sent you this.`;
   );
 }
 
+// Edge fade so tiles blur out at the sides of a scroll row
+const SCROLL_FADE = 'linear-gradient(to right, transparent 0, #000 16px, #000 calc(100% - 16px), transparent 100%)';
+
 // Project View mode: every project as a tile, sorted by code
 function HubProjects() {
   const nav = useNavigate();
@@ -281,40 +284,46 @@ function HubProjects() {
   const cs = cq.trim().toLowerCase();
   const shownClients = cs ? clients.filter(c => c.name.toLowerCase().includes(cs)) : clients;
   return (
-    <div style={{ display:'flex', gap:24, alignItems:'flex-start', flexWrap:'wrap' }}>
-      <div style={{ flex:'2 1 420px', minWidth:0 }}>
-      <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:12 }}>
-        <div onClick={() => nav('/project-view')} title="Open the full Project View — every project"
-          style={{ fontSize:13, fontWeight:800, cursor:'pointer', textDecoration:'underline', textUnderlineOffset:3, textDecorationColor:'var(--border)' }}>Project Hub</div>
-        <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search code, title, client…" style={{ width:240 }} />
-      </div>
-      {!projects && <div className="empty">Loading…</div>}
-      {projects && shown.length === 0 && <div className="empty">No projects match.</div>}
-      <div className="hub-scroll" style={{ display:'flex', gap:10, overflowX:'auto', paddingBottom:8 }}>
-        {shown.map(p => (
-          <div key={p.id} onClick={() => nav(`/project-view/${p.id}`)}
-            style={{ flex:'0 0 auto', width:180, background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid rgba(232,232,232,0.35)', borderRadius:10, padding:'11px 13px', cursor:'pointer', transition:'transform .15s ease' }}
-            onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-3px)'}
-            onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
-            <div style={{ fontSize:10, fontWeight:800, color:'var(--muted)', letterSpacing:'0.04em' }}>{p.code}</div>
-            <div style={{ fontSize:12.5, fontWeight:800, margin:'3px 0 2px' }}>{p.title}</div>
-            <div style={{ fontSize:10.5, color:'var(--muted)' }}>{p.client}</div>
-            <div style={{ display:'flex', gap:5, marginTop:8, flexWrap:'wrap' }}>
-              <span style={{ fontSize:9, fontWeight:800, color:'#5ABF80', border:'1px solid #5ABF8055', borderRadius:10, padding:'2px 8px' }}>{p.budget_status || 'No budget'}</span>
-              {(p.shoots || []).length > 0 && <span style={{ fontSize:9, fontWeight:800, color:'var(--orange)', border:'1px solid rgba(232,80,10,0.4)', borderRadius:10, padding:'2px 8px' }}>{p.shoots.length} shoot{p.shoots.length !== 1 ? 's' : ''}</span>}
+    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', border:'1px solid var(--border)', borderRadius:12, marginBottom:22, overflow:'hidden' }}>
+      {/* Project Hub — aligns with Day in Review below */}
+      <div style={{ padding:'16px 18px', borderRight:'1px solid var(--border)', minWidth:0 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:12 }}>
+          <div onClick={() => nav('/project-view')} title="Open the full Project View — every project"
+            style={{ fontSize:13, fontWeight:800, cursor:'pointer', whiteSpace:'nowrap', textDecoration:'underline', textUnderlineOffset:3, textDecorationColor:'var(--border)' }}>Project Hub</div>
+          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search code, title, client…" style={{ flex:1, minWidth:0 }} />
+        </div>
+        {!projects && <div className="empty">Loading…</div>}
+        {projects && shown.length === 0 && <div className="empty">No projects match.</div>}
+        {shown.length > 0 && (
+        <div className="hub-scroll" style={{ display:'flex', gap:10, overflowX:'auto', paddingBottom:8, WebkitMaskImage:SCROLL_FADE, maskImage:SCROLL_FADE }}>
+          {shown.map(p => (
+            <div key={p.id} onClick={() => nav(`/project-view/${p.id}`)}
+              style={{ flex:'0 0 auto', width:180, background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid rgba(232,232,232,0.35)', borderRadius:10, padding:'11px 13px', cursor:'pointer', transition:'transform .15s ease' }}
+              onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-3px)'}
+              onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
+              <div style={{ fontSize:10, fontWeight:800, color:'var(--muted)', letterSpacing:'0.04em' }}>{p.code}</div>
+              <div style={{ fontSize:12.5, fontWeight:800, margin:'3px 0 2px' }}>{p.title}</div>
+              <div style={{ fontSize:10.5, color:'var(--muted)' }}>{p.client}</div>
+              <div style={{ display:'flex', gap:5, marginTop:8, flexWrap:'wrap' }}>
+                <span style={{ fontSize:9, fontWeight:800, color:'#5ABF80', border:'1px solid #5ABF8055', borderRadius:10, padding:'2px 8px' }}>{p.budget_status || 'No budget'}</span>
+                {(p.shoots || []).length > 0 && <span style={{ fontSize:9, fontWeight:800, color:'var(--orange)', border:'1px solid rgba(232,80,10,0.4)', borderRadius:10, padding:'2px 8px' }}>{p.shoots.length} shoot{p.shoots.length !== 1 ? 's' : ''}</span>}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
+        )}
       </div>
-      </div>
-      {clients.length > 0 && (
-        <div style={{ flex:'1 1 300px', minWidth:0 }}>
-          <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:12 }}>
-            <div onClick={() => nav('/project-view')} title="Open the full Project View — every client"
-              style={{ fontSize:13, fontWeight:800, cursor:'pointer', textDecoration:'underline', textUnderlineOffset:3, textDecorationColor:'var(--border)' }}>Client Hub</div>
-            <input value={cq} onChange={e => setCq(e.target.value)} placeholder="Search clients…" style={{ width:240 }} />
-          </div>
-          <div className="hub-scroll" style={{ display:'flex', gap:10, overflowX:'auto', paddingBottom:8 }}>
+      {/* Client Hub — aligns with Team Today below */}
+      <div style={{ padding:'16px 18px', minWidth:0 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:12 }}>
+          <div onClick={() => nav('/project-view')} title="Open the full Project View — every client"
+            style={{ fontSize:13, fontWeight:800, cursor:'pointer', whiteSpace:'nowrap', textDecoration:'underline', textUnderlineOffset:3, textDecorationColor:'var(--border)' }}>Client Hub</div>
+          <input value={cq} onChange={e => setCq(e.target.value)} placeholder="Search clients…" style={{ flex:1, minWidth:0 }} />
+        </div>
+        {clients.length === 0
+          ? <div className="empty">No clients yet.</div>
+          : (
+          <div className="hub-scroll" style={{ display:'flex', gap:10, overflowX:'auto', paddingBottom:8, WebkitMaskImage:SCROLL_FADE, maskImage:SCROLL_FADE }}>
             {shownClients.map(c => (
               <div key={c.name} onClick={() => nav(`/project-view/client/${encodeURIComponent(c.name)}`)}
                 style={{ flex:'0 0 auto', width:180, background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid rgba(74,158,255,0.5)', borderRadius:10, padding:'11px 13px', cursor:'pointer', transition:'transform .15s ease' }}
@@ -331,8 +340,8 @@ function HubProjects() {
               </div>
             ))}
           </div>
-        </div>
-      )}
+          )}
+      </div>
     </div>
   );
 }
