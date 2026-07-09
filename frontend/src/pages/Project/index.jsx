@@ -406,7 +406,7 @@ export default function Project({ idOverride }) {
         <div className="tabs">
           {!isAgency && <button className={`tab${tab === 'overview' ? ' on' : ''}`} onClick={() => setTab('overview')}>Overview</button>}
           <DropdownTab label="Logistics" subtabs={isAgency
-            ? [{ id:'schedule', label:'Schedule' }, ...(showTravel ? [{ id:'travel', label:'Travel' }] : []), ...(showShotList ? [{ id:'shot-list', label:'Shot List' }] : []), { id:'additional-docs', label:'Additional Docs' }]
+            ? [{ id:'schedule', label:'Schedule' }, { id:'travel', label:'Travel' }, { id:'shot-list', label:'Shot List' }, { id:'additional-docs', label:'Additional Docs' }]
             : [...BASE_LOGISTICS_TABS, ...(showTravel ? [{ id:'travel', label:'Travel' }] : []), ...(showCateringGrid ? [{ id:'catering', label:'Catering/Meals' }] : []), ...(showShotList ? [{ id:'shot-list', label:'Shot List' }] : []), ...(showScripts ? [{ id:'scripts', label:'Scripts' }] : []), { id:'additional-docs', label:'Additional Docs' }]} tab={tab} setTab={setTab} />
           <DropdownTab label="Gear" subtabs={GEAR_TABS} tab={tab} setTab={setTab} />
           <button className={`tab${tab === 'deliverable-overview' ? ' on' : ''}`} onClick={() => setTab('deliverable-overview')}>Deliverable</button>
