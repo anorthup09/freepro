@@ -99,17 +99,19 @@ function ProjectLookup() {
       {pages && filtered.length === 0 && liveExtra.length === 0 && !q.trim() && (
         <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>No project pages yet — type a project code above to create one.</div>
       )}
-      <div className="avo-lookup-tiles" style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
+      <div className="avo-lookup-tiles" style={{ display:'flex', gap:10, flexWrap:'nowrap', overflowX:'auto', paddingBottom:6,
+        WebkitMaskImage:'linear-gradient(to right, transparent 0, #000 26px, #000 calc(100% - 26px), transparent 100%)',
+        maskImage:'linear-gradient(to right, transparent 0, #000 26px, #000 calc(100% - 26px), transparent 100%)' }}>
         {filtered.map(p => (
           <div key={p.id} onClick={() => nav(`/avo/project/${p.id}`)}
-            style={{ background:'var(--bg)', border:'1px solid var(--border)', borderLeft:`3px solid ${AVO}`, borderRadius:8, padding:'10px 14px', minWidth:170, cursor:'pointer' }}>
+            style={{ background:'var(--bg)', border:'1px solid var(--border)', borderLeft:`3px solid ${AVO}`, borderRadius:8, padding:'10px 14px', minWidth:170, flexShrink:0, cursor:'pointer' }}>
             <div style={{ fontSize:12, fontWeight:800 }}>{p.code}</div>
             <div style={{ fontSize:10, color:'var(--muted)', marginTop:2 }}>{p.title || 'Lower thirds · to-dos'}</div>
           </div>
         ))}
         {liveExtra.map(c => (
           <div key={c.code} onClick={() => openLive(c)}
-            style={{ background:'var(--bg)', border:'1px solid var(--border)', borderLeft:'3px solid #5ABF80', borderRadius:8, padding:'10px 14px', minWidth:170, cursor:'pointer' }}>
+            style={{ background:'var(--bg)', border:'1px solid var(--border)', borderLeft:'3px solid #5ABF80', borderRadius:8, padding:'10px 14px', minWidth:170, flexShrink:0, cursor:'pointer' }}>
             <div style={{ display:'flex', alignItems:'center', gap:6 }}>
               <span style={{ fontSize:12, fontWeight:800 }}>{c.code}</span>
               <span style={{ fontSize:8, fontWeight:800, color:'#5ABF80', border:'1px solid #5ABF8055', borderRadius:8, padding:'1px 6px', textTransform:'uppercase' }}>Live</span>
@@ -119,7 +121,7 @@ function ProjectLookup() {
         ))}
         {q.trim() && !exactMatch && (
           <div onClick={createPage}
-            style={{ background:'transparent', border:`1px dashed ${AVO}`, color:AVO, borderRadius:8, padding:'10px 14px', minWidth:170, cursor:'pointer', display:'flex', alignItems:'center', fontSize:12, fontWeight:700 }}>
+            style={{ background:'transparent', border:`1px dashed ${AVO}`, color:AVO, borderRadius:8, padding:'10px 14px', minWidth:170, flexShrink:0, cursor:'pointer', display:'flex', alignItems:'center', fontSize:12, fontWeight:700 }}>
             + Create “{q.trim()}”
           </div>
         )}
