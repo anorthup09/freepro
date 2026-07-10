@@ -224,10 +224,28 @@ router.get('/flight-lookup', requireAuth, async (req, res, next) => {
         arriveDisplay: fmtLocalTime(arriveLocal),
         status: f.status || '',
       };
-    }).sort((a, b) => String(a.departTime || '').localeCompare(String(b.departTime || '')));
+    }).sort((a, b) => String(a.departTime || a.arriveTime || '').localeCompare(String(b.departTime || b.arriveTime || '')));
+
+    // The provider sometimes splits one leg into two partial records — a
+    // departure-only half ("LAS → ?") and an arrival-only half ("? → TUL").
+    // Stitch a departure-only leg to the next arrival-only one after it.
+    const merged = [];
+    for (let i = 0; i < legs.length; i++) {
+      const a = legs[i], b = legs[i + 1];
+      if (a.origin && !a.destination && b && b.destination && !b.origin
+          && (!a.departTime || !b.arriveTime || String(a.departTime) < String(b.arriveTime))) {
+        merged.push({
+          ...a,
+          destination: b.destination, destinationName: b.destinationName,
+          arriveTime: b.arriveTime, arriveDisplay: b.arriveDisplay,
+          status: a.status || b.status,
+        });
+        i++; // consume the arrival half
+      } else merged.push(a);
+    }
 
     // First leg stays at the top level for backward compatibility
-    res.json({ ...legs[0], legs, originScan });
+    res.json({ ...merged[0], legs: merged, originScan });
   } catch(e) { next(e); }
 });
 
