@@ -144,6 +144,26 @@ function MilestoneCalendarModal({ edit, onClose }) {
   );
 }
 
+// Currency input: displays $x,xxx.xx, switches to a raw number while editing
+function MoneyField({ value, onCommit }) {
+  const [editing, setEditing] = useState(false);
+  const [raw, setRaw] = useState('');
+  const fmt = v => (v === null || v === undefined || v === '') ? '' :
+    '$' + Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return (
+    <input
+      value={editing ? raw : fmt(value)}
+      placeholder="$0.00"
+      onFocus={() => { setRaw(value === null || value === undefined ? '' : String(value)); setEditing(true); }}
+      onChange={ev => setRaw(ev.target.value)}
+      onBlur={() => {
+        setEditing(false);
+        const n = parseFloat(String(raw).replace(/[^0-9.\-]/g, ''));
+        onCommit(Number.isFinite(n) ? n : null);
+      }} />
+  );
+}
+
 // Runs of more than 3 consecutive log lines auto-collapse in the feed
 function groupActivity(activity) {
   const out = [];
@@ -630,7 +650,10 @@ export default function AvoEdit() {
                   {field('Music Ref', 'music_ref', 'musicRef')}
                 </div>
                 <div style={{ display:'flex', gap:12, flexWrap:'wrap', alignItems:'flex-end' }}>
-                  {field('Contract Editor Cost ($)', 'cost_estimate', 'costEstimate', 'number')}
+                  <div style={{ flex:1, minWidth:150 }}>
+                    <span style={lbl}>Contract Editor Cost</span>
+                    <MoneyField value={e.cost_estimate} onCommit={v => { patch({ cost_estimate: v }); save({ costEstimate: v }); }} />
+                  </div>
                   <div style={{ flex:1, minWidth:150 }}>
                     <span style={lbl}>Hold to VCC</span>
                     <button disabled={busy || !(Number(e.cost_estimate) > 0)} onClick={holdCost}

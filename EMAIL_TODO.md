@@ -16,6 +16,9 @@ link (SMTP) is connected. Keep this file updated as email features are added.
 
 ## Already built — go live as soon as SMTP is connected
 
+- [ ] **Deliverable approval email** — when an edit is marked Approved in
+      AvocadoPost, the lead editor gets an email (activity note logs the send).
+
 - [ ] **Harbinger submission report** — full kickoff report emailed to
       `HARBINGER_EMAIL` when a budget moves RFP → Live and the form is
       submitted. (`backend/src/routes/finance.js`)

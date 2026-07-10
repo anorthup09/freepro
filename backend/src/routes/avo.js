@@ -1,7 +1,7 @@
 const router = require('express').Router();
 const sql = require('../lib/db');
 const { requireAuth, requireRole } = require('../middleware/auth');
-const { sendMail } = require('../lib/mailer');
+const { sendMail, isConfigured: mailReady } = require('../lib/mailer');
 const { sendCalendarHold } = require('../lib/ics');
 
 const staff = [requireAuth];
@@ -286,7 +286,24 @@ router.patch('/edits/:id', ...staff, async (req, res, next) => {
       if (d[k] === undefined) continue;
       const from = beforeVals[k], to = d[k];
       if (String(from ?? '') === String(to ?? '')) continue;
-      if (k === 'approved') await logAct(e.id, 'log', who, to ? 'marked this edit Approved ✓' : 'removed Approved');
+      if (k === 'approved') {
+        await logAct(e.id, 'log', who, to ? 'marked this edit Approved ✓' : 'removed Approved');
+        // Let the lead editor know their deliverable was approved (no-op until SMTP is configured)
+        if (to && e.lead_editor_id) {
+          try {
+            const [ed] = await sql`SELECT ${sql.unsafe(PREF)} as name, email FROM crew_members cm WHERE cm.id = ${e.lead_editor_id}`;
+            if (!mailReady()) console.log(`Approval email skipped (SMTP not configured) → ${ed?.email || 'no editor email'}`);
+            else if (ed?.email) {
+              await sendMail({
+                to: ed.email,
+                subject: `Approved ✓ — ${e.title}${e.project_code ? ` (${e.project_code})` : ''}`,
+                text: `Hi ${ed.name || 'there'},\n\n"${e.title}"${e.project_code ? ` (${e.project_code})` : ''} was marked Approved by ${who}.\n\nNice work — details are in AvocadoPost.`,
+              });
+              await logAct(e.id, 'log', 'system', `emailed ${ed.name || ed.email} about the approval`);
+            }
+          } catch (err) { console.error('Approval email failed:', err.message); }
+        }
+      }
       else if (k === 'description') await logAct(e.id, 'log', who, 'updated the Description');
       else await logAct(e.id, 'log', who, `set ${label} to ${to || '—'}${from ? ` (was ${String(from).slice(0, 60)})` : ''}`);
     }
