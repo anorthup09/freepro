@@ -316,6 +316,19 @@ export default function AvoEdit() {
     setBusy(false);
   }
 
+  // Push the contract editor's cost estimate onto the project VCC as a HOLD
+  async function holdCost() {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const entry = await api.holdEditCost(id);
+      const full = await api.avoEdit(id);
+      setE(full);
+      alert(`Held $${Number(entry.amount).toLocaleString('en-US')} on the project's VCC for the contract editor.`);
+    } catch (err) { alert(err.message); }
+    setBusy(false);
+  }
+
   function upload(ev) {
     const file = ev.target.files?.[0];
     ev.target.value = '';
@@ -574,6 +587,17 @@ export default function AvoEdit() {
                 <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
                   {field('Asset Ref', 'asset_ref', 'assetRef')}
                   {field('Music Ref', 'music_ref', 'musicRef')}
+                </div>
+                <div style={{ display:'flex', gap:12, flexWrap:'wrap', alignItems:'flex-end' }}>
+                  {field('Contract Editor Cost ($)', 'cost_estimate', 'costEstimate', 'number')}
+                  <div style={{ flex:1, minWidth:150 }}>
+                    <span style={lbl}>Hold to VCC</span>
+                    <button disabled={busy || !(Number(e.cost_estimate) > 0)} onClick={holdCost}
+                      title={!(e.project_id) ? 'Link this edit to a project code first' : Number(e.cost_estimate) > 0 ? 'Post this editor cost to the project VCC as a hold' : 'Enter a cost first'}
+                      style={{ width:'100%', background:'rgba(90,191,128,0.12)', border:'1px solid #5ABF80', color:'#5ABF80', borderRadius:8, padding:'8px 14px', fontSize:12, fontWeight:800, cursor: (busy || !(Number(e.cost_estimate) > 0)) ? 'default' : 'pointer', opacity: (busy || !(Number(e.cost_estimate) > 0)) ? 0.5 : 1 }}>
+                      Hold Cost → VCC
+                    </button>
+                  </div>
                 </div>
                 <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
                   {field('Start Date', 'start_date', 'startDate', 'date')}
