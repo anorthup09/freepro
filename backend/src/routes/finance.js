@@ -339,6 +339,7 @@ router.patch('/finance/budget/:bid', ...finance, async (req, res, next) => {
         deposit = ${d.deposit !== undefined ? num(d.deposit) : sql`deposit`},
         deposit_due = ${d.depositDue !== undefined ? (d.depositDue || null) : sql`deposit_due`},
         additional_deposit = ${d.additionalDeposit !== undefined ? num(d.additionalDeposit) : sql`additional_deposit`},
+        extra_deposits = ${d.extraDeposits !== undefined ? sql.json(d.extraDeposits || []) : sql`extra_deposits`},
         final_inv_date = ${d.finalInvDate !== undefined ? (d.finalInvDate || null) : sql`final_inv_date`},
         paid_date = ${d.paidDate !== undefined ? (d.paidDate || null) : sql`paid_date`},
         total_cap_co = ${d.totalCapCo !== undefined ? (num(d.totalCapCo) ?? 0) : sql`total_cap_co`},

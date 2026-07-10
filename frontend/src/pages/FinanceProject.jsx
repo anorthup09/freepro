@@ -666,7 +666,7 @@ export function VccTab({ pid, budget, sections, lines, vcc, categories, set, vcc
   const t = useMemo(() => totals(sections, lines, mgmtRate), [sections, lines, mgmtRate]);
   const [form, setForm] = useState({ entryDate:'', vendor:'', description:'', category:'', trip:'', amount:'', status:'HOLD' });
 
-  const deposits = num(budget.deposit) + num(budget.additional_deposit);
+  const deposits = num(budget.deposit) + num(budget.additional_deposit) + (Array.isArray(budget.extra_deposits) ? budget.extra_deposits : []).reduce((a, x) => a + num(x.amount), 0);
   const finalInvoice = Math.max(t.total - deposits, 0);
   const payments = t.total;
   const billable = vcc.reduce((s, e) => s + num(e.amount), 0);
@@ -741,43 +741,59 @@ export function VccTab({ pid, budget, sections, lines, vcc, categories, set, vcc
           </div>
         </div>
         <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding:'12px 16px' }}>
-          <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'#5ABF80', marginBottom:10 }}>Client Deposits</div>
           {(() => {
+            const extras = Array.isArray(budget.extra_deposits) ? budget.extra_deposits : [];
+            const saveExtras = next => { patchBudget({ extra_deposits: next }); saveBudget({ extraDeposits: next }); };
             const today = () => new Date().toISOString().slice(0, 10);
             const fmtD = d => d ? new Date(d.slice(0,10) + 'T12:00:00').toLocaleDateString('en-US', { month:'numeric', day:'numeric', year:'2-digit' }) : '';
+            const sendMsg = () => alert('Coming soon: review the invoice email, attach the invoice, and send it to the client right from here.\n\nInvoice date recorded as today.');
             const send = (dateKey, apiKey) => {
               const d = today();
               patchBudget({ [dateKey]: d });
               saveBudget({ [apiKey]: d });
-              alert('Coming soon: review the invoice email, attach the invoice, and send it to the client right from here.\n\nInvoice date recorded as today.');
+              sendMsg();
             };
-            const row = (label, amountEl, dateVal, onSend) => (
-              <React.Fragment key={label}>
+            const row = (key, label, amountEl, dateVal, onSend, onRemove) => (
+              <React.Fragment key={key}>
                 <span style={{ color:'var(--muted)' }}>{label}</span>
                 <span style={{ display:'flex', justifyContent:'flex-end' }}>{amountEl}</span>
                 <span style={{ fontSize:10, color: dateVal ? 'var(--text)' : 'var(--muted)', textAlign:'center' }}>{dateVal ? fmtD(dateVal) : '—'}</span>
-                <span>
+                <span style={{ display:'flex', alignItems:'center', gap:4 }}>
                   {onSend && (
                     <button type="button" className="btn btn-ghost btn-sm" style={{ whiteSpace:'nowrap' }} onClick={onSend}>✉ Send Invoice</button>
+                  )}
+                  {onRemove && (
+                    <button type="button" title="Remove this deposit" onClick={onRemove}
+                      style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }}>✕</button>
                   )}
                 </span>
               </React.Fragment>
             );
             return (
-              <div style={{ display:'grid', gridTemplateColumns:'auto 110px 64px auto', gap:'7px 10px', fontSize:11, alignItems:'center' }}>
-                {row('Deposit',
-                  <MoneyInput value={budget.deposit ?? ''} width={110} onCommit={v => { patchBudget({ deposit: v }); saveBudget({ deposit: v }); }} />,
-                  budget.deposit_due, () => send('deposit_due', 'depositDue'))}
-                {row('Additional',
-                  <MoneyInput value={budget.additional_deposit ?? ''} width={110} onCommit={v => { patchBudget({ additional_deposit: v }); saveBudget({ additionalDeposit: v }); }} />,
-                  budget.paid_date, () => send('paid_date', 'paidDate'))}
-                {row('Final Invoice',
-                  <span style={{ fontWeight:700, padding:'4px 6px' }}>{fmt$(finalInvoice)}</span>,
-                  budget.final_inv_date, () => send('final_inv_date', 'finalInvDate'))}
-                {row('Total Budget',
-                  <span style={{ fontWeight:800, color:'#5ABF80', padding:'4px 6px' }}>{fmt$(t.total)}</span>,
-                  null, null)}
-              </div>
+              <>
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+                  <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'#5ABF80' }}>Client Deposits</div>
+                  <button type="button" className="btn btn-ghost btn-sm" style={{ fontSize:10, whiteSpace:'nowrap' }}
+                    onClick={() => saveExtras([...extras, { amount: null, date: null }])}>+ Add Deposit</button>
+                </div>
+                <div style={{ display:'grid', gridTemplateColumns:'auto 110px 64px auto', gap:'7px 10px', fontSize:11, alignItems:'center' }}>
+                  {row('dep0', 'Deposit',
+                    <MoneyInput value={budget.deposit ?? ''} width={110} onCommit={v => { patchBudget({ deposit: v }); saveBudget({ deposit: v }); }} />,
+                    budget.deposit_due, () => send('deposit_due', 'depositDue'))}
+                  {extras.map((x, i) => row(`dep${i + 1}`, `Deposit ${i + 2}`,
+                    <MoneyInput value={x.amount ?? ''} width={110}
+                      onCommit={v => saveExtras(extras.map((y, j) => j === i ? { ...y, amount: v } : y))} />,
+                    x.date,
+                    () => { saveExtras(extras.map((y, j) => j === i ? { ...y, date: today() } : y)); sendMsg(); },
+                    () => { if (confirm('Remove this deposit?')) saveExtras(extras.filter((_, j) => j !== i)); }))}
+                  {row('final', 'Final Invoice',
+                    <span style={{ fontWeight:700, padding:'4px 6px' }}>{fmt$(finalInvoice)}</span>,
+                    budget.final_inv_date, () => send('final_inv_date', 'finalInvDate'))}
+                  {row('total', 'Total Budget',
+                    <span style={{ fontWeight:800, color:'#5ABF80', padding:'4px 6px' }}>{fmt$(t.total)}</span>,
+                    null, null)}
+                </div>
+              </>
             );
           })()}
         </div>

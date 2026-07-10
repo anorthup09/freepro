@@ -1420,6 +1420,17 @@ async function migrate() {
     await sql`CREATE UNIQUE INDEX IF NOT EXISTS shoot_days_proj_date_uniq ON shoot_days (project_id, ((date AT TIME ZONE 'UTC')::date))`;
   } catch (e) { console.error('shoot_days dedupe failed:', e.message); }
 
+  // Client deposits beyond the first live in a JSONB list; fold the old
+  // single "Additional" deposit into it once
+  await sql`ALTER TABLE budgets ADD COLUMN IF NOT EXISTS extra_deposits JSONB DEFAULT '[]'::jsonb`;
+  try {
+    await sql`
+      UPDATE budgets SET
+        extra_deposits = COALESCE(extra_deposits, '[]'::jsonb) || jsonb_build_array(jsonb_build_object('amount', additional_deposit, 'date', paid_date)),
+        additional_deposit = NULL
+      WHERE additional_deposit IS NOT NULL AND additional_deposit <> 0`;
+  } catch (e) { console.error('additional_deposit fold failed:', e.message); }
+
   // One-time ClickUp PTO/OOO import (idempotent)
   try { await require('./seedPto')(); } catch (e) { console.error('PTO seed failed:', e.message); }
 
