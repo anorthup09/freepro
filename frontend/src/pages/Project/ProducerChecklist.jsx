@@ -4,11 +4,13 @@ import { PRODUCER_CHECKLISTS } from '../../data/producerChecklists.js';
 const CARD_COLORS = ['#5ABF80', '#4a9eff', '#e6c229', '#d66a9b'];
 
 // Producer Checklist — four production playbooks pulled from the master resources
-// doc. Pick a checklist up top, then work each section. Checks persist per project
-// in the browser (no backend field needed).
+// doc. Each button toggles its checklist open/closed; open ones move to the left
+// of the row and clicking between them switches which checklist is displayed.
+// Checks persist per project in the browser (no backend field needed).
 export default function ProducerChecklist({ project }) {
   const storeKey = `producer-checklist:${project?.id || 'x'}`;
-  const [active, setActive] = useState(null); // all closed until a button is opened
+  const [open, setOpen] = useState([]);       // keys of open checklists, in open order
+  const [active, setActive] = useState(null); // which open checklist is displayed
   const [checked, setChecked] = useState({});
 
   useEffect(() => {
@@ -20,6 +22,18 @@ export default function ProducerChecklist({ project }) {
     setChecked(prev => {
       const next = { ...prev, [id]: !prev[id] };
       try { localStorage.setItem(storeKey, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  }
+
+  function openList(key) {
+    setOpen(o => o.includes(key) ? o : [...o, key]);
+    setActive(key);
+  }
+  function closeList(key) {
+    setOpen(o => {
+      const next = o.filter(k => k !== key);
+      setActive(a => a === key ? (next[next.length - 1] || null) : a);
       return next;
     });
   }
@@ -38,41 +52,48 @@ export default function ProducerChecklist({ project }) {
     return { total, done };
   };
 
+  // Open checklists (in open order) lead on the left; closed pills trail on the right
+  const openLists = open.map(k => PRODUCER_CHECKLISTS.find(l => l.key === k)).filter(Boolean);
+  const closedLists = PRODUCER_CHECKLISTS.filter(l => !open.includes(l.key));
+
   return (
     <div style={{ padding: '4px 2px 30px' }}>
-      {/* Four open/close buttons, top right. Closed = small dark pill; the open one
-          pops out into its full card (title, progress bar, done count). */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 22, justifyContent: 'flex-end', alignItems: 'flex-start' }}>
-        {PRODUCER_CHECKLISTS.map((l, i) => {
-          const { total, done } = progressFor(l);
-          const on = l.key === active;
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 22, alignItems: 'flex-start' }}>
+        {openLists.map(l => {
+          const i = PRODUCER_CHECKLISTS.findIndex(x => x.key === l.key);
           const color = CARD_COLORS[i];
-          if (!on) return (
-            <button key={l.key} onClick={() => setActive(l.key)} title={`Open ${l.title}`}
-              style={{
-                cursor: 'pointer', borderRadius: 16, padding: '6px 14px', background: '#0b0b0b',
-                border: '1px solid var(--border)', color: 'var(--muted)',
-                fontSize: 11, fontWeight: 800, whiteSpace: 'nowrap',
-              }}>
-              {l.label}
-            </button>
-          );
+          const { total, done } = progressFor(l);
+          const isActive = l.key === active;
           return (
-            <button key={l.key} onClick={() => setActive(null)} title={`Close ${l.label}`}
+            <div key={l.key} onClick={() => setActive(l.key)} title={isActive ? l.title : `View ${l.label}`}
               style={{
-                textAlign: 'left', cursor: 'pointer', borderRadius: 12, padding: '12px 16px',
+                position: 'relative', textAlign: 'left', cursor: 'pointer', borderRadius: 12, padding: '12px 16px',
                 minWidth: 200, maxWidth: 260,
-                background: `${color}1e`, border: `1px solid ${color}`, borderTop: `3px solid ${color}`,
+                background: `${color}${isActive ? '2e' : '14'}`, border: `1px solid ${color}${isActive ? '' : '66'}`, borderTop: `3px solid ${color}`,
+                opacity: isActive ? 1 : 0.75,
               }}>
+              <button onClick={ev => { ev.stopPropagation(); closeList(l.key); }} title={`Close ${l.label}`}
+                style={{ position: 'absolute', top: 6, right: 8, background: 'none', border: 'none', color: 'var(--muted)', fontSize: 11, cursor: 'pointer', padding: 2 }}>✕</button>
               <div style={{ fontSize: 13, fontWeight: 800, color }}>{l.label}</div>
               <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 4, lineHeight: 1.3 }}>{l.title}</div>
               <div style={{ marginTop: 10, height: 5, borderRadius: 3, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
                 <div style={{ width: total ? `${Math.round((done / total) * 100)}%` : '0%', height: '100%', background: color }} />
               </div>
               <div style={{ fontSize: 9, color: 'var(--muted)', marginTop: 4 }}>{done} / {total} done</div>
-            </button>
+            </div>
           );
         })}
+        <div style={{ flex: 1 }} />
+        {closedLists.map(l => (
+          <button key={l.key} onClick={() => openList(l.key)} title={`Open ${l.title}`}
+            style={{
+              cursor: 'pointer', borderRadius: 16, padding: '6px 14px', background: '#0b0b0b',
+              border: '1px solid var(--border)', color: 'var(--muted)',
+              fontSize: 11, fontWeight: 800, whiteSpace: 'nowrap',
+            }}>
+            {l.label}
+          </button>
+        ))}
       </div>
 
       {!list && (
