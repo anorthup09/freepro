@@ -29,7 +29,7 @@ export default function FinanceOverview() {
             <div className="page-title">Project Finance Overview</div>
             <div className="page-sub">{projects ? `${gridProjects.length} project${gridProjects.length === 1 ? '' : 's'} · RFPs live in the RFP folder` : 'Loading…'}</div>
           </div>
-          <button className="btn btn-primary btn-sm" onClick={() => nav('/finance/report')}>📄 Weekly Finance Report</button>
+          <button className="btn btn-primary btn-sm" onClick={() => nav('/finance/report')}>Weekly Finance Report</button>
         </div>
         <div className="pos-table-wrap" style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, overflow:'auto' }}>
           <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12, minWidth:820 }}>

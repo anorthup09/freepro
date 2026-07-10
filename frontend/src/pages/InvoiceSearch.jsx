@@ -88,7 +88,7 @@ export default function InvoiceSearch() {
           <Link to="/" style={{ display:'flex', alignItems:'center' }}>
             <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height:20, filter:'brightness(0) invert(1)', opacity:0.95 }} />
           </Link>
-          <Link to="/reports" style={{ fontSize:12, color:'#e6c229', fontWeight:700, letterSpacing:'0.04em', textDecoration:'none' }}>📈 Reports</Link>
+          <Link to="/reports" style={{ fontSize:12, color:'#e6c229', fontWeight:700, letterSpacing:'0.04em', textDecoration:'none' }}>Reports</Link>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:12 }}>
           <span style={{ fontSize:11, color:'var(--muted)' }}>{user?.name}</span>
@@ -98,7 +98,7 @@ export default function InvoiceSearch() {
         </div>
       </div>
       <div style={{ maxWidth:1000, margin:'0 auto', padding:'10px 16px 60px' }}>
-        <div className="page-title">Invoice Search</div>
+        <div className="page-title">Vendor Invoice Search</div>
         <div className="page-sub">Every uploaded vendor invoice, across all projects</div>
 
         <div style={{ display:'flex', gap:10, flexWrap:'wrap', marginBottom:16 }}>

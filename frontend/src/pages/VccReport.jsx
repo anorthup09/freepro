@@ -18,7 +18,7 @@ function Header({ user, setUser, backTo, backLabel }) {
         <Link to="/" style={{ display:'flex', alignItems:'center' }} title="Back to the Unbridled Media hub">
           <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height:20, filter:'brightness(0) invert(1)', opacity:0.95 }} />
         </Link>
-        <span style={{ fontSize:12, color:'#e6c229', fontWeight:700, letterSpacing:'0.04em' }}>📈 Reports</span>
+        <span style={{ fontSize:12, color:'#e6c229', fontWeight:700, letterSpacing:'0.04em' }}>Reports</span>
       </div>
       <div style={{ display:'flex', alignItems:'center', gap:12 }}>
         <span style={{ fontSize:11, color:'var(--muted)' }}>{user?.name}</span>

@@ -52,7 +52,7 @@ export default function FinanceReport() {
 
         {!report.firstReport && (
           <>
-            <div style={secTitle}>➕ New Projects ({report.added.length})</div>
+            <div style={secTitle}>New Projects ({report.added.length})</div>
             <div style={card}>
               {report.added.length === 0 ? <div style={{ padding:'10px 14px', fontSize:12, color:'var(--muted)', fontStyle:'italic' }}>No new projects this period.</div> : (
                 <table style={{ width:'100%', borderCollapse:'collapse' }}>
@@ -71,7 +71,7 @@ export default function FinanceReport() {
               )}
             </div>
 
-            <div style={secTitle}>✏️ Changed Projects ({report.changed.length})</div>
+            <div style={secTitle}>Changed Projects ({report.changed.length})</div>
             <div style={card}>
               {report.changed.length === 0 ? <div style={{ padding:'10px 14px', fontSize:12, color:'var(--muted)', fontStyle:'italic' }}>No changes this period.</div> : (
                 report.changed.map(p => (
@@ -88,7 +88,7 @@ export default function FinanceReport() {
               )}
             </div>
 
-            <div style={secTitle}>🏁 Closed / Dead ({report.closed.length})</div>
+            <div style={secTitle}>Closed / Dead ({report.closed.length})</div>
             <div style={card}>
               {report.closed.length === 0 ? <div style={{ padding:'10px 14px', fontSize:12, color:'var(--muted)', fontStyle:'italic' }}>No closings this period.</div> : (
                 report.closed.map(p => (
@@ -103,7 +103,7 @@ export default function FinanceReport() {
         )}
 
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, flexWrap:'wrap' }}>
-          <div style={secTitle}>📋 Projects by Year ({shown.length})</div>
+          <div style={secTitle}>Projects by Year ({shown.length})</div>
           <select className="no-print" value={year} onChange={e => setYear(e.target.value)}
             style={{ width:150, fontSize:12, background:'var(--bg2)', border:'1px solid var(--border)', color:'var(--text)', borderRadius:8, padding:'5px 10px' }}>
             <option value="all">All Years</option>
