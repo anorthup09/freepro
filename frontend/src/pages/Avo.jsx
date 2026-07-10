@@ -247,6 +247,7 @@ export default function Avo() {
   const [edits, setEdits] = useState(null);
   const [showNew, setShowNew] = useState(false);
   const [closedOpen, setClosedOpen] = useState(false);
+  const [codeQ, setCodeQ] = useState('');
   const load = () => api.avoEdits().then(setEdits).catch(e => alert(e.message));
   useEffect(() => { load(); }, []);
 
@@ -269,7 +270,9 @@ export default function Avo() {
             <div className="page-title">Editing Pipeline</div>
             <div className="page-sub">{(edits || []).filter(e => e.status !== 'CLOSED').length} active edit{(edits || []).filter(e => e.status !== 'CLOSED').length !== 1 ? 's' : ''}</div>
           </div>
-          <div className="avo-actions" style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+          <div className="avo-actions" style={{ display:'flex', gap:8, flexWrap:'wrap', alignItems:'center' }}>
+            <input value={codeQ} onChange={ev => setCodeQ(ev.target.value)} placeholder="Filter by Project Code…"
+              style={{ width:180, fontSize:11, padding:'5px 12px', borderRadius:20 }} />
             <button onClick={() => nav('/avo/gantt')}
               style={{ background:'rgba(157,193,131,0.15)', border:`1px solid ${AVO}`, color:AVO, borderRadius:20, padding:'5px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
               Gantt View
@@ -284,7 +287,8 @@ export default function Avo() {
         {!edits && <div className="empty">Loading…</div>}
 
         {edits && AVO_STATUSES.map(([key, label, color]) => {
-          const group = edits.filter(e => e.status === key);
+          const cq = codeQ.trim().toLowerCase();
+          const group = edits.filter(e => e.status === key && (!cq || (e.project_code || '').toLowerCase().includes(cq)));
           // Hide the Focus status entirely when nothing is assigned to it
           if (key === 'FOCUS' && group.length === 0) return null;
           const collapsed = key === 'CLOSED' && !closedOpen;
