@@ -322,7 +322,7 @@ function HubProjects() {
               <div style={{ fontSize:12.5, fontWeight:800, margin:'3px 0 2px' }}>{p.title}</div>
               <div style={{ fontSize:10.5, color:'var(--muted)' }}>{p.client}</div>
               <div style={{ display:'flex', gap:5, marginTop:8, flexWrap:'wrap' }}>
-                <span style={{ fontSize:9, fontWeight:800, color:'#5ABF80', border:'1px solid #5ABF8055', borderRadius:10, padding:'2px 8px' }}>{p.budget_status || 'No budget'}</span>
+                <span style={{ fontSize:9, fontWeight:800, color: STATUS_COLORS[p.budget_status] || '#5ABF80', border: `1px solid ${STATUS_COLORS[p.budget_status] || '#5ABF80'}55`, borderRadius:10, padding:'2px 8px' }}>{p.budget_status || 'No budget'}</span>
                 {(p.shoots || []).length > 0 && <span style={{ fontSize:9, fontWeight:800, color:'var(--orange)', border:'1px solid rgba(232,80,10,0.4)', borderRadius:10, padding:'2px 8px' }}>{p.shoots.length} shoot{p.shoots.length !== 1 ? 's' : ''}</span>}
               </div>
             </div>
