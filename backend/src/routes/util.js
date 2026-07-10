@@ -131,23 +131,31 @@ router.get('/flight-lookup', requireAuth, async (req, res, next) => {
     }
 
     const data = r.data;
-    const f = Array.isArray(data) ? data[0] : data;
-    if (!f) return res.status(404).json({ error: `No data found for ${flight.toUpperCase()} on ${targetDate}.` });
+    // One flight number can fly several legs in a day (DEN→ORD, ORD→LGA…).
+    // Return every leg; the client shows a picker when there's more than one.
+    const arr = (Array.isArray(data) ? data : [data]).filter(Boolean);
+    if (!arr.length) return res.status(404).json({ error: `No data found for ${flight.toUpperCase()} on ${targetDate}.` });
 
-    const departLocal = f.departure?.scheduledTime?.local || null;
-    const arriveLocal = f.arrival?.scheduledTime?.local || null;
+    const legs = arr.map(f => {
+      const departLocal = f.departure?.scheduledTime?.local || null;
+      const arriveLocal = f.arrival?.scheduledTime?.local || null;
+      return {
+        flightNumber: f.number || flight.toUpperCase(),
+        airline: f.airline?.name || f.airline?.iata || '',
+        origin: f.departure?.airport?.iata || '',
+        originName: f.departure?.airport?.name || '',
+        destination: f.arrival?.airport?.iata || '',
+        destinationName: f.arrival?.airport?.name || '',
+        departTime: f.departure?.scheduledTime?.utc || departLocal || null,
+        arriveTime: f.arrival?.scheduledTime?.utc || arriveLocal || null,
+        departDisplay: fmtLocalTime(departLocal),
+        arriveDisplay: fmtLocalTime(arriveLocal),
+        status: f.status || '',
+      };
+    }).sort((a, b) => String(a.departTime || '').localeCompare(String(b.departTime || '')));
 
-    res.json({
-      flightNumber: f.number || flight.toUpperCase(),
-      airline: f.airline?.name || f.airline?.iata || '',
-      origin: f.departure?.airport?.iata || '',
-      destination: f.arrival?.airport?.iata || '',
-      departTime: f.departure?.scheduledTime?.utc || departLocal || null,
-      arriveTime: f.arrival?.scheduledTime?.utc || arriveLocal || null,
-      departDisplay: fmtLocalTime(departLocal),
-      arriveDisplay: fmtLocalTime(arriveLocal),
-      status: f.status || '',
-    });
+    // First leg stays at the top level for backward compatibility
+    res.json({ ...legs[0], legs });
   } catch(e) { next(e); }
 });
 
