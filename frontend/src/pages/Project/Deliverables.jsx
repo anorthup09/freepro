@@ -79,7 +79,7 @@ export function AvoForm({ title, form, setForm, onSubmit, onCancel, saving, edit
                 {!editId && <div style={{ fontSize:10, color:'var(--muted)', marginTop:4 }}>Save first, then reopen to hold the cost on the VCC.</div>}
               </div>
             )}
-            <div className="field"><label>Project Manager</label><EditorSelect value={form.pmId} placeholder="— No PM —" onChange={v => setForm(f=>({...f,pmId:v}))} /></div>
+            <div className="field"><label>Project Manager</label><EditorSelect value={form.pmId} placeholder="— No PM —" unbridledOnly onChange={v => setForm(f=>({...f,pmId:v}))} /></div>
             <div className="field"><label>Aspect Ratio</label>{inp('aspectRatio', '16:9')}</div>
             <div className="field"><label>Resolution</label>{inp('resolution', '1920×1080')}</div>
             <div className="field"><label>Asset Ref</label>{inp('assetRef', 'Asset #801_')}</div>

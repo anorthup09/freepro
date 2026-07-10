@@ -183,7 +183,7 @@ function NewEditModal({ onClose, onCreated }) {
   );
 }
 
-export function EditorSelect({ value, onChange, placeholder = '— Unassigned —' }) {
+export function EditorSelect({ value, onChange, placeholder = '— Unassigned —', unbridledOnly = false }) {
   const [roster, setRoster] = useState([]);
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState({ name: '', email: '', phone: '' });
@@ -212,7 +212,8 @@ export function EditorSelect({ value, onChange, placeholder = '— Unassigned �
       }}>
         <option value="">{placeholder}</option>
         <option value="__add__">＋ Add New Editor…</option>
-        {[...roster].sort((a, b) => display(a).localeCompare(display(b))).map(m => <option key={m.id} value={m.id}>{display(m)}</option>)}
+        {[...roster].filter(m => !unbridledOnly || /unbridled/i.test(m.company || '') || m.id === value)
+          .sort((a, b) => display(a).localeCompare(display(b))).map(m => <option key={m.id} value={m.id}>{display(m)}</option>)}
       </select>
       {adding && (
         <div onClick={e => e.target === e.currentTarget && setAdding(false)}

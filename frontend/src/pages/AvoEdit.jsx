@@ -601,7 +601,7 @@ export default function AvoEdit() {
                   </div>
                   <div style={{ flex:1, minWidth:150 }}>
                     <span style={lbl}>Project Manager</span>
-                    <EditorSelect value={e.pm_id} onChange={v => { patch({ pm_id: v }); save({ pmId: v }); }} placeholder="— No PM —" />
+                    <EditorSelect value={e.pm_id} unbridledOnly onChange={v => { patch({ pm_id: v }); save({ pmId: v }); }} placeholder="— No PM —" />
                   </div>
                 </div>
                 <div>
