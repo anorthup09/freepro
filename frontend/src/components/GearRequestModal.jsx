@@ -114,11 +114,24 @@ export default function GearRequestModal({ projectId, existing, onClose, onSubmi
     }
   }, [showForm]);
 
+  // "Your name" carries the account's FULL name. The account name may be just a
+  // first name, so resolve first + last from the crew roster by email; if there's
+  // no roster match, fall back to whatever the account has.
+  const myFullName = () => {
+    const me = user?.email ? crew.find(m => (m.email || '').toLowerCase() === user.email.toLowerCase()) : null;
+    return (me && crewName(me)) || user?.name || '';
+  };
+  useEffect(() => {
+    if (!crew.length) return;
+    const full = myFullName();
+    if (full) setF(v => (!v.name || v.name === user?.name ? { ...v, name: full } : v));
+  }, [crew, user]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Prefill the form from the existing request when amending
   function startAmend() {
     setF({
       projectId: existing.project_id || projectId || '',
-      name: user?.name || existing.name || '',
+      name: myFullName() || existing.name || '',
       crew: existing.crew || '',
       checkOut: existing.check_out ? String(existing.check_out).slice(0, 10) : '',
       checkIn: existing.check_in ? String(existing.check_in).slice(0, 10) : '',

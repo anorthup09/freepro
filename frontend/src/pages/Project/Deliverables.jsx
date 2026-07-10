@@ -304,7 +304,8 @@ export default function Deliverables({ project }) {
                 <React.Fragment key={t}>
                   <tr><td colSpan={6} style={{ padding:'8px 12px', fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'.12em', color, background:'rgba(255,255,255,0.04)' }}>{t}</td></tr>
                   {catItems.map(item => (
-              <tr key={item.id} onClick={() => { if (window.matchMedia('(max-width: 640px)').matches) setDetailItem(item); }}>
+              <tr key={item.id} style={{ cursor:'pointer' }} title="Open this deliverable's edit form"
+                onClick={() => window.matchMedia('(max-width: 640px)').matches ? setDetailItem(item) : openEdit(item)}>
                 <td>
                   <div style={{ fontWeight:500 }}>{item.isUrgent && <span style={{ color:'var(--orange)' }}>⚠ </span>}{item.title}</div>
                   {item.description && <div style={{ fontSize:10, color:'var(--muted)' }}>{item.description}</div>}
@@ -329,8 +330,7 @@ export default function Deliverables({ project }) {
                 <td className="dv-hide-m" style={{ fontSize:11, color: item.isUrgent ? 'var(--orange)' : 'var(--muted)', fontWeight: item.isUrgent ? 500 : 400 }}>
                   {item.due_date ? String(item.due_date).slice(0,10) : (item.dueDate || '—')}
                 </td>
-                <td className="dv-hide-m" style={{ display:'flex', gap:4 }}>
-                  <button className="btn btn-ghost btn-sm" onClick={() => openEdit(item)}>✎</button>
+                <td className="dv-hide-m" style={{ display:'flex', gap:4 }} onClick={e => e.stopPropagation()}>
                   <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text)' }} onClick={() => remove(item.id)}>✕</button>
                 </td>
               </tr>
