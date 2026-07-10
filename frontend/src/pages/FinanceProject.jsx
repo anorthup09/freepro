@@ -817,7 +817,7 @@ export function VccTab({ pid, budget, sections, lines, vcc, categories, set, vcc
         </select>
         <input type="number" step="0.01" placeholder="Amount" value={form.amount} style={{ width:100, fontSize:11, textAlign:'right' }} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} />
         <select value={form.status} style={{ width:90, fontSize:11 }} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
-          <option value="HOLD">Hold</option><option value="POSTED">Posted</option>
+          <option value="HOLD">Hold</option><option value="NOT_POSTED">Not Posted</option><option value="POSTED">Posted</option>
         </select>
         <button className="btn btn-primary btn-sm">Add</button>
       </form>
@@ -880,9 +880,10 @@ export function VccTab({ pid, budget, sections, lines, vcc, categories, set, vcc
                           ✓ Accept
                         </button>
                       ) : (
-                        <button onClick={() => { const s = e.status === 'HOLD' ? 'POSTED' : 'HOLD'; patchEntry(e.id, { status: s }); saveEntry(e.id, { status: s }); }}
-                          style={{ background:'none', border:`1px solid ${e.status === 'POSTED' ? '#5ABF80' : '#e6c229'}55`, color: e.status === 'POSTED' ? '#5ABF80' : '#e6c229', borderRadius:10, padding:'1px 8px', fontSize:9, fontWeight:700, cursor:'pointer' }}>
-                          {e.status === 'POSTED' ? 'Posted' : 'Hold'}
+                        <button title="Click to cycle Hold → Not Posted → Posted"
+                          onClick={() => { const s = e.status === 'HOLD' ? 'NOT_POSTED' : e.status === 'NOT_POSTED' ? 'POSTED' : 'HOLD'; patchEntry(e.id, { status: s }); saveEntry(e.id, { status: s }); }}
+                          style={{ background:'none', border:`1px solid ${e.status === 'POSTED' ? '#5ABF80' : e.status === 'NOT_POSTED' ? '#e8500a' : '#e6c229'}55`, color: e.status === 'POSTED' ? '#5ABF80' : e.status === 'NOT_POSTED' ? '#e8500a' : '#e6c229', borderRadius:10, padding:'1px 8px', fontSize:9, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap' }}>
+                          {e.status === 'POSTED' ? 'Posted' : e.status === 'NOT_POSTED' ? 'Not Posted' : 'Hold'}
                         </button>
                       )}
                     </td>
