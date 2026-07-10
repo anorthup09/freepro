@@ -398,7 +398,17 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
           <TagRow budgetId={budget.id} ownerName={budget.media_rep} />
         </div>
         <div style={{ marginLeft:'auto', display:'flex', flexDirection:'column', alignItems:'flex-end', gap:8 }}>
-          <StatusPill value={budget.status || 'RFP'} onChange={handleStatusChange} small />
+          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+            {(budget.status || 'RFP') === 'RFP' && (
+              <button onClick={() => setHarbingerOpen(true)}
+                title="Fill out and submit the Harbinger kickoff — moves the budget to Live"
+                style={{ background:'rgba(232,80,10,0.14)', border:'1px solid var(--orange)', color:'var(--orange)',
+                  borderRadius:14, padding:'3px 12px', fontSize:10, fontWeight:800, cursor:'pointer', whiteSpace:'nowrap' }}>
+                Submit Harbinger
+              </button>
+            )}
+            <StatusPill value={budget.status || 'RFP'} onChange={handleStatusChange} small />
+          </div>
           <div style={{ textAlign:'right' }}>
             <span style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.08em', marginRight:8 }}>Total Budget</span>
             <span style={{ fontSize:18, fontWeight:800, color:'#5ABF80', fontVariantNumeric:'tabular-nums' }}>{fmt$(t.total)}</span>
