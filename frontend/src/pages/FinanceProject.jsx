@@ -540,9 +540,9 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
                 )}
                 {sec.kind === 'shoot' && (
                   <tr>
-                    <td colSpan={4} style={{ padding:'6px 6px 6px 14px', fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.06em', color:'#5ABF80', borderTop:'1px solid rgba(90,191,128,0.5)' }}>Labor Subtotal</td>
-                    <td style={{ padding:'6px 10px 6px 6px', textAlign:'right', fontSize:12, fontWeight:800, color:'#5ABF80', borderTop:'1px solid rgba(90,191,128,0.5)' }}>{fmt$(mainTotal)}</td>
-                    <td style={{ borderTop:'1px solid rgba(90,191,128,0.5)' }} />
+                    <td colSpan={4} style={{ padding:'6px 6px 6px 14px', fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.06em', color:'#5ABF80', borderBottom:'1px solid rgba(90,191,128,0.5)' }}>Labor Subtotal</td>
+                    <td style={{ padding:'6px 10px 6px 6px', textAlign:'right', fontSize:12, fontWeight:800, color:'#5ABF80', borderBottom:'1px solid rgba(90,191,128,0.5)' }}>{fmt$(mainTotal)}</td>
+                    <td style={{ borderBottom:'1px solid rgba(90,191,128,0.5)' }} />
                   </tr>
                 )}
                 {travel.length > 0 && (
@@ -552,9 +552,9 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
                 {travel.map(l => <LineRow key={l.id} l={l} secLines={secLines} patchLine={patchLine} saveLine={saveLine} delLine={delLine} dupLine={dupLine} dragCtl={dragCtl} />)}
                 {travel.length > 0 && (
                   <tr>
-                    <td colSpan={4} style={{ padding:'6px 6px 6px 14px', fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.06em', color:'#5ABF80', borderTop:'1px solid rgba(90,191,128,0.5)' }}>Travel Subtotal</td>
-                    <td style={{ padding:'6px 10px 6px 6px', textAlign:'right', fontSize:12, fontWeight:800, color:'#5ABF80', borderTop:'1px solid rgba(90,191,128,0.5)' }}>{fmt$(travelTotal)}</td>
-                    <td style={{ borderTop:'1px solid rgba(90,191,128,0.5)' }} />
+                    <td colSpan={4} style={{ padding:'6px 6px 6px 14px', fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.06em', color:'#5ABF80', borderBottom:'1px solid rgba(90,191,128,0.5)' }}>Travel Subtotal</td>
+                    <td style={{ padding:'6px 10px 6px 6px', textAlign:'right', fontSize:12, fontWeight:800, color:'#5ABF80', borderBottom:'1px solid rgba(90,191,128,0.5)' }}>{fmt$(travelTotal)}</td>
+                    <td style={{ borderBottom:'1px solid rgba(90,191,128,0.5)' }} />
                   </tr>
                 )}
               </tbody>
@@ -1789,9 +1789,9 @@ function EstimatePane({ est, feeRate, saveFeeAll, reload, onMerged, onData }) {
                 )}
                 {sec.kind === 'shoot' && (
                   <tr>
-                    <td colSpan={4} style={{ padding:'6px 6px 6px 14px', fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.06em', color:'#5ABF80', borderTop:'1px solid rgba(90,191,128,0.5)' }}>Labor Subtotal</td>
-                    <td style={{ padding:'6px 10px 6px 6px', textAlign:'right', fontSize:12, fontWeight:800, color:'#5ABF80', borderTop:'1px solid rgba(90,191,128,0.5)' }}>{fmt$(main.reduce((s2, l) => s2 + lineSubtotal(l, secLines), 0))}</td>
-                    <td style={{ borderTop:'1px solid rgba(90,191,128,0.5)' }} />
+                    <td colSpan={4} style={{ padding:'6px 6px 6px 14px', fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.06em', color:'#5ABF80', borderBottom:'1px solid rgba(90,191,128,0.5)' }}>Labor Subtotal</td>
+                    <td style={{ padding:'6px 10px 6px 6px', textAlign:'right', fontSize:12, fontWeight:800, color:'#5ABF80', borderBottom:'1px solid rgba(90,191,128,0.5)' }}>{fmt$(main.reduce((s2, l) => s2 + lineSubtotal(l, secLines), 0))}</td>
+                    <td style={{ borderBottom:'1px solid rgba(90,191,128,0.5)' }} />
                   </tr>
                 )}
                 {trav.length > 0 && (
@@ -1800,9 +1800,9 @@ function EstimatePane({ est, feeRate, saveFeeAll, reload, onMerged, onData }) {
                 {trav.map(l => <LineRow key={l.id} l={l} secLines={secLines} patchLine={patchLine} saveLine={saveLine} delLine={delLine} dupLine={dupLine} dragCtl={dragCtl} />)}
                 {trav.length > 0 && (
                   <tr>
-                    <td colSpan={4} style={{ padding:'6px 6px 6px 14px', fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.06em', color:'#5ABF80', borderTop:'1px solid rgba(90,191,128,0.5)' }}>Travel Subtotal</td>
-                    <td style={{ padding:'6px 10px 6px 6px', textAlign:'right', fontSize:12, fontWeight:800, color:'#5ABF80', borderTop:'1px solid rgba(90,191,128,0.5)' }}>{fmt$(trav.reduce((s2, l) => s2 + lineSubtotal(l, secLines), 0))}</td>
-                    <td style={{ borderTop:'1px solid rgba(90,191,128,0.5)' }} />
+                    <td colSpan={4} style={{ padding:'6px 6px 6px 14px', fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.06em', color:'#5ABF80', borderBottom:'1px solid rgba(90,191,128,0.5)' }}>Travel Subtotal</td>
+                    <td style={{ padding:'6px 10px 6px 6px', textAlign:'right', fontSize:12, fontWeight:800, color:'#5ABF80', borderBottom:'1px solid rgba(90,191,128,0.5)' }}>{fmt$(trav.reduce((s2, l) => s2 + lineSubtotal(l, secLines), 0))}</td>
+                    <td style={{ borderBottom:'1px solid rgba(90,191,128,0.5)' }} />
                   </tr>
                 )}
               </tbody>
