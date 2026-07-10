@@ -43,7 +43,14 @@ async function getDayFull(dayId) {
 async function syncDaysToProjectRange(projectId) {
   const [project] = await sql`SELECT start_date, end_date FROM projects WHERE id = ${projectId}`;
   if (!project?.start_date || !project?.end_date) return;
+  // Serialize per-project: parallel schedule loads used to both see the same
+  // days as missing and double-insert them
+  await sql`SELECT pg_advisory_lock(hashtext(${'daysync:' + projectId}))`;
+  try { await doSync(projectId, project); }
+  finally { await sql`SELECT pg_advisory_unlock(hashtext(${'daysync:' + projectId}))`.catch(() => {}); }
+}
 
+async function doSync(projectId, project) {
   const existing = await sql`SELECT id, day_number, date FROM shoot_days WHERE project_id = ${projectId} ORDER BY date`;
   const have = new Set(existing.map(d => new Date(d.date).toISOString().slice(0, 10)));
 
@@ -83,7 +90,8 @@ async function syncDaysToProjectRange(projectId) {
   for (let i = 0; i < missing.length; i++) {
     await sql`
       INSERT INTO shoot_days (id, project_id, day_number, date)
-      VALUES (gen_random_uuid()::text, ${projectId}, ${20000 + i}, ${missing[i] + 'T12:00:00Z'})`;
+      VALUES (gen_random_uuid()::text, ${projectId}, ${20000 + i}, ${missing[i] + 'T12:00:00Z'})
+      ON CONFLICT DO NOTHING`;
   }
   // Renumber 1..N by date (two steps to dodge the unique constraint)
   await sql`UPDATE shoot_days SET day_number = day_number + 10000 WHERE project_id = ${projectId} AND day_number < 10000`;

@@ -1380,6 +1380,46 @@ async function migrate() {
     }
   } catch (e) { console.error('Single-production shoot code revert failed:', e.message); }
 
+  // Dedupe shoot_days: the range-sync ran concurrently on parallel schedule
+  // loads and could insert the same calendar date twice. Keep the row with the
+  // most content per (project, date), re-point dependents, drop the rest, then
+  // a unique index makes the race impossible going forward.
+  try {
+    const dupes = await sql`
+      SELECT sd.id, sd.project_id, (sd.date AT TIME ZONE 'UTC')::date AS d,
+             (SELECT COUNT(*) FROM schedule_events se WHERE se.shoot_day_id = sd.id) AS ev
+      FROM shoot_days sd
+      WHERE (sd.project_id, (sd.date AT TIME ZONE 'UTC')::date) IN (
+        SELECT project_id, (date AT TIME ZONE 'UTC')::date FROM shoot_days
+        GROUP BY 1, 2 HAVING COUNT(*) > 1)
+      ORDER BY sd.project_id, d, ev DESC, sd.day_number`;
+    const groups = {};
+    for (const r of dupes) (groups[`${r.project_id}|${r.d}`] ||= []).push(r);
+    const affected = new Set();
+    for (const rows of Object.values(groups)) {
+      const keeper = rows[0];
+      for (const dupe of rows.slice(1)) {
+        await sql`UPDATE schedule_events SET shoot_day_id = ${keeper.id} WHERE shoot_day_id = ${dupe.id}`;
+        await sql`UPDATE crew_day_calls SET shoot_day_id = ${keeper.id} WHERE shoot_day_id = ${dupe.id}
+                  AND NOT EXISTS (SELECT 1 FROM crew_day_calls k WHERE k.shoot_day_id = ${keeper.id} AND k.crew_assignment_id = crew_day_calls.crew_assignment_id)`;
+        await sql`UPDATE catering_orders SET shoot_day_id = ${keeper.id} WHERE shoot_day_id = ${dupe.id}
+                  AND NOT EXISTS (SELECT 1 FROM catering_orders k WHERE k.shoot_day_id = ${keeper.id} AND k.meal_type = catering_orders.meal_type)`;
+        await sql`UPDATE talent_day_calls SET shoot_day_id = ${keeper.id} WHERE shoot_day_id = ${dupe.id}
+                  AND NOT EXISTS (SELECT 1 FROM talent_day_calls k WHERE k.shoot_day_id = ${keeper.id} AND k.talent_id = talent_day_calls.talent_id)`.catch(() => {});
+        await sql`DELETE FROM shoot_days WHERE id = ${dupe.id}`;
+        affected.add(keeper.project_id);
+      }
+    }
+    for (const pid of affected) {
+      await sql`UPDATE shoot_days SET day_number = day_number + 10000 WHERE project_id = ${pid} AND day_number < 10000`;
+      await sql`UPDATE shoot_days sd SET day_number = t.rn
+        FROM (SELECT id, ROW_NUMBER() OVER (ORDER BY date, id) AS rn FROM shoot_days WHERE project_id = ${pid}) t
+        WHERE sd.id = t.id`;
+    }
+    if (affected.size) console.log(`shoot_days dedupe: cleaned ${affected.size} project(s)`);
+    await sql`CREATE UNIQUE INDEX IF NOT EXISTS shoot_days_proj_date_uniq ON shoot_days (project_id, ((date AT TIME ZONE 'UTC')::date))`;
+  } catch (e) { console.error('shoot_days dedupe failed:', e.message); }
+
   // One-time ClickUp PTO/OOO import (idempotent)
   try { await require('./seedPto')(); } catch (e) { console.error('PTO seed failed:', e.message); }
 
