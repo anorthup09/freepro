@@ -10,7 +10,8 @@ router.post('/', requireAuth, async (req, res, next) => {
   try {
     const text = String(req.body.text || '').trim();
     if (!text) return res.status(400).json({ error: 'Text required' });
-    const [i] = await sql`INSERT INTO feedback_items (text, created_by) VALUES (${text}, ${req.user.name || req.user.email}) RETURNING *`;
+    const attachment = req.body.attachment || null;
+    const [i] = await sql`INSERT INTO feedback_items (text, created_by, attachment) VALUES (${text}, ${req.user.name || req.user.email}, ${attachment}) RETURNING *`;
     res.status(201).json(i);
   } catch (e) { next(e); }
 });

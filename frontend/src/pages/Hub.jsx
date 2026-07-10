@@ -64,24 +64,39 @@ function FeedbackBoard() {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState([]);
   const [text, setText] = useState('');
+  const [attachment, setAttachment] = useState(null);   // base64 image queued for the next comment
+  const [viewer, setViewer] = useState(null);           // full-size attachment being viewed
   const load = () => api.feedbackList().then(setItems).catch(() => {});
+  useEffect(() => { load(); }, []);
   async function toggle() {
     if (!open) await load();
     setOpen(o => !o);
   }
   async function add() {
     if (!text.trim()) return;
-    try { const i = await api.addFeedback(text.trim()); setItems(xs => [i, ...xs]); setText(''); }
+    try { const i = await api.addFeedback(text.trim(), attachment); setItems(xs => [i, ...xs]); setText(''); setAttachment(null); }
     catch (e) { alert(e.message); }
+  }
+  function pickAttachment(file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => setAttachment(ev.target.result);
+    reader.readAsDataURL(file);
   }
   const openCount = items.filter(i => !i.done).length;
   return (
     <>
-      <div style={{ display:'flex', justifyContent:'center', padding:'14px 16px 0' }}>
+      <div style={{ display:'flex', justifyContent:'center', alignItems:'center', gap:10, padding:'14px 16px 0' }}>
         <button onClick={toggle}
           style={{ background:'#e05252', border:'2px solid #ff6b6b', color:'#fff', borderRadius:12, padding:'10px 26px', fontSize:14, fontWeight:900, letterSpacing:'0.03em', cursor:'pointer', boxShadow:'0 4px 18px rgba(224,82,82,0.35)' }}>
           ! Testing - Feedback and Features !
         </button>
+        {openCount > 0 && (
+          <span onClick={toggle} title={`${openCount} unresolved item${openCount === 1 ? '' : 's'}`}
+            style={{ background:'#e05252', color:'#fff', borderRadius:'50%', minWidth:26, height:26, display:'inline-flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:900, cursor:'pointer', boxShadow:'0 2px 10px rgba(224,82,82,0.5)', padding:'0 6px' }}>
+            {openCount}
+          </span>
+        )}
       </div>
       {open && (
         <div onClick={e => e.target === e.currentTarget && setOpen(false)}
@@ -91,9 +106,18 @@ function FeedbackBoard() {
               <div style={{ fontSize:14, fontWeight:800 }}>Testing — Feedback & Features <span style={{ color:'var(--muted)', fontWeight:400 }}>· {openCount} open</span></div>
               <button className="btn btn-ghost btn-sm" onClick={() => setOpen(false)}>✕</button>
             </div>
-            <div style={{ padding:'12px 18px', borderBottom:'1px solid var(--border)', display:'flex', gap:8 }}>
+            <div style={{ padding:'12px 18px', borderBottom:'1px solid var(--border)', display:'flex', gap:8, alignItems:'center' }}>
               <input value={text} placeholder="Add feedback or a feature request…" onChange={e => setText(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && add()} style={{ flex:1 }} />
+              <label title="Attach a screenshot" className="btn btn-ghost btn-sm" style={{ whiteSpace:'nowrap', cursor:'pointer', margin:0 }}>
+                {attachment ? '✓ Attached' : '+ Attachment'}
+                <input type="file" accept="image/*" style={{ display:'none' }}
+                  onChange={e => { pickAttachment(e.target.files[0]); e.target.value = ''; }} />
+              </label>
+              {attachment && (
+                <img src={attachment} alt="attachment preview" title="Click to remove" onClick={() => setAttachment(null)}
+                  style={{ height:34, width:48, objectFit:'cover', borderRadius:5, border:'1px solid var(--border)', cursor:'pointer' }} />
+              )}
               <button onClick={add} disabled={!text.trim()}
                 style={{ background:'#e05252', border:'none', color:'#fff', borderRadius:8, padding:'7px 16px', fontSize:12, fontWeight:800, cursor:'pointer', opacity: text.trim() ? 1 : 0.5 }}>
                 Add
@@ -112,6 +136,11 @@ function FeedbackBoard() {
                     <div style={{ fontSize:13, fontWeight:600, textDecoration: i.done ? 'line-through' : 'none', overflowWrap:'anywhere' }}>{i.text}</div>
                     <div style={{ fontSize:10, color:'var(--muted)' }}>{i.created_by || 'someone'} · {new Date(i.created_at).toLocaleDateString('en-US', { month:'numeric', day:'numeric' })}</div>
                   </div>
+                  {i.attachment && (
+                    <img src={i.attachment} alt="attachment" title="Click to view full size"
+                      onClick={() => setViewer(i.attachment)}
+                      style={{ height:44, width:64, objectFit:'cover', borderRadius:6, border:'1px solid var(--border)', cursor:'pointer', flexShrink:0 }} />
+                  )}
                   <button title="Delete" onClick={async () => {
                     if (!confirm('Delete this item?')) return;
                     try { await api.deleteFeedback(i.id); setItems(xs => xs.filter(x => x.id !== i.id)); }
@@ -121,6 +150,12 @@ function FeedbackBoard() {
               ))}
             </div>
           </div>
+        </div>
+      )}
+      {viewer && (
+        <div onClick={() => setViewer(null)}
+          style={{ position:'fixed', inset:0, zIndex:200, background:'rgba(0,0,0,0.85)', display:'flex', alignItems:'center', justifyContent:'center', padding:24, cursor:'zoom-out' }}>
+          <img src={viewer} alt="attachment full size" style={{ maxWidth:'92vw', maxHeight:'90vh', borderRadius:8, boxShadow:'0 12px 40px rgba(0,0,0,0.6)' }} />
         </div>
       )}
     </>

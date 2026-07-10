@@ -1300,6 +1300,8 @@ async function migrate() {
       created_at TIMESTAMPTZ DEFAULT NOW()
     )`;
 
+  await sql`ALTER TABLE feedback_items ADD COLUMN IF NOT EXISTS attachment TEXT`;
+
   // Client roster — canonical client names, selected from budgets
   await sql`
     CREATE TABLE IF NOT EXISTS clients (
