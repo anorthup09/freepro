@@ -6,6 +6,7 @@ import { api } from '../api.js';
 const fmt$ = n => '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const num = v => Number(v || 0);
 const INCLUDED = ['Live', 'Reconcile', 'Reconciled', 'Closed'];
+const STATUS_DOT = { Live: '#5ABF80', Reconcile: '#9DC183', Reconciled: '#9DC183', Closed: '#8a8f98' };
 
 function fmtCloseMonth(m) {
   if (!m) return '—';
@@ -65,6 +66,7 @@ export default function ClientInvoiceReport() {
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, minWidth: 760 + maxExtras * 150 }}>
         <thead>
           <tr>
+            <th style={{ ...th, width: 26 }} />
             <th style={th}>Project Code</th>
             <th style={th}>Project Name</th>
             <th style={thR}>First Invoice</th>
@@ -77,6 +79,10 @@ export default function ClientInvoiceReport() {
         <tbody>
           {list.map(r => (
             <tr key={r.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+              <td style={{ padding: '8px 0 8px 10px', width: 26 }}>
+                <span title={r.budget_status} style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%',
+                  background: STATUS_DOT[r.budget_status] || 'var(--muted)', boxShadow: `0 0 6px ${STATUS_DOT[r.budget_status] || '#666'}66` }} />
+              </td>
               <td style={{ padding: 8, whiteSpace: 'nowrap', fontWeight: 700 }}>{r.code}</td>
               <td style={{ padding: 8, minWidth: 160 }}>{r.title}</td>
               {sentCell(r.deposit != null && num(r.deposit) !== 0 ? num(r.deposit) : null, r.deposit_due)}
@@ -127,14 +133,28 @@ export default function ClientInvoiceReport() {
           <div className="empty" style={{ marginTop: 20 }}>No live or closed projects with a {year} close month.</div>
         )}
 
-        {months.map(m => (
-          <div key={m} style={{ marginTop: 22 }}>
-            <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#5ABF80', marginBottom: 8 }}>
-              {closeMonthLabel(m)}
+        {[['Live', r => r.budget_status === 'Live', '#5ABF80'],
+           ['Closed', r => r.budget_status !== 'Live', '#8a8f98']].map(([label, pred, color]) => {
+          const set = inYear.filter(pred);
+          if (!set.length) return null;
+          const setMonths = [...new Set(set.map(r => r.close_month))].sort();
+          return (
+            <div key={label} style={{ marginTop: 26 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                <span style={{ width: 10, height: 10, borderRadius: '50%', background: color, boxShadow: `0 0 6px ${color}66` }} />
+                <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.04em' }}>{label}</span>
+              </div>
+              {setMonths.map(m => (
+                <div key={m} style={{ marginTop: 12 }}>
+                  <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#5ABF80', marginBottom: 8 }}>
+                    {closeMonthLabel(m)}
+                  </div>
+                  {table(set.filter(r => r.close_month === m))}
+                </div>
+              ))}
             </div>
-            {table(inYear.filter(r => r.close_month === m))}
-          </div>
-        ))}
+          );
+        })}
 
         {noClose.length > 0 && (
           <div style={{ marginTop: 22 }}>
