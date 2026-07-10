@@ -80,14 +80,15 @@ export default function ClientInvoiceReport() {
         </thead>
         <tbody>
           {list.map(r => (
-            <tr key={r.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+            <tr key={r.id} onClick={() => nav(`/finance/${r.id}`)} title="Open in ProFi"
+              style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer' }}>
               <td style={{ padding: '8px 0 8px 10px', width: 64 }}>
                 {r.budget_status === 'Live' ? (
-                  <span title="Live — open in ProFi" onClick={() => nav(`/finance/${r.id}`)}
+                  <span title="Live"
                     style={{ display: 'inline-block', fontSize: 9, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em',
                     color: '#5ABF80', border: '1px solid #5ABF80', borderRadius: 10, padding: '2px 9px', cursor: 'pointer' }}>Live</span>
                 ) : (
-                  <span title={`${r.budget_status} — open in ProFi`} onClick={() => nav(`/finance/${r.id}`)}
+                  <span title={r.budget_status}
                     style={{ display: 'inline-block', fontSize: 9, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em',
                     color: '#0b0b0b', background: '#8a8f98', border: '1px solid #8a8f98', borderRadius: 10, padding: '2px 9px', cursor: 'pointer' }}>Closed</span>
                 )}
