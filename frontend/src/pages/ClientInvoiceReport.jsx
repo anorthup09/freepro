@@ -81,11 +81,13 @@ export default function ClientInvoiceReport() {
           {list.map(r => (
             <tr key={r.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
               <td style={{ padding: '8px 0 8px 10px', width: 64 }}>
-                <span title={r.budget_status} style={{ display: 'inline-block', fontSize: 9, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em',
-                  color: STATUS_DOT[r.budget_status] || 'var(--muted)', border: `1px solid ${STATUS_DOT[r.budget_status] || 'var(--muted)'}`,
-                  borderRadius: 10, padding: '2px 9px' }}>
-                  {r.budget_status === 'Live' ? 'Live' : 'Closed'}
-                </span>
+                {r.budget_status === 'Live' ? (
+                  <span title="Live" style={{ display: 'inline-block', fontSize: 9, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em',
+                    color: '#5ABF80', border: '1px solid #5ABF80', borderRadius: 10, padding: '2px 9px' }}>Live</span>
+                ) : (
+                  <span title={r.budget_status} style={{ display: 'inline-block', fontSize: 9, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em',
+                    color: '#0b0b0b', background: '#8a8f98', border: '1px solid #8a8f98', borderRadius: 10, padding: '2px 9px' }}>Closed</span>
+                )}
               </td>
               <td style={{ padding: 8, whiteSpace: 'nowrap', fontWeight: 700 }}>{r.code}</td>
               <td style={{ padding: 8, minWidth: 160 }}>{r.title}</td>
