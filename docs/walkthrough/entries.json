@@ -166,5 +166,17 @@
       "Click Add Task; it shows up in your My Tasks immediately."
     ],
     "screenshot": "task-add-tag.png"
+  },
+  {
+    "title": "Editor PTO / OOO conflict flags on the edit timeline",
+    "what": "AvocadoPost now cross-checks every timeline date against the lead editor's PTO and OOO requests from Team Management. Any milestone that lands on a day the editor is out gets a red (!) flag beside the assignee dropdown — click it for the specifics: who is out, the request type, the date range, and whether it's approved or still pending.",
+    "where": "AvocadoPost → open an edit → Timeline view. Flags appear automatically on conflicting dates.",
+    "how": [
+      "Open an edit and switch to the Timeline view.",
+      "Look for a red (!) beside a milestone's editor dropdown — that date overlaps the lead editor's PTO/OOO.",
+      "Click the flag for the details: request type, dates, and approval status.",
+      "Adjust the milestone date or reassign the task, and the flag clears itself."
+    ],
+    "screenshot": "pto-conflict.png"
   }
 ]
