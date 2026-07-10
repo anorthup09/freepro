@@ -8,7 +8,7 @@ const CARD_COLORS = ['#5ABF80', '#4a9eff', '#e6c229', '#d66a9b'];
 // in the browser (no backend field needed).
 export default function ProducerChecklist({ project }) {
   const storeKey = `producer-checklist:${project?.id || 'x'}`;
-  const [active, setActive] = useState(PRODUCER_CHECKLISTS[0].key);
+  const [active, setActive] = useState(null); // all closed until a button is opened
   const [checked, setChecked] = useState({});
 
   useEffect(() => {
@@ -24,7 +24,7 @@ export default function ProducerChecklist({ project }) {
     });
   }
 
-  const list = PRODUCER_CHECKLISTS.find(l => l.key === active) || PRODUCER_CHECKLISTS[0];
+  const list = PRODUCER_CHECKLISTS.find(l => l.key === active) || null;
   const activeIdx = PRODUCER_CHECKLISTS.findIndex(l => l.key === active);
   const accent = CARD_COLORS[activeIdx] || CARD_COLORS[0];
 
@@ -40,15 +40,15 @@ export default function ProducerChecklist({ project }) {
 
   return (
     <div style={{ padding: '4px 2px 30px' }}>
-      {/* Four small selector buttons, one per document tab */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 22 }}>
+      {/* Four small open/close buttons, top right — click to open a checklist, click again to close */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 22, justifyContent: 'flex-end' }}>
         {PRODUCER_CHECKLISTS.map((l, i) => {
           const { total, done } = progressFor(l);
           const on = l.key === active;
           const color = CARD_COLORS[i];
           return (
-            <button key={l.key} onClick={() => setActive(l.key)}
-              title={`${l.title} — ${done}/${total} done`}
+            <button key={l.key} onClick={() => setActive(a => a === l.key ? null : l.key)}
+              title={on ? `Close ${l.label}` : `Open ${l.title}`}
               style={{
                 cursor: 'pointer', borderRadius: 16, padding: '6px 14px', background: '#0b0b0b',
                 border: `1px solid ${on ? color : 'var(--border)'}`,
@@ -56,13 +56,19 @@ export default function ProducerChecklist({ project }) {
                 display: 'inline-flex', alignItems: 'center', gap: 7,
               }}>
               {l.label}
-              <span style={{ fontSize: 9, fontWeight: 700, color: on ? color : 'var(--muted)', opacity: 0.8 }}>{done}/{total}</span>
+              {on && <span style={{ fontSize: 9, fontWeight: 700, color, opacity: 0.85 }}>{done}/{total}</span>}
             </button>
           );
         })}
       </div>
 
-      {/* Active checklist */}
+      {!list && (
+        <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic', textAlign: 'center', padding: '30px 0' }}>
+          Pick a checklist above to open it.
+        </div>
+      )}
+
+      {list && <>
       <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 2 }}>{list.title}</div>
       <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 16 }}>
         Sourced from the Unbridled production resources master doc. Checks save to your browser for this project.
@@ -96,6 +102,7 @@ export default function ProducerChecklist({ project }) {
           })}
         </div>
       ))}
+      </>}
     </div>
   );
 }
