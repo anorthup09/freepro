@@ -1,5 +1,5 @@
 // Builds the CONDENSED "What's New" PDF: every feature as a one-line-ish tab
-// with a code (F1, F2, …), 10 features per page, and all screenshots collected
+// with a code (F1, F2, …), flowing as many as fit per page, and all screenshots collected
 // in an appendix at the end, 10 to a page, labeled by feature code.
 //
 // Sources: entries-v1.2.json + entries.json (in order).
@@ -33,7 +33,6 @@ const feats = entries.map((e, i) => {
 const shots = feats.filter(f => f.hasShot);
 
 const chunk = (arr, n) => arr.reduce((acc, x, i) => (i % n ? acc[acc.length - 1].push(x) : acc.push([x]), acc), []);
-const featPages = chunk(feats, 10);
 const shotPages = chunk(shots, 10);
 
 const img = f => `<img src="data:image/png;base64,${fs.readFileSync(f).toString('base64')}" />`;
@@ -43,6 +42,8 @@ const html = `<!doctype html><html><head><meta charset="utf-8"><style>
   body { font-family: 'Helvetica Neue', Arial, sans-serif; color: #1a1a1a; }
   .page { page-break-after: always; padding: 34px 42px; }
   .page:last-child { page-break-after: auto; }
+  .flow { padding: 34px 42px 20px; page-break-after: always; }
+  .feat { page-break-inside: avoid; }
   h1 { font-size: 24px; }
   .tag { color: #666; font-size: 11px; margin-top: 4px; letter-spacing: .05em; }
   .hdr { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 2px solid #E8500A; padding-bottom: 8px; margin-bottom: 12px; }
@@ -61,13 +62,11 @@ const html = `<!doctype html><html><head><meta charset="utf-8"><style>
   .shot img { width: 100%; height: 118px; object-fit: cover; object-position: top; display: block; }
 </style></head><body>
 
-${featPages.map((pg, pi) => `
-  <div class="page">
+<div class="flow">
     <div class="hdr">
       <div><h1>What's New — Feature Index</h1><div class="tag">Unbridled Operating Platform · ${feats.length} features · screenshots in the appendix</div></div>
-      <div class="pg">Features ${pi * 10 + 1}–${pi * 10 + pg.length} of ${feats.length}</div>
     </div>
-    ${pg.map(f => `
+    ${feats.map(f => `
       <div class="feat">
         <div class="code">${f.code}</div>
         <div class="fbody">
@@ -79,7 +78,6 @@ ${featPages.map((pg, pi) => `
       </div>
     `).join('')}
   </div>
-`).join('')}
 
 ${shotPages.map((pg, pi) => `
   <div class="page">
