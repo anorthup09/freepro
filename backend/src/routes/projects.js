@@ -327,8 +327,8 @@ router.get('/:id/locations', requireAuth, async (req, res, next) => {
 });
 router.post('/:id/locations', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const { name, address, type, emoji, notes, arrivalNotes } = req.body;
-    const [l] = await sql`INSERT INTO locations (id, project_id, name, address, type, emoji, notes, arrival_notes) VALUES (gen_random_uuid()::text, ${req.params.id}, ${name}, ${address}, ${type}::location_type, ${emoji||null}, ${notes||null}, ${arrivalNotes||null}) RETURNING *`;
+    const { name, address, type, emoji, notes, arrivalNotes, spaceMap } = req.body;
+    const [l] = await sql`INSERT INTO locations (id, project_id, name, address, type, emoji, notes, arrival_notes, space_map) VALUES (gen_random_uuid()::text, ${req.params.id}, ${name}, ${address}, ${type}::location_type, ${emoji||null}, ${notes||null}, ${arrivalNotes||null}, ${spaceMap||null}) RETURNING *`;
     res.status(201).json(l);
   } catch(e){next(e);}
 });

@@ -121,6 +121,22 @@ router.get('/today', requireAuth, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// POST /api/dashboard/tasks — quick-add a task assigned to the signed-in user
+router.post('/tasks', requireAuth, async (req, res, next) => {
+  try {
+    const cm = await myCrewMember(req.user.email);
+    if (!cm) return res.status(400).json({ error: 'No crew member record matches your account email' });
+    const { projectId, text, dueDate, notes } = req.body;
+    if (!projectId || !text?.trim()) return res.status(400).json({ error: 'Project and task text are required' });
+    const [t] = await sql`
+      INSERT INTO project_tasks (project_id, text, assignee_id, due_date, notes, created_by)
+      VALUES (${projectId}, ${text.trim()}, ${cm.id}, ${dueDate || null}, ${notes || null}, ${req.user.name || req.user.email})
+      RETURNING *`;
+    const [p] = await sql`SELECT code, title FROM projects WHERE id = ${projectId}`;
+    res.status(201).json({ ...t, project_code: p?.code, project_title: p?.title, project_id: projectId });
+  } catch (e) { next(e); }
+});
+
 // GET /api/dashboard/team — where every Unbridled team member is today
 router.get('/team', requireAuth, async (req, res, next) => {
   try {

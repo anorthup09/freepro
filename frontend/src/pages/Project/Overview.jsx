@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { api } from '../../api.js';
+import { useNavigate } from 'react-router-dom';
 import { displayName } from '../../utils/displayName.js';
-import ShineBorder from '../../components/ShineBorder.jsx';
 
 // Tap-to-contact links: phones dial, emails open the mail app
 const Tel = ({ v }) => v ? <a href={`tel:${String(v).replace(/[^+\d]/g, '')}`} style={{ color:'inherit', textDecoration:'none' }}>{v}</a> : null;
@@ -127,6 +127,7 @@ function parseDay(dateStr) {
 
 export default function Overview({ project, setProject, onTabChange }) {
   const [editInfo, setEditInfo] = useState(false);
+  const nav = useNavigate();
   const [scheduleDays, setScheduleDays] = useState([]);
   const [info, setInfo] = useState({ code: project.code, title: project.title, client: project.client, city: project.city, state: project.state, startDate: (project.start_date||project.startDate)?.slice(0,10), endDate: (project.end_date||project.endDate)?.slice(0,10), status: project.status, notes: project.notes || '' });
   const [showLocModal, setShowLocModal] = useState(false);
@@ -307,6 +308,9 @@ export default function Overview({ project, setProject, onTabChange }) {
       {/* Header */}
       <div className="ov-head" style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', paddingBottom:18, borderBottom:'1px solid var(--border)', marginBottom:4 }}>
         <div>
+          <button className="btn btn-ghost btn-sm" title="Open this project's budget to edit shoot details"
+            onClick={() => nav(`/finance/${project.parent_project_id || project.id}`)}
+            style={{ marginBottom:6, padding:'2px 10px', fontSize:11 }}>✎ Edit</button>
           <div className="proj-code">{project.code}</div>
           <div className="proj-title">{project.title}</div>
           {(project.shoot_name || project.subtitle) && (
@@ -369,88 +373,73 @@ export default function Overview({ project, setProject, onTabChange }) {
         </div>
       </form>
 
-      {/* Main POC + Gear Contact */}
-      <div className="ov-poc-row" style={{ display:'flex', alignItems:'center', gap:12, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'12px 16px', marginBottom: gearPerson ? 0 : 10, borderBottomLeftRadius: gearPerson ? 0 : 8, borderBottomRightRadius: gearPerson ? 0 : 8, borderBottom: gearPerson ? 'none' : undefined }}>
-        <span style={{ fontSize:13, fontWeight:700, color:'var(--text)', whiteSpace:'nowrap', width:160, flexShrink:0 }}>Main POC</span>
-        <select value={pocId} onChange={e => savePoc(e.target.value)} style={{ width:'auto', minWidth:200, maxWidth:'100%', flexShrink:1 }}>
-          <option value="">— Unassigned —</option>
-          {assignedCrew.map(a => (
-            <option key={a.crewMember.id} value={a.crewMember.id}>
-              {displayName(a.crewMember)} — {a.position.name}
-            </option>
-          ))}
-        </select>
-        {pocSaving && <span style={{ fontSize:11, color:'var(--muted)' }}>Saving…</span>}
-        {pocMember && !pocSaving && (
-          <div style={{ fontSize:12, color:'var(--muted)', display:'flex', gap:16 }}>
-            {pocMember.phone && <span style={{ color:'var(--tan)' }}><Tel v={pocMember.phone} /></span>}
-            {pocMember.email && <span><Mail v={pocMember.email} /></span>}
+      {/* Main POC · Gear Contact · Client & Agency Contacts — one card */}
+      <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden', marginBottom:10 }}>
+        <div className="ov-poc-row" style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 16px' }}>
+          <span style={{ fontSize:13, fontWeight:700, color:'var(--text)', whiteSpace:'nowrap', width:160, flexShrink:0 }}>Main POC</span>
+          <select value={pocId} onChange={e => savePoc(e.target.value)} style={{ width:'auto', minWidth:200, maxWidth:'100%', flexShrink:1 }}>
+            <option value="">— Unassigned —</option>
+            {assignedCrew.map(a => (
+              <option key={a.crewMember.id} value={a.crewMember.id}>
+                {displayName(a.crewMember)} — {a.position.name}
+              </option>
+            ))}
+          </select>
+          {pocSaving && <span style={{ fontSize:11, color:'var(--muted)' }}>Saving…</span>}
+          {pocMember && !pocSaving && (
+            <div style={{ fontSize:12, color:'var(--muted)', display:'flex', gap:16 }}>
+              {pocMember.phone && <span style={{ color:'var(--tan)' }}><Tel v={pocMember.phone} /></span>}
+              {pocMember.email && <span><Mail v={pocMember.email} /></span>}
+            </div>
+          )}
+        </div>
+        {gearPerson && (
+          <div onClick={() => onTabChange?.('gear')} className="ov-poc-row"
+            style={{ display:'flex', alignItems:'center', gap:12, borderTop:'1px solid var(--border2)', padding:'10px 16px', cursor:'pointer' }}>
+            <span style={{ fontSize:13, fontWeight:700, color:'var(--text)', whiteSpace:'nowrap', width:160, flexShrink:0 }}>Gear Contact</span>
+            <span style={{ fontWeight:500, fontSize:13, width:200, flexShrink:0 }}>{gearPerson.name}</span>
+            {gearPerson.phone && <span style={{ fontSize:12, color:'var(--tan)' }}><Tel v={gearPerson.phone} /></span>}
+            {gearPerson.email && <span style={{ fontSize:12, color:'var(--muted)' }}><Mail v={gearPerson.email} /></span>}
           </div>
         )}
-      </div>
-      {gearPerson && (
-        <div
-          onClick={() => onTabChange?.('gear')}
-          className="ov-poc-row"
-          style={{ display:'flex', alignItems:'center', gap:12, background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'1px solid var(--border2)', borderRadius:8, borderTopLeftRadius:0, borderTopRightRadius:0, padding:'10px 16px', marginBottom:10, cursor:'pointer' }}
-        >
-          <span style={{ fontSize:13, fontWeight:700, color:'var(--text)', whiteSpace:'nowrap', width:160, flexShrink:0 }}>Gear Contact</span>
-          <span style={{ fontWeight:500, fontSize:13, width:200, flexShrink:0 }}>{gearPerson.name}</span>
-          {gearPerson.phone && <span style={{ fontSize:12, color:'var(--tan)' }}><Tel v={gearPerson.phone} /></span>}
-          {gearPerson.email && <span style={{ fontSize:12, color:'var(--muted)' }}><Mail v={gearPerson.email} /></span>}
-        </div>
-      )}
-
-      {/* Stats */}
-      <ShineBorder radius={12} width={2.5} style={{ margin:'10px 0 20px', boxShadow:'0 2px 16px rgba(0,0,0,0.35)' }}>
-      <div style={{
-        display:'grid', gridTemplateColumns:'repeat(3,1fr)',
-        borderRadius:10,
-        overflow:'hidden',
-        position:'relative',
-        background:'#000',
-      }}>
-        {[
-          { label:'Days', val: shootDays, sub:`${fmtDate(startDate)} – ${fmtDate(endDate)}`, tab:'schedule' },
-          { label:'Crew', val: project.crewAssignments?.length || 0, sub:'positions assigned', tab:'crew' },
-          { label:'Deliverables', val: project.deliverables?.length || 0, sub:'video outputs', tab:'post-production' },
-        ].map((s, i) => (
-          <div key={s.tab} onClick={() => onTabChange?.(s.tab)} style={{
-            padding:'18px 20px',
-            cursor:'pointer',
-            borderRight: i < 2 ? '1px solid rgba(255,255,255,0.15)' : 'none',
-            display:'flex', flexDirection:'column', gap:3,
-            transition:'background 0.15s',
-          }}
-            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-          >
-            <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.1em', fontWeight:600 }}>{s.label}</div>
-            <div style={{ fontFamily:"'Syne',sans-serif", fontSize:26, fontWeight:700, color:'var(--text)', lineHeight:1.1 }}>{s.val}</div>
-            <div style={{ fontSize:10, color:'var(--muted)', marginTop:1 }}>{s.sub}</div>
-          </div>
-        ))}
-      </div>
-      </ShineBorder>
-
-      {/* Crew List */}
-      {(project.crewAssignments||[]).length > 0 && (
-        <>
-          <div className="sec-lbl" style={{ fontWeight:700, fontSize:12, color:'var(--text)' }}>Crew</div>
-          <div style={{ background:'rgba(232,80,10,0.12)', border:'1px solid rgba(232,80,10,0.45)', borderRadius:8, overflow:'hidden', marginBottom:20 }}>
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))' }}>
-              {(project.crewAssignments||[]).map((a, i) => (
-                <div key={a.id} style={{ padding:'10px 16px', borderRight:'1px solid rgba(255,255,255,0.10)', borderBottom:'1px solid rgba(255,255,255,0.10)', display:'flex', flexDirection:'column', gap:2 }}>
-                  <div style={{ fontSize:10, textTransform:'uppercase', letterSpacing:'0.06em', color:'rgba(251,146,60,0.85)', fontWeight:700 }}>{a.position?.name}{a.slotNumber > 1 ? ` ${a.slotNumber}` : ''}</div>
-                  <div style={{ fontSize:13, fontWeight:600, color: a.crewMember ? '#fff' : 'rgba(255,255,255,0.4)', fontStyle: a.crewMember ? 'normal' : 'italic' }}>
-                    {a.crewMember ? displayName(a.crewMember) : 'Unassigned'}
-                  </div>
+        <div className="ov-poc-row" style={{ display:'flex', alignItems:'flex-start', gap:12, borderTop:'1px solid var(--border2)', padding:'10px 16px' }}>
+          <span style={{ fontSize:13, fontWeight:700, color:'var(--text)', whiteSpace:'nowrap', width:160, flexShrink:0, paddingTop:4 }}>Client Contacts</span>
+          <div className="chips" style={{ flex:1, marginBottom:0 }}>
+            {project.clientContacts?.map(c => (
+              <div key={c.id} className="chip" style={{ position:'relative', paddingRight:50 }}>
+                <strong>{c.title}</strong>
+                {c.name} {c.phone && <>· <Tel v={c.phone} /></>}
+                {c.email && <><br /><span style={{ color:'var(--muted)' }}><Mail v={c.email} /></span></>}
+                <div style={{ position:'absolute', top:4, right:6, display:'flex', gap:4 }}>
+                  <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => { setEditContactId(c.id); setEditContactForm({ name:c.name, title:c.title, email:c.email||'', phone:c.phone||'' }); }}>✎</button>
+                  <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => deleteContact(c.id)}>✕</button>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
+            {!project.clientContacts?.length && <span className="empty" style={{ padding:0, fontSize:12 }}>No client contacts yet.</span>}
           </div>
-        </>
-      )}
+          <button className="btn btn-ghost btn-sm" style={{ flexShrink:0 }} onClick={() => setShowContactModal(true)}>+ Add</button>
+        </div>
+        <div className="ov-poc-row" style={{ display:'flex', alignItems:'flex-start', gap:12, borderTop:'1px solid var(--border2)', padding:'10px 16px' }}>
+          <span style={{ fontSize:13, fontWeight:700, color:'var(--text)', whiteSpace:'nowrap', width:160, flexShrink:0, paddingTop:4 }}>Agency Contacts</span>
+          <div className="chips" style={{ flex:1, marginBottom:0 }}>
+            {(project.agencyContacts||[]).map(c => (
+              <div key={c.id} className="chip" style={{ position:'relative', paddingRight:50 }}>
+                <strong>{c.title}</strong>
+                {c.name} {c.phone && <>· <Tel v={c.phone} /></>}
+                {c.email && <><br /><span style={{ color:'var(--muted)' }}><Mail v={c.email} /></span></>}
+                <div style={{ position:'absolute', top:4, right:6, display:'flex', gap:4 }}>
+                  <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => { setEditAgencyId(c.id); setEditAgencyForm({ name:c.name, title:c.title, email:c.email||'', phone:c.phone||'' }); }}>✎</button>
+                  <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => deleteAgencyContact(c.id)}>✕</button>
+                </div>
+              </div>
+            ))}
+            {!(project.agencyContacts?.length) && <span className="empty" style={{ padding:0, fontSize:12 }}>No agency contacts yet.</span>}
+          </div>
+          <button className="btn btn-ghost btn-sm" style={{ flexShrink:0 }} onClick={() => setShowAgencyModal(true)}>+ Add</button>
+        </div>
+      </div>
+
 
       {/* Key Dates (left) + Contacts (right) */}
       <div className="ov-kd-grid" style={{ display:'grid', gap:20, marginBottom:20 }}>
@@ -479,51 +468,25 @@ export default function Overview({ project, setProject, onTabChange }) {
           )}
         </div>
 
-        {/* Right: Client Contacts + Agency Contacts stacked */}
-        <div className="ov-kd-contacts" style={{ display:'flex', flexDirection:'column', gap:20 }}>
-          {/* Client Contacts */}
-          <div>
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-              <div className="sec-lbl" style={{ fontWeight:700, fontSize:12, color:'var(--text)' }}>Client Contacts</div>
-              <button className="btn btn-ghost btn-sm" onClick={() => setShowContactModal(true)}>+ Add</button>
-            </div>
-            <div className="chips">
-              {project.clientContacts?.map(c => (
-                <div key={c.id} className="chip" style={{ position:'relative', paddingRight:50 }}>
-                  <strong>{c.title}</strong>
-                  {c.name} {c.phone && <>· <Tel v={c.phone} /></>}
-                  {c.email && <><br /><span style={{ color:'var(--muted)' }}><Mail v={c.email} /></span></>}
-                  <div style={{ position:'absolute', top:4, right:6, display:'flex', gap:4 }}>
-                    <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => { setEditContactId(c.id); setEditContactForm({ name:c.name, title:c.title, email:c.email||'', phone:c.phone||'' }); }}>✎</button>
-                    <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => deleteContact(c.id)}>✕</button>
+        {/* Right: Crew */}
+        <div className="ov-kd-contacts">
+      {(project.crewAssignments||[]).length > 0 && (
+        <>
+          <div className="sec-lbl" style={{ fontWeight:700, fontSize:12, color:'var(--text)' }}>Crew</div>
+          <div style={{ background:'rgba(232,80,10,0.12)', border:'1px solid rgba(232,80,10,0.45)', borderRadius:8, overflow:'hidden', marginBottom:20 }}>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))' }}>
+              {(project.crewAssignments||[]).map((a, i) => (
+                <div key={a.id} style={{ padding:'10px 16px', borderRight:'1px solid rgba(255,255,255,0.10)', borderBottom:'1px solid rgba(255,255,255,0.10)', display:'flex', flexDirection:'column', gap:2 }}>
+                  <div style={{ fontSize:10, textTransform:'uppercase', letterSpacing:'0.06em', color:'rgba(251,146,60,0.85)', fontWeight:700 }}>{a.position?.name}{a.slotNumber > 1 ? ` ${a.slotNumber}` : ''}</div>
+                  <div style={{ fontSize:13, fontWeight:600, color: a.crewMember ? '#fff' : 'rgba(255,255,255,0.4)', fontStyle: a.crewMember ? 'normal' : 'italic' }}>
+                    {a.crewMember ? displayName(a.crewMember) : 'Unassigned'}
                   </div>
                 </div>
               ))}
-              {!project.clientContacts?.length && <span className="empty" style={{ padding:0, fontSize:12 }}>No client contacts yet.</span>}
             </div>
           </div>
-
-          {/* Agency Contacts */}
-          <div>
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-              <div className="sec-lbl" style={{ fontWeight:700, fontSize:12, color:'var(--text)' }}>Agency Contacts</div>
-              <button className="btn btn-ghost btn-sm" onClick={() => setShowAgencyModal(true)}>+ Add</button>
-            </div>
-            <div className="chips">
-              {(project.agencyContacts||[]).map(c => (
-                <div key={c.id} className="chip" style={{ position:'relative', paddingRight:50 }}>
-                  <strong>{c.title}</strong>
-                  {c.name} {c.phone && <>· <Tel v={c.phone} /></>}
-                  {c.email && <><br /><span style={{ color:'var(--muted)' }}><Mail v={c.email} /></span></>}
-                  <div style={{ position:'absolute', top:4, right:6, display:'flex', gap:4 }}>
-                    <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => { setEditAgencyId(c.id); setEditAgencyForm({ name:c.name, title:c.title, email:c.email||'', phone:c.phone||'' }); }}>✎</button>
-                    <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => deleteAgencyContact(c.id)}>✕</button>
-                  </div>
-                </div>
-              ))}
-              {!(project.agencyContacts?.length) && <span className="empty" style={{ padding:0, fontSize:12 }}>No agency contacts yet.</span>}
-            </div>
-          </div>
+        </>
+      )}
         </div>
       </div>
 

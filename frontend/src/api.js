@@ -103,6 +103,7 @@ export const api = {
   resetPassword: (token, password) => req('POST', '/auth/reset-password', { token, password }),
   dashboardToday: () => req('GET', '/dashboard/today'),
   dashboardTeam: () => req('GET', '/dashboard/team'),
+  addMyTask: (data) => req('POST', '/dashboard/tasks', data),
   ptoList: () => req('GET', '/team/pto'),
   createPto: (data) => req('POST', '/team/pto', data),
   updatePto: (id, data) => req('PATCH', `/team/pto/${id}`, data),

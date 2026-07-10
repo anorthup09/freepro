@@ -3,7 +3,16 @@ import { api } from '../../api.js';
 
 const LOC_TYPES = ['PRIMARY_VENUE', 'CREW_HOTEL', 'AIRPORT', 'OTHER'];
 const LOC_LABELS = { PRIMARY_VENUE: 'Shooting Location', CREW_HOTEL: 'Hotel', SECONDARY: 'Rental Car Location', AIRPORT: 'Airport', OTHER: 'Other' };
-const BLANK_LOC = { name: '', address: '', type: 'PRIMARY_VENUE', emoji: '', arrivalNotes: '' };
+const BLANK_LOC = { name: '', address: '', type: 'PRIMARY_VENUE', emoji: '', arrivalNotes: '', spaceMap: null };
+
+function fileToBase64(file) {
+  return new Promise((res, rej) => {
+    const reader = new FileReader();
+    reader.onload = e => res(e.target.result);
+    reader.onerror = rej;
+    reader.readAsDataURL(file);
+  });
+}
 
 // Free place search (OpenStreetMap Nominatim) that fills name + address
 function PlaceSearch({ onSelect }) {
@@ -70,6 +79,28 @@ export default function Locations({ project, setProject }) {
   const [showLocModal, setShowLocModal] = useState(false);
   const [editLocId, setEditLocId] = useState(null);
   const [locForm, setLocForm] = useState(BLANK_LOC);
+  const [uploading, setUploading] = useState({});
+  const fileRefs = useRef({});
+
+  // Attach / replace a floor plan or space map on an existing location tile
+  async function handleMapFile(locId, file) {
+    if (!file) return;
+    setUploading(u => ({ ...u, [locId]: true }));
+    try {
+      const base64 = await fileToBase64(file);
+      await api.updateLocation(project.id, locId, { spaceMap: base64 });
+      setProject(p => ({ ...p, locations: p.locations.map(l => l.id === locId ? { ...l, space_map: base64 } : l) }));
+    } catch (e) {
+      alert('Upload failed: ' + e.message);
+    } finally {
+      setUploading(u => ({ ...u, [locId]: false }));
+    }
+  }
+
+  async function clearMap(locId) {
+    await api.updateLocation(project.id, locId, { spaceMap: null });
+    setProject(p => ({ ...p, locations: p.locations.map(l => l.id === locId ? { ...l, space_map: null } : l) }));
+  }
 
   async function addLocation(e) {
     e.preventDefault();
@@ -86,7 +117,7 @@ export default function Locations({ project, setProject }) {
   }
 
   function openEditLocation(l) {
-    setLocForm({ name: l.name || '', address: l.address || '', type: l.type || 'PRIMARY_VENUE', emoji: l.emoji || '', arrivalNotes: l.arrival_notes || '' });
+    setLocForm({ name: l.name || '', address: l.address || '', type: l.type || 'PRIMARY_VENUE', emoji: l.emoji || '', arrivalNotes: l.arrival_notes || '', spaceMap: l.space_map || null });
     setEditLocId(l.id);
     setShowLocModal(true);
   }
@@ -103,7 +134,7 @@ export default function Locations({ project, setProject }) {
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
         <div className="sec-lbl" style={{ marginBottom: 0, marginTop: 0, fontWeight: 700, fontSize: 12, color: 'var(--text)' }}>Locations</div>
-        <button className="btn btn-ghost btn-sm" onClick={() => setShowLocModal(true)}>+ Add</button>
+        <button className="btn btn-ghost btn-sm" onClick={() => setShowLocModal(true)}>+ Add Location</button>
       </div>
       {!locations.length && (
         <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8, padding: '12px 16px', fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>No locations added yet.</div>
@@ -121,13 +152,28 @@ export default function Locations({ project, setProject }) {
                     {l.address
                       ? <a href={`https://maps.google.com/?q=${encodeURIComponent(l.address)}`} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: 'var(--tan)', textDecoration: 'none' }}>{l.address}</a>
                       : <span style={{ fontSize: 12, color: 'var(--muted)' }}>—</span>}
-                    <div style={{ whiteSpace: 'nowrap' }}>
+                    <div style={{ whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'flex-end' }}>
+                      {l.space_map && (
+                        <button className="btn btn-ghost btn-sm" style={{ fontSize: 10, padding: '2px 8px' }} onClick={() => clearMap(l.id)}>Remove Map</button>
+                      )}
+                      <button className="btn btn-ghost btn-sm" style={{ fontSize: 10, padding: '2px 8px' }}
+                        onClick={() => fileRefs.current[l.id]?.click()} disabled={uploading[l.id]}>
+                        {uploading[l.id] ? 'Uploading…' : l.space_map ? 'Replace Map' : '+ Upload Map'}
+                      </button>
+                      <input type="file" accept="image/*" style={{ display: 'none' }}
+                        ref={el => fileRefs.current[l.id] = el}
+                        onChange={e => { handleMapFile(l.id, e.target.files[0]); e.target.value = ''; }} />
                       <button title="Edit name / address (override what the map search filled in)"
-                        style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', fontSize: 11, marginRight: 6 }} onClick={() => openEditLocation(l)}>✎</button>
+                        style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', fontSize: 11 }} onClick={() => openEditLocation(l)}>✎</button>
                       <button style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', fontSize: 11 }} onClick={() => deleteLocation(l.id)}>✕</button>
                     </div>
                   </div>
                   {l.arrival_notes && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 6, whiteSpace: 'pre-wrap' }}><span style={{ fontWeight: 700, color: 'var(--tan)' }}>Arrival: </span>{l.arrival_notes}</div>}
+                  {l.space_map && (
+                    <div style={{ marginTop: 8 }}>
+                      <img src={l.space_map} alt={`Space map for ${l.name}`} style={{ maxWidth: '100%', maxHeight: 260, borderRadius: 6, display: 'block' }} />
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -157,6 +203,20 @@ export default function Locations({ project, setProject }) {
                 </div>
                 <div className="field"><label>Emoji</label><input value={locForm.emoji} onChange={e => setLocForm(f => ({ ...f, emoji: e.target.value }))} placeholder="🏛" /></div>
                 <div className="field span2"><label>Arrival Notes</label><textarea value={locForm.arrivalNotes} onChange={e => setLocForm(f => ({ ...f, arrivalNotes: e.target.value }))} rows={2} placeholder="Parking, entrance, check-in, loading dock…" /></div>
+                <div className="field span2"><label>Room / Space Map</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => fileRefs.current.__modal?.click()}>
+                      {locForm.spaceMap ? 'Replace Map' : '+ Upload Map'}
+                    </button>
+                    {locForm.spaceMap && (
+                      <button type="button" className="btn btn-ghost btn-sm" onClick={() => setLocForm(f => ({ ...f, spaceMap: null }))}>Remove</button>
+                    )}
+                    <input type="file" accept="image/*" style={{ display: 'none' }}
+                      ref={el => fileRefs.current.__modal = el}
+                      onChange={async e => { const file = e.target.files[0]; e.target.value = ''; if (file) { const b64 = await fileToBase64(file); setLocForm(f => ({ ...f, spaceMap: b64 })); } }} />
+                  </div>
+                  {locForm.spaceMap && <img src={locForm.spaceMap} alt="Space map preview" style={{ maxWidth: '100%', maxHeight: 160, borderRadius: 6, marginTop: 8, display: 'block' }} />}
+                </div>
               </div>
               <div className="btn-row"><button className="btn btn-primary">{editLocId ? 'Save Changes' : 'Add Location'}</button><button type="button" className="btn btn-ghost" onClick={() => { setShowLocModal(false); setEditLocId(null); setLocForm(BLANK_LOC); }}>Cancel</button></div>
             </form>

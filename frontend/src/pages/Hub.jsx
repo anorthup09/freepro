@@ -373,6 +373,22 @@ function HubDashboard() {
   const [team, setTeam] = useState(null);
   const [hiddenTasks, setHiddenTasks] = useState([]); // checked-off this session
   const [openTask, setOpenTask] = useState(null);      // expanded to show description/notes
+  const [addTask, setAddTask] = useState(null);        // { projectId, text, dueDate } when the quick-add modal is open
+  const [taskProjects, setTaskProjects] = useState(null);
+
+  function openAddTask() {
+    setAddTask({ projectId: '', text: '', dueDate: '' });
+    if (!taskProjects) api.getProjects().then(ps => setTaskProjects(ps.filter(p => p.status !== 'ARCHIVED'))).catch(() => setTaskProjects([]));
+  }
+
+  async function saveNewTask(e) {
+    e.preventDefault();
+    try {
+      const t = await api.addMyTask({ projectId: addTask.projectId, text: addTask.text, dueDate: addTask.dueDate || null });
+      setDay(d => ({ ...d, tasks: [...(d?.tasks || []), t] }));
+      setAddTask(null);
+    } catch (err) { alert(err.message); }
+  }
 
   useEffect(() => {
     api.dashboardToday().then(setDay).catch(() => setDay({ items: [] }));
@@ -423,10 +439,15 @@ function HubDashboard() {
             ))}
           </>
         )}
-        {day && (day.tasks || []).length > 0 && (
+        {day && (
           <>
             <div style={{ ...hdr, fontSize:10, margin:'16px 0 6px', display:'flex', alignItems:'center', gap:8 }}>
               My Tasks
+              <button onClick={openAddTask} title="Add a task to your list"
+                style={{ background:'transparent', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:10,
+                  padding:'1px 8px', fontSize:9, fontWeight:800, cursor:'pointer', textTransform:'none', letterSpacing:0 }}>
+                + Add New
+              </button>
               {(day.tasks || []).some(t => !hiddenTasks.includes(t.id) && t.due_date && String(t.due_date).slice(0, 10) === (day?.date || new Date().toISOString().slice(0, 10))) && (
                 <span style={{ background:'rgba(232,80,10,0.16)', border:'1px solid var(--orange)', color:'var(--orange)', borderRadius:10, padding:'1px 8px', fontSize:9, fontWeight:800, textTransform:'none', letterSpacing:0 }}>
                   (!) Task Due Today
@@ -495,6 +516,34 @@ function HubDashboard() {
           ))}
         </div>
       </div>
+
+      {addTask && (
+        <div className="modal-bg" onClick={e => e.target === e.currentTarget && setAddTask(null)}>
+          <div className="modal" style={{ maxWidth:420 }}>
+            <div className="modal-title">Add Task</div>
+            <form onSubmit={saveNewTask}>
+              <div className="form-grid" style={{ marginBottom:12 }}>
+                <div className="field span2"><label>Project</label>
+                  <select value={addTask.projectId} onChange={e => setAddTask(f => ({ ...f, projectId: e.target.value }))} required>
+                    <option value="">{taskProjects ? '— Select a project —' : 'Loading projects…'}</option>
+                    {(taskProjects || []).map(p => <option key={p.id} value={p.id}>{p.code} — {p.title}</option>)}
+                  </select>
+                </div>
+                <div className="field span2"><label>Task</label>
+                  <input value={addTask.text} onChange={e => setAddTask(f => ({ ...f, text: e.target.value }))} required placeholder="What needs doing?" autoFocus />
+                </div>
+                <div className="field span2"><label>Due Date (optional)</label>
+                  <input type="date" value={addTask.dueDate} onChange={e => setAddTask(f => ({ ...f, dueDate: e.target.value }))} />
+                </div>
+              </div>
+              <div className="btn-row">
+                <button className="btn btn-primary">Add Task</button>
+                <button type="button" className="btn btn-ghost" onClick={() => setAddTask(null)}>Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -584,7 +633,7 @@ export default function Hub() {
                   ))}
                 </div>
               )}
-              {!isCrew && !isFinance && mode === 'projects' && (
+              {!isCrew && !isFinance && (
                 <div style={{ marginTop:16 }}>
                   <button onClick={() => setShowNewProject(true)}
                     style={{ background:'#000', color:'#5ABF80', border:'1px solid #5ABF80', borderRadius:22,

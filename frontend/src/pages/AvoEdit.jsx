@@ -281,6 +281,7 @@ export default function AvoEdit() {
   const [copied, setCopied] = useState('');
   const [shareTimeline, setShareTimeline] = useState(false);
   const [showCal, setShowCal] = useState(false);
+  const [showPtoConflict, setShowPtoConflict] = useState(false);
   const [projectPageId, setProjectPageId] = useState(null);   // Avo project page for this edit's code
   // Auto-fill knobs (defaults: business days, 2-day client reviews)
   const [tlOpts, setTlOpts] = useState({ skipWknd: true, editDaysAfterScript: 5, editDaysAfterFeedback: 3, reviewDays: 2 });
@@ -555,8 +556,35 @@ export default function AvoEdit() {
                 <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
                   {field('Project Code', 'project_code', 'projectCode')}
                   <div style={{ flex:1, minWidth:150 }}>
-                    <span style={lbl}>Lead Editor</span>
+                    <span style={lbl}>Lead Editor{(e.pto_conflicts || []).length > 0 && (
+                      <button type="button" title="PTO / OOO overlaps this edit window — click for details"
+                        onClick={() => setShowPtoConflict(s => !s)}
+                        style={{ marginLeft:6, background:'rgba(224,49,49,0.15)', border:'1px solid #E03131', color:'#E03131',
+                          borderRadius:'50%', width:16, height:16, lineHeight:'13px', fontSize:10, fontWeight:900, cursor:'pointer', padding:0, verticalAlign:'middle' }}>!</button>
+                    )}</span>
                     <EditorSelect value={e.lead_editor_id} onChange={v => { patch({ lead_editor_id: v }); save({ leadEditorId: v }); }} />
+                    {showPtoConflict && (e.pto_conflicts || []).length > 0 && (
+                      <div style={{ position:'relative' }}>
+                        <div style={{ position:'absolute', top:4, left:0, zIndex:50, background:'var(--bg2)', border:'1px solid #E03131',
+                          borderRadius:8, padding:'10px 14px', minWidth:260, boxShadow:'0 6px 20px rgba(0,0,0,0.4)' }}>
+                          <div style={{ fontSize:11, fontWeight:800, color:'#E03131', marginBottom:6 }}>
+                            ⚠ Editor unavailable during this edit window
+                          </div>
+                          {(e.pto_conflicts || []).map(c => (
+                            <div key={c.id} style={{ fontSize:11.5, color:'var(--text)', padding:'4px 0', borderTop:'1px solid var(--border)' }}>
+                              <b>{c.pto_type || 'PTO'}</b>{c.title ? ` — ${c.title}` : ''}<br />
+                              <span style={{ color:'var(--muted)' }}>
+                                {String(c.start_date).slice(0,10)} → {String(c.end_date).slice(0,10)} · {c.status === 'APPROVED' ? 'Approved' : c.status === 'REVIEW' ? 'Pending approval' : c.status}
+                              </span>
+                            </div>
+                          ))}
+                          <div style={{ fontSize:10.5, color:'var(--muted)', marginTop:6 }}>
+                            These dates overlap the edit's {String(e.start_date).slice(0,10)} – {String(e.end_date || e.start_date).slice(0,10)} window.
+                          </div>
+                          <button type="button" className="btn btn-ghost btn-sm" style={{ marginTop:8, fontSize:10 }} onClick={() => setShowPtoConflict(false)}>Close</button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div style={{ flex:1, minWidth:150 }}>
                     <span style={lbl}>Project Manager</span>

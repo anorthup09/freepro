@@ -597,6 +597,7 @@ function ProducerView({ data, hideGear, onOpenShotList }) {
                     ? <a href={mapsUrl(l.address)} target="_blank" rel="noreferrer" className="loc-addr" style={{ color:'var(--tan)', textDecoration:'underline', display:'block' }}>{l.address}</a>
                     : null}
                   {l.arrival_notes && <div style={{ fontSize:11, color:'var(--muted)', marginTop:5, whiteSpace:'pre-wrap' }}><span style={{ fontWeight:700, color:'var(--tan)' }}>Arrival: </span>{l.arrival_notes}</div>}
+                  {l.space_map && <img src={l.space_map} alt={`Space map for ${l.name}`} style={{ maxWidth:'100%', maxHeight:320, borderRadius:6, marginTop:8, display:'block' }} />}
                 </div>
                 {l.address && (
                   <a href={mapsUrl(l.address)} target="_blank" rel="noreferrer"
@@ -822,6 +823,7 @@ function CrewView({ data, shareToken, hideGear, onOpenShotList }) {
                     ? <a href={mapsUrl(l.address)} target="_blank" rel="noreferrer" className="loc-addr" style={{ color:'var(--tan)', textDecoration:'underline', display:'block' }}>{l.address}</a>
                     : null}
                   {l.arrival_notes && <div style={{ fontSize:11, color:'var(--muted)', marginTop:5, whiteSpace:'pre-wrap' }}><span style={{ fontWeight:700, color:'var(--tan)' }}>Arrival: </span>{l.arrival_notes}</div>}
+                  {l.space_map && <img src={l.space_map} alt={`Space map for ${l.name}`} style={{ maxWidth:'100%', maxHeight:320, borderRadius:6, marginTop:8, display:'block' }} />}
                 </div>
                 {l.address && (
                   <a href={mapsUrl(l.address)} target="_blank" rel="noreferrer"
@@ -1939,7 +1941,11 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
     const a = (crewAssignments || []).find(x => (x.position?.name || '').toLowerCase() === posName && x.crewMember);
     return a ? displayName(a.crewMember) : '';
   };
-  const [open, setOpen] = useState(true);
+  // Days that have already passed start collapsed so today's schedule leads
+  const [open, setOpen] = useState(() => {
+    const d = (day.date || '').slice(0, 10);
+    return !d || d >= new Date().toLocaleDateString('en-CA');
+  });
   const now = useNow();
   const [driveTimes, setDriveTimes] = useState({});
 

@@ -12,7 +12,6 @@ import Gear from './Gear.jsx';
 import GearList from './GearList.jsx';
 import GearRequestModal from '../../components/GearRequestModal.jsx';
 import Catering from './Catering.jsx';
-import SpaceInfo from './SpaceInfo.jsx';
 import Questions from './Questions.jsx';
 import Scripts from './Scripts.jsx';
 import ShotList from './ShotList.jsx';
@@ -28,7 +27,6 @@ const BASE_LOGISTICS_TABS = [
   { id: 'schedule',    label: 'Schedule' },
   { id: 'locations',   label: 'Locations' },
   { id: 'crew',        label: 'Crew' },
-  { id: 'space-info',  label: 'Room / Space Info' },
 ];
 
 const GEAR_TABS = [
@@ -479,7 +477,6 @@ export default function Project({ idOverride }) {
         {tab === 'producer-checklist'   && <ProducerChecklist project={project} />}
         {tab === 'additional-docs' && <AdditionalDocs project={project} />}
         {tab === 'locations'            && <Locations    project={project} setProject={setProject} />}
-        {tab === 'space-info'           && <SpaceInfo    project={project} setProject={setProject} />}
         {tab === 'questions'            && <Questions    project={project} />}
       </div>
     </>
