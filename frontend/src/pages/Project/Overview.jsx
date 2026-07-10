@@ -480,8 +480,9 @@ export default function Overview({ project, setProject, onTabChange }) {
           <div style={{ background:'rgba(232,80,10,0.12)', border:'1px solid rgba(232,80,10,0.45)', borderRadius:8, overflow:'hidden', marginBottom:20 }}>
             <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))' }}>
               {(project.crewAssignments||[]).map((a, i) => (
-                <div key={a.id} style={{ padding:'10px 16px', borderRight:'1px solid rgba(255,255,255,0.10)', borderBottom:'1px solid rgba(255,255,255,0.10)', display:'flex', flexDirection:'column', gap:2 }}>
-                  <div style={{ fontSize:10, textTransform:'uppercase', letterSpacing:'0.06em', color:'rgba(251,146,60,0.85)', fontWeight:700 }}>{a.position?.name}{a.slotNumber > 1 ? ` ${a.slotNumber}` : ''}</div>
+                <div key={a.id} style={{ padding:'10px 16px', borderRight:'1px solid rgba(255,255,255,0.10)', borderBottom:'1px solid rgba(255,255,255,0.10)', display:'flex', flexDirection:'column', gap:2,
+                  opacity: a.crewMember ? 1 : 0.45, background: a.crewMember ? 'transparent' : 'rgba(0,0,0,0.25)' }}>
+                  <div style={{ fontSize:10, textTransform:'uppercase', letterSpacing:'0.06em', color: a.crewMember ? 'rgba(251,146,60,0.85)' : 'var(--muted)', fontWeight:700 }}>{a.position?.name}{a.slotNumber > 1 ? ` ${a.slotNumber}` : ''}</div>
                   <div style={{ fontSize:13, fontWeight:600, color: a.crewMember ? '#fff' : 'rgba(255,255,255,0.4)', fontStyle: a.crewMember ? 'normal' : 'italic' }}>
                     {a.crewMember ? displayName(a.crewMember) : 'Unassigned'}
                   </div>
