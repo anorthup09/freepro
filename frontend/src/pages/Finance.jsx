@@ -120,15 +120,17 @@ export function LogoField({ value, onChange }) {
 export function NewProjectModal({ onClose, onCreated }) {
   const [f, setF] = useState({ code:'', title:'', client:'' });
   const [logo, setLogo] = useState(null);
+  const [rfp, setRfp] = useState(false);   // no project code yet — file under a temporary RFP code
   const [saving, setSaving] = useState(false);
   const set = k => e => setF(v => ({ ...v, [k]: e.target.value }));
-  const ok = f.code && f.title && f.client;
+  const ok = (f.code || rfp) && f.title && f.client;
   const submit = async () => {
     if (!ok || saving) return;
     setSaving(true);
     try {
       const today = new Date().toISOString().slice(0, 10);
-      const p = await api.createProject({ ...f, city: '—', state: '—', startDate: today, endDate: today, clientLogo: logo });
+      const code = f.code || `RFP-${Date.now().toString(36).toUpperCase().slice(-6)}`;
+      const p = await api.createProject({ ...f, code, city: '—', state: '—', startDate: today, endDate: today, clientLogo: logo });
       await api.createBudget(p.id);
       onCreated(p);
     } catch (e) { alert(e.message); setSaving(false); }
@@ -149,7 +151,19 @@ export function NewProjectModal({ onClose, onCreated }) {
         </div>
         <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
           <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
-            {field('Project Code', 'code', 'text', 'e.g. 02.CHP00126')}
+            <label style={{ display:'flex', flexDirection:'column', gap:4, fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', flex:1, minWidth:160 }}>
+              Project Code
+              <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+                <input type="text" value={f.code} onChange={set('code')} placeholder="Select RFP if no Project Code" disabled={rfp}
+                  style={{ background:'var(--bg)', border:'1px solid var(--border)', borderRadius:6, color:'var(--text)', padding:'8px 10px', fontSize:13, flex:1, minWidth:0, opacity: rfp ? 0.5 : 1 }} />
+                <button type="button" onClick={() => setRfp(r => !r)}
+                  title="No project code yet — create under a temporary RFP code"
+                  style={{ background: rfp ? 'rgba(230,194,41,0.16)' : 'transparent', border:`1px solid ${rfp ? '#e6c229' : 'var(--border)'}`,
+                    color: rfp ? '#e6c229' : 'var(--muted)', borderRadius:8, padding:'8px 12px', fontSize:11, fontWeight:800, cursor:'pointer', whiteSpace:'nowrap' }}>
+                  RFP
+                </button>
+              </div>
+            </label>
             <label style={{ display:'flex', flexDirection:'column', gap:4, fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', flex:1, minWidth:120 }}>
               Client
               <ClientSelect value={f.client} onChange={name => setF(v => ({ ...v, client: name }))} />
