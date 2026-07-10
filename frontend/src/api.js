@@ -293,7 +293,7 @@ export const api = {
   hotelSearch: (q) => req('GET', `/util/hotel-search?q=${encodeURIComponent(q)}`),
   geoSearch: (q) => req('GET', `/util/geo-search?q=${encodeURIComponent(q)}`),
   flightLookup: (flight, date) => req('GET', `/util/flight-lookup?flight=${encodeURIComponent(flight)}&date=${date}`),
-  flightStatus: (flight, date) => req('GET', `/util/flight-status?flight=${encodeURIComponent(flight)}&date=${date}`),
+  flightStatus: (flight, date, origin) => req('GET', `/util/flight-status?flight=${encodeURIComponent(flight)}&date=${date}${origin ? `&origin=${encodeURIComponent(origin)}` : ''}`),
   getRentalCars: (projectId) => req('GET', `/projects/${projectId}/travel/rental-cars`),
   createRentalCar: (projectId, data) => req('POST', `/projects/${projectId}/travel/rental-cars`, data),
   updateRentalCar: (projectId, id, data) => req('PATCH', `/projects/${projectId}/travel/rental-cars/${id}`, data),

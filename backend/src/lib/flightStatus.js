@@ -27,7 +27,7 @@ async function refreshFlightStatuses(projectId) {
   const key = process.env.AERODATABOX_API_KEY;
   if (!key) return;
   const flights = await sql`
-    SELECT id, flight_number, depart_time FROM flights
+    SELECT id, flight_number, depart_time, origin FROM flights
     WHERE project_id = ${projectId}
       AND flight_number IS NOT NULL
       AND depart_time IS NOT NULL
@@ -40,7 +40,9 @@ async function refreshFlightStatuses(projectId) {
       const date = new Date(f.depart_time).toISOString().slice(0, 10);
       const url = `https://aerodatabox.p.rapidapi.com/flights/number/${encodeURIComponent(f.flight_number.toUpperCase().replace(/\s+/g, ''))}/${date}`;
       const r = await fetchJson(url, { 'X-RapidAPI-Key': key, 'X-RapidAPI-Host': 'aerodatabox.p.rapidapi.com' });
-      const d = Array.isArray(r.data) ? r.data[0] : r.data;
+      // Multi-leg flight numbers: match the saved leg by its origin airport
+      const arr = (Array.isArray(r.data) ? r.data : [r.data]).filter(Boolean);
+      const d = (f.origin && arr.find(x => (x.departure?.airport?.iata || '').toUpperCase() === f.origin.toUpperCase())) || arr[0];
       const status = (r.ok && d?.status) ? d.status : null;
       await sql`UPDATE flights SET status = COALESCE(${status}, status), status_checked_at = now() WHERE id = ${f.id}`;
     } catch (e) {

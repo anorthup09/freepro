@@ -239,7 +239,7 @@ export default function Travel({ project }) {
     if (!f.flight_number) return;
     const dateStr = f.depart_time ? f.depart_time.slice(0,10) : '';
     try {
-      const data = await api.flightStatus(f.flight_number, dateStr);
+      const data = await api.flightStatus(f.flight_number, dateStr, f.origin);
       setFlights(prev => prev.map(fl => fl.id === f.id ? { ...fl, status: data.status } : fl));
     } catch(_) {}
   }

@@ -162,7 +162,7 @@ router.get('/flight-lookup', requireAuth, async (req, res, next) => {
 // ─── Flight Status (live refresh) ────────────────────────────────────────────
 router.get('/flight-status', requireAuth, async (req, res, next) => {
   try {
-    const { flight, date } = req.query;
+    const { flight, date, origin } = req.query;
     if (!flight) return res.status(400).json({ error: 'flight number required' });
 
     const key = process.env.AERODATABOX_API_KEY;
@@ -174,7 +174,9 @@ router.get('/flight-status', requireAuth, async (req, res, next) => {
     if (!r.ok) return res.status(r.status || 502).json({ error: 'lookup failed' });
 
     const data = r.data;
-    const f = Array.isArray(data) ? data[0] : data;
+    // Multi-leg numbers: match the tracked leg by origin airport when provided
+    const arr = (Array.isArray(data) ? data : [data]).filter(Boolean);
+    const f = (origin && arr.find(x => (x.departure?.airport?.iata || '').toUpperCase() === String(origin).toUpperCase())) || arr[0];
     if (!f) return res.json({ status: 'Unknown' });
 
     res.json({
