@@ -126,12 +126,20 @@ router.post('/tasks', requireAuth, async (req, res, next) => {
   try {
     const cm = await myCrewMember(req.user.email);
     if (!cm) return res.status(400).json({ error: 'No crew member record matches your account email' });
-    const { projectId, text, dueDate, notes } = req.body;
+    const { projectId, text, dueDate, notes, taggedId } = req.body;
     if (!projectId || !text?.trim()) return res.status(400).json({ error: 'Project and task text are required' });
     const [t] = await sql`
       INSERT INTO project_tasks (project_id, text, assignee_id, due_date, notes, created_by)
       VALUES (${projectId}, ${text.trim()}, ${cm.id}, ${dueDate || null}, ${notes || null}, ${req.user.name || req.user.email})
       RETURNING *`;
+    // Tagging a teammate drops the same task on their My Tasks list too
+    if (taggedId && taggedId !== cm.id) {
+      const myName = [cm.preferred_first_name, cm.preferred_last_name].filter(Boolean).join(' ').trim() || cm.name || req.user.email;
+      const tagNote = [`Tagged by ${myName}`, notes || null].filter(Boolean).join(' — ');
+      await sql`
+        INSERT INTO project_tasks (project_id, text, assignee_id, due_date, notes, created_by)
+        VALUES (${projectId}, ${text.trim()}, ${taggedId}, ${dueDate || null}, ${tagNote}, ${req.user.name || req.user.email})`;
+    }
     const [p] = await sql`SELECT code, title FROM projects WHERE id = ${projectId}`;
     res.status(201).json({ ...t, project_code: p?.code, project_title: p?.title, project_id: projectId });
   } catch (e) { next(e); }

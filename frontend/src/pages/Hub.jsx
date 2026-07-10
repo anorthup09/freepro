@@ -377,14 +377,14 @@ function HubDashboard() {
   const [taskProjects, setTaskProjects] = useState(null);
 
   function openAddTask() {
-    setAddTask({ projectId: '', text: '', dueDate: '' });
+    setAddTask({ projectId: '', text: '', dueDate: '', taggedId: '' });
     if (!taskProjects) api.getProjects().then(ps => setTaskProjects(ps.filter(p => p.status !== 'ARCHIVED'))).catch(() => setTaskProjects([]));
   }
 
   async function saveNewTask(e) {
     e.preventDefault();
     try {
-      const t = await api.addMyTask({ projectId: addTask.projectId, text: addTask.text, dueDate: addTask.dueDate || null });
+      const t = await api.addMyTask({ projectId: addTask.projectId, text: addTask.text, dueDate: addTask.dueDate || null, taggedId: addTask.taggedId || null });
       setDay(d => ({ ...d, tasks: [...(d?.tasks || []), t] }));
       setAddTask(null);
     } catch (err) { alert(err.message); }
@@ -534,6 +534,13 @@ function HubDashboard() {
                 </div>
                 <div className="field span2"><label>Due Date (optional)</label>
                   <input type="date" value={addTask.dueDate} onChange={e => setAddTask(f => ({ ...f, dueDate: e.target.value }))} />
+                </div>
+                <div className="field span2"><label>Tag a Teammate (optional)</label>
+                  <select value={addTask.taggedId} onChange={e => setAddTask(f => ({ ...f, taggedId: e.target.value }))}>
+                    <option value="">— No one — just me —</option>
+                    {(team || []).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                  </select>
+                  {addTask.taggedId && <div style={{ fontSize:10, color:'var(--muted)', marginTop:4 }}>This task will also appear on their My Tasks list, noted as tagged by you.</div>}
                 </div>
               </div>
               <div className="btn-row">
