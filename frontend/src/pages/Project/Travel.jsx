@@ -86,6 +86,7 @@ export default function Travel({ project }) {
   const [flightLooking, setFlightLooking] = useState(false);
   const [flightLookupError, setFlightLookupError] = useState('');
   const [flightLegs, setFlightLegs] = useState(null); // >1 leg that day → pick one
+  const [legNote, setLegNote] = useState('');         // what the lookup found (visibility)
   const [flightForm, setFlightForm] = useState({ crewMemberId:null, passengerName:'', flightNumber:'', airline:'', origin:'', destination:'', departTime:'', arriveTime:'', departDisplay:'', arriveDisplay:'', confirmation:'', isReturn:false, cost:'', status:'' });
 
   // Edit modals
@@ -202,12 +203,18 @@ export default function Travel({ project }) {
   }
   async function lookupFlight() {
     if (!flightLookupQuery) return;
-    setFlightLooking(true); setFlightLookupError(''); setFlightLegs(null);
+    setFlightLooking(true); setFlightLookupError(''); setFlightLegs(null); setLegNote('');
     try {
       const data = await api.flightLookup(flightLookupQuery, flightLookupDate);
       const legs = Array.isArray(data.legs) ? data.legs : [data];
-      if (legs.length > 1) setFlightLegs(legs);   // pop out the day's legs to pick from
-      else applyLeg(legs[0] || data);
+      if (legs.length > 1) {
+        setFlightLegs(legs);   // pop out the day's legs to pick from
+        setLegNote('');
+      } else {
+        const leg = legs[0] || data;
+        applyLeg(leg);
+        setLegNote(`1 leg found that day: ${leg.origin || '?'} → ${leg.destination || '?'} — applied. Multi-leg numbers pop out a picker here.`);
+      }
     } catch(err) {
       setFlightLookupError(err.message || 'Flight not found');
     }
@@ -639,6 +646,7 @@ export default function Travel({ project }) {
                     </button>
                   </div>
                   {flightLookupError && <div style={{ fontSize:11, color:'var(--red-text, #e08080)', marginTop:3 }}>{flightLookupError}</div>}
+                  {legNote && !flightLegs && <div style={{ fontSize:10, color:'var(--muted)', marginTop:3 }}>{legNote}</div>}
                   {flightForm.status && !flightLegs && <div style={{ fontSize:11, fontWeight:600, color: statusColor(flightForm.status), marginTop:3 }}>{flightForm.status}</div>}
                   {flightLegs && (
                     <div style={{ marginTop:8, border:'1px solid var(--orange)', borderRadius:8, overflow:'hidden' }}>
