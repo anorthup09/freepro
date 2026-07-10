@@ -99,6 +99,23 @@ function aeroHeaders(key) {
   return { 'X-RapidAPI-Key': key, 'X-RapidAPI-Host': 'aerodatabox.p.rapidapi.com' };
 }
 
+// AeroDataBox BASIC allows ~1 request/second: space consecutive calls out and
+// retry once on 429 so multi-call lookups (number + ICAO + board scan) survive.
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+let lastAeroCall = 0;
+async function aeroFetch(url, key) {
+  const wait = lastAeroCall + 1150 - Date.now();
+  if (wait > 0) await sleep(wait);
+  lastAeroCall = Date.now();
+  let r = await fetchJson(url, aeroHeaders(key));
+  if (r.status === 429) {
+    await sleep(1600);
+    lastAeroCall = Date.now();
+    r = await fetchJson(url, aeroHeaders(key));
+  }
+  return r;
+}
+
 // "2026-08-06 08:35-05:00" → "Aug 6, 8:35 AM"
 function fmtLocalTime(localStr) {
   if (!localStr) return null;
@@ -132,7 +149,7 @@ router.get('/flight-lookup', requireAuth, async (req, res, next) => {
     const targetDate = date || bizToday();
     const fetchLegs = async (num) => {
       const url = `https://aerodatabox.p.rapidapi.com/flights/number/${encodeURIComponent(num)}/${targetDate}?dateLocalRole=Both`;
-      const r = await fetchJson(url, aeroHeaders(key));
+      const r = await aeroFetch(url, key);
       if (!r.ok) return { r, arr: [] };
       return { r, arr: (Array.isArray(r.data) ? r.data : [r.data]).filter(Boolean) };
     };
@@ -164,7 +181,7 @@ router.get('/flight-lookup', requireAuth, async (req, res, next) => {
       for (const [from, to] of [[`${targetDate}T00:00`, `${targetDate}T11:59`], [`${targetDate}T12:00`, `${targetDate}T23:59`]]) {
         try {
           const url = `https://aerodatabox.p.rapidapi.com/flights/airports/iata/${originIata}/${from}/${to}?direction=Departure&withLeg=true&withCancelled=true&withCodeshared=true&withCargo=false&withPrivate=false`;
-          const r2 = await fetchJson(url, aeroHeaders(key));
+          const r2 = await aeroFetch(url, key);
           if (!r2.ok) { originScan.errors.push(`${r2.status}: ${r2.data?.message || 'board query failed'}`); continue; }
           const deps = r2.data?.departures || [];
           originScan.boardFlights += deps.length;
