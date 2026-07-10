@@ -488,6 +488,35 @@ export default function AvoEdit() {
                           <span style={{ ...lbl, marginBottom:0, flex:1, textDecoration: skipped ? 'line-through' : 'none' }}>
                             {label}
                           </span>
+                          {(() => {
+                            const hits = (!skipped && val) ? (e.pto_conflicts || []).filter(c => String(c.start_date).slice(0,10) <= val && String(c.end_date).slice(0,10) >= val) : [];
+                            if (!hits.length) return <span style={{ width:16, flexShrink:0 }} />;
+                            return (
+                              <span style={{ position:'relative', flexShrink:0 }}>
+                                <button type="button" title="The lead editor has PTO / OOO on this date — click for details"
+                                  onClick={() => setPtoFlagOpen(o => o === k ? null : k)}
+                                  style={{ background:'rgba(224,49,49,0.15)', border:'1px solid #E03131', color:'#E03131',
+                                    borderRadius:'50%', width:16, height:16, lineHeight:'13px', fontSize:10, fontWeight:900, cursor:'pointer', padding:0, display:'block' }}>!</button>
+                                {ptoFlagOpen === k && (
+                                  <span style={{ position:'absolute', top:20, left:0, zIndex:50, display:'block', background:'var(--bg2)', border:'1px solid #E03131',
+                                    borderRadius:8, padding:'10px 14px', minWidth:250, boxShadow:'0 6px 20px rgba(0,0,0,0.4)', whiteSpace:'normal', textAlign:'left' }}>
+                                    <span style={{ display:'block', fontSize:11, fontWeight:800, color:'#E03131', marginBottom:6 }}>
+                                      ⚠ {e.lead_editor_name_resolved || e.lead_editor_name || 'The lead editor'} is unavailable on this date
+                                    </span>
+                                    {hits.map(c => (
+                                      <span key={c.id} style={{ display:'block', fontSize:11.5, color:'var(--text)', padding:'4px 0', borderTop:'1px solid var(--border)' }}>
+                                        <b>{c.pto_type || 'PTO'}</b>{c.title ? ` — ${c.title}` : ''}<br />
+                                        <span style={{ color:'var(--muted)' }}>
+                                          {String(c.start_date).slice(0,10)} → {String(c.end_date).slice(0,10)} · {c.status === 'APPROVED' ? 'Approved' : c.status === 'REVIEW' ? 'Pending approval' : c.status}
+                                        </span>
+                                      </span>
+                                    ))}
+                                    <button type="button" className="btn btn-ghost btn-sm" style={{ marginTop:8, fontSize:10 }} onClick={() => setPtoFlagOpen(null)}>Close</button>
+                                  </span>
+                                )}
+                              </span>
+                            );
+                          })()}
                           <span title="Who's responsible for this task — shows on the Crew Calendar"
                             style={{ display:'inline-block', width:140, flexShrink:0 }}>
                             {EDITOR_TASKS.includes(k) && (
@@ -516,35 +545,6 @@ export default function AvoEdit() {
                             style={{ flexShrink:0, width:46, fontSize:9, fontWeight:800, color:AVO, whiteSpace:'nowrap' }}>
                             {gap != null ? `${gap} Day${gap === 1 ? '' : 's'}` : ''}
                           </span>
-                          {(() => {
-                            const hits = (!skipped && val) ? (e.pto_conflicts || []).filter(c => String(c.start_date).slice(0,10) <= val && String(c.end_date).slice(0,10) >= val) : [];
-                            if (!hits.length) return <span style={{ width:16, flexShrink:0 }} />;
-                            return (
-                              <span style={{ position:'relative', flexShrink:0 }}>
-                                <button type="button" title="The lead editor has PTO / OOO on this date — click for details"
-                                  onClick={() => setPtoFlagOpen(o => o === k ? null : k)}
-                                  style={{ background:'rgba(224,49,49,0.15)', border:'1px solid #E03131', color:'#E03131',
-                                    borderRadius:'50%', width:16, height:16, lineHeight:'13px', fontSize:10, fontWeight:900, cursor:'pointer', padding:0, display:'block' }}>!</button>
-                                {ptoFlagOpen === k && (
-                                  <span style={{ position:'absolute', top:20, right:0, zIndex:50, display:'block', background:'var(--bg2)', border:'1px solid #E03131',
-                                    borderRadius:8, padding:'10px 14px', minWidth:250, boxShadow:'0 6px 20px rgba(0,0,0,0.4)', whiteSpace:'normal', textAlign:'left' }}>
-                                    <span style={{ display:'block', fontSize:11, fontWeight:800, color:'#E03131', marginBottom:6 }}>
-                                      ⚠ {e.lead_editor_name_resolved || e.lead_editor_name || 'The lead editor'} is unavailable on this date
-                                    </span>
-                                    {hits.map(c => (
-                                      <span key={c.id} style={{ display:'block', fontSize:11.5, color:'var(--text)', padding:'4px 0', borderTop:'1px solid var(--border)' }}>
-                                        <b>{c.pto_type || 'PTO'}</b>{c.title ? ` — ${c.title}` : ''}<br />
-                                        <span style={{ color:'var(--muted)' }}>
-                                          {String(c.start_date).slice(0,10)} → {String(c.end_date).slice(0,10)} · {c.status === 'APPROVED' ? 'Approved' : c.status === 'REVIEW' ? 'Pending approval' : c.status}
-                                        </span>
-                                      </span>
-                                    ))}
-                                    <button type="button" className="btn btn-ghost btn-sm" style={{ marginTop:8, fontSize:10 }} onClick={() => setPtoFlagOpen(null)}>Close</button>
-                                  </span>
-                                )}
-                              </span>
-                            );
-                          })()}
                         </div>
                       );
                     })}
