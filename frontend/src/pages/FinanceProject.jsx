@@ -498,13 +498,13 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
                   </span>
                 )
               )}
-              <div style={{ fontSize:13, fontWeight:700, whiteSpace:'nowrap' }}>{fmt$(mainTotal + travelTotal)}</div>
               {sec.kind === 'shoot' && sec.freepro_project_id && (
                 <a href={`/projects/${sec.freepro_project_id}`}
                   style={{ fontSize:10, fontWeight:700, color:'var(--orange)', border:'1px solid rgba(232,80,10,0.45)', borderRadius:12, padding:'3px 10px', textDecoration:'none', whiteSpace:'nowrap', alignSelf:'center' }}>
                   Go to FreePro ›
                 </a>
               )}
+              <div style={{ fontSize:13, fontWeight:700, whiteSpace:'nowrap' }}>{fmt$(mainTotal + travelTotal)}</div>
               <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text)' }} onClick={() => delSection(sec.id)}>✕</button>
             </div>
             <div className="budget-tbl-wrap">
@@ -520,6 +520,10 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
                 </tr>
               </thead>
               <tbody>
+                {sec.kind === 'shoot' && shownMain.length > 0 && (
+                  <tr><td colSpan={4} style={{ padding:'6px 6px 2px 14px', fontSize:9, color:'var(--tan)', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em' }}>Labor</td>
+                    <td style={{ textAlign:'right', padding:'6px 6px 2px', fontSize:10, color:'var(--tan)', fontWeight:700 }}></td><td/></tr>
+                )}
                 {shownMain.map(l => <LineRow key={l.id} l={l} secLines={secLines} patchLine={patchLine} saveLine={saveLine} delLine={delLine} dupLine={dupLine} dragCtl={dragCtl} />)}
                 {sec.kind === 'shoot' && (
                   <tr>
@@ -1769,6 +1773,10 @@ function EstimatePane({ est, feeRate, saveFeeAll, reload, onMerged, onData }) {
                 </tr>
               </thead>
               <tbody>
+                {sec.kind === 'shoot' && shownMain.length > 0 && (
+                  <tr><td colSpan={4} style={{ padding:'6px 6px 2px 14px', fontSize:9, color:'var(--tan)', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em' }}>Labor</td>
+                    <td style={{ textAlign:'right', padding:'6px 6px 2px', fontSize:10, color:'var(--tan)', fontWeight:700 }}></td><td/></tr>
+                )}
                 {shownMain.map(l => <LineRow key={l.id} l={l} secLines={secLines} patchLine={patchLine} saveLine={saveLine} delLine={delLine} dupLine={dupLine} dragCtl={dragCtl} />)}
                 {sec.kind === 'shoot' && (
                   <tr>
