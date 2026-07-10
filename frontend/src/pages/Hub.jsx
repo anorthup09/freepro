@@ -626,33 +626,29 @@ export default function Hub() {
 
         <div style={{ flex:1, display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'20px 16px 60px' }}>
           <div style={{ width:'100%', maxWidth:1150 }}>
-            <div style={{ textAlign:'center', marginBottom:24 }}>
-              <div style={{ fontSize:22, fontWeight:800 }}>Where to today?</div>
-              <div style={{ fontSize:12, color:'var(--muted)', marginTop:4 }}>Every project, from budget to delivery.</div>
-              {!isCrew && !isFinance && (
-                <div style={{ display:'inline-flex', border:'1px solid var(--border)', borderRadius:20, overflow:'hidden', marginTop:16 }}>
-                  {[['projects', '🗂 Project View'], ['ops', '⚙ Operations View']].map(([k, label]) => (
+            {!isCrew && !isFinance && (
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap', marginBottom:20 }}>
+                <div style={{ display:'inline-flex', border:'1px solid var(--border)', borderRadius:20, overflow:'hidden' }}>
+                  {[['projects', 'Project View'], ['ops', 'Operations View']].map(([k, label]) => (
                     <button key={k} onClick={() => setHubMode(k)}
-                      style={{ background: mode === k ? 'rgba(255,255,255,0.09)' : 'transparent', border:'none',
-                        color: mode === k ? 'var(--text)' : 'var(--muted)', fontSize:12, fontWeight:800, padding:'9px 22px', cursor:'pointer', letterSpacing:'0.03em' }}>
+                      style={{ background: mode === k ? 'rgba(232,80,10,0.16)' : 'transparent', border:'none',
+                        color: mode === k ? 'var(--orange)' : 'var(--muted)', fontSize:12, fontWeight:800, padding:'9px 22px', cursor:'pointer', letterSpacing:'0.03em',
+                        boxShadow: mode === k ? '0 0 14px rgba(232,80,10,0.55) inset, 0 0 10px rgba(232,80,10,0.35)' : 'none',
+                        transition:'box-shadow .15s ease, color .15s ease' }}>
                       {label}
                     </button>
                   ))}
                 </div>
-              )}
-              {!isCrew && !isFinance && (
-                <div style={{ marginTop:16 }}>
-                  <button onClick={() => setShowNewProject(true)}
-                    style={{ background:'#000', color:'#5ABF80', border:'1px solid #5ABF80', borderRadius:22,
-                      padding:'10px 24px', fontSize:12.5, fontWeight:800, letterSpacing:'0.03em', cursor:'pointer',
-                      boxShadow:'0 0 16px rgba(90,191,128,0.55)', transition:'box-shadow .15s ease, transform .15s ease' }}
-                    onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 0 24px rgba(90,191,128,0.85)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 0 16px rgba(90,191,128,0.55)'; e.currentTarget.style.transform = 'none'; }}>
-                    + Start New Project
-                  </button>
-                </div>
-              )}
-            </div>
+                <button onClick={() => setShowNewProject(true)}
+                  style={{ background:'#000', color:'#5ABF80', border:'1px solid #5ABF80', borderRadius:22,
+                    padding:'10px 24px', fontSize:12.5, fontWeight:800, letterSpacing:'0.03em', cursor:'pointer',
+                    boxShadow:'0 0 16px rgba(90,191,128,0.55)', transition:'box-shadow .15s ease, transform .15s ease' }}
+                  onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 0 24px rgba(90,191,128,0.85)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 0 16px rgba(90,191,128,0.55)'; e.currentTarget.style.transform = 'none'; }}>
+                  + Start New Project
+                </button>
+              </div>
+            )}
             {!isCrew && !isFinance && mode === 'projects' && <HubProjects />}
             {(isCrew || isFinance || mode === 'ops') && (
             <div className="hub-tiles" style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(260px, 1fr))', gap:16 }}>
