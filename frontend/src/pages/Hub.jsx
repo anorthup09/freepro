@@ -636,7 +636,7 @@ export default function Hub() {
                     <button key={k} onClick={() => setHubMode(k)}
                       style={{ background: mode === k ? 'rgba(232,80,10,0.16)' : 'transparent', border:'none',
                         color: mode === k ? 'var(--orange)' : 'var(--muted)', fontSize:12, fontWeight:800, padding:'9px 22px', cursor:'pointer', letterSpacing:'0.03em',
-                        boxShadow: mode === k ? '0 0 14px rgba(232,80,10,0.55) inset, 0 0 10px rgba(232,80,10,0.35)' : 'none',
+                        boxShadow: mode === k ? '0 0 16px rgba(232,80,10,0.55)' : 'none',
                         transition:'box-shadow .15s ease, color .15s ease' }}>
                       {label}
                     </button>
