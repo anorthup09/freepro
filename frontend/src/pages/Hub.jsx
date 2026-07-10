@@ -60,7 +60,7 @@ function fmtCloseMonth(m) {
   return new Date(Number(y), Number(mo) - 1, 15).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 }
 
-function FeedbackBoard() {
+export function FeedbackBoard({ variant = 'banner' }) {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState([]);
   const [text, setText] = useState('');
@@ -86,18 +86,26 @@ function FeedbackBoard() {
   const openCount = items.filter(i => !i.done).length;
   return (
     <>
-      <div style={{ display:'flex', justifyContent:'center', alignItems:'center', gap:10, padding:'14px 16px 0' }}>
-        <button onClick={toggle}
-          style={{ background:'#e05252', border:'2px solid #ff6b6b', color:'#fff', borderRadius:12, padding:'10px 26px', fontSize:14, fontWeight:900, letterSpacing:'0.03em', cursor:'pointer', boxShadow:'0 4px 18px rgba(224,82,82,0.35)' }}>
-          ! Testing - Feedback and Features !
+      {variant === 'banner' ? (
+        <div style={{ display:'flex', justifyContent:'center', alignItems:'center', gap:10, padding:'14px 16px 0' }}>
+          <button onClick={toggle}
+            style={{ background:'#e05252', border:'2px solid #ff6b6b', color:'#fff', borderRadius:12, padding:'10px 26px', fontSize:14, fontWeight:900, letterSpacing:'0.03em', cursor:'pointer', boxShadow:'0 4px 18px rgba(224,82,82,0.35)' }}>
+            ! Testing - Feedback and Features !
+          </button>
+          {openCount > 0 && (
+            <span onClick={toggle} title={`${openCount} unresolved item${openCount === 1 ? '' : 's'}`}
+              style={{ background:'#e05252', color:'#fff', borderRadius:'50%', minWidth:26, height:26, display:'inline-flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:900, cursor:'pointer', boxShadow:'0 2px 10px rgba(224,82,82,0.5)', padding:'0 6px' }}>
+              {openCount}
+            </span>
+          )}
+        </div>
+      ) : (
+        <button onClick={toggle} className="no-print" title="Testing — leave feedback or a feature request"
+          style={{ position:'fixed', top:8, right:10, zIndex:125, background:'#e05252', border:'1px solid #ff6b6b', color:'#fff',
+            borderRadius:12, padding:'3px 12px', fontSize:10, fontWeight:900, letterSpacing:'0.03em', cursor:'pointer', boxShadow:'0 2px 10px rgba(224,82,82,0.45)', display:'flex', alignItems:'center', gap:6 }}>
+          Feedback{openCount > 0 && <span style={{ background:'#fff', color:'#e05252', borderRadius:8, padding:'0 6px', fontSize:9, fontWeight:900 }}>{openCount}</span>}
         </button>
-        {openCount > 0 && (
-          <span onClick={toggle} title={`${openCount} unresolved item${openCount === 1 ? '' : 's'}`}
-            style={{ background:'#e05252', color:'#fff', borderRadius:'50%', minWidth:26, height:26, display:'inline-flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:900, cursor:'pointer', boxShadow:'0 2px 10px rgba(224,82,82,0.5)', padding:'0 6px' }}>
-            {openCount}
-          </span>
-        )}
-      </div>
+      )}
       {open && (
         <div onClick={e => e.target === e.currentTarget && setOpen(false)}
           style={{ position:'fixed', inset:0, zIndex:130, background:'rgba(0,0,0,0.75)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
