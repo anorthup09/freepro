@@ -24,6 +24,7 @@ export default function ClientInvoiceReport() {
   const { user, setUser } = useAuth();
   const [projects, setProjects] = useState(null);
   const [year, setYear] = useState(String(new Date().getFullYear()));
+  const [expanded, setExpanded] = useState({});   // months whose settled projects are expanded
 
   useEffect(() => { api.financeProjects().then(setProjects).catch(() => setProjects([])); }, []);
 
@@ -138,13 +139,32 @@ export default function ClientInvoiceReport() {
 
         {months.map(m => {
           const set = inYear.filter(r => r.close_month === m);
-          const ordered = [...set.filter(r => r.budget_status === 'Live'), ...set.filter(r => r.budget_status !== 'Live')];
+          const nowMonth = new Date().toISOString().slice(0, 7);
+          // Fully settled = closed AND final invoice sent. In past months these
+          // condense into a single strip up top; anything still open — not
+          // closed, or closed without a final invoice — stays expanded.
+          const settled = m < nowMonth ? set.filter(r => r.budget_status !== 'Live' && r.final_inv_date) : [];
+          const active = set.filter(r => !settled.includes(r));
+          const ordered = [...active.filter(r => r.budget_status === 'Live'), ...active.filter(r => r.budget_status !== 'Live')];
+          const isOpen = !!expanded[m];
           return (
             <div key={m} style={{ marginTop: 22 }}>
               <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#5ABF80', marginBottom: 8 }}>
                 {closeMonthLabel(m)}
               </div>
-              {table(ordered)}
+              {settled.length > 0 && (
+                <div style={{ marginBottom: ordered.length ? 8 : 0 }}>
+                  <div onClick={() => setExpanded(x => ({ ...x, [m]: !x[m] }))}
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg2)', border: '1px solid var(--border)',
+                      borderRadius: isOpen ? '10px 10px 0 0' : 10, padding: '8px 14px', cursor: 'pointer', fontSize: 11, color: 'var(--muted)' }}>
+                    <span style={{ fontSize: 9 }}>{isOpen ? '▾' : '▸'}</span>
+                    <span style={{ fontWeight: 700 }}>{settled.length} closed & final-invoiced project{settled.length !== 1 ? 's' : ''}</span>
+                    <span style={{ marginLeft: 'auto', fontWeight: 800, color: '#5ABF80' }}>{fmt$(settled.reduce((a, r) => a + num(r.budget_total), 0))}</span>
+                  </div>
+                  {isOpen && table(settled)}
+                </div>
+              )}
+              {ordered.length > 0 && table(ordered)}
             </div>
           );
         })}
