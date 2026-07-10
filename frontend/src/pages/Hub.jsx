@@ -580,8 +580,8 @@ export default function Hub() {
       <FeedbackBoard />
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 26px', flexWrap:'wrap', gap:10, position:'relative' }}>
         <div>
-          <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height:26, filter:'brightness(0) invert(1)', opacity:0.95, display:'block' }} />
-          <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.12em', marginTop:5 }}>Operating Platform</div>
+          <div style={{ fontSize:14, fontWeight:800, letterSpacing:'0.02em' }}>Unbridled Media</div>
+          <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.12em', marginTop:3 }}>Operating Platform</div>
         </div>
         {!isCrew && <div className="hub-pipeline-btn" style={{ display:'flex', gap:12 }}>
           {!isFinance && <button onClick={() => nav('/crew-calendar')}
@@ -626,6 +626,9 @@ export default function Hub() {
 
         <div style={{ flex:1, display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'20px 16px 60px' }}>
           <div style={{ width:'100%', maxWidth:1150 }}>
+            <div style={{ textAlign:'center', marginBottom:20 }}>
+              <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height:38, filter:'brightness(0) invert(1)', opacity:0.95, display:'inline-block' }} />
+            </div>
             {!isCrew && !isFinance && (
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap', marginBottom:20 }}>
                 <div style={{ display:'inline-flex', border:'1px solid var(--border)', borderRadius:20, overflow:'hidden' }}>
