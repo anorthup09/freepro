@@ -474,6 +474,7 @@ function ProducerView({ data, hideGear, onOpenShotList }) {
   const { project, locations, techSpecs, clientContacts, agencyContacts = [], keyTalent, crewAssignments, schedule: rawSchedule, flights: allFlights, hotelBlocks: allHotelBlocks, rentalCars: allRentalCars, deliverables, gear, onlineRentals = [], shotList = [], slDays = [], slBreaks = [] } = data;
   const scheduleRef = useRef(null);
   const [tagFilter, setTagFilter] = useState(null);
+  const [crewFilter, setCrewFilter] = useState(null); // project_crews id
   const personFilter = new URLSearchParams(window.location.search).get('for') || null;
   // Local crew don't travel — their personal call sheet hides all travel info
   const isLocalPerson = !!personFilter && (crewAssignments || []).some(a => {
@@ -493,6 +494,13 @@ function ProducerView({ data, hideGear, onOpenShotList }) {
           <div>
             <div className="proj-code">{project.code}</div>
             <div className="proj-title">{project.title}</div>
+            {data.crew_group && (
+              <div style={{ marginTop:6 }}>
+                <span style={{ fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.08em', color: data.crew_group.color || 'var(--orange)', border:`1px solid ${data.crew_group.color || 'var(--orange)'}`, borderRadius:12, padding:'2px 12px' }}>
+                  {data.crew_group.name} Call Sheet
+                </span>
+              </div>
+            )}
             <div className="proj-meta" style={{ marginTop: 6 }}>
               <span className="meta">{project.client}</span>
               <span className="meta">{fmt(project.start_date)} – {fmt(project.end_date)}</span>
@@ -674,6 +682,12 @@ function ProducerView({ data, hideGear, onOpenShotList }) {
                 {tag}
               </button>
             ))}
+            {(data.crews || []).map(c => (
+              <button key={c.id} onClick={() => setCrewFilter(f => f === c.id ? null : c.id)}
+                style={{ fontSize:11, fontWeight:700, padding:'5px 16px', borderRadius:100, border: crewFilter === c.id ? 'none' : `1px solid ${c.color || 'rgba(255,255,255,0.12)'}`, background: crewFilter === c.id ? (c.color || 'var(--orange)') : 'rgba(255,255,255,0.06)', color: crewFilter === c.id ? '#0b0b0b' : (c.color || 'rgba(255,255,255,0.5)'), cursor:'pointer', letterSpacing:'.06em', transition:'all 0.15s' }}>
+                {c.name}
+              </button>
+            ))}
           </div>
         )}
         {[...(schedule||[])].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).filter(day => {
@@ -681,7 +695,10 @@ function ProducerView({ data, hideGear, onOpenShotList }) {
           if (day.events.some(e => (e.tags || []).some(t => t.type === tagFilter || t.type === 'ALL_CREW'))) return true;
           return [day.call_time_tags, day.shooting_call_tags, day.lunch_tags, day.wrap_time_tags]
             .some(tags => Array.isArray(tags) && (tags.includes(tagFilter) || tags.includes('ALL_CREW')));
-        }).map((day, i) => (
+        }).map(day => crewFilter
+          ? { ...day, events: (day.events || []).filter(e => !(e.crew_ids || []).length || e.crew_ids.includes(crewFilter)) }
+          : day
+        ).map((day, i) => (
           <DaySection key={day.id} day={day} showCalls flights={flights} dayIndex={i} tagFilter={tagFilter} personFilter={personFilter} cateringDetail="full" shotList={shotList} slDays={slDays} slBreaks={slBreaks} onOpenShotList={onOpenShotList} crewAssignments={crewAssignments} includePhoto={project.include_photo !== false} projectCity={[project.city, project.state].filter(Boolean).join(', ')} />
         ))}
       </div>

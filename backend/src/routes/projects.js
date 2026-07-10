@@ -79,6 +79,13 @@ async function getFullProject(id) {
   const trip = (shootSec?.trip || '').trim();
   const desc = (shootSec?.subtitle || '').trim();
   const shootName = [trip, desc].filter(Boolean).join(' - ') || (project.subtitle || '').trim() || null;
+  // Named crews (units) + which crews each assignment belongs to
+  const crews = await sql`SELECT * FROM project_crews WHERE project_id = ${id} ORDER BY sort, created_at`;
+  const assignmentCrews = await sql`
+    SELECT cac.assignment_id, cac.crew_id FROM crew_assignment_crews cac
+    JOIN crew_assignments ca ON ca.id = cac.assignment_id WHERE ca.project_id = ${id}`;
+  const crewIdsByAssignment = {};
+  for (const r of assignmentCrews) (crewIdsByAssignment[r.assignment_id] ||= []).push(r.crew_id);
   return {
     ...project,
     shoot_name: shootName,
@@ -90,8 +97,10 @@ async function getFullProject(id) {
     hotelBlocks,
     gear: gear[0] || null,
     onlineRentals,
+    crews,
     crewAssignments: crewAssignments.map(a => ({
       ...a,
+      crew_ids: crewIdsByAssignment[a.id] || [],
       position: { id: a.position_id, name: a.position_name, sortOrder: a.sort_order },
       crewMember: a.cm_id ? { id: a.cm_id, name: a.cm_name, preferredFirstName: a.cm_pref_first, preferredLastName: a.cm_pref_last, email: a.cm_email, phone: a.cm_phone, company: a.cm_company, initials: a.initials, avatarColor: a.avatar_color, travelLocal: a.cm_travel_local } : null,
     })),
@@ -425,8 +434,13 @@ router.get('/:id/shares', requireAuth, async (req, res, next) => {
 });
 router.post('/:id/shares', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const { viewType, talentName } = req.body;
-    const [s] = await sql`INSERT INTO project_shares (id, project_id, token, view_type, talent_name) VALUES (gen_random_uuid()::text, ${req.params.id}, gen_random_uuid()::text, ${viewType}, ${talentName||null}) RETURNING *`;
+    const { viewType, talentName, crewGroupId } = req.body;
+    // Per-crew links are reused, not multiplied — one link per crew per project
+    if (crewGroupId) {
+      const [existing] = await sql`SELECT * FROM project_shares WHERE project_id = ${req.params.id} AND view_type = ${viewType} AND crew_group_id = ${crewGroupId}`;
+      if (existing) return res.json(existing);
+    }
+    const [s] = await sql`INSERT INTO project_shares (id, project_id, token, view_type, talent_name, crew_group_id) VALUES (gen_random_uuid()::text, ${req.params.id}, gen_random_uuid()::text, ${viewType}, ${talentName||null}, ${crewGroupId||null}) RETURNING *`;
     res.status(201).json(s);
   } catch(e){next(e);}
 });
@@ -464,8 +478,14 @@ router.get('/:id/crew', requireAuth, async (req, res, next) => {
       LEFT JOIN crew_members cm ON cm.id = ca.crew_member_id
       WHERE ca.project_id = ${req.params.id}
       ORDER BY p.sort_order, ca.slot_number`;
+    const acRows = await sql`
+      SELECT cac.assignment_id, cac.crew_id FROM crew_assignment_crews cac
+      JOIN crew_assignments ca ON ca.id = cac.assignment_id WHERE ca.project_id = ${req.params.id}`;
+    const crewIdsByA = {};
+    for (const r of acRows) (crewIdsByA[r.assignment_id] ||= []).push(r.crew_id);
     res.json(rows.map(a => ({
       ...a,
+      crew_ids: crewIdsByA[a.id] || [],
       position: { id: a.position_id, name: a.position_name, sortOrder: a.sort_order },
       crewMember: a.cm_id ? { id: a.cm_id, name: a.cm_name, preferredFirstName: a.cm_pref_first, preferredLastName: a.cm_pref_last, email: a.cm_email, phone: a.cm_phone, company: a.cm_company, initials: a.initials, avatarColor: a.avatar_color, dietaryRestrictions: a.cm_dietary, travelLocal: a.cm_travel_local } : null,
     })));
@@ -491,7 +511,13 @@ router.post('/:id/crew', requireAuth, requireRole('ADMIN','PRODUCER'), async (re
 });
 router.patch('/:id/crew/:aid', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const { crewMemberId, notes, startDate, endDate, isContractor, dayRate, laborDays, gearCost, gearDays } = req.body;
+    const { crewMemberId, notes, startDate, endDate, isContractor, dayRate, laborDays, gearCost, gearDays, crewIds } = req.body;
+    if (crewIds !== undefined) {
+      await sql`DELETE FROM crew_assignment_crews WHERE assignment_id = ${req.params.aid}`;
+      for (const cid of (crewIds || [])) {
+        await sql`INSERT INTO crew_assignment_crews (assignment_id, crew_id) VALUES (${req.params.aid}, ${cid}) ON CONFLICT DO NOTHING`;
+      }
+    }
     await sql`
       UPDATE crew_assignments SET
         crew_member_id = CASE WHEN ${crewMemberId !== undefined} THEN ${crewMemberId||null} ELSE crew_member_id END,
@@ -511,11 +537,37 @@ router.patch('/:id/crew/:aid', requireAuth, requireRole('ADMIN','PRODUCER'), asy
     if ((crewMemberId !== undefined || startDate !== undefined || endDate !== undefined) && full.cm_id && full.start_date) {
       sendAssignmentHold(req.params.aid);
     }
-    res.json({ ...full, position:{id:full.position_id,name:full.position_name}, crewMember: full.cm_id?{id:full.cm_id,name:full.cm_name,preferredFirstName:full.cm_pref_first,preferredLastName:full.cm_pref_last,email:full.cm_email,phone:full.cm_phone,initials:full.initials,avatarColor:full.avatar_color,dietaryRestrictions:full.cm_dietary}:null });
+    const crewRows = await sql`SELECT crew_id FROM crew_assignment_crews WHERE assignment_id = ${req.params.aid}`;
+    res.json({ ...full, crew_ids: crewRows.map(r => r.crew_id), position:{id:full.position_id,name:full.position_name}, crewMember: full.cm_id?{id:full.cm_id,name:full.cm_name,preferredFirstName:full.cm_pref_first,preferredLastName:full.cm_pref_last,email:full.cm_email,phone:full.cm_phone,initials:full.initials,avatarColor:full.avatar_color,dietaryRestrictions:full.cm_dietary}:null });
   } catch(e){next(e);}
 });
 router.delete('/:id/crew/:aid', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try { await sql`DELETE FROM crew_assignments WHERE id = ${req.params.aid}`; res.status(204).end(); } catch(e){next(e);}
+});
+
+// ─── Named crews (units) — Recap Crew, Interview Crew, … ────────────────────
+router.post('/:id/crews', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try {
+    const name = String(req.body.name || '').trim();
+    if (!name) return res.status(400).json({ error: 'Crew name required' });
+    const [{ n }] = await sql`SELECT COUNT(*) as n FROM project_crews WHERE project_id = ${req.params.id}`;
+    const [c] = await sql`INSERT INTO project_crews (project_id, name, color, sort)
+      VALUES (${req.params.id}, ${name}, ${req.body.color || null}, ${Number(n)}) RETURNING *`;
+    res.status(201).json(c);
+  } catch(e){next(e);}
+});
+router.patch('/:id/crews/:cid', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try {
+    const d = req.body;
+    const [c] = await sql`UPDATE project_crews SET
+        name = COALESCE(${d.name ? String(d.name).trim() : null}, name),
+        color = ${d.color !== undefined ? (d.color || null) : sql`color`}
+      WHERE id = ${req.params.cid} RETURNING *`;
+    res.json(c);
+  } catch(e){next(e);}
+});
+router.delete('/:id/crews/:cid', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try { await sql`DELETE FROM project_crews WHERE id = ${req.params.cid}`; res.status(204).end(); } catch(e){next(e);}
 });
 
 // ─── Agency Contacts ─────────────────────────────────────────────────────────
@@ -691,7 +743,7 @@ router.post('/:id/call-sheet-email-draft', requireAuth, requireRole('ADMIN','PRO
     if (!p) return res.status(404).json({ error: 'Project not found' });
     const locations = await sql`SELECT name, address, type FROM locations WHERE project_id = ${p.id}`;
     // Crew call sheet share link (created on demand) — included in the email
-    let [share] = await sql`SELECT token FROM project_shares WHERE project_id = ${p.id} AND view_type = 'crew' AND talent_name IS NULL LIMIT 1`;
+    let [share] = await sql`SELECT token FROM project_shares WHERE project_id = ${p.id} AND view_type = 'crew' AND talent_name IS NULL AND crew_group_id IS NULL LIMIT 1`;
     if (!share) [share] = await sql`INSERT INTO project_shares (id, project_id, token, view_type) VALUES (gen_random_uuid()::text, ${p.id}, gen_random_uuid()::text, 'crew') RETURNING token`;
     const proto = req.headers['x-forwarded-proto'] || req.protocol || 'https';
     const shareUrl = `${proto}://${req.get('host')}/share/${share.token}`;

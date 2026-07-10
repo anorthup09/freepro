@@ -8,9 +8,11 @@ async function getDayFull(dayId) {
   const [[day], events, crewCalls] = await Promise.all([
     sql`SELECT * FROM shoot_days WHERE id = ${dayId}`,
     sql`SELECT se.*, json_agg(DISTINCT jsonb_build_object('id',et.id,'type',et.type,'label',et.label)) FILTER (WHERE et.id IS NOT NULL) as tags,
+           array_remove(array_agg(DISTINCT ec.crew_id), NULL) as crew_ids,
            l.name as location_name, l.address as location_address
     FROM schedule_events se
     LEFT JOIN event_tags et ON et.event_id = se.id
+    LEFT JOIN event_crews ec ON ec.event_id = se.id
     LEFT JOIN locations l ON l.id = se.location_id
     WHERE se.shoot_day_id = ${dayId}
     GROUP BY se.id, l.name, l.address
@@ -27,7 +29,7 @@ async function getDayFull(dayId) {
   if (!day) return null;
   return {
     ...day,
-    events: events.map(e => ({ ...e, tags: e.tags || [], location: e.location_name ? { name: e.location_name, address: e.location_address } : null })),
+    events: events.map(e => ({ ...e, tags: e.tags || [], crew_ids: e.crew_ids || [], location: e.location_name ? { name: e.location_name, address: e.location_address } : null })),
     crewCalls: crewCalls.map(c => ({
       ...c,
       crewAssignment: { id: c.crew_assignment_id, positionId: c.position_id, slotNumber: c.slot_number, position: { name: c.position_name }, crewMember: c.cm_id ? { id: c.cm_id, name: c.cm_name, phone: c.cm_phone } : null }
@@ -107,9 +109,11 @@ router.get('/:id/schedule', requireAuth, async (req, res, next) => {
 
     const [events, crewCalls, catering] = await Promise.all([
       sql`SELECT se.*, json_agg(DISTINCT jsonb_build_object('id',et.id,'type',et.type,'label',et.label)) FILTER (WHERE et.id IS NOT NULL) as tags,
+             array_remove(array_agg(DISTINCT ec.crew_id), NULL) as crew_ids,
              l.name as location_name, l.address as location_address
           FROM schedule_events se
           LEFT JOIN event_tags et ON et.event_id = se.id
+          LEFT JOIN event_crews ec ON ec.event_id = se.id
           LEFT JOIN locations l ON l.id = se.location_id
           WHERE se.shoot_day_id = ANY(${sql.array(dayIds)})
           GROUP BY se.id, l.name, l.address
@@ -129,7 +133,7 @@ router.get('/:id/schedule', requireAuth, async (req, res, next) => {
     const callsByDay = {};
     const cateringByDay = {};
     for (const e of events) {
-      (eventsByDay[e.shoot_day_id] ||= []).push({ ...e, tags: e.tags || [], location: e.location_name ? { name: e.location_name, address: e.location_address } : null });
+      (eventsByDay[e.shoot_day_id] ||= []).push({ ...e, tags: e.tags || [], crew_ids: e.crew_ids || [], location: e.location_name ? { name: e.location_name, address: e.location_address } : null });
     }
     for (const c of crewCalls) {
       (callsByDay[c.shoot_day_id] ||= []).push({ ...c, crewAssignment: { id: c.crew_assignment_id, positionId: c.position_id, slotNumber: c.slot_number, position: { name: c.position_name }, crewMember: c.cm_id ? { id: c.cm_id, name: c.cm_name, phone: c.cm_phone } : null } });
@@ -233,7 +237,7 @@ router.delete('/:id/schedule/days/:dayId', requireAuth, requireRole('ADMIN','PRO
 // POST event
 router.post('/:id/schedule/days/:dayId/events', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const { startTime, endTime, title, detail, roomSpace, locationId, isAlert, alertMessage, isFilming, isShootingCall, isLunch, tags=[], audience=[] } = req.body;
+    const { startTime, endTime, title, detail, roomSpace, locationId, isAlert, alertMessage, isFilming, isShootingCall, isLunch, tags=[], audience=[], crewIds=[] } = req.body;
     const [dayExists] = await sql`SELECT id FROM shoot_days WHERE id = ${req.params.dayId}`;
     if (!dayExists) {
       const existing = await sql`SELECT id, day_number FROM shoot_days WHERE project_id = ${req.params.id}`;
@@ -247,8 +251,11 @@ router.post('/:id/schedule/days/:dayId/events', requireAuth, requireRole('ADMIN'
     if (tags.length) {
       await Promise.all(tags.map(t => sql`INSERT INTO event_tags (id, event_id, type, label) VALUES (gen_random_uuid()::text, ${ev.id}, ${t.type}::event_tag_type, ${t.label||null})`));
     }
+    if (crewIds.length) {
+      await Promise.all(crewIds.map(cid => sql`INSERT INTO event_crews (event_id, crew_id) VALUES (${ev.id}, ${cid}) ON CONFLICT DO NOTHING`));
+    }
     const [loc] = ev.location_id ? await sql`SELECT id, name, address FROM locations WHERE id = ${ev.location_id}` : [null];
-    res.status(201).json({ ...ev, tags, location: loc ? { name: loc.name, address: loc.address } : null });
+    res.status(201).json({ ...ev, tags, crew_ids: crewIds, location: loc ? { name: loc.name, address: loc.address } : null });
   } catch(e){next(e);}
 });
 
@@ -274,9 +281,16 @@ router.patch('/:id/schedule/events/:eventId', requireAuth, requireRole('ADMIN','
         await Promise.all(d.tags.map(t => sql`INSERT INTO event_tags (id, event_id, type, label) VALUES (gen_random_uuid()::text, ${req.params.eventId}, ${t.type}::event_tag_type, ${t.label||null})`));
       }
     }
+    if (d.crewIds !== undefined) {
+      await sql`DELETE FROM event_crews WHERE event_id = ${req.params.eventId}`;
+      for (const cid of (d.crewIds || [])) {
+        await sql`INSERT INTO event_crews (event_id, crew_id) VALUES (${req.params.eventId}, ${cid}) ON CONFLICT DO NOTHING`;
+      }
+    }
     const tags = await sql`SELECT * FROM event_tags WHERE event_id = ${req.params.eventId}`;
+    const crewRows = await sql`SELECT crew_id FROM event_crews WHERE event_id = ${req.params.eventId}`;
     const [loc] = ev.location_id ? await sql`SELECT id, name, address FROM locations WHERE id = ${ev.location_id}` : [null];
-    res.json({ ...ev, tags, location: loc ? { name: loc.name, address: loc.address } : null });
+    res.json({ ...ev, tags, crew_ids: crewRows.map(r => r.crew_id), location: loc ? { name: loc.name, address: loc.address } : null });
   } catch(e){next(e);}
 });
 

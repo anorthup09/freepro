@@ -112,7 +112,7 @@ app.get('/api/crew-views', requireAuthGlobal, async (req, res) => {
   try {
     const sqldb = require('./lib/db');
     const projects = await sqldb`SELECT id, code, title, client, status, start_date, end_date FROM projects ORDER BY start_date`;
-    const shares = await sqldb`SELECT project_id, token FROM project_shares WHERE view_type = 'crew' AND talent_name IS NULL`;
+    const shares = await sqldb`SELECT project_id, token FROM project_shares WHERE view_type = 'crew' AND talent_name IS NULL AND crew_group_id IS NULL`;
     const byProject = Object.fromEntries(shares.map(s => [s.project_id, s.token]));
     for (const p of projects) {
       if (!byProject[p.id]) {

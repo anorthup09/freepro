@@ -55,8 +55,12 @@ function TravelLocalSwitch({ value, onChange }) {
   );
 }
 
+const CREW_UNIT_COLORS = ['#5ABF80', '#4a9eff', '#e6c229', '#d66a9b', '#a78bfa', '#40A0A0'];
+
 export default function Crew({ project, onProjectUpdate }) {
   const [assignments, setAssignments] = useState([]);
+  const [crews, setCrews] = useState(project.crews || []);
+  const [crewPickerFor, setCrewPickerFor] = useState(null); // assignment id with the crew popover open
   const [positions, setPositions] = useState([]);
   const [roster, setRoster] = useState([]);
   const [flights, setFlights] = useState([]);
@@ -96,6 +100,7 @@ export default function Crew({ project, onProjectUpdate }) {
     ]).then(([a, p, r, f]) => { setAssignments(a); setPositions(p); setRoster(r); setFlights(f); });
     api.getContracts(project.id).then(setContracts).catch(() => {});
   }, [project.id]);
+  useEffect(() => { if (project.crews) setCrews(project.crews); }, [project.crews]);
 
   function contractFor(aid) {
     return contracts.find(c => c.crew_assignment_id === aid) || null;
@@ -438,6 +443,42 @@ export default function Crew({ project, onProjectUpdate }) {
     return assignments.filter(a => a.positionId === positionId).length + 1;
   }
 
+  // ── Named crews (units): Recap Crew, Interview Crew, … ──
+  const crewById = Object.fromEntries(crews.map(c => [c.id, c]));
+  const crewColor = c => c.color || CREW_UNIT_COLORS[crews.findIndex(x => x.id === c.id) % CREW_UNIT_COLORS.length];
+  async function addCrewUnit() {
+    const name = prompt('Crew name (e.g. Recap Crew):');
+    if (!name || !name.trim()) return;
+    try {
+      const color = CREW_UNIT_COLORS[crews.length % CREW_UNIT_COLORS.length];
+      const c = await api.createProjectCrew(project.id, { name: name.trim(), color });
+      setCrews(cs => [...cs, c]);
+    } catch (e) { alert(e.message); }
+  }
+  async function renameCrewUnit(c) {
+    const name = prompt('Rename crew:', c.name);
+    if (!name || !name.trim() || name.trim() === c.name) return;
+    try {
+      const u = await api.updateProjectCrew(project.id, c.id, { name: name.trim() });
+      setCrews(cs => cs.map(x => x.id === c.id ? u : x));
+    } catch (e) { alert(e.message); }
+  }
+  async function removeCrewUnit(c) {
+    if (!confirm(`Delete "${c.name}"? People and events tagged to it go back to all-crews.`)) return;
+    try {
+      await api.deleteProjectCrew(project.id, c.id);
+      setCrews(cs => cs.filter(x => x.id !== c.id));
+      setAssignments(prev => prev.map(a => ({ ...a, crew_ids: (a.crew_ids || []).filter(id => id !== c.id) })));
+    } catch (e) { alert(e.message); }
+  }
+  async function toggleAssignmentCrew(a, crewId) {
+    const cur = a.crew_ids || [];
+    const next = cur.includes(crewId) ? cur.filter(id => id !== crewId) : [...cur, crewId];
+    setAssignments(prev => prev.map(x => x.id === a.id ? { ...x, crew_ids: next } : x));
+    try { await api.updateCrewSlot(project.id, a.id, { crewIds: next }); }
+    catch (e) { setAssignments(prev => prev.map(x => x.id === a.id ? { ...x, crew_ids: cur } : x)); alert(e.message); }
+  }
+
   return (
     <div>
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:6 }}>
@@ -446,6 +487,23 @@ export default function Crew({ project, onProjectUpdate }) {
           <div className="page-sub">{assignments.length} position{assignments.length !== 1 ? 's' : ''} assigned</div>
         </div>
         <button className="btn btn-primary btn-sm" onClick={() => setShowAddSlot(true)}>+ Add Position</button>
+      </div>
+
+      {/* Named crews (units) — schedules & call sheets group by these */}
+      <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap', margin:'4px 0 14px' }}>
+        <span style={{ fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--muted)' }}>Crews</span>
+        {crews.map(c => (
+          <span key={c.id} style={{ display:'inline-flex', alignItems:'center', gap:6, border:`1px solid ${crewColor(c)}`, color:crewColor(c), background:`${crewColor(c)}14`, borderRadius:14, padding:'3px 10px', fontSize:11, fontWeight:800 }}>
+            {c.name}
+            <span onClick={() => renameCrewUnit(c)} title="Rename" style={{ cursor:'pointer', opacity:0.75, fontSize:10 }}>✎</span>
+            <span onClick={() => removeCrewUnit(c)} title="Delete crew" style={{ cursor:'pointer', opacity:0.75, fontSize:10 }}>✕</span>
+          </span>
+        ))}
+        <button onClick={addCrewUnit}
+          style={{ background:'transparent', border:'1px dashed var(--border)', color:'var(--muted)', borderRadius:14, padding:'3px 10px', fontSize:11, fontWeight:800, cursor:'pointer' }}>
+          + Add Crew
+        </button>
+        {crews.length === 0 && <span style={{ fontSize:10, color:'var(--muted)', fontStyle:'italic' }}>Optional — split this shoot into units (e.g. Recap Crew, Interview Crew) to group schedules & call sheets.</span>}
       </div>
 
       {assignments.length === 0 && <div className="empty">No crew assigned yet. Add a position to get started.</div>}
@@ -493,6 +551,30 @@ export default function Crew({ project, onProjectUpdate }) {
                           : <button type="button" onClick={() => toggleTravelLocal(a.crewMember)} title="Click to switch to Local" style={{ fontSize:9, fontWeight:800, color:'#4a9eff', background:'transparent', border:'1px solid #4a9eff', borderRadius:10, padding:'1px 8px', cursor:'pointer' }}>TRAVEL</button>)
                       : <span style={{ color:'var(--muted)', fontSize:11 }}>—</span>}
                   </td>
+                  {crews.length > 0 && (
+                    <td style={{ position:'relative', whiteSpace:'nowrap' }}>
+                      <span onClick={() => setCrewPickerFor(p2 => p2 === a.id ? null : a.id)} style={{ cursor:'pointer', display:'inline-flex', gap:4, alignItems:'center' }}
+                        title="Which crews this person is on — none = floats across all crews">
+                        {(a.crew_ids || []).length
+                          ? (a.crew_ids || []).map(id => crewById[id] && (
+                              <span key={id} style={{ fontSize:9, fontWeight:800, color:crewColor(crewById[id]), border:`1px solid ${crewColor(crewById[id])}`, borderRadius:10, padding:'1px 7px' }}>{crewById[id].name}</span>
+                            ))
+                          : <span style={{ fontSize:9, fontWeight:700, color:'var(--muted)', border:'1px dashed var(--border)', borderRadius:10, padding:'1px 7px' }}>All crews</span>}
+                      </span>
+                      {crewPickerFor === a.id && (
+                        <div style={{ position:'absolute', zIndex:60, top:'100%', left:0, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'6px 8px', boxShadow:'0 8px 20px rgba(0,0,0,0.5)', minWidth:150 }}>
+                          {crews.map(c => (
+                            <label key={c.id} style={{ display:'flex', alignItems:'center', gap:7, padding:'4px 2px', fontSize:12, cursor:'pointer' }}>
+                              <input type="checkbox" checked={(a.crew_ids || []).includes(c.id)} onChange={() => toggleAssignmentCrew(a, c.id)} style={{ width:'auto', margin:0, accentColor:crewColor(c) }} />
+                              <span style={{ color:crewColor(c), fontWeight:700 }}>{c.name}</span>
+                            </label>
+                          ))}
+                          <div style={{ fontSize:9, color:'var(--muted)', marginTop:4 }}>None checked = on every crew</div>
+                          <button onClick={() => setCrewPickerFor(null)} style={{ background:'none', border:'none', color:'var(--orange)', fontSize:10, fontWeight:800, cursor:'pointer', padding:'4px 0 0' }}>Done</button>
+                        </div>
+                      )}
+                    </td>
+                  )}
                   <td><span style={{ fontSize:11, color:'var(--orange)' }}>{fmtDate(a.start_date)}</span></td>
                   <td><span style={{ fontSize:11, color:'var(--orange)' }}>{fmtDate(a.end_date)}</span></td>
                   <td style={{ whiteSpace:'nowrap' }}>
@@ -515,7 +597,7 @@ export default function Crew({ project, onProjectUpdate }) {
         );
         const sectionRow = (label, color) => (
           <tr>
-            <td colSpan={10} style={{ padding:'6px 14px', background:`${color}14`, borderTop:'1px solid var(--border)' }}>
+            <td colSpan={crews.length > 0 ? 11 : 10} style={{ padding:'6px 14px', background:`${color}14`, borderTop:'1px solid var(--border)' }}>
               <span style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color }}>{label}</span>
             </td>
           </tr>
@@ -531,6 +613,7 @@ export default function Crew({ project, onProjectUpdate }) {
                 <th>Email</th>
                 <th>Dietary</th>
                 <th>Travel</th>
+                {crews.length > 0 && <th>Crew</th>}
                 <th>Start Date</th>
                 <th>End Date</th>
                 <th></th>
@@ -543,7 +626,7 @@ export default function Crew({ project, onProjectUpdate }) {
               {staff.map(renderRow)}
               {contractors.length > 0 && (
                 <tr>
-                  <td colSpan={8} style={{ padding:'6px 14px', background:'rgba(230,194,41,0.08)', borderTop:'1px solid var(--border)' }}>
+                  <td colSpan={crews.length > 0 ? 9 : 8} style={{ padding:'6px 14px', background:'rgba(230,194,41,0.08)', borderTop:'1px solid var(--border)' }}>
                     <span style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'#e6c229' }}>Contract Crew</span>
                   </td>
                   <td style={{ padding:'6px 8px', background:'rgba(230,194,41,0.08)', borderTop:'1px solid var(--border)', whiteSpace:'nowrap' }}>
@@ -558,7 +641,7 @@ export default function Crew({ project, onProjectUpdate }) {
               {contractors.map(renderRow)}
               {contractors.length > 0 && (
                 <tr>
-                  <td colSpan={8} style={{ textAlign:'right', padding:'8px 14px', borderTop:'1px solid var(--border)', fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)' }}>Totals</td>
+                  <td colSpan={crews.length > 0 ? 9 : 8} style={{ textAlign:'right', padding:'8px 14px', borderTop:'1px solid var(--border)', fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)' }}>Totals</td>
                   <td style={{ borderTop:'1px solid var(--border)', whiteSpace:'nowrap' }}>
                     <span style={{ fontSize:10, color:'var(--muted)' }}>Labor </span>
                     <span style={{ fontSize:12, color:'var(--green)', fontWeight:700 }}>{fmt$(laborTotal)}</span>

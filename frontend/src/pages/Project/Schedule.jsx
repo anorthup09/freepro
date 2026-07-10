@@ -273,9 +273,9 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
   const [days, setDays] = useState([]);
   const [activeDay, setActiveDay] = useState(null);
   const [showAddEvent, setShowAddEvent] = useState(false);
-  const [eventForm, setEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', roomSpace:'', isAlert:false, isFilming:false, tags:[], audience:[], locationId:'' });
+  const [eventForm, setEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', roomSpace:'', isAlert:false, isFilming:false, tags:[], audience:[], crewIds:[], locationId:'' });
   const [editEventId, setEditEventId] = useState(null);
-  const [editEventForm, setEditEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', roomSpace:'', isAlert:false, isFilming:false, tags:[], audience:[], locationId:'' });
+  const [editEventForm, setEditEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', roomSpace:'', isAlert:false, isFilming:false, tags:[], audience:[], crewIds:[], locationId:'' });
   const [dayCardCollapsed, setDayCardCollapsed] = useState(true);
 
   // Jump straight to a specific day (from the shot list day tiles) with the
@@ -567,7 +567,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
       const ev = await api.createEvent(project.id, activeDay, eventForm);
       setDays(ds => ds.map(d => d.id === activeDay ? { ...d, events: [...d.events, ev].sort((a,b) => (a.start_time||'').localeCompare(b.start_time||'')) } : d));
       setShowAddEvent(false);
-      setEventForm({ startTime:'', endTime:'', title:'', detail:'', isAlert:false, isFilming:false, tags:[], audience:[] });
+      setEventForm({ startTime:'', endTime:'', title:'', detail:'', isAlert:false, isFilming:false, tags:[], audience:[], crewIds:[] });
     } catch(e) {
       if (e.message?.includes('not found') || e.message?.includes('foreign key') || e.message?.includes('fkey')) {
         try {
@@ -602,7 +602,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
 
   function openEditEvent(ev) {
     setEditEventId(ev.id);
-    setEditEventForm({ startTime: ev.start_time || ev.startTime || '', endTime: ev.end_time || ev.endTime || '', title: ev.title || '', detail: ev.detail || '', roomSpace: ev.room_space || '', isAlert: ev.is_alert || ev.isAlert || false, isFilming: ev.is_filming || ev.isFilming || false, tags: ev.tags || [], audience: ev.audience || [], locationId: ev.location_id || '' });
+    setEditEventForm({ startTime: ev.start_time || ev.startTime || '', endTime: ev.end_time || ev.endTime || '', title: ev.title || '', detail: ev.detail || '', roomSpace: ev.room_space || '', isAlert: ev.is_alert || ev.isAlert || false, isFilming: ev.is_filming || ev.isFilming || false, tags: ev.tags || [], audience: ev.audience || [], crewIds: ev.crew_ids || [], locationId: ev.location_id || '' });
   }
 
   function toggleEditTag(type) {
@@ -1008,7 +1008,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                           {item.detail && <div className="ev-detail">{item.detail}</div>}
                           {item.tags?.length > 0 && (
                             <div className="ev-tags">
-                              {item.tags.filter(t => includePhoto || t.type !== 'PHOTO').map(t => <span key={t.type} className={`etag ${TAG_CLASS[t.type]}`}>{TAG_LABEL[t.type]}</span>)}
+                              {item.tags.filter(t => includePhoto || t.type !== 'PHOTO').map(t => <span key={t.type} className={`etag ${TAG_CLASS[t.type]}`}>{TAG_LABEL[t.type]}</span>)}{(item.crew_ids||[]).map(id => { const c = (project.crews||[]).find(x=>x.id===id); if (!c) return null; const col = c.color || '#5ABF80'; return <span key={id} style={{ fontSize:9, fontWeight:800, color:col, border:`1px solid ${col}`, borderRadius:10, padding:'1px 7px' }}>{c.name}</span>; })}
                             </div>
                           )}
                         </div>
@@ -1129,7 +1129,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                           {(item.tags?.length > 0 || item.is_filming || item.isFilming) && (
                             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-end', gap:8, marginTop:6 }}>
                               <div className="ev-tags" style={{ marginTop:0 }}>
-                                {(item.tags||[]).filter(t => includePhoto || t.type !== 'PHOTO').map(t => <span key={t.id} className={`etag ${TAG_CLASS[t.type]}`}>{TAG_LABEL[t.type]}</span>)}
+                                {(item.tags||[]).filter(t => includePhoto || t.type !== 'PHOTO').map(t => <span key={t.id} className={`etag ${TAG_CLASS[t.type]}`}>{TAG_LABEL[t.type]}</span>)}{(item.crew_ids||[]).map(id => { const c = (project.crews||[]).find(x=>x.id===id); if (!c) return null; const col = c.color || '#5ABF80'; return <span key={id} style={{ fontSize:9, fontWeight:800, color:col, border:`1px solid ${col}`, borderRadius:10, padding:'1px 7px' }}>{c.name}</span>; })}
                               </div>
                               {(item.is_filming||item.isFilming) && (
                                 <button onClick={e => { e.stopPropagation(); setClapEvent(item); }}
@@ -1206,6 +1206,24 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                       </button>
                     ))}
                   </div>
+                  {(project.crews || []).length > 0 && (
+                    <div style={{ marginTop:8 }}>
+                      <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4 }}>Crews — untagged events show for every crew</div>
+                      <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+                        {(project.crews || []).map((c, i) => {
+                          const col = c.color || '#5ABF80';
+                          const sel = (eventForm.crewIds || []).includes(c.id);
+                          return (
+                            <button key={c.id} type="button"
+                              style={{ fontSize:11, padding:'3px 10px', borderRadius:12, border:`1px solid ${col}`, background: sel ? col : 'transparent', color: sel ? '#0b0b0b' : col, cursor:'pointer', fontWeight:700 }}
+                              onClick={() => setEventForm(f => ({ ...f, crewIds: sel ? (f.crewIds||[]).filter(id=>id!==c.id) : [...(f.crewIds||[]), c.id] }))}>
+                              {c.name}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                   {eventForm.tags.some(t=>t.type==='VIDEO') && (
                     <div style={{ marginTop:8 }}>
                       <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4 }}>Crew on this event — leave empty for everyone</div>
@@ -1338,6 +1356,24 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                       </button>
                     ))}
                   </div>
+                  {(project.crews || []).length > 0 && (
+                    <div style={{ marginTop:8 }}>
+                      <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4 }}>Crews — untagged events show for every crew</div>
+                      <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+                        {(project.crews || []).map((c, i) => {
+                          const col = c.color || '#5ABF80';
+                          const sel = (editEventForm.crewIds || []).includes(c.id);
+                          return (
+                            <button key={c.id} type="button"
+                              style={{ fontSize:11, padding:'3px 10px', borderRadius:12, border:`1px solid ${col}`, background: sel ? col : 'transparent', color: sel ? '#0b0b0b' : col, cursor:'pointer', fontWeight:700 }}
+                              onClick={() => setEditEventForm(f => ({ ...f, crewIds: sel ? (f.crewIds||[]).filter(id=>id!==c.id) : [...(f.crewIds||[]), c.id] }))}>
+                              {c.name}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                   {editEventForm.tags.some(t=>t.type==='VIDEO') && (
                     <div style={{ marginTop:8 }}>
                       <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4 }}>Crew on this event — leave empty for everyone</div>

@@ -17,6 +17,10 @@ router.get('/:token', async (req, res, next) => {
     const projectId = share.project_id;
     const viewType = share.view_type;
     const talentName = share.talent_name;
+    // Per-crew (unit) link: everything below is scoped to this crew when set
+    const crewGroupId = share.crew_group_id || null;
+    const [crewGroup] = crewGroupId ? await sql`SELECT id, name, color FROM project_crews WHERE id = ${crewGroupId}` : [null];
+    const projectCrews = await sql`SELECT id, name, color, sort FROM project_crews WHERE project_id = ${projectId} ORDER BY sort, created_at`;
 
     // Load project base info
     const [project] = await sql`
@@ -61,8 +65,24 @@ router.get('/:token', async (req, res, next) => {
       WHERE ca.project_id = ${projectId}
       ORDER BY p.sort_order, ca.slot_number`;
 
-    const mappedCrew = crewAssignments.map(({ is_contractor, day_rate, labor_days, gear_cost, gear_days, ...a }) => ({
+    // Which crews each assignment belongs to (no rows = floats across all crews)
+    const assignmentCrewRows = await sql`
+      SELECT cac.assignment_id, cac.crew_id FROM crew_assignment_crews cac
+      JOIN crew_assignments ca ON ca.id = cac.assignment_id WHERE ca.project_id = ${projectId}`;
+    const crewIdsByAssignment = {};
+    for (const r of assignmentCrewRows) (crewIdsByAssignment[r.assignment_id] ||= []).push(r.crew_id);
+    // On a per-crew link, only that unit (plus floaters) appears on the sheet
+    const inCrewGroup = aid => {
+      if (!crewGroupId) return true;
+      const ids = crewIdsByAssignment[aid] || [];
+      return ids.length === 0 || ids.includes(crewGroupId);
+    };
+
+    const mappedCrew = crewAssignments
+      .filter(a => inCrewGroup(a.id))
+      .map(({ is_contractor, day_rate, labor_days, gear_cost, gear_days, ...a }) => ({
       ...a,
+      crew_ids: crewIdsByAssignment[a.id] || [],
       position: { id: a.position_id, name: a.position_name, sortOrder: a.sort_order },
       crewMember: a.cm_id ? { id: a.cm_id, name: a.cm_name, preferredFirstName: a.cm_pref_first, preferredLastName: a.cm_pref_last, email: a.cm_email, phone: a.cm_phone, company: a.cm_company, initials: a.initials, avatarColor: a.avatar_color, dietaryRestrictions: a.cm_dietary, travelLocal: a.cm_travel_local } : null,
     }));
@@ -91,9 +111,11 @@ router.get('/:token', async (req, res, next) => {
     const daysWithData = await Promise.all(shootDays.map(async day => {
       const events = await sql`
         SELECT se.*, l.name as location_name, l.address as location_address,
+               array_remove(array_agg(DISTINCT ec.crew_id), NULL) as crew_ids,
                json_agg(DISTINCT jsonb_build_object('id',et.id,'type',et.type,'label',et.label)) FILTER (WHERE et.id IS NOT NULL) as tags
         FROM schedule_events se
         LEFT JOIN event_tags et ON et.event_id = se.id
+        LEFT JOIN event_crews ec ON ec.event_id = se.id
         LEFT JOIN locations l ON l.id = se.location_id
         WHERE se.shoot_day_id = ${day.id}
         GROUP BY se.id, l.name, l.address
@@ -113,15 +135,22 @@ router.get('/:token', async (req, res, next) => {
         ...day,
         totalDays,
         catering: cateringByDay[day.id] || [],
-        events: events.map(e => ({ ...e, tags: e.tags || [], location: e.location_name ? { name: e.location_name, address: e.location_address } : null })),
-        crewCalls: crewCalls.map(c => ({
+        // On a per-crew link, other crews' events are hidden entirely; untagged
+        // events (shared moments like load-in or lunch) always show
+        events: events
+          .filter(e => !crewGroupId || !(e.crew_ids || []).length || e.crew_ids.includes(crewGroupId))
+          .map(e => ({ ...e, tags: e.tags || [], crew_ids: e.crew_ids || [], location: e.location_name ? { name: e.location_name, address: e.location_address } : null })),
+        crewCalls: crewCalls
+          .filter(c => inCrewGroup(c.crew_assignment_id))
+          .map(c => ({
           ...c,
           crewAssignment: { id: c.crew_assignment_id, positionId: c.position_id, slotNumber: c.slot_number, position: { name: c.position_name }, crewMember: c.cm_id ? { id: c.cm_id, name: c.cm_name, preferredFirstName: c.cm_pref_first, preferredLastName: c.cm_pref_last, phone: c.cm_phone } : null }
         })),
       };
     }));
 
-    let responseData = { view_type: viewType, talent_name: talentName, project };
+    let responseData = { view_type: viewType, talent_name: talentName, project,
+      crews: projectCrews, crew_group: crewGroup || null };
 
     if (['producer','crew'].includes(viewType)) {
       try {

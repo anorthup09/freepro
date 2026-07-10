@@ -114,7 +114,7 @@ function DropdownTab({ label, subtabs, tab, setTab }) {
 
 const FRONTEND_BASE = window.location.origin;
 
-function ShareDropdown({ projectId, showShotList }) {
+function ShareDropdown({ projectId, showShotList, crews = [] }) {
   const navigate = useNavigate();
   const [shares, setShares] = useState([]);
   const [open, setOpen] = useState(false);
@@ -141,22 +141,22 @@ function ShareDropdown({ projectId, showShotList }) {
     setTimeout(() => setToast(''), 2000);
   }
 
-  async function ensureShare(viewType, talentName = null) {
-    let share = shares.find(s => s.view_type === viewType && s.talent_name === talentName);
+  async function ensureShare(viewType, talentName = null, crewGroupId = null) {
+    let share = shares.find(s => s.view_type === viewType && s.talent_name === talentName && (s.crew_group_id || null) === crewGroupId);
     if (!share) {
-      share = await api.createShare(projectId, { viewType, talentName });
+      share = await api.createShare(projectId, { viewType, talentName, crewGroupId });
       setShares(prev => [...prev, share]);
     }
     return share;
   }
 
-  async function handleOption(viewType, talentName = null) {
-    const share = await ensureShare(viewType, talentName);
+  async function handleOption(viewType, talentName = null, crewGroupId = null) {
+    const share = await ensureShare(viewType, talentName, crewGroupId);
     copyLink(share);
   }
 
-  async function openPdf(viewType, talentName = null) {
-    const share = await ensureShare(viewType, talentName);
+  async function openPdf(viewType, talentName = null, crewGroupId = null) {
+    const share = await ensureShare(viewType, talentName, crewGroupId);
     const url = `${FRONTEND_BASE}/share/${share.token}?pdf=1`;
     window.open(url, '_blank');
     setOpen(false);
@@ -177,11 +177,21 @@ function ShareDropdown({ projectId, showShotList }) {
           </div>
           <div style={{ borderTop:'1px solid var(--border)', margin:'4px 0', padding:'6px 14px 3px', fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em' }}>Copy Link</div>
           <div className="share-menu-item" onClick={() => handleOption('producer')}>Producer View</div>
-          <div className="share-menu-item" onClick={() => handleOption('crew')}>Crew View</div>
+          <div className="share-menu-item" onClick={() => handleOption('crew')}>Crew View{crews.length > 0 ? ' — All Crews' : ''}</div>
+          {crews.map(c => (
+            <div key={c.id} className="share-menu-item" onClick={() => handleOption('crew', null, c.id)} style={{ paddingLeft:26, color: c.color || undefined }}>
+              Crew View — {c.name}
+            </div>
+          ))}
           <div className="share-menu-item" onClick={() => handleOption('client')}>Client View</div>
           <div style={{ borderTop:'1px solid var(--border)', margin:'4px 0', padding:'6px 14px 3px', fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em' }}>Download PDF</div>
           <div className="share-menu-item" onClick={() => openPdf('producer')}>Producer PDF</div>
-          <div className="share-menu-item" onClick={() => openPdf('crew')}>Crew PDF</div>
+          <div className="share-menu-item" onClick={() => openPdf('crew')}>Crew PDF{crews.length > 0 ? ' — All Crews' : ''}</div>
+          {crews.map(c => (
+            <div key={c.id} className="share-menu-item" onClick={() => openPdf('crew', null, c.id)} style={{ paddingLeft:26, color: c.color || undefined }}>
+              Crew PDF — {c.name}
+            </div>
+          ))}
           <div className="share-menu-item" onClick={() => openPdf('client')}>Client PDF</div>
           <div style={{ borderTop:'1px solid var(--border)', margin:'4px 0' }} />
           {showShotList && (
@@ -451,7 +461,7 @@ export default function Project({ idOverride }) {
         <Link to="/" title="Back to the Unbridled Media hub" style={{ display:'flex', alignItems:'center', marginLeft:'auto', marginRight:10 }}>
           <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height:18, filter:'brightness(0) invert(1)', opacity:0.9 }} />
         </Link>
-        {!glassVisible && !isAgency && !isCrew && <ShareDropdown projectId={id} showShotList={showShotList} />}
+        {!glassVisible && !isAgency && !isCrew && <ShareDropdown projectId={id} showShotList={showShotList} crews={project?.crews || []} />}
       </nav>
 
       <div className="wrap">

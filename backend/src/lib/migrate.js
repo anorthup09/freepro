@@ -286,6 +286,35 @@ async function migrate() {
 
   await sql`ALTER TABLE tech_specs ADD COLUMN IF NOT EXISTS dit_crew_member_id TEXT REFERENCES crew_members(id)`;
 
+  // Named crews (units) per shoot — e.g. "Recap Crew", "Interview Crew". People
+  // and schedule events tag into them; call sheets group by them. No crews on a
+  // project = everything behaves exactly as before.
+  await sql`
+    CREATE TABLE IF NOT EXISTS project_crews (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      color TEXT,
+      sort INT DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`;
+  // A person can be on multiple crews; no rows = floats across all crews
+  await sql`
+    CREATE TABLE IF NOT EXISTS crew_assignment_crews (
+      assignment_id TEXT NOT NULL REFERENCES crew_assignments(id) ON DELETE CASCADE,
+      crew_id TEXT NOT NULL REFERENCES project_crews(id) ON DELETE CASCADE,
+      PRIMARY KEY (assignment_id, crew_id)
+    )`;
+  // Events tagged to crews; no rows = applies to everyone (like All Crew)
+  await sql`
+    CREATE TABLE IF NOT EXISTS event_crews (
+      event_id TEXT NOT NULL REFERENCES schedule_events(id) ON DELETE CASCADE,
+      crew_id TEXT NOT NULL REFERENCES project_crews(id) ON DELETE CASCADE,
+      PRIMARY KEY (event_id, crew_id)
+    )`;
+  // Per-crew share links (crew call sheets scoped to one unit)
+  await sql`ALTER TABLE project_shares ADD COLUMN IF NOT EXISTS crew_group_id TEXT REFERENCES project_crews(id) ON DELETE CASCADE`;
+
   await sql`ALTER TABLE crew_members ADD COLUMN IF NOT EXISTS home_airport TEXT`;
   await sql`ALTER TABLE crew_members ADD COLUMN IF NOT EXISTS notes TEXT`;
   await sql`ALTER TABLE crew_members ADD COLUMN IF NOT EXISTS date_of_birth DATE`;
