@@ -299,6 +299,7 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
   const closeMonthOptions = useMemo(closeMonthRange, []);
   const mgmtRate = budget.mgmt_fee_rate != null ? Number(budget.mgmt_fee_rate) : 0.15;
   const t = useMemo(() => totals(sections, lines, mgmtRate), [sections, lines, mgmtRate]);
+  const [dateEdit, setDateEdit] = useState(null);   // { secId, start, end } while editing a shoot's dates
   const [expandedSecs, setExpandedSecs] = useState({});
   const [revealed, setRevealed] = useState({});
 
@@ -465,14 +466,38 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
                     style={{ ...cellIn, fontSize:11, color:'var(--muted)', ...(sec.kind === 'shoot' && sec.fp_start_date ? { width:'auto', flex:'0 1 260px' } : {}) }}
                     onChange={e => patchSection(sec.id, { subtitle: e.target.value })}
                     onBlur={e => api.updateBudgetSection(sec.id, { subtitle: e.target.value }).catch(() => {})} />
-                  {sec.kind === 'shoot' && sec.fp_start_date && (
-                    <span title="Dates feed from the FreePro project"
-                      style={{ fontSize:10, color:'var(--muted)', whiteSpace:'nowrap', flexShrink:0 }}>
-                      🎬 {new Date(String(sec.fp_start_date).slice(0,10)+'T12:00:00').toLocaleDateString()} – {new Date(String(sec.fp_end_date || sec.fp_start_date).slice(0,10)+'T12:00:00').toLocaleDateString()}
-                    </span>
-                  )}
                 </div>
               </div>
+              {sec.kind === 'shoot' && sec.fp_start_date && (
+                dateEdit?.secId === sec.id ? (
+                  <span style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
+                    <input type="date" value={dateEdit.start} onChange={e => setDateEdit(d => ({ ...d, start: e.target.value }))} style={{ width:'auto', fontSize:11, padding:'3px 6px' }} />
+                    <span style={{ fontSize:10, color:'var(--muted)' }}>–</span>
+                    <input type="date" value={dateEdit.end} onChange={e => setDateEdit(d => ({ ...d, end: e.target.value }))} style={{ width:'auto', fontSize:11, padding:'3px 6px' }} />
+                    <button className="btn btn-primary btn-sm" style={{ fontSize:10, padding:'3px 10px' }}
+                      onClick={async () => {
+                        try {
+                          await api.updateProject(sec.freepro_project_id, { startDate: dateEdit.start, endDate: dateEdit.end || dateEdit.start });
+                          patchSection(sec.id, { fp_start_date: dateEdit.start, fp_end_date: dateEdit.end || dateEdit.start });
+                          setDateEdit(null);
+                        } catch (err) { alert(err.message); }
+                      }}>Save</button>
+                    <button className="btn btn-ghost btn-sm" style={{ fontSize:10, padding:'3px 8px' }} onClick={() => setDateEdit(null)}>✕</button>
+                  </span>
+                ) : (
+                  <span style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
+                    <span title="Shoot dates — feed the FreePro project, call sheets, and gear views"
+                      style={{ fontSize:10, color:'var(--muted)', whiteSpace:'nowrap' }}>
+                      {new Date(String(sec.fp_start_date).slice(0,10)+'T12:00:00').toLocaleDateString()} – {new Date(String(sec.fp_end_date || sec.fp_start_date).slice(0,10)+'T12:00:00').toLocaleDateString()}
+                    </span>
+                    {sec.freepro_project_id && (
+                      <button title="Edit the shoot dates — updates FreePro and every view fed by it"
+                        onClick={() => setDateEdit({ secId: sec.id, start: String(sec.fp_start_date).slice(0,10), end: String(sec.fp_end_date || sec.fp_start_date).slice(0,10) })}
+                        style={{ background:'none', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:8, padding:'2px 8px', fontSize:10, cursor:'pointer' }}>✎ Edit</button>
+                    )}
+                  </span>
+                )
+              )}
               <div style={{ fontSize:13, fontWeight:700, whiteSpace:'nowrap' }}>{fmt$(mainTotal + travelTotal)}</div>
               {sec.kind === 'shoot' && sec.freepro_project_id && (
                 <a href={`/projects/${sec.freepro_project_id}`}
