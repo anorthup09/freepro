@@ -113,6 +113,14 @@ function fmtLocalTime(localStr) {
   return `${months[month-1]} ${day}, ${h12}:${String(min).padStart(2,'0')} ${ampm}`;
 }
 
+// The ICAO form of a flight number (WN4657 → SWA4657) — AeroDataBox sometimes
+// returns different/fuller leg sets per form, so lookups query both and merge.
+const IATA_TO_ICAO = { WN:'SWA', AA:'AAL', UA:'UAL', DL:'DAL', B6:'JBU', AS:'ASA', NK:'NKS', F9:'FFT', HA:'HAL', G4:'AAY', SY:'SCX' };
+function icaoForm(flight) {
+  const m = /^([A-Z]{2})\s?(\d+)$/.exec(flight.toUpperCase().trim());
+  return m && IATA_TO_ICAO[m[1]] ? `${IATA_TO_ICAO[m[1]]}${m[2]}` : null;
+}
+
 router.get('/flight-lookup', requireAuth, async (req, res, next) => {
   try {
     const { flight, date } = req.query;
@@ -122,19 +130,32 @@ router.get('/flight-lookup', requireAuth, async (req, res, next) => {
     if (!key) return res.status(503).json({ error: 'AERODATABOX_API_KEY not configured' });
 
     const targetDate = date || bizToday();
-    const url = `https://aerodatabox.p.rapidapi.com/flights/number/${encodeURIComponent(flight.toUpperCase())}/${targetDate}?dateLocalRole=Both`;
-    const r = await fetchJson(url, aeroHeaders(key));
+    const fetchLegs = async (num) => {
+      const url = `https://aerodatabox.p.rapidapi.com/flights/number/${encodeURIComponent(num)}/${targetDate}?dateLocalRole=Both`;
+      const r = await fetchJson(url, aeroHeaders(key));
+      if (!r.ok) return { r, arr: [] };
+      return { r, arr: (Array.isArray(r.data) ? r.data : [r.data]).filter(Boolean) };
+    };
 
-    if (r.status === 404) return res.status(404).json({ error: `Flight ${flight.toUpperCase()} not found on ${targetDate}. Try entering details manually.` });
-    if (!r.ok) {
-      return res.status(r.status || 502).json({ error: r.data?.message || 'AeroDataBox error' });
+    const primary = await fetchLegs(flight.toUpperCase().replace(/\s+/g, ''));
+    let arr = primary.arr;
+    // Merge legs found under the ICAO callsign form, deduped by origin + departure
+    const alt = icaoForm(flight);
+    if (alt) {
+      try {
+        const extra = await fetchLegs(alt);
+        for (const f of extra.arr) {
+          const kf = x => `${x.departure?.airport?.iata || ''}|${x.departure?.scheduledTime?.utc || x.departure?.scheduledTime?.local || ''}`;
+          if (!arr.some(x => kf(x) === kf(f))) arr.push(f);
+        }
+      } catch { /* alt lookup is best-effort */ }
     }
 
-    const data = r.data;
-    // One flight number can fly several legs in a day (DEN→ORD, ORD→LGA…).
-    // Return every leg; the client shows a picker when there's more than one.
-    const arr = (Array.isArray(data) ? data : [data]).filter(Boolean);
-    if (!arr.length) return res.status(404).json({ error: `No data found for ${flight.toUpperCase()} on ${targetDate}.` });
+    if (!arr.length) {
+      if (primary.r.status === 404) return res.status(404).json({ error: `Flight ${flight.toUpperCase()} not found on ${targetDate}. Try entering details manually.` });
+      if (!primary.r.ok) return res.status(primary.r.status || 502).json({ error: primary.r.data?.message || 'AeroDataBox error' });
+      return res.status(404).json({ error: `No data found for ${flight.toUpperCase()} on ${targetDate}.` });
+    }
 
     const legs = arr.map(f => {
       const departLocal = f.departure?.scheduledTime?.local || null;
