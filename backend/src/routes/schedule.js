@@ -43,14 +43,18 @@ async function getDayFull(dayId) {
 async function syncDaysToProjectRange(projectId) {
   const [project] = await sql`SELECT start_date, end_date FROM projects WHERE id = ${projectId}`;
   if (!project?.start_date || !project?.end_date) return;
-  // Serialize per-project: parallel schedule loads used to both see the same
-  // days as missing and double-insert them
-  await sql`SELECT pg_advisory_lock(hashtext(${'daysync:' + projectId}))`;
-  try { await doSync(projectId, project); }
-  finally { await sql`SELECT pg_advisory_unlock(hashtext(${'daysync:' + projectId}))`.catch(() => {}); }
+  // Serialize per-project inside ONE transaction: a transaction-scoped
+  // advisory lock stays on a single pooled connection and auto-releases on
+  // commit/rollback. (A session-scoped pg_advisory_lock here got stranded on
+  // pooled connections — the unlock could run on a different connection —
+  // and permanently blocked schedule loads for the affected project.)
+  await sql.begin(async tx => {
+    await tx`SELECT pg_advisory_xact_lock(hashtext(${'daysync:' + projectId}))`;
+    await doSync(tx, projectId, project);
+  });
 }
 
-async function doSync(projectId, project) {
+async function doSync(sql, projectId, project) {
   const existing = await sql`SELECT id, day_number, date FROM shoot_days WHERE project_id = ${projectId} ORDER BY date`;
   const have = new Set(existing.map(d => new Date(d.date).toISOString().slice(0, 10)));
 
