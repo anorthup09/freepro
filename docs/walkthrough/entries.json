@@ -142,5 +142,29 @@
       "From Share ▾, copy “Crew View — [Crew]” (or its PDF) and send each crew their own call sheet."
     ],
     "screenshot": "crew-units.png"
+  },
+  {
+    "title": "Space maps on the Locations tab",
+    "what": "Floor plans and room maps now live right on the Locations tab — the separate Room/Space Info tab is gone. Every location tile has an Upload Map button (Replace/Remove once one is attached), the Add Location form takes a map up front, and attached maps show on the producer and crew call sheets under the location.",
+    "where": "FreePro → open a shoot → Logistics → Locations.",
+    "how": [
+      "Open the Locations tab on a shoot.",
+      "Click + Upload Map on any location tile and pick an image (or attach one while adding a new location via + Add Location).",
+      "The map previews on the tile — use Replace Map or Remove Map to change it.",
+      "Producer and crew call sheets automatically show the map under that location."
+    ],
+    "screenshot": "locations-maps.png"
+  },
+  {
+    "title": "My Tasks quick-add — with teammate tagging",
+    "what": "Add a task to your own list straight from the Hub, without opening a project. The Add Task form takes a project, the task, an optional due date, and an optional teammate tag — tagging someone drops the same task on their My Tasks list, marked as tagged by you.",
+    "where": "Hub → Day in Review → My Tasks → + Add New.",
+    "how": [
+      "On the Hub dashboard, click + Add New next to My Tasks.",
+      "Pick the project and type the task; add a due date if it has one.",
+      "Optionally tag a teammate from the Unbridled roster — the task will appear on their list too, noted as tagged by you.",
+      "Click Add Task; it shows up in your My Tasks immediately."
+    ],
+    "screenshot": "task-add-tag.png"
   }
 ]

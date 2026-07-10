@@ -404,16 +404,17 @@ export default function Overview({ project, setProject, onTabChange }) {
         )}
         <div className="ov-poc-row" style={{ display:'flex', alignItems:'flex-start', gap:12, borderTop:'1px solid var(--border2)', padding:'10px 16px' }}>
           <span style={{ fontSize:13, fontWeight:700, color:'var(--text)', whiteSpace:'nowrap', width:160, flexShrink:0, paddingTop:4 }}>Client Contacts</span>
-          <div className="chips" style={{ flex:1, marginBottom:0 }}>
+          <div style={{ flex:1, minWidth:0 }}>
             {project.clientContacts?.map(c => (
-              <div key={c.id} className="chip" style={{ position:'relative', paddingRight:50 }}>
-                <strong>{c.title}</strong>
-                {c.name} {c.phone && <>· <Tel v={c.phone} /></>}
-                {c.email && <><br /><span style={{ color:'var(--muted)' }}><Mail v={c.email} /></span></>}
-                <div style={{ position:'absolute', top:4, right:6, display:'flex', gap:4 }}>
+              <div key={c.id} style={{ display:'flex', alignItems:'center', gap:8, fontSize:12, padding:'3px 0', whiteSpace:'nowrap', overflow:'hidden' }}>
+                <span style={{ fontWeight:700 }}>{c.name}</span>
+                {c.title && <span style={{ color:'var(--muted)' }}>· {c.title}</span>}
+                {c.phone && <span style={{ color:'var(--muted)' }}>· <Tel v={c.phone} /></span>}
+                {c.email && <span style={{ color:'var(--muted)', overflow:'hidden', textOverflow:'ellipsis' }}>· <Mail v={c.email} /></span>}
+                <span style={{ display:'flex', gap:4, marginLeft:'auto' }}>
                   <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => { setEditContactId(c.id); setEditContactForm({ name:c.name, title:c.title, email:c.email||'', phone:c.phone||'' }); }}>✎</button>
                   <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => deleteContact(c.id)}>✕</button>
-                </div>
+                </span>
               </div>
             ))}
             {!project.clientContacts?.length && <span className="empty" style={{ padding:0, fontSize:12 }}>No client contacts yet.</span>}
@@ -422,16 +423,17 @@ export default function Overview({ project, setProject, onTabChange }) {
         </div>
         <div className="ov-poc-row" style={{ display:'flex', alignItems:'flex-start', gap:12, borderTop:'1px solid var(--border2)', padding:'10px 16px' }}>
           <span style={{ fontSize:13, fontWeight:700, color:'var(--text)', whiteSpace:'nowrap', width:160, flexShrink:0, paddingTop:4 }}>Agency Contacts</span>
-          <div className="chips" style={{ flex:1, marginBottom:0 }}>
+          <div style={{ flex:1, minWidth:0 }}>
             {(project.agencyContacts||[]).map(c => (
-              <div key={c.id} className="chip" style={{ position:'relative', paddingRight:50 }}>
-                <strong>{c.title}</strong>
-                {c.name} {c.phone && <>· <Tel v={c.phone} /></>}
-                {c.email && <><br /><span style={{ color:'var(--muted)' }}><Mail v={c.email} /></span></>}
-                <div style={{ position:'absolute', top:4, right:6, display:'flex', gap:4 }}>
+              <div key={c.id} style={{ display:'flex', alignItems:'center', gap:8, fontSize:12, padding:'3px 0', whiteSpace:'nowrap', overflow:'hidden' }}>
+                <span style={{ fontWeight:700 }}>{c.name}</span>
+                {c.title && <span style={{ color:'var(--muted)' }}>· {c.title}</span>}
+                {c.phone && <span style={{ color:'var(--muted)' }}>· <Tel v={c.phone} /></span>}
+                {c.email && <span style={{ color:'var(--muted)', overflow:'hidden', textOverflow:'ellipsis' }}>· <Mail v={c.email} /></span>}
+                <span style={{ display:'flex', gap:4, marginLeft:'auto' }}>
                   <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => { setEditAgencyId(c.id); setEditAgencyForm({ name:c.name, title:c.title, email:c.email||'', phone:c.phone||'' }); }}>✎</button>
                   <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => deleteAgencyContact(c.id)}>✕</button>
-                </div>
+                </span>
               </div>
             ))}
             {!(project.agencyContacts?.length) && <span className="empty" style={{ padding:0, fontSize:12 }}>No agency contacts yet.</span>}
