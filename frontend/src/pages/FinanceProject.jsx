@@ -1732,7 +1732,7 @@ function EstimatePane({ est, feeRate, saveFeeAll, reload, onMerged, onData }) {
                 setBusy(false);
               }}
               style={{ background:'rgba(230,194,41,0.15)', border:'1px solid ' + YEL, color:YEL, borderRadius:20, padding:'5px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
-              Add Estimate
+              Hold Estimate
             </button>
             <button disabled={busy} onClick={merge}
               style={{ background:'rgba(90,191,128,0.15)', border:'1px solid #5ABF80', color:'#5ABF80', borderRadius:20, padding:'5px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
