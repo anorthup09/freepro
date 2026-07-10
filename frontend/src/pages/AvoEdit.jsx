@@ -59,6 +59,15 @@ function MilestoneCalendarModal({ edit, onClose }) {
   const dd = s => new Date(s + 'T12:00:00');
   const diff = (a, b) => Math.round((b - a) / 86400000);
   const today = new Date(); today.setHours(12, 0, 0, 0);
+  // Same plane logic as the Gantt: runners butt at the shared milestone day
+  // (drawn center-of-day to center-of-day) and share one lane; only truly
+  // overlapping runners stack onto a lane above.
+  const laneOf = []; const laneEnd = [];
+  segs.forEach((sg, i) => {
+    let l = 0;
+    while (laneEnd[l] != null && dd(sg.from) < laneEnd[l]) l++;
+    laneOf[i] = l; laneEnd[l] = dd(sg.to);
+  });
 
   return (
     <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:120, background:'rgba(0,0,0,0.7)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
@@ -82,7 +91,7 @@ function MilestoneCalendarModal({ edit, onClose }) {
           {weeks.map((ws, wi) => {
             // bars overlapping this week; alternate lanes so touching runners don't collide
             const bars = segs.map((s, i) => ({ ...s, idx: i })).filter(s => diff(ws, dd(s.to)) >= 0 && diff(ws, dd(s.from)) <= 6);
-            const lanes = Math.max(1, ...bars.map(b => (b.idx % 2) + 1));
+            const lanes = Math.max(1, ...bars.map(b => laneOf[b.idx] + 1));
             return (
               <div key={wi} style={{ position:'relative', height: 30 + lanes * 18, borderBottom: wi < weeks.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
                 {Array.from({ length: 7 }, (_, i) => {
@@ -100,12 +109,15 @@ function MilestoneCalendarModal({ edit, onClose }) {
                   const e2 = Math.min(6, diff(ws, dd(b.to)));
                   const startsHere = diff(ws, dd(b.from)) >= 0;
                   const endsHere = diff(ws, dd(b.to)) <= 6;
-                  const lane = b.idx % 2;
+                  const lane = laneOf[b.idx];
+                  // center-of-day endpoints: back-to-back runners split the shared day
+                  const L = s + (startsHere ? 0.5 : 0);
+                  const R = e2 + (endsHere ? 0.5 : 1);
                   return (
                     <div key={b.idx} title={`${b.title}: ${b.from} → ${b.to}`}
                       style={{
                         position:'absolute', top: 24 + lane * 18, height:15,
-                        left:`calc(${(s / 7) * 100}% + 2px)`, width:`calc(${((e2 - s + 1) / 7) * 100}% - 5px)`,
+                        left:`calc(${(L / 7) * 100}% + 1px)`, width:`calc(${((R - L) / 7) * 100}% - 3px)`,
                         background:`${b.color}30`, border:`1px solid ${b.color}`,
                         borderRadius: `${startsHere ? 8 : 0}px ${endsHere ? 8 : 0}px ${endsHere ? 8 : 0}px ${startsHere ? 8 : 0}px`,
                         display:'flex', alignItems:'center', justifyContent:'flex-end', padding:'0 6px', overflow:'hidden',
@@ -281,7 +293,7 @@ export default function AvoEdit() {
   const [copied, setCopied] = useState('');
   const [shareTimeline, setShareTimeline] = useState(false);
   const [showCal, setShowCal] = useState(false);
-  const [showPtoConflict, setShowPtoConflict] = useState(false);
+  const [ptoFlagOpen, setPtoFlagOpen] = useState(null);   // milestone key with the PTO-conflict pop-out open
   const [projectPageId, setProjectPageId] = useState(null);   // Avo project page for this edit's code
   // Auto-fill knobs (defaults: business days, 2-day client reviews)
   const [tlOpts, setTlOpts] = useState({ skipWknd: true, editDaysAfterScript: 5, editDaysAfterFeedback: 3, reviewDays: 2 });
@@ -505,6 +517,35 @@ export default function AvoEdit() {
                                   patch({ milestones: { ...ms, [k]: v || undefined } });
                                   save({ milestones: { [k]: v } });
                                 }} />}
+                          {(() => {
+                            const hits = (!skipped && val) ? (e.pto_conflicts || []).filter(c => String(c.start_date).slice(0,10) <= val && String(c.end_date).slice(0,10) >= val) : [];
+                            if (!hits.length) return <span style={{ width:16, flexShrink:0 }} />;
+                            return (
+                              <span style={{ position:'relative', flexShrink:0 }}>
+                                <button type="button" title="The lead editor has PTO / OOO on this date — click for details"
+                                  onClick={() => setPtoFlagOpen(o => o === k ? null : k)}
+                                  style={{ background:'rgba(224,49,49,0.15)', border:'1px solid #E03131', color:'#E03131',
+                                    borderRadius:'50%', width:16, height:16, lineHeight:'13px', fontSize:10, fontWeight:900, cursor:'pointer', padding:0, display:'block' }}>!</button>
+                                {ptoFlagOpen === k && (
+                                  <span style={{ position:'absolute', top:20, right:0, zIndex:50, display:'block', background:'var(--bg2)', border:'1px solid #E03131',
+                                    borderRadius:8, padding:'10px 14px', minWidth:250, boxShadow:'0 6px 20px rgba(0,0,0,0.4)', whiteSpace:'normal', textAlign:'left' }}>
+                                    <span style={{ display:'block', fontSize:11, fontWeight:800, color:'#E03131', marginBottom:6 }}>
+                                      ⚠ {e.lead_editor_name_resolved || e.lead_editor_name || 'The lead editor'} is unavailable on this date
+                                    </span>
+                                    {hits.map(c => (
+                                      <span key={c.id} style={{ display:'block', fontSize:11.5, color:'var(--text)', padding:'4px 0', borderTop:'1px solid var(--border)' }}>
+                                        <b>{c.pto_type || 'PTO'}</b>{c.title ? ` — ${c.title}` : ''}<br />
+                                        <span style={{ color:'var(--muted)' }}>
+                                          {String(c.start_date).slice(0,10)} → {String(c.end_date).slice(0,10)} · {c.status === 'APPROVED' ? 'Approved' : c.status === 'REVIEW' ? 'Pending approval' : c.status}
+                                        </span>
+                                      </span>
+                                    ))}
+                                    <button type="button" className="btn btn-ghost btn-sm" style={{ marginTop:8, fontSize:10 }} onClick={() => setPtoFlagOpen(null)}>Close</button>
+                                  </span>
+                                )}
+                              </span>
+                            );
+                          })()}
                         </div>
                       );
                     })}
@@ -556,35 +597,8 @@ export default function AvoEdit() {
                 <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
                   {field('Project Code', 'project_code', 'projectCode')}
                   <div style={{ flex:1, minWidth:150 }}>
-                    <span style={lbl}>Lead Editor{(e.pto_conflicts || []).length > 0 && (
-                      <button type="button" title="PTO / OOO overlaps this edit window — click for details"
-                        onClick={() => setShowPtoConflict(s => !s)}
-                        style={{ marginLeft:6, background:'rgba(224,49,49,0.15)', border:'1px solid #E03131', color:'#E03131',
-                          borderRadius:'50%', width:16, height:16, lineHeight:'13px', fontSize:10, fontWeight:900, cursor:'pointer', padding:0, verticalAlign:'middle' }}>!</button>
-                    )}</span>
+                    <span style={lbl}>Lead Editor</span>
                     <EditorSelect value={e.lead_editor_id} onChange={v => { patch({ lead_editor_id: v }); save({ leadEditorId: v }); }} />
-                    {showPtoConflict && (e.pto_conflicts || []).length > 0 && (
-                      <div style={{ position:'relative' }}>
-                        <div style={{ position:'absolute', top:4, left:0, zIndex:50, background:'var(--bg2)', border:'1px solid #E03131',
-                          borderRadius:8, padding:'10px 14px', minWidth:260, boxShadow:'0 6px 20px rgba(0,0,0,0.4)' }}>
-                          <div style={{ fontSize:11, fontWeight:800, color:'#E03131', marginBottom:6 }}>
-                            ⚠ Editor unavailable during this edit window
-                          </div>
-                          {(e.pto_conflicts || []).map(c => (
-                            <div key={c.id} style={{ fontSize:11.5, color:'var(--text)', padding:'4px 0', borderTop:'1px solid var(--border)' }}>
-                              <b>{c.pto_type || 'PTO'}</b>{c.title ? ` — ${c.title}` : ''}<br />
-                              <span style={{ color:'var(--muted)' }}>
-                                {String(c.start_date).slice(0,10)} → {String(c.end_date).slice(0,10)} · {c.status === 'APPROVED' ? 'Approved' : c.status === 'REVIEW' ? 'Pending approval' : c.status}
-                              </span>
-                            </div>
-                          ))}
-                          <div style={{ fontSize:10.5, color:'var(--muted)', marginTop:6 }}>
-                            These dates overlap the edit's {String(e.start_date).slice(0,10)} – {String(e.end_date || e.start_date).slice(0,10)} window.
-                          </div>
-                          <button type="button" className="btn btn-ghost btn-sm" style={{ marginTop:8, fontSize:10 }} onClick={() => setShowPtoConflict(false)}>Close</button>
-                        </div>
-                      </div>
-                    )}
                   </div>
                   <div style={{ flex:1, minWidth:150 }}>
                     <span style={lbl}>Project Manager</span>
