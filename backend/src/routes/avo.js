@@ -172,12 +172,10 @@ router.get('/edits/:id', ...staff, async (req, res, next) => {
     const files = await sql`SELECT id, filename, mime, size, uploaded_by, created_at FROM edit_files WHERE edit_id = ${req.params.id} ORDER BY created_at`;
     // Flag PTO/OOO requests for the lead editor that overlap the edit window
     let ptoConflicts = [];
-    if (e.lead_editor_id && e.start_date) {
+    if (e.lead_editor_id) {
       ptoConflicts = await sql`
         SELECT id, title, pto_type, start_date, end_date, status FROM pto_requests
         WHERE member_id = ${e.lead_editor_id}
-          AND start_date <= ${e.end_date || e.start_date}
-          AND end_date >= ${e.start_date}
         ORDER BY start_date`;
     }
     res.json({ ...e, activity, files, pto_conflicts: ptoConflicts });

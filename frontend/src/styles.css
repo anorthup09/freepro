@@ -593,3 +593,8 @@ textarea { resize: vertical; min-height: 70px; }
 @media (max-width: 700px) {
   .ae-titlebar > input { flex: 1 1 100% !important; }
 }
+
+/* AvoEdit: when the two columns stack on narrow screens, the Activity feed leads */
+@media (max-width: 900px) {
+  .ae-cols .ae-activity { order: -1; }
+}

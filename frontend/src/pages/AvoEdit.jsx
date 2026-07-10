@@ -376,7 +376,7 @@ export default function AvoEdit() {
           )}
           <button className="btn btn-ghost btn-sm" onClick={() => nav('/avo')}>Full Pipeline — All Projects</button>
         </div>
-        <div style={{ display:'flex', gap:18, flexWrap:'wrap', alignItems:'flex-start' }}>
+        <div className="ae-cols" style={{ display:'flex', gap:18, flexWrap:'wrap', alignItems:'flex-start' }}>
 
           {/* ── Left: details ── */}
           <div style={{ flex:'1 1 480px', minWidth:320 }}>
@@ -445,7 +445,7 @@ export default function AvoEdit() {
                 return (
                 <div style={{ background:'var(--bg)', border:'1px solid var(--border)', borderRadius:8, padding:'12px 14px', marginTop:10 }}>
                   {/* auto-fill controls */}
-                  <div style={{ display:'flex', alignItems:'flex-end', gap:12, flexWrap:'wrap', padding:'2px 0 10px', borderBottom:'1px solid var(--border)', marginBottom:10 }}>
+                  <div style={{ display:'flex', alignItems:'flex-end', gap:8, flexWrap:'nowrap', padding:'2px 0 10px', borderBottom:'1px solid var(--border)', marginBottom:10 }}>
                     <label style={{ display:'flex', alignItems:'center', gap:6, fontSize:11, cursor:'pointer', paddingBottom:6 }}>
                       <input type="checkbox" checked={tlOpts.skipWknd} onChange={ev => setOpt('skipWknd', ev.target.checked)} style={{ width:'auto', accentColor:AVO }} />
                       Exclude weekends
@@ -453,9 +453,10 @@ export default function AvoEdit() {
                     <div><div style={optLbl}>Edit days after script</div><input value={tlOpts.editDaysAfterScript} onChange={ev => setOpt('editDaysAfterScript', ev.target.value)} style={optIn} /></div>
                     <div><div style={optLbl}>Edit days after feedback</div><input value={tlOpts.editDaysAfterFeedback} onChange={ev => setOpt('editDaysAfterFeedback', ev.target.value)} style={optIn} /></div>
                     <div><div style={optLbl}>Client review days</div><input value={tlOpts.reviewDays} onChange={ev => setOpt('reviewDays', ev.target.value)} style={optIn} /></div>
+                    <div style={{ flex:1 }} />
                     <button onClick={autoFill} title="Fill every milestone forward from Creative/Scripting Complete (color & audio 3 days, final comp +2, delivery +1)"
-                      style={{ background:AVO, border:`1px solid ${AVO}`, color:'#0b0b0b', borderRadius:14, padding:'6px 14px', fontSize:11, fontWeight:800, cursor:'pointer' }}>
-                      ⚡ Auto-Fill Timeline
+                      style={{ background:AVO, border:`1px solid ${AVO}`, color:'#0b0b0b', borderRadius:14, padding:'5px 12px', fontSize:10.5, fontWeight:800, cursor:'pointer', marginBottom:2, whiteSpace:'nowrap', flexShrink:0 }}>
+                      ⚡ Auto-Fill
                     </button>
                   </div>
                   <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, flexWrap:'wrap', marginBottom:10 }}>
@@ -484,29 +485,23 @@ export default function AvoEdit() {
                       if (val) prevDate = val;
                       return (
                         <div key={k} style={{ display:'flex', alignItems:'center', gap:12, padding:'6px 0', borderBottom:'1px solid rgba(255,255,255,0.04)', opacity: skipped ? 0.45 : 1 }}>
-                          <span style={{ ...lbl, marginBottom:0, flex:1, display:'flex', alignItems:'center', gap:8, flexWrap:'wrap', textDecoration: skipped ? 'line-through' : 'none' }}>
+                          <span style={{ ...lbl, marginBottom:0, flex:1, textDecoration: skipped ? 'line-through' : 'none' }}>
                             {label}
+                          </span>
+                          <span title="Who's responsible for this task — shows on the Crew Calendar"
+                            style={{ display:'inline-block', width:140, flexShrink:0 }}>
                             {EDITOR_TASKS.includes(k) && (
-                              <span title="Who's responsible for this task — shows on the Crew Calendar"
-                                style={{ display:'inline-block', maxWidth:150 }}>
-                                <EditorSelect value={e.milestone_assignees?.[k] || ''}
-                                  placeholder={`${e.lead_editor_name_resolved || e.lead_editor_name || 'Lead Editor'} (lead)`}
-                                  onChange={v => {
-                                    patch({ milestone_assignees: { ...(e.milestone_assignees || {}), [k]: v || undefined } });
-                                    save({ milestoneAssignees: { [k]: v } });
-                                  }} />
-                              </span>
+                              <EditorSelect value={e.milestone_assignees?.[k] || ''}
+                                placeholder={e.lead_editor_name_resolved || e.lead_editor_name || 'Lead Editor'}
+                                onChange={v => {
+                                  patch({ milestone_assignees: { ...(e.milestone_assignees || {}), [k]: v || undefined } });
+                                  save({ milestoneAssignees: { [k]: v } });
+                                }} />
                             )}
                           </span>
-                          {gap != null && (
-                            <span title="Time since the previous milestone"
-                              style={{ flexShrink:0, fontSize:9, fontWeight:800, color:AVO, whiteSpace:'nowrap' }}>
-                              {gap} {tlOpts.skipWknd ? 'Business Day' : 'Day'}{gap === 1 ? '' : 's'}
-                            </span>
-                          )}
                           <button type="button" onClick={() => toggleSkip(k)}
                             title={skipped ? 'Bring this milestone back into the timeline' : 'Skip this milestone — the timeline continues without it'}
-                            style={{ flexShrink:0, background: skipped ? 'rgba(224,82,82,0.15)' : 'none', border:`1px solid ${skipped ? '#e05252' : 'var(--border)'}`, color: skipped ? '#e05252' : 'var(--muted)', borderRadius:10, padding:'2px 9px', fontSize:9, fontWeight:800, cursor:'pointer' }}>
+                            style={{ flexShrink:0, background: skipped ? 'rgba(224,82,82,0.15)' : 'none', border:`1px solid ${skipped ? '#e05252' : 'var(--border)'}`, color: skipped ? '#e05252' : 'var(--muted)', borderRadius:10, padding:'1px 7px', fontSize:8.5, fontWeight:800, cursor:'pointer' }}>
                             {skipped ? 'Skipped ✕' : 'Skip'}
                           </button>
                           {skipped
@@ -517,6 +512,10 @@ export default function AvoEdit() {
                                   patch({ milestones: { ...ms, [k]: v || undefined } });
                                   save({ milestones: { [k]: v } });
                                 }} />}
+                          <span title="Time since the previous milestone"
+                            style={{ flexShrink:0, width:46, fontSize:9, fontWeight:800, color:AVO, whiteSpace:'nowrap' }}>
+                            {gap != null ? `${gap} Day${gap === 1 ? '' : 's'}` : ''}
+                          </span>
                           {(() => {
                             const hits = (!skipped && val) ? (e.pto_conflicts || []).filter(c => String(c.start_date).slice(0,10) <= val && String(c.end_date).slice(0,10) >= val) : [];
                             if (!hits.length) return <span style={{ width:16, flexShrink:0 }} />;
@@ -692,8 +691,8 @@ export default function AvoEdit() {
             </div>
           </div>
 
-          {/* ── Right: activity ── */}
-          <div style={{ flex:'1 1 380px', minWidth:300, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, display:'flex', flexDirection:'column', maxHeight:'80vh' }}>
+          {/* ── Right: activity — jumps to the top when the layout stacks ── */}
+          <div className="ae-activity" style={{ flex:'1 1 380px', minWidth:300, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, display:'flex', flexDirection:'column', maxHeight:'80vh' }}>
             <div style={{ padding:'14px 18px', borderBottom:'1px solid var(--border)', fontSize:12, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.06em' }}>Activity</div>
             <div ref={feedRef} style={{ flex:1, overflowY:'auto', padding:'12px 18px', display:'flex', flexDirection:'column', gap:8 }}>
               {groupActivity(e.activity || []).map(item => item.group ? (
