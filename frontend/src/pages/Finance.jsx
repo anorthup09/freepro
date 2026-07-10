@@ -322,22 +322,24 @@ export default function Finance() {
               <div style={{ fontSize:15, fontWeight:700 }}>{p.title}</div>
               <div style={{ fontSize:11, color:'var(--muted)' }}>{p.client}</div>
             </div>
-            <div style={{ display:'flex', gap:22, alignItems:'center' }}>
+            <div style={{ display:'grid', gridTemplateColumns:'110px 110px 110px 110px', gap:14, alignItems:'center' }}>
               <div style={{ textAlign:'right' }}>
                 <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Budget</div>
-                <div style={{ fontSize:14, fontWeight:700, color: p.budget_id ? 'var(--text)' : 'var(--muted)' }}>{p.budget_id ? fmt$(p.budget_total) : '—'}</div>
+                <div style={{ fontSize:14, fontWeight:700, color: p.budget_id ? 'var(--text)' : 'var(--muted)', whiteSpace:'nowrap' }}>{p.budget_id ? fmt$(p.budget_total) : '—'}</div>
               </div>
               <div style={{ textAlign:'right' }}>
                 <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Direct Costs</div>
-                <div style={{ fontSize:14, fontWeight:700, color: p.vcc_total ? '#e6c229' : 'var(--muted)' }}>{p.vcc_total ? fmt$(p.vcc_total) : '—'}</div>
+                <div style={{ fontSize:14, fontWeight:700, color: p.vcc_total ? '#e6c229' : 'var(--muted)', whiteSpace:'nowrap' }}>{p.vcc_total ? fmt$(p.vcc_total) : '—'}</div>
               </div>
               <div style={{ textAlign:'right' }}>
                 <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Gross Profit</div>
-                <div style={{ fontSize:14, fontWeight:700, color: p.budget_id ? '#5ABF80' : 'var(--muted)' }}>
+                <div style={{ fontSize:14, fontWeight:700, color: p.budget_id ? '#5ABF80' : 'var(--muted)', whiteSpace:'nowrap' }}>
                   {p.budget_id ? fmt$((p.budget_total - (p.total_cap_co || 0)) - p.vcc_total) : '—'}
                 </div>
               </div>
-              <TileStatusPill p={p} onClosed={() => setProjects(ps => ps.map(x => x.id === p.id ? { ...x, budget_status: 'Closed' } : x))} />
+              <div style={{ textAlign:'right' }}>
+                <TileStatusPill p={p} onClosed={() => setProjects(ps => ps.map(x => x.id === p.id ? { ...x, budget_status: 'Closed' } : x))} />
+              </div>
             </div>
           </div>
         ))}
