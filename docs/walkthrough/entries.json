@@ -129,5 +129,18 @@
       "After submitting, the tab shows the locked, read-only request."
     ],
     "screenshot": "gear-request.png"
+  },
+  {
+    "title": "Crews — schedules & call sheets by unit",
+    "what": "Split a shoot into named crews (e.g. Recap Crew, Interview Crew). People tag into one or more crews (a cam op can be on both; untagged floats across all). Schedule events tag to a crew — untagged events apply to everyone. Each crew gets its own call-sheet link showing only their events and people, and day-level call times and logistics can carry per-crew overrides (blank = day default). One schedule, no double entry.",
+    "where": "FreePro → open a shoot → Logistics → Crew (Crews row up top), Schedule (crew chips on events + Per-Crew Overrides in the day header), and Share ▾ for the per-crew links.",
+    "how": [
+      "On the Crew tab, click + Add Crew and name your units (each gets a color).",
+      "In the new Crew column, check each person into their crew(s) — leave unchecked to float across all.",
+      "On the Schedule, tag events with a crew chip; untagged events show for everyone.",
+      "Need different call times or meal spots per crew? Open Per-Crew Overrides in the day header and fill only what differs.",
+      "From Share ▾, copy “Crew View — [Crew]” (or its PDF) and send each crew their own call sheet."
+    ],
+    "screenshot": "crew-units.png"
   }
 ]
