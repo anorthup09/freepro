@@ -50,7 +50,6 @@ export function FinanceHeader({ crumb }) {
         <Link to="/" className="btn btn-ghost btn-sm" style={{ textDecoration:'none' }}>Back to Hub</Link>
         <button className="btn btn-ghost btn-sm" onClick={() => { localStorage.removeItem('fp_token'); setUser(null); }}>Sign out</button>
       </div>
-      <SaveIndicator />
     </div>
   );
 }

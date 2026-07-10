@@ -49,6 +49,7 @@ function PendingApproval({ setUser }) {
 import Share from './pages/Share.jsx';
 import ContractSign from './pages/ContractSign.jsx';
 import Hub from './pages/Hub.jsx';
+import { SaveIndicator } from './pages/Finance.jsx';
 import Finance from './pages/Finance.jsx';
 import FinanceProject from './pages/FinanceProject.jsx';
 import BudgetShare from './pages/BudgetShare.jsx';
@@ -109,6 +110,7 @@ export default function App() {
           </button>
         </div>
       )}
+      <SaveIndicator />
       {user?.role === 'PENDING' ? <PendingApproval setUser={setUser} /> : (realUser && (['ADMIN','PRODUCER'].includes(realUser.role) || realUser.mfa_required === true) && realUser.mfa_enabled === false) ? <MfaSetup /> : (
       <Routes>
         <Route path="/login" element={user ? <Navigate to="/" /> : <Login />} />
