@@ -500,7 +500,7 @@ export default function Overview({ project, setProject, onTabChange }) {
             <form onSubmit={saveInfo}>
               <div className="form-grid" style={{ marginBottom:12 }}>
                 <div className="field"><label>Project Code</label><input value={info.code} disabled style={{ opacity:0.55, cursor:'not-allowed' }} /></div>
-                <div className="field"><label>Title</label><input value={info.title} onChange={e => setInfo(i=>({...i,title:e.target.value}))} required /></div>
+                <div className="field"><label>Project Title</label><input value={info.title} disabled style={{ opacity:0.55, cursor:'not-allowed' }} /></div>
                 <div className="field"><label>Client</label><input value={info.client} disabled style={{ opacity:0.55, cursor:'not-allowed' }} /></div>
                 <div className="field"><label>Status</label>
                   <select value={info.status} onChange={e => setInfo(i=>({...i,status:e.target.value}))}>
