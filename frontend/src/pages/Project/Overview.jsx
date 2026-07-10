@@ -377,29 +377,31 @@ export default function Overview({ project, setProject, onTabChange }) {
       <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden', marginBottom:10 }}>
         <div className="ov-poc-row" style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 16px' }}>
           <span style={{ fontSize:13, fontWeight:700, color:'var(--text)', whiteSpace:'nowrap', width:160, flexShrink:0 }}>Main POC</span>
-          <select value={pocId} onChange={e => savePoc(e.target.value)} style={{ width:'auto', minWidth:200, maxWidth:'100%', flexShrink:1 }}>
-            <option value="">— Unassigned —</option>
-            {assignedCrew.map(a => (
-              <option key={a.crewMember.id} value={a.crewMember.id}>
-                {displayName(a.crewMember)} — {a.position.name}
-              </option>
-            ))}
-          </select>
-          {pocSaving && <span style={{ fontSize:11, color:'var(--muted)' }}>Saving…</span>}
-          {pocMember && !pocSaving && (
-            <div style={{ fontSize:12, color:'var(--muted)', display:'flex', gap:16 }}>
-              {pocMember.phone && <span style={{ color:'var(--tan)' }}><Tel v={pocMember.phone} /></span>}
-              {pocMember.email && <span><Mail v={pocMember.email} /></span>}
-            </div>
-          )}
+          <div style={{ flex:1, minWidth:0, display:'grid', gridTemplateColumns:'170px 220px 120px 1fr auto', alignItems:'center', gap:10, fontSize:12, whiteSpace:'nowrap' }}>
+            <select value={pocId} onChange={e => savePoc(e.target.value)} style={{ gridColumn:'1 / 3', width:'100%', minWidth:0 }}>
+              <option value="">— Unassigned —</option>
+              {assignedCrew.map(a => (
+                <option key={a.crewMember.id} value={a.crewMember.id}>
+                  {displayName(a.crewMember)} — {a.position.name}
+                </option>
+              ))}
+            </select>
+            <span style={{ color:'var(--muted)' }}>{pocSaving ? 'Saving…' : (pocMember?.phone ? <Tel v={pocMember.phone} /> : '—')}</span>
+            <span style={{ color:'var(--muted)', overflow:'hidden', textOverflow:'ellipsis' }}>{pocMember?.email ? <Mail v={pocMember.email} /> : '—'}</span>
+            <span />
+          </div>
         </div>
         {gearPerson && (
           <div onClick={() => onTabChange?.('gear')} className="ov-poc-row"
             style={{ display:'flex', alignItems:'center', gap:12, borderTop:'1px solid var(--border2)', padding:'10px 16px', cursor:'pointer' }}>
             <span style={{ fontSize:13, fontWeight:700, color:'var(--text)', whiteSpace:'nowrap', width:160, flexShrink:0 }}>Gear Contact</span>
-            <span style={{ fontWeight:500, fontSize:13, width:200, flexShrink:0 }}>{gearPerson.name}</span>
-            {gearPerson.phone && <span style={{ fontSize:12, color:'var(--tan)' }}><Tel v={gearPerson.phone} /></span>}
-            {gearPerson.email && <span style={{ fontSize:12, color:'var(--muted)' }}><Mail v={gearPerson.email} /></span>}
+            <div style={{ flex:1, minWidth:0, display:'grid', gridTemplateColumns:'170px 220px 120px 1fr auto', alignItems:'center', gap:10, fontSize:12, whiteSpace:'nowrap' }}>
+              <span style={{ fontWeight:700, overflow:'hidden', textOverflow:'ellipsis' }}>{gearPerson.name}</span>
+              <span style={{ color:'var(--muted)' }}>—</span>
+              <span style={{ color:'var(--muted)' }}>{gearPerson.phone ? <Tel v={gearPerson.phone} /> : '—'}</span>
+              <span style={{ color:'var(--muted)', overflow:'hidden', textOverflow:'ellipsis' }}>{gearPerson.email ? <Mail v={gearPerson.email} /> : '—'}</span>
+              <span />
+            </div>
           </div>
         )}
         <div className="ov-poc-row" style={{ display:'flex', alignItems:'flex-start', gap:12, borderTop:'1px solid var(--border2)', padding:'10px 16px' }}>
