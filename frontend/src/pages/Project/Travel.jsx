@@ -88,6 +88,7 @@ export default function Travel({ project }) {
   const [flightLookupError, setFlightLookupError] = useState('');
   const [flightLegs, setFlightLegs] = useState(null); // all legs the number flies that day
   const [selectedLegIdx, setSelectedLegIdx] = useState(-1);
+  const [originScanNote, setOriginScanNote] = useState('');
   const [flightForm, setFlightForm] = useState({ crewMemberId:null, passengerName:'', flightNumber:'', airline:'', origin:'', destination:'', departTime:'', arriveTime:'', departDisplay:'', arriveDisplay:'', confirmation:'', isReturn:false, cost:'', status:'' });
 
   // Edit modals
@@ -204,12 +205,18 @@ export default function Travel({ project }) {
   const legLabel = leg => `${leg.origin || '?'} → ${leg.destination || '?'}${leg.departDisplay ? ` · ${leg.departDisplay}` : ''}${leg.arriveDisplay ? ` – ${leg.arriveDisplay}` : ''}`;
   async function lookupFlight() {
     if (!flightLookupQuery) return;
-    setFlightLooking(true); setFlightLookupError(''); setFlightLegs(null); setSelectedLegIdx(-1);
+    setFlightLooking(true); setFlightLookupError(''); setFlightLegs(null); setSelectedLegIdx(-1); setOriginScanNote('');
     try {
       const data = await api.flightLookup(flightLookupQuery, flightLookupDate, flightLookupOrigin.trim());
       const legs = Array.isArray(data.legs) && data.legs.length ? data.legs : [data];
       setFlightLegs(legs);
       if (legs.length === 1) { setSelectedLegIdx(0); applyLeg(legs[0]); }
+      const scan = data.originScan;
+      if (scan && !scan.matched) {
+        setOriginScanNote(scan.errors?.length
+          ? `Departure-board scan of ${scan.airport} failed: ${scan.errors.join(' · ')}`
+          : `Scanned ${scan.boardFlights} departures at ${scan.airport} — no ${flightLookupQuery.toUpperCase()} found. Enter the leg manually below.`);
+      } else setOriginScanNote('');
     } catch(err) {
       setFlightLookupError(err.message || 'Flight not found');
     }
@@ -649,6 +656,7 @@ export default function Travel({ project }) {
                     </button>
                   </div>
                   {flightLookupError && <div style={{ fontSize:11, color:'var(--red-text, #e08080)', marginTop:3 }}>{flightLookupError}</div>}
+                  {originScanNote && <div style={{ fontSize:10, color:'var(--amber-text, #e6c229)', marginTop:3 }}>{originScanNote}</div>}
                   {flightLegs && (
                     <div style={{ marginTop:6 }}>
                       <label style={{ fontSize:10, color: flightLegs.length > 1 && selectedLegIdx === -1 ? 'var(--orange)' : 'var(--muted)' }}>

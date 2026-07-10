@@ -156,16 +156,21 @@ router.get('/flight-lookup', requireAuth, async (req, res, next) => {
     // leg departs from it, scan that airport's departure board for the number.
     const originIata = String(origin || '').trim().toUpperCase();
     const hasOriginLeg = originIata && arr.some(x => (x.departure?.airport?.iata || '').toUpperCase() === originIata);
+    let originScan = null;
     if (originIata && !hasOriginLeg) {
+      originScan = { airport: originIata, boardFlights: 0, matched: 0, errors: [] };
       const wanted = new Set([flight.toUpperCase().replace(/\s+/g, ''), alt].filter(Boolean));
       const matchesNumber = n => wanted.has(String(n || '').toUpperCase().replace(/\s+/g, ''));
       for (const [from, to] of [[`${targetDate}T00:00`, `${targetDate}T11:59`], [`${targetDate}T12:00`, `${targetDate}T23:59`]]) {
         try {
           const url = `https://aerodatabox.p.rapidapi.com/flights/airports/iata/${originIata}/${from}/${to}?direction=Departure&withLeg=true&withCancelled=true&withCodeshared=true&withCargo=false&withPrivate=false`;
           const r2 = await fetchJson(url, aeroHeaders(key));
-          const deps = r2.ok ? (r2.data?.departures || []) : [];
+          if (!r2.ok) { originScan.errors.push(`${r2.status}: ${r2.data?.message || 'board query failed'}`); continue; }
+          const deps = r2.data?.departures || [];
+          originScan.boardFlights += deps.length;
           for (const d2 of deps) {
             if (!matchesNumber(d2.number) && !(d2.codeshareStatus === 'IsOperator' && matchesNumber(d2.callSign))) continue;
+            originScan.matched++;
             // FIDS shape → number-endpoint shape: movement is the counterpart
             // airport; scheduledTime is the departure at the queried airport
             arr.push({
@@ -176,7 +181,7 @@ router.get('/flight-lookup', requireAuth, async (req, res, next) => {
               status: d2.status || '',
             });
           }
-        } catch { /* board scan is best-effort */ }
+        } catch (e2) { originScan.errors.push(e2.message); }
       }
     }
 
@@ -205,7 +210,7 @@ router.get('/flight-lookup', requireAuth, async (req, res, next) => {
     }).sort((a, b) => String(a.departTime || '').localeCompare(String(b.departTime || '')));
 
     // First leg stays at the top level for backward compatibility
-    res.json({ ...legs[0], legs });
+    res.json({ ...legs[0], legs, originScan });
   } catch(e) { next(e); }
 });
 
