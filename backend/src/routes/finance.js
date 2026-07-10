@@ -32,7 +32,7 @@ const CREW_LINES = [
   ['Talent', 'Allocation - billed to actual', 1200],
   ['Props Rental', 'Allocation - billed to actual', 500],
   ['Location Fee / Studio Cost', 'Allocation - billed to actual', 1500],
-  ['Equipment Rental', 'Starting daily package rate - cameras, lights, audio & support gear; subject to change', 6000],
+  ['Equipment Rental', 'Starting daily package rate - cameras, lights, audio & support gear; subject to change', 3500],
 ];
 const TRAVEL_LINES = [
   ['Airfare', 'Round-trip Allocation (per traveling crew member) - billed to actual', 700],
