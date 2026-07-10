@@ -212,6 +212,7 @@ router.patch('/:id/schedule/days/:dayId', requireAuth, requireRole('ADMIN','PROD
         crew_lunch=${d.crewLunch !== undefined ? (d.crewLunch||null) : sql`crew_lunch`},
         gear_storage=${d.gearStorage !== undefined ? (d.gearStorage||null) : sql`gear_storage`},
         gs_audio=${d.gsAudio !== undefined ? (d.gsAudio||null) : sql`gs_audio`},
+        crew_overrides=${d.crewOverrides !== undefined ? sql.json(d.crewOverrides || {}) : sql`crew_overrides`},
         call_time_location_id=${d.callTimeLocationId !== undefined ? (d.callTimeLocationId||null) : sql`call_time_location_id`},
         shooting_call_location_id=${d.shootingCallLocationId !== undefined ? (d.shootingCallLocationId||null) : sql`shooting_call_location_id`},
         lunch_location_id=${d.lunchLocationId !== undefined ? (d.lunchLocationId||null) : sql`lunch_location_id`},

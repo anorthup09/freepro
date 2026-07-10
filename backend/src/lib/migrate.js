@@ -314,6 +314,10 @@ async function migrate() {
     )`;
   // Per-crew share links (crew call sheets scoped to one unit)
   await sql`ALTER TABLE project_shares ADD COLUMN IF NOT EXISTS crew_group_id TEXT REFERENCES project_crews(id) ON DELETE CASCADE`;
+  // Per-crew overrides of day-level times/logistics, keyed by crew id:
+  // { "<crewId>": { callTime, shootingCallTime, lunchTime, wrapTime, crewLunch, gearStorage, gsAudio } }
+  // Blank/missing field = that crew uses the day default.
+  await sql`ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS crew_overrides JSONB DEFAULT '{}'::jsonb`;
 
   await sql`ALTER TABLE crew_members ADD COLUMN IF NOT EXISTS home_airport TEXT`;
   await sql`ALTER TABLE crew_members ADD COLUMN IF NOT EXISTS notes TEXT`;

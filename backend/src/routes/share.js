@@ -131,8 +131,24 @@ router.get('/:token', async (req, res, next) => {
         WHERE cdc.shoot_day_id = ${day.id}
         ORDER BY p.sort_order, ca.slot_number`;
 
+      // On a per-crew link, that crew's day-level overrides replace the defaults
+      let dayOut = day;
+      if (crewGroupId) {
+        const ovAll = typeof day.crew_overrides === 'string' ? JSON.parse(day.crew_overrides || '{}') : (day.crew_overrides || {});
+        const ov = ovAll[crewGroupId] || {};
+        dayOut = {
+          ...day,
+          call_time: ov.callTime || day.call_time,
+          shooting_call_time: ov.shootingCallTime || day.shooting_call_time,
+          lunch_time: ov.lunchTime || day.lunch_time,
+          wrap_time: ov.wrapTime || day.wrap_time,
+          crew_lunch: ov.crewLunch || day.crew_lunch,
+          gear_storage: ov.gearStorage || day.gear_storage,
+          gs_audio: ov.gsAudio || day.gs_audio,
+        };
+      }
       return {
-        ...day,
+        ...dayOut,
         totalDays,
         catering: cateringByDay[day.id] || [],
         // On a per-crew link, other crews' events are hidden entirely; untagged

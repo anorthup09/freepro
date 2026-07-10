@@ -320,6 +320,9 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
     api.getSlDays(project.id).then(setSlDays).catch(() => {});
   }, [project.id]);
 
+  const [crewOv, setCrewOv] = useState({});       // dayId -> { crewId -> overrides }
+  const [crewOvOpen, setCrewOvOpen] = useState(null); // crewId with the override editor open
+
   useEffect(() => {
     refreshFlights();
     api.getSchedule(project.id).then(d => {
@@ -327,7 +330,9 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
       if (d.length > 0) setActiveDay(d[0].id);
       const meta = {};
       const times = {};
+      const ov = {};
       d.forEach(day => {
+        ov[day.id] = typeof day.crew_overrides === 'string' ? JSON.parse(day.crew_overrides || '{}') : (day.crew_overrides || {});
         meta[day.id] = { crewLunch: day.crew_lunch||'', gearStorage: day.gear_storage||'', gsAudio: day.gs_audio||'' };
         times[day.id] = {
           callTime: day.call_time||'', shootingCallTime: day.shooting_call_time||'', lunchTime: day.lunch_time||'', wrapTime: day.wrap_time||'',
@@ -343,6 +348,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
       });
       setDayMeta(meta);
       setDayTimesForm(times);
+      setCrewOv(ov);
     });
   }, [project.id]);
 
@@ -487,6 +493,16 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
   async function saveDayMeta(dayId, field, value) {
     setDayMeta(m => ({ ...m, [dayId]: { ...m[dayId], [field]: value } }));
     try { await api.updateDay(project.id, dayId, { [field]: value }); flashSaved(); } catch(e) { alert(e.message); }
+  }
+
+  // Per-crew overrides of the day-level times/logistics (blank = day default)
+  async function saveCrewOverride(dayId, crewId, field, value) {
+    const next = { ...(crewOv[dayId] || {}) };
+    next[crewId] = { ...(next[crewId] || {}), [field]: value || undefined };
+    if (!value) delete next[crewId][field];
+    if (!Object.keys(next[crewId]).length) delete next[crewId];
+    setCrewOv(m => ({ ...m, [dayId]: next }));
+    try { await api.updateDay(project.id, dayId, { crewOverrides: next }); flashSaved(); } catch(e) { alert(e.message); }
   }
 
   async function saveDayTime(dayId, field, value) {
@@ -791,6 +807,54 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                   </div>
                 ))}
               </div>
+              {(project.crews || []).length > 0 && (
+                <div style={{ marginTop:12, borderTop:'1px solid var(--border)', paddingTop:10 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
+                    <span style={{ fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--muted)' }}>Per-Crew Overrides</span>
+                    {(project.crews || []).map(c => {
+                      const col = c.color || 'var(--orange)';
+                      const has = Object.keys((crewOv[currentDay.id] || {})[c.id] || {}).length > 0;
+                      const on = crewOvOpen === c.id;
+                      return (
+                        <button key={c.id} type="button" onClick={() => setCrewOvOpen(o => o === c.id ? null : c.id)}
+                          style={{ fontSize:10, fontWeight:800, padding:'3px 10px', borderRadius:12, border:`1px solid ${col}`, background: on ? col : 'transparent', color: on ? '#0b0b0b' : col, cursor:'pointer' }}>
+                          {c.name}{has ? ' •' : ''}
+                        </button>
+                      );
+                    })}
+                    <span style={{ fontSize:9, color:'var(--muted)', fontStyle:'italic' }}>Blank fields use the day defaults above; overrides swap in on that crew's call sheet.</span>
+                  </div>
+                  {crewOvOpen && (project.crews || []).some(c => c.id === crewOvOpen) && (() => {
+                    const ov = (crewOv[currentDay.id] || {})[crewOvOpen] || {};
+                    const setOv = (field, value) => saveCrewOverride(currentDay.id, crewOvOpen, field, value);
+                    const local = (field, value) => setCrewOv(m => ({ ...m, [currentDay.id]: { ...(m[currentDay.id] || {}), [crewOvOpen]: { ...((m[currentDay.id] || {})[crewOvOpen] || {}), [field]: value } } }));
+                    return (
+                      <div style={{ marginTop:8 }}>
+                        <div className="sched-times-grid" style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, marginBottom:8 }}>
+                          {[['Call Time','callTime'],['Shooting Call Time','shootingCallTime'],['Lunch','lunchTime'],['Est. Wrap Time','wrapTime']].map(([label, field]) => (
+                            <div key={field} className="field" style={{ margin:0 }}>
+                              <label style={{ fontSize:10 }}>{label}</label>
+                              <input type="time" value={ov[field] || ''}
+                                onChange={e => local(field, e.target.value)}
+                                onBlur={e => setOv(field, e.target.value)} />
+                            </div>
+                          ))}
+                        </div>
+                        <div className="sched-meta-grid" style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:10 }}>
+                          {[['Crew Meal Location','crewLunch'],['Gear Storage','gearStorage'],['GS Audio Contact','gsAudio']].map(([label, field]) => (
+                            <div key={field} className="field" style={{ margin:0 }}>
+                              <label style={{ fontSize:10 }}>{label}</label>
+                              <input value={ov[field] || ''} placeholder="Day default"
+                                onChange={e => local(field, e.target.value)}
+                                onBlur={e => setOv(field, e.target.value)} />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
             </>}
           </div>
 
