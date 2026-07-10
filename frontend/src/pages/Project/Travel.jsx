@@ -83,12 +83,10 @@ export default function Travel({ project }) {
   const [showFlight, setShowFlight] = useState(false);
   const [flightLookupQuery, setFlightLookupQuery] = useState('');
   const [flightLookupDate, setFlightLookupDate] = useState('');
-  const [flightLookupOrigin, setFlightLookupOrigin] = useState(''); // optional — finds onward legs the number search misses
   const [flightLooking, setFlightLooking] = useState(false);
   const [flightLookupError, setFlightLookupError] = useState('');
   const [flightLegs, setFlightLegs] = useState(null); // all legs the number flies that day
   const [selectedLegIdx, setSelectedLegIdx] = useState(-1);
-  const [originScanNote, setOriginScanNote] = useState('');
   const [flightForm, setFlightForm] = useState({ crewMemberId:null, passengerName:'', flightNumber:'', airline:'', origin:'', destination:'', departTime:'', arriveTime:'', departDisplay:'', arriveDisplay:'', confirmation:'', isReturn:false, cost:'', status:'' });
 
   // Edit modals
@@ -205,18 +203,12 @@ export default function Travel({ project }) {
   const legLabel = leg => `${leg.origin || '?'} → ${leg.destination || '?'}${leg.departDisplay ? ` · ${leg.departDisplay}` : ''}${leg.arriveDisplay ? ` – ${leg.arriveDisplay}` : ''}`;
   async function lookupFlight() {
     if (!flightLookupQuery) return;
-    setFlightLooking(true); setFlightLookupError(''); setFlightLegs(null); setSelectedLegIdx(-1); setOriginScanNote('');
+    setFlightLooking(true); setFlightLookupError(''); setFlightLegs(null); setSelectedLegIdx(-1);
     try {
-      const data = await api.flightLookup(flightLookupQuery, flightLookupDate, flightLookupOrigin.trim());
+      const data = await api.flightLookup(flightLookupQuery, flightLookupDate);
       const legs = Array.isArray(data.legs) && data.legs.length ? data.legs : [data];
       setFlightLegs(legs);
       if (legs.length === 1) { setSelectedLegIdx(0); applyLeg(legs[0]); }
-      const scan = data.originScan;
-      if (scan && !scan.matched) {
-        setOriginScanNote(scan.errors?.length
-          ? `Departure-board scan of ${scan.airport} failed: ${scan.errors.join(' · ')}`
-          : `Scanned ${scan.boardFlights} departures at ${scan.airport} — no ${flightLookupQuery.toUpperCase()} found. Enter the leg manually below.`);
-      } else setOriginScanNote('');
     } catch(err) {
       setFlightLookupError(err.message || 'Flight not found');
     }
@@ -239,7 +231,7 @@ export default function Travel({ project }) {
       });
       setFlights(prev => [...prev, f]);
       setShowFlight(false);
-      setFlightLookupQuery(''); setFlightLookupDate(''); setFlightLookupOrigin(''); setFlightLookupError(''); setFlightLegs(null); setSelectedLegIdx(-1);
+      setFlightLookupQuery(''); setFlightLookupDate(''); setFlightLookupError(''); setFlightLegs(null); setSelectedLegIdx(-1);
       setFlightForm({ crewMemberId:null, passengerName:'', flightNumber:'', airline:'', origin:'', destination:'', departTime:'', arriveTime:'', departDisplay:'', arriveDisplay:'', confirmation:'', isReturn:false, cost:'', status:'' });
     } catch(err) { alert(err.message); }
   }
@@ -623,7 +615,7 @@ export default function Travel({ project }) {
 
                 {/* Flight lookup row */}
                 <div className="field span2">
-                  <label>Flight Number + Date <span style={{ color:'var(--muted)', fontSize:10 }}>— auto-fills route, times & status. Origin is optional: set it to find a later leg of the same number (e.g. the BWI leg of a through-flight).</span></label>
+                  <label>Flight Number + Date <span style={{ color:'var(--muted)', fontSize:10 }}>— auto-fills route, times & status; multi-leg flights show a leg picker</span></label>
                   <div style={{ display:'flex', gap:6 }}>
                     <input
                       value={flightLookupQuery}
@@ -637,14 +629,6 @@ export default function Travel({ project }) {
                       onChange={e => setFlightLookupDate(e.target.value)}
                       style={{ flex:1 }}
                     />
-                    <input
-                      value={flightLookupOrigin}
-                      onChange={e => setFlightLookupOrigin(e.target.value.toUpperCase())}
-                      placeholder="Origin"
-                      maxLength={3}
-                      title="Optional origin airport (IATA) — searches that airport's departures for this number, catching onward legs"
-                      style={{ width:74, flexShrink:0, textTransform:'uppercase' }}
-                    />
                     <button
                       type="button"
                       className="btn btn-ghost btn-sm"
@@ -656,7 +640,6 @@ export default function Travel({ project }) {
                     </button>
                   </div>
                   {flightLookupError && <div style={{ fontSize:11, color:'var(--red-text, #e08080)', marginTop:3 }}>{flightLookupError}</div>}
-                  {originScanNote && <div style={{ fontSize:10, color:'var(--amber-text, #e6c229)', marginTop:3 }}>{originScanNote}</div>}
                   {flightLegs && (
                     <div style={{ marginTop:6 }}>
                       <label style={{ fontSize:10, color: flightLegs.length > 1 && selectedLegIdx === -1 ? 'var(--orange)' : 'var(--muted)' }}>
