@@ -598,3 +598,11 @@ textarea { resize: vertical; min-height: 70px; }
 @media (max-width: 900px) {
   .ae-cols .ae-activity { order: -1; }
 }
+
+/* Hub controls: on phones keep the view toggle left and Start New Project right
+   on one row — shrink both instead of wrapping into stacked rows */
+@media (max-width: 700px) {
+  .hub-controls { flex-wrap: nowrap !important; gap: 8px !important; }
+  .hub-controls > div > button { font-size: 9.5px !important; padding: 8px 8px !important; letter-spacing: 0 !important; }
+  .hub-controls > button { font-size: 10px !important; padding: 7px 10px !important; letter-spacing: 0 !important; white-space: nowrap; flex-shrink: 0; }
+}

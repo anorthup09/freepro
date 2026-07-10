@@ -673,7 +673,7 @@ export default function Hub() {
               <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height:38, filter:'brightness(0) invert(1)', opacity:0.95, display:'inline-block' }} />
             </div>
             {!isCrew && !isFinance && (
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap', marginBottom:20 }}>
+              <div className="hub-controls" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap', marginBottom:20 }}>
                 <div style={{ display:'inline-flex', border:'1px solid var(--border)', borderRadius:20, overflow:'hidden' }}>
                   {[['projects', 'Project View'], ['ops', 'Operations View']].map(([k, label]) => (
                     <button key={k} onClick={() => setHubMode(k)}
