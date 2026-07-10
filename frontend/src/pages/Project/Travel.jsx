@@ -85,8 +85,8 @@ export default function Travel({ project }) {
   const [flightLookupDate, setFlightLookupDate] = useState('');
   const [flightLooking, setFlightLooking] = useState(false);
   const [flightLookupError, setFlightLookupError] = useState('');
-  const [flightLegs, setFlightLegs] = useState(null); // >1 leg that day → pick one
-  const [legNote, setLegNote] = useState('');         // what the lookup found (visibility)
+  const [flightLegs, setFlightLegs] = useState(null); // all legs the number flies that day
+  const [selectedLegIdx, setSelectedLegIdx] = useState(-1);
   const [flightForm, setFlightForm] = useState({ crewMemberId:null, passengerName:'', flightNumber:'', airline:'', origin:'', destination:'', departTime:'', arriveTime:'', departDisplay:'', arriveDisplay:'', confirmation:'', isReturn:false, cost:'', status:'' });
 
   // Edit modals
@@ -184,8 +184,8 @@ export default function Travel({ project }) {
   }
 
   // ── Flight lookup ──────────────────────────────────────────────────────────
-  // A flight number can fly several legs in one day; when it does, the legs pop
-  // out and the user picks which one goes on the schedule.
+  // A flight number can fly several legs in one day. Every lookup fills a legs
+  // dropdown under the number/date row; picking a leg applies it to the form.
   function applyLeg(leg) {
     setFlightForm(f => ({
       ...f,
@@ -199,22 +199,16 @@ export default function Travel({ project }) {
       arriveDisplay: leg.arriveDisplay || '',
       status: leg.status || '',
     }));
-    setFlightLegs(null);
   }
+  const legLabel = leg => `${leg.origin || '?'} → ${leg.destination || '?'}${leg.departDisplay ? ` · ${leg.departDisplay}` : ''}${leg.arriveDisplay ? ` – ${leg.arriveDisplay}` : ''}`;
   async function lookupFlight() {
     if (!flightLookupQuery) return;
-    setFlightLooking(true); setFlightLookupError(''); setFlightLegs(null); setLegNote('');
+    setFlightLooking(true); setFlightLookupError(''); setFlightLegs(null); setSelectedLegIdx(-1);
     try {
       const data = await api.flightLookup(flightLookupQuery, flightLookupDate);
-      const legs = Array.isArray(data.legs) ? data.legs : [data];
-      if (legs.length > 1) {
-        setFlightLegs(legs);   // pop out the day's legs to pick from
-        setLegNote('');
-      } else {
-        const leg = legs[0] || data;
-        applyLeg(leg);
-        setLegNote(`1 leg found that day: ${leg.origin || '?'} → ${leg.destination || '?'} — applied. Multi-leg numbers pop out a picker here.`);
-      }
+      const legs = Array.isArray(data.legs) && data.legs.length ? data.legs : [data];
+      setFlightLegs(legs);
+      if (legs.length === 1) { setSelectedLegIdx(0); applyLeg(legs[0]); }
     } catch(err) {
       setFlightLookupError(err.message || 'Flight not found');
     }
@@ -237,7 +231,7 @@ export default function Travel({ project }) {
       });
       setFlights(prev => [...prev, f]);
       setShowFlight(false);
-      setFlightLookupQuery(''); setFlightLookupDate(''); setFlightLookupError(''); setFlightLegs(null);
+      setFlightLookupQuery(''); setFlightLookupDate(''); setFlightLookupError(''); setFlightLegs(null); setSelectedLegIdx(-1);
       setFlightForm({ crewMemberId:null, passengerName:'', flightNumber:'', airline:'', origin:'', destination:'', departTime:'', arriveTime:'', departDisplay:'', arriveDisplay:'', confirmation:'', isReturn:false, cost:'', status:'' });
     } catch(err) { alert(err.message); }
   }
@@ -646,30 +640,21 @@ export default function Travel({ project }) {
                     </button>
                   </div>
                   {flightLookupError && <div style={{ fontSize:11, color:'var(--red-text, #e08080)', marginTop:3 }}>{flightLookupError}</div>}
-                  {legNote && !flightLegs && <div style={{ fontSize:10, color:'var(--muted)', marginTop:3 }}>{legNote}</div>}
-                  {flightForm.status && !flightLegs && <div style={{ fontSize:11, fontWeight:600, color: statusColor(flightForm.status), marginTop:3 }}>{flightForm.status}</div>}
                   {flightLegs && (
-                    <div style={{ marginTop:8, border:'1px solid var(--orange)', borderRadius:8, overflow:'hidden' }}>
-                      <div style={{ padding:'6px 12px', background:'rgba(232,80,10,0.12)', fontSize:11, fontWeight:800, color:'var(--orange)' }}>
-                        {flightLegs[0]?.flightNumber || flightLookupQuery.toUpperCase()} flies {flightLegs.length} legs that day — pick the one for this schedule:
-                      </div>
-                      {flightLegs.map((leg, i) => (
-                        <div key={i} onClick={() => applyLeg(leg)}
-                          style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 12px', borderTop:'1px solid var(--border)', cursor:'pointer' }}
-                          onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
-                          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                          <span style={{ fontSize:13, fontWeight:800, whiteSpace:'nowrap' }}>{leg.origin || '?'} → {leg.destination || '?'}</span>
-                          <span style={{ fontSize:11, color:'var(--muted)', flex:1, minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                            {leg.departDisplay || '—'} → {leg.arriveDisplay || '—'}
-                          </span>
-                          <button type="button" onClick={e => { e.stopPropagation(); applyLeg(leg); }}
-                            style={{ background:'rgba(232,80,10,0.14)', border:'1px solid var(--orange)', color:'var(--orange)', borderRadius:10, padding:'2px 12px', fontSize:10, fontWeight:800, cursor:'pointer', flexShrink:0 }}>
-                            Use this leg
-                          </button>
-                        </div>
-                      ))}
+                    <div style={{ marginTop:6 }}>
+                      <label style={{ fontSize:10, color: flightLegs.length > 1 && selectedLegIdx === -1 ? 'var(--orange)' : 'var(--muted)' }}>
+                        {flightLegs.length > 1
+                          ? `This flight flies ${flightLegs.length} legs that day — select the leg for this schedule:`
+                          : 'Flight leg'}
+                      </label>
+                      <select value={selectedLegIdx} style={{ marginTop:2 }}
+                        onChange={e => { const i = Number(e.target.value); setSelectedLegIdx(i); if (flightLegs[i]) applyLeg(flightLegs[i]); }}>
+                        {selectedLegIdx === -1 && <option value={-1}>— Select a leg —</option>}
+                        {flightLegs.map((leg, i) => <option key={i} value={i}>{legLabel(leg)}</option>)}
+                      </select>
                     </div>
                   )}
+                  {flightForm.status && <div style={{ fontSize:11, fontWeight:600, color: statusColor(flightForm.status), marginTop:3 }}>{flightForm.status}</div>}
                 </div>
 
                 {/* Crew member */}
