@@ -338,7 +338,7 @@ export default function Overview({ project, setProject, onTabChange }) {
           )}
           <div className="ov-head-btns" style={{ display:'flex', alignItems:'center', gap:8 }}>
             <StatusSelect project={project} setProject={setProject} />
-            <button className="btn btn-ghost btn-sm" onClick={() => setEditInfo(true)}>Edit Info</button>
+            <button className="btn btn-ghost btn-sm" onClick={() => setEditInfo(true)}>Edit Shoot Info</button>
           </div>
         </div>
       </div>
@@ -496,7 +496,7 @@ export default function Overview({ project, setProject, onTabChange }) {
       {editInfo && (
         <div className="modal-bg" onClick={e => e.target === e.currentTarget && setEditInfo(false)}>
           <div className="modal">
-            <div className="modal-title">Edit Project Info</div>
+            <div className="modal-title">Edit Shoot Info</div>
             <form onSubmit={saveInfo}>
               <div className="form-grid" style={{ marginBottom:12 }}>
                 <div className="field"><label>Project Code</label><input value={info.code} disabled style={{ opacity:0.55, cursor:'not-allowed' }} /></div>
