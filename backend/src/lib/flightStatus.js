@@ -38,7 +38,7 @@ async function refreshFlightStatuses(projectId) {
   for (const f of flights) {
     try {
       const date = new Date(f.depart_time).toISOString().slice(0, 10);
-      const url = `https://aerodatabox.p.rapidapi.com/flights/number/${encodeURIComponent(f.flight_number.toUpperCase().replace(/\s+/g, ''))}/${date}`;
+      const url = `https://aerodatabox.p.rapidapi.com/flights/number/${encodeURIComponent(f.flight_number.toUpperCase().replace(/\s+/g, ''))}/${date}?dateLocalRole=Both`;
       const r = await fetchJson(url, { 'X-RapidAPI-Key': key, 'X-RapidAPI-Host': 'aerodatabox.p.rapidapi.com' });
       // Multi-leg flight numbers: match the saved leg by its origin airport
       const arr = (Array.isArray(r.data) ? r.data : [r.data]).filter(Boolean);

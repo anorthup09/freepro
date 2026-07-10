@@ -122,7 +122,7 @@ router.get('/flight-lookup', requireAuth, async (req, res, next) => {
     if (!key) return res.status(503).json({ error: 'AERODATABOX_API_KEY not configured' });
 
     const targetDate = date || bizToday();
-    const url = `https://aerodatabox.p.rapidapi.com/flights/number/${encodeURIComponent(flight.toUpperCase())}/${targetDate}`;
+    const url = `https://aerodatabox.p.rapidapi.com/flights/number/${encodeURIComponent(flight.toUpperCase())}/${targetDate}?dateLocalRole=Both`;
     const r = await fetchJson(url, aeroHeaders(key));
 
     if (r.status === 404) return res.status(404).json({ error: `Flight ${flight.toUpperCase()} not found on ${targetDate}. Try entering details manually.` });
@@ -169,7 +169,7 @@ router.get('/flight-status', requireAuth, async (req, res, next) => {
     if (!key) return res.status(503).json({ error: 'AERODATABOX_API_KEY not configured' });
 
     const targetDate = date || bizToday();
-    const url = `https://aerodatabox.p.rapidapi.com/flights/number/${encodeURIComponent(flight.toUpperCase())}/${targetDate}`;
+    const url = `https://aerodatabox.p.rapidapi.com/flights/number/${encodeURIComponent(flight.toUpperCase())}/${targetDate}?dateLocalRole=Both`;
     const r = await fetchJson(url, aeroHeaders(key));
     if (!r.ok) return res.status(r.status || 502).json({ error: 'lookup failed' });
 
