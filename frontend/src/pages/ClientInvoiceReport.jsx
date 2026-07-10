@@ -66,7 +66,7 @@ export default function ClientInvoiceReport() {
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, minWidth: 760 + maxExtras * 150 }}>
         <thead>
           <tr>
-            <th style={{ ...th, width: 26 }} />
+            <th style={{ ...th, width: 64 }} />
             <th style={th}>Project Code</th>
             <th style={th}>Project Name</th>
             <th style={thR}>First Invoice</th>
@@ -79,9 +79,12 @@ export default function ClientInvoiceReport() {
         <tbody>
           {list.map(r => (
             <tr key={r.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-              <td style={{ padding: '8px 0 8px 10px', width: 26 }}>
-                <span title={r.budget_status} style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%',
-                  background: STATUS_DOT[r.budget_status] || 'var(--muted)', boxShadow: `0 0 6px ${STATUS_DOT[r.budget_status] || '#666'}66` }} />
+              <td style={{ padding: '8px 0 8px 10px', width: 64 }}>
+                <span title={r.budget_status} style={{ display: 'inline-block', fontSize: 9, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em',
+                  color: STATUS_DOT[r.budget_status] || 'var(--muted)', border: `1px solid ${STATUS_DOT[r.budget_status] || 'var(--muted)'}`,
+                  borderRadius: 10, padding: '2px 9px' }}>
+                  {r.budget_status === 'Live' ? 'Live' : 'Closed'}
+                </span>
               </td>
               <td style={{ padding: 8, whiteSpace: 'nowrap', fontWeight: 700 }}>{r.code}</td>
               <td style={{ padding: 8, minWidth: 160 }}>{r.title}</td>
@@ -133,25 +136,15 @@ export default function ClientInvoiceReport() {
           <div className="empty" style={{ marginTop: 20 }}>No live or closed projects with a {year} close month.</div>
         )}
 
-        {[['Live', r => r.budget_status === 'Live', '#5ABF80'],
-           ['Closed', r => r.budget_status !== 'Live', '#8a8f98']].map(([label, pred, color]) => {
-          const set = inYear.filter(pred);
-          if (!set.length) return null;
-          const setMonths = [...new Set(set.map(r => r.close_month))].sort();
+        {months.map(m => {
+          const set = inYear.filter(r => r.close_month === m);
+          const ordered = [...set.filter(r => r.budget_status === 'Live'), ...set.filter(r => r.budget_status !== 'Live')];
           return (
-            <div key={label} style={{ marginTop: 26 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                <span style={{ width: 10, height: 10, borderRadius: '50%', background: color, boxShadow: `0 0 6px ${color}66` }} />
-                <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.04em' }}>{label}</span>
+            <div key={m} style={{ marginTop: 22 }}>
+              <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#5ABF80', marginBottom: 8 }}>
+                {closeMonthLabel(m)}
               </div>
-              {setMonths.map(m => (
-                <div key={m} style={{ marginTop: 12 }}>
-                  <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#5ABF80', marginBottom: 8 }}>
-                    {closeMonthLabel(m)}
-                  </div>
-                  {table(set.filter(r => r.close_month === m))}
-                </div>
-              ))}
+              {table(ordered)}
             </div>
           );
         })}
