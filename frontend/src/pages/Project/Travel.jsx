@@ -83,6 +83,7 @@ export default function Travel({ project }) {
   const [showFlight, setShowFlight] = useState(false);
   const [flightLookupQuery, setFlightLookupQuery] = useState('');
   const [flightLookupDate, setFlightLookupDate] = useState('');
+  const [flightLookupOrigin, setFlightLookupOrigin] = useState(''); // optional — finds onward legs the number search misses
   const [flightLooking, setFlightLooking] = useState(false);
   const [flightLookupError, setFlightLookupError] = useState('');
   const [flightLegs, setFlightLegs] = useState(null); // all legs the number flies that day
@@ -205,7 +206,7 @@ export default function Travel({ project }) {
     if (!flightLookupQuery) return;
     setFlightLooking(true); setFlightLookupError(''); setFlightLegs(null); setSelectedLegIdx(-1);
     try {
-      const data = await api.flightLookup(flightLookupQuery, flightLookupDate);
+      const data = await api.flightLookup(flightLookupQuery, flightLookupDate, flightLookupOrigin.trim());
       const legs = Array.isArray(data.legs) && data.legs.length ? data.legs : [data];
       setFlightLegs(legs);
       if (legs.length === 1) { setSelectedLegIdx(0); applyLeg(legs[0]); }
@@ -231,7 +232,7 @@ export default function Travel({ project }) {
       });
       setFlights(prev => [...prev, f]);
       setShowFlight(false);
-      setFlightLookupQuery(''); setFlightLookupDate(''); setFlightLookupError(''); setFlightLegs(null); setSelectedLegIdx(-1);
+      setFlightLookupQuery(''); setFlightLookupDate(''); setFlightLookupOrigin(''); setFlightLookupError(''); setFlightLegs(null); setSelectedLegIdx(-1);
       setFlightForm({ crewMemberId:null, passengerName:'', flightNumber:'', airline:'', origin:'', destination:'', departTime:'', arriveTime:'', departDisplay:'', arriveDisplay:'', confirmation:'', isReturn:false, cost:'', status:'' });
     } catch(err) { alert(err.message); }
   }
@@ -615,7 +616,7 @@ export default function Travel({ project }) {
 
                 {/* Flight lookup row */}
                 <div className="field span2">
-                  <label>Flight Number + Date <span style={{ color:'var(--muted)', fontSize:10 }}>— auto-fills route, times & status</span></label>
+                  <label>Flight Number + Date <span style={{ color:'var(--muted)', fontSize:10 }}>— auto-fills route, times & status. Origin is optional: set it to find a later leg of the same number (e.g. the BWI leg of a through-flight).</span></label>
                   <div style={{ display:'flex', gap:6 }}>
                     <input
                       value={flightLookupQuery}
@@ -628,6 +629,14 @@ export default function Travel({ project }) {
                       value={flightLookupDate}
                       onChange={e => setFlightLookupDate(e.target.value)}
                       style={{ flex:1 }}
+                    />
+                    <input
+                      value={flightLookupOrigin}
+                      onChange={e => setFlightLookupOrigin(e.target.value.toUpperCase())}
+                      placeholder="Origin"
+                      maxLength={3}
+                      title="Optional origin airport (IATA) — searches that airport's departures for this number, catching onward legs"
+                      style={{ width:74, flexShrink:0, textTransform:'uppercase' }}
                     />
                     <button
                       type="button"

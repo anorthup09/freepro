@@ -123,7 +123,7 @@ function icaoForm(flight) {
 
 router.get('/flight-lookup', requireAuth, async (req, res, next) => {
   try {
-    const { flight, date } = req.query;
+    const { flight, date, origin } = req.query;
     if (!flight) return res.status(400).json({ error: 'flight number required' });
 
     const key = process.env.AERODATABOX_API_KEY;
@@ -151,10 +151,39 @@ router.get('/flight-lookup', requireAuth, async (req, res, next) => {
       } catch { /* alt lookup is best-effort */ }
     }
 
+    // Onward legs of through-flights often aren't returned by the number
+    // endpoint at all. When the user supplies an origin airport and no returned
+    // leg departs from it, scan that airport's departure board for the number.
+    const originIata = String(origin || '').trim().toUpperCase();
+    const hasOriginLeg = originIata && arr.some(x => (x.departure?.airport?.iata || '').toUpperCase() === originIata);
+    if (originIata && !hasOriginLeg) {
+      const wanted = new Set([flight.toUpperCase().replace(/\s+/g, ''), alt].filter(Boolean));
+      const matchesNumber = n => wanted.has(String(n || '').toUpperCase().replace(/\s+/g, ''));
+      for (const [from, to] of [[`${targetDate}T00:00`, `${targetDate}T11:59`], [`${targetDate}T12:00`, `${targetDate}T23:59`]]) {
+        try {
+          const url = `https://aerodatabox.p.rapidapi.com/flights/airports/iata/${originIata}/${from}/${to}?direction=Departure&withLeg=true&withCancelled=true&withCodeshared=true&withCargo=false&withPrivate=false`;
+          const r2 = await fetchJson(url, aeroHeaders(key));
+          const deps = r2.ok ? (r2.data?.departures || []) : [];
+          for (const d2 of deps) {
+            if (!matchesNumber(d2.number) && !(d2.codeshareStatus === 'IsOperator' && matchesNumber(d2.callSign))) continue;
+            // FIDS shape → number-endpoint shape: movement is the counterpart
+            // airport; scheduledTime is the departure at the queried airport
+            arr.push({
+              number: d2.number || flight.toUpperCase(),
+              airline: d2.airline,
+              departure: { airport: { iata: originIata }, scheduledTime: d2.movement?.scheduledTime || null },
+              arrival: { airport: d2.movement?.airport || {}, scheduledTime: null },
+              status: d2.status || '',
+            });
+          }
+        } catch { /* board scan is best-effort */ }
+      }
+    }
+
     if (!arr.length) {
       if (primary.r.status === 404) return res.status(404).json({ error: `Flight ${flight.toUpperCase()} not found on ${targetDate}. Try entering details manually.` });
       if (!primary.r.ok) return res.status(primary.r.status || 502).json({ error: primary.r.data?.message || 'AeroDataBox error' });
-      return res.status(404).json({ error: `No data found for ${flight.toUpperCase()} on ${targetDate}.` });
+      return res.status(404).json({ error: `No data found for ${flight.toUpperCase()} on ${targetDate}${originIata ? ` departing ${originIata}` : ''}.` });
     }
 
     const legs = arr.map(f => {
