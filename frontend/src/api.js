@@ -241,6 +241,8 @@ export const api = {
   createEstimate: (pid, label) => req('POST', `/finance/${pid}/estimates`, { label }),
   deleteEstimate: (eid) => req('DELETE', `/finance/estimates/${eid}`),
   mergeEstimate: (eid) => req('POST', `/finance/estimates/${eid}/merge`),
+  addTentativeEstimate: (eid) => req('POST', `/finance/estimates/${eid}/tentative`),
+  removeTentativeEstimate: (eid) => req('DELETE', `/finance/estimates/${eid}/tentative`),
 
   // Schedule
   getSchedule: (projectId) => req('GET', `/projects/${projectId}/schedule`),

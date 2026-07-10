@@ -386,12 +386,51 @@ router.delete('/finance/estimates/:eid', ...finance, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 // Fold an approved estimate into the main budget
+// Tentative estimate: copy the estimate's sections into the main budget,
+// outlined yellow and removable — the estimate itself stays open.
+router.post('/finance/estimates/:eid/tentative', ...finance, async (req, res, next) => {
+  try {
+    const [est] = await sql`SELECT * FROM budgets WHERE id = ${req.params.eid} AND kind = 'estimate'`;
+    if (!est) return res.status(404).json({ error: 'Estimate not found' });
+    const [main] = await sql`SELECT * FROM budgets WHERE project_id = ${est.project_id} AND COALESCE(kind, 'main') = 'main'`;
+    if (!main) return res.status(400).json({ error: 'Create the main budget first' });
+    const [already] = await sql`SELECT id FROM budget_sections WHERE budget_id = ${main.id} AND estimate_ref = ${est.id}`;
+    if (already) return res.json({ ok: true, existing: true });
+    const secs = await sql`SELECT * FROM budget_sections WHERE budget_id = ${est.id} ORDER BY sort`;
+    const [{ max }] = await sql`SELECT COALESCE(MAX(sort), -1) as max FROM budget_sections WHERE budget_id = ${main.id}`;
+    let sort = Number(max) + 1;
+    for (const sec of secs) {
+      const [ns] = await sql`
+        INSERT INTO budget_sections (id, budget_id, title, subtitle, kind, sort, estimate_ref)
+        VALUES (gen_random_uuid()::text, ${main.id}, ${(est.label ? est.label + ' — ' : '') + sec.title}, ${sec.subtitle || null}, ${sec.kind || 'general'}, ${sort++}, ${est.id})
+        RETURNING id`;
+      const lines = await sql`SELECT * FROM budget_lines WHERE section_id = ${sec.id} ORDER BY sort`;
+      const nsId = ns.id;
+      for (const l of lines) {
+        await sql`
+          INSERT INTO budget_lines (id, budget_id, section_id, scope, notes, qty, unit_cost, percent, is_travel, sort)
+          VALUES (gen_random_uuid()::text, ${main.id}, ${nsId}, ${l.scope}, ${l.notes}, ${l.qty}, ${l.unit_cost}, ${l.percent}, ${l.is_travel}, ${l.sort})`;
+      }
+    }
+    res.json({ ok: true, added: secs.length });
+  } catch (e) { next(e); }
+});
+router.delete('/finance/estimates/:eid/tentative', ...finance, async (req, res, next) => {
+  try {
+    const [est] = await sql`SELECT project_id FROM budgets WHERE id = ${req.params.eid}`;
+    const r = await sql`DELETE FROM budget_sections WHERE estimate_ref = ${req.params.eid} RETURNING id`;
+    res.json({ ok: true, removed: r.length });
+  } catch (e) { next(e); }
+});
+
 router.post('/finance/estimates/:eid/merge', ...finance, async (req, res, next) => {
   try {
     const [est] = await sql`SELECT * FROM budgets WHERE id = ${req.params.eid} AND kind = 'estimate'`;
     if (!est) return res.status(404).json({ error: 'Estimate not found' });
     const [main] = await sql`SELECT * FROM budgets WHERE project_id = ${est.project_id} AND COALESCE(kind, 'main') = 'main'`;
     if (!main) return res.status(400).json({ error: 'Create the main budget first' });
+    // a tentative copy of this estimate must not double up with the real merge
+    await sql`DELETE FROM budget_sections WHERE budget_id = ${main.id} AND estimate_ref = ${est.id}`;
     const secs = await sql`SELECT * FROM budget_sections WHERE budget_id = ${est.id} ORDER BY sort`;
     const [{ max }] = await sql`SELECT COALESCE(MAX(sort), -1) as max FROM budget_sections WHERE budget_id = ${main.id}`;
     let sort = Number(max) + 1;

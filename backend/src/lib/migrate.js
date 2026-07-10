@@ -1301,6 +1301,7 @@ async function migrate() {
     )`;
 
   await sql`ALTER TABLE feedback_items ADD COLUMN IF NOT EXISTS attachment TEXT`;
+  await sql`ALTER TABLE budget_sections ADD COLUMN IF NOT EXISTS estimate_ref TEXT`;
 
   // Client roster — canonical client names, selected from budgets
   await sql`

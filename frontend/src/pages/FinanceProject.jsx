@@ -443,7 +443,19 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
           }
         }
         return (
-          <div key={sec.id} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, marginBottom:14, overflow:'hidden' }}>
+          <div key={sec.id} style={{ background:'var(--bg2)', border: sec.estimate_ref ? '1px solid #e6c229' : '1px solid var(--border)', boxShadow: sec.estimate_ref ? '0 0 10px rgba(230,194,41,0.25)' : 'none', borderRadius:10, marginBottom:14, overflow:'hidden' }}>
+            {sec.estimate_ref && (
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, padding:'6px 14px', background:'rgba(230,194,41,0.08)', borderBottom:'1px solid rgba(230,194,41,0.4)' }}>
+                <span style={{ fontSize:10, fontWeight:800, color:'#e6c229', textTransform:'uppercase', letterSpacing:'0.06em' }}>Pending Estimate — counts toward the budget until removed</span>
+                <button onClick={async () => {
+                    if (!confirm('Remove this estimate from the budget? The estimate itself stays in Estimate Mode.')) return;
+                    try { await api.removeTentativeEstimate(sec.estimate_ref); reload && reload(); } catch (e2) { alert(e2.message); }
+                  }}
+                  style={{ background:'rgba(230,194,41,0.15)', border:'1px solid #e6c229', color:'#e6c229', borderRadius:14, padding:'3px 12px', fontSize:10, fontWeight:800, cursor:'pointer', whiteSpace:'nowrap' }}>
+                  Remove from Budget
+                </button>
+              </div>
+            )}
             <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', borderBottom:'1px solid var(--border)', flexWrap:'wrap' }}>
               <div style={{ flex:1, minWidth:0 }}>
                 <input value={sec.title} style={{ ...cellIn, fontWeight:700, fontSize:13, textTransform:'uppercase', letterSpacing:'0.04em', color:'#5ABF80' }}
@@ -1712,9 +1724,19 @@ function EstimatePane({ est, feeRate, saveFeeAll, reload, onMerged, onData }) {
           style={{ fontSize:18, fontWeight:800, background:'transparent', border:'1px solid transparent', borderRadius:6, padding:'4px 8px', color:YEL, width:280 }} />
         <div style={{ marginLeft:'auto', display:'flex', flexDirection:'column', alignItems:'flex-end', gap:6 }}>
           <div style={{ display:'flex', gap:8 }}>
+            <button disabled={busy} title="Drop a removable, yellow-outlined copy of this estimate into the budget while it's pending"
+              onClick={async () => {
+                setBusy(true);
+                try { await api.addTentativeEstimate(est.id); await reload(); alert(`"${label}" added to the budget as a pending (yellow) section — remove it from the budget tile any time.`); }
+                catch (e) { alert(e.message); }
+                setBusy(false);
+              }}
+              style={{ background:'rgba(230,194,41,0.15)', border:'1px solid ' + YEL, color:YEL, borderRadius:20, padding:'5px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
+              Add Estimate
+            </button>
             <button disabled={busy} onClick={merge}
               style={{ background:'rgba(90,191,128,0.15)', border:'1px solid #5ABF80', color:'#5ABF80', borderRadius:20, padding:'5px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
-              ✓ Move into Approved Budget
+              ✓ Approved: Add to Budget
             </button>
             <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text, #e08080)' }} disabled={busy} onClick={remove}>Delete Estimate</button>
           </div>
