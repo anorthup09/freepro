@@ -40,26 +40,23 @@ export default function ProducerChecklist({ project }) {
 
   return (
     <div style={{ padding: '4px 2px 30px' }}>
-      {/* Four selector boxes, one per document tab */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 12, marginBottom: 22 }}>
+      {/* Four small selector buttons, one per document tab */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 22 }}>
         {PRODUCER_CHECKLISTS.map((l, i) => {
           const { total, done } = progressFor(l);
           const on = l.key === active;
           const color = CARD_COLORS[i];
           return (
             <button key={l.key} onClick={() => setActive(l.key)}
+              title={`${l.title} — ${done}/${total} done`}
               style={{
-                textAlign: 'left', cursor: 'pointer', borderRadius: 12, padding: '14px 16px',
-                background: on ? `${color}1e` : 'var(--bg2)',
+                cursor: 'pointer', borderRadius: 16, padding: '6px 14px', background: '#0b0b0b',
                 border: `1px solid ${on ? color : 'var(--border)'}`,
-                borderTop: `3px solid ${color}`,
+                color: on ? color : 'var(--muted)', fontSize: 11, fontWeight: 800, whiteSpace: 'nowrap',
+                display: 'inline-flex', alignItems: 'center', gap: 7,
               }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: on ? color : 'var(--text)' }}>{l.label}</div>
-              <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 4, lineHeight: 1.3 }}>{l.title}</div>
-              <div style={{ marginTop: 10, height: 5, borderRadius: 3, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
-                <div style={{ width: total ? `${Math.round((done / total) * 100)}%` : '0%', height: '100%', background: color }} />
-              </div>
-              <div style={{ fontSize: 9, color: 'var(--muted)', marginTop: 4 }}>{done} / {total} done</div>
+              {l.label}
+              <span style={{ fontSize: 9, fontWeight: 700, color: on ? color : 'var(--muted)', opacity: 0.8 }}>{done}/{total}</span>
             </button>
           );
         })}
