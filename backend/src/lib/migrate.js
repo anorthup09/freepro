@@ -1447,6 +1447,9 @@ async function migrate() {
   await sql`ALTER TABLE budgets ADD COLUMN IF NOT EXISTS client_contact JSONB`;
   await sql`ALTER TABLE budgets ADD COLUMN IF NOT EXISTS est_final_delivery DATE`;
 
+  // Unbridled Solutions toggle — reveals Solutions-specific fields when on
+  await sql`ALTER TABLE budgets ADD COLUMN IF NOT EXISTS unbridled_solutions BOOLEAN DEFAULT FALSE`;
+
   // One-time ClickUp PTO/OOO import (idempotent)
   try { await require('./seedPto')(); } catch (e) { console.error('PTO seed failed:', e.message); }
 

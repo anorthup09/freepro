@@ -468,7 +468,7 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
       <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding:'12px 16px', marginBottom:16, display:'flex', gap:16, flexWrap:'wrap', alignItems:'flex-end' }}>
         {[
           ['Budget Dated', 'budget_date', 'budgetDate', 'date'],
-          ['Solutions Code', 'solutions_code', 'solutionsCode', 'text'],
+          ...(budget.unbridled_solutions ? [['Solutions Code', 'solutions_code', 'solutionsCode', 'text']] : []),
         ].map(([label, key, apiKey, type]) => (
           <div key={key} style={{ display:'flex', flexDirection:'column', gap:3 }}>
             <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>{label}</label>
@@ -509,6 +509,13 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
         </div>
         <div style={{ marginLeft:'auto', display:'flex', flexDirection:'column', alignItems:'flex-end', gap:8 }}>
           <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+            <button onClick={() => { const on = !budget.unbridled_solutions; patchBudget({ unbridled_solutions: on }); saveBudget({ unbridledSolutions: on }); }}
+              title="Reveals Solutions-specific fields (Solutions Code, commissions) in the budget and Harbinger"
+              style={budget.unbridled_solutions
+                ? { background:'rgba(74,158,255,0.15)', border:'1px solid #4a9eff', color:'#4a9eff', borderRadius:14, padding:'3px 12px', fontSize:10, fontWeight:800, cursor:'pointer', whiteSpace:'nowrap' }
+                : { background:'none', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:14, padding:'3px 12px', fontSize:10, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap' }}>
+              Unbridled Solutions{budget.unbridled_solutions ? ' ✓' : ''}
+            </button>
             {(budget.status || 'RFP') === 'RFP' && (
               <button onClick={() => setHarbingerOpen(true)}
                 title="Fill out and submit the Harbinger kickoff — moves the budget to Live"
@@ -754,7 +761,7 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
         </div>
       </div>
       {harbingerOpen && (
-        <HarbingerModal pid={project.id} initial={harbingerPrefill()}
+        <HarbingerModal pid={project.id} solutionsOn={!!budget.unbridled_solutions} initial={harbingerPrefill()}
           onClose={() => setHarbingerOpen(false)}
           onSubmitted={() => { patchBudget({ status: 'Live' }); reload && reload(); }} />
       )}

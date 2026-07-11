@@ -127,7 +127,7 @@ export function HarbingerView({ harbinger, onClose }) {
 
 // Internal kickoff form ("Harbinger") — opens the project code with accounting.
 // Shown when a budget moves from RFP to Live. `initial` carries prefills.
-export default function HarbingerModal({ pid, initial, onClose, onSubmitted }) {
+export default function HarbingerModal({ pid, initial, onClose, onSubmitted, solutionsOn = false }) {
   const [f, setF] = useState({
     email: '', clientCompany: '', projectName: '', proposedCode: '', solutionsCode: '',
     sow: '', budgetSummary: '', clientContacts: '', contractSigned: false,
@@ -141,6 +141,7 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted }) {
     ...initial,
   });
   const [saving, setSaving] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);   // AI brief review before submit
   const set = k => e => setF(v => ({ ...v, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
   const setVal = (k, val) => setF(v => ({ ...v, [k]: val }));
 
@@ -320,7 +321,7 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted }) {
             </div>)}
           {row(text('Name of Project', 'projectName', true),
                text('Proposed Code', 'proposedCode', true))}
-          {text('Existing Solutions Code or Client Specific Code (If Applicable)', 'solutionsCode')}
+          {solutionsOn && text('Existing Solutions Code or Client Specific Code (If Applicable)', 'solutionsCode')}
           <div>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4 }}>
               <label style={{ ...lbl, marginBottom:0 }}>SOW & Project Description{req}</label>
@@ -366,7 +367,7 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted }) {
           {row(text('Media Commission Owner(s) (If applicable)', 'mediaCommissionOwners'),
                text('Budget Owner (Primary Contact at Unbridled Media)', 'budgetOwner', true))}
           {text('Media Commission % Breakdown', 'mediaCommissionPct')}
-          {row(text('Solutions Commission Owner(s) (If Applicable)', 'solutionsCommissionOwners'),
+          {solutionsOn && row(text('Solutions Commission Owner(s) (If Applicable)', 'solutionsCommissionOwners'),
                text('% for Solutions Commission(s)', 'solutionsCommissionPct'))}
           {check('No Commissions', 'noCommissions', 'check if there are no commissions')}
 
@@ -413,12 +414,43 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted }) {
 
           <div style={{ display:'flex', justifyContent:'flex-end', gap:8, marginTop:4 }}>
             <button className="btn btn-ghost btn-sm" onClick={onClose}>Cancel</button>
-            <button disabled={!ok || saving} onClick={submit}
+            <button disabled={!ok || saving} onClick={() => setReviewOpen(true)}
               style={{ background: ok ? '#5ABF80' : 'var(--border)', color:'#0b0b0b', border:'none', borderRadius:8, padding:'10px 22px', fontSize:13, fontWeight:800, cursor: ok ? 'pointer' : 'default', opacity: saving ? 0.6 : 1 }}>
               {saving ? 'Submitting…' : 'Submit Harbinger & Go Live'}
             </button>
           </div>
         </div>
+
+        {/* Last look at the AI-written brief before the Harbinger goes out */}
+        {reviewOpen && (
+          <div onClick={e => e.target === e.currentTarget && setReviewOpen(false)}
+            style={{ position:'fixed', inset:0, zIndex:150, background:'rgba(0,0,0,0.78)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+            <div style={{ width:'100%', maxWidth:560, maxHeight:'88vh', display:'flex', flexDirection:'column', background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid #5ABF80', borderRadius:12, padding:'18px 22px' }}>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4 }}>
+                <div style={{ fontSize:15, fontWeight:800 }}>Review the project brief</div>
+                <button className="btn btn-ghost btn-sm" onClick={() => setReviewOpen(false)}>✕</button>
+              </div>
+              <div style={{ fontSize:11, color:'var(--muted)', lineHeight:1.5, marginBottom:10 }}>
+                This SOW &amp; project description was drafted by AI from the budget allocations and goes out on the Harbinger report. Give it a last read — edit it right here or regenerate.
+              </div>
+              <textarea value={f.sow} onChange={set('sow')}
+                style={{ flex:1, minHeight:220, fontSize:13, lineHeight:1.55, resize:'vertical' }} />
+              <div style={{ display:'flex', justifyContent:'space-between', gap:8, marginTop:12 }}>
+                <button type="button" onClick={generateSow} disabled={sowLoading}
+                  style={{ background:'none', border:'1px solid #5ABF80', color:'#5ABF80', borderRadius:8, padding:'8px 14px', fontSize:12, fontWeight:800, cursor: sowLoading ? 'default' : 'pointer', opacity: sowLoading ? 0.6 : 1 }}>
+                  {sowLoading ? 'Generating…' : '✨ Regenerate'}
+                </button>
+                <div style={{ display:'flex', gap:8 }}>
+                  <button className="btn btn-ghost btn-sm" onClick={() => setReviewOpen(false)}>Back to form</button>
+                  <button disabled={!ok || saving || !f.sow.trim()} onClick={submit}
+                    style={{ background:'#5ABF80', color:'#0b0b0b', border:'none', borderRadius:8, padding:'8px 18px', fontSize:13, fontWeight:800, cursor:'pointer', opacity: saving ? 0.6 : 1 }}>
+                    {saving ? 'Submitting…' : 'Looks good — Submit'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
