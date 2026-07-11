@@ -121,7 +121,7 @@ export function FeedbackBoard({ variant = 'banner' }) {
         </div>
       ) : (
         <button onClick={toggle} className="no-print" title="Testing — leave feedback or a feature request"
-          style={{ position:'fixed', top:8, right:10, zIndex:125, background:'#e05252', border:'1px solid #ff6b6b', color:'#fff',
+          style={{ position:'fixed', top:58, left:26, zIndex:125, background:'#e05252', border:'1px solid #ff6b6b', color:'#fff',
             borderRadius:12, padding:'3px 12px', fontSize:10, fontWeight:900, letterSpacing:'0.03em', cursor:'pointer', boxShadow:'0 2px 10px rgba(224,82,82,0.45)', display:'flex', alignItems:'center', gap:6 }}>
           Feedback{openCount > 0 && <span style={{ background:'#fff', color:'#e05252', borderRadius:8, padding:'0 6px', fontSize:9, fontWeight:900 }}>{openCount}</span>}
         </button>
