@@ -542,7 +542,7 @@ function HubProjects() {
   const cs = cq.trim().toLowerCase();
   const shownClients = cs ? clients.filter(c => c.name.toLowerCase().includes(cs)) : clients;
   return (
-    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', border:'1px solid var(--border)', borderRadius:12, marginBottom:22, overflow:'hidden' }}>
+    <div className="hub-2col" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', border:'1px solid var(--border)', borderRadius:12, marginBottom:22, overflow:'hidden' }}>
       {/* Project Hub — aligns with Day in Review below */}
       <div style={{ padding:'16px 18px', borderRight:'1px solid var(--border)', minWidth:0 }}>
         <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:12 }}>

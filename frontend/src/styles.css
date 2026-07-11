@@ -355,7 +355,12 @@ textarea { resize: vertical; min-height: 70px; }
   .ov-quick-links > div { display: flex !important; width: 100%; gap: 8px; }
   .ov-quick-links > div .btn { flex: 1 1 0; text-align: center; justify-content: center; }
 
-  /* Overview: POC / Gear Contact rows wrap */
+  /* Overview: the contacts card scrolls sideways as one unit so the fixed
+     name/title/phone/email columns stay reachable on phones */
+  .ov-contacts-card { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
+  .ov-contacts-card .ov-poc-row { min-width: max-content; flex-wrap: nowrap; }
+  .ov-contacts-card .ov-poc-row > div { min-width: max-content; }
+  /* Other POC-style rows outside the contacts card still wrap */
   .ov-poc-row { flex-wrap: wrap; }
 
   /* Overview: stack Key Dates below Client/Agency Contacts */
@@ -668,4 +673,11 @@ textarea { resize: vertical; min-height: 70px; }
 /* Sign out sits clear of the fixed bottom docks on phones */
 @media (max-width: 700px) {
   .signout-footer { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 104px) !important; }
+}
+
+/* Hub on phones: Project Hub and Client Hub stack full-width instead of
+   squeezing side by side */
+@media (max-width: 700px) {
+  .hub-2col { grid-template-columns: 1fr !important; }
+  .hub-2col > div:first-child { border-right: none !important; border-bottom: 1px solid var(--border); }
 }

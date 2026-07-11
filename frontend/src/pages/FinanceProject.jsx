@@ -732,12 +732,16 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
 
       <div style={{ display:'flex', gap:10, marginBottom:18, alignItems:'center', flexWrap:'wrap' }}>
         <button className="btn btn-ghost btn-sm" onClick={() => addSection(true)}>+ Add Shoot Block</button>
-        <button className="btn btn-ghost btn-sm" onClick={() => addSection(false)}>+ Add Section</button>
-        <div style={{ marginLeft:8, display:'flex', alignItems:'center', gap:6 }}>
-          <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Mgmt Fee %</label>
-          <input type="number" step="0.5" value={Math.round(mgmtRate * 1000) / 10} style={{ width:80, fontSize:12, textAlign:'right' }}
-            onChange={e => patchBudget({ mgmt_fee_rate: Number(e.target.value) / 100 })}
-            onBlur={e => saveBudget({ mgmtFeeRate: Number(e.target.value) / 100 })} />
+        {/* Add Section + Mgmt Fee travel together so the fee stays to the
+            button's right when the row wraps on phones */}
+        <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'nowrap' }}>
+          <button className="btn btn-ghost btn-sm" onClick={() => addSection(false)}>+ Add Section</button>
+          <div style={{ marginLeft:8, display:'flex', alignItems:'center', gap:6 }}>
+            <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', whiteSpace:'nowrap' }}>Mgmt Fee %</label>
+            <input type="number" step="0.5" value={Math.round(mgmtRate * 1000) / 10} style={{ width:70, fontSize:12, textAlign:'right' }}
+              onChange={e => patchBudget({ mgmt_fee_rate: Number(e.target.value) / 100 })}
+              onBlur={e => saveBudget({ mgmtFeeRate: Number(e.target.value) / 100 })} />
+          </div>
         </div>
       </div>
 
