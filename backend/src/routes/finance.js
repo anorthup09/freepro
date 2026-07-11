@@ -921,6 +921,8 @@ router.post('/finance/sections/:sid/pull-travel-actuals', ...finance, async (req
 
 // ── Harbinger: internal kickoff form that opens the project with accounting ──
 const { sendMail, isConfigured: mailReady } = require('../lib/mailer');
+const { automation } = require('../lib/automations');
+const { harbingerHtml } = require('../lib/emailTemplates');
 
 router.get('/finance/:pid/harbinger', ...finance, async (req, res, next) => {
   try {
@@ -964,7 +966,8 @@ router.post('/finance/:pid/harbinger', ...finance, async (req, res, next) => {
       }
     } catch (e2) { console.error('Client contact save failed:', e2.message); }
 
-    const to = process.env.HARBINGER_EMAIL;
+    const harbCfg = await automation('harbinger');
+    const to = harbCfg?.to || process.env.HARBINGER_EMAIL;
     if (to) {
       const line = (label, v) => `${label}: ${v || '—'}`;
       const text = [
@@ -995,8 +998,14 @@ router.post('/finance/:pid/harbinger', ...finance, async (req, res, next) => {
         line('Estimated Final Delivery', d.finalDelivery), line('Estimated Close Month', d.closeMonth),
         '', 'Notes:', d.notes || '—',
       ].join('\n');
-      sendMail({ identity: 'accounting', to, cc: d.email || req.user?.email || undefined, subject: `Harbinger — ${project.code} ${project.title}`, text })
-        .catch(err => console.error('Harbinger email failed:', err.message));
+      const ccList = [harbCfg?.cc, d.email || req.user?.email].filter(Boolean).join(', ');
+      sendMail({
+        identity: 'info', fromAddr: harbCfg?.from || undefined,
+        to, cc: ccList || undefined,
+        subject: `HARBINGER ALERT: [${project.code}: ${project.title}]`,
+        text,
+        html: harbingerHtml({ project, d, appUrl: (process.env.FRONTEND_URL || 'https://freepro-production.up.railway.app') + '/finance/' + project.id }),
+      }).catch(err => console.error('Harbinger email failed:', err.message));
     }
     res.status(201).json(row);
   } catch (e) { next(e); }

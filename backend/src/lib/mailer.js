@@ -16,6 +16,7 @@ const nodemailer = require('nodemailer');
 //   MAIL_FROM_POST       — AvocadoPost approval emails
 //   MAIL_FROM_NOREPLY    — password resets
 const IDENTITIES = {
+  info:       { env: 'MAIL_FROM_INFO',       name: 'Unbridled Media', fallback: 'info@unbridledmedia.com' },
   accounting: { env: 'MAIL_FROM_ACCOUNTING', name: 'Unbridled Accounting' },
   production: { env: 'MAIL_FROM_PRODUCTION', name: 'Unbridled Production' },
   gear:       { env: 'MAIL_FROM_GEAR',       name: 'Unbridled Gear' },
@@ -30,7 +31,7 @@ function isConfigured() {
 
 function addrFor(identity) {
   const id = IDENTITIES[identity];
-  return (id && process.env[id.env]) || process.env.MAIL_FROM || process.env.SMTP_USER;
+  return (id && process.env[id.env]) || (id && id.fallback) || process.env.MAIL_FROM || process.env.SMTP_USER;
 }
 
 function fromFor(identity) {
@@ -51,13 +52,15 @@ function getTransporter() {
   return transporter;
 }
 
-async function sendMail({ to, cc, subject, text, html, icalEvent, identity }) {
+async function sendMail({ to, cc, subject, text, html, icalEvent, identity, fromAddr }) {
   if (!isConfigured()) {
     const err = new Error('Email is not configured. Set SMTP_HOST, SMTP_USER, and SMTP_PASS environment variables.');
     err.status = 501;
     throw err;
   }
-  return getTransporter().sendMail({ from: fromFor(identity), to, cc, subject, text, html, ...(icalEvent ? { icalEvent } : {}) });
+  const name = IDENTITIES[identity] ? IDENTITIES[identity].name : 'Unbridled Media';
+  const from = fromAddr ? `${name} <${fromAddr}>` : fromFor(identity);
+  return getTransporter().sendMail({ from, to, cc, subject, text, html, ...(icalEvent ? { icalEvent } : {}) });
 }
 
 module.exports = { sendMail, isConfigured, fromFor, addrFor };

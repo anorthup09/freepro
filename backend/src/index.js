@@ -143,6 +143,7 @@ app.use('/api/avo', require('./routes/avo'));
 app.use('/api', require('./routes/avo').publicRouter);
 app.use('/api', require('./routes/finance'));
 app.use('/api/clients', require('./routes/clients'));
+app.use('/api/mail', require('./routes/mail'));
 app.use('/api', require('./routes/overview'));
 app.use('/api/feedback', require('./routes/feedback'));
 

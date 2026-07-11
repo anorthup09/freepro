@@ -311,7 +311,7 @@ Questions? Reply to whoever sent you this.`;
   }
 
   return (
-    <div style={{ padding:'0 26px 22px', display:'flex', flexDirection:'column', alignItems:'center', gap:12 }}>
+    <>
       {open && (
         <div onClick={e => e.target === e.currentTarget && setOpen(false)}
           style={{ position:'fixed', inset:0, zIndex:120, background:'rgba(0,0,0,0.7)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
@@ -384,7 +384,132 @@ Questions? Reply to whoever sent you this.`;
             style={{ color:'#ff5c5c', fontWeight:800, marginLeft:6 }}>(!)</span>
         )} ▸
       </button>
-    </div>
+    </>
+  );
+}
+
+// Admin dashboard for the email automations: where each one comes from, who
+// it goes to, and a preview of what the email looks like.
+function Automations() {
+  const [open, setOpen] = useState(false);
+  const [data, setData] = useState(null);          // { configured, automations }
+  const [edits, setEdits] = useState({});           // key -> { from, to, cc }
+  const [savedKey, setSavedKey] = useState(null);
+  const [preview, setPreview] = useState(null);     // { title, kind, subject, html/text }
+
+  async function toggle() {
+    if (!open) {
+      try { setData(await api.mailAutomations()); } catch (e) { alert(e.message); return; }
+    }
+    setOpen(s => !s);
+  }
+
+  const val = (a, field) => (edits[a.key] && edits[a.key][field] !== undefined) ? edits[a.key][field] : (a[field] || '');
+  const setVal = (key, field, v) => setEdits(es => ({ ...es, [key]: { ...es[key], [field]: v } }));
+  const dirty = key => !!edits[key];
+
+  async function save(a) {
+    try {
+      await api.updateMailAutomation(a.key, { fromAddr: val(a, 'from'), toAddrs: val(a, 'to'), ccAddrs: val(a, 'cc') });
+      setData(await api.mailAutomations());
+      setEdits(es => { const n = { ...es }; delete n[a.key]; return n; });
+      setSavedKey(a.key); setTimeout(() => setSavedKey(k => k === a.key ? null : k), 2000);
+    } catch (e) { alert(e.message); }
+  }
+
+  async function showPreview(a) {
+    try { setPreview({ title: a.title, ...(await api.previewMailAutomation(a.key)) }); }
+    catch (e) { alert(e.message); }
+  }
+
+  const inputStyle = { width:'100%', background:'var(--bg)', border:'1px solid var(--border)', borderRadius:6, color:'var(--text)', fontSize:11, padding:'5px 8px' };
+
+  return (
+    <>
+      {open && (
+        <div onClick={e => e.target === e.currentTarget && setOpen(false)}
+          style={{ position:'fixed', inset:0, zIndex:120, background:'rgba(0,0,0,0.7)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+        <div onClick={e => e.stopPropagation()}
+          style={{ width:'100%', maxWidth:860, maxHeight:'85vh', display:'flex', flexDirection:'column', background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, overflow:'hidden' }}>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 18px', borderBottom:'1px solid var(--border)' }}>
+            <div style={{ fontSize:14, fontWeight:800 }}>Automations</div>
+            <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+              {data && !data.configured && (
+                <span style={{ fontSize:10, fontWeight:700, color:'#e8b04b', border:'1px solid rgba(232,176,75,0.5)', borderRadius:10, padding:'2px 9px' }}>
+                  ✉ Outlook not connected yet — these go live once SMTP is set
+                </span>
+              )}
+              <button className="btn btn-ghost btn-sm" onClick={() => setOpen(false)}>✕</button>
+            </div>
+          </div>
+          <div style={{ overflowY:'auto', padding:'6px 18px 16px' }}>
+            {(data?.automations || []).map(a => (
+              <div key={a.key} style={{ borderBottom:'1px solid var(--border)', padding:'12px 0', display:'grid', gridTemplateColumns:'190px 1fr auto', gap:12, alignItems:'start' }}>
+                <div>
+                  <div style={{ fontSize:12, fontWeight:800 }}>{a.title}</div>
+                  <div style={{ fontSize:10, color:'var(--muted)', lineHeight:1.45, marginTop:3 }}>{a.desc}</div>
+                </div>
+                <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                    <span style={{ fontSize:9, fontWeight:800, color:'var(--muted)', width:34, textAlign:'right', flexShrink:0 }}>FROM</span>
+                    <input style={inputStyle} value={val(a, 'from')} onChange={e => setVal(a.key, 'from', e.target.value)} />
+                  </div>
+                  <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                    <span style={{ fontSize:9, fontWeight:800, color:'var(--muted)', width:34, textAlign:'right', flexShrink:0 }}>TO</span>
+                    {a.editable === true
+                      ? <input style={inputStyle} value={val(a, 'to')} onChange={e => setVal(a.key, 'to', e.target.value)} placeholder="comma-separated emails" />
+                      : <span style={{ fontSize:11, color:'var(--text)', opacity:0.85 }}>{a.toDesc}</span>}
+                  </div>
+                  {a.editable === true && (
+                    <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                      <span style={{ fontSize:9, fontWeight:800, color:'var(--muted)', width:34, textAlign:'right', flexShrink:0 }}>CC</span>
+                      <input style={inputStyle} value={val(a, 'cc')} onChange={e => setVal(a.key, 'cc', e.target.value)} placeholder="comma-separated emails" />
+                    </div>
+                  )}
+                </div>
+                <div style={{ display:'flex', flexDirection:'column', gap:6, alignItems:'stretch' }}>
+                  <button onClick={() => showPreview(a)}
+                    style={{ background:'none', border:'1px solid var(--border)', borderRadius:6, color:'var(--muted)', fontSize:10, fontWeight:700, padding:'4px 12px', cursor:'pointer' }}>
+                    Preview
+                  </button>
+                  {(dirty(a.key) || savedKey === a.key) && (
+                    <button onClick={() => save(a)} disabled={savedKey === a.key}
+                      style={{ background: savedKey === a.key ? '#5ABF80' : 'rgba(90,191,128,0.14)', border:'1px solid #5ABF80', color: savedKey === a.key ? '#0b0b0b' : '#5ABF80', borderRadius:6, fontSize:10, fontWeight:800, padding:'4px 12px', cursor:'pointer' }}>
+                      {savedKey === a.key ? '✓ Saved' : 'Save'}
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        </div>
+      )}
+      {preview && (
+        <div onClick={e => e.target === e.currentTarget && setPreview(null)}
+          style={{ position:'fixed', inset:0, zIndex:130, background:'rgba(0,0,0,0.78)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+          <div style={{ width:'100%', maxWidth:680, maxHeight:'88vh', display:'flex', flexDirection:'column', background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, overflow:'hidden' }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 16px', borderBottom:'1px solid var(--border)' }}>
+              <div style={{ minWidth:0 }}>
+                <div style={{ fontSize:12, fontWeight:800 }}>{preview.title} — sample</div>
+                <div style={{ fontSize:10, color:'var(--muted)', marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>Subject: {preview.subject}</div>
+              </div>
+              <button className="btn btn-ghost btn-sm" onClick={() => setPreview(null)}>✕</button>
+            </div>
+            {preview.kind === 'html' ? (
+              <iframe title="Email preview" srcDoc={preview.html} sandbox=""
+                style={{ flex:1, minHeight:'62vh', width:'100%', border:'none', background:'#fff' }} />
+            ) : (
+              <pre style={{ margin:0, padding:'16px 18px', overflow:'auto', fontSize:12, lineHeight:1.55, color:'var(--text)', whiteSpace:'pre-wrap', fontFamily:'inherit' }}>{preview.text}</pre>
+            )}
+          </div>
+        </div>
+      )}
+      <button onClick={toggle}
+        style={{ background:'none', border:'1px solid var(--border)', borderRadius:14, padding:'4px 12px', color:'var(--muted)', fontSize:10, fontWeight:600, letterSpacing:'.05em', cursor:'pointer' }}>
+        Automations ▸
+      </button>
+    </>
   );
 }
 
@@ -816,7 +941,12 @@ export default function Hub() {
           onCreated={p => { setShowNewProject(false); nav(`/project-view/${p.id}`); }}
         />
       )}
-      {user?.role === 'ADMIN' && <UserManagement user={user} />}
+      {user?.role === 'ADMIN' && (
+        <div style={{ padding:'0 26px 22px', display:'flex', justifyContent:'center', alignItems:'center', gap:12, flexWrap:'wrap' }}>
+          <UserManagement user={user} />
+          <Automations />
+        </div>
+      )}
     </div>
   );
 }

@@ -1302,6 +1302,14 @@ async function migrate() {
 
   await sql`ALTER TABLE feedback_items ADD COLUMN IF NOT EXISTS attachment TEXT`;
   await sql`ALTER TABLE feedback_items ADD COLUMN IF NOT EXISTS replies JSONB DEFAULT '[]'::jsonb`;
+  await sql`
+    CREATE TABLE IF NOT EXISTS mail_automations (
+      key TEXT PRIMARY KEY,
+      from_addr TEXT,
+      to_addrs TEXT,
+      cc_addrs TEXT,
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    )`;
   await sql`ALTER TABLE budget_sections ADD COLUMN IF NOT EXISTS estimate_ref TEXT`;
 
   // Client roster — canonical client names, selected from budgets
