@@ -178,5 +178,103 @@
       "Adjust the milestone date or reassign the task, and the flag clears itself."
     ],
     "screenshot": "pto-conflict.png"
+  },
+  {
+    "title": "Daily personal greeting on the Hub",
+    "what": "The plain username is gone — the Hub now greets you with one fun, personal line each day, written fresh from what the platform knows: upcoming travel gigs, PTO countdowns, your MediaMoment answer, your home office, and the day of the week.",
+    "where": "Hub — centered above the Unbridled Media logo.",
+    "how": [
+      "Open the Hub.",
+      "Read your line — it changes every day and gets more personal as the platform learns about you.",
+      "Travel this week or PTO coming up? Expect to get roasted lovingly."
+    ],
+    "screenshot": "hub-greeting.png"
+  },
+  {
+    "title": "MediaMoment — weekly questions & the daily blob",
+    "what": "Team fun facts, institutionalized. The first time you open the Hub each week you get your own question (from a 100-question pool — food, movies, childhood, college, chaos). Each day, one teammate's answer takes over the Team Today card as an animated orange blob, with a faint photo or emoji of whatever their answer is about.",
+    "where": "Hub — the question pops up on your first visit of the week; the blob appears over Team Today once per day.",
+    "how": [
+      "Answer your weekly question when it pops up (or hit \"Maybe next week\").",
+      "Enjoy the day's MediaMoment on the Team Today card.",
+      "Click the ✕ to dismiss it — it stays gone until tomorrow."
+    ],
+    "screenshot": "mediamoment.png"
+  },
+  {
+    "title": "Automations dashboard (Admin)",
+    "what": "Every email automation on the platform in one place: where each one sends from, who it goes to, and a live preview of what the email looks like. From/To/Cc are editable where fixed lists apply; dynamic recipients (like \"the contractor being hired\") are described.",
+    "where": "Hub — bottom of the page, next to User Management (Admin only).",
+    "how": [
+      "Scroll to the bottom of the Hub and click \"Automations ▸\".",
+      "Edit any From address (or To/Cc where shown) and hit Save.",
+      "Click Preview on any row to see the exact email design."
+    ],
+    "screenshot": "automations-dashboard.png"
+  },
+  {
+    "title": "Branded email design across every notification",
+    "what": "Every automated email now shares one design: dark Unbridled Media header, colored hero, labeled detail rows, action buttons, quick-copy link boxes, and a postmark timestamp. This covers invoices, gear requests, calendar holds, contracts, PTO, crew questions, password resets, and the new AvocadoPost RFR (to the PM, with the review link) and Sent (to the editor) notifications.",
+    "where": "Everywhere email goes — preview any of them from the Automations dashboard.",
+    "how": [
+      "No action needed — every automation sends the branded design once Outlook is connected.",
+      "In Avo, RFR emails the PM that a version is ready (with a quick-copy review link); Sent emails the editor that it went out."
+    ],
+    "screenshot": "email-design.png"
+  },
+  {
+    "title": "Harbinger — designed report & full review before submit",
+    "what": "The Harbinger email is now a designed HTML report from info@unbridledmedia.com (recipients editable in Automations), and submitting one shows the entire Harbinger for a final read first — with the AI-drafted Budget Brief editable right in the review.",
+    "where": "ProFi — Submit Harbinger on any RFP budget.",
+    "how": [
+      "Fill the Harbinger form (the ✨ Budget Brief button drafts the SOW from the budget).",
+      "Click \"Submit Harbinger & Go Live\" — the full review pops out.",
+      "Edit or regenerate the brief in place, then \"Looks good — Submit\"."
+    ],
+    "screenshot": "harbinger-review.png"
+  },
+  {
+    "title": "Budget client contact & Est. Final Delivery",
+    "what": "Each budget header now carries a Client Contact (name shows in ProFi; email and address ride along into the Harbinger) and an Est. Final Delivery date. The contact name search autofills from everyone we've used before — client roster, past budgets, and past Harbingers.",
+    "where": "ProFi — the budget header row.",
+    "how": [
+      "Click \"+ Add Client Contact\" in the budget header.",
+      "Start typing a name — pick a past contact to autofill email and address.",
+      "Set Est. Final Delivery next to it; both prefill the Harbinger."
+    ],
+    "screenshot": "budget-client-contact.png"
+  },
+  {
+    "title": "Unbridled Solutions toggle",
+    "what": "Solutions-specific fields now hide until you need them. A toggle in the budget header (off by default) reveals the Solutions Code field in the budget and the Solutions Code + Solutions Commission fields in the Harbinger.",
+    "where": "ProFi — budget header, left of Submit Harbinger.",
+    "how": [
+      "Click \"Unbridled Solutions\" to toggle it on (it turns blue with a check).",
+      "The Solutions Code field appears in the header; the Harbinger gains its Solutions fields.",
+      "Toggle off to hide them all again — saved per budget."
+    ],
+    "screenshot": "solutions-toggle.png"
+  },
+  {
+    "title": "Client Budget — pick Line Items or Buckets on send",
+    "what": "The standing Line Items/Buckets toggle is gone from the budget header. Clicking Client Budget now asks how the client should see it — full line-by-line detail or rolled-up section totals — then opens the shared page.",
+    "where": "ProFi — the Client Budget button on any budget.",
+    "how": [
+      "Click Client Budget.",
+      "Pick Line Items or Buckets (your last choice is highlighted).",
+      "The client page opens in a new tab with that view."
+    ],
+    "screenshot": "client-budget-popout.png"
+  },
+  {
+    "title": "Contractor email — full SOW, autofilled, reviewed before sending",
+    "what": "Send Contract now opens a review of the complete contractor email — project code, position, travel locations, dates & day rate, quoted total, travel expense allowance and per diem (both pulled from the budget's travel section, reimbursable with receipts), invoice-to (a dropdown of Unbridled employees, defaulting to you), scope of work, and a new-vendor packet note — all editable before it sends from info@unbridledmedia.com with the signing link.",
+    "where": "FreePro — Crew tab, Send Contract on any contract crew slot.",
+    "how": [
+      "Open the crew slot and click Send Contract.",
+      "Review the autofilled email — tweak travel allowance, per diem, or anything else.",
+      "Check \"New vendor\" if they need a vendor packet, then \"Send from info@unbridledmedia.com\"."
+    ],
+    "screenshot": "contract-review.png"
   }
 ]
