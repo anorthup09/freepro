@@ -169,7 +169,7 @@ router.post('/', requireAuth, async (req, res, next) => {
       '',
       `Special instructions:\n${d.notes || '—'}`,
     ].join('\n');
-    sendMail({
+    sendMail({ identity: 'gear',
       to: GEAR_REQUEST_TO,
       subject: `Gear Request — ${code} ${proj?.title || ''}`,
       text: lines,
@@ -205,7 +205,7 @@ router.post('/project/:pid/amend', requireAuth, async (req, res, next) => {
     // …and Mason gets the amendment report by email (no-op until SMTP is configured)
     if (mailReady()) {
       const [proj] = await sql`SELECT code, title FROM projects WHERE id = ${pid}`;
-      sendMail({
+      sendMail({ identity: 'gear',
         to: 'mvitro@unbridledmedia.com',
         subject: `Gear request amended — ${proj?.code || ''} ${proj?.title || ''}`.trim(),
         text: report,

@@ -58,7 +58,7 @@ router.post('/projects/:id/contracts/:cid/email', requireAuth, requireRole('ADMI
     const gearTotal = (Number(c.gear_rate)||0) * (Number(c.gear_days)||0);
     const fmt$ = n => '$' + Number(n||0).toLocaleString('en-US', { maximumFractionDigits: 2 });
     const text = `Hi ${first},\n\nPlease review and sign your contractor agreement for "${c.project_title}" (${c.project_code}):\n\n${link}\n\nPosition: ${c.position_name}\nLabor: ${fmt$(c.day_rate)}/day x ${Number(c.labor_days)||0} days = ${fmt$(laborTotal)}${gearTotal ? `\nGear: ${fmt$(c.gear_rate)}/day x ${Number(c.gear_days)||0} days = ${fmt$(gearTotal)}` : ''}\nTotal: ${fmt$(laborTotal + gearTotal)}\n\nOpen the link, review the terms, and type your name to sign.\n\nThanks!\nUnbridled Media`;
-    await sendMail({ to, subject: `${c.project_title} — Contractor Agreement`, text });
+    await sendMail({ identity: 'production', to, subject: `${c.project_title} — Contractor Agreement`, text });
     await sql`UPDATE contracts SET status = 'SENT' WHERE id = ${c.id}`;
     res.json({ ok: true, to });
   } catch (e) {
@@ -97,7 +97,7 @@ router.post('/contract/:token/sign', async (req, res, next) => {
                  p.code, p.title
           FROM projects p LEFT JOIN crew_members cm ON cm.id = p.poc_crew_member_id
           WHERE p.id = ${signed.project_id}`;
-        if (poc?.email) sendMail({
+        if (poc?.email) sendMail({ identity: 'production',
           to: poc.email,
           subject: `Contract signed — ${signed.contractor_name} (${poc.code})`,
           text: `${signed.contractor_name} signed their ${signed.position_name} deal memo for ${poc.title} (${poc.code}).\n\nSigned as: ${signed.signed_name}\nSigned at: ${new Date().toLocaleString('en-US')}\n\nThe signed contract is on the crew grid in FreePro.`,

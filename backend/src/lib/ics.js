@@ -1,4 +1,4 @@
-const { sendMail, isConfigured } = require('./mailer');
+const { sendMail, isConfigured, addrFor } = require('./mailer');
 
 const esc = v => String(v || '').replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
 const dstamp = d => new Date(d).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
@@ -44,9 +44,10 @@ async function sendCalendarHold(opts) {
     console.log(`Calendar hold skipped (SMTP not configured): ${opts.summary} → ${opts.attendeeEmail}`);
     return false;
   }
-  const from = process.env.MAIL_FROM || process.env.SMTP_USER;
+  const from = addrFor('production');
   const content = buildInvite({ ...opts, organizerEmail: from });
   await sendMail({
+    identity: 'production',
     to: opts.attendeeEmail,
     subject: opts.summary,
     text: opts.description || opts.summary,
@@ -61,7 +62,7 @@ async function sendCalendarCancel({ uid, sequence = 1, startDate, endDate, summa
     console.log(`Calendar cancel skipped (SMTP not configured): ${summary} → ${attendeeEmail}`);
     return false;
   }
-  const from = process.env.MAIL_FROM || process.env.SMTP_USER;
+  const from = addrFor('production');
   const end = new Date(String(endDate || startDate).slice(0, 10) + 'T12:00:00Z');
   end.setUTCDate(end.getUTCDate() + 1);
   const content = [
@@ -84,6 +85,7 @@ async function sendCalendarCancel({ uid, sequence = 1, startDate, endDate, summa
     'END:VCALENDAR',
   ].join('\r\n');
   await sendMail({
+    identity: 'production',
     to: attendeeEmail,
     subject: `Cancelled: ${summary}`,
     text: `This hold was cancelled: ${summary}`,

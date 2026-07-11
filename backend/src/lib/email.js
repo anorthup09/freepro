@@ -1,14 +1,11 @@
-const { Resend } = require('resend');
-
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
-const FROM = process.env.RESEND_FROM_EMAIL || 'FreePro <noreply@resend.dev>';
+const { sendMail, isConfigured } = require('./mailer');
 
 async function sendQuestionNotification({ pocEmail, pocName, projectTitle, projectCode, question, shareToken }) {
-  if (!resend || !pocEmail) return;
+  if (!isConfigured() || !pocEmail) return;
   const shareUrl = `${process.env.FRONTEND_URL || 'https://freepro-production.up.railway.app'}/share/${shareToken}`;
   try {
-    await resend.emails.send({
-      from: FROM,
+    await sendMail({
+      identity: 'production',
       to: pocEmail,
       subject: `New question on ${projectCode} — ${projectTitle}`,
       html: `

@@ -54,7 +54,7 @@ router.post('/pto', requireAuth, async (req, res, next) => {
             const disp = ([m.preferred_first_name, m.preferred_last_name].filter(Boolean).join(' ').trim() || m.name || '').toLowerCase();
             return names.includes(disp) || names.includes((m.name || '').toLowerCase());
           }).map(m => m.email);
-          if (emails.length) sendMail({
+          if (emails.length) sendMail({ identity: 'team',
             to: emails.join(', '),
             subject: `FYI: PTO Request — ${full.title}`,
             text: `${full.member_name} submitted a PTO/OOO request and listed you to be notified.\n\nType: ${full.pto_type}\nDates: ${String(full.start_date).slice(0, 10)} to ${String(full.end_date).slice(0, 10)}\n\nDetails in Team Management on the Unbridled hub.`,
@@ -64,7 +64,7 @@ router.post('/pto', requireAuth, async (req, res, next) => {
     }
     // Manager gets an approval-request email (no-op until SMTP is configured)
     if (full.manager_email) {
-      sendMail({
+      sendMail({ identity: 'team',
         to: full.manager_email,
         subject: `PTO Request — ${full.title}`,
         text: `${full.member_name} submitted a PTO/OOO request that needs your review.\n\nRequest: ${full.title}\nType: ${full.pto_type}\nDates: ${String(full.start_date).slice(0, 10)} to ${String(full.end_date).slice(0, 10)}\n${full.on_shoots ? `Assigned to shoots/travel in that window: ${full.on_shoots}\n` : ''}${full.comp_notes ? `Comp reference: ${full.comp_notes}\n` : ''}\nApprove it in Team Management on the Unbridled hub.`,
@@ -94,7 +94,7 @@ router.patch('/pto/:id', requireAuth, async (req, res, next) => {
     if (wasApproving) {
       try {
         const [who] = await sql`SELECT ${sql.unsafe(PREF)} as n, cm.email FROM crew_members cm WHERE cm.id = ${row.member_id}`;
-        if (who?.email) sendMail({
+        if (who?.email) sendMail({ identity: 'team',
           to: who.email,
           subject: `Approved — ${row.title}`,
           text: `Your PTO/OOO request was approved.\n\nRequest: ${row.title}\nDates: ${String(row.start_date).slice(0, 10)} to ${String(row.end_date).slice(0, 10)}\n\nEnjoy!`,

@@ -72,7 +72,7 @@ router.post('/forgot-password', async (req, res, next) => {
       await sql`INSERT INTO password_resets (user_id, token, expires_at) VALUES (${user.id}, ${token}, NOW() + INTERVAL '1 hour')`;
       const { sendMail } = require('../lib/mailer');
       const base = process.env.APP_URL || `${req.protocol}://${req.get('host')}`;
-      sendMail({
+      sendMail({ identity: 'noreply',
         to: user.email,
         subject: 'Reset your password — Unbridled Operating Platform',
         text: `Hi ${user.name},\n\nSomeone (hopefully you) asked to reset your password.\n\nReset it here (link expires in 1 hour):\n${base}/reset-password/${token}\n\nIf you didn't request this, you can ignore this email — your password is unchanged.`,

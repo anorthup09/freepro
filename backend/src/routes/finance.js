@@ -353,7 +353,7 @@ router.post('/finance/budget/:bid/send-invoice', ...finance, async (req, res, ne
     if (h?.primary_contact_email && !to.includes(h.primary_contact_email)) to.push(h.primary_contact_email);
     if (!to.length) return res.status(400).json({ error: 'No client contact emails on this project — add one on the Overview or Harbinger first' });
     const fmt = n => '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    await sendMail({
+    await sendMail({ identity: 'accounting',
       to: to.join(', '),
       cc: h?.invoice_cc || undefined,
       subject: `Invoice — ${proj.code} ${proj.title} (${label})`,
@@ -995,7 +995,7 @@ router.post('/finance/:pid/harbinger', ...finance, async (req, res, next) => {
         line('Estimated Final Delivery', d.finalDelivery), line('Estimated Close Month', d.closeMonth),
         '', 'Notes:', d.notes || '—',
       ].join('\n');
-      sendMail({ to, cc: d.email || req.user?.email || undefined, subject: `Harbinger — ${project.code} ${project.title}`, text })
+      sendMail({ identity: 'accounting', to, cc: d.email || req.user?.email || undefined, subject: `Harbinger — ${project.code} ${project.title}`, text })
         .catch(err => console.error('Harbinger email failed:', err.message));
     }
     res.status(201).json(row);

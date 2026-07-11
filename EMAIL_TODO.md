@@ -13,6 +13,16 @@ link (SMTP) is connected. Keep this file updated as email features are added.
 | `SMTP_PASS` | Mail account password / app password |
 | `MAIL_FROM` | From address (falls back to `SMTP_USER`) |
 | `HARBINGER_EMAIL` | Accounting recipient for Harbinger submission reports |
+| `MAIL_FROM_ACCOUNTING` | Sender for Harbinger reports + client invoices (e.g. accounting@unbridledmedia.com) |
+| `MAIL_FROM_PRODUCTION` | Sender for calendar holds/cancels, contracts, crew questions |
+| `MAIL_FROM_GEAR` | Sender for gear request + amendment notifications |
+| `MAIL_FROM_TEAM` | Sender for PTO/OOO requests, approvals, FYIs |
+| `MAIL_FROM_POST` | Sender for AvocadoPost approvals, mentions, RFR notices |
+| `MAIL_FROM_NOREPLY` | Sender for password resets |
+
+Every identity falls back to `MAIL_FROM` until its variable is set, so the
+addresses can be provisioned one at a time. The SMTP account needs Send-As
+permission on each address (Outlook 365: shared mailbox or alias).
 
 ## Already built — go live as soon as SMTP is connected
 

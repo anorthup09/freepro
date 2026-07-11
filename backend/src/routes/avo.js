@@ -294,7 +294,7 @@ router.patch('/edits/:id', ...staff, async (req, res, next) => {
             const [ed] = await sql`SELECT ${sql.unsafe(PREF)} as name, email FROM crew_members cm WHERE cm.id = ${e.lead_editor_id}`;
             if (!mailReady()) console.log(`Approval email skipped (SMTP not configured) → ${ed?.email || 'no editor email'}`);
             else if (ed?.email) {
-              await sendMail({
+              await sendMail({ identity: 'post',
                 to: ed.email,
                 subject: `Approved ✓ — ${e.title}${e.project_code ? ` (${e.project_code})` : ''}`,
                 text: `Hi ${ed.name || 'there'},\n\n"${e.title}"${e.project_code ? ` (${e.project_code})` : ''} was marked Approved by ${who}.\n\nNice work — details are in AvocadoPost.`,
@@ -381,7 +381,7 @@ router.post('/edits/:id/comments', ...staff, async (req, res, next) => {
         for (const nm of [m.display, m.name]) {
           if (nm && lower.includes('@' + nm.toLowerCase()) && !notified.has(m.email)) {
             notified.add(m.email);
-            sendMail({
+            sendMail({ identity: 'post',
               to: m.email,
               subject: `${who} mentioned you — ${e.title}`,
               text: `${who} mentioned you on "${e.title}"${e.project_code ? ` (${e.project_code})` : ''}:\n\n${body}\n\n${e.review_link ? 'Review link: ' + e.review_link + '\n\n' : ''}Open AvocadoPost to reply.`,
@@ -405,7 +405,7 @@ router.post('/edits/:id/rfr', ...staff, async (req, res, next) => {
     const to = req.body.to || e.pm_email;
     const who = req.user?.email || 'someone';
     if (to) {
-      sendMail({
+      sendMail({ identity: 'post',
         to,
         subject: `Ready For Review — ${e.title}`,
         text: `${editor} has notified you a video is ready for review.\n\nVideo: ${e.title}${e.project_code ? ` (${e.project_code})` : ''}\nVersion: V${e.version}\n${e.review_link ? `Review link: ${e.review_link}` : 'No review link set yet.'}\n\nOnce reviewed, hit Sent in AvocadoPost to log it went to the client.`,
