@@ -622,3 +622,9 @@ textarea { resize: vertical; min-height: 70px; }
 .pvd-embed .nav > div:first-child,
 .pvd-embed .nav > a[title="Back to the Unbridled Media hub"] { display: none !important; }
 .pvd-embed .nav { padding-top: 0; }
+
+/* Budget shoot header: code / trip / description stack on phones */
+@media (max-width: 700px) {
+  .sec-meta { flex-direction: column; align-items: flex-start !important; }
+  .sec-meta > input { width: 100% !important; max-width: 260px; flex: none !important; }
+}

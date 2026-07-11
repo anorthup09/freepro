@@ -459,12 +459,17 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
                 </button>
               </div>
             )}
-            <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', borderBottom:'1px solid var(--border)', flexWrap:'wrap' }}>
-              <div style={{ flex:1, minWidth:0 }}>
+            <div style={{ display:'flex', alignItems:'flex-start', gap:10, padding:'10px 14px', borderBottom:'1px solid var(--border)', justifyContent:'space-between', flexWrap:'wrap' }}>
+              <div style={{ flex:1, minWidth:200 }}>
                 <input value={sec.title} style={{ ...cellIn, fontWeight:700, fontSize:13, textTransform:'uppercase', letterSpacing:'0.04em', color:'#5ABF80' }}
                   onChange={e => patchSection(sec.id, { title: e.target.value })}
                   onBlur={e => api.updateBudgetSection(sec.id, { title: e.target.value }).catch(() => {})} />
-                <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
+                {sec.kind === 'shoot' && sec.fp_start_date && sec.freepro_project_id && dateEdit?.secId !== sec.id && (
+                  <button title="Edit the shoot dates — updates FreePro and every view fed by it"
+                    onClick={() => setDateEdit({ secId: sec.id, start: String(sec.fp_start_date).slice(0,10), end: String(sec.fp_end_date || sec.fp_start_date).slice(0,10) })}
+                    style={{ background:'none', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:8, padding:'2px 10px', fontSize:10, cursor:'pointer', margin:'4px 0 6px' }}>✎ Edit</button>
+                )}
+                <div className="sec-meta" style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
                   {sec.shoot_code && (
                     <span title="Shoot code — used to tie VCC costs and FreePro planning to this shoot"
                       style={{ fontSize:10, fontWeight:800, letterSpacing:'0.05em', color:'#e6c229', border:'1px solid #e6c22955', borderRadius:6, padding:'2px 8px', whiteSpace:'nowrap', flexShrink:0 }}>
@@ -483,44 +488,41 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
                     onBlur={e => api.updateBudgetSection(sec.id, { subtitle: e.target.value }).catch(() => {})} />
                 </div>
               </div>
-              {sec.kind === 'shoot' && sec.fp_start_date && (
-                dateEdit?.secId === sec.id ? (
-                  <span style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
-                    <input type="date" value={dateEdit.start} onChange={e => setDateEdit(d => ({ ...d, start: e.target.value }))} style={{ width:'auto', fontSize:11, padding:'3px 6px' }} />
-                    <span style={{ fontSize:10, color:'var(--muted)' }}>–</span>
-                    <input type="date" value={dateEdit.end} onChange={e => setDateEdit(d => ({ ...d, end: e.target.value }))} style={{ width:'auto', fontSize:11, padding:'3px 6px' }} />
-                    <button className="btn btn-primary btn-sm" style={{ fontSize:10, padding:'3px 10px' }}
-                      onClick={async () => {
-                        try {
-                          await api.updateProject(sec.freepro_project_id, { startDate: dateEdit.start, endDate: dateEdit.end || dateEdit.start });
-                          patchSection(sec.id, { fp_start_date: dateEdit.start, fp_end_date: dateEdit.end || dateEdit.start });
-                          setDateEdit(null);
-                        } catch (err) { alert(err.message); }
-                      }}>Save</button>
-                    <button className="btn btn-ghost btn-sm" style={{ fontSize:10, padding:'3px 8px' }} onClick={() => setDateEdit(null)}>✕</button>
-                  </span>
-                ) : (
-                  <span style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
+              <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:6, flexShrink:0 }}>
+                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                  <div style={{ fontSize:13, fontWeight:700, whiteSpace:'nowrap' }}>{fmt$(mainTotal + travelTotal)}</div>
+                  <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text)' }} onClick={() => delSection(sec.id)}>✕</button>
+                </div>
+                {sec.kind === 'shoot' && sec.freepro_project_id && (
+                  <a href={`/projects/${sec.freepro_project_id}`}
+                    style={{ fontSize:10, fontWeight:700, color:'var(--orange)', border:'1px solid rgba(232,80,10,0.45)', borderRadius:12, padding:'3px 10px', textDecoration:'none', whiteSpace:'nowrap' }}>
+                    Go to FreePro ›
+                  </a>
+                )}
+                {sec.kind === 'shoot' && sec.fp_start_date && (
+                  dateEdit?.secId === sec.id ? (
+                    <span style={{ display:'flex', alignItems:'center', gap:6, flexWrap:'wrap', justifyContent:'flex-end' }}>
+                      <input type="date" value={dateEdit.start} onChange={e => setDateEdit(d => ({ ...d, start: e.target.value }))} style={{ width:'auto', fontSize:11, padding:'3px 6px' }} />
+                      <span style={{ fontSize:10, color:'var(--muted)' }}>–</span>
+                      <input type="date" value={dateEdit.end} onChange={e => setDateEdit(d => ({ ...d, end: e.target.value }))} style={{ width:'auto', fontSize:11, padding:'3px 6px' }} />
+                      <button className="btn btn-primary btn-sm" style={{ fontSize:10, padding:'3px 10px' }}
+                        onClick={async () => {
+                          try {
+                            await api.updateProject(sec.freepro_project_id, { startDate: dateEdit.start, endDate: dateEdit.end || dateEdit.start });
+                            patchSection(sec.id, { fp_start_date: dateEdit.start, fp_end_date: dateEdit.end || dateEdit.start });
+                            setDateEdit(null);
+                          } catch (err) { alert(err.message); }
+                        }}>Save</button>
+                      <button className="btn btn-ghost btn-sm" style={{ fontSize:10, padding:'3px 8px' }} onClick={() => setDateEdit(null)}>✕</button>
+                    </span>
+                  ) : (
                     <span title="Shoot dates — feed the FreePro project, call sheets, and gear views"
                       style={{ fontSize:10, color:'var(--muted)', whiteSpace:'nowrap' }}>
                       {new Date(String(sec.fp_start_date).slice(0,10)+'T12:00:00').toLocaleDateString()} – {new Date(String(sec.fp_end_date || sec.fp_start_date).slice(0,10)+'T12:00:00').toLocaleDateString()}
                     </span>
-                    {sec.freepro_project_id && (
-                      <button title="Edit the shoot dates — updates FreePro and every view fed by it"
-                        onClick={() => setDateEdit({ secId: sec.id, start: String(sec.fp_start_date).slice(0,10), end: String(sec.fp_end_date || sec.fp_start_date).slice(0,10) })}
-                        style={{ background:'none', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:8, padding:'2px 8px', fontSize:10, cursor:'pointer' }}>✎ Edit</button>
-                    )}
-                  </span>
-                )
-              )}
-              {sec.kind === 'shoot' && sec.freepro_project_id && (
-                <a href={`/projects/${sec.freepro_project_id}`}
-                  style={{ fontSize:10, fontWeight:700, color:'var(--orange)', border:'1px solid rgba(232,80,10,0.45)', borderRadius:12, padding:'3px 10px', textDecoration:'none', whiteSpace:'nowrap', alignSelf:'center' }}>
-                  Go to FreePro ›
-                </a>
-              )}
-              <div style={{ fontSize:13, fontWeight:700, whiteSpace:'nowrap' }}>{fmt$(mainTotal + travelTotal)}</div>
-              <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text)' }} onClick={() => delSection(sec.id)}>✕</button>
+                  )
+                )}
+              </div>
             </div>
             <div className="budget-tbl-wrap">
             <table style={{ width:'100%', borderCollapse:'collapse' }}>
