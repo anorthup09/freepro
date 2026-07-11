@@ -292,8 +292,10 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
     if (v === 'Live' && (budget.status || 'RFP') === 'RFP') {
       try { await api.getHarbinger(project.id); } catch { setHarbingerOpen(true); return; }
     }
+    const prev = budget.status || 'RFP';
     patchBudget({ status: v });
-    saveBudget({ status: v });
+    try { await api.updateBudget(budget.id, { status: v }); }
+    catch (e) { alert(e.message); patchBudget({ status: prev }); }
   }
 
   const closeMonthOptions = useMemo(closeMonthRange, []);

@@ -332,6 +332,26 @@ router.patch('/finance/budget/:bid', ...finance, async (req, res, next) => {
   try {
     const d = req.body;
     const num = v => (v === '' || v === null || v === undefined ? null : Number(v));
+    // A project can't close until invoicing is complete: every deposit sent and
+    // the final invoice sent, so total invoiced equals the total budget.
+    if (d.status === 'Closed') {
+      const [cur] = await sql`SELECT * FROM budgets WHERE id = ${req.params.bid}`;
+      if (cur) {
+        const blines = await sql`SELECT qty, unit_cost, percent, is_travel, section_id FROM budget_lines WHERE budget_id = ${req.params.bid}`;
+        const { total } = budgetTotal(blines, Number(cur.mgmt_fee_rate ?? 0.15));
+        const extras = Array.isArray(cur.extra_deposits) ? cur.extra_deposits : JSON.parse(cur.extra_deposits || '[]');
+        const allDeposits = Number(cur.deposit || 0) + Number(cur.additional_deposit || 0) + extras.reduce((a, x) => a + Number(x.amount || 0), 0);
+        const invoiced =
+          (cur.deposit_due ? Number(cur.deposit || 0) : 0) +
+          (cur.paid_date ? Number(cur.additional_deposit || 0) : 0) +
+          extras.reduce((a, x) => a + (x.date ? Number(x.amount || 0) : 0), 0) +
+          (cur.final_inv_date ? Math.max(total - allDeposits, 0) : 0);
+        if (Math.abs(invoiced - total) > 0.01) {
+          const fmt = n => '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          return res.status(400).json({ error: `Can't close this project yet — total invoiced (${fmt(invoiced)}) must equal the total budget (${fmt(total)}). Send the final invoice and any unsent deposits in Client Deposits first.` });
+        }
+      }
+    }
     const [b] = await sql`
       UPDATE budgets SET
         status = COALESCE(${d.status ?? null}, status),
