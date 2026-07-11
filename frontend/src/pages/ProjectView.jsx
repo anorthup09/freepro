@@ -84,8 +84,8 @@ function PVHeader({ showBack }) {
       </div>
       <div style={{ display:'flex', alignItems:'center', gap:12 }}>
         {showBack && <button className="btn btn-ghost btn-sm" onClick={() => nav('/project-view')}>‹ Projects</button>}
-        <Link to="/" className="btn btn-ghost btn-sm" style={{ textDecoration:'none' }}>‹ Hub</Link>
         <button className="btn btn-ghost btn-sm" onClick={() => { localStorage.removeItem('fp_token'); setUser(null); }}>Sign out</button>
+        <Link to="/" className="btn btn-ghost btn-sm" style={{ textDecoration:'none' }}>‹ Hub</Link>
       </div>
     </div>
   );

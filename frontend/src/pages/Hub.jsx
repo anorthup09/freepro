@@ -639,6 +639,7 @@ export default function Hub() {
         <div style={{ display:'flex', alignItems:'center', gap:12 }}>
           {realUser?.role === 'ADMIN' && <NewUserAlert onOpen={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })} />}
           <span style={{ fontSize:11, color:'var(--muted)' }}>{user?.name}</span>
+          <button className="btn btn-ghost btn-sm" onClick={() => { localStorage.removeItem('fp_token'); setUser(null); }}>Sign out</button>
           {realUser?.role === 'ADMIN' && (
             <select value={preview || ''} title="Preview the platform as another role"
               onChange={e => setPreview(e.target.value)}
@@ -662,7 +663,6 @@ export default function Hub() {
                 } catch (e) { alert(e.message); }
               }}>⬇ Backup</button>
           )}
-          <button className="btn btn-ghost btn-sm" onClick={() => { localStorage.removeItem('fp_token'); setUser(null); }}>Sign out</button>
         </div>
       </div>
 

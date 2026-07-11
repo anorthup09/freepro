@@ -121,8 +121,8 @@ export default function ClientInvoiceReport() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <span style={{ fontSize: 11, color: 'var(--muted)' }}>{user?.name}</span>
-          <Link to="/reports" className="btn btn-ghost btn-sm" style={{ textDecoration: 'none' }}>All Reports</Link>
           <button className="btn btn-ghost btn-sm" onClick={() => { localStorage.removeItem('fp_token'); setUser(null); }}>Sign out</button>
+          <Link to="/reports" className="btn btn-ghost btn-sm" style={{ textDecoration: 'none' }}>All Reports</Link>
         </div>
       </div>
       <div style={{ maxWidth: 1150, margin: '0 auto', padding: '10px 16px 60px' }}>

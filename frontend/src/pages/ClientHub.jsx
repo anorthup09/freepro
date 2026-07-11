@@ -162,8 +162,8 @@ export default function ClientHub() {
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:12 }}>
           <span style={{ fontSize:11, color:'var(--muted)' }}>{user?.name}</span>
-          <Link to="/" className="btn btn-ghost btn-sm" style={{ textDecoration:'none' }}>Back to Hub</Link>
           <button className="btn btn-ghost btn-sm" onClick={() => { localStorage.removeItem('fp_token'); setUser(null); }}>Sign out</button>
+          <Link to="/" className="btn btn-ghost btn-sm" style={{ textDecoration:'none' }}>Back to Hub</Link>
         </div>
       </div>
       <div style={{ maxWidth:1100, margin:'0 auto', padding:'0 16px 80px' }}>
