@@ -1818,6 +1818,62 @@ function TalentView({ data }) {
 }
 
 // ── Shared helpers ───────────────────────────────────────────────────────────
+// Liquid-glass bottom dock for the shared call sheets — same treatment as
+// Project View: icons + labels, shrinking to icons alone on phone scroll.
+const DOCK_ICONS = {
+  callsheet: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h8M8 15h5"/></svg>,
+  gear:      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg>,
+  'shot-list': <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 7h3a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h3l1.5-2.5h3L15 7z"/><circle cx="12" cy="13.5" r="3.5"/></svg>,
+  scripts:   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3h9l4 4v14H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M15 3v4h4M9 12h6M9 16h6"/></svg>,
+  'extra-docs': <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>,
+  questions: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a8 8 0 0 1-8 8H4l2-3a8 8 0 1 1 15-5z"/><path d="M10 10a2 2 0 1 1 3 1.7c-.8.5-1 .8-1 1.8M12 16.5h.01"/></svg>,
+  pdf:       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9V3h12v6"/><rect x="4" y="9" width="16" height="8" rx="2"/><path d="M7 17h10v4H7z"/></svg>,
+};
+
+function ShareGlassDock({ items }) {
+  const [shrunk, setShrunk] = useState(false);
+  useEffect(() => {
+    let raf = null;
+    const onScroll = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => { setShrunk(window.innerWidth <= 700 && window.scrollY > 60); raf = null; });
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => { window.removeEventListener('scroll', onScroll); if (raf) cancelAnimationFrame(raf); };
+  }, []);
+  if (!items.length) return null;
+  return (
+    <div className="share-dock no-print" style={{
+      position:'fixed', left:'50%', transform:'translateX(-50%)', bottom:'calc(env(safe-area-inset-bottom, 0px) + 14px)',
+      zIndex:110, display:'flex', alignItems:'center', gap:2, maxWidth:'calc(100vw - 16px)', overflowX:'auto',
+      padding: shrunk ? '6px 10px' : '8px 12px',
+      background:'rgba(24,22,19,0.62)', backdropFilter:'blur(18px) saturate(1.5)', WebkitBackdropFilter:'blur(18px) saturate(1.5)',
+      border:'1px solid rgba(255,255,255,0.12)', borderRadius:32,
+      boxShadow:'0 10px 34px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.08)',
+      transition:'padding .25s ease',
+    }}>
+      {items.map(it => (
+        <button key={it.key} onClick={it.onClick} aria-label={it.label}
+          style={{
+            display:'flex', flexDirection:'column', alignItems:'center', gap:3,
+            background: it.active ? 'rgba(255,255,255,0.10)' : 'transparent', border:'none', cursor:'pointer',
+            color: it.active ? 'var(--orange)' : 'rgba(255,255,255,0.55)',
+            borderRadius:22, padding: shrunk ? '8px 11px' : '7px 11px 6px',
+            transition:'all .25s ease', flexShrink:0,
+          }}>
+          {DOCK_ICONS[it.key]}
+          <span style={{
+            fontSize:9, fontWeight:800, letterSpacing:'0.02em', whiteSpace:'nowrap',
+            maxHeight: shrunk ? 0 : 12, opacity: shrunk ? 0 : 1, overflow:'hidden',
+            transition:'max-height .25s ease, opacity .2s ease',
+          }}>{it.label}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function ShareTable({ cols, rows, colClasses = [] }) {
   return (
     <div className="share-table-wrap">
@@ -2582,31 +2638,10 @@ export default function Share() {
             {view_type === 'producer' ? 'Producer View' : view_type === 'crew' ? 'Crew View' : 'Client View'}
           </span>
         )}
-        {(hasQuestions || ((hasShotList || hasScripts) && view_type === 'client')) ? (
-          <div className="tabs" style={{ flexBasis:'100%', display:'flex', alignItems:'center' }}>
-            <button className={`tab${sharePage === 'callsheet' ? ' on' : ''}`} onClick={() => setSharePage('callsheet')}>Call Sheet</button>
-            {hasGearTab && <button className={`tab${sharePage === 'gear' ? ' on' : ''}`} onClick={() => setSharePage('gear')}>Gear</button>}
-            {hasShotList && <button className={`tab${sharePage === 'shot-list' ? ' on' : ''}`} onClick={() => setSharePage('shot-list')}>Shot List</button>}
-            {hasScripts && <button className={`tab${sharePage === 'scripts' ? ' on' : ''}`} onClick={() => setSharePage('scripts')}>Script</button>}
-            {hasExtraDocs && <button className={`tab${sharePage === 'extra-docs' ? ' on' : ''}`} onClick={() => setSharePage('extra-docs')}>Additional Docs</button>}
-            {hasQuestions && <button className={`tab${sharePage === 'questions' ? ' on' : ''}`} onClick={() => setSharePage('questions')}>Questions</button>}
-            <button
-              onClick={() => window.print()}
-              style={{ marginLeft:'auto', background:'var(--bg3)', border:'1px solid var(--border2)', color:'var(--tan)', borderRadius:6, padding:'5px 12px', fontSize:12, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}
-            >PDF</button>
+        {view_type === 'talent' && (
+          <div style={{ fontSize:11, color:'#fff', textTransform:'uppercase', letterSpacing:'.08em', border:'1px solid rgba(255,255,255,0.6)', borderRadius:6, padding:'4px 10px' }}>
+            {data.talent_name} — Talent
           </div>
-        ) : (
-          <>
-            {view_type === 'talent' && (
-              <div style={{ fontSize:11, color:'#fff', textTransform:'uppercase', letterSpacing:'.08em', border:'1px solid rgba(255,255,255,0.6)', borderRadius:6, padding:'4px 10px' }}>
-                {data.talent_name} — Talent
-              </div>
-            )}
-            <button
-              onClick={() => window.print()}
-              style={{ background:'var(--bg3)', border:'1px solid var(--border2)', color:'var(--tan)', borderRadius:6, padding:'5px 12px', fontSize:12, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}
-            >PDF</button>
-          </>
         )}
       </nav>
       <div className="wrap">
@@ -2634,6 +2669,15 @@ export default function Share() {
           </>
         )}
       </div>
+      {!isPdf && <ShareGlassDock items={[
+        { key:'callsheet', label:'Call Sheet', active: sharePage === 'callsheet', onClick: () => { setSharePage('callsheet'); window.scrollTo({ top:0, behavior:'smooth' }); } },
+        ...(hasGearTab ? [{ key:'gear', label:'Gear', active: sharePage === 'gear', onClick: () => { setSharePage('gear'); window.scrollTo({ top:0, behavior:'smooth' }); } }] : []),
+        ...(hasShotList ? [{ key:'shot-list', label:'Shot List', active: sharePage === 'shot-list', onClick: () => { setSharePage('shot-list'); window.scrollTo({ top:0, behavior:'smooth' }); } }] : []),
+        ...(hasScripts ? [{ key:'scripts', label:'Script', active: sharePage === 'scripts', onClick: () => { setSharePage('scripts'); window.scrollTo({ top:0, behavior:'smooth' }); } }] : []),
+        ...(hasExtraDocs ? [{ key:'extra-docs', label:'Docs', active: sharePage === 'extra-docs', onClick: () => { setSharePage('extra-docs'); window.scrollTo({ top:0, behavior:'smooth' }); } }] : []),
+        ...(hasQuestions ? [{ key:'questions', label:'Questions', active: sharePage === 'questions', onClick: () => { setSharePage('questions'); window.scrollTo({ top:0, behavior:'smooth' }); } }] : []),
+        { key:'pdf', label:'PDF', active:false, onClick: () => window.print() },
+      ]} />}
     </>
   );
 }

@@ -609,3 +609,7 @@ textarea { resize: vertical; min-height: 70px; }
 
 /* Project View: the liquid-glass bottom dock is the navigation on every screen */
 .pvd-page { padding-bottom: 110px; }
+
+/* Shared call sheets: room for the glass dock; never in print/PDF */
+.share-view, .wrap { padding-bottom: 110px; }
+@media print { .share-dock { display: none !important; } }
