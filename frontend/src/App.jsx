@@ -78,6 +78,35 @@ import { api } from './api.js';
 export const AuthContext = createContext(null);
 export function useAuth() { return useContext(AuthContext); }
 
+// Pop-up shown when an email automation fires while Outlook isn't connected
+function MailNoticeHost() {
+  const [notice, setNotice] = React.useState(null);
+  React.useEffect(() => {
+    const on = e => setNotice(e.detail?.action || 'This email');
+    window.addEventListener('mail-under-construction', on);
+    return () => window.removeEventListener('mail-under-construction', on);
+  }, []);
+  if (!notice) return null;
+  return (
+    <div onClick={e => e.target === e.currentTarget && setNotice(null)}
+      style={{ position:'fixed', inset:0, zIndex:220, background:'rgba(0,0,0,0.7)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+      <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid #e6c229', borderRadius:12, padding:'24px 26px', width:'100%', maxWidth:420 }}>
+        <div style={{ fontSize:15, fontWeight:800, marginBottom:8 }}>✉ Email Automation — Under Construction</div>
+        <div style={{ fontSize:13, color:'var(--text)', lineHeight:1.55 }}>
+          {notice} is set up and will send automatically once email goes live.
+        </div>
+        <div style={{ fontSize:12, color:'var(--muted)', lineHeight:1.55, marginTop:8 }}>
+          The platform isn't connected to Outlook yet — full integration is planned by the end of July.
+          Everything else about this action saved normally.
+        </div>
+        <div style={{ display:'flex', justifyContent:'flex-end', marginTop:16 }}>
+          <button className="btn btn-primary btn-sm" onClick={() => setNotice(null)}>Got it</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Centered Sign out at the bottom of every signed-in page (public shares excluded)
 function SignOutFooter({ user, setUser }) {
   const loc = useLocation();
@@ -125,6 +154,7 @@ export default function App() {
         </div>
       )}
       <SaveIndicator />
+      <MailNoticeHost />
       {user && <FeedbackBoard variant="fab" />}
       {user?.role === 'PENDING' ? <PendingApproval setUser={setUser} /> : (realUser && (['ADMIN','PRODUCER'].includes(realUser.role) || realUser.mfa_required === true) && realUser.mfa_enabled === false) ? <MfaSetup /> : (
       <Routes>

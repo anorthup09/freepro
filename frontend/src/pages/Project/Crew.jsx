@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../../api.js';
+import { maybeMailNotice } from '../../utils/mailNotice.js';
 import { displayName } from '../../utils/displayName.js';
 
 function fmtTime(str) {
@@ -147,7 +148,10 @@ export default function Crew({ project, onProjectUpdate }) {
         const r = await api.emailContract(project.id, c.id);
         setContractSent(r.to);
       }
-    } catch (e) { alert(e.message); }
+    } catch (e) {
+      if (e.status === 501 || /not configured|not connected/i.test(e.message)) maybeMailNotice('The contract signing-link email');
+      else alert(e.message);
+    }
     setContractBusy(false);
   }
 
@@ -233,8 +237,13 @@ export default function Crew({ project, onProjectUpdate }) {
       setContracts(prev => [c, ...prev]);
       let sentTo = '';
       if (send) {
-        const r = await api.emailContract(project.id, c.id);
-        sentTo = r.to;
+        try {
+          const r = await api.emailContract(project.id, c.id);
+          sentTo = r.to;
+        } catch (e2) {
+          if (e2.status === 501 || /not configured|not connected/i.test(e2.message)) maybeMailNotice('The contract signing-link email');
+          else alert(e2.message);
+        }
       }
       setShowAddSlot(false);
       setSlotForm({ positionId:'', crewMemberId:'', slotNumber:1, startDate:'', endDate:'', isContractor:false, dayRate:'', laborDays:'', gearCost:'', gearDays:'' });

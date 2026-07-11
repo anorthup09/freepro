@@ -55,4 +55,41 @@ async function sendCalendarHold(opts) {
   return true;
 }
 
-module.exports = { buildInvite, sendCalendarHold };
+// Cancel a previously sent hold (METHOD:CANCEL with a bumped sequence)
+async function sendCalendarCancel({ uid, sequence = 1, startDate, endDate, summary, attendeeEmail, attendeeName }) {
+  if (!isConfigured()) {
+    console.log(`Calendar cancel skipped (SMTP not configured): ${summary} → ${attendeeEmail}`);
+    return false;
+  }
+  const from = process.env.MAIL_FROM || process.env.SMTP_USER;
+  const end = new Date(String(endDate || startDate).slice(0, 10) + 'T12:00:00Z');
+  end.setUTCDate(end.getUTCDate() + 1);
+  const content = [
+    'BEGIN:VCALENDAR',
+    'PRODID:-//Unbridled Media//FreePro//EN',
+    'VERSION:2.0',
+    'CALSCALE:GREGORIAN',
+    'METHOD:CANCEL',
+    'BEGIN:VEVENT',
+    `UID:${uid}@freepro.unbridledmedia.com`,
+    `SEQUENCE:${sequence}`,
+    `DTSTAMP:${dstamp(new Date())}`,
+    `DTSTART;VALUE=DATE:${dateOnly(startDate)}`,
+    `DTEND;VALUE=DATE:${dateOnly(end.toISOString())}`,
+    `SUMMARY:${esc('CANCELLED — ' + summary)}`,
+    `ORGANIZER;CN=Unbridled Media:mailto:${from}`,
+    `ATTENDEE;CN=${esc(attendeeName || attendeeEmail)}:mailto:${attendeeEmail}`,
+    'STATUS:CANCELLED',
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ].join('\r\n');
+  await sendMail({
+    to: attendeeEmail,
+    subject: `Cancelled: ${summary}`,
+    text: `This hold was cancelled: ${summary}`,
+    icalEvent: { method: 'CANCEL', content },
+  });
+  return true;
+}
+
+module.exports = { buildInvite, sendCalendarHold, sendCalendarCancel };

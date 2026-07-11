@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../App.jsx';
 import { api } from '../api.js';
+import { maybeMailNotice } from '../utils/mailNotice.js';
 import RosterLookup from '../components/RosterLookup.jsx';
 
 const BLUE = '#4a9eff';
@@ -91,6 +92,7 @@ export default function Team() {
     setSaving(true);
     try {
       const row = await api.createPto(f);
+      maybeMailNotice("The manager's approval-request email");
       setRows(rs => [...(rs || []), row]);
       setF(BLANK);
       setView('pipeline');

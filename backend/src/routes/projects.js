@@ -4,7 +4,7 @@ const sql = require('../lib/db');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { bizToday } = require('../lib/dates');
 const { displayCodes, applyDisplayCode } = require('../lib/displayCode');
-const { sendCalendarHold } = require('../lib/ics');
+const { sendCalendarHold, sendCalendarCancel } = require('../lib/ics');
 
 // Email an Outlook calendar hold to the assigned crew member (fire-and-forget)
 async function sendAssignmentHold(assignmentId) {
@@ -509,9 +509,32 @@ router.post('/:id/crew', requireAuth, requireRole('ADMIN','PRODUCER'), async (re
     next(e);
   }
 });
+// Cancel an assignment's Outlook hold (fire-and-forget; no-op until SMTP)
+async function cancelAssignmentHold(a, proj) {
+  try {
+    if (!a?.cm_email || !a.start_date || !Number(a.invite_seq || 0)) return;   // never sent a hold
+    await sendCalendarCancel({
+      uid: a.id, sequence: Number(a.invite_seq || 0) + 1,
+      startDate: a.start_date, endDate: a.end_date || a.start_date,
+      summary: `HOLD — ${proj?.code || ''} ${proj?.title || ''} (${a.position_name || 'Crew'})`.trim(),
+      attendeeEmail: a.cm_email, attendeeName: a.cm_display,
+    });
+  } catch (e) { console.error('Calendar cancel failed:', e.message); }
+}
+
 router.patch('/:id/crew/:aid', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
     const { crewMemberId, notes, startDate, endDate, isContractor, dayRate, laborDays, gearCost, gearDays, crewIds } = req.body;
+    // Unassigning someone cancels the Outlook hold they were sent
+    if (crewMemberId !== undefined && !crewMemberId) {
+      const [prev] = await sql`
+        SELECT ca.id, ca.start_date, ca.end_date, ca.invite_seq, p.name as position_name, cm.email as cm_email,
+               COALESCE(NULLIF(TRIM(CONCAT(cm.preferred_first_name, ' ', cm.preferred_last_name)), ''), cm.name) as cm_display
+        FROM crew_assignments ca JOIN positions p ON p.id = ca.position_id
+        LEFT JOIN crew_members cm ON cm.id = ca.crew_member_id WHERE ca.id = ${req.params.aid}`;
+      const [proj] = await sql`SELECT code, title FROM projects WHERE id = ${req.params.id}`;
+      if (prev?.cm_email) cancelAssignmentHold(prev, proj);
+    }
     if (crewIds !== undefined) {
       await sql`DELETE FROM crew_assignment_crews WHERE assignment_id = ${req.params.aid}`;
       for (const cid of (crewIds || [])) {
@@ -542,7 +565,17 @@ router.patch('/:id/crew/:aid', requireAuth, requireRole('ADMIN','PRODUCER'), asy
   } catch(e){next(e);}
 });
 router.delete('/:id/crew/:aid', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
-  try { await sql`DELETE FROM crew_assignments WHERE id = ${req.params.aid}`; res.status(204).end(); } catch(e){next(e);}
+  try {
+    const [prev] = await sql`
+      SELECT ca.id, ca.start_date, ca.end_date, ca.invite_seq, p.name as position_name, cm.email as cm_email,
+             COALESCE(NULLIF(TRIM(CONCAT(cm.preferred_first_name, ' ', cm.preferred_last_name)), ''), cm.name) as cm_display
+      FROM crew_assignments ca JOIN positions p ON p.id = ca.position_id
+      LEFT JOIN crew_members cm ON cm.id = ca.crew_member_id WHERE ca.id = ${req.params.aid}`;
+    const [proj] = await sql`SELECT code, title FROM projects WHERE id = ${req.params.id}`;
+    await sql`DELETE FROM crew_assignments WHERE id = ${req.params.aid}`;
+    if (prev?.cm_email) cancelAssignmentHold(prev, proj);
+    res.status(204).end();
+  } catch(e){next(e);}
 });
 
 // ─── Named crews (units) — Recap Crew, Interview Crew, … ────────────────────

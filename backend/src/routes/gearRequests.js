@@ -200,9 +200,17 @@ router.post('/project/:pid/amend', requireAuth, async (req, res, next) => {
       WHERE project_id = ${pid} RETURNING *`;
 
     // The change report lands in the activity feed for this shoot's gear dashboard.
-    // TODO(email): tag Mason Vitro and email him the amendment — see EMAIL_TODO.md.
     await sql`INSERT INTO gear_activity (project_id, kind, body, author)
       VALUES (${pid}, 'event', ${report}, ${d.name || req.user?.email || null})`.catch(() => {});
+    // …and Mason gets the amendment report by email (no-op until SMTP is configured)
+    if (mailReady()) {
+      const [proj] = await sql`SELECT code, title FROM projects WHERE id = ${pid}`;
+      sendMail({
+        to: 'mvitro@unbridledmedia.com',
+        subject: `Gear request amended — ${proj?.code || ''} ${proj?.title || ''}`.trim(),
+        text: report,
+      }).catch(err => console.error('Gear amendment email failed:', err.message));
+    } else console.log('Gear amendment email skipped (SMTP not configured)');
 
     res.json(row);
   } catch (e) { next(e); }

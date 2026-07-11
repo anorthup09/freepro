@@ -89,6 +89,21 @@ router.post('/contract/:token/sign', async (req, res, next) => {
       UPDATE contracts SET status = 'SIGNED', signed_name = ${name}, signed_at = NOW(), signed_ip = ${ip}
       WHERE id = ${req.params.token}
       RETURNING *`;
+    // Producer (project Main POC) hears about the signature (no-op until SMTP)
+    if (mailReady()) {
+      try {
+        const [poc] = await sql`
+          SELECT cm.email, COALESCE(NULLIF(TRIM(CONCAT(cm.preferred_first_name, ' ', cm.preferred_last_name)), ''), cm.name) as n,
+                 p.code, p.title
+          FROM projects p LEFT JOIN crew_members cm ON cm.id = p.poc_crew_member_id
+          WHERE p.id = ${signed.project_id}`;
+        if (poc?.email) sendMail({
+          to: poc.email,
+          subject: `Contract signed — ${signed.contractor_name} (${poc.code})`,
+          text: `${signed.contractor_name} signed their ${signed.position_name} deal memo for ${poc.title} (${poc.code}).\n\nSigned as: ${signed.signed_name}\nSigned at: ${new Date().toLocaleString('en-US')}\n\nThe signed contract is on the crew grid in FreePro.`,
+        }).catch(err => console.error('Contract-signed email failed:', err.message));
+      } catch (err) { console.error('Contract-signed lookup failed:', err.message); }
+    } else console.log('Contract-signed email skipped (SMTP not configured)');
     res.json(signed);
   } catch (e) { next(e); }
 });

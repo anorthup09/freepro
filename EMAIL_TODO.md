@@ -16,6 +16,17 @@ link (SMTP) is connected. Keep this file updated as email features are added.
 
 ## Already built — go live as soon as SMTP is connected
 
+> **UI note:** while SMTP/Outlook is unconnected, user-triggered email actions
+> show an "Email Automation — Under Construction" pop-up (target: full Outlook
+> integration by end of July). Backend automations log a skip instead.
+
+- [x] **Gear request amendment → Mason** — amend emails the diff report.
+- [x] **Client invoice send** — Send Invoice emails the client contacts a summary.
+- [x] **Harbinger CC to submitter** — kickoff report CCs whoever submitted it.
+- [x] **Contract signed confirmation** — Main POC is emailed on e-sign.
+- [x] **Calendar hold cancellations** — METHOD:CANCEL on unassign/delete.
+- [x] **PTO notify list + approval confirmation** — FYI emails to listed teammates; requester gets an approval email.
+
 - [ ] **Deliverable approval email** — when an edit is marked Approved in
       AvocadoPost, the lead editor gets an email (activity note logs the send).
 
@@ -37,24 +48,24 @@ link (SMTP) is connected. Keep this file updated as email features are added.
 
 ## To build once email works
 
-- [ ] **Gear request amendment notification** — when a locked gear request is
+- [x] **Gear request amendment notification** — when a locked gear request is
       amended (FreePro → Gear Request → Amend Gear Request), the change report is
       already posted to the shoot's gear activity feed. Once SMTP is live, also
       tag Mason Vitro and email him the amendment report. Hook: the amend endpoint
       in `backend/src/routes/gearRequests.js` (POST /project/:pid/amend) — send to
       `mvitro@unbridledmedia.com` with the diff.
 
-- [ ] **Client invoice send** — the ✉ Send Invoice buttons on VCC deposits
+- [x] **Client invoice send** — the ✉ Send Invoice buttons on VCC deposits
       currently auto-date the invoice; wire them to actually email the client
       (invoice PDF or summary, using the budget's client contacts from the
       Harbinger).
 - [ ] **Weekly finance report email** — auto-send the Friday finance report
       (PDF or link) to the finance team instead of requiring a manual pull.
-- [ ] **Harbinger copy to submitter** — CC the person who submitted the
+- [x] **Harbinger copy to submitter** — CC the person who submitted the
       Harbinger so they have the kickoff record.
-- [ ] **Contract signed confirmation** — notify the producer when a
+- [x] **Contract signed confirmation** — notify the producer when a
       contractor e-signs their deal memo.
-- [ ] **Calendar hold cancellations** — send METHOD:CANCEL when someone is
+- [x] **Calendar hold cancellations** — send METHOD:CANCEL when someone is
       unassigned or an assignment is deleted.
 - [ ] **AvocadoPost edit assignments** — when AvocadoPost is built, extend
       the same system to editors: assigning someone to an edit sends an
@@ -71,7 +82,7 @@ link (SMTP) is connected. Keep this file updated as email features are added.
       client contacts captured on the Harbinger). Contract format is specced
       in `docs/CLIENT_CONTRACT_TEMPLATE.md` (from the executed ResMed ASM
       2026 agreement); boilerplate text in `docs/contract-boilerplate.txt`.
-- [ ] **PTO request → manager approval email** — `backend/src/routes/team.js`
+- [x] **PTO request → manager approval email** — `backend/src/routes/team.js`
       POST /pto emails the selected manager ("PTO Request — {title}" with
       type, dates, shoot conflicts, comp reference). Once SMTP is live, also
       notify the extra team members listed on the request and confirm

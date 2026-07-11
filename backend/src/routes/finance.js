@@ -328,6 +328,41 @@ async function ensureShootProjects(budgetId) {
   }
 }
 
+// Is outbound email configured? Drives the under-construction pop-ups.
+router.get('/mail/status', requireAuth, (req, res) => {
+  res.json({ configured: mailReady() });
+});
+
+// Email a client invoice summary (deposit or final) to the budget's client
+// contacts. Buttons still stamp the invoice date locally; this adds the send.
+router.post('/finance/budget/:bid/send-invoice', ...finance, async (req, res, next) => {
+  try {
+    if (!mailReady()) return res.status(501).json({ error: 'Email is not connected yet' });
+    const { label, amount } = req.body;   // e.g. "Deposit" / "Deposit 2" / "Final Invoice"
+    const [b] = await sql`SELECT * FROM budgets WHERE id = ${req.params.bid}`;
+    if (!b) return res.status(404).json({ error: 'Budget not found' });
+    const [proj] = await sql`SELECT * FROM projects WHERE id = ${b.project_id}`;
+    const contacts = await sql`SELECT name, email FROM client_contacts WHERE project_id = ${b.project_id} AND email IS NOT NULL`;
+    let to = contacts.map(c => c.email);
+    let h = null;
+    try {
+      const [row] = await sql`SELECT data FROM harbingers WHERE project_id = ${b.project_id}`;
+      const dta = row ? (typeof row.data === 'string' ? JSON.parse(row.data) : row.data) : null;
+      if (dta) h = { primary_contact_email: dta.primaryContactEmail, invoice_cc: dta.invoiceCc };
+    } catch { /* no harbinger yet */ }
+    if (h?.primary_contact_email && !to.includes(h.primary_contact_email)) to.push(h.primary_contact_email);
+    if (!to.length) return res.status(400).json({ error: 'No client contact emails on this project — add one on the Overview or Harbinger first' });
+    const fmt = n => '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    await sendMail({
+      to: to.join(', '),
+      cc: h?.invoice_cc || undefined,
+      subject: `Invoice — ${proj.code} ${proj.title} (${label})`,
+      text: `Hello,\n\nPlease find the ${label.toLowerCase()} for ${proj.title} (${proj.code}).\n\n${label}: ${fmt(amount)}\n\nA formal invoice document follows from our accounting team. Reply to this email with any questions.\n\nThank you,\nUnbridled Media`,
+    });
+    res.json({ sent: true, to });
+  } catch (e) { next(e); }
+});
+
 router.patch('/finance/budget/:bid', ...finance, async (req, res, next) => {
   try {
     const d = req.body;
@@ -885,7 +920,7 @@ router.post('/finance/sections/:sid/pull-travel-actuals', ...finance, async (req
 });
 
 // ── Harbinger: internal kickoff form that opens the project with accounting ──
-const { sendMail } = require('../lib/mailer');
+const { sendMail, isConfigured: mailReady } = require('../lib/mailer');
 
 router.get('/finance/:pid/harbinger', ...finance, async (req, res, next) => {
   try {
@@ -960,7 +995,7 @@ router.post('/finance/:pid/harbinger', ...finance, async (req, res, next) => {
         line('Estimated Final Delivery', d.finalDelivery), line('Estimated Close Month', d.closeMonth),
         '', 'Notes:', d.notes || '—',
       ].join('\n');
-      sendMail({ to, subject: `Harbinger — ${project.code} ${project.title}`, text })
+      sendMail({ to, cc: d.email || req.user?.email || undefined, subject: `Harbinger — ${project.code} ${project.title}`, text })
         .catch(err => console.error('Harbinger email failed:', err.message));
     }
     res.status(201).json(row);

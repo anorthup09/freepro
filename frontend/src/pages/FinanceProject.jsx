@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../api.js';
+import { maybeMailNotice } from '../utils/mailNotice.js';
 import { FinanceHeader, LogoField } from './Finance.jsx';
 import HarbingerModal, { HarbingerView } from '../components/HarbingerModal.jsx';
 import ClientSelect from '../components/ClientSelect.jsx';
@@ -808,12 +809,20 @@ export function VccTab({ pid, budget, sections, lines, vcc, categories, set, vcc
             const saveExtras = next => { patchBudget({ extra_deposits: next }); saveBudget({ extraDeposits: next }); };
             const today = () => new Date().toISOString().slice(0, 10);
             const fmtD = d => d ? new Date(d.slice(0,10) + 'T12:00:00').toLocaleDateString('en-US', { month:'numeric', day:'numeric', year:'2-digit' }) : '';
-            const sendMsg = () => alert('Coming soon: review the invoice email, attach the invoice, and send it to the client right from here.\n\nInvoice date recorded as today.');
-            const send = (dateKey, apiKey) => {
+            const sendMsg = async (label, amount) => {
+              try {
+                const r = await api.sendClientInvoice(budget.id, label, amount);
+                alert(`Invoice email sent to ${Array.isArray(r.to) ? r.to.join(', ') : r.to}. Invoice date recorded as today.`);
+              } catch (e2) {
+                if (e2.status === 501 || /not connected|not configured/i.test(e2.message)) maybeMailNotice('The client invoice email');
+                else alert(e2.message + '\n\nInvoice date still recorded as today.');
+              }
+            };
+            const send = (dateKey, apiKey, label, amount) => {
               const d = today();
               patchBudget({ [dateKey]: d });
               saveBudget({ [apiKey]: d });
-              sendMsg();
+              sendMsg(label, amount);
             };
             const row = (key, label, amountEl, dateVal, onSend, onRemove) => (
               <React.Fragment key={key}>
@@ -841,16 +850,16 @@ export function VccTab({ pid, budget, sections, lines, vcc, categories, set, vcc
                 <div style={{ display:'grid', gridTemplateColumns:'auto 110px 64px auto', gap:'7px 10px', fontSize:11, alignItems:'center' }}>
                   {row('dep0', 'Deposit',
                     <MoneyInput value={budget.deposit ?? ''} width={110} onCommit={v => { patchBudget({ deposit: v }); saveBudget({ deposit: v }); }} />,
-                    budget.deposit_due, () => send('deposit_due', 'depositDue'))}
+                    budget.deposit_due, () => send('deposit_due', 'depositDue', 'Deposit', num(budget.deposit)))}
                   {extras.map((x, i) => row(`dep${i + 1}`, `Deposit ${i + 2}`,
                     <MoneyInput value={x.amount ?? ''} width={110}
                       onCommit={v => saveExtras(extras.map((y, j) => j === i ? { ...y, amount: v } : y))} />,
                     x.date,
-                    () => { saveExtras(extras.map((y, j) => j === i ? { ...y, date: today() } : y)); sendMsg(); },
+                    () => { saveExtras(extras.map((y, j) => j === i ? { ...y, date: today() } : y)); sendMsg(`Deposit ${i + 2}`, num(x.amount)); },
                     () => { if (confirm('Remove this deposit?')) saveExtras(extras.filter((_, j) => j !== i)); }))}
                   {row('final', 'Final Invoice',
                     <span style={{ fontWeight:700, padding:'4px 6px' }}>{fmt$(finalInvoice)}</span>,
-                    budget.final_inv_date, () => send('final_inv_date', 'finalInvDate'))}
+                    budget.final_inv_date, () => send('final_inv_date', 'finalInvDate', 'Final Invoice', finalInvoice))}
                   {row('total', 'Total Budget',
                     <span style={{ fontWeight:800, color:'#5ABF80', padding:'4px 6px' }}>{fmt$(t.total)}</span>,
                     null, null)}

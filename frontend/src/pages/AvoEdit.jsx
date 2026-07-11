@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api.js';
+import { maybeMailNotice } from '../utils/mailNotice.js';
 import { AvoHeader, EditorSelect, AVO, AVO_STATUSES, fmtV, stepV, VersionInput } from './Avo.jsx';
 import { MILESTONES, milestoneText, milestoneRunners } from '../components/GanttChart.jsx';
 
@@ -606,7 +607,7 @@ export default function AvoEdit() {
                   </div>
                   <div style={{ flex:1, minWidth:120 }}>
                     <span style={lbl}>Approved</span>
-                    <button onClick={() => save({ approved: !e.approved })}
+                    <button onClick={() => { const next = !e.approved; save({ approved: next }); if (next) maybeMailNotice("The approval email to the lead editor"); }}
                       style={{ background: e.approved ? 'rgba(90,191,128,0.15)' : 'transparent', border:`1px solid ${e.approved ? '#5ABF80' : 'var(--border)'}`,
                         color: e.approved ? '#5ABF80' : 'var(--muted)', borderRadius:20, padding:'4px 14px', fontSize:11, fontWeight:800, cursor:'pointer' }}>
                       {e.approved ? '✓ Approved' : 'Not Approved'}

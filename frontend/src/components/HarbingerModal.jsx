@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { api } from '../api.js';
+import { maybeMailNotice } from '../utils/mailNotice.js';
 
 // Close-month options: 6 months back through ~3 years out. Value stays YYYY-MM
 // (matches how the budget stores close_month); label shows MM-YYYY.
@@ -240,6 +241,7 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted }) {
     setSaving(true);
     try {
       await api.submitHarbinger(pid, f);
+      maybeMailNotice('The Harbinger kickoff report email to accounting');
       onSubmitted && onSubmitted();
       onClose();
     } catch (e) { alert(e.message); setSaving(false); }

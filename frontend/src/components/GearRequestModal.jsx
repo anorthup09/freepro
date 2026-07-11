@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { api } from '../api.js';
+import { maybeMailNotice } from '../utils/mailNotice.js';
 import { useAuth } from '../App.jsx';
 
 const isUnbridled = m => (m.company || '').toLowerCase().includes('unbridled');
@@ -152,6 +153,7 @@ export default function GearRequestModal({ projectId, existing, onClose, onSubmi
       const r = amending
         ? await api.amendGearRequest(existing.project_id, f)
         : await api.createGearRequest(f);
+      maybeMailNotice(amending ? 'The amendment report email to the gear team' : 'The gear request email to the gear team');
       onSubmitted && onSubmitted(r);
       if (amending && embedded) { setAmending(false); setSaving(false); return; }
       onClose();
