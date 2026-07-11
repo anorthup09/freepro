@@ -222,7 +222,8 @@ export const api = {
   getContracts: (projectId) => req('GET', `/projects/${projectId}/contracts`),
   getContract: (token) => req('GET', `/contract/${token}`),
   signContract: (token, name) => req('POST', `/contract/${token}/sign`, { name }),
-  emailContract: (projectId, cid, to) => req('POST', `/projects/${projectId}/contracts/${cid}/email`, { to }),
+  emailContract: (projectId, cid, data) => req('POST', `/projects/${projectId}/contracts/${cid}/email`, data || {}),
+  contractEmailPrefill: (projectId, cid) => req('GET', `/projects/${projectId}/contracts/${cid}/email-prefill`),
 
   // ProFi — project finance
   financeProjects: () => req('GET', '/finance/projects'),

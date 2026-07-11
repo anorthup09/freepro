@@ -23,7 +23,7 @@ const DEFS = [
   { key: 'calendar-holds', title: 'Outlook Calendar Holds & Cancels', identity: 'production', editable: 'from',
     toDesc: 'The assigned crew member / lead editor',
     desc: 'Meeting request when someone is assigned to a shoot or edit window; a cancel when unassigned.' },
-  { key: 'contract-send', title: 'Contract / Deal Memo Send', identity: 'production', editable: 'from',
+  { key: 'contract-send', title: 'Contract / Deal Memo Send', identity: 'info', editable: 'from',
     toDesc: 'The contractor being hired',
     desc: 'Signing link + terms when a contract is emailed from the crew grid.' },
   { key: 'contract-signed', title: 'Contract Signed Confirmation', identity: 'production', editable: 'from',

@@ -137,6 +137,36 @@ export default function Crew({ project, onProjectUpdate }) {
     finally { if (!keepBusy) setContractBusy(false); }
   }
 
+  // Review-before-send: everything in the contractor email, autofilled and editable
+  const [emailReview, setEmailReview] = useState(null);   // { cid, ...prefill fields }
+  const [emailSending, setEmailSending] = useState(false);
+
+  async function openEmailReview(cid) {
+    try {
+      const p = await api.contractEmailPrefill(project.id, cid);
+      setEmailReview({ cid, newVendor: false, ...p, travelAllowance: p.travelAllowance ?? '', perDiem: p.perDiem ?? 75 });
+    } catch (e) { alert(e.message); }
+  }
+
+  async function sendReviewedEmail() {
+    if (!emailReview || emailSending) return;
+    setEmailSending(true);
+    try {
+      const r = await api.emailContract(project.id, emailReview.cid, {
+        to: emailReview.to, travelLocations: emailReview.travelLocations, datesText: emailReview.datesText,
+        quotedTotal: emailReview.quotedTotal, travelAllowance: emailReview.travelAllowance,
+        perDiem: emailReview.perDiem, invoiceTo: emailReview.invoiceTo, newVendor: emailReview.newVendor,
+        scope: emailReview.scope,
+      });
+      setContractSent(r.to);
+      setEmailReview(null);
+    } catch (e) {
+      if (e.status === 501 || /not configured|not connected/i.test(e.message)) { setEmailReview(null); maybeMailNotice('The contractor agreement email'); }
+      else alert(e.message);
+    }
+    setEmailSending(false);
+  }
+
   async function sendContractEmail(aid) {
     setContractBusy(true);
     setContractSent('');
@@ -144,14 +174,8 @@ export default function Crew({ project, onProjectUpdate }) {
       let c = contractFor(aid);
       if (c && c.signed_at) c = null;
       if (!c) c = await generateContract(aid, true);
-      if (c) {
-        const r = await api.emailContract(project.id, c.id);
-        setContractSent(r.to);
-      }
-    } catch (e) {
-      if (e.status === 501 || /not configured|not connected/i.test(e.message)) maybeMailNotice('The contract signing-link email');
-      else alert(e.message);
-    }
+      if (c) await openEmailReview(c.id);
+    } catch (e) { alert(e.message); }
     setContractBusy(false);
   }
 
@@ -236,15 +260,7 @@ export default function Crew({ project, onProjectUpdate }) {
       const c = await api.createContract(project.id, a.id, { scope });
       setContracts(prev => [c, ...prev]);
       let sentTo = '';
-      if (send) {
-        try {
-          const r = await api.emailContract(project.id, c.id);
-          sentTo = r.to;
-        } catch (e2) {
-          if (e2.status === 501 || /not configured|not connected/i.test(e2.message)) maybeMailNotice('The contract signing-link email');
-          else alert(e2.message);
-        }
-      }
+      if (send) await openEmailReview(c.id);
       setShowAddSlot(false);
       setSlotForm({ positionId:'', crewMemberId:'', slotNumber:1, startDate:'', endDate:'', isContractor:false, dayRate:'', laborDays:'', gearCost:'', gearDays:'' });
       // open the edit modal on the new slot so the link/confirmation is visible
@@ -490,6 +506,76 @@ export default function Crew({ project, onProjectUpdate }) {
 
   return (
     <div>
+      {emailReview && (
+        <div onClick={e => e.target === e.currentTarget && setEmailReview(null)}
+          style={{ position:'fixed', inset:0, zIndex:260, background:'rgba(0,0,0,0.78)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+          <div style={{ width:'100%', maxWidth:560, maxHeight:'90vh', display:'flex', flexDirection:'column', background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid var(--orange)', borderRadius:12, overflow:'hidden' }}>
+            <div style={{ padding:'16px 20px 10px', borderBottom:'1px solid var(--border)' }}>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                <div style={{ fontSize:15, fontWeight:800 }}>Review the contractor email</div>
+                <button className="btn btn-ghost btn-sm" onClick={() => setEmailReview(null)}>✕</button>
+              </div>
+              <div style={{ fontSize:11, color:'var(--muted)', marginTop:2 }}>
+                Autofilled from FreePro — edit anything before it sends from info@unbridledmedia.com.
+              </div>
+            </div>
+            <div style={{ overflowY:'auto', padding:'12px 20px', display:'flex', flexDirection:'column', gap:10 }}>
+              {[
+                ['Project Code', 'projectCode', true],
+                ['Contractor', 'contractorName', true],
+                ['Contractor Email', 'to'],
+                ['Position / Services', 'position', true],
+                ['Travel Locations (if any)', 'travelLocations'],
+                ['Travel & Working Dates (incl. day rate)', 'datesText'],
+              ].map(([label, k, ro]) => (
+                <div key={k}>
+                  <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>{label}</label>
+                  <input value={emailReview[k] || ''} readOnly={!!ro}
+                    style={{ width:'100%', fontSize:12, opacity: ro ? 0.65 : 1 }}
+                    onChange={e => setEmailReview(v => ({ ...v, [k]: e.target.value }))} />
+                </div>
+              ))}
+              <div style={{ display:'flex', gap:10 }}>
+                {[
+                  ['Quoted Total ($)', 'quotedTotal'],
+                  ['Travel Expense Allowance ($)', 'travelAllowance'],
+                  ['Per Diem ($/day)', 'perDiem'],
+                ].map(([label, k]) => (
+                  <div key={k} style={{ flex:1 }}>
+                    <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>{label}</label>
+                    <input type="number" value={emailReview[k]} style={{ width:'100%', fontSize:12 }}
+                      onChange={e => setEmailReview(v => ({ ...v, [k]: e.target.value }))} />
+                  </div>
+                ))}
+              </div>
+              <div style={{ fontSize:10, color:'var(--muted)', marginTop:-4 }}>
+                Travel expenses and per diem are reimbursable with receipts — the email says so next to each amount.
+              </div>
+              <div>
+                <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Send final invoice to (names & email)</label>
+                <input value={emailReview.invoiceTo || ''} style={{ width:'100%', fontSize:12 }}
+                  onChange={e => setEmailReview(v => ({ ...v, invoiceTo: e.target.value }))} />
+              </div>
+              <div>
+                <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Scope of Work</label>
+                <textarea value={emailReview.scope || ''} style={{ width:'100%', fontSize:12, minHeight:70 }}
+                  onChange={e => setEmailReview(v => ({ ...v, scope: e.target.value }))} />
+              </div>
+              <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:12, cursor:'pointer' }}>
+                <input type="checkbox" checked={!!emailReview.newVendor} style={{ width:'auto', margin:0 }}
+                  onChange={e => setEmailReview(v => ({ ...v, newVendor: e.target.checked }))} />
+                New vendor — the email tells them a vendor packet will follow and must be returned before invoicing
+              </label>
+            </div>
+            <div style={{ display:'flex', justifyContent:'flex-end', gap:8, padding:'12px 20px', borderTop:'1px solid var(--border)' }}>
+              <button className="btn btn-ghost btn-sm" onClick={() => setEmailReview(null)}>Cancel</button>
+              <button className="btn btn-primary btn-sm" disabled={emailSending || !String(emailReview.to || '').trim()} onClick={sendReviewedEmail}>
+                {emailSending ? 'Sending…' : 'Send from info@unbridledmedia.com'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:6 }}>
         <div>
           <div className="page-title">Crew</div>

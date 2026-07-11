@@ -42,31 +42,108 @@ router.get('/projects/:id/contracts', requireAuth, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-// Email a contract link to the contractor from the configured mailbox
+// Everything the contractor email needs, autofilled from FreePro/ProFi —
+// the frontend shows it for review (all fields editable) before sending.
+router.get('/projects/:id/contracts/:cid/email-prefill', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try {
+    const [c] = await sql`SELECT * FROM contracts WHERE id = ${req.params.cid} AND project_id = ${req.params.id}`;
+    if (!c) return res.status(404).json({ error: 'Contract not found' });
+    const [proj] = await sql`
+      SELECT p.*, cm.email as poc_email,
+             COALESCE(NULLIF(TRIM(CONCAT(cm.preferred_first_name, ' ', cm.preferred_last_name)), ''), cm.name) as poc_name
+      FROM projects p LEFT JOIN crew_members cm ON cm.id = p.poc_crew_member_id
+      WHERE p.id = ${req.params.id}`;
+    const locations = await sql`SELECT name, address FROM locations WHERE project_id = ${req.params.id}`;
+    // Travel expense allocation: this shoot's budget travel subtotal split
+    // across its budgeted labor headcount — a starting point, editable on review.
+    let travelAllowance = null;
+    try {
+      const [sec] = await sql`SELECT id, budget_id FROM budget_sections WHERE freepro_project_id = ${req.params.id} LIMIT 1`;
+      if (sec) {
+        const lines = await sql`SELECT qty, unit_cost, is_travel, percent FROM budget_lines WHERE section_id = ${sec.id}`;
+        const travel = lines.filter(l => l.is_travel && l.percent == null).reduce((s, l) => s + (Number(l.qty) || 0) * (Number(l.unit_cost) || 0), 0);
+        const heads = lines.filter(l => !l.is_travel && l.percent == null).reduce((s, l) => s + (Number(l.qty) > 0 ? Number(l.qty) : 0), 0);
+        if (travel > 0 && heads > 0) travelAllowance = Math.round(travel / heads);
+      }
+    } catch { /* no linked budget — leave blank */ }
+    const fmtD = d => d ? new Date(String(d).slice(0, 10) + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+    const laborTotal = (Number(c.day_rate) || 0) * (Number(c.labor_days) || 0);
+    const gearTotal = (Number(c.gear_rate) || 0) * (Number(c.gear_days) || 0);
+    res.json({
+      to: c.contractor_email || '',
+      contractorName: c.contractor_name || '',
+      position: c.position_name || '',
+      scope: c.scope || '',
+      projectCode: c.project_code || proj?.code || '',
+      projectTitle: c.project_title || proj?.title || '',
+      datesText: `${fmtD(c.start_date)}${c.end_date && c.end_date !== c.start_date ? ` through ${fmtD(c.end_date)}` : ''}`
+        + (Number(c.day_rate) ? ` — $${Number(c.day_rate).toLocaleString()}/day × ${Number(c.labor_days) || 0} day${Number(c.labor_days) === 1 ? '' : 's'}` : ''),
+      dayRate: Number(c.day_rate) || 0, laborDays: Number(c.labor_days) || 0,
+      gearRate: Number(c.gear_rate) || 0, gearDays: Number(c.gear_days) || 0,
+      quotedTotal: laborTotal + gearTotal,
+      travelLocations: locations.map(l => l.name).filter(Boolean).join(', '),
+      travelAllowance,
+      perDiem: 75,
+      invoiceTo: proj?.poc_name ? `${proj.poc_name}${proj.poc_email ? ` — ${proj.poc_email}` : ''}` : '',
+    });
+  } catch (e) { next(e); }
+});
+
+// Email the contract + full SOW to the contractor (from info@unbridledmedia.com).
+// The body accepts the reviewed/edited values; anything omitted falls back to
+// what's on the contract.
 router.post('/projects/:id/contracts/:cid/email', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
     const { sendMail, isConfigured } = require('../lib/mailer');
     if (!isConfigured()) return res.status(501).json({ error: 'Email is not configured yet. Add SMTP_HOST, SMTP_USER, and SMTP_PASS to the server environment.' });
     const [c] = await sql`SELECT * FROM contracts WHERE id = ${req.params.cid} AND project_id = ${req.params.id}`;
     if (!c) return res.status(404).json({ error: 'Contract not found' });
-    const to = String(req.body.to || c.contractor_email || '').trim();
+    const d = req.body || {};
+    const to = String(d.to || c.contractor_email || '').trim();
     if (!to) return res.status(400).json({ error: 'No email address on file for this contractor. Add one in Roster Look-Up.' });
     const base = process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`;
     const link = `${base}/contract/${c.id}`;
     const first = (c.contractor_name || '').split(' ')[0];
-    const laborTotal = (Number(c.day_rate)||0) * (Number(c.labor_days)||0);
-    const gearTotal = (Number(c.gear_rate)||0) * (Number(c.gear_days)||0);
-    const fmt$ = n => '$' + Number(n||0).toLocaleString('en-US', { maximumFractionDigits: 2 });
-    const text = `Hi ${first},\n\nPlease review and sign your contractor agreement for "${c.project_title}" (${c.project_code}):\n\n${link}\n\nPosition: ${c.position_name}\nLabor: ${fmt$(c.day_rate)}/day x ${Number(c.labor_days)||0} days = ${fmt$(laborTotal)}${gearTotal ? `\nGear: ${fmt$(c.gear_rate)}/day x ${Number(c.gear_days)||0} days = ${fmt$(gearTotal)}` : ''}\nTotal: ${fmt$(laborTotal + gearTotal)}\n\nOpen the link, review the terms, and type your name to sign.\n\nThanks!\nUnbridled Media`;
+    const fmt$ = n => '$' + Number(n || 0).toLocaleString('en-US', { maximumFractionDigits: 2 });
+    const laborTotal = (Number(c.day_rate) || 0) * (Number(c.labor_days) || 0);
+    const gearTotal = (Number(c.gear_rate) || 0) * (Number(c.gear_days) || 0);
+    const quotedTotal = d.quotedTotal !== undefined && d.quotedTotal !== '' ? Number(d.quotedTotal) : laborTotal + gearTotal;
+    const datesText = d.datesText || `${c.start_date || ''}${c.end_date && c.end_date !== c.start_date ? ` through ${c.end_date}` : ''}`;
+    const perDiem = d.perDiem !== undefined && d.perDiem !== '' ? Number(d.perDiem) : 75;
+    const travelAllowance = d.travelAllowance !== undefined && d.travelAllowance !== '' ? Number(d.travelAllowance) : null;
+    const rows = [
+      ['Project Code', c.project_code],
+      ['Contractor', c.contractor_name],
+      ['Position / Services', c.position_name],
+      ['Travel Locations', d.travelLocations || ''],
+      ['Travel & Working Dates', datesText],
+      ...(Number(c.day_rate) ? [['Day Rate', `${fmt$(c.day_rate)}/day × ${Number(c.labor_days) || 0} days = ${fmt$(laborTotal)}`]] : []),
+      ...(gearTotal ? [['Gear', `${fmt$(c.gear_rate)}/day × ${Number(c.gear_days) || 0} days = ${fmt$(gearTotal)}`]] : []),
+      ['Quoted Total for Project', fmt$(quotedTotal)],
+      ...(travelAllowance != null ? [['Travel Expense Allowance', `Up to ${fmt$(travelAllowance)}, reimbursable with receipts`]] : []),
+      ['Per Diem', `Up to ${fmt$(perDiem)}/day allowable expense reimbursement, with receipts`],
+      ...(d.invoiceTo ? [['Send your final invoice to', d.invoiceTo]] : []),
+    ];
+    const scope = d.scope !== undefined ? d.scope : c.scope;
+    const text = [
+      `Hi ${first},`, '',
+      `Please review and sign your contractor agreement for "${c.project_title}" (${c.project_code}):`, '', link, '',
+      ...rows.filter(([, v]) => v).map(([l, v]) => `${l}: ${v}`),
+      ...(scope ? ['', `Scope of Work:\n${scope}`] : []),
+      ...(d.newVendor ? ['', 'You are a new vendor with Unbridled Media — a vendor packet will follow separately; please complete and return it before invoicing.'] : []),
+      '', 'Open the link, review the terms, and type your name to sign.', '', 'Thanks!', 'Unbridled Media',
+    ].join('\n');
     const { noticeHtml } = require('../lib/emailTemplates');
-    await sendMail({ identity: 'production', to, subject: `${c.project_title} — Contractor Agreement`, text,
-      html: noticeHtml({ tag: 'Contract', note: 'Contractor agreement',
+    const { automation } = require('../lib/automations');
+    const cfg = await automation('contract-send').catch(() => null);
+    await sendMail({ identity: 'info', fromAddr: cfg?.from || undefined, to,
+      subject: `${c.project_title} — Contractor Agreement`, text,
+      html: noticeHtml({ tag: 'Contract', note: 'Contractor agreement & scope of work',
         title: c.project_title, subtitle: c.project_code,
-        intro: `Hi ${first} — please review and sign your contractor agreement. Open the link, review the terms, and type your name to sign.`,
-        rows: [['Position', c.position_name],
-               ['Labor', `${fmt$(c.day_rate)}/day × ${Number(c.labor_days) || 0} days = ${fmt$(laborTotal)}`],
-               ...(gearTotal ? [['Gear', `${fmt$(c.gear_rate)}/day × ${Number(c.gear_days) || 0} days = ${fmt$(gearTotal)}`]] : []),
-               ['Total', fmt$(laborTotal + gearTotal)]],
+        intro: `Hi ${first} — please review and sign your contractor agreement. Open the link, review the terms, and type your name to sign.`
+          + (d.newVendor ? ' You are a new vendor with Unbridled Media — a vendor packet will follow separately; please complete and return it before invoicing.' : ''),
+        rows,
+        blocks: scope ? [['Scope of Work', scope]] : [],
         button: { label: 'Review & sign', url: link },
         copyLink: { label: 'Signing link', url: link },
         postmark: new Date() }) });
