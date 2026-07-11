@@ -91,11 +91,11 @@ function FunFactPrompt() {
       style={{ position:'fixed', inset:0, zIndex:210, background:'rgba(0,0,0,0.75)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
       <div style={{ width:'100%', maxWidth:440, background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid var(--orange)', borderRadius:14, padding:'22px 24px' }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-          <div style={{ fontSize:11, fontWeight:800, letterSpacing:'0.12em', color:'var(--orange)' }}>✨ UM FUN FACTS</div>
+          <div style={{ fontSize:11, fontWeight:800, letterSpacing:'0.12em', color:'var(--orange)' }}>MEDIAMOMENT</div>
           <button className="btn btn-ghost btn-sm" onClick={close}>✕</button>
         </div>
         <div style={{ fontSize:16, fontWeight:800, margin:'12px 0 4px', lineHeight:1.35 }}>{p.prompt}</div>
-        <div style={{ fontSize:11, color:'var(--muted)', marginBottom:12 }}>Your question of the week — your answer shows up on the team's daily fun fact.</div>
+        <div style={{ fontSize:11, color:'var(--muted)', marginBottom:12 }}>Your question of the week — your answer shows up in the team's daily MediaMoment.</div>
         <textarea value={answer} onChange={e => setAnswer(e.target.value)} autoFocus
           placeholder="Spill it…" style={{ width:'100%', minHeight:64, fontSize:13 }} />
         <div style={{ display:'flex', justifyContent:'space-between', marginTop:12 }}>
@@ -125,7 +125,7 @@ function DailyFactBlob() {
       <div className="fun-blob" style={{ position:'relative', width:'min(94%, 440px)', minHeight:210, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:6, padding:'34px 40px', textAlign:'center' }}>
         <button onClick={() => setFact(null)} aria-label="Close"
           style={{ position:'absolute', top:14, right:18, background:'rgba(0,0,0,0.25)', border:'none', color:'#fff', width:26, height:26, borderRadius:'50%', fontSize:13, fontWeight:900, cursor:'pointer', lineHeight:1 }}>✕</button>
-        <div style={{ fontSize:10, fontWeight:900, letterSpacing:'0.18em', color:'rgba(255,255,255,0.85)' }}>✨ UM FUN FACT OF THE DAY</div>
+        <div style={{ fontSize:10, fontWeight:900, letterSpacing:'0.18em', color:'rgba(255,255,255,0.85)' }}>MEDIAMOMENT OF THE DAY</div>
         <div style={{ fontSize:12, fontWeight:700, color:'rgba(255,255,255,0.9)', marginTop:4 }}>{fact.prompt}</div>
         <div style={{ fontFamily:"'Syne', sans-serif", fontSize:19, fontWeight:800, color:'#fff', lineHeight:1.3, textShadow:'0 2px 10px rgba(0,0,0,0.35)' }}>
           “{fact.answer}”
