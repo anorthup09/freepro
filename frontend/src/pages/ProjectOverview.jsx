@@ -302,9 +302,9 @@ export default function ProjectOverview({ pid, onOpenFinance }) {
           <div style={secHdr}>Shoots</div>
           {shoots.length === 0 && <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>No production shoots yet — they appear when the budget goes Live.</div>}
           {shoots.map(s => (
-            <div key={s.id} onClick={() => nav(`/projects/${s.id}`)}
+            <div key={s.id} className="pv-shootrow" onClick={() => nav(`/projects/${s.id}`)}
               style={{ display:'flex', alignItems:'center', gap:10, padding:'7px 4px', borderBottom:'1px solid rgba(255,255,255,0.04)', cursor:'pointer' }}>
-              <span style={{ fontSize:11, fontWeight:800, minWidth:120 }}>{s.shoot_code || s.code}</span>
+              <span className="pv-shootcode" style={{ fontSize:11, fontWeight:800, minWidth:120 }}>{s.shoot_code || s.code}</span>
               <span style={{ fontSize:11, color:'var(--text)', flex:1, minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{s.title}</span>
               <span style={{ fontSize:10, color:'var(--muted)', whiteSpace:'nowrap' }}>{fmtD(s.start_date)}{s.end_date && s.end_date !== s.start_date ? ` – ${fmtD(s.end_date)}` : ''}</span>
               <StatusPill status={s.status} color={s.status === 'ARCHIVED' ? '#8a8f98' : '#E8500A'} />

@@ -562,6 +562,17 @@ textarea { resize: vertical; min-height: 70px; }
   .pv-overview .pv-post   { order: 4; }
   .pv-overview .pv-todo   { order: 5; }
   .pv-overview .pv-notes  { order: 6; }
+  /* Tiles must be able to shrink below their content's natural width —
+     otherwise a long shoot row pushes the whole page into horizontal scroll */
+  .pv-overview { grid-template-columns: minmax(0, 1fr) !important; }
+  .pv-overview .pv-docs, .pv-overview .pv-head, .pv-overview .pv-shoots,
+  .pv-overview .pv-post, .pv-overview .pv-todo, .pv-overview .pv-notes { min-width: 0; max-width: 100%; }
+  /* Shoot rows restack: code + status pill on top, full title under, dates last */
+  .pv-shootrow { flex-wrap: wrap; row-gap: 2px; }
+  .pv-shootrow .pv-shootcode { min-width: 0 !important; order: 1; }
+  .pv-shootrow > span:nth-of-type(2) { order: 3; flex: 1 1 100% !important; white-space: normal !important; }
+  .pv-shootrow > span:nth-of-type(3) { order: 4; }
+  .pv-shootrow > :last-child { order: 2; margin-left: auto; }
 }
 
 /* Project View detail bar on phones: title left, back button top right */
