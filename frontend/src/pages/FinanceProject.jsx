@@ -478,17 +478,6 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
           </div>
         ))}
         <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
-          <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Close Month</label>
-          <select value={budget.close_month || ''} style={{ width:150, fontSize:12 }}
-            onChange={e => { patchBudget({ close_month: e.target.value }); saveBudget({ closeMonth: e.target.value }); }}>
-            <option value="">— Select —</option>
-            {budget.close_month && !closeMonthOptions.some(o => o.value === budget.close_month) && (
-              <option value={budget.close_month}>{budget.close_month}</option>
-            )}
-            {closeMonthOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
-        </div>
-        <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
           <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Budget Owner</label>
           <select value={budget.media_rep || ''} style={{ width:160, fontSize:12 }}
             onChange={e => { patchBudget({ media_rep: e.target.value }); saveBudget({ mediaRep: e.target.value }); }}>
@@ -502,6 +491,17 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
           <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Est. Final Delivery</label>
           <input type="date" value={budget.est_final_delivery ? String(budget.est_final_delivery).slice(0, 10) : ''} style={{ width:140, fontSize:12 }}
             onChange={e => { patchBudget({ est_final_delivery: e.target.value }); saveBudget({ estFinalDelivery: e.target.value }); }} />
+        </div>
+        <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
+          <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Close Month</label>
+          <select value={budget.close_month || ''} style={{ width:150, fontSize:12 }}
+            onChange={e => { patchBudget({ close_month: e.target.value }); saveBudget({ closeMonth: e.target.value }); }}>
+            <option value="">— Select —</option>
+            {budget.close_month && !closeMonthOptions.some(o => o.value === budget.close_month) && (
+              <option value={budget.close_month}>{budget.close_month}</option>
+            )}
+            {closeMonthOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
         </div>
         <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
           <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Tagged</label>
