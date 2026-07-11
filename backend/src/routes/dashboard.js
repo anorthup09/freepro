@@ -179,4 +179,175 @@ router.get('/team', requireAuth, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// ── Hub greeting: one fun, casual, personal line per user per day ──
+
+const DENVER_FIRSTS = ['anabelle', 'fabrizio'];
+
+async function greetingContext(user) {
+  const today = bizToday();
+  const cm = await myCrewMember(user.email);
+  const first = (user.name || user.email || 'there').trim().split(/\s+/)[0];
+  const ctx = { first, weekday: new Date(today + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long' }), date: today };
+  ctx.homeOffice = DENVER_FIRSTS.includes(first.toLowerCase()) ? 'Denver' : 'St. Louis';
+  if (cm) {
+    const [trip] = await sql`
+      SELECT pr.city, pr.state, pr.title, pr.code, ca.start_date
+      FROM crew_assignments ca JOIN projects pr ON pr.id = ca.project_id
+      WHERE ca.crew_member_id = ${cm.id} AND pr.status != 'ARCHIVED'
+        AND COALESCE(ca.end_date, ca.start_date)::date >= ${today}
+        AND ca.start_date::date <= ${bizToday(10)}
+      ORDER BY ca.start_date LIMIT 1`;
+    if (trip) ctx.trip = { city: trip.city, state: trip.state, title: trip.title, startsToday: iso(trip.start_date) <= today };
+    const [pto] = await sql`
+      SELECT title, pto_type, start_date FROM pto_requests
+      WHERE member_id = ${cm.id} AND status = 'APPROVED' AND pto_type != 'STL/DEN Only'
+        AND start_date >= ${today} AND start_date <= ${bizToday(14)}
+      ORDER BY start_date LIMIT 1`;
+    if (pto) ctx.pto = { type: pto.pto_type, startsIn: Math.round((new Date(iso(pto.start_date)) - new Date(today)) / 86400000) };
+    const [fact] = await sql`SELECT prompt, answer FROM fun_facts WHERE member_email = ${(user.email || '').toLowerCase()} ORDER BY created_at DESC LIMIT 1`;
+    if (fact) ctx.funFact = { prompt: fact.prompt, answer: fact.answer };
+  }
+  return ctx;
+}
+
+function fallbackGreeting(ctx) {
+  if (ctx.trip) return ctx.trip.startsToday
+    ? `Hey ${ctx.first}, have fun in ${ctx.trip.city || 'the field'} — go make something great 🎬`
+    : `Hey ${ctx.first}, ${ctx.trip.city || 'a shoot'} is calling — pack the good snacks`;
+  if (ctx.pto) return ctx.pto.startsIn <= 1
+    ? `Hey ${ctx.first}, PTO starts basically now. Don't let the door hit ya 🏝️`
+    : `Hey ${ctx.first}, PTO in ${ctx.pto.startsIn} days — you can make it`;
+  const byDay = {
+    Monday: `Hey ${ctx.first}, Mondays are Monday-ing. Coffee first, everything else second.`,
+    Tuesday: `Hey ${ctx.first}, Tuesday: like Monday, but with less excuses.`,
+    Wednesday: `Hey ${ctx.first}, it's the hump. Over we go.`,
+    Thursday: `Hey ${ctx.first}, Thursday is just Friday's opening act.`,
+    Friday: `Hey ${ctx.first}, it's Friday — the timeline can smell the weekend.`,
+    Saturday: `Hey ${ctx.first}, working on a Saturday? Legend. Or concerning. Maybe both.`,
+    Sunday: `Hey ${ctx.first}, Sunday scaries have nothing on you.`,
+  };
+  return byDay[ctx.weekday] || `Hey ${ctx.first}, go be great today.`;
+}
+
+async function aiGreeting(ctx) {
+  if (!process.env.ANTHROPIC_API_KEY) return null;
+  try {
+    const facts = [
+      `Name: ${ctx.first}`, `Day: ${ctx.weekday}, ${ctx.date}`, `Home office: ${ctx.homeOffice}`,
+      ctx.trip ? `Upcoming/current travel gig: ${ctx.trip.title} in ${ctx.trip.city || 'the field'}${ctx.trip.state ? ', ' + ctx.trip.state : ''}${ctx.trip.startsToday ? ' (on it now)' : ' (soon)'}` : null,
+      ctx.pto ? `PTO (${ctx.pto.type}) starts in ${ctx.pto.startsIn} day(s)` : null,
+      ctx.funFact ? `Their fun fact — Q: ${ctx.funFact.prompt} A: ${ctx.funFact.answer}` : null,
+    ].filter(Boolean).join('\n');
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001', max_tokens: 100,
+        messages: [{ role: 'user', content:
+          `Write ONE short, fun, casual greeting line for a video production company's internal dashboard. Start with "Hey ${ctx.first}," and riff on exactly one of these details (travel gig > PTO > fun fact > day of week/city, in that priority). Keep it under 18 words, playful, a little irreverent, no hashtags, at most one emoji. Examples of the vibe: "Hey Alex, Mondays are Monday-ing" / "Hey Alex, have fun in Chicago this week" / "Hey Alex, PTO is almost here, you can make it".\n\nDetails:\n${facts}\n\nReply with ONLY the greeting line.` }],
+      }),
+    });
+    const j = await r.json();
+    const text = (j.content?.[0]?.text || '').trim().replace(/^["']|["']$/g, '');
+    return text && text.length < 160 ? text : null;
+  } catch (e) { console.error('greeting AI failed:', e.message); return null; }
+}
+
+router.get('/greeting', requireAuth, async (req, res, next) => {
+  try {
+    const today = bizToday();
+    const key = (req.user.email || req.user.id || '').toLowerCase();
+    const [hit] = await sql`SELECT text FROM daily_greetings WHERE user_key = ${key} AND day = ${today}`;
+    if (hit) return res.json({ text: hit.text });
+    const ctx = await greetingContext(req.user);
+    const text = (await aiGreeting(ctx)) || fallbackGreeting(ctx);
+    await sql`INSERT INTO daily_greetings (user_key, day, text) VALUES (${key}, ${today}, ${text})
+      ON CONFLICT (user_key, day) DO UPDATE SET text = ${text}`;
+    res.json({ text });
+  } catch (e) { next(e); }
+});
+
+// ── UM Fun Facts ──
+// Weekly: everyone gets their own prompt to answer (first login of the week).
+// Daily: one teammate's fact takes over the Team Today card as a blob.
+
+const FUN_PROMPTS = [
+  "What's the weirdest food combo you secretly love?",
+  'What was your first concert?',
+  "What's a movie you can quote start to finish?",
+  'What job did you want as a kid?',
+  "What's your most useless talent?",
+  "What's the best meal you've ever had on a shoot or trip?",
+  'If you could live in any city for a year, where?',
+  "What's a song you'll never skip?",
+  "What's your guilty-pleasure TV show?",
+  'Whats the most famous person you have ever met?',
+  "What's one thing on your bucket list?",
+  'Coffee order — be honest.',
+  "What's the best piece of advice you've ever gotten?",
+  'What hobby would you pick up if time and money were no object?',
+  "What's your go-to karaoke song?",
+  'Whats a smell that instantly takes you back?',
+  "What's the strangest thing in your camera bag / desk drawer right now?",
+  'If you had a walk-up song, what would it be?',
+  "What's a food you refuse to eat, no exceptions?",
+  'Dream vacation: beach, mountains, or city?',
+  "What's your favorite family tradition?",
+  'What game could you play forever?',
+  'Whats the best gift you have ever received?',
+  "What's a skill you learned purely from YouTube?",
+  'If you opened a restaurant, what would it serve?',
+  "What's your favorite word?",
+  'Whats the last photo on your camera roll (describe it)?',
+  'Cats, dogs, or something weirder?',
+  "What's a trend you'll never understand?",
+  'Whats your comfort movie?',
+  'If you could instantly master one instrument, which?',
+  "What's the farthest you've ever been from home?",
+  'Whats your midnight snack of choice?',
+  'What fictional place would you move to?',
+  "What's the best live event you've ever attended?",
+];
+
+const isoWeek = d => {
+  const dt = new Date(d + 'T12:00:00');
+  const jan = new Date(dt.getFullYear(), 0, 1);
+  return `${dt.getFullYear()}-W${String(Math.ceil((((dt - jan) / 86400000) + jan.getDay() + 1) / 7)).padStart(2, '0')}`;
+};
+const hashStr = s => { let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h; };
+
+router.get('/funfact/prompt', requireAuth, async (req, res, next) => {
+  try {
+    const week = isoWeek(bizToday());
+    const key = (req.user.email || '').toLowerCase();
+    const prompt = FUN_PROMPTS[hashStr(key + week) % FUN_PROMPTS.length];
+    const [done] = await sql`SELECT id FROM fun_facts WHERE member_email = ${key} AND week = ${week}`;
+    res.json({ week, prompt, answered: !!done });
+  } catch (e) { next(e); }
+});
+
+router.post('/funfact', requireAuth, async (req, res, next) => {
+  try {
+    const answer = String(req.body.answer || '').trim();
+    if (!answer) return res.status(400).json({ error: 'Give us something!' });
+    const week = isoWeek(bizToday());
+    const key = (req.user.email || '').toLowerCase();
+    const prompt = FUN_PROMPTS[hashStr(key + week) % FUN_PROMPTS.length];
+    await sql`INSERT INTO fun_facts (member_email, member_name, prompt, answer, week)
+      VALUES (${key}, ${req.user.name || key}, ${prompt}, ${answer.slice(0, 500)}, ${week})`;
+    res.status(201).json({ ok: true });
+  } catch (e) { next(e); }
+});
+
+// Today's fact — rotates through everything submitted, one per day
+router.get('/funfact/today', requireAuth, async (req, res, next) => {
+  try {
+    const facts = await sql`SELECT member_name, prompt, answer FROM fun_facts ORDER BY created_at`;
+    if (!facts.length) return res.json(null);
+    const dayN = Math.floor(new Date(bizToday() + 'T12:00:00').getTime() / 86400000);
+    const f = facts[dayN % facts.length];
+    res.json({ name: f.member_name, prompt: f.prompt, answer: f.answer });
+  } catch (e) { next(e); }
+});
+
 module.exports = router;

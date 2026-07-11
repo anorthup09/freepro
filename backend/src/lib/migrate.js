@@ -1450,6 +1450,25 @@ async function migrate() {
   // Unbridled Solutions toggle — reveals Solutions-specific fields when on
   await sql`ALTER TABLE budgets ADD COLUMN IF NOT EXISTS unbridled_solutions BOOLEAN DEFAULT FALSE`;
 
+  // Hub personality: daily greetings cache + UM Fun Facts
+  await sql`
+    CREATE TABLE IF NOT EXISTS daily_greetings (
+      user_key TEXT NOT NULL,
+      day TEXT NOT NULL,
+      text TEXT NOT NULL,
+      PRIMARY KEY (user_key, day)
+    )`;
+  await sql`
+    CREATE TABLE IF NOT EXISTS fun_facts (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      member_email TEXT NOT NULL,
+      member_name TEXT,
+      prompt TEXT NOT NULL,
+      answer TEXT NOT NULL,
+      week TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`;
+
   // One-time ClickUp PTO/OOO import (idempotent)
   try { await require('./seedPto')(); } catch (e) { console.error('PTO seed failed:', e.message); }
 

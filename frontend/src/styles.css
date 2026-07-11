@@ -681,3 +681,19 @@ textarea { resize: vertical; min-height: 70px; }
   .hub-2col { grid-template-columns: 1fr !important; }
   .hub-2col > div:first-child { border-right: none !important; border-bottom: 1px solid var(--border); }
 }
+
+/* UM Fun Fact blob: gooey gradient shape that morphs and floats */
+.fun-blob {
+  background: linear-gradient(120deg, #E8500A 0%, #d13a8f 45%, #9A8AE0 80%, #4a9eff 110%);
+  background-size: 220% 220%;
+  border-radius: 46% 54% 60% 40% / 52% 44% 56% 48%;
+  box-shadow: 0 14px 50px rgba(209, 58, 143, 0.4), inset 0 2px 18px rgba(255,255,255,0.25);
+  animation: blobMorph 9s ease-in-out infinite, blobHue 12s ease-in-out infinite, blobPop .45s cubic-bezier(.2,1.4,.4,1) both;
+}
+@keyframes blobMorph {
+  0%, 100% { border-radius: 46% 54% 60% 40% / 52% 44% 56% 48%; transform: rotate(-1.2deg); }
+  33%      { border-radius: 58% 42% 44% 56% / 46% 58% 42% 54%; transform: rotate(1.2deg) translateY(-4px); }
+  66%      { border-radius: 42% 58% 52% 48% / 58% 44% 56% 42%; transform: rotate(-0.6deg) translateY(3px); }
+}
+@keyframes blobHue { 0%, 100% { background-position: 0% 40%; } 50% { background-position: 90% 60%; } }
+@keyframes blobPop { from { opacity: 0; scale: 0.6; } to { opacity: 1; scale: 1; } }

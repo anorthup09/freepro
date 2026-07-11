@@ -55,6 +55,87 @@ export const STATUS_COLORS = {
 
 const fmt$ = n => '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+// One fun, personal line per user per day — replaces the plain username
+export function HubGreeting() {
+  const [text, setText] = useState('');
+  useEffect(() => { api.hubGreeting().then(r => setText(r.text || '')).catch(() => {}); }, []);
+  if (!text) return null;
+  return (
+    <div style={{ textAlign:'center', fontSize:15, fontWeight:700, color:'var(--tan)', margin:'0 auto 12px', maxWidth:560, lineHeight:1.4 }}>
+      {text}
+    </div>
+  );
+}
+
+// UM Fun Facts — weekly prompt: first hub visit each week asks your question
+function FunFactPrompt() {
+  const [p, setP] = useState(null);
+  const [answer, setAnswer] = useState('');
+  const [saving, setSaving] = useState(false);
+  useEffect(() => {
+    api.funFactPrompt().then(r => {
+      if (r.answered || localStorage.getItem('fp_funfact_wk') === r.week) return;
+      setP(r);
+    }).catch(() => {});
+  }, []);
+  if (!p) return null;
+  const close = () => { localStorage.setItem('fp_funfact_wk', p.week); setP(null); };
+  async function submit() {
+    if (!answer.trim() || saving) return;
+    setSaving(true);
+    try { await api.submitFunFact(answer.trim()); close(); }
+    catch (e) { alert(e.message); setSaving(false); }
+  }
+  return (
+    <div onClick={e => e.target === e.currentTarget && close()}
+      style={{ position:'fixed', inset:0, zIndex:210, background:'rgba(0,0,0,0.75)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+      <div style={{ width:'100%', maxWidth:440, background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid #9A8AE0', borderRadius:14, padding:'22px 24px' }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+          <div style={{ fontSize:11, fontWeight:800, letterSpacing:'0.12em', color:'#9A8AE0' }}>✨ UM FUN FACTS</div>
+          <button className="btn btn-ghost btn-sm" onClick={close}>✕</button>
+        </div>
+        <div style={{ fontSize:16, fontWeight:800, margin:'12px 0 4px', lineHeight:1.35 }}>{p.prompt}</div>
+        <div style={{ fontSize:11, color:'var(--muted)', marginBottom:12 }}>Your question of the week — your answer shows up on the team's daily fun fact.</div>
+        <textarea value={answer} onChange={e => setAnswer(e.target.value)} autoFocus
+          placeholder="Spill it…" style={{ width:'100%', minHeight:64, fontSize:13 }} />
+        <div style={{ display:'flex', justifyContent:'space-between', marginTop:12 }}>
+          <button className="btn btn-ghost btn-sm" onClick={close}>Maybe next week</button>
+          <button className="btn btn-primary btn-sm" disabled={!answer.trim() || saving} onClick={submit}>
+            {saving ? 'Saving…' : 'Submit'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Daily fun-fact blob: takes over the Team Today card once per day
+function DailyFactBlob() {
+  const [fact, setFact] = useState(null);
+  useEffect(() => {
+    const today = new Date().toDateString();
+    if (localStorage.getItem('fp_funfact_day') === today) return;
+    api.funFactToday().then(f => {
+      if (f) { setFact(f); localStorage.setItem('fp_funfact_day', today); }
+    }).catch(() => {});
+  }, []);
+  if (!fact) return null;
+  return (
+    <div style={{ position:'absolute', inset:0, zIndex:6, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(10,10,8,0.6)', backdropFilter:'blur(4px)', WebkitBackdropFilter:'blur(4px)', borderRadius:12 }}>
+      <div className="fun-blob" style={{ position:'relative', width:'min(94%, 440px)', minHeight:210, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:6, padding:'34px 40px', textAlign:'center' }}>
+        <button onClick={() => setFact(null)} aria-label="Close"
+          style={{ position:'absolute', top:14, right:18, background:'rgba(0,0,0,0.25)', border:'none', color:'#fff', width:26, height:26, borderRadius:'50%', fontSize:13, fontWeight:900, cursor:'pointer', lineHeight:1 }}>✕</button>
+        <div style={{ fontSize:10, fontWeight:900, letterSpacing:'0.18em', color:'rgba(255,255,255,0.85)' }}>✨ UM FUN FACT OF THE DAY</div>
+        <div style={{ fontSize:12, fontWeight:700, color:'rgba(255,255,255,0.9)', marginTop:4 }}>{fact.prompt}</div>
+        <div style={{ fontFamily:"'Syne', sans-serif", fontSize:19, fontWeight:800, color:'#fff', lineHeight:1.3, textShadow:'0 2px 10px rgba(0,0,0,0.35)' }}>
+          “{fact.answer}”
+        </div>
+        <div style={{ fontSize:12, fontWeight:800, color:'rgba(255,255,255,0.92)', marginTop:2 }}>— {fact.name}</div>
+      </div>
+    </div>
+  );
+}
+
 function fmtCloseMonth(m) {
   if (!m) return '—';
   const [y, mo] = m.split('-');
@@ -735,7 +816,8 @@ function HubDashboard() {
         )}
       </div>
 
-      <div style={card}>
+      <div style={{ ...card, position:'relative', overflow:'hidden' }}>
+        <DailyFactBlob />
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
           <div style={{ ...hdr, marginBottom:0 }}>Team Today</div>
           <button onClick={() => nav('/team')}
@@ -836,7 +918,6 @@ export default function Hub() {
         </div>}
         <div style={{ display:'flex', alignItems:'center', gap:12 }}>
           {realUser?.role === 'ADMIN' && <NewUserAlert onOpen={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })} />}
-          <span style={{ fontSize:11, color:'var(--muted)' }}>{user?.name}</span>
           {realUser?.role === 'ADMIN' && (
             <select value={preview || ''} title="Preview the platform as another role"
               onChange={e => setPreview(e.target.value)}
@@ -866,6 +947,8 @@ export default function Hub() {
 
         <div style={{ flex:1, display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'20px 16px 60px' }}>
           <div style={{ width:'100%', maxWidth:1150 }}>
+            <HubGreeting />
+            <FunFactPrompt />
             <div style={{ textAlign:'center', marginBottom:20 }}>
               <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height:38, filter:'brightness(0) invert(1)', opacity:0.95, display:'inline-block' }} />
             </div>
