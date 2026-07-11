@@ -276,5 +276,16 @@
       "Check \"New vendor\" if they need a vendor packet, then \"Send from info@unbridledmedia.com\"."
     ],
     "screenshot": "contract-review.png"
+  },
+  {
+    "title": "Ways of Being — weekly shoutouts",
+    "what": "Culture, built in. Every week two people are chosen to give a quick Ways of Being for a teammate going above and beyond — and that prompt can't be skipped. The shoutout lands on the recipient's hub as a gold banner, joins the daily MediaMoment rotation, and every one is archived in an Admin-only report.",
+    "where": "Hub — the prompt appears for the two chosen people each week; recipients see their banner under the daily greeting. Admins: Reports → Ways of Being.",
+    "how": [
+      "If you're chosen, the Ways of Being prompt replaces your weekly question — pick the teammate and write the shoutout (it returns every visit until you do).",
+      "The recipient sees a gold \"Someone noticed\" banner on their hub for 30 days.",
+      "Watch for shoutouts in the daily MediaMoment blob; Admins can browse the full archive from Reports."
+    ],
+    "screenshot": "ways-of-being.png"
   }
 ]
