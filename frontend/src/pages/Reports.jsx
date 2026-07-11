@@ -56,7 +56,11 @@ export default function Reports() {
         <div className="page-title">Reports</div>
         <div className="page-sub">Cross-project rollups and recurring reports</div>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(280px, 1fr))', gap:16, marginTop:8 }}>
-          {REPORTS.map(r => (
+          {[...REPORTS, ...(user?.role === 'ADMIN' ? [{
+            title: 'Ways of Being',
+            desc: 'Every shoutout for a teammate going above and beyond — collected two per week from the MediaMoment prompts.',
+            accent: '#f7b52d', to: '/reports/ways-of-being',
+          }] : [])].map(r => (
             <div key={r.title} onClick={() => nav(r.to)}
               style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderTop:`3px solid ${r.accent}`, borderRadius:12, padding:'22px 22px 18px', cursor:'pointer', transition:'transform .15s ease' }}
               onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-3px)'}

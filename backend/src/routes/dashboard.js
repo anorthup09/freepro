@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const sql = require('../lib/db');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, requireRole } = require('../middleware/auth');
 const { bizToday } = require('../lib/dates');
 
 const PREF = "COALESCE(NULLIF(TRIM(CONCAT(cm.preferred_first_name, ' ', cm.preferred_last_name)), ''), cm.name)";
@@ -388,13 +388,68 @@ const isoWeek = d => {
 };
 const hashStr = s => { let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h; };
 
+// Ways of Being: every week two people are chosen (deterministically) to
+// shout out a teammate going above and beyond. Their weekly prompt becomes
+// the WoB ask — and it isn't skippable.
+const WOB_PROMPT = 'Give a quick Ways of Being for someone going above and beyond';
+
+async function wobChosen(week) {
+  const users = await sql`SELECT email FROM users WHERE role NOT IN ('PENDING', 'CLIENT', 'AGENCY', 'CREW') AND email IS NOT NULL`;
+  return users
+    .map(u => ({ e: u.email.toLowerCase(), h: hashStr(week + '|' + u.email.toLowerCase()) }))
+    .sort((a, b) => a.h - b.h)
+    .slice(0, 2).map(x => x.e);
+}
+
 router.get('/funfact/prompt', requireAuth, async (req, res, next) => {
   try {
     const week = isoWeek(bizToday());
     const key = (req.user.email || '').toLowerCase();
+    if ((await wobChosen(week)).includes(key)) {
+      const [done] = await sql`SELECT id FROM ways_of_being WHERE giver_email = ${key} AND week = ${week}`;
+      const team = await sql`
+        SELECT ${sql.unsafe(PREF)} as name, cm.email FROM crew_members cm
+        WHERE cm.company ILIKE '%unbridled%' AND cm.is_active IS NOT FALSE AND cm.email IS NOT NULL
+        ORDER BY 1`;
+      return res.json({ kind: 'wob', week, prompt: WOB_PROMPT, answered: !!done,
+        team: team.map(t => ({ name: t.name, email: t.email })) });
+    }
     const prompt = FUN_PROMPTS[hashStr(key + week) % FUN_PROMPTS.length];
     const [done] = await sql`SELECT id FROM fun_facts WHERE member_email = ${key} AND week = ${week}`;
-    res.json({ week, prompt, answered: !!done });
+    res.json({ kind: 'fact', week, prompt, answered: !!done });
+  } catch (e) { next(e); }
+});
+
+// Submit a Ways of Being shoutout
+router.post('/wob', requireAuth, async (req, res, next) => {
+  try {
+    const text = String(req.body.text || '').trim();
+    const recipientName = String(req.body.recipientName || '').trim();
+    if (!text || !recipientName) return res.status(400).json({ error: 'Pick a teammate and write the shoutout' });
+    const week = isoWeek(bizToday());
+    await sql`INSERT INTO ways_of_being (giver_email, giver_name, recipient_email, recipient_name, text, week)
+      VALUES (${(req.user.email || '').toLowerCase()}, ${req.user.name || req.user.email},
+        ${(req.body.recipientEmail || '').toLowerCase() || null}, ${recipientName}, ${text.slice(0, 800)}, ${week})`;
+    res.status(201).json({ ok: true });
+  } catch (e) { next(e); }
+});
+
+// Shoutouts about me (recipient's hub banner) — last 30 days
+router.get('/wob/mine', requireAuth, async (req, res, next) => {
+  try {
+    const rows = await sql`
+      SELECT giver_name, text, created_at FROM ways_of_being
+      WHERE recipient_email = ${(req.user.email || '').toLowerCase()}
+        AND created_at > NOW() - INTERVAL '30 days'
+      ORDER BY created_at DESC LIMIT 5`;
+    res.json(rows);
+  } catch (e) { next(e); }
+});
+
+// Every Ways of Being ever — Admin report
+router.get('/wob/all', requireAuth, requireRole('ADMIN'), async (req, res, next) => {
+  try {
+    res.json(await sql`SELECT giver_name, recipient_name, text, week, created_at FROM ways_of_being ORDER BY created_at DESC`);
   } catch (e) { next(e); }
 });
 
@@ -453,9 +508,19 @@ async function factVisual(prompt, answer) {
 router.get('/funfact/today', requireAuth, async (req, res, next) => {
   try {
     const facts = await sql`SELECT id, member_name, prompt, answer, image_url FROM fun_facts ORDER BY created_at`;
-    if (!facts.length) return res.json(null);
+    // Ways of Being shoutouts join the daily rotation
+    const wobs = await sql`SELECT id, giver_name, recipient_name, text, created_at FROM ways_of_being ORDER BY created_at`;
+    const pool = [
+      ...facts.map(x => ({ kind: 'fact', ...x })),
+      ...wobs.map(x => ({ kind: 'wob', ...x })),
+    ];
+    if (!pool.length) return res.json(null);
     const dayN = Math.floor(new Date(bizToday() + 'T12:00:00').getTime() / 86400000);
-    const f = facts[dayN % facts.length];
+    const f = pool[dayN % pool.length];
+    if (f.kind === 'wob') {
+      return res.json({ kind: 'wob', name: f.giver_name, recipient: f.recipient_name, answer: f.text,
+        prompt: `Ways of Being — shouting out ${f.recipient_name}`, image: { type: 'emoji', value: '🏆' } });
+    }
     let visual = f.image_url;
     if (!visual) {
       visual = await factVisual(f.prompt, f.answer);
@@ -464,7 +529,7 @@ router.get('/funfact/today', requireAuth, async (req, res, next) => {
     const image = visual && visual !== 'none'
       ? (visual.startsWith('emoji:') ? { type: 'emoji', value: visual.slice(6) } : { type: 'photo', value: visual })
       : null;
-    res.json({ name: f.member_name, prompt: f.prompt, answer: f.answer, image });
+    res.json({ kind: 'fact', name: f.member_name, prompt: f.prompt, answer: f.answer, image });
   } catch (e) { next(e); }
 });
 

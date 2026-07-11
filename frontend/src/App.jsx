@@ -73,6 +73,7 @@ import Reports from './pages/Reports.jsx';
 import InvoiceSearch from './pages/InvoiceSearch.jsx';
 import ClientInvoiceReport from './pages/ClientInvoiceReport.jsx';
 import VccReport, { VccProjectPage } from './pages/VccReport.jsx';
+import WaysOfBeing from './pages/WaysOfBeing.jsx';
 import { api } from './api.js';
 
 export const AuthContext = createContext(null);
@@ -217,6 +218,7 @@ export default function App() {
         <Route path="/reports/vcc/:pid" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/" /> : <VccProjectPage />) : <Navigate to="/login" />} />
         <Route path="/reports/invoices" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/" /> : <InvoiceSearch />) : <Navigate to="/login" />} />
         <Route path="/reports/client-invoices" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/" /> : <ClientInvoiceReport />) : <Navigate to="/login" />} />
+        <Route path="/reports/ways-of-being" element={user ? (user.role === 'ADMIN' ? <WaysOfBeing /> : <Navigate to="/reports" />) : <Navigate to="/login" />} />
         <Route path="/project-view" element={user ? (['CREW','AGENCY','FINANCE'].includes(user.role) ? <Navigate to="/" /> : <ProjectView />) : <Navigate to="/login" />} />
         <Route path="/project-view/client/:client" element={user ? (['CREW','AGENCY','FINANCE'].includes(user.role) ? <Navigate to="/" /> : <ClientHub />) : <Navigate to="/login" />} />
         <Route path="/project-view/:pid" element={user ? (['CREW','AGENCY','FINANCE'].includes(user.role) ? <Navigate to="/" /> : <ProjectViewDetail />) : <Navigate to="/login" />} />

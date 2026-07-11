@@ -67,21 +67,38 @@ export function HubGreeting() {
   );
 }
 
-// UM Fun Facts — weekly prompt: first hub visit each week asks your question
+// MediaMoment weekly prompt. Two flavors:
+//  - fact: your fun question of the week (skippable)
+//  - wob:  "Ways of Being" shoutout — two people get this each week, and it
+//    is NOT skippable: it comes back every visit until submitted.
 function FunFactPrompt() {
   const [p, setP] = useState(null);
   const [answer, setAnswer] = useState('');
+  const [who, setWho] = useState('');
   const [saving, setSaving] = useState(false);
   useEffect(() => {
     api.funFactPrompt().then(r => {
-      if (r.answered || localStorage.getItem('fp_funfact_wk') === r.week) return;
+      if (r.answered) return;
+      if (r.kind !== 'wob' && localStorage.getItem('fp_funfact_wk') === r.week) return;
       setP(r);
     }).catch(() => {});
   }, []);
   if (!p) return null;
-  const close = () => { localStorage.setItem('fp_funfact_wk', p.week); setP(null); };
+  const isWob = p.kind === 'wob';
+  // Fun questions can be snoozed for the week; a Ways of Being just hides
+  // until the next visit — it doesn't go away until it's written.
+  const close = () => { if (!isWob) localStorage.setItem('fp_funfact_wk', p.week); setP(null); };
   async function submit() {
-    if (!answer.trim() || saving) return;
+    if (saving) return;
+    if (isWob) {
+      if (!answer.trim() || !who) return;
+      const member = (p.team || []).find(t => t.email === who);
+      setSaving(true);
+      try { await api.submitWob({ recipientEmail: who, recipientName: member?.name || who, text: answer.trim() }); setP(null); }
+      catch (e) { alert(e.message); setSaving(false); }
+      return;
+    }
+    if (!answer.trim()) return;
     setSaving(true);
     try { await api.submitFunFact(answer.trim()); close(); }
     catch (e) { alert(e.message); setSaving(false); }
@@ -91,20 +108,46 @@ function FunFactPrompt() {
       style={{ position:'fixed', inset:0, zIndex:210, background:'rgba(0,0,0,0.75)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
       <div style={{ width:'100%', maxWidth:440, background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid var(--orange)', borderRadius:14, padding:'22px 24px' }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-          <div style={{ fontSize:11, fontWeight:800, letterSpacing:'0.12em', color:'var(--orange)' }}>MEDIAMOMENT</div>
+          <div style={{ fontSize:11, fontWeight:800, letterSpacing:'0.12em', color:'var(--orange)' }}>{isWob ? 'WAYS OF BEING' : 'MEDIAMOMENT'}</div>
           <button className="btn btn-ghost btn-sm" onClick={close}>✕</button>
         </div>
         <div style={{ fontSize:16, fontWeight:800, margin:'12px 0 4px', lineHeight:1.35 }}>{p.prompt}</div>
-        <div style={{ fontSize:11, color:'var(--muted)', marginBottom:12 }}>Your question of the week — your answer shows up in the team's daily MediaMoment.</div>
+        <div style={{ fontSize:11, color:'var(--muted)', marginBottom:12 }}>
+          {isWob
+            ? "You're one of two people chosen this week. Your shoutout lands on their hub and joins the MediaMoment rotation — this one can't be skipped."
+            : "Your question of the week — your answer shows up in the team's daily MediaMoment."}
+        </div>
+        {isWob && (
+          <select value={who} onChange={e => setWho(e.target.value)} style={{ width:'100%', fontSize:13, marginBottom:8 }}>
+            <option value="">— Who went above and beyond? —</option>
+            {(p.team || []).map(t => <option key={t.email} value={t.email}>{t.name}</option>)}
+          </select>
+        )}
         <textarea value={answer} onChange={e => setAnswer(e.target.value)} autoFocus
-          placeholder="Spill it…" style={{ width:'100%', minHeight:64, fontSize:13 }} />
-        <div style={{ display:'flex', justifyContent:'space-between', marginTop:12 }}>
-          <button className="btn btn-ghost btn-sm" onClick={close}>Maybe next week</button>
-          <button className="btn btn-primary btn-sm" disabled={!answer.trim() || saving} onClick={submit}>
-            {saving ? 'Saving…' : 'Submit'}
+          placeholder={isWob ? 'What did they do? Make them blush…' : 'Spill it…'} style={{ width:'100%', minHeight:64, fontSize:13 }} />
+        <div style={{ display:'flex', justifyContent: isWob ? 'flex-end' : 'space-between', marginTop:12 }}>
+          {!isWob && <button className="btn btn-ghost btn-sm" onClick={close}>Maybe next week</button>}
+          <button className="btn btn-primary btn-sm" disabled={!answer.trim() || (isWob && !who) || saving} onClick={submit}>
+            {saving ? 'Saving…' : isWob ? 'Send the shoutout' : 'Submit'}
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+// Shoutouts about YOU land on your hub — gold banner under the greeting
+function WobBanner() {
+  const [wobs, setWobs] = useState([]);
+  useEffect(() => { api.myWobs().then(setWobs).catch(() => {}); }, []);
+  if (!wobs.length) return null;
+  const w = wobs[0];
+  return (
+    <div style={{ maxWidth:640, margin:'0 auto 16px', background:'linear-gradient(120deg, rgba(232,80,10,0.16), rgba(247,181,45,0.14))',
+      border:'1px solid rgba(247,181,45,0.5)', borderRadius:14, padding:'14px 20px', textAlign:'center' }}>
+      <div style={{ fontSize:10, fontWeight:900, letterSpacing:'0.16em', color:'#f7b52d' }}>🏆 WAYS OF BEING — SOMEONE NOTICED</div>
+      <div style={{ fontSize:14, fontWeight:700, lineHeight:1.45, margin:'6px 0 4px' }}>“{w.text}”</div>
+      <div style={{ fontSize:11, color:'var(--muted)' }}>— {w.giver_name}{wobs.length > 1 ? ` · +${wobs.length - 1} more this month` : ''}</div>
     </div>
   );
 }
@@ -135,7 +178,7 @@ function DailyFactBlob() {
             {fact.image.value}
           </div>
         )}
-        <div style={{ fontSize:10, fontWeight:900, letterSpacing:'0.18em', color:'rgba(255,255,255,0.85)', position:'relative' }}>MEDIAMOMENT</div>
+        <div style={{ fontSize:10, fontWeight:900, letterSpacing:'0.18em', color:'rgba(255,255,255,0.85)', position:'relative' }}>{fact.kind === 'wob' ? 'WAYS OF BEING' : 'MEDIAMOMENT'}</div>
         <div style={{ fontSize:12, fontWeight:700, color:'rgba(255,255,255,0.9)', marginTop:4 }}>{fact.prompt}</div>
         <div style={{ fontFamily:"'Syne', sans-serif", fontSize:19, fontWeight:800, color:'#fff', lineHeight:1.3, textShadow:'0 2px 10px rgba(0,0,0,0.35)' }}>
           “{fact.answer}”
@@ -958,6 +1001,7 @@ export default function Hub() {
         <div style={{ flex:1, display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'20px 16px 60px' }}>
           <div style={{ width:'100%', maxWidth:1150 }}>
             <HubGreeting />
+            <WobBanner />
             <FunFactPrompt />
             <div style={{ textAlign:'center', marginBottom:20 }}>
               <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height:38, filter:'brightness(0) invert(1)', opacity:0.95, display:'inline-block' }} />

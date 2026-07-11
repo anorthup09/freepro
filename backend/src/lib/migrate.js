@@ -1470,6 +1470,19 @@ async function migrate() {
     )`;
   await sql`ALTER TABLE fun_facts ADD COLUMN IF NOT EXISTS image_url TEXT`;
 
+  // Ways of Being: weekly shoutouts for teammates going above and beyond
+  await sql`
+    CREATE TABLE IF NOT EXISTS ways_of_being (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      giver_email TEXT NOT NULL,
+      giver_name TEXT,
+      recipient_email TEXT,
+      recipient_name TEXT NOT NULL,
+      text TEXT NOT NULL,
+      week TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`;
+
   // One-time ClickUp PTO/OOO import (idempotent)
   try { await require('./seedPto')(); } catch (e) { console.error('PTO seed failed:', e.message); }
 
