@@ -3,7 +3,7 @@ const sql = require('../lib/db');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { isConfigured } = require('../lib/mailer');
 const { listAutomations, automation, DEFS } = require('../lib/automations');
-const { harbingerHtml } = require('../lib/emailTemplates');
+const { harbingerHtml, noticeHtml } = require('../lib/emailTemplates');
 
 const admin = [requireAuth, requireRole('ADMIN')];
 
@@ -45,21 +45,58 @@ router.get('/automations/:key/preview', ...admin, async (req, res, next) => {
       });
       return res.json({ kind: 'html', subject: 'HARBINGER ALERT: [02.LPL16926: LPL Focus 2026 — Social Media]', html });
     }
+    // Every other automation previews with the shared branded design
+    const pm = new Date();
     const samples = {
-      'client-invoice': { subject: 'Invoice — 02.LPL16926 LPL Focus 2026 (Deposit)', text: 'Hello,\n\nPlease find the deposit for LPL Focus 2026 (02.LPL16926).\n\nDeposit: $18,000.00\n\nA formal invoice document follows from our accounting team. Reply to this email with any questions.\n\nThank you,\nUnbridled Media' },
-      'gear-request': { subject: 'Gear request — 02.LPL16926-01 Denver', text: 'Name: Fred Munoz\nCrew: Recap Crew\nCheck out: 8/3 · Check in: 8/9\nCamera: FX6 x2\nLights: Aputure kit\nDrives: 2TB x3' },
-      'gear-amend': { subject: 'Gear request amended — 02.LPL16926-01', text: 'Gear request amended by Fred Munoz.\n\nCheck out: 8/3 → 8/2\nCamera: FX6 x2 → FX6 x2 + FX3' },
-      'calendar-holds': { subject: 'HOLD — 02.LPL16926-01 LPL Focus (DP/Cam Op)', text: 'You are assigned as DP/Cam Op on LPL Focus 2026.\nDates: 2026-08-04 to 2026-08-08.\nDetails in FreePro.\n\n(Outlook meeting request attached)' },
-      'contract-send': { subject: 'LPL Focus 2026 — Contractor Agreement', text: 'Hi Fred,\n\nPlease review and sign your contractor agreement for "LPL Focus 2026" (02.LPL16926):\n\nhttps://…/contract/…\n\nPosition: DP/Cam Op\nLabor: $850/day x 5 days = $4,250\n\nOpen the link, review the terms, and type your name to sign.\n\nThanks!\nUnbridled Media' },
-      'contract-signed': { subject: 'Contract signed — Fred Munoz (02.LPL16926)', text: 'Fred Munoz signed their DP/Cam Op deal memo for LPL Focus 2026 (02.LPL16926).\n\nThe signed contract is on the crew grid in FreePro.' },
-      'crew-question': { subject: 'New question on 02.LPL16926 — LPL Focus 2026', text: 'A new question was submitted on the Crew View:\n\n“What time is load-in on Day 2?”\n\nView & answer from the producer call sheet.' },
-      'pto': { subject: 'PTO Request — Fred Munoz - PTO', text: 'Fred Munoz submitted a PTO/OOO request that needs your review.\n\nType: PTO\nDates: 2026-08-12 to 2026-08-15\n\nApprove it in Team Management on the Unbridled hub.' },
-      'avo-approval': { subject: 'Approved ✓ — Show Opener (02.LPL16926)', text: 'Hi Joe,\n\n"Show Opener" (02.LPL16926) was marked Approved by anorthup@unbridledmedia.com.\n\nNice work — details are in AvocadoPost.' },
-      'password-reset': { subject: 'Reset your password', text: 'Click to reset your password (link valid for 1 hour):\n\nhttps://…/reset-password/…' },
+      'client-invoice': { subject: 'Invoice — 02.LPL16926 LPL Focus 2026 (Deposit)',
+        html: noticeHtml({ tag: 'Invoice', note: 'Deposit', title: 'LPL Focus 2026 — Social Media', subtitle: '02.LPL16926',
+          intro: 'Please find the deposit for LPL Focus 2026. A formal invoice document follows from our accounting team — reply to this email with any questions.',
+          rows: [['Deposit', '$18,000.00']], postmark: pm }) },
+      'gear-request': { subject: 'Gear Request — 02.LPL16926-01 LPL Focus 2026',
+        html: noticeHtml({ tag: 'Gear Request', note: 'New gear request', title: '02.LPL16926-01 — LPL Focus 2026', subtitle: 'LPL Financial',
+          rows: [['Submitted by', 'Fred Munoz'], ['Check-Out', '8/3'], ['Check-In', '8/9'], ['Media drives', '2TB × 3']],
+          blocks: [['Camera gear & accessories', 'FX6 x2 + interview package'], ['Lights & peripherals', 'Aputure kit']], postmark: pm }) },
+      'gear-amend': { subject: 'Gear request amended — 02.LPL16926-01',
+        html: noticeHtml({ tag: 'Gear Request', note: 'Request amended', color: '#b8930f', title: '02.LPL16926-01 — LPL Focus 2026',
+          intro: 'The locked gear request was amended by Fred Munoz.',
+          blocks: [['Change report', 'Check out: 8/3 → 8/2\nCamera: FX6 x2 → FX6 x2 + FX3']], postmark: pm }) },
+      'calendar-holds': { subject: 'HOLD — 02.LPL16926-01 LPL Focus (DP/Cam Op)',
+        html: noticeHtml({ tag: 'Calendar Hold', note: 'Assignment hold', title: 'HOLD — 02.LPL16926-01 LPL Focus (DP/Cam Op)',
+          intro: 'You are assigned as DP/Cam Op on LPL Focus 2026. An Outlook meeting request is attached — accept it to hold the dates.',
+          rows: [['Dates', '2026-08-04 to 2026-08-08']], postmark: pm }) },
+      'contract-send': { subject: 'LPL Focus 2026 — Contractor Agreement',
+        html: noticeHtml({ tag: 'Contract', note: 'Contractor agreement', title: 'LPL Focus 2026', subtitle: '02.LPL16926',
+          intro: 'Hi Fred — please review and sign your contractor agreement. Open the link, review the terms, and type your name to sign.',
+          rows: [['Position', 'DP/Cam Op'], ['Labor', '$850/day × 5 days = $4,250'], ['Total', '$4,250']],
+          button: { label: 'Review & sign', url: 'https://freepro-production.up.railway.app/contract/…' },
+          copyLink: { label: 'Signing link', url: 'https://freepro-production.up.railway.app/contract/…' }, postmark: pm }) },
+      'contract-signed': { subject: 'Contract signed — Fred Munoz (02.LPL16926)',
+        html: noticeHtml({ tag: 'Contract', note: 'Contract signed', color: '#3f9d68', title: 'Fred Munoz signed ✓', subtitle: 'LPL Focus 2026 (02.LPL16926)',
+          intro: 'The signed contract is on the crew grid in FreePro.',
+          rows: [['Position', 'DP/Cam Op'], ['Signed as', 'Fred Munoz']], postmark: pm }) },
+      'crew-question': { subject: 'New question on 02.LPL16926 — LPL Focus 2026',
+        html: noticeHtml({ tag: 'Call Sheet', note: 'New crew question', title: 'LPL Focus 2026', subtitle: '02.LPL16926',
+          intro: 'Hi Kelly — a new question was submitted on the Crew View:',
+          blocks: [['Question', 'What time is load-in on Day 2?']],
+          button: { label: 'View & answer', url: 'https://freepro-production.up.railway.app/share/…' }, postmark: pm }) },
+      'pto': { subject: 'PTO Request — Fred Munoz - PTO',
+        html: noticeHtml({ tag: 'Team', note: 'PTO / OOO — needs your review', title: 'Fred Munoz - PTO', subtitle: 'Fred Munoz',
+          intro: 'Fred Munoz submitted a PTO/OOO request that needs your review. Approve it in Team Management on the Unbridled hub.',
+          rows: [['Type', 'PTO'], ['Dates', '2026-08-12 to 2026-08-15']], postmark: pm }) },
+      'avo-approval': { subject: 'Ready For Review — Show Opener V2',
+        html: noticeHtml({ tag: 'AvocadoPost', note: 'Ready for review', title: 'Show Opener — V2', subtitle: '02.LPL16926',
+          intro: 'V2 is ready for review from Joe Seebeck.',
+          rows: [['Video', 'Show Opener'], ['Version', 'V2'], ['From', 'Joe Seebeck'], ['Lead Editor', 'Joe Seebeck']],
+          copyLink: { label: 'Review link — quick copy', url: 'https://f.io/review/…' },
+          button: { label: 'Open review', url: 'https://f.io/review/…' }, postmark: pm }) },
+      'password-reset': { subject: 'Reset your password — Unbridled Operating Platform',
+        html: noticeHtml({ tag: 'Account', note: 'Password reset', title: 'Reset your password', subtitle: 'Unbridled Operating Platform',
+          intro: 'Someone (hopefully you) asked to reset your password. The link below expires in 1 hour.',
+          button: { label: 'Reset password', url: 'https://freepro-production.up.railway.app/reset-password/…' }, postmark: pm }) },
     };
     const s = samples[key];
     if (!s) return res.status(404).json({ error: 'No preview available' });
-    res.json({ kind: 'text', ...s });
+    res.json({ kind: 'html', ...s });
   } catch (e) { next(e); }
 });
 

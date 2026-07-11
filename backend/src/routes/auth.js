@@ -72,10 +72,16 @@ router.post('/forgot-password', async (req, res, next) => {
       await sql`INSERT INTO password_resets (user_id, token, expires_at) VALUES (${user.id}, ${token}, NOW() + INTERVAL '1 hour')`;
       const { sendMail } = require('../lib/mailer');
       const base = process.env.APP_URL || `${req.protocol}://${req.get('host')}`;
+      const { noticeHtml } = require('../lib/emailTemplates');
       sendMail({ identity: 'noreply',
         to: user.email,
         subject: 'Reset your password — Unbridled Operating Platform',
         text: `Hi ${user.name},\n\nSomeone (hopefully you) asked to reset your password.\n\nReset it here (link expires in 1 hour):\n${base}/reset-password/${token}\n\nIf you didn't request this, you can ignore this email — your password is unchanged.`,
+        html: noticeHtml({ tag: 'Account', note: 'Password reset',
+          title: 'Reset your password', subtitle: 'Unbridled Operating Platform',
+          intro: `Hi ${user.name} — someone (hopefully you) asked to reset your password. The link below expires in 1 hour. If you didn't request this, ignore this email — your password is unchanged.`,
+          button: { label: 'Reset password', url: `${base}/reset-password/${token}` },
+          postmark: new Date() }),
       }).catch(err => console.error('Password reset email failed:', err.message));
     }
     res.json({ ok: true, message: 'If that email has an account, a reset link is on its way.' });

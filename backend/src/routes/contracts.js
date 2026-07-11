@@ -58,7 +58,18 @@ router.post('/projects/:id/contracts/:cid/email', requireAuth, requireRole('ADMI
     const gearTotal = (Number(c.gear_rate)||0) * (Number(c.gear_days)||0);
     const fmt$ = n => '$' + Number(n||0).toLocaleString('en-US', { maximumFractionDigits: 2 });
     const text = `Hi ${first},\n\nPlease review and sign your contractor agreement for "${c.project_title}" (${c.project_code}):\n\n${link}\n\nPosition: ${c.position_name}\nLabor: ${fmt$(c.day_rate)}/day x ${Number(c.labor_days)||0} days = ${fmt$(laborTotal)}${gearTotal ? `\nGear: ${fmt$(c.gear_rate)}/day x ${Number(c.gear_days)||0} days = ${fmt$(gearTotal)}` : ''}\nTotal: ${fmt$(laborTotal + gearTotal)}\n\nOpen the link, review the terms, and type your name to sign.\n\nThanks!\nUnbridled Media`;
-    await sendMail({ identity: 'production', to, subject: `${c.project_title} — Contractor Agreement`, text });
+    const { noticeHtml } = require('../lib/emailTemplates');
+    await sendMail({ identity: 'production', to, subject: `${c.project_title} — Contractor Agreement`, text,
+      html: noticeHtml({ tag: 'Contract', note: 'Contractor agreement',
+        title: c.project_title, subtitle: c.project_code,
+        intro: `Hi ${first} — please review and sign your contractor agreement. Open the link, review the terms, and type your name to sign.`,
+        rows: [['Position', c.position_name],
+               ['Labor', `${fmt$(c.day_rate)}/day × ${Number(c.labor_days) || 0} days = ${fmt$(laborTotal)}`],
+               ...(gearTotal ? [['Gear', `${fmt$(c.gear_rate)}/day × ${Number(c.gear_days) || 0} days = ${fmt$(gearTotal)}`]] : []),
+               ['Total', fmt$(laborTotal + gearTotal)]],
+        button: { label: 'Review & sign', url: link },
+        copyLink: { label: 'Signing link', url: link },
+        postmark: new Date() }) });
     await sql`UPDATE contracts SET status = 'SENT' WHERE id = ${c.id}`;
     res.json({ ok: true, to });
   } catch (e) {
@@ -97,10 +108,16 @@ router.post('/contract/:token/sign', async (req, res, next) => {
                  p.code, p.title
           FROM projects p LEFT JOIN crew_members cm ON cm.id = p.poc_crew_member_id
           WHERE p.id = ${signed.project_id}`;
+        const { noticeHtml } = require('../lib/emailTemplates');
         if (poc?.email) sendMail({ identity: 'production',
           to: poc.email,
           subject: `Contract signed — ${signed.contractor_name} (${poc.code})`,
           text: `${signed.contractor_name} signed their ${signed.position_name} deal memo for ${poc.title} (${poc.code}).\n\nSigned as: ${signed.signed_name}\nSigned at: ${new Date().toLocaleString('en-US')}\n\nThe signed contract is on the crew grid in FreePro.`,
+          html: noticeHtml({ tag: 'Contract', note: 'Contract signed', color: '#3f9d68',
+            title: `${signed.contractor_name} signed ✓`, subtitle: `${poc.title} (${poc.code})`,
+            intro: 'The signed contract is on the crew grid in FreePro.',
+            rows: [['Position', signed.position_name], ['Signed as', signed.signed_name]],
+            postmark: new Date() }),
         }).catch(err => console.error('Contract-signed email failed:', err.message));
       } catch (err) { console.error('Contract-signed lookup failed:', err.message); }
     } else console.log('Contract-signed email skipped (SMTP not configured)');

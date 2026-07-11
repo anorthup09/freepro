@@ -2,6 +2,7 @@ const router = require('express').Router();
 const sql = require('../lib/db');
 const { requireAuth } = require('../middleware/auth');
 const { sendMail } = require('../lib/mailer');
+const { noticeHtml } = require('../lib/emailTemplates');
 const { bizToday } = require('../lib/dates');
 
 const PREF = "COALESCE(NULLIF(TRIM(CONCAT(cm.preferred_first_name, ' ', cm.preferred_last_name)), ''), cm.name)";
@@ -58,6 +59,11 @@ router.post('/pto', requireAuth, async (req, res, next) => {
             to: emails.join(', '),
             subject: `FYI: PTO Request — ${full.title}`,
             text: `${full.member_name} submitted a PTO/OOO request and listed you to be notified.\n\nType: ${full.pto_type}\nDates: ${String(full.start_date).slice(0, 10)} to ${String(full.end_date).slice(0, 10)}\n\nDetails in Team Management on the Unbridled hub.`,
+            html: noticeHtml({ tag: 'Team', note: 'PTO / OOO — FYI', color: '#4a7fb5',
+              title: full.title, subtitle: full.member_name,
+              intro: `${full.member_name} submitted a PTO/OOO request and listed you to be notified. Details are in Team Management on the Unbridled hub.`,
+              rows: [['Type', full.pto_type], ['Dates', `${String(full.start_date).slice(0, 10)} to ${String(full.end_date).slice(0, 10)}`]],
+              postmark: new Date() }),
           }).catch(err => console.error('PTO notify email failed:', err.message));
         }
       } catch (err) { console.error('PTO notify resolution failed:', err.message); }
@@ -68,6 +74,12 @@ router.post('/pto', requireAuth, async (req, res, next) => {
         to: full.manager_email,
         subject: `PTO Request — ${full.title}`,
         text: `${full.member_name} submitted a PTO/OOO request that needs your review.\n\nRequest: ${full.title}\nType: ${full.pto_type}\nDates: ${String(full.start_date).slice(0, 10)} to ${String(full.end_date).slice(0, 10)}\n${full.on_shoots ? `Assigned to shoots/travel in that window: ${full.on_shoots}\n` : ''}${full.comp_notes ? `Comp reference: ${full.comp_notes}\n` : ''}\nApprove it in Team Management on the Unbridled hub.`,
+        html: noticeHtml({ tag: 'Team', note: 'PTO / OOO — needs your review',
+          title: full.title, subtitle: full.member_name,
+          intro: `${full.member_name} submitted a PTO/OOO request that needs your review. Approve it in Team Management on the Unbridled hub.`,
+          rows: [['Type', full.pto_type], ['Dates', `${String(full.start_date).slice(0, 10)} to ${String(full.end_date).slice(0, 10)}`],
+                 ['Shoots/travel in that window', full.on_shoots || ''], ['Comp reference', full.comp_notes || '']],
+          postmark: new Date() }),
       }).catch(err => console.error('PTO email failed:', err.message));
     }
     res.status(201).json(full);
@@ -89,7 +101,7 @@ router.patch('/pto/:id', requireAuth, async (req, res, next) => {
         comp_notes = ${d.compNotes !== undefined ? (d.compNotes || null) : sql`comp_notes`},
         manager_id = ${d.managerId !== undefined ? (d.managerId || null) : sql`manager_id`},
         status = ${status !== undefined ? status : sql`status`}
-      WHERE id = ${req.params.id} RETURNING id`;
+      WHERE id = ${req.params.id} RETURNING *`;
     if (!row) return res.status(404).json({ error: 'Request not found' });
     if (wasApproving) {
       try {
@@ -98,6 +110,11 @@ router.patch('/pto/:id', requireAuth, async (req, res, next) => {
           to: who.email,
           subject: `Approved — ${row.title}`,
           text: `Your PTO/OOO request was approved.\n\nRequest: ${row.title}\nDates: ${String(row.start_date).slice(0, 10)} to ${String(row.end_date).slice(0, 10)}\n\nEnjoy!`,
+          html: noticeHtml({ tag: 'Team', note: 'PTO / OOO approved', color: '#3f9d68',
+            title: `${row.title} — Approved ✓`,
+            intro: 'Your PTO/OOO request was approved. Enjoy!',
+            rows: [['Dates', `${String(row.start_date).slice(0, 10)} to ${String(row.end_date).slice(0, 10)}`]],
+            postmark: new Date() }),
         }).catch(err => console.error('PTO approval email failed:', err.message));
       } catch (err) { console.error('PTO approval lookup failed:', err.message); }
     }

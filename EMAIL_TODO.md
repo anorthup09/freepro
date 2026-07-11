@@ -111,6 +111,10 @@ permission on each address (Outlook 365: shared mailbox or alias).
 
 ## Notes
 
+- Every notification uses the shared branded HTML design
+  (`backend/src/lib/emailTemplates.js` → `noticeHtml`): dark UNBRIDLED MEDIA
+  header, colored hero, labeled rows, optional button/copy-link, and a
+  postmark timestamp. Plain-text fallbacks ride along on every send.
 - All senders share one transport: `backend/src/lib/mailer.js`
   (nodemailer). If SMTP env vars are unset, sends fail gracefully — features
   still work, mail is just skipped/501.

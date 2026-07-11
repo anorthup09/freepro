@@ -3,6 +3,7 @@ const sql = require('../lib/db');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { sendMail, isConfigured: mailReady } = require('../lib/mailer');
 const { sendCalendarHold } = require('../lib/ics');
+const { noticeHtml, fmtPostmark } = require('../lib/emailTemplates');
 
 const staff = [requireAuth];
 const editStatuses = ['COMING_SOON', 'ASSIGNED', 'FOCUS', 'CLOSED'];
@@ -298,6 +299,11 @@ router.patch('/edits/:id', ...staff, async (req, res, next) => {
                 to: ed.email,
                 subject: `Approved ✓ — ${e.title}${e.project_code ? ` (${e.project_code})` : ''}`,
                 text: `Hi ${ed.name || 'there'},\n\n"${e.title}"${e.project_code ? ` (${e.project_code})` : ''} was marked Approved by ${who}.\n\nNice work — details are in AvocadoPost.`,
+                html: noticeHtml({ tag: 'AvocadoPost', note: 'Deliverable approved', color: '#3f9d68',
+                  title: `${e.title} — Approved ✓`, subtitle: e.project_code || '',
+                  intro: `Hi ${ed.name || 'there'} — "${e.title}" was marked Approved by ${who}. Nice work!`,
+                  rows: [['Version', `V${e.version || 1}`], ['Approved by', who]],
+                  postmark: new Date() }),
               });
               await logAct(e.id, 'log', 'system', `emailed ${ed.name || ed.email} about the approval`);
             }
@@ -385,6 +391,12 @@ router.post('/edits/:id/comments', ...staff, async (req, res, next) => {
               to: m.email,
               subject: `${who} mentioned you — ${e.title}`,
               text: `${who} mentioned you on "${e.title}"${e.project_code ? ` (${e.project_code})` : ''}:\n\n${body}\n\n${e.review_link ? 'Review link: ' + e.review_link + '\n\n' : ''}Open AvocadoPost to reply.`,
+              html: noticeHtml({ tag: 'AvocadoPost', note: 'You were mentioned',
+                title: e.title, subtitle: e.project_code || '',
+                intro: `${who} mentioned you in a comment:`,
+                blocks: [['Comment', body]],
+                copyLink: e.review_link ? { label: 'Review link', url: e.review_link } : undefined,
+                postmark: new Date() }),
             }).catch(err => console.error('Mention email failed:', err.message));
             await logAct(req.params.id, 'log', 'system', `emailed ${m.display} about this comment`);
           }
@@ -401,17 +413,25 @@ router.post('/edits/:id/rfr', ...staff, async (req, res, next) => {
   try {
     const [e] = await FULL_EDIT(req.params.id);
     if (!e) return res.status(404).json({ error: 'Edit not found' });
-    const editor = e.lead_editor_name_resolved || e.lead_editor_name || req.user?.email || 'The editor';
+    const who = req.user?.name || req.user?.email || 'someone';
     const to = req.body.to || e.pm_email;
-    const who = req.user?.email || 'someone';
     if (to) {
+      const now = new Date();
       sendMail({ identity: 'post',
         to,
-        subject: `Ready For Review — ${e.title}`,
-        text: `${editor} has notified you a video is ready for review.\n\nVideo: ${e.title}${e.project_code ? ` (${e.project_code})` : ''}\nVersion: V${e.version}\n${e.review_link ? `Review link: ${e.review_link}` : 'No review link set yet.'}\n\nOnce reviewed, hit Sent in AvocadoPost to log it went to the client.`,
+        subject: `Ready For Review — ${e.title} V${e.version || 1}`,
+        text: `V${e.version || 1} of "${e.title}"${e.project_code ? ` (${e.project_code})` : ''} is ready for review from ${who}.\n\n${e.review_link ? `Review link: ${e.review_link}` : 'No review link set yet.'}\n\nOnce reviewed, hit Sent in AvocadoPost to log it went out.\n\nPostmarked ${fmtPostmark(now)}`,
+        html: noticeHtml({ tag: 'AvocadoPost', note: 'Ready for review',
+          title: `${e.title} — V${e.version || 1}`, subtitle: e.project_code || '',
+          intro: `V${e.version || 1} is ready for review from ${who}.`,
+          rows: [['Video', e.title], ['Version', `V${e.version || 1}`], ['From', who],
+                 ['Lead Editor', e.lead_editor_name_resolved || e.lead_editor_name || '']],
+          copyLink: e.review_link ? { label: 'Review link — quick copy', url: e.review_link } : undefined,
+          button: e.review_link ? { label: 'Open review', url: e.review_link } : undefined,
+          postmark: now }),
       }).catch(err => console.error('RFR email failed:', err.message));
     }
-    await logAct(e.id, 'rfr', who, `V${e.version} RFR${to ? ` — notified ${to}` : ''}`);
+    await logAct(e.id, 'rfr', req.user?.email || 'someone', `V${e.version} RFR${to ? ` — notified ${to}` : ''}`);
     const activity = await sql`SELECT * FROM edit_activity WHERE edit_id = ${e.id} ORDER BY created_at`;
     res.json(activity);
   } catch (e) { next(e); }
@@ -422,6 +442,22 @@ router.post('/edits/:id/sent', ...staff, async (req, res, next) => {
   try {
     const [e] = await FULL_EDIT(req.params.id);
     if (!e) return res.status(404).json({ error: 'Edit not found' });
+    // Let the lead editor know their cut went out (no-op until SMTP is configured)
+    const who = req.user?.name || req.user?.email || 'someone';
+    if (e.lead_editor_email) {
+      const now = new Date();
+      if (!mailReady()) console.log(`Sent email skipped (SMTP not configured) → ${e.lead_editor_email}`);
+      else sendMail({ identity: 'post',
+        to: e.lead_editor_email,
+        subject: `Sent for review — ${e.title} V${e.version || 1}`,
+        text: `V${e.version || 1} of "${e.title}"${e.project_code ? ` (${e.project_code})` : ''} was sent by ${who} for internal creative or client review.\n\nPostmarked ${fmtPostmark(now)}`,
+        html: noticeHtml({ tag: 'AvocadoPost', note: 'Sent for review', color: '#4a7fb5',
+          title: `${e.title} — V${e.version || 1}`, subtitle: e.project_code || '',
+          intro: `V${e.version || 1} was sent by ${who} for internal creative or client review.`,
+          rows: [['Video', e.title], ['Version', `V${e.version || 1}`], ['Sent by', who]],
+          postmark: now }),
+      }).catch(err => console.error('Sent email failed:', err.message));
+    }
     await logAct(e.id, 'sent', req.user?.email || 'someone', `V${e.version} sent for client review`);
     const activity = await sql`SELECT * FROM edit_activity WHERE edit_id = ${e.id} ORDER BY created_at`;
     res.json(activity);

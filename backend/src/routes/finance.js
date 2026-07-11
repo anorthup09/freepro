@@ -358,6 +358,11 @@ router.post('/finance/budget/:bid/send-invoice', ...finance, async (req, res, ne
       cc: h?.invoice_cc || undefined,
       subject: `Invoice — ${proj.code} ${proj.title} (${label})`,
       text: `Hello,\n\nPlease find the ${label.toLowerCase()} for ${proj.title} (${proj.code}).\n\n${label}: ${fmt(amount)}\n\nA formal invoice document follows from our accounting team. Reply to this email with any questions.\n\nThank you,\nUnbridled Media`,
+      html: noticeHtml({ tag: 'Invoice', note: label,
+        title: proj.title, subtitle: proj.code,
+        intro: `Please find the ${label.toLowerCase()} for ${proj.title}. A formal invoice document follows from our accounting team — reply to this email with any questions.`,
+        rows: [[label, fmt(amount)]],
+        postmark: new Date() }),
     });
     res.json({ sent: true, to });
   } catch (e) { next(e); }
@@ -925,7 +930,7 @@ router.post('/finance/sections/:sid/pull-travel-actuals', ...finance, async (req
 // ── Harbinger: internal kickoff form that opens the project with accounting ──
 const { sendMail, isConfigured: mailReady } = require('../lib/mailer');
 const { automation } = require('../lib/automations');
-const { harbingerHtml } = require('../lib/emailTemplates');
+const { harbingerHtml, noticeHtml } = require('../lib/emailTemplates');
 
 router.get('/finance/:pid/harbinger', ...finance, async (req, res, next) => {
   try {

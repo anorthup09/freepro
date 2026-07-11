@@ -79,4 +79,46 @@ function harbingerHtml({ project, d, appUrl }) {
   return shell('Harbinger Kickoff', inner);
 }
 
-module.exports = { harbingerHtml, shell, section, row, block };
+// ── Generic branded notification ──
+// Every automated email shares this design: dark UNBRIDLED MEDIA header,
+// colored hero, labeled rows/blocks, optional action button + copy-able link,
+// and an optional postmark timestamp in the footer.
+function noticeHtml({ tag, title, subtitle, note, intro, rows = [], blocks = [], button, copyLink, postmark, color }) {
+  const heroColor = color || BRAND.orange;
+  const hero = `
+    <div style="background:${heroColor};padding:20px 26px;color:#fff">
+      ${note ? `<div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;opacity:.85">${esc(note)}</div>` : ''}
+      <div style="font-size:20px;font-weight:800;margin-top:4px">${esc(title)}</div>
+      ${subtitle ? `<div style="font-size:13px;margin-top:3px;opacity:.9">${esc(subtitle)}</div>` : ''}
+    </div>`;
+  const detail = (intro || rows.some(r => r && r[1]) || blocks.some(b => b && b[1])) ? `
+    <div style="background:#fff;border:1px solid ${BRAND.border};border-top:none;padding:18px 26px">
+      ${intro ? `<div style="font-size:13px;line-height:1.6;color:${BRAND.ink};margin-bottom:${rows.length || blocks.length ? '12px' : '0'}">${nl2br(intro)}</div>` : ''}
+      ${rows.map(([l, v]) => row(l, v)).join('')}
+      ${blocks.map(([l, v]) => block(l, v)).join('')}
+    </div>` : '';
+  const linkBox = copyLink && copyLink.url ? `
+    <div style="background:#fff;border:1px solid ${BRAND.border};border-top:none;padding:14px 26px">
+      <div style="font-size:11px;font-weight:800;color:${BRAND.muted};text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px">${esc(copyLink.label || 'Link')}</div>
+      <div style="font-size:12px;background:${BRAND.panel};border:1px dashed ${BRAND.border};border-radius:8px;padding:9px 12px;word-break:break-all">
+        <a href="${esc(copyLink.url)}" style="color:${BRAND.orange};text-decoration:none">${esc(copyLink.url)}</a>
+      </div>
+      <div style="font-size:10px;color:${BRAND.muted};margin-top:5px">Tap and hold (or right-click) to copy the link.</div>
+    </div>` : '';
+  const footer = `
+    <div style="background:#fff;border:1px solid ${BRAND.border};border-top:none;border-radius:0 0 10px 10px;padding:18px 26px;text-align:center">
+      ${button && button.url ? `<a href="${esc(button.url)}" style="display:inline-block;background:${heroColor};color:#fff;text-decoration:none;padding:11px 26px;border-radius:8px;font-size:13px;font-weight:700">${esc(button.label || 'Open')} →</a>` : ''}
+      ${postmark ? `<div style="font-size:11px;color:${BRAND.muted};margin-top:${button && button.url ? '12px' : '0'}">Postmarked ${esc(postmark instanceof Date || typeof postmark === 'number' ? fmtPostmark(postmark) : postmark)}</div>` : ''}
+    </div>`;
+  return shell(tag || 'Notification', hero + detail + linkBox + footer);
+}
+
+// "Jul 11, 2026 · 4:32 PM CT" — the platform's home timezone
+function fmtPostmark(d = new Date()) {
+  const dt = d instanceof Date ? d : new Date(d);
+  const date = dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/Chicago' });
+  const time = dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Chicago' });
+  return `${date} · ${time} CT`;
+}
+
+module.exports = { harbingerHtml, noticeHtml, fmtPostmark, shell, section, row, block };

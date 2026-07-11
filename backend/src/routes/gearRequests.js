@@ -169,10 +169,19 @@ router.post('/', requireAuth, async (req, res, next) => {
       '',
       `Special instructions:\n${d.notes || '—'}`,
     ].join('\n');
+    const { noticeHtml } = require('../lib/emailTemplates');
     sendMail({ identity: 'gear',
       to: GEAR_REQUEST_TO,
       subject: `Gear Request — ${code} ${proj?.title || ''}`,
       text: lines,
+      html: noticeHtml({ tag: 'Gear Request', note: 'New gear request',
+        title: `${code} — ${proj?.title || ''}`, subtitle: proj?.client || '',
+        rows: [['Submitted by', `${d.name} (${req.user?.email || 'unknown'})`], ['Traveling with gear', d.crew],
+               ['Check-Out', d.checkOut], ['Check-In', d.checkIn], ['How it moves', d.moving],
+               ['Media drives', (d.drives || []).join(', ')], ['Drive size / qty', `${d.driveSize || '—'} × ${d.driveQty || '—'}`]],
+        blocks: [['Camera gear & accessories', d.camera], ['Lights & peripherals', d.lights],
+                 ['Grip', d.grip], ['Other', d.other], ['Special instructions', d.notes]],
+        postmark: new Date() }),
     }).catch(err => console.error('Gear request email failed:', err.message));
     res.status(201).json(row);
   } catch (e) { next(e); }
@@ -205,10 +214,16 @@ router.post('/project/:pid/amend', requireAuth, async (req, res, next) => {
     // …and Mason gets the amendment report by email (no-op until SMTP is configured)
     if (mailReady()) {
       const [proj] = await sql`SELECT code, title FROM projects WHERE id = ${pid}`;
+      const { noticeHtml } = require('../lib/emailTemplates');
       sendMail({ identity: 'gear',
         to: 'mvitro@unbridledmedia.com',
         subject: `Gear request amended — ${proj?.code || ''} ${proj?.title || ''}`.trim(),
         text: report,
+        html: noticeHtml({ tag: 'Gear Request', note: 'Request amended', color: '#b8930f',
+          title: `${proj?.code || ''} — ${proj?.title || ''}`.trim(),
+          intro: `The locked gear request was amended by ${d.name || req.user?.email || 'someone'}.`,
+          blocks: [['Change report', report]],
+          postmark: new Date() }),
       }).catch(err => console.error('Gear amendment email failed:', err.message));
     } else console.log('Gear amendment email skipped (SMTP not configured)');
 

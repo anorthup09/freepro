@@ -46,11 +46,17 @@ async function sendCalendarHold(opts) {
   }
   const from = addrFor('production');
   const content = buildInvite({ ...opts, organizerEmail: from });
+  const { noticeHtml } = require('./emailTemplates');
   await sendMail({
     identity: 'production',
     to: opts.attendeeEmail,
     subject: opts.summary,
     text: opts.description || opts.summary,
+    html: noticeHtml({ tag: 'Calendar Hold', note: 'Assignment hold',
+      title: opts.summary,
+      intro: opts.description || 'An Outlook meeting request for this assignment is attached — accept it to hold the dates.',
+      rows: [['Dates', `${String(opts.startDate).slice(0, 10)}${opts.endDate && opts.endDate !== opts.startDate ? ` to ${String(opts.endDate).slice(0, 10)}` : ''}`]],
+      postmark: new Date() }),
     icalEvent: { method: 'REQUEST', content },
   });
   return true;
@@ -84,11 +90,17 @@ async function sendCalendarCancel({ uid, sequence = 1, startDate, endDate, summa
     'END:VEVENT',
     'END:VCALENDAR',
   ].join('\r\n');
+  const { noticeHtml } = require('./emailTemplates');
   await sendMail({
     identity: 'production',
     to: attendeeEmail,
     subject: `Cancelled: ${summary}`,
     text: `This hold was cancelled: ${summary}`,
+    html: noticeHtml({ tag: 'Calendar Hold', note: 'Hold cancelled', color: '#a34040',
+      title: `Cancelled — ${summary}`,
+      intro: 'This hold was cancelled. The attached calendar update removes it from your Outlook calendar.',
+      rows: [['Dates', `${String(startDate).slice(0, 10)}${endDate && endDate !== startDate ? ` to ${String(endDate).slice(0, 10)}` : ''}`]],
+      postmark: new Date() }),
     icalEvent: { method: 'CANCEL', content },
   });
   return true;
