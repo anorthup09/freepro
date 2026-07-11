@@ -6,6 +6,7 @@ import FinanceProject from './FinanceProject.jsx';
 import Project from './Project/index.jsx';
 import AvoProject from './AvoProject.jsx';
 import ProjectOverview from './ProjectOverview.jsx';
+import { markRecentProject } from '../utils/recentProjects.js';
 
 const WHITE = '#e8e8e8';
 const TABS = [
@@ -184,6 +185,7 @@ export default function ProjectView() {
 // ── Detail: one project, flip between Finance / Pre / Post ──
 export function ProjectViewDetail() {
   const { pid } = useParams();
+  useEffect(() => { markRecentProject(pid); }, [pid]);
   const nav = useNavigate();
   const [project, setProject] = useState(null);
   const [tab, setTab] = useState('overview');

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App.jsx';
 import { api } from '../api.js';
 import { NewProjectModal } from './Finance.jsx';
+import { recentProjectTimes } from '../utils/recentProjects.js';
 
 const TILES = [
   {
@@ -389,7 +390,10 @@ function HubProjects() {
   const [q, setQ] = useState('');
   const [cq, setCq] = useState('');
   useEffect(() => { api.financeProjects().then(setProjects).catch(e => alert(e.message)); }, []);
-  const list = [...(projects || [])].sort((a, b) => (a.code || '').localeCompare(b.code || ''));
+  // Most recently viewed first; never-viewed projects follow in code order
+  const recent = recentProjectTimes();
+  const list = [...(projects || [])].sort((a, b) =>
+    (recent[b.id] || 0) - (recent[a.id] || 0) || (a.code || '').localeCompare(b.code || ''));
   const s = q.trim().toLowerCase();
   const shown = s ? list.filter(p => (p.code || '').toLowerCase().includes(s) || (p.title || '').toLowerCase().includes(s) || (p.client || '').toLowerCase().includes(s)) : list;
   // Clients running more than one project at once get a mini-hub tile
