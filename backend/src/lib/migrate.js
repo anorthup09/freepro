@@ -1468,6 +1468,7 @@ async function migrate() {
       week TEXT NOT NULL,
       created_at TIMESTAMPTZ DEFAULT NOW()
     )`;
+  await sql`ALTER TABLE fun_facts ADD COLUMN IF NOT EXISTS image_url TEXT`;
 
   // One-time ClickUp PTO/OOO import (idempotent)
   try { await require('./seedPto')(); } catch (e) { console.error('PTO seed failed:', e.message); }

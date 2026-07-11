@@ -411,14 +411,60 @@ router.post('/funfact', requireAuth, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// Visual garnish for a fact: an emoji, or a photo (Wikipedia page image) of
+// whatever the answer is about. Computed once per fact and cached on the row
+// as 'emoji:X', an https URL, or 'none'.
+async function wikiImage(term) {
+  try {
+    const u = `https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrlimit=1&gsrsearch=${encodeURIComponent(term)}&prop=pageimages&piprop=thumbnail&pithumbsize=900&format=json`;
+    const r = await fetch(u, { headers: { 'User-Agent': 'UnbridledOperatingPlatform/1.0 (info@unbridledmedia.com)' } });
+    const j = await r.json();
+    for (const p of Object.values(j.query?.pages || {})) if (p.thumbnail?.source) return p.thumbnail.source;
+  } catch (e) { console.error('wiki image failed:', e.message); }
+  return null;
+}
+
+async function factVisual(prompt, answer) {
+  if (!process.env.ANTHROPIC_API_KEY) return 'none';
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001', max_tokens: 40,
+        messages: [{ role: 'user', content:
+          `Q: ${prompt}\nA: ${answer}\n\nPick a background visual for this answer. Reply with EXACTLY one line:\n- "IMG: <1-3 word search term>" if the answer centers on something photographable with a recognizable Wikipedia image (a city, landmark, food, movie, band, animal, object)\n- "EMOJI: <one emoji>" if a single emoji nails it better\n- "NONE" if neither fits.` }],
+      }),
+    });
+    const j = await r.json();
+    const line = (j.content?.[0]?.text || '').trim();
+    const em = line.match(/^EMOJI:\s*(\S+)/i);
+    if (em) return 'emoji:' + em[1];
+    const im = line.match(/^IMG:\s*(.+)/i);
+    if (im) {
+      const url = await wikiImage(im[1].trim());
+      if (url) return url;
+    }
+  } catch (e) { console.error('fact visual failed:', e.message); }
+  return 'none';
+}
+
 // Today's fact — rotates through everything submitted, one per day
 router.get('/funfact/today', requireAuth, async (req, res, next) => {
   try {
-    const facts = await sql`SELECT member_name, prompt, answer FROM fun_facts ORDER BY created_at`;
+    const facts = await sql`SELECT id, member_name, prompt, answer, image_url FROM fun_facts ORDER BY created_at`;
     if (!facts.length) return res.json(null);
     const dayN = Math.floor(new Date(bizToday() + 'T12:00:00').getTime() / 86400000);
     const f = facts[dayN % facts.length];
-    res.json({ name: f.member_name, prompt: f.prompt, answer: f.answer });
+    let visual = f.image_url;
+    if (!visual) {
+      visual = await factVisual(f.prompt, f.answer);
+      await sql`UPDATE fun_facts SET image_url = ${visual} WHERE id = ${f.id}`.catch(() => {});
+    }
+    const image = visual && visual !== 'none'
+      ? (visual.startsWith('emoji:') ? { type: 'emoji', value: visual.slice(6) } : { type: 'photo', value: visual })
+      : null;
+    res.json({ name: f.member_name, prompt: f.prompt, answer: f.answer, image });
   } catch (e) { next(e); }
 });
 

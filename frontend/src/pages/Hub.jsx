@@ -122,10 +122,20 @@ function DailyFactBlob() {
   if (!fact) return null;
   return (
     <div style={{ position:'absolute', inset:0, zIndex:6, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(10,10,8,0.6)', backdropFilter:'blur(4px)', WebkitBackdropFilter:'blur(4px)', borderRadius:12 }}>
-      <div className="fun-blob" style={{ position:'relative', width:'min(94%, 440px)', minHeight:210, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:6, padding:'34px 40px', textAlign:'center' }}>
-        <button onClick={() => setFact(null)} aria-label="Close"
-          style={{ position:'absolute', top:14, right:18, background:'rgba(0,0,0,0.25)', border:'none', color:'#fff', width:26, height:26, borderRadius:'50%', fontSize:13, fontWeight:900, cursor:'pointer', lineHeight:1 }}>✕</button>
-        <div style={{ fontSize:10, fontWeight:900, letterSpacing:'0.18em', color:'rgba(255,255,255,0.85)' }}>MEDIAMOMENT</div>
+      <button onClick={() => setFact(null)} aria-label="Close"
+        style={{ position:'absolute', top:12, right:14, zIndex:2, background:'rgba(0,0,0,0.4)', border:'1px solid rgba(255,255,255,0.25)', color:'#fff', width:28, height:28, borderRadius:'50%', fontSize:13, fontWeight:900, cursor:'pointer', lineHeight:1 }}>✕</button>
+      <div className="fun-blob" style={{ position:'relative', overflow:'hidden', width:'min(94%, 440px)', minHeight:210, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:6, padding:'34px 40px', textAlign:'center' }}>
+        {/* Faint visual of whatever the answer is about — extra spice */}
+        {fact.image?.type === 'photo' && (
+          <img src={fact.image.value} alt="" aria-hidden
+            style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', opacity:0.13, pointerEvents:'none', borderRadius:'inherit' }} />
+        )}
+        {fact.image?.type === 'emoji' && (
+          <div aria-hidden style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:150, opacity:0.12, pointerEvents:'none', transform:'rotate(-8deg)' }}>
+            {fact.image.value}
+          </div>
+        )}
+        <div style={{ fontSize:10, fontWeight:900, letterSpacing:'0.18em', color:'rgba(255,255,255,0.85)', position:'relative' }}>MEDIAMOMENT</div>
         <div style={{ fontSize:12, fontWeight:700, color:'rgba(255,255,255,0.9)', marginTop:4 }}>{fact.prompt}</div>
         <div style={{ fontFamily:"'Syne', sans-serif", fontSize:19, fontWeight:800, color:'#fff', lineHeight:1.3, textShadow:'0 2px 10px rgba(0,0,0,0.35)' }}>
           “{fact.answer}”
