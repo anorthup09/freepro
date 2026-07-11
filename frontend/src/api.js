@@ -143,6 +143,7 @@ export const api = {
   updateFeedback: (id, data) => req('PATCH', `/feedback/${id}`, data),
   deleteFeedback: (id) => req('DELETE', `/feedback/${id}`),
   replyFeedback: (id, text) => req('POST', `/feedback/${id}/replies`, { text }),
+  editFeedbackReply: (id, idx, text) => req('PATCH', `/feedback/${id}/replies/${idx}`, { text }),
   clientRoster: () => req('GET', '/clients/roster'),
   addClient: (name, force) => req('POST', '/clients/roster', { name, force }),
   clientContacts: () => req('GET', '/clients/contacts'),

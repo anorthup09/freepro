@@ -68,6 +68,15 @@ export function FeedbackBoard({ variant = 'banner' }) {
   const [viewer, setViewer] = useState(null);           // full-size attachment being viewed
   const [replyFor, setReplyFor] = useState(null);       // feedback item id with the reply box open
   const [replyText, setReplyText] = useState('');
+  const [editReply, setEditReply] = useState(null);     // { itemId, idx, text } while editing an answer
+  async function saveReplyEdit() {
+    if (!editReply?.text.trim()) return;
+    try {
+      const u = await api.editFeedbackReply(editReply.itemId, editReply.idx, editReply.text.trim());
+      setItems(xs => xs.map(x => x.id === editReply.itemId ? u : x));
+      setEditReply(null);
+    } catch (e) { alert(e.message); }
+  }
   async function sendReply(id) {
     if (!replyText.trim()) return;
     try {
@@ -161,8 +170,26 @@ export function FeedbackBoard({ variant = 'banner' }) {
                     </div>
                     {(Array.isArray(i.replies) ? i.replies : []).map((r, ri) => (
                       <div key={ri} style={{ marginTop:6, marginLeft:2, paddingLeft:10, borderLeft:'2px solid rgba(224,82,82,0.4)' }}>
-                        <div style={{ fontSize:12, overflowWrap:'anywhere' }}>{r.text}</div>
-                        <div style={{ fontSize:9.5, color:'var(--muted)' }}>{r.by} · {new Date(r.at).toLocaleDateString('en-US', { month:'numeric', day:'numeric' })}</div>
+                        {editReply && editReply.itemId === i.id && editReply.idx === ri ? (
+                          <div style={{ display:'flex', gap:6 }}>
+                            <input value={editReply.text} autoFocus
+                              onChange={e => setEditReply(er => ({ ...er, text: e.target.value }))}
+                              onKeyDown={e => e.key === 'Enter' && saveReplyEdit()}
+                              style={{ flex:1, fontSize:12 }} />
+                            <button onClick={saveReplyEdit} disabled={!editReply.text.trim()}
+                              style={{ background:'#e05252', border:'none', color:'#fff', borderRadius:8, padding:'5px 12px', fontSize:11, fontWeight:800, cursor:'pointer', opacity: editReply.text.trim() ? 1 : 0.5 }}>Save</button>
+                            <button className="btn btn-ghost btn-sm" onClick={() => setEditReply(null)}>✕</button>
+                          </div>
+                        ) : (
+                          <>
+                            <div style={{ fontSize:12, overflowWrap:'anywhere' }}>{r.text}</div>
+                            <div style={{ fontSize:9.5, color:'var(--muted)' }}>
+                              {r.by} · {new Date(r.at).toLocaleDateString('en-US', { month:'numeric', day:'numeric' })}{r.edited_at ? ' · edited' : ''}
+                              <button title="Edit this answer" onClick={() => setEditReply({ itemId: i.id, idx: ri, text: r.text })}
+                                style={{ background:'none', border:'none', color:'var(--tan)', fontSize:10, fontWeight:800, cursor:'pointer', marginLeft:8, padding:0 }}>✎ Edit</button>
+                            </div>
+                          </>
+                        )}
                       </div>
                     ))}
                     {replyFor === i.id && (

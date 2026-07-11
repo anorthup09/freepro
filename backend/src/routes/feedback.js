@@ -39,6 +39,26 @@ router.post('/:id/replies', requireAuth, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// Edit an answer (author or admin only)
+router.patch('/:id/replies/:idx', requireAuth, async (req, res, next) => {
+  try {
+    const text = String(req.body.text || '').trim();
+    if (!text) return res.status(400).json({ error: 'Text required' });
+    const [item] = await sql`SELECT replies FROM feedback_items WHERE id = ${req.params.id}`;
+    if (!item) return res.status(404).json({ error: 'Not found' });
+    const replies = Array.isArray(item.replies) ? item.replies : JSON.parse(item.replies || '[]');
+    const idx = Number(req.params.idx);
+    if (!replies[idx]) return res.status(404).json({ error: 'Reply not found' });
+    const me = req.user.name || req.user.email;
+    if (replies[idx].by !== me && req.user.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'Only the author can edit this answer' });
+    }
+    replies[idx] = { ...replies[idx], text, edited_at: new Date().toISOString() };
+    const [i] = await sql`UPDATE feedback_items SET replies = ${sql.json(replies)} WHERE id = ${req.params.id} RETURNING *`;
+    res.json(i);
+  } catch (e) { next(e); }
+});
+
 router.delete('/:id', requireAuth, async (req, res, next) => {
   try { await sql`DELETE FROM feedback_items WHERE id = ${req.params.id}`; res.status(204).end(); } catch (e) { next(e); }
 });
