@@ -820,12 +820,14 @@ export default function AvoProject({ idOverride, embedded }) {
               <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text, #e05252)' }} onClick={removePage}>Delete Page</button>
             </div>
 
-            <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:16 }}>
+            <div style={{ display:'flex', gap:6, flexWrap:'nowrap', overflowX:'auto', marginBottom:16, paddingBottom:4,
+              WebkitMaskImage:'linear-gradient(to right, transparent 0, #000 16px, #000 calc(100% - 16px), transparent 100%)',
+              maskImage:'linear-gradient(to right, transparent 0, #000 16px, #000 calc(100% - 16px), transparent 100%)' }}>
               {TABS.map(([k, label]) => (
                 <button key={k} onClick={() => setTab(k)}
                   style={{
                     background: tab === k ? `${AVO}2e` : 'transparent', border:`1px solid ${tab === k ? AVO : 'var(--border)'}`,
-                    color: tab === k ? AVO : 'var(--muted)', borderRadius:16, padding:'5px 14px', fontSize:11, fontWeight:800, cursor:'pointer',
+                    color: tab === k ? AVO : 'var(--muted)', borderRadius:16, padding:'5px 14px', fontSize:11, fontWeight:800, cursor:'pointer', whiteSpace:'nowrap', flexShrink:0,
                   }}>
                   {label}{k === 'tracker' && edits.length ? ` (${edits.length})` : ''}
                 </button>
@@ -834,13 +836,13 @@ export default function AvoProject({ idOverride, embedded }) {
                 <button key={t.id} onClick={() => setTab('table:' + t.id)}
                   style={{
                     background: tab === 'table:' + t.id ? `${AVO}2e` : 'transparent', border:`1px solid ${tab === 'table:' + t.id ? AVO : 'var(--border)'}`,
-                    color: tab === 'table:' + t.id ? AVO : 'var(--muted)', borderRadius:16, padding:'5px 14px', fontSize:11, fontWeight:800, cursor:'pointer',
+                    color: tab === 'table:' + t.id ? AVO : 'var(--muted)', borderRadius:16, padding:'5px 14px', fontSize:11, fontWeight:800, cursor:'pointer', whiteSpace:'nowrap', flexShrink:0,
                   }}>
                   {t.name}
                 </button>
               ))}
               <button onClick={addTable} title="Add a custom table as a new tab"
-                style={{ background:'var(--bg)', border:'1px solid rgba(255,255,255,0.55)', color:'#e8e8e8', borderRadius:16, padding:'5px 14px', fontSize:11, fontWeight:800, cursor:'pointer' }}>
+                style={{ background:'var(--bg)', border:'1px solid rgba(255,255,255,0.55)', color:'#e8e8e8', borderRadius:16, padding:'5px 14px', fontSize:11, fontWeight:800, cursor:'pointer', whiteSpace:'nowrap', flexShrink:0 }}>
                 + Add Custom Table
               </button>
             </div>
