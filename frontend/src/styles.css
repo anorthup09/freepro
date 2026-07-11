@@ -616,5 +616,9 @@ textarea { resize: vertical; min-height: 70px; }
 
 /* Inside Project View the embedded apps keep their content but lose their own
    top nav — the outer Project View header is the one navigation */
-.pvd-embed .nav,
 .pvd-embed .finance-header { display: none !important; }
+/* FreePro's nav keeps its tabs and Share menu inside Project View — only the
+   duplicate branding (logo + hub link) hides */
+.pvd-embed .nav > div:first-child,
+.pvd-embed .nav > a[title="Back to the Unbridled Media hub"] { display: none !important; }
+.pvd-embed .nav { padding-top: 0; }
