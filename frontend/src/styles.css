@@ -613,3 +613,8 @@ textarea { resize: vertical; min-height: 70px; }
 /* Shared call sheets: room for the glass dock; never in print/PDF */
 .share-view, .wrap { padding-bottom: 110px; }
 @media print { .share-dock { display: none !important; } }
+
+/* Inside Project View the embedded apps keep their content but lose their own
+   top nav — the outer Project View header is the one navigation */
+.pvd-embed .nav,
+.pvd-embed .finance-header { display: none !important; }

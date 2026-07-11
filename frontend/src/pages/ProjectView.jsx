@@ -77,16 +77,14 @@ function PVHeader({ showBack }) {
   const nav = useNavigate();
   return (
     <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 26px', flexWrap:'wrap', gap:10 }}>
-      <div style={{ display:'flex', alignItems:'baseline', gap:14 }}>
+      <div style={{ display:'flex', alignItems:'center', gap:14 }}>
         <Link to="/" style={{ display:'flex', alignItems:'center' }} title="Back to the Unbridled Media hub">
           <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height:20, filter:'brightness(0) invert(1)', opacity:0.95 }} />
         </Link>
-        <Link to="/project-view" style={{ fontSize:12, color:WHITE, fontWeight:700, letterSpacing:'0.04em', textDecoration:'none' }}>🗂 Project View</Link>
       </div>
       <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-        <span style={{ fontSize:11, color:'var(--muted)' }}>{user?.name}</span>
-        {showBack && <button className="btn btn-ghost btn-sm" onClick={() => nav('/project-view')}>‹ All Projects</button>}
-        <Link to="/" className="btn btn-ghost btn-sm" style={{ textDecoration:'none' }}>Back to Hub</Link>
+        {showBack && <button className="btn btn-ghost btn-sm" onClick={() => nav('/project-view')}>‹ Projects</button>}
+        <Link to="/" className="btn btn-ghost btn-sm" style={{ textDecoration:'none' }}>‹ Hub</Link>
         <button className="btn btn-ghost btn-sm" onClick={() => { localStorage.removeItem('fp_token'); setUser(null); }}>Sign out</button>
       </div>
     </div>
@@ -245,9 +243,9 @@ export function ProjectViewDetail() {
 
       {project === false && <div className="empty">Project not found.</div>}
       {project && tab === 'overview' && <ProjectOverview pid={pid} />}
-      {project && tab === 'finance' && <FinanceProject pidOverride={pid} />}
+      {project && tab === 'finance' && <div className="pvd-embed"><FinanceProject pidOverride={pid} /></div>}
       {project && tab === 'pre' && (shootId
-        ? <Project idOverride={shootId} key={shootId} />
+        ? <div className="pvd-embed"><Project idOverride={shootId} key={shootId} /></div>
         : <div className="empty">No FreePro production tile yet — set the budget Live to create one.</div>)}
       {project && tab === 'post' && (avoPageId
         ? <div style={{ maxWidth:1250, margin:'0 auto', padding:'0 16px 40px' }}><AvoProject idOverride={avoPageId} embedded /></div>

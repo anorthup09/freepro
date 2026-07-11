@@ -37,7 +37,7 @@ export function SaveIndicator() {
 export function FinanceHeader({ crumb }) {
   const { user, setUser } = useAuth();
   return (
-    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 26px' }}>
+    <div className="finance-header" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 26px' }}>
       <div style={{ display:'flex', alignItems:'baseline', gap:14 }}>
         <Link to="/" style={{ display:'flex', alignItems:'center' }} title="Back to the Unbridled Media hub">
           <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height:20, filter:'brightness(0) invert(1)', opacity:0.95 }} />
