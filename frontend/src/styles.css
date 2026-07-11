@@ -664,3 +664,8 @@ textarea { resize: vertical; min-height: 70px; }
   .fp-idblock .page-sub { order: 4; margin: 0; }
   .fp-idblock .seg-toggle { order: 5; flex-basis: 100%; margin-top: 4px !important; }
 }
+
+/* Sign out sits clear of the fixed bottom docks on phones */
+@media (max-width: 700px) {
+  .signout-footer { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 104px) !important; }
+}
