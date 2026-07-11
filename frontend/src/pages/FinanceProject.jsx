@@ -464,11 +464,6 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
                 <input value={sec.title} style={{ ...cellIn, fontWeight:700, fontSize:13, textTransform:'uppercase', letterSpacing:'0.04em', color:'#5ABF80' }}
                   onChange={e => patchSection(sec.id, { title: e.target.value })}
                   onBlur={e => api.updateBudgetSection(sec.id, { title: e.target.value }).catch(() => {})} />
-                {sec.kind === 'shoot' && sec.fp_start_date && sec.freepro_project_id && dateEdit?.secId !== sec.id && (
-                  <button title="Edit the shoot dates — updates FreePro and every view fed by it"
-                    onClick={() => setDateEdit({ secId: sec.id, start: String(sec.fp_start_date).slice(0,10), end: String(sec.fp_end_date || sec.fp_start_date).slice(0,10) })}
-                    style={{ background:'none', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:8, padding:'2px 10px', fontSize:10, cursor:'pointer', margin:'4px 0 6px' }}>✎ Edit</button>
-                )}
                 <div className="sec-meta" style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
                   {sec.shoot_code && (
                     <span title="Shoot code — used to tie VCC costs and FreePro planning to this shoot"
@@ -516,9 +511,16 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
                       <button className="btn btn-ghost btn-sm" style={{ fontSize:10, padding:'3px 8px' }} onClick={() => setDateEdit(null)}>✕</button>
                     </span>
                   ) : (
-                    <span title="Shoot dates — feed the FreePro project, call sheets, and gear views"
-                      style={{ fontSize:10, color:'var(--muted)', whiteSpace:'nowrap' }}>
-                      {new Date(String(sec.fp_start_date).slice(0,10)+'T12:00:00').toLocaleDateString()} – {new Date(String(sec.fp_end_date || sec.fp_start_date).slice(0,10)+'T12:00:00').toLocaleDateString()}
+                    <span style={{ display:'flex', alignItems:'center', gap:6 }}>
+                      <span title="Shoot dates — feed the FreePro project, call sheets, and gear views"
+                        style={{ fontSize:10, color:'var(--muted)', whiteSpace:'nowrap' }}>
+                        {new Date(String(sec.fp_start_date).slice(0,10)+'T12:00:00').toLocaleDateString()} – {new Date(String(sec.fp_end_date || sec.fp_start_date).slice(0,10)+'T12:00:00').toLocaleDateString()}
+                      </span>
+                      {sec.freepro_project_id && (
+                        <button title="Edit the shoot dates — updates FreePro and every view fed by it"
+                          onClick={() => setDateEdit({ secId: sec.id, start: String(sec.fp_start_date).slice(0,10), end: String(sec.fp_end_date || sec.fp_start_date).slice(0,10) })}
+                          style={{ background:'none', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:8, padding:'2px 8px', fontSize:10, cursor:'pointer' }}>✎ Edit</button>
+                      )}
                     </span>
                   )
                 )}
