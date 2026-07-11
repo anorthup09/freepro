@@ -280,7 +280,6 @@ export default function Projects() {
           <span style={{ fontSize:9, color:'var(--muted)', letterSpacing:'0.06em', paddingLeft:1 }}>Powered by Unbridled Media</span>
         </div>
         <span style={{ color: 'var(--muted)', fontSize: 12, flex: 1, textAlign: 'center' }}>{user?.name}</span>
-        <button className="btn btn-ghost btn-sm" onClick={logout}>Sign out</button>
         <Link to="/" className="btn btn-ghost btn-sm" style={{ textDecoration:'none', marginRight:8 }}>Back to Hub</Link>
       </nav>
       <div className="wrap">

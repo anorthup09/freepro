@@ -117,7 +117,6 @@ export default function Pipeline() {
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:12 }}>
           <span style={{ fontSize:11, color:'var(--muted)' }}>{user?.name}</span>
-          <button className="btn btn-ghost btn-sm" onClick={() => { localStorage.removeItem('fp_token'); setUser(null); }}>Sign out</button>
         </div>
       </div>
       <div style={{ maxWidth:1200, margin:'0 auto', padding:'6px 26px 60px' }}>

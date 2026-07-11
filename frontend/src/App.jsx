@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Login from './pages/Login.jsx';
 import Projects from './pages/Projects.jsx';
 import GearDashboard from './pages/GearDashboard.jsx';
@@ -78,6 +78,19 @@ import { api } from './api.js';
 export const AuthContext = createContext(null);
 export function useAuth() { return useContext(AuthContext); }
 
+// Centered Sign out at the bottom of every signed-in page (public shares excluded)
+function SignOutFooter({ user, setUser }) {
+  const loc = useLocation();
+  if (!user || loc.pathname.startsWith('/share') || loc.pathname.startsWith('/gantt') || loc.pathname === '/login') return null;
+  return (
+    <div className="no-print" style={{ display:'flex', justifyContent:'center', padding:'26px 16px 34px', background:'var(--bg)' }}>
+      <button className="btn btn-ghost btn-sm" onClick={() => { localStorage.removeItem('fp_token'); setUser(null); }}>
+        Sign out
+      </button>
+    </div>
+  );
+}
+
 export default function App() {
   const [realUser, setUser] = useState(undefined); // undefined = loading
   // Admin role preview: browse the platform as another role (UI-only — the
@@ -151,6 +164,7 @@ export default function App() {
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
       )}
+      <SignOutFooter user={user} setUser={setUser} />
     </AuthContext.Provider>
     </ErrorBoundary>
   );

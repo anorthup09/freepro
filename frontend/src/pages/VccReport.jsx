@@ -22,7 +22,6 @@ function Header({ user, setUser, backTo, backLabel }) {
       </div>
       <div style={{ display:'flex', alignItems:'center', gap:12 }}>
         <span style={{ fontSize:11, color:'var(--muted)' }}>{user?.name}</span>
-        <button className="btn btn-ghost btn-sm" onClick={() => { localStorage.removeItem('fp_token'); setUser(null); }}>Sign out</button>
         <Link to={backTo} className="btn btn-ghost btn-sm" style={{ textDecoration:'none' }}>‹ {backLabel}</Link>
       </div>
     </div>
