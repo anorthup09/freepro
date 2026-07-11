@@ -89,9 +89,9 @@ function FunFactPrompt() {
   return (
     <div onClick={e => e.target === e.currentTarget && close()}
       style={{ position:'fixed', inset:0, zIndex:210, background:'rgba(0,0,0,0.75)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
-      <div style={{ width:'100%', maxWidth:440, background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid #9A8AE0', borderRadius:14, padding:'22px 24px' }}>
+      <div style={{ width:'100%', maxWidth:440, background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid var(--orange)', borderRadius:14, padding:'22px 24px' }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-          <div style={{ fontSize:11, fontWeight:800, letterSpacing:'0.12em', color:'#9A8AE0' }}>✨ UM FUN FACTS</div>
+          <div style={{ fontSize:11, fontWeight:800, letterSpacing:'0.12em', color:'var(--orange)' }}>✨ UM FUN FACTS</div>
           <button className="btn btn-ghost btn-sm" onClick={close}>✕</button>
         </div>
         <div style={{ fontSize:16, fontWeight:800, margin:'12px 0 4px', lineHeight:1.35 }}>{p.prompt}</div>
