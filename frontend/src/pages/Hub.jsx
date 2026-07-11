@@ -125,7 +125,7 @@ function DailyFactBlob() {
       <div className="fun-blob" style={{ position:'relative', width:'min(94%, 440px)', minHeight:210, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:6, padding:'34px 40px', textAlign:'center' }}>
         <button onClick={() => setFact(null)} aria-label="Close"
           style={{ position:'absolute', top:14, right:18, background:'rgba(0,0,0,0.25)', border:'none', color:'#fff', width:26, height:26, borderRadius:'50%', fontSize:13, fontWeight:900, cursor:'pointer', lineHeight:1 }}>✕</button>
-        <div style={{ fontSize:10, fontWeight:900, letterSpacing:'0.18em', color:'rgba(255,255,255,0.85)' }}>MEDIAMOMENT OF THE DAY</div>
+        <div style={{ fontSize:10, fontWeight:900, letterSpacing:'0.18em', color:'rgba(255,255,255,0.85)' }}>MEDIAMOMENT</div>
         <div style={{ fontSize:12, fontWeight:700, color:'rgba(255,255,255,0.9)', marginTop:4 }}>{fact.prompt}</div>
         <div style={{ fontFamily:"'Syne', sans-serif", fontSize:19, fontWeight:800, color:'#fff', lineHeight:1.3, textShadow:'0 2px 10px rgba(0,0,0,0.35)' }}>
           “{fact.answer}”
