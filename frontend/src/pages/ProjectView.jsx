@@ -231,7 +231,7 @@ export function ProjectViewDetail() {
               <div style={{ fontSize:13, fontWeight:800 }}>{project.code} — {project.title}</div>
             </div>
           )}
-          {shoots.length > 1 && (() => {
+          {tab === 'pre' && shoots.length > 1 && (() => {
             const idx = Math.max(0, shoots.findIndex(s => s.freeproProjectId === shootId));
             const go = d => {
               const next = shoots[(idx + d + shoots.length) % shoots.length];
