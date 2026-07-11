@@ -566,6 +566,16 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
                     <td style={{ textAlign:'right', padding:'6px 6px 2px', fontSize:10, color:'var(--tan)', fontWeight:700 }}></td><td/></tr>
                 )}
                 {travel.map(l => <LineRow key={l.id} l={l} secLines={secLines} patchLine={patchLine} saveLine={saveLine} delLine={delLine} dupLine={dupLine} dragCtl={dragCtl} />)}
+                {sec.kind === 'shoot' && (
+                  <tr>
+                    <td colSpan={6} style={{ padding:'6px 6px 6px 14px' }}>
+                      <button onClick={() => addLine(sec.id, true)}
+                        style={{ fontSize:11, width:240, textAlign:'left', color:'#5ABF80', border:'1px dashed rgba(90,191,128,0.45)', background:'transparent', borderRadius:6, padding:'4px 8px', cursor:'pointer' }}>
+                        + Travel Line…
+                      </button>
+                    </td>
+                  </tr>
+                )}
                 {travel.length > 0 && (
                   <tr>
                     <td colSpan={4} style={{ padding:'6px 6px 6px 14px', fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.06em', color:'#5ABF80', borderBottom:'1px solid rgba(90,191,128,0.5)' }}>Travel Subtotal</td>
@@ -584,7 +594,6 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
                   {isCollapsed ? '▸ Expand All Positions' : '▾ Collapse Positions'}
                 </button>
               )}
-              {sec.kind === 'shoot' && <button className="btn btn-ghost btn-sm" onClick={() => addLine(sec.id, true)}>+ Travel Line</button>}
               {sec.kind === 'shoot' && <TravelSync sec={sec} travelTotal={travelTotal} reload={reload} hasHold={(vcc || []).some(e => (e.source || '') === 'travelhold:' + sec.id)} hasActuals={travel.some(l => /Actuals from VCC/i.test(l.notes || ''))} />}
             </div>
           </div>
@@ -1846,7 +1855,6 @@ function EstimatePane({ est, feeRate, saveFeeAll, reload, onMerged, onData }) {
                   {isCollapsed ? '▸ Expand All Positions' : '▾ Collapse Positions'}
                 </button>
               )}
-              {sec.kind === 'shoot' && <button className="btn btn-ghost btn-sm" onClick={() => addLine(sec.id, true)}>+ Travel Line</button>}
             </div>
           </div>
         );
