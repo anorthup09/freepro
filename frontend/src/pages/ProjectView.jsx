@@ -229,12 +229,27 @@ export function ProjectViewDetail() {
               <div style={{ fontSize:13, fontWeight:800 }}>{project.code} — {project.title}</div>
             </div>
           )}
+          {shoots.length > 1 && (() => {
+            const idx = Math.max(0, shoots.findIndex(s => s.freeproProjectId === shootId));
+            const go = d => {
+              const next = shoots[(idx + d + shoots.length) % shoots.length];
+              setShootId(next.freeproProjectId);
+              if (tab !== 'pre') setTab('pre');
+            };
+            const arrow = { background:'none', border:'none', color:'var(--orange)', fontSize:14, fontWeight:800, cursor:'pointer', padding:'2px 8px', lineHeight:1 };
+            return (
+              <div title="Flip between this project's production shoots"
+                style={{ display:'flex', alignItems:'center', gap:2, border:'1px solid rgba(232,80,10,0.45)', borderRadius:16, padding:'2px 4px', background:'rgba(232,80,10,0.08)' }}>
+                <button style={arrow} onClick={() => go(-1)} aria-label="Previous shoot">‹</button>
+                <span onClick={() => tab !== 'pre' && setTab('pre')}
+                  style={{ fontSize:11, fontWeight:800, color:'var(--orange)', letterSpacing:'0.04em', whiteSpace:'nowrap', cursor:'pointer' }}>
+                  {shoots[idx]?.code}{shoots[idx]?.trip ? ` · ${shoots[idx].trip}` : ''}
+                </span>
+                <button style={arrow} onClick={() => go(1)} aria-label="Next shoot">›</button>
+              </div>
+            );
+          })()}
           <div style={{ flex:1 }} />
-          {tab === 'pre' && shoots.length > 1 && (
-            <select value={shootId} onChange={e => setShootId(e.target.value)} style={{ width:'auto', fontSize:11 }}>
-              {shoots.map(s => <option key={s.freeproProjectId} value={s.freeproProjectId}>{s.code}</option>)}
-            </select>
-          )}
         </div>
       </div>
 
