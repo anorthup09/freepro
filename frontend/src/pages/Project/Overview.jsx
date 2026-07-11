@@ -308,9 +308,6 @@ export default function Overview({ project, setProject, onTabChange }) {
       {/* Header */}
       <div className="ov-head" style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', paddingBottom:18, borderBottom:'1px solid var(--border)', marginBottom:4 }}>
         <div>
-          <button className="btn btn-ghost btn-sm" title="Open this project's budget to edit shoot details"
-            onClick={() => nav(`/finance/${project.parent_project_id || project.id}`)}
-            style={{ marginBottom:6, padding:'2px 10px', fontSize:11 }}>✎ Edit</button>
           <div className="proj-code">{project.code}</div>
           <div className="proj-title">{project.title}</div>
           {(project.shoot_name || project.subtitle) && (
