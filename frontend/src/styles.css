@@ -628,3 +628,6 @@ textarea { resize: vertical; min-height: 70px; }
   .sec-meta { flex-direction: column; align-items: flex-start !important; }
   .sec-meta > input { width: 100% !important; max-width: 260px; flex: none !important; }
 }
+
+/* Feedback F button: label expands above on hover/focus */
+.fb-fab:hover .fb-fab-label, .fb-fab:focus-within .fb-fab-label { opacity: 1; transform: translateY(0); }

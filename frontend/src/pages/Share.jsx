@@ -1845,8 +1845,8 @@ function ShareGlassDock({ items }) {
   if (!items.length) return null;
   return (
     <div className="share-dock no-print" style={{
-      position:'fixed', left:'50%', transform:'translateX(-50%)', bottom:'calc(env(safe-area-inset-bottom, 0px) + 14px)',
-      zIndex:110, display:'flex', alignItems:'center', gap:2, maxWidth:'calc(100vw - 16px)', overflowX:'auto',
+      position:'fixed', right:14, bottom:'calc(env(safe-area-inset-bottom, 0px) + 14px)',
+      zIndex:110, display:'flex', alignItems:'center', gap:2, maxWidth:'calc(100vw - 72px)', overflowX:'auto',
       padding: shrunk ? '6px 10px' : '8px 12px',
       background:'rgba(24,22,19,0.81)', backdropFilter:'blur(18px) saturate(1.5)', WebkitBackdropFilter:'blur(18px) saturate(1.5)',
       border:'1px solid rgba(255,255,255,0.12)', borderRadius:32,
