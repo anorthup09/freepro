@@ -31,7 +31,7 @@ function MobileTabDock({ tabs, tab, setTab }) {
     let raf = null;
     const onScroll = () => {
       if (raf) return;
-      raf = requestAnimationFrame(() => { setShrunk(window.scrollY > 60); raf = null; });
+      raf = requestAnimationFrame(() => { setShrunk(window.innerWidth <= 700 && window.scrollY > 60); raf = null; });
     };
     window.addEventListener('scroll', onScroll, { passive: true });
     onScroll();
@@ -233,15 +233,6 @@ export function ProjectViewDetail() {
             </div>
           )}
           <div style={{ flex:1 }} />
-          <div className="pvd-tabs-top" style={{ display:'flex', border:'1px solid var(--border)', borderRadius:18, overflow:'hidden' }}>
-            {tabs.map(([k, label, color]) => (
-              <button key={k} onClick={() => setTab(k)}
-                style={{ background: tab === k ? 'rgba(255,255,255,0.07)' : 'transparent', border:'none',
-                  color: tab === k ? color : 'var(--muted)', fontSize:11, fontWeight:800, padding:'7px 16px', cursor:'pointer' }}>
-                {label}
-              </button>
-            ))}
-          </div>
           {tab === 'pre' && shoots.length > 1 && (
             <select value={shootId} onChange={e => setShootId(e.target.value)} style={{ width:'auto', fontSize:11 }}>
               {shoots.map(s => <option key={s.freeproProjectId} value={s.freeproProjectId}>{s.code}</option>)}

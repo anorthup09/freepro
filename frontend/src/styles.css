@@ -607,10 +607,5 @@ textarea { resize: vertical; min-height: 70px; }
   .hub-controls > button { font-size: 10px !important; padding: 7px 10px !important; letter-spacing: 0 !important; white-space: nowrap; flex-shrink: 0; }
 }
 
-/* Project View: bottom liquid-glass dock on phones, classic top tabs on desktop */
-.pvd-dock { display: none; }
-@media (max-width: 700px) {
-  .pvd-tabs-top { display: none !important; }
-  .pvd-dock { display: flex !important; }
-  .pvd-page { padding-bottom: 110px; }
-}
+/* Project View: the liquid-glass bottom dock is the navigation on every screen */
+.pvd-page { padding-bottom: 110px; }
