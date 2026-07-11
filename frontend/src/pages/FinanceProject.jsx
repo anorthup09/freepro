@@ -130,11 +130,9 @@ export default function FinanceProject({ pidOverride }) {
                     style={{ background:'rgba(90,191,128,0.12)', border:'1px solid #5ABF80', color:'#5ABF80', borderRadius:20, padding:'4px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
                     Budget Overview
                   </button>
-                  <ShareBudgetButton budget={budget} />
+                  <ShareBudgetButton budget={budget}
+                    onModePicked={m => set(d => ({ budget: { ...d.budget, share_mode: m } }))} />
                 </div>
-                <ShareModeToggle budget={budget}
-                  patchBudget={fields => set(d => ({ budget: { ...d.budget, ...fields } }))}
-                  saveBudget={data => api.updateBudget(budget.id, data).catch(e => alert(e.message))} />
               </>
             )}
           </div>
@@ -1303,38 +1301,59 @@ function VendorInvoicesButton({ pid }) {
 }
 
 
-function ShareBudgetButton({ budget }) {
-  async function share() {
+// Client Budget: pick how the client sees it (line items vs buckets) in a
+// pop-out, then open the shared page. No standing toggle in the header.
+function ShareBudgetButton({ budget, onModePicked }) {
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  async function share(mode) {
+    if (busy) return;
+    setBusy(true);
     try {
+      await api.updateBudget(budget.id, { shareMode: mode });
+      onModePicked && onModePicked(mode);
       const { token } = await api.shareBudget(budget.id);
+      setOpen(false);
       window.open(`${window.location.origin}/budget/${token}`, '_blank');
     } catch (e) { alert(e.message); }
+    setBusy(false);
   }
+  const current = budget.share_mode || 'lines';
+  const OPTIONS = [
+    ['lines', 'Line Items', 'The full budget line by line — every position, rate, and quantity.'],
+    ['buckets', 'Buckets', 'Rolled-up section totals only — no individual line detail.'],
+  ];
   return (
-    <button type="button" onClick={share} title="Open the client-facing budget page in a new window"
-      style={{ background:'rgba(74,158,255,0.12)', border:'1px solid #4a9eff', color:'#4a9eff', borderRadius:20, padding:'4px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
-      Client Budget
-    </button>
-  );
-}
-
-function ShareModeToggle({ budget, patchBudget, saveBudget }) {
-  const mode = budget.share_mode || 'lines';
-  function setMode(m) {
-    patchBudget({ share_mode: m });
-    saveBudget({ shareMode: m });
-  }
-  return (
-    <div className="seg-toggle" title="What the client sees on the shared budget page"
-      style={{ display:'flex', border:'1px solid var(--border)', borderRadius:14, overflow:'hidden' }}>
-      {[['lines', 'Line Items'], ['buckets', 'Buckets']].map(([m, label]) => (
-        <button key={m} type="button" onClick={() => setMode(m)}
-          style={{ background: mode === m ? 'rgba(90,191,128,0.25)' : 'transparent', border:'none',
-            color: mode === m ? '#5ABF80' : 'var(--muted)', fontSize:10, fontWeight:700, padding:'4px 10px', cursor:'pointer' }}>
-          {label}
-        </button>
-      ))}
-    </div>
+    <>
+      <button type="button" onClick={() => setOpen(true)} title="Open the client-facing budget page in a new window"
+        style={{ background:'rgba(74,158,255,0.12)', border:'1px solid #4a9eff', color:'#4a9eff', borderRadius:20, padding:'4px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
+        Client Budget
+      </button>
+      {open && (
+        <div onClick={e => e.target === e.currentTarget && setOpen(false)}
+          style={{ position:'fixed', inset:0, zIndex:130, background:'rgba(0,0,0,0.72)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+          <div style={{ width:'100%', maxWidth:420, background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid #4a9eff', borderRadius:12, padding:'18px 20px' }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4 }}>
+              <div style={{ fontSize:14, fontWeight:800 }}>Client Budget</div>
+              <button className="btn btn-ghost btn-sm" onClick={() => setOpen(false)}>✕</button>
+            </div>
+            <div style={{ fontSize:11, color:'var(--muted)', marginBottom:12 }}>How should the client see this budget?</div>
+            <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+              {OPTIONS.map(([m, label, desc]) => (
+                <button key={m} type="button" disabled={busy} onClick={() => share(m)}
+                  style={{ textAlign:'left', background: current === m ? 'rgba(74,158,255,0.10)' : 'var(--bg)', border: current === m ? '1px solid #4a9eff' : '1px solid var(--border)',
+                    borderRadius:10, padding:'12px 14px', cursor:'pointer', opacity: busy ? 0.6 : 1 }}>
+                  <div style={{ fontSize:13, fontWeight:800, color: current === m ? '#4a9eff' : 'var(--text)' }}>
+                    {label}{current === m && <span style={{ fontSize:10, fontWeight:700, color:'var(--muted)' }}> · last used</span>}
+                  </div>
+                  <div style={{ fontSize:11, color:'var(--muted)', marginTop:2 }}>{desc}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 

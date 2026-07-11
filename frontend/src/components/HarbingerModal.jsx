@@ -327,7 +327,7 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted, sol
               <label style={{ ...lbl, marginBottom:0 }}>SOW & Project Description{req}</label>
               <button type="button" onClick={generateSow} disabled={sowLoading}
                 style={{ background:'rgba(90,191,128,0.14)', border:'1px solid #5ABF80', color:'#5ABF80', borderRadius:8, padding:'4px 10px', fontSize:11, fontWeight:800, cursor: sowLoading ? 'default' : 'pointer', opacity: sowLoading ? 0.6 : 1 }}>
-                {sowLoading ? 'Generating…' : '✨ AI synopsis from budget'}
+                {sowLoading ? 'Generating…' : '✨ Budget Brief'}
               </button>
             </div>
             <div style={hint}>Auto-drafted from the budget allocations. Edit freely or regenerate.</div>
