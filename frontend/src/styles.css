@@ -630,11 +630,26 @@ textarea { resize: vertical; min-height: 70px; }
 .pvd-embed .nav > a[title="Back to the Unbridled Media hub"] { display: none !important; }
 .pvd-embed .nav { padding-top: 0; }
 
-/* Budget shoot header: code / trip / description stack on phones */
+/* Budget shoot header: code / trip / description stack on phones; the cost
+   column stays pinned top-right instead of wrapping underneath */
 @media (max-width: 700px) {
   .sec-meta { flex-direction: column; align-items: flex-start !important; }
   .sec-meta > input { width: 100% !important; max-width: 260px; flex: none !important; }
+  .shoot-head { flex-wrap: nowrap !important; }
+  .shoot-head-left { min-width: 0 !important; }
+  .shoot-head-right { max-width: 46%; }
+  .shoot-head-right > span { justify-content: flex-end; }
 }
 
 /* Feedback F button: label expands above on hover/focus */
 .fb-fab:hover .fb-fab-label, .fb-fab:focus-within .fb-fab-label { opacity: 1; transform: translateY(0); }
+
+/* ProFi project header on phones: Edit · code · name · client on one line */
+@media (max-width: 700px) {
+  .fp-idblock { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; }
+  .fp-idblock .fp-edit { order: 1; margin-bottom: 0 !important; align-self: center; }
+  .fp-idblock .fp-code { order: 2; font-size: 11px !important; }
+  .fp-idblock .page-title { order: 3; font-size: 17px; margin: 0; }
+  .fp-idblock .page-sub { order: 4; margin: 0; }
+  .fp-idblock .seg-toggle { order: 5; flex-basis: 100%; margin-top: 4px !important; }
+}

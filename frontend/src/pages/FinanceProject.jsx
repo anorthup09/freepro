@@ -94,12 +94,12 @@ export default function FinanceProject({ pidOverride }) {
       <FinanceHeader />
       <div style={{ maxWidth:1100, margin:'0 auto', padding:'6px 16px 80px' }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:10, marginBottom:14 }}>
-          <div>
-            <button onClick={() => setEditProject(true)}
+          <div className="fp-idblock">
+            <button className="fp-edit" onClick={() => setEditProject(true)}
               style={{ marginBottom:6, background:'none', border:'1px solid var(--border)', borderRadius:12, padding:'2px 12px', fontSize:10, fontWeight:600, color:'var(--muted)', cursor:'pointer' }}>
               ✎ Edit
             </button>
-            <div style={{ fontSize:10, color:'var(--muted)' }}>{project.code}</div>
+            <div className="fp-code" style={{ fontSize:10, color:'var(--muted)' }}>{project.code}</div>
             <div className="page-title">{project.title}</div>
             <div className="page-sub">{project.client}</div>
             <div className="seg-toggle" style={{ display:'inline-flex', marginTop:8, border:'1px solid var(--border)', borderRadius:16, overflow:'hidden' }}>
@@ -572,8 +572,8 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
                 </button>
               </div>
             )}
-            <div style={{ display:'flex', alignItems:'flex-start', gap:10, padding:'10px 14px', borderBottom:'1px solid var(--border)', justifyContent:'space-between', flexWrap:'wrap' }}>
-              <div style={{ flex:1, minWidth:200 }}>
+            <div className="shoot-head" style={{ display:'flex', alignItems:'flex-start', gap:10, padding:'10px 14px', borderBottom:'1px solid var(--border)', justifyContent:'space-between', flexWrap:'wrap' }}>
+              <div className="shoot-head-left" style={{ flex:1, minWidth:200 }}>
                 <input value={sec.title} style={{ ...cellIn, fontWeight:700, fontSize:13, textTransform:'uppercase', letterSpacing:'0.04em', color:'#5ABF80' }}
                   onChange={e => patchSection(sec.id, { title: e.target.value })}
                   onBlur={e => api.updateBudgetSection(sec.id, { title: e.target.value }).catch(() => {})} />
@@ -596,7 +596,7 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
                     onBlur={e => api.updateBudgetSection(sec.id, { subtitle: e.target.value }).catch(() => {})} />
                 </div>
               </div>
-              <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:6, flexShrink:0 }}>
+              <div className="shoot-head-right" style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:6, flexShrink:0 }}>
                 <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                   <div style={{ fontSize:13, fontWeight:700, whiteSpace:'nowrap' }}>{fmt$(mainTotal + travelTotal)}</div>
                   <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text)' }} onClick={() => delSection(sec.id)}>✕</button>
