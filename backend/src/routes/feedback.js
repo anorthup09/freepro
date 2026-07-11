@@ -25,6 +25,20 @@ router.patch('/:id', requireAuth, async (req, res, next) => {
     res.json(i);
   } catch (e) { next(e); }
 });
+// Threaded answers under a feedback item
+router.post('/:id/replies', requireAuth, async (req, res, next) => {
+  try {
+    const text = String(req.body.text || '').trim();
+    if (!text) return res.status(400).json({ error: 'Text required' });
+    const reply = { text, by: req.user.name || req.user.email, at: new Date().toISOString() };
+    const [i] = await sql`
+      UPDATE feedback_items SET replies = COALESCE(replies, '[]'::jsonb) || ${sql.json(reply)}
+      WHERE id = ${req.params.id} RETURNING *`;
+    if (!i) return res.status(404).json({ error: 'Not found' });
+    res.json(i);
+  } catch (e) { next(e); }
+});
+
 router.delete('/:id', requireAuth, async (req, res, next) => {
   try { await sql`DELETE FROM feedback_items WHERE id = ${req.params.id}`; res.status(204).end(); } catch (e) { next(e); }
 });

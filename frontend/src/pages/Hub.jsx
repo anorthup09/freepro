@@ -66,6 +66,16 @@ export function FeedbackBoard({ variant = 'banner' }) {
   const [text, setText] = useState('');
   const [attachment, setAttachment] = useState(null);   // base64 image queued for the next comment
   const [viewer, setViewer] = useState(null);           // full-size attachment being viewed
+  const [replyFor, setReplyFor] = useState(null);       // feedback item id with the reply box open
+  const [replyText, setReplyText] = useState('');
+  async function sendReply(id) {
+    if (!replyText.trim()) return;
+    try {
+      const u = await api.replyFeedback(id, replyText.trim());
+      setItems(xs => xs.map(x => x.id === id ? u : x));
+      setReplyFor(null); setReplyText('');
+    } catch (e) { alert(e.message); }
+  }
   const load = () => api.feedbackList().then(setItems).catch(() => {});
   useEffect(() => { load(); }, []);
   async function toggle() {
@@ -142,7 +152,31 @@ export function FeedbackBoard({ variant = 'banner' }) {
                     }} />
                   <div style={{ flex:1, minWidth:0 }}>
                     <div style={{ fontSize:13, fontWeight:600, textDecoration: i.done ? 'line-through' : 'none', overflowWrap:'anywhere' }}>{i.text}</div>
-                    <div style={{ fontSize:10, color:'var(--muted)' }}>{i.created_by || 'someone'} · {new Date(i.created_at).toLocaleDateString('en-US', { month:'numeric', day:'numeric' })}</div>
+                    <div style={{ fontSize:10, color:'var(--muted)' }}>
+                      {i.created_by || 'someone'} · {new Date(i.created_at).toLocaleDateString('en-US', { month:'numeric', day:'numeric' })}
+                      <button onClick={() => { setReplyFor(r => r === i.id ? null : i.id); setReplyText(''); }}
+                        style={{ background:'none', border:'none', color:'var(--tan)', fontSize:10, fontWeight:800, cursor:'pointer', marginLeft:8, padding:0 }}>
+                        {replyFor === i.id ? 'Cancel' : 'Reply'}
+                      </button>
+                    </div>
+                    {(Array.isArray(i.replies) ? i.replies : []).map((r, ri) => (
+                      <div key={ri} style={{ marginTop:6, marginLeft:2, paddingLeft:10, borderLeft:'2px solid rgba(224,82,82,0.4)' }}>
+                        <div style={{ fontSize:12, overflowWrap:'anywhere' }}>{r.text}</div>
+                        <div style={{ fontSize:9.5, color:'var(--muted)' }}>{r.by} · {new Date(r.at).toLocaleDateString('en-US', { month:'numeric', day:'numeric' })}</div>
+                      </div>
+                    ))}
+                    {replyFor === i.id && (
+                      <div style={{ display:'flex', gap:6, marginTop:8 }}>
+                        <input value={replyText} autoFocus placeholder="Write an answer…"
+                          onChange={e => setReplyText(e.target.value)}
+                          onKeyDown={e => e.key === 'Enter' && sendReply(i.id)}
+                          style={{ flex:1, fontSize:12 }} />
+                        <button onClick={() => sendReply(i.id)} disabled={!replyText.trim()}
+                          style={{ background:'#e05252', border:'none', color:'#fff', borderRadius:8, padding:'5px 12px', fontSize:11, fontWeight:800, cursor:'pointer', opacity: replyText.trim() ? 1 : 0.5 }}>
+                          Answer
+                        </button>
+                      </div>
+                    )}
                   </div>
                   {i.attachment && (
                     <img src={i.attachment} alt="attachment" title="Click to view full size"
