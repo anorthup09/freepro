@@ -103,6 +103,20 @@ export function FeedbackBoard({ variant = 'banner' }) {
     reader.onload = ev => setAttachment(ev.target.result);
     reader.readAsDataURL(file);
   }
+  // Floating variant rides under the logo at the top of the page, then docks
+  // to the very top edge once you scroll
+  const [docked, setDocked] = useState(false);
+  useEffect(() => {
+    if (variant === 'banner') return;
+    let raf = null;
+    const onScroll = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => { setDocked(window.scrollY > 40); raf = null; });
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => { window.removeEventListener('scroll', onScroll); if (raf) cancelAnimationFrame(raf); };
+  }, [variant]);
   const openCount = items.filter(i => !i.done).length;
   return (
     <>
@@ -121,7 +135,7 @@ export function FeedbackBoard({ variant = 'banner' }) {
         </div>
       ) : (
         <button onClick={toggle} className="no-print" title="Testing — leave feedback or a feature request"
-          style={{ position:'fixed', top:58, left:26, zIndex:125, background:'#e05252', border:'1px solid #ff6b6b', color:'#fff',
+          style={{ position:'fixed', top: docked ? 6 : 58, left:26, zIndex:125, transition:'top .25s ease', background:'#e05252', border:'1px solid #ff6b6b', color:'#fff',
             borderRadius:12, padding:'3px 12px', fontSize:10, fontWeight:900, letterSpacing:'0.03em', cursor:'pointer', boxShadow:'0 2px 10px rgba(224,82,82,0.45)', display:'flex', alignItems:'center', gap:6 }}>
           Feedback{openCount > 0 && <span style={{ background:'#fff', color:'#e05252', borderRadius:8, padding:'0 6px', fontSize:9, fontWeight:900 }}>{openCount}</span>}
         </button>
