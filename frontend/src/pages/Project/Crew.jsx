@@ -552,9 +552,21 @@ export default function Crew({ project, onProjectUpdate }) {
                 Travel expenses and per diem are reimbursable with receipts — the email says so next to each amount.
               </div>
               <div>
-                <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Send final invoice to (names & email)</label>
-                <input value={emailReview.invoiceTo || ''} style={{ width:'100%', fontSize:12 }}
-                  onChange={e => setEmailReview(v => ({ ...v, invoiceTo: e.target.value }))} />
+                <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Send final invoice to (Unbridled Media)</label>
+                <select value={emailReview.invoiceTo || ''} style={{ width:'100%', fontSize:12 }}
+                  onChange={e => setEmailReview(v => ({ ...v, invoiceTo: e.target.value }))}>
+                  <option value="">— Select —</option>
+                  {emailReview.invoiceTo && !roster.some(m => {
+                    const nm = [m.preferred_first_name, m.preferred_last_name].filter(Boolean).join(' ').trim() || m.name;
+                    return `${nm} — ${m.email}` === emailReview.invoiceTo;
+                  }) && <option value={emailReview.invoiceTo}>{emailReview.invoiceTo}</option>}
+                  {roster.filter(m => (m.company || '').toLowerCase().includes('unbridled') && m.email)
+                    .map(m => {
+                      const nm = [m.preferred_first_name, m.preferred_last_name].filter(Boolean).join(' ').trim() || m.name;
+                      const val = `${nm} — ${m.email}`;
+                      return <option key={m.id} value={val}>{val}</option>;
+                    })}
+                </select>
               </div>
               <div>
                 <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Scope of Work</label>

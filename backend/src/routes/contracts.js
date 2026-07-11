@@ -54,18 +54,25 @@ router.get('/projects/:id/contracts/:cid/email-prefill', requireAuth, requireRol
       FROM projects p LEFT JOIN crew_members cm ON cm.id = p.poc_crew_member_id
       WHERE p.id = ${req.params.id}`;
     const locations = await sql`SELECT name, address FROM locations WHERE project_id = ${req.params.id}`;
-    // Travel expense allocation: this shoot's budget travel subtotal split
-    // across its budgeted labor headcount — a starting point, editable on review.
+    // Travel expenses & per diem per person come straight from the travel
+    // section of this shoot's production budget: the "Per Diem" line's unit
+    // cost is the daily rate; the remaining travel lines sum to the
+    // per-person travel expense allowance. Both editable on review.
     let travelAllowance = null;
+    let perDiem = 75;
     try {
       const [sec] = await sql`SELECT id, budget_id FROM budget_sections WHERE freepro_project_id = ${req.params.id} LIMIT 1`;
       if (sec) {
-        const lines = await sql`SELECT qty, unit_cost, is_travel, percent FROM budget_lines WHERE section_id = ${sec.id}`;
-        const travel = lines.filter(l => l.is_travel && l.percent == null).reduce((s, l) => s + (Number(l.qty) || 0) * (Number(l.unit_cost) || 0), 0);
-        const heads = lines.filter(l => !l.is_travel && l.percent == null).reduce((s, l) => s + (Number(l.qty) > 0 ? Number(l.qty) : 0), 0);
-        if (travel > 0 && heads > 0) travelAllowance = Math.round(travel / heads);
+        const lines = await sql`SELECT scope, qty, unit_cost, percent FROM budget_lines WHERE section_id = ${sec.id} AND is_travel = true`;
+        let allowance = 0;
+        for (const l of lines) {
+          if (l.percent != null) continue;
+          if (/per\s*diem/i.test(l.scope || '')) { if (Number(l.unit_cost)) perDiem = Number(l.unit_cost); }
+          else allowance += (Number(l.qty) || 0) * (Number(l.unit_cost) || 0);
+        }
+        if (allowance > 0) travelAllowance = Math.round(allowance);
       }
-    } catch { /* no linked budget — leave blank */ }
+    } catch { /* no linked budget — keep the defaults */ }
     const fmtD = d => d ? new Date(String(d).slice(0, 10) + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
     const laborTotal = (Number(c.day_rate) || 0) * (Number(c.labor_days) || 0);
     const gearTotal = (Number(c.gear_rate) || 0) * (Number(c.gear_days) || 0);
@@ -83,8 +90,8 @@ router.get('/projects/:id/contracts/:cid/email-prefill', requireAuth, requireRol
       quotedTotal: laborTotal + gearTotal,
       travelLocations: locations.map(l => l.name).filter(Boolean).join(', '),
       travelAllowance,
-      perDiem: 75,
-      invoiceTo: proj?.poc_name ? `${proj.poc_name}${proj.poc_email ? ` — ${proj.poc_email}` : ''}` : '',
+      perDiem,
+      invoiceTo: req.user?.name ? `${req.user.name}${req.user.email ? ` — ${req.user.email}` : ''}` : (req.user?.email || ''),
     });
   } catch (e) { next(e); }
 });
