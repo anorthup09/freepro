@@ -547,14 +547,21 @@ textarea { resize: vertical; min-height: 70px; }
   .glass-mid, .glass-client { display: none !important; }
 }
 
-/* Project Overview: stack to one column on phones; To-Do card shrinks to content */
+/* Project Overview: stack to one column on phones. The wrapper columns
+   flatten (display:contents) so every tile reorders individually:
+   Creative Docs, Budget, Shoots, Post-Pro, To-Do, Client Call Notes */
 @media (max-width: 700px) {
   .pv-overview { grid-template-columns: 1fr !important; }
-  .pv-overview .pv-head, .pv-overview .pv-left, .pv-overview .pv-right { grid-column: auto !important; grid-row: auto !important; }
-  .pv-overview .pv-head { order: -2; }
-  .pv-overview .pv-right { order: -1; display: flex; flex-direction: column; gap: 16px; }
+  .pv-overview .pv-head { grid-column: auto !important; grid-row: auto !important; }
+  .pv-overview .pv-left, .pv-overview .pv-right { display: contents !important; }
   .pv-overview .pv-right > div { margin-bottom: 0 !important; }
-  .pv-overview .pv-todo { min-height: 0 !important; order: -1; }
+  .pv-overview .pv-todo { min-height: 0 !important; }
+  .pv-overview .pv-docs   { order: 1; }
+  .pv-overview .pv-head   { order: 2; }
+  .pv-overview .pv-shoots { order: 3; }
+  .pv-overview .pv-post   { order: 4; }
+  .pv-overview .pv-todo   { order: 5; }
+  .pv-overview .pv-notes  { order: 6; }
 }
 
 /* Project View detail bar on phones: title left, back button top right */

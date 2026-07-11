@@ -1443,6 +1443,10 @@ async function migrate() {
       WHERE additional_deposit IS NOT NULL AND additional_deposit <> 0`;
   } catch (e) { console.error('additional_deposit fold failed:', e.message); }
 
+  // Budget-level client contact ({name, email, address}) + estimated final delivery
+  await sql`ALTER TABLE budgets ADD COLUMN IF NOT EXISTS client_contact JSONB`;
+  await sql`ALTER TABLE budgets ADD COLUMN IF NOT EXISTS est_final_delivery DATE`;
+
   // One-time ClickUp PTO/OOO import (idempotent)
   try { await require('./seedPto')(); } catch (e) { console.error('PTO seed failed:', e.message); }
 

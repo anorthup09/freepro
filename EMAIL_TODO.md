@@ -12,8 +12,8 @@ link (SMTP) is connected. Keep this file updated as email features are added.
 | `SMTP_USER` | Mail account username |
 | `SMTP_PASS` | Mail account password / app password |
 | `MAIL_FROM` | From address (falls back to `SMTP_USER`) |
-| `HARBINGER_EMAIL` | Accounting recipient for Harbinger submission reports |
-| `MAIL_FROM_ACCOUNTING` | Sender for Harbinger reports + client invoices (e.g. accounting@unbridledmedia.com) |
+| `MAIL_FROM_INFO` | Sender for Harbinger kickoff reports (defaults to info@unbridledmedia.com) |
+| `MAIL_FROM_ACCOUNTING` | Sender for client invoices (e.g. accounting@unbridledmedia.com) |
 | `MAIL_FROM_PRODUCTION` | Sender for calendar holds/cancels, contracts, crew questions |
 | `MAIL_FROM_GEAR` | Sender for gear request + amendment notifications |
 | `MAIL_FROM_TEAM` | Sender for PTO/OOO requests, approvals, FYIs |
@@ -40,9 +40,11 @@ permission on each address (Outlook 365: shared mailbox or alias).
 - [ ] **Deliverable approval email** — when an edit is marked Approved in
       AvocadoPost, the lead editor gets an email (activity note logs the send).
 
-- [ ] **Harbinger submission report** — full kickoff report emailed to
-      `HARBINGER_EMAIL` when a budget moves RFP → Live and the form is
-      submitted. (`backend/src/routes/finance.js`)
+- [ ] **Harbinger submission report** — designed HTML kickoff report from
+      info@unbridledmedia.com when a budget moves RFP → Live. Recipients
+      (default: aporio, khueseman, dsmith, anorthup; cc blamb, mwalsh) are
+      editable in the admin Automations dashboard on the hub.
+      (`backend/src/routes/finance.js`, `backend/src/lib/emailTemplates.js`)
 - [ ] **Contract / deal memo send** — one-click email of the signing link to
       contract crew from the crew grid. (`backend/src/routes/contracts.js`)
 - [ ] **Gear request notification** — full gear request emailed to

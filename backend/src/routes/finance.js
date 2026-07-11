@@ -404,7 +404,9 @@ router.patch('/finance/budget/:bid', ...finance, async (req, res, next) => {
         label = ${d.label !== undefined ? (d.label || null) : sql`label`},
         close_month = ${d.closeMonth !== undefined ? (d.closeMonth || null) : sql`close_month`},
         solutions_code = ${d.solutionsCode !== undefined ? (d.solutionsCode || null) : sql`solutions_code`},
-        share_mode = ${d.shareMode !== undefined ? (d.shareMode || 'lines') : sql`share_mode`}
+        share_mode = ${d.shareMode !== undefined ? (d.shareMode || 'lines') : sql`share_mode`},
+        client_contact = ${d.clientContact !== undefined ? (d.clientContact ? sql.json(d.clientContact) : null) : sql`client_contact`},
+        est_final_delivery = ${d.estFinalDelivery !== undefined ? (d.estFinalDelivery || null) : sql`est_final_delivery`}
       WHERE id = ${req.params.bid} RETURNING *`;
     // Setting a budget owner auto-tags them on the budget (matched by name)
     if (b && d.mediaRep) {

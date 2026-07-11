@@ -69,6 +69,39 @@ router.get('/contacts', ...staff, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// Every client contact person we've used before — client roster contacts,
+// budget-level contacts, and past Harbinger submissions — deduped by name.
+// Powers the searchable name autofill on the budget's + Add Client Contact.
+router.get('/contact-people', ...staff, async (req, res, next) => {
+  try {
+    const [roster, budgets, harbs] = await Promise.all([
+      sql`SELECT name AS company, primary_contact_name AS name, primary_contact_email AS email, mailing_address AS address
+          FROM clients WHERE primary_contact_name IS NOT NULL AND primary_contact_name <> ''`,
+      sql`SELECT client_contact FROM budgets WHERE client_contact IS NOT NULL`,
+      sql`SELECT data FROM harbingers ORDER BY created_at DESC`,
+    ]);
+    const seen = new Map();
+    const add = (p) => {
+      const key = String(p.name || '').trim().toLowerCase();
+      if (!key) return;
+      const cur = seen.get(key);
+      if (!cur) seen.set(key, { name: String(p.name).trim(), email: p.email || '', address: p.address || '', company: p.company || '' });
+      else { // fill blanks from later sources, never overwrite
+        if (!cur.email && p.email) cur.email = p.email;
+        if (!cur.address && p.address) cur.address = p.address;
+        if (!cur.company && p.company) cur.company = p.company;
+      }
+    };
+    roster.forEach(add);
+    budgets.forEach(b => { const c = typeof b.client_contact === 'string' ? JSON.parse(b.client_contact) : b.client_contact; if (c) add(c); });
+    harbs.forEach(h => {
+      const d = typeof h.data === 'string' ? JSON.parse(h.data) : h.data;
+      if (d && d.primaryContactName) add({ name: d.primaryContactName, email: d.primaryContactEmail, address: d.mailingAddress, company: d.clientCompany });
+    });
+    res.json([...seen.values()].sort((a, b) => a.name.localeCompare(b.name)));
+  } catch (e) { next(e); }
+});
+
 // Save (upsert) a client's contact info for reuse. Only overwrites fields provided.
 router.patch('/:client/contact', ...staff, async (req, res, next) => {
   try {

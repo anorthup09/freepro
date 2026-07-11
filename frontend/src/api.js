@@ -152,6 +152,7 @@ export const api = {
   clientRoster: () => req('GET', '/clients/roster'),
   addClient: (name, force) => req('POST', '/clients/roster', { name, force }),
   clientContacts: () => req('GET', '/clients/contacts'),
+  clientContactPeople: () => req('GET', '/clients/contact-people'),
   saveClientContact: (client, data) => req('PATCH', `/clients/${encodeURIComponent(client)}/contact`, data),
   clientMeta: (client) => req('GET', `/clients/${encodeURIComponent(client)}/meta`),
   setClientHubPassword: (client, hubPassword) => req('PATCH', `/clients/${encodeURIComponent(client)}/meta`, { hubPassword }),

@@ -118,7 +118,7 @@ function DocsTile({ pid, docs, setDocs }) {
     setBusy(null);
   }
   return (
-    <div style={{ ...card, marginBottom:16 }}>
+    <div className="pv-docs" style={{ ...card, marginBottom:16 }}>
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, flexWrap:'wrap', marginBottom:10 }}>
         <div style={{ ...secHdr, marginBottom:0 }}>Creative Docs</div>
         <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
@@ -246,7 +246,7 @@ function TaskRow({ t, members, onSave, onDelete }) {
   );
 }
 
-export default function ProjectOverview({ pid }) {
+export default function ProjectOverview({ pid, onOpenFinance }) {
   const nav = useNavigate();
   const [data, setData] = useState(null);
   const [members, setMembers] = useState([]);
@@ -280,7 +280,9 @@ export default function ProjectOverview({ pid }) {
   return (
     <div className="pv-overview" style={{ maxWidth:1250, margin:'0 auto', padding:'8px 16px 60px', display:'grid', gridTemplateColumns:'1fr 320px', gridTemplateRows:'auto 1fr', gap:16, alignItems:'start' }}>
       {/* ── Budget tile: status left, running total right ── */}
-      <div className="pv-head" style={{ gridColumn:1, ...card, display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap' }}>
+      <div className="pv-head" title="Open the finance page"
+        onClick={() => onOpenFinance ? onOpenFinance() : nav(`/finance/${pid}`)}
+        style={{ gridColumn:1, ...card, display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap', cursor:'pointer' }}>
         <div style={{ display:'flex', alignItems:'center', gap:10 }}>
           <span style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Budget Status</span>
           <StatusPill status={budgetStatus || 'No budget'} />
@@ -296,7 +298,7 @@ export default function ProjectOverview({ pid }) {
 
       {/* ── Left: cover page ── */}
       <div className="pv-left" style={{ gridColumn:1, display:'flex', flexDirection:'column', gap:16 }}>
-        <div style={card}>
+        <div className="pv-shoots" style={card}>
           <div style={secHdr}>Shoots</div>
           {shoots.length === 0 && <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>No production shoots yet — they appear when the budget goes Live.</div>}
           {shoots.map(s => (
@@ -310,7 +312,7 @@ export default function ProjectOverview({ pid }) {
           ))}
         </div>
 
-        <div style={card}>
+        <div className="pv-post" style={card}>
           <div style={secHdr}>Post-Production at a Glance</div>
           {edits.length === 0 && <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>No edits on this project code yet.</div>}
           {edits.map(e => {
@@ -327,7 +329,7 @@ export default function ProjectOverview({ pid }) {
           })}
         </div>
 
-        <div style={card}>
+        <div className="pv-notes" style={card}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
             <div style={{ ...secHdr, marginBottom:0 }}>Client Call Notes</div>
             <button onClick={async () => {

@@ -227,6 +227,102 @@ function closeMonthRange() {
   return opts;
 }
 
+// Budget-level client contact: shows just the name here; email + address ride
+// along into the Harbinger prefill. Name search autofills from past contacts.
+function ClientContactField({ budget, patchBudget, saveBudget }) {
+  const [open, setOpen] = useState(false);
+  const [f, setF] = useState({ name: '', email: '', address: '' });
+  const [people, setPeople] = useState([]);
+  const [sugOpen, setSugOpen] = useState(false);
+  const c = budget.client_contact;
+
+  function openForm() {
+    setF({ name: c?.name || '', email: c?.email || '', address: c?.address || '' });
+    api.clientContactPeople().then(setPeople).catch(() => {});
+    setSugOpen(false);
+    setOpen(true);
+  }
+  const suggestions = useMemo(() => {
+    const q = (f.name || '').trim().toLowerCase();
+    if (!q) return [];
+    return people.filter(p => p.name.toLowerCase().includes(q) && p.name.toLowerCase() !== q).slice(0, 8);
+  }, [people, f.name]);
+  function pick(p) {
+    setF(v => ({ name: p.name, email: p.email || v.email, address: p.address || v.address }));
+    setSugOpen(false);
+  }
+  function save(next) {
+    patchBudget({ client_contact: next });
+    saveBudget({ clientContact: next });
+    setOpen(false);
+  }
+  const inS = { width: '100%', fontSize: 12 };
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
+      <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Client Contact</label>
+      {c?.name ? (
+        <button onClick={openForm} title={`${c.email || ''}${c.address ? ' · ' + c.address : ''}\nClick to edit`}
+          style={{ background:'var(--bg)', border:'1px solid var(--border)', borderRadius:6, color:'var(--text)', fontSize:12, fontWeight:600, padding:'6px 10px', cursor:'pointer', whiteSpace:'nowrap' }}>
+          {c.name}
+        </button>
+      ) : (
+        <button onClick={openForm}
+          style={{ background:'none', border:'1px dashed var(--border)', borderRadius:6, color:'var(--muted)', fontSize:11, fontWeight:700, padding:'6px 10px', cursor:'pointer', whiteSpace:'nowrap' }}>
+          + Add Client Contact
+        </button>
+      )}
+      {open && (
+        <div onClick={e => e.target === e.currentTarget && setOpen(false)}
+          style={{ position:'fixed', inset:0, zIndex:130, background:'rgba(0,0,0,0.7)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+          <div style={{ width:'100%', maxWidth:420, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, padding:'16px 18px' }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
+              <div style={{ fontSize:13, fontWeight:800 }}>Client Contact</div>
+              <button className="btn btn-ghost btn-sm" onClick={() => setOpen(false)}>✕</button>
+            </div>
+            <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+              <div style={{ position:'relative' }}>
+                <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Name</label>
+                <input style={inS} value={f.name} autoFocus placeholder="Start typing to search past contacts…"
+                  onChange={e => { setF(v => ({ ...v, name: e.target.value })); setSugOpen(true); }}
+                  onBlur={() => setTimeout(() => setSugOpen(false), 150)} />
+                {sugOpen && suggestions.length > 0 && (
+                  <div style={{ position:'absolute', top:'100%', left:0, right:0, zIndex:10, background:'var(--bg)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden', maxHeight:200, overflowY:'auto' }}>
+                    {suggestions.map(p => (
+                      <div key={p.name} onMouseDown={() => pick(p)}
+                        style={{ padding:'7px 10px', fontSize:12, cursor:'pointer', borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
+                        <span style={{ fontWeight:700 }}>{p.name}</span>
+                        {(p.company || p.email) && <span style={{ color:'var(--muted)', fontSize:10 }}> — {p.company || p.email}</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div>
+                <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Email</label>
+                <input style={inS} type="email" value={f.email} onChange={e => setF(v => ({ ...v, email: e.target.value }))} />
+              </div>
+              <div>
+                <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Address</label>
+                <textarea style={{ ...inS, minHeight:52 }} value={f.address} onChange={e => setF(v => ({ ...v, address: e.target.value }))} />
+              </div>
+              <div style={{ display:'flex', justifyContent:'space-between', gap:8, marginTop:2 }}>
+                {c?.name
+                  ? <button onClick={() => save(null)}
+                      style={{ background:'none', border:'1px solid var(--border)', borderRadius:6, color:'var(--red-text)', fontSize:11, padding:'6px 12px', cursor:'pointer' }}>Remove</button>
+                  : <span />}
+                <button className="btn btn-primary btn-sm" disabled={!f.name.trim()}
+                  onClick={() => save({ name: f.name.trim(), email: f.email.trim(), address: f.address.trim() })}>
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
   const { user } = useAuth();
   const [harbingerOpen, setHarbingerOpen] = useState(false);
@@ -286,6 +382,10 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
       budgetedPositions: positionsBlock,
       productionDates: datesBlock,
       closeMonth: budget.close_month || '',
+      primaryContactName: budget.client_contact?.name || '',
+      primaryContactEmail: budget.client_contact?.email || '',
+      mailingAddress: budget.client_contact?.address || '',
+      finalDelivery: budget.est_final_delivery ? String(budget.est_final_delivery).slice(0, 10) : '',
     };
   }
 
@@ -396,6 +496,12 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
             {budget.media_rep && !BUDGET_OWNERS.includes(budget.media_rep) && <option value={budget.media_rep}>{budget.media_rep}</option>}
             {BUDGET_OWNERS.map(n => <option key={n}>{n}</option>)}
           </select>
+        </div>
+        <ClientContactField budget={budget} patchBudget={patchBudget} saveBudget={saveBudget} />
+        <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
+          <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Est. Final Delivery</label>
+          <input type="date" value={budget.est_final_delivery ? String(budget.est_final_delivery).slice(0, 10) : ''} style={{ width:140, fontSize:12 }}
+            onChange={e => { patchBudget({ est_final_delivery: e.target.value }); saveBudget({ estFinalDelivery: e.target.value }); }} />
         </div>
         <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
           <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Tagged</label>

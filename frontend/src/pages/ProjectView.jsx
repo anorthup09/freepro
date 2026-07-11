@@ -258,7 +258,7 @@ export function ProjectViewDetail() {
       <MobileTabDock tabs={tabs} tab={tab} setTab={setTab} />
 
       {project === false && <div className="empty">Project not found.</div>}
-      {project && tab === 'overview' && <ProjectOverview pid={pid} />}
+      {project && tab === 'overview' && <ProjectOverview pid={pid} onOpenFinance={() => { setTab('finance'); window.scrollTo({ top: 0 }); }} />}
       {project && tab === 'finance' && <div className="pvd-embed"><FinanceProject pidOverride={pid} /></div>}
       {project && tab === 'pre' && (shootId
         ? <div className="pvd-embed"><Project idOverride={shootId} key={shootId} /></div>
