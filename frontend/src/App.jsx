@@ -107,6 +107,45 @@ function MailNoticeHost() {
   );
 }
 
+// Daily welcome: shows once per day on a user's first visit while the
+// platform is in its testing phase.
+function DailyTestingNotice({ user }) {
+  const loc = useLocation();
+  const [show, setShow] = React.useState(false);
+  React.useEffect(() => {
+    if (!user) return;
+    const today = new Date().toDateString();
+    if (localStorage.getItem('fp_daily_notice') !== today) {
+      localStorage.setItem('fp_daily_notice', today);
+      setShow(true);
+    }
+  }, [user]);
+  if (!show || !user || loc.pathname.startsWith('/share') || loc.pathname.startsWith('/gantt') || loc.pathname === '/login') return null;
+  return (
+    <div onClick={e => e.target === e.currentTarget && setShow(false)}
+      style={{ position:'fixed', inset:0, zIndex:230, background:'rgba(0,0,0,0.75)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+      <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid #e05252', borderRadius:12, padding:'24px 26px', width:'100%', maxWidth:460 }}>
+        <div style={{ fontSize:15, fontWeight:800, marginBottom:10 }}>Welcome to the Unbridled Operating Platform</div>
+        <div style={{ fontSize:13, color:'var(--text)', lineHeight:1.6 }}>
+          Thank you for testing the new Unbridled Media Online Platform. While the testing phase can be both fun and frustrating, it's important to provide feedback to prepare for a successful launch.
+        </div>
+        <div style={{ fontSize:13, color:'var(--text)', lineHeight:1.6, marginTop:10 }}>
+          If you have feedback or features, please provide individual notes in the bright red button on the Hub, or the little red button in the bottom left corner that will follow you as you navigate the platform.
+        </div>
+        <div style={{ fontSize:13, fontWeight:800, lineHeight:1.6, marginTop:10 }}>
+          If you run into issues or bugs — please report immediately to Alex Northup to repair.
+        </div>
+        <div style={{ fontSize:13, color:'var(--text)', lineHeight:1.6, marginTop:10 }}>
+          Your timely and honest feedback helps this project improve and succeed.
+        </div>
+        <div style={{ display:'flex', justifyContent:'flex-end', marginTop:16 }}>
+          <button className="btn btn-primary btn-sm" onClick={() => setShow(false)}>Got it</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Centered Sign out at the bottom of every signed-in page (public shares excluded)
 function SignOutFooter({ user, setUser }) {
   const loc = useLocation();
@@ -155,6 +194,7 @@ export default function App() {
       )}
       <SaveIndicator />
       <MailNoticeHost />
+      <DailyTestingNotice user={user} />
       {user && <FeedbackBoard variant="fab" />}
       {user?.role === 'PENDING' ? <PendingApproval setUser={setUser} /> : (realUser && (['ADMIN','PRODUCER'].includes(realUser.role) || realUser.mfa_required === true) && realUser.mfa_enabled === false) ? <MfaSetup /> : (
       <Routes>
