@@ -129,7 +129,7 @@ function DailyTestingNotice({ user }) {
     <div onClick={e => e.target === e.currentTarget && setShow(false)}
       style={{ position:'fixed', inset:0, zIndex:230, background:'rgba(0,0,0,0.75)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
       <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid #e05252', borderRadius:12, padding:'24px 26px', width:'100%', maxWidth:460 }}>
-        <div style={{ fontSize:15, fontWeight:800, marginBottom:10 }}>Welcome to the Unbridled Operating Platform</div>
+        <div style={{ fontSize:15, fontWeight:800, marginBottom:10 }}>Welcome to the Unbridled Media Platform</div>
         <div style={{ fontSize:13, color:'var(--text)', lineHeight:1.6 }}>
           Thank you for testing the new Unbridled Media Online Platform. While the testing phase can be both fun and frustrating, it's important to provide feedback to prepare for a successful launch.
         </div>
