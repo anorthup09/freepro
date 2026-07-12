@@ -133,6 +133,10 @@ function DailyTestingNotice({ user }) {
         <div style={{ fontSize:13, color:'var(--text)', lineHeight:1.6 }}>
           Thank you for testing the new Unbridled Media Online Platform. While the testing phase can be both fun and frustrating, it's important to provide feedback to prepare for a successful launch.
         </div>
+        <div style={{ fontSize:13, color:'var(--text)', lineHeight:1.6, marginTop:10 }}>
+          The little red <b style={{ background:'#e05252', color:'#fff', borderRadius:'50%', padding:'1px 7px', fontSize:11 }}>F</b> button
+          in the bottom left corner is for feedback and feature requests — it follows you as you navigate the platform.
+        </div>
         <div style={{ fontSize:13, fontWeight:800, lineHeight:1.6, marginTop:10 }}>
           If you run into issues or bugs — please report immediately to Alex Northup to repair.
         </div>
