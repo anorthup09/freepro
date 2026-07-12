@@ -954,7 +954,7 @@ export default function Hub() {
   return (
     <div style={{ minHeight:'100vh', background:'var(--bg)', display:'flex', flexDirection:'column' }}>
       <FeedbackBoard />
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 26px', flexWrap:'wrap', gap:10, position:'relative' }}>
+      <div className="hub-head" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 26px', flexWrap:'wrap', gap:10, position:'relative' }}>
         <div>
           <div style={{ fontSize:14, fontWeight:800, letterSpacing:'0.02em' }}>Unbridled Media</div>
           <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.12em', marginTop:3 }}>Operating Platform</div>
@@ -969,7 +969,7 @@ export default function Hub() {
             Reports
           </button>
         </div>}
-        <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+        <div className="hub-head-right" style={{ display:'flex', alignItems:'center', gap:12 }}>
           {realUser?.role === 'ADMIN' && <NewUserAlert onOpen={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })} />}
           {realUser?.role === 'ADMIN' && (
             <select value={preview || ''} title="Preview the platform as another role"

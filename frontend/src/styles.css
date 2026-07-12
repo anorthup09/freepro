@@ -697,3 +697,16 @@ textarea { resize: vertical; min-height: 70px; }
 }
 @keyframes blobHue { 0%, 100% { background-position: 0% 40%; } 50% { background-position: 90% 60%; } }
 @keyframes blobPop { from { opacity: 0; scale: 0.6; } to { opacity: 1; scale: 1; } }
+
+/* Standalone PWA: keep content below the iPhone notch/status bar */
+body { padding-top: env(safe-area-inset-top, 0px); }
+
+/* Hub header on phones: brand left, View-as + Backup right on ONE line;
+   Crew Calendar / Reports drop to their own full-width row beneath */
+@media (max-width: 700px) {
+  .hub-head { flex-wrap: wrap; }
+  .hub-head > div:first-child { order: 1; flex: 1; min-width: 0; }
+  .hub-head .hub-head-right { order: 2; margin-left: auto; flex-shrink: 0; gap: 8px !important; }
+  .hub-head .hub-pipeline-btn { order: 3; flex-basis: 100%; }
+  .hub-head-right select { max-width: 110px; }
+}
