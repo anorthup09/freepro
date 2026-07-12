@@ -710,3 +710,13 @@ body { padding-top: env(safe-area-inset-top, 0px); }
   .hub-head .hub-pipeline-btn { order: 3; flex-basis: 100%; }
   .hub-head-right select { max-width: 110px; }
 }
+
+/* Hub dashboard on phones: cards must shrink below their content width —
+   long task titles and the Team Management button were pushing the whole
+   page into horizontal scroll */
+@media (max-width: 760px) {
+  .hub-dash { grid-template-columns: minmax(0, 1fr) !important; }
+  .hub-dash > div { min-width: 0; max-width: 100%; overflow-x: hidden; }
+  .hub-2col { grid-template-columns: minmax(0, 1fr) !important; }
+  .hub-2col > div { min-width: 0; }
+}
