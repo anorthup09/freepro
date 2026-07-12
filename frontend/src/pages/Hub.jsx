@@ -1078,12 +1078,27 @@ export default function Hub() {
           onCreated={p => { setShowNewProject(false); nav(`/project-view/${p.id}`); }}
         />
       )}
-      {user?.role === 'ADMIN' && (
-        <div style={{ padding:'0 26px 22px', display:'flex', justifyContent:'center', alignItems:'center', gap:12, flexWrap:'wrap' }}>
+      {user?.role === 'ADMIN' && <AdminPanel user={user} />}
+    </div>
+  );
+}
+
+// Single Admin button (above Sign out) that unfolds User Management and
+// Automations — admin role only.
+function AdminPanel({ user }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{ padding:'0 26px 22px', display:'flex', flexDirection:'column', alignItems:'center', gap:10 }}>
+      {open && (
+        <div style={{ display:'flex', justifyContent:'center', alignItems:'center', gap:12, flexWrap:'wrap' }}>
           <UserManagement user={user} />
           <Automations />
         </div>
       )}
+      <button onClick={() => setOpen(o => !o)}
+        style={{ background:'none', border:'1px solid var(--border)', borderRadius:14, padding:'4px 14px', color:'var(--muted)', fontSize:10, fontWeight:700, letterSpacing:'.05em', cursor:'pointer' }}>
+        ⚙ Admin {open ? '▾' : '▸'}
+      </button>
     </div>
   );
 }
