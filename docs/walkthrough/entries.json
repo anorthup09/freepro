@@ -298,5 +298,27 @@
       "Use ✉ Send Invoice on any row to date it and email the client summary; remove an extra deposit with its ✕."
     ],
     "screenshot": "client-deposits.png"
+  },
+  {
+    "title": "Client Invoice Report",
+    "what": "Every live and closed project's client invoicing in one report: first invoice, extra deposits, and final invoice with sent/unsent status, total budget, and close month — grouped by close month, filtered by year (defaults to the current one). Live projects sit above closed within each month; fully-invoiced closed months collapse to the top, and any project still open or missing a final invoice stays expanded. Every tile clicks through to that project's ProFi page.",
+    "where": "Reports → Client Invoice Report.",
+    "how": [
+      "Open Reports from the hub pill and pick Client Invoice Report.",
+      "Pick the year — months list newest first with Live above Closed.",
+      "Click any project row to jump straight into its ProFi page."
+    ],
+    "screenshot": "client-invoice-report.png"
+  },
+  {
+    "title": "Simplified Hub navigation",
+    "what": "The hub trimmed down to one pill: View ▾ (pick Project View or Operations View from a dropdown), Calendar (the crew calendar), and Reports — with Start New Project standing alone. The Unbridled Media logo leads the page with your daily greeting under it, and the admin tools (User Management + Automations) fold into a single ⚙ Admin button above Sign out.",
+    "where": "The Hub — front and center.",
+    "how": [
+      "Click View ▾ to switch between Project View and Operations View.",
+      "Calendar and Reports are one tap away on the same pill.",
+      "Admins: the ⚙ Admin button at the bottom unfolds User Management and Automations."
+    ],
+    "screenshot": "hub-simplified.png"
   }
 ]
