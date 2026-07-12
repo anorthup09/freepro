@@ -108,16 +108,19 @@ function MailNoticeHost() {
   );
 }
 
-// Daily welcome: shows once per day on a user's first visit while the
+// Weekly welcome: shows on a user's first visit each week while the
 // platform is in its testing phase.
 function DailyTestingNotice({ user }) {
   const loc = useLocation();
   const [show, setShow] = React.useState(false);
   React.useEffect(() => {
     if (!user) return;
-    const today = new Date().toDateString();
-    if (localStorage.getItem('fp_daily_notice') !== today) {
-      localStorage.setItem('fp_daily_notice', today);
+    // Key by the week (Sunday-anchored) so it fires once per week, not daily
+    const d = new Date();
+    d.setDate(d.getDate() - d.getDay());
+    const week = d.toDateString();
+    if (localStorage.getItem('fp_daily_notice') !== week) {
+      localStorage.setItem('fp_daily_notice', week);
       setShow(true);
     }
   }, [user]);
@@ -129,9 +132,6 @@ function DailyTestingNotice({ user }) {
         <div style={{ fontSize:15, fontWeight:800, marginBottom:10 }}>Welcome to the Unbridled Operating Platform</div>
         <div style={{ fontSize:13, color:'var(--text)', lineHeight:1.6 }}>
           Thank you for testing the new Unbridled Media Online Platform. While the testing phase can be both fun and frustrating, it's important to provide feedback to prepare for a successful launch.
-        </div>
-        <div style={{ fontSize:13, color:'var(--text)', lineHeight:1.6, marginTop:10 }}>
-          If you have feedback or features, please provide individual notes in the bright red button on the Hub, or the little red button in the bottom left corner that will follow you as you navigate the platform.
         </div>
         <div style={{ fontSize:13, fontWeight:800, lineHeight:1.6, marginTop:10 }}>
           If you run into issues or bugs — please report immediately to Alex Northup to repair.

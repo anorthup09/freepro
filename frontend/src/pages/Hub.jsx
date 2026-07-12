@@ -951,24 +951,14 @@ export default function Hub() {
     : TILES.filter(t => t.key !== 'team');
   const tiles = opsTiles;
 
+  const [viewMenu, setViewMenu] = useState(false);
   return (
     <div style={{ minHeight:'100vh', background:'var(--bg)', display:'flex', flexDirection:'column' }}>
-      <FeedbackBoard />
       <div className="hub-head" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 26px', flexWrap:'wrap', gap:10, position:'relative' }}>
         <div>
           <div style={{ fontSize:14, fontWeight:800, letterSpacing:'0.02em' }}>Unbridled Media</div>
           <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.12em', marginTop:3 }}>Operating Platform</div>
         </div>
-        {!isCrew && <div className="hub-pipeline-btn" style={{ display:'flex', gap:12 }}>
-          {!isFinance && <button onClick={() => nav('/crew-calendar')}
-            style={{ background:'rgba(90,191,128,0.14)', border:'1px solid #5ABF80', color:'#5ABF80', borderRadius:9, padding:'6px 14px', fontSize:11, fontWeight:800, cursor:'pointer' }}>
-            Crew Calendar
-          </button>}
-          <button onClick={() => nav('/reports')}
-            style={{ background:'rgba(230,194,41,0.12)', border:'1px solid #e6c229', color:'#e6c229', borderRadius:9, padding:'6px 14px', fontSize:11, fontWeight:800, cursor:'pointer' }}>
-            Reports
-          </button>
-        </div>}
         <div className="hub-head-right" style={{ display:'flex', alignItems:'center', gap:12 }}>
           {realUser?.role === 'ADMIN' && <NewUserAlert onOpen={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })} />}
           {realUser?.role === 'ADMIN' && (
@@ -1000,25 +990,50 @@ export default function Hub() {
 
         <div style={{ flex:1, display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'20px 16px 60px' }}>
           <div style={{ width:'100%', maxWidth:1150 }}>
+            <div style={{ textAlign:'center', marginBottom:14 }}>
+              <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height:52, filter:'brightness(0) invert(1)', opacity:0.97, display:'inline-block' }} />
+            </div>
             <HubGreeting />
             <WobBanner />
             <FunFactPrompt />
-            <div style={{ textAlign:'center', marginBottom:20 }}>
-              <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height:38, filter:'brightness(0) invert(1)', opacity:0.95, display:'inline-block' }} />
-            </div>
-            {!isCrew && !isFinance && (
+            {!isCrew && (
               <div className="hub-controls" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap', marginBottom:20 }}>
-                <div style={{ display:'inline-flex', border:'1px solid var(--border)', borderRadius:20, overflow:'hidden' }}>
-                  {[['projects', 'Project View'], ['ops', 'Operations View']].map(([k, label]) => (
-                    <button key={k} onClick={() => setHubMode(k)}
-                      style={{ background: mode === k ? 'rgba(232,80,10,0.16)' : 'transparent', border:'none',
-                        color: mode === k ? 'var(--orange)' : 'var(--muted)', fontSize:12, fontWeight:800, padding:'9px 22px', cursor:'pointer', letterSpacing:'0.03em',
-                        boxShadow: mode === k ? '0 0 16px rgba(232,80,10,0.55)' : 'none',
-                        transition:'box-shadow .15s ease, color .15s ease' }}>
-                      {label}
+                {/* View ▾ · Calendar · Reports — one pill */}
+                <div style={{ position:'relative', display:'inline-flex', border:'1px solid var(--border)', borderRadius:20, overflow:'visible' }}>
+                  {!isFinance && (
+                    <button onClick={() => setViewMenu(m => !m)}
+                      style={{ background:'rgba(232,80,10,0.16)', border:'none', borderRight:'1px solid var(--border)',
+                        color:'var(--orange)', fontSize:12, fontWeight:800, padding:'9px 20px', cursor:'pointer', letterSpacing:'0.03em',
+                        borderRadius:'20px 0 0 20px', boxShadow:'0 0 16px rgba(232,80,10,0.35)' }}>
+                      View {viewMenu ? '▾' : '▸'}
                     </button>
-                  ))}
+                  )}
+                  {!isFinance && (
+                    <button onClick={() => nav('/crew-calendar')}
+                      style={{ background:'transparent', border:'none', borderRight:'1px solid var(--border)',
+                        color:'#5ABF80', fontSize:12, fontWeight:800, padding:'9px 20px', cursor:'pointer', letterSpacing:'0.03em' }}>
+                      Calendar
+                    </button>
+                  )}
+                  <button onClick={() => nav('/reports')}
+                    style={{ background:'transparent', border:'none',
+                      color:'#e6c229', fontSize:12, fontWeight:800, padding:'9px 20px', cursor:'pointer', letterSpacing:'0.03em',
+                      borderRadius: isFinance ? 20 : '0 20px 20px 0' }}>
+                    Reports
+                  </button>
+                  {viewMenu && (
+                    <div style={{ position:'absolute', top:'calc(100% + 6px)', left:0, zIndex:60, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, overflow:'hidden', boxShadow:'0 10px 28px rgba(0,0,0,0.55)', minWidth:170 }}>
+                      {[['projects', 'Project View'], ['ops', 'Operations View']].map(([k, label]) => (
+                        <button key={k} onClick={() => { setHubMode(k); setViewMenu(false); }}
+                          style={{ display:'block', width:'100%', textAlign:'left', background: mode === k ? 'rgba(232,80,10,0.16)' : 'transparent', border:'none',
+                            color: mode === k ? 'var(--orange)' : 'var(--muted)', fontSize:12, fontWeight:800, padding:'10px 16px', cursor:'pointer' }}>
+                          {label}{mode === k ? ' ✓' : ''}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
+                {!isFinance && (
                 <button onClick={() => setShowNewProject(true)}
                   style={{ background:'#000', color:'#5ABF80', border:'1px solid #5ABF80', borderRadius:22,
                     padding:'10px 24px', fontSize:12.5, fontWeight:800, letterSpacing:'0.03em', cursor:'pointer',
@@ -1027,6 +1042,7 @@ export default function Hub() {
                   onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 0 16px rgba(90,191,128,0.55)'; e.currentTarget.style.transform = 'none'; }}>
                   + Start New Project
                 </button>
+                )}
               </div>
             )}
             {!isCrew && !isFinance && mode === 'projects' && <HubProjects />}
