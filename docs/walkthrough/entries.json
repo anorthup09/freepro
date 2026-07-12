@@ -287,5 +287,16 @@
       "Watch for shoutouts in the daily MediaMoment blob; Admins can browse the full archive from Reports."
     ],
     "screenshot": "ways-of-being.png"
+  },
+  {
+    "title": "Client Deposits — multiple deposits per project",
+    "what": "The VCC deposits tile is now simply Deposit and Final Invoice, with a + Add Deposit button for as many additional deposits as a project needs. Each row carries its amount, sent date, and a ✉ Send Invoice button, and the closing guard checks that every deposit plus the final invoice equals the total budget before a project can close.",
+    "where": "ProFi — any project, VCC tab, the Client Deposits tile.",
+    "how": [
+      "Open the VCC tab and find Client Deposits (top right).",
+      "Click + Add Deposit for each extra deposit; enter the amount.",
+      "Use ✉ Send Invoice on any row to date it and email the client summary; remove an extra deposit with its ✕."
+    ],
+    "screenshot": "client-deposits.png"
   }
 ]
