@@ -276,6 +276,11 @@ export function FeedbackBoard({ variant = 'banner' }) {
               <div style={{ fontSize:14, fontWeight:800 }}>Testing — Feedback & Features <span style={{ color:'var(--muted)', fontWeight:400 }}>· {openCount} open</span></div>
               <button className="btn btn-ghost btn-sm" onClick={() => setOpen(false)}>✕</button>
             </div>
+            <div style={{ padding:'10px 18px', borderBottom:'1px solid var(--border)', fontSize:11, color:'var(--muted)', lineHeight:1.55 }}>
+              If you have feedback or features, drop individual notes here — this little red button follows you across the platform.
+              <b style={{ color:'var(--text)' }}> If you run into issues or bugs, please report immediately to Alex Northup to repair.</b> Your
+              timely and honest feedback helps this project improve and succeed.
+            </div>
             <div style={{ padding:'12px 18px', borderBottom:'1px solid var(--border)', display:'flex', gap:8, alignItems:'center' }}>
               <input value={text} placeholder="Add feedback or a feature request…" onChange={e => setText(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && add()} style={{ flex:1 }} />
