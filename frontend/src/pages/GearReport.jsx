@@ -15,6 +15,39 @@ const Check = ({ on, label }) => on
   ? <span style={{ color: '#5ABF80', fontWeight: 700, fontSize: 11 }}>✓ {label || ''}</span>
   : <span style={{ color: 'var(--muted)', fontSize: 11 }}>—</span>;
 
+const CAT_LABEL = { camera:'Camera', grip:'Grip', electric:'Electric', audio:'Audio', media_management:'Media Management', editing:'Editing', other:'Other' };
+
+// Printable check-out list of a shoot's INTERNAL gear — opens the browser
+// print dialog over a clean black-on-white checklist.
+async function printInternalChecklist(r) {
+  const items = (await api.getGearItems(r.id)).filter(i => i.source === 'internal');
+  const byCat = {};
+  for (const i of items) (byCat[i.category] ||= []).push(i);
+  const rows = Object.entries(byCat).map(([cat, list]) => `
+    <h2>${CAT_LABEL[cat] || cat}</h2>
+    ${list.map(i => `<div class="row"><span class="box"></span><b>${Number(i.qty) > 1 ? i.qty + '× ' : ''}</b>${i.item}${i.notes ? `<span class="note"> — ${i.notes}</span>` : ''}</div>`).join('')}`).join('');
+  const w = window.open('', '_blank');
+  w.document.write(`<!doctype html><html><head><title>Internal Gear — ${r.code}</title><style>
+    body { font-family: Arial, Helvetica, sans-serif; color: #111; margin: 40px; }
+    h1 { font-size: 20px; margin: 0 0 2px; }
+    .sub { color: #555; font-size: 12px; margin-bottom: 18px; }
+    h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; border-bottom: 1.5px solid #111; padding-bottom: 3px; margin: 18px 0 6px; }
+    .row { display: flex; align-items: center; gap: 10px; font-size: 13px; padding: 5px 0; border-bottom: 1px solid #e5e5e5; }
+    .box { width: 14px; height: 14px; border: 1.5px solid #111; border-radius: 3px; flex-shrink: 0; }
+    .note { color: #666; font-size: 11px; }
+    .sig { margin-top: 34px; display: flex; gap: 40px; font-size: 12px; color: #444; }
+    .sig div { flex: 1; border-top: 1px solid #111; padding-top: 4px; }
+  </style></head><body>
+    <h1>Internal Gear Check-Out — ${r.code} · ${r.title}</h1>
+    <div class="sub">${r.start_date ? new Date(String(r.start_date).slice(0,10)+'T12:00:00').toLocaleDateString() : 'Dates TBD'}${r.end_date ? ' – ' + new Date(String(r.end_date).slice(0,10)+'T12:00:00').toLocaleDateString() : ''}${r.request_name ? ' · Requested by ' + r.request_name : ''} · ${items.length} line item${items.length !== 1 ? 's' : ''}</div>
+    ${rows || '<div style="color:#666; font-style:italic;">No internal gear assigned yet.</div>'}
+    <div class="sig"><div>Checked out by / date</div><div>Checked in by / date</div></div>
+  </body></html>`);
+  w.document.close();
+  w.focus();
+  setTimeout(() => w.print(), 300);
+}
+
 export default function GearReport() {
   const { user } = useAuth();
   const nav = useNavigate();
@@ -103,7 +136,16 @@ export default function GearReport() {
                                 background: 'rgba(90,191,128,0.18)', border: '1.5px solid #5ABF80', color: '#5ABF80', fontSize: 12, fontWeight: 900 }}>!</span>
                           : <span style={{ color: 'var(--muted)', fontSize: 11 }}>—</span>}
                       </td>
-                      <td style={{ ...td, borderLeft: '1px solid var(--border)' }}><Check on={on || r.internal_request_submitted} /></td>
+                      <td style={{ ...td, borderLeft: '1px solid var(--border)', whiteSpace: 'nowrap' }}>
+                        <Check on={on || r.internal_request_submitted} />
+                        {Number(r.internal_items) > 0 && (
+                          <button onClick={e => { e.stopPropagation(); printInternalChecklist(r).catch(err => alert(err.message)); }}
+                            title="Print the internal gear check-out list"
+                            style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 6, marginLeft: 8, padding: '2px 6px', cursor: 'pointer', color: 'var(--muted)', verticalAlign: 'middle', lineHeight: 0 }}>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9V3h12v6"/><rect x="4" y="9" width="16" height="8" rx="2"/><path d="M7 17h10v4H7z"/></svg>
+                          </button>
+                        )}
+                      </td>
                       <td style={td}>{Number(r.online_rentals) > 0
                         ? <span style={{ color: '#4a9eff', fontWeight: 700, fontSize: 11 }}>✓ {r.online_rentals} rental{Number(r.online_rentals) !== 1 ? 's' : ''}</span>
                         : <span style={{ color: 'var(--muted)', fontSize: 11 }}>—</span>}</td>
