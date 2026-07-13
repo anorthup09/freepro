@@ -416,7 +416,7 @@ function BudgetVersions({ budget, pid, reload }) {
         V{budget.version || 1} ▾
       </button>
       {open && (
-        <div style={{ position:'absolute', top:'calc(100% + 6px)', left:0, zIndex:60, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, minWidth:230, boxShadow:'0 10px 30px rgba(0,0,0,0.5)', overflow:'hidden' }}>
+        <div style={{ position:'absolute', top:'calc(100% + 6px)', right:0, zIndex:60, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, minWidth:230, boxShadow:'0 10px 30px rgba(0,0,0,0.5)', overflow:'hidden' }}>
           <div onClick={startVersion}
             style={{ padding:'9px 14px', fontSize:12, fontWeight:700, color:'#5ABF80', cursor:'pointer', borderBottom:'1px solid var(--border)' }}>
             {busy ? 'Duplicating…' : '+ Start New Version'}
