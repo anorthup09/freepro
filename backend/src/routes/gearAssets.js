@@ -101,7 +101,16 @@ router.get('/inventory', requireAuth, async (req, res, next) => {
       WHERE status NOT IN ('RETIRED', 'LOST')
       GROUP BY name, category
       ORDER BY name`;
-    res.json(rows.map(r => ({ name: r.name, dept: deptOf(r.category, r.name), category: r.category, total: r.total, available: r.available })));
+    // Kit-letter suffixes ("… CAM A" / "… CAM B") are one model — combine them
+    const merged = new Map();
+    for (const r of rows) {
+      const name = r.name.replace(/\s+CAM\s+[A-Z0-9]{1,2}$/i, '').trim();
+      const key = name.toLowerCase() + '|' + (r.category || '');
+      const m = merged.get(key);
+      if (m) { m.total += r.total; m.available += r.available; }
+      else merged.set(key, { name, dept: deptOf(r.category, name), category: r.category, total: r.total, available: r.available });
+    }
+    res.json([...merged.values()].sort((a, b) => a.name.localeCompare(b.name)));
   } catch (e) { next(e); }
 });
 
