@@ -92,7 +92,11 @@ export default function FinanceProject({ pidOverride }) {
   return (
     <div style={{ minHeight:'100vh', background:'var(--bg)' }}>
       <FinanceHeader />
-      <FinanceDock tab={tab} setTab={setTab} />
+      <FinanceDock tab={tab} setTab={setTab} onHarbinger={() => {
+        if (harbinger) { setShowHarbinger(true); return; }
+        setTab('budget');
+        setTimeout(() => window.dispatchEvent(new Event('fp-open-harbinger')), 60);
+      }} />
       <div style={{ maxWidth:1100, margin:'0 auto', padding:'6px 16px 80px' }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:10, marginBottom:14, position:'relative' }}>
           <div className="fp-idblock">
@@ -319,8 +323,9 @@ function ClientContactField({ budget, patchBudget, saveBudget }) {
 const FIN_DOCK_ICONS = {
   budget: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M15 9.5c0-1.4-1.3-2.5-3-2.5s-3 .9-3 2.2c0 3 6 1.6 6 4.6 0 1.3-1.3 2.2-3 2.2s-3-1.1-3-2.5"/></svg>,
   vcc: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 9.5h19M6 15h4"/></svg>,
+  harbinger: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg>,
 };
-function FinanceDock({ tab, setTab }) {
+function FinanceDock({ tab, setTab, onHarbinger }) {
   const btnRefs = useRef({});
   const [bubble, setBubble] = useState(null);
   useEffect(() => {
@@ -347,6 +352,15 @@ function FinanceDock({ tab, setTab }) {
           background:'rgba(255,255,255,0.10)', borderRadius:22, pointerEvents:'none',
           transition:'left .3s cubic-bezier(.34,1.3,.5,1), width .3s cubic-bezier(.34,1.3,.5,1), top .3s ease, height .3s ease',
         }} />
+      )}
+      {onHarbinger && (
+        <button onClick={onHarbinger} aria-label="Harbinger"
+          style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:3, position:'relative',
+            background:'transparent', border:'none', cursor:'pointer', color:'#5ABF80',
+            borderRadius:22, padding:'7px 14px 6px' }}>
+          {FIN_DOCK_ICONS.harbinger}
+          <span style={{ fontSize:9, fontWeight:800, letterSpacing:'0.02em', whiteSpace:'nowrap' }}>Harbinger</span>
+        </button>
       )}
       {[['budget', 'Budget'], ['vcc', 'VCC']].map(([k, label]) => {
         const on = tab === k;
@@ -484,6 +498,11 @@ function VersionViewer({ vid, onClose }) {
 function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
   const { user } = useAuth();
   const [harbingerOpen, setHarbingerOpen] = useState(false);
+  useEffect(() => {
+    const f = () => setHarbingerOpen(true);
+    window.addEventListener('fp-open-harbinger', f);
+    return () => window.removeEventListener('fp-open-harbinger', f);
+  }, []);
 
   // Prefill the Harbinger from the budget + estimate overview
   function harbingerPrefill() {
