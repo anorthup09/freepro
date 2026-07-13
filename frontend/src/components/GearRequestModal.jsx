@@ -328,7 +328,7 @@ export default function GearRequestModal({ projectId, existing, onClose, onSubmi
               <InventoryPicker dept={pickerDept} inventory={inventory} qtyOf={qtyOf} setQty={setQty} onClose={() => setPickerDept(null)} />
             )}
             <div>
-              <label style={lbl}>11. Do you need media drives provided? (Select all that apply){req}</label>
+              <label style={lbl}>8. Do you need media drives provided? (Select all that apply){req}</label>
               {DRIVE_OPTS.map(opt => (
                 <div key={opt} onClick={() => toggleDrive(opt)}
                   style={{ display:'flex', alignItems:'center', justifyContent:'flex-start', gap:8, fontSize:13, padding:'3px 0', cursor:'pointer', color:'var(--text)' }}>
@@ -339,19 +339,19 @@ export default function GearRequestModal({ projectId, existing, onClose, onSubmi
             </div>
             <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
               <div style={{ flex:1, minWidth:160 }}>
-                <label style={lbl}>12. If drives are needed, what size?</label>
+                <label style={lbl}>9. If drives are needed, what size?</label>
                 <select style={inStyle} value={f.driveSize} onChange={set('driveSize')}>
                   <option value="">—</option>
                   {SIZE_OPTS.map(o => <option key={o}>{o}</option>)}
                 </select>
               </div>
               <div style={{ flex:1, minWidth:160 }}>
-                <label style={lbl}>13. And how many drives?</label>
+                <label style={lbl}>10. And how many drives?</label>
                 <input style={inStyle} value={f.driveQty} onChange={set('driveQty')} />
               </div>
             </div>
             <div>
-              <label style={lbl}>14. Anything else that needs to be known for this shoot? Any special instructions?</label>
+              <label style={lbl}>11. Anything else that needs to be known for this shoot? Any special instructions?</label>
               <textarea style={areaStyle} value={f.notes} onChange={set('notes')} />
             </div>
             <div style={{ display:'flex', justifyContent:'flex-end', gap:8 }}>
