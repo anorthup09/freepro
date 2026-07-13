@@ -4,6 +4,7 @@ import { api } from '../api.js';
 import { useAuth } from '../App.jsx';
 import GearRequestModal from '../components/GearRequestModal.jsx';
 import HomeButton from '../components/HomeButton.jsx';
+import AssetLookup from '../components/AssetLookup.jsx';
 
 const STATUS_PILL = {
   PLANNING:  'amber',
@@ -201,6 +202,7 @@ export default function Projects() {
   const [saving, setSaving] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [view, setView] = useState('production');
+  const [gearMode, setGearMode] = useState('shoots');   // 'shoots' | 'assets'
   const isCrew = user?.role === 'CREW';
   const isAgency = user?.role === 'AGENCY';
 
@@ -301,6 +303,13 @@ export default function Projects() {
               return <div className="page-sub">{planning} planning · {live} live shoot{live !== 1 ? 's' : ''}</div>;
             })()}
           </div>
+          {view === 'gear' && (
+            <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+              <button className={gearMode === 'assets' ? 'btn btn-primary' : 'btn btn-ghost'} onClick={() => setGearMode(m => m === 'assets' ? 'shoots' : 'assets')}>
+                {gearMode === 'assets' ? '‹ Back to Shoots' : 'Asset Management'}
+              </button>
+            </div>
+          )}
           {view === 'production' && (
             <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
               {!isCrew && !isAgency && <Link to="/crew-calendar" className="btn btn-ghost">Crew Calendar</Link>}
@@ -310,7 +319,7 @@ export default function Projects() {
           )}
         </div>
 
-        {view === 'gear' && <GearManagement />}
+        {view === 'gear' && (gearMode === 'assets' ? <AssetLookup /> : <GearManagement />)}
         {view === 'production' && isCrew && (
           <div className="empty" style={{ padding:'40px 20px', textAlign:'center' }}>
             Head to <Link to="/crew-views" style={{ color:'var(--orange)' }}>Crew Views</Link> for your call sheets and schedules,

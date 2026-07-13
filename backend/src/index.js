@@ -137,6 +137,7 @@ app.use('/api/projects', require('./routes/scripts'));
 app.use('/api/util', utilRoutes);
 app.use('/api', require('./routes/contracts'));
 app.use('/api/gear-requests', require('./routes/gearRequests'));
+app.use('/api/gear-assets', require('./routes/gearAssets'));
 app.use('/api/team', require('./routes/team'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/avo', require('./routes/avo'));

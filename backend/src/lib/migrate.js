@@ -1458,6 +1458,29 @@ async function migrate() {
   // are stored as kind='version' budgets frozen when a new version starts
   await sql`ALTER TABLE budgets ADD COLUMN IF NOT EXISTS version INT DEFAULT 1`;
 
+  // Gear asset database (FreePro → Gear Management → Asset Management)
+  await sql`
+    CREATE TABLE IF NOT EXISTS gear_assets (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      asset_tag TEXT,
+      name TEXT NOT NULL,
+      category TEXT,
+      make TEXT,
+      model TEXT,
+      serial_number TEXT,
+      qty INTEGER DEFAULT 1,
+      status TEXT DEFAULT 'AVAILABLE',
+      location TEXT,
+      assigned_to TEXT,
+      purchase_date DATE,
+      purchase_price NUMERIC,
+      current_value NUMERIC,
+      notes TEXT,
+      extra JSONB DEFAULT '{}'::jsonb,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    )`;
+
   // Hub personality: daily greetings cache + UM Fun Facts
   await sql`
     CREATE TABLE IF NOT EXISTS daily_greetings (
