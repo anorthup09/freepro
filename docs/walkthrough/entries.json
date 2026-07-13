@@ -355,5 +355,74 @@
       "The row shows \"→ Name · due date\" and the task appears on their Hub to-do list."
     ],
     "screenshot": "checklist-assign.png"
+  },
+  {
+    "title": "TBD shoot dates",
+    "what": "Shoots in the budgeting phase no longer need placeholder dates. New projects created from a budget start with no dates at all — headers read 'Dates TBD', nothing lands on the crew calendar until real dates exist, and Edit Shoot Info can set (or clear) dates any time.",
+    "where": "Everywhere dates show — new budgets default to TBD; FreePro → Edit Shoot Info to set or clear.",
+    "how": [
+      "Create a project from ProFi — no dates are stamped.",
+      "Headers and tiles show \"Dates TBD\" until you set them.",
+      "Set real dates from Edit Shoot Info when the shoot firms up; the calendar picks them up then."
+    ],
+    "screenshot": "tbd-dates.png"
+  },
+  {
+    "title": "Team Management dock + My View",
+    "what": "Team Management's Roster / OOO Request / OOO Pipeline tabs moved into the bottom-center liquid-glass dock with the sliding highlight. The OOO Pipeline also gained a My View toggle that filters every group down to requests where you're the assignee or the supervisor.",
+    "where": "Team Management — the dock at the bottom center; My View at the top right of the OOO Pipeline.",
+    "how": [
+      "Open Team Management and use the bottom dock to switch pages.",
+      "On OOO Pipeline, tap My View to see only your requests (as requester or approving supervisor).",
+      "Tap again for the full pipeline."
+    ],
+    "screenshot": "team-dock.png"
+  },
+  {
+    "title": "Asset Management — the gear database",
+    "what": "A company-wide equipment database inside Gear Management, seeded with all 1,135 assets from the asset spreadsheet. Search by name, tag, serial, category, location, or person; filter by category chips; open any asset for full detail (purchase info, depreciation fields, site) with edit/delete and + New Asset.",
+    "where": "FreePro → Gear Management → the Asset Management button (top right).",
+    "how": [
+      "Open Gear Management and hit Asset Management.",
+      "Search or tap a category chip to browse.",
+      "Click an asset for details, Edit, or Delete; + New Asset adds one."
+    ],
+    "screenshot": "asset-db.png"
+  },
+  {
+    "title": "Gear Report — every shoot for the Gear Manager",
+    "what": "A Reports tile showing every shoot reporting into FreePro, ordered by start date. Shoots without a gear request are greyed out; requested shoots show the submission date, who requested, a green (!) when gear still needs a source, the four gear sources (Internal / Online Rental / Rental House / Contractors), and a print icon that produces a check-out list of the internal gear grouped by St. Louis / Denver. Rows click through to the shoot's Gear Request tab.",
+    "where": "Reports → Gear Report.",
+    "how": [
+      "Open Reports → Gear Report.",
+      "Grey rows = no gear request yet; the green (!) = unassigned gear.",
+      "Hit the printer icon on Internal Gear for the check-out PDF.",
+      "Click any row to jump to that shoot’s Gear Request."
+    ],
+    "screenshot": "gear-report.png"
+  },
+  {
+    "title": "Gear Request — six departments from live inventory",
+    "what": "The request form's gear questions became six departments: Camera, Grip, Electric, Audio, Media Management, Editing. Each opens an inventory window of real equipment models from the asset database (duplicates like six C70s combine into one line with availability counts) with quantity steppers and a custom-item row. Everything picked flows straight into the shoot's Gear List.",
+    "where": "FreePro → any shoot → Gear → Gear Request, question 7.",
+    "how": [
+      "Open the Gear Request and hit + Add Gear on a department.",
+      "Search the inventory, tap + to set quantities (availability shows under each model).",
+      "Type anything not in the inventory into the custom row.",
+      "Submit — the items land on the Gear List, and Mason gets an \"Assign gear to sources\" Hub task."
+    ],
+    "screenshot": "gear-departments.png"
+  },
+  {
+    "title": "Gear List — drag & drop sourcing board",
+    "what": "The Gear List's By Source view is now a sourcing board: the category list slides into a left column and you drag each piece into its source on the right — Internal (split into St. Louis and Denver lanes), Rental House, Online Rental, or a lane per contractor from the crew list. Multi-quantity items can split: drag the whole card, or open ▾ split and drag single units to different sources. When everything is sourced, Mason's assignment task checks itself off.",
+    "where": "FreePro → shoot → Gear → Gear List → the By Source toggle.",
+    "how": [
+      "Switch the Gear List to By Source.",
+      "Drag items from the left column into Internal STL/DEN, rentals, or a contractor lane.",
+      "Use ▾ split on multi-qty items to source units separately.",
+      "✕ on any chip sends it back to Unassigned."
+    ],
+    "screenshot": "gear-sources.png"
   }
 ]
