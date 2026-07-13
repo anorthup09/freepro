@@ -331,5 +331,17 @@
       "Reopen the dropdown any time to view a past version — sections, lines, and totals, read-only."
     ],
     "screenshot": "budget-versions.png"
+  },
+  {
+    "title": "Finance dock — Harbinger, Budget & VCC at the bottom right",
+    "what": "Finance navigation moved into a liquid-glass dock pinned to the bottom right: Harbinger (submit before, view after — one button, both jobs), Budget, and VCC, with a sliding highlight and labels that tuck away as you scroll. Inside Project View the workspace nav collapses to a ≡ pill at the bottom left on the Finance tab; tapping ≡ swaps the two docks so both navigations share the same corner without crowding.",
+    "where": "ProFi — any project budget, bottom right. In Project View → Project Finance, the ≡ pill sits bottom left.",
+    "how": [
+      "Open a project budget — the dock sits at the bottom right with <b>Harbinger · Budget · VCC</b>.",
+      "Tap <b>Budget</b> or <b>VCC</b> to switch tabs; the highlight slides across.",
+      "Tap <b>Harbinger</b> to submit one (or view it once submitted).",
+      "In Project View, tap the <b>≡</b> pill (bottom left) to swap in the Overview/Finance/Pre-Pro/Post-Pro nav — tap ≡ again to swap back."
+    ],
+    "screenshot": "finance-dock.png"
   }
 ]
