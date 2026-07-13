@@ -328,6 +328,61 @@ async function ensureShootProjects(budgetId) {
   }
 }
 
+// ── Budget versioning ────────────────────────────────────────────────────
+// Freeze the current budget as an immutable snapshot (kind='version'),
+// then keep editing the live budget as the next version number.
+router.post('/finance/budget/:bid/version', ...finance, async (req, res, next) => {
+  try {
+    const [b] = await sql`SELECT * FROM budgets WHERE id = ${req.params.bid} AND COALESCE(kind, 'main') = 'main'`;
+    if (!b) return res.status(404).json({ error: 'Budget not found' });
+    const ver = Number(b.version || 1);
+    const [snap] = await sql`
+      INSERT INTO budgets (project_id, kind, version, label, status, mgmt_fee_rate, budget_date, media_rep,
+                           solutions_code, close_month, client_contact, est_final_delivery, unbridled_solutions)
+      VALUES (${b.project_id}, 'version', ${ver}, ${'Version ' + ver}, ${b.status}, ${b.mgmt_fee_rate},
+              ${b.budget_date}, ${b.media_rep}, ${b.solutions_code}, ${b.close_month},
+              ${b.client_contact ? sql.json(b.client_contact) : null}, ${b.est_final_delivery}, ${b.unbridled_solutions === true})
+      RETURNING id`;
+    const secs = await sql`SELECT * FROM budget_sections WHERE budget_id = ${b.id} ORDER BY sort`;
+    for (const sec of secs) {
+      const [ns] = await sql`
+        INSERT INTO budget_sections (budget_id, title, subtitle, kind, sort, shoot_code, trip)
+        VALUES (${snap.id}, ${sec.title}, ${sec.subtitle}, ${sec.kind}, ${sec.sort}, ${sec.shoot_code}, ${sec.trip})
+        RETURNING id`;
+      await sql`
+        INSERT INTO budget_lines (budget_id, section_id, scope, notes, qty, unit_cost, percent, is_travel, actual, sort)
+        SELECT ${snap.id}, ${ns.id}, scope, notes, qty, unit_cost, percent, is_travel, actual, sort
+        FROM budget_lines WHERE section_id = ${sec.id}`;
+    }
+    await sql`UPDATE budgets SET version = ${ver + 1} WHERE id = ${b.id}`;
+    res.json({ ok: true, version: ver + 1, snapshotId: snap.id });
+  } catch (e) { next(e); }
+});
+
+// Past versions of a project's budget (newest first)
+router.get('/finance/:pid/versions', ...finance, async (req, res, next) => {
+  try {
+    const rows = await sql`
+      SELECT b.id, b.version, b.label, b.status, b.created_at,
+             (SELECT COALESCE(SUM(CASE WHEN l.percent IS NULL THEN l.qty * l.unit_cost ELSE 0 END), 0)
+              FROM budget_lines l WHERE l.budget_id = b.id) as raw_total
+      FROM budgets b WHERE b.project_id = ${req.params.pid} AND b.kind = 'version'
+      ORDER BY b.version DESC`;
+    res.json(rows);
+  } catch (e) { next(e); }
+});
+
+// One frozen version, with its sections and lines (read-only)
+router.get('/finance/versions/:vid', ...finance, async (req, res, next) => {
+  try {
+    const [budget] = await sql`SELECT * FROM budgets WHERE id = ${req.params.vid} AND kind = 'version'`;
+    if (!budget) return res.status(404).json({ error: 'Version not found' });
+    const sections = await sql`SELECT * FROM budget_sections WHERE budget_id = ${budget.id} ORDER BY sort`;
+    const lines = await sql`SELECT * FROM budget_lines WHERE budget_id = ${budget.id} ORDER BY sort`;
+    res.json({ budget, sections, lines });
+  } catch (e) { next(e); }
+});
+
 // Is outbound email configured? Drives the under-construction pop-ups.
 router.get('/mail/status', requireAuth, (req, res) => {
   res.json({ configured: mailReady() });

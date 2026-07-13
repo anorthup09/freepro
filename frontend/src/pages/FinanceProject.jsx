@@ -111,6 +111,7 @@ export default function FinanceProject({ pidOverride }) {
                 </button>
               ))}
             </div>
+            {budget && <BudgetVersions budget={budget} pid={pid} reload={() => api.financeBundle(pid).then(setData)} />}
           </div>
           <div className="fp-actions" style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:8 }}>
             {harbinger && (
@@ -317,6 +318,119 @@ function ClientContactField({ budget, patchBudget, saveBudget }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Budget versioning: V-number dropdown next to Budget/VCC ──────────────
+function BudgetVersions({ budget, pid, reload }) {
+  const [open, setOpen] = useState(false);
+  const [versions, setVersions] = useState(null);
+  const [viewing, setViewing] = useState(null);   // frozen version being viewed
+  const [busy, setBusy] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!open) return;
+    api.budgetVersions(pid).then(setVersions).catch(() => setVersions([]));
+    const onDoc = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [open, pid]);
+  async function startVersion() {
+    if (busy) return;
+    if (!confirm(`Start Version ${Number(budget.version || 1) + 1}? The current budget is saved as a read-only Version ${budget.version || 1} snapshot and you keep editing from here.`)) return;
+    setBusy(true);
+    try { await api.startBudgetVersion(budget.id); setOpen(false); reload && reload(); }
+    catch (e) { alert(e.message); }
+    setBusy(false);
+  }
+  return (
+    <span ref={ref} style={{ position:'relative', display:'inline-block', marginLeft:8 }}>
+      <button onClick={() => setOpen(o => !o)} title="Budget versions"
+        style={{ background:'none', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:16, padding:'5px 12px', fontSize:11, fontWeight:800, cursor:'pointer', whiteSpace:'nowrap' }}>
+        V{budget.version || 1} ▾
+      </button>
+      {open && (
+        <div style={{ position:'absolute', top:'calc(100% + 6px)', left:0, zIndex:60, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, minWidth:230, boxShadow:'0 10px 30px rgba(0,0,0,0.5)', overflow:'hidden' }}>
+          <div onClick={startVersion}
+            style={{ padding:'9px 14px', fontSize:12, fontWeight:700, color:'#5ABF80', cursor:'pointer', borderBottom:'1px solid var(--border)' }}>
+            {busy ? 'Duplicating…' : '+ Start New Version'}
+            <div style={{ fontSize:10, fontWeight:400, color:'var(--muted)' }}>Duplicates the current budget to keep editing</div>
+          </div>
+          <div style={{ padding:'7px 14px', fontSize:11, color:'var(--text)', fontWeight:700 }}>
+            Version {budget.version || 1} <span style={{ color:'#5ABF80', fontWeight:600 }}>· current</span>
+          </div>
+          {versions === null && <div style={{ padding:'7px 14px', fontSize:11, color:'var(--muted)' }}>Loading…</div>}
+          {(versions || []).map(v => (
+            <div key={v.id} onClick={() => { setViewing(v.id); setOpen(false); }}
+              style={{ padding:'7px 14px', fontSize:11, color:'var(--muted)', cursor:'pointer', borderTop:'1px solid rgba(255,255,255,0.04)' }}>
+              Version {v.version} — {new Date(v.created_at).toLocaleDateString()}
+              <span style={{ float:'right', color:'var(--tan)' }}>{fmt$(v.raw_total, 0)}</span>
+            </div>
+          ))}
+          {versions && !versions.length && <div style={{ padding:'7px 14px 10px', fontSize:10, color:'var(--muted)' }}>No saved versions yet.</div>}
+        </div>
+      )}
+      {viewing && <VersionViewer vid={viewing} onClose={() => setViewing(null)} />}
+    </span>
+  );
+}
+
+// Read-only pop-out of a frozen budget version
+function VersionViewer({ vid, onClose }) {
+  const [data, setData] = useState(null);
+  useEffect(() => { api.budgetVersion(vid).then(setData).catch(e => alert(e.message)); }, [vid]);
+  const b = data?.budget;
+  const secs = data?.sections || [];
+  const lines = data?.lines || [];
+  const nonTravel = lines.filter(l => !l.is_travel).reduce((s2, l) => s2 + lineSubtotal(l, lines.filter(x => x.section_id === l.section_id)), 0);
+  const travel = lines.filter(l => l.is_travel).reduce((s2, l) => s2 + lineSubtotal(l, lines.filter(x => x.section_id === l.section_id)), 0);
+  const mgmt = nonTravel * num(b?.mgmt_fee_rate);
+  return (
+    <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:250, background:'rgba(0,0,0,0.72)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid var(--orange)', borderRadius:12, width:'100%', maxWidth:760, maxHeight:'86vh', overflowY:'auto', padding:'20px 22px' }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:4 }}>
+          <div style={{ fontSize:15, fontWeight:800 }}>Budget — Version {b?.version}{b ? ` · ${new Date(b.created_at).toLocaleDateString()}` : ''}</div>
+          <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
+        </div>
+        <div style={{ fontSize:10, color:'var(--muted)', marginBottom:14 }}>Read-only snapshot — the live budget carries on separately.</div>
+        {!data && <div style={{ fontSize:12, color:'var(--muted)' }}>Loading…</div>}
+        {secs.map(sec => {
+          const secLines = lines.filter(l => l.section_id === sec.id);
+          const total = secLines.reduce((s2, l) => s2 + lineSubtotal(l, secLines), 0);
+          return (
+            <div key={sec.id} style={{ border:'1px solid var(--border)', borderRadius:8, marginBottom:10, overflow:'hidden' }}>
+              <div style={{ display:'flex', justifyContent:'space-between', padding:'8px 12px', background:'var(--bg3)', fontSize:12, fontWeight:800 }}>
+                <span>{sec.title}{sec.trip ? ` — ${sec.trip}` : ''}</span><span>{fmt$(total)}</span>
+              </div>
+              <table style={{ width:'100%', borderCollapse:'collapse', fontSize:11 }}>
+                <tbody>
+                  {secLines.map(l => (
+                    <tr key={l.id} style={{ borderTop:'1px solid rgba(255,255,255,0.04)' }}>
+                      <td style={{ padding:'4px 12px' }}>{l.scope}{l.is_travel ? ' ✈' : ''}</td>
+                      <td style={{ padding:'4px 8px', color:'var(--muted)' }}>{l.notes}</td>
+                      <td style={{ padding:'4px 8px', textAlign:'right', whiteSpace:'nowrap' }}>{l.percent != null ? `${Math.round(num(l.percent) * 100)}%` : `${num(l.qty)} × ${fmt$(l.unit_cost)}`}</td>
+                      <td style={{ padding:'4px 12px', textAlign:'right', fontWeight:600, whiteSpace:'nowrap' }}>{fmt$(lineSubtotal(l, secLines))}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          );
+        })}
+        {data && (
+          <div style={{ background:'var(--bg)', border:'1px solid #5ABF8055', borderRadius:10, padding:'12px 16px', maxWidth:380, marginLeft:'auto' }}>
+            {[['Production & Post (non-travel)', nonTravel], ['Travel', travel], [`Management Fee (${Math.round(num(b?.mgmt_fee_rate) * 1000) / 10}% of non-travel)`, mgmt]].map(([lbl2, val]) => (
+              <div key={lbl2} style={{ display:'flex', justifyContent:'space-between', fontSize:12, padding:'2px 0', color:'var(--muted)' }}>
+                <span>{lbl2}</span><span style={{ fontWeight:600, color:'var(--text)' }}>{fmt$(val)}</span>
+              </div>
+            ))}
+            <div style={{ display:'flex', justifyContent:'space-between', fontSize:14, fontWeight:800, borderTop:'1px solid var(--border)', marginTop:6, paddingTop:8 }}>
+              <span>TOTAL</span><span style={{ color:'#5ABF80' }}>{fmt$(nonTravel + travel + mgmt)}</span>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

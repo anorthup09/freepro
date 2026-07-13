@@ -1454,6 +1454,10 @@ async function migrate() {
   await sql`ALTER TABLE projects ALTER COLUMN start_date DROP NOT NULL`;
   await sql`ALTER TABLE projects ALTER COLUMN end_date DROP NOT NULL`;
 
+  // Budget versioning — the live budget carries a version number; snapshots
+  // are stored as kind='version' budgets frozen when a new version starts
+  await sql`ALTER TABLE budgets ADD COLUMN IF NOT EXISTS version INT DEFAULT 1`;
+
   // Hub personality: daily greetings cache + UM Fun Facts
   await sql`
     CREATE TABLE IF NOT EXISTS daily_greetings (
