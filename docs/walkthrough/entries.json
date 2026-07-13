@@ -319,5 +319,17 @@
       "Admins: the ⚙ Admin button at the bottom unfolds User Management and Automations."
     ],
     "screenshot": "hub-simplified.png"
+  },
+  {
+    "title": "Budget Versions — duplicate and keep editing",
+    "what": "Snapshot a budget before making big changes. Start New Version freezes the entire current budget — every section, line, and header field — as a read-only version, and you keep editing the live budget as the next version number. Old versions stay one click away with their date and total, and never feed the pipeline, reports, or Harbinger.",
+    "where": "ProFi — the V# dropdown to the right of the Budget/VCC toggle on any project budget.",
+    "how": [
+      "Open a project budget and click the <b>V1 ▾</b> pill next to the Budget/VCC toggle.",
+      "Click <b>+ Start New Version</b> and confirm — the current budget is saved as a read-only snapshot.",
+      "Keep editing as normal; the pill now reads the new version number.",
+      "Reopen the dropdown any time to view a past version — sections, lines, and totals, read-only."
+    ],
+    "screenshot": "budget-versions.png"
   }
 ]
