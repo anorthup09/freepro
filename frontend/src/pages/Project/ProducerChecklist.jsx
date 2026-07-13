@@ -17,8 +17,15 @@ const CARD_COLORS = ['#5ABF80', '#4a9eff', '#e6c229', '#d66a9b'];
 // Checks persist per project in the browser (no backend field needed).
 export default function ProducerChecklist({ project }) {
   const storeKey = `producer-checklist:${project?.id || 'x'}`;
-  const [open, setOpen] = useState([]);       // keys of open checklists, in open order
-  const [active, setActive] = useState(null); // which open checklist is displayed
+  // Open checklists persist per project so switching tabs doesn't close them
+  const openKey = storeKey + ':open';
+  const [open, setOpen] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(openKey) || '[]'); } catch { return []; }
+  });
+  const [active, setActive] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(openKey) || '[]').slice(-1)[0] || null; } catch { return null; }
+  });
+  useEffect(() => { try { localStorage.setItem(openKey, JSON.stringify(open)); } catch {} }, [open, openKey]);
   const [checked, setChecked] = useState({});
   // Assignments: checklist item -> the real project task it created
   const assignKey = storeKey + ':assigned';
@@ -199,11 +206,11 @@ export default function ProducerChecklist({ project }) {
                 {assigning === id && (
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', padding: '4px 6px 10px 52px' }}>
                     <select value={aForm.assigneeId} onChange={e => setAForm(f => ({ ...f, assigneeId: e.target.value }))}
-                      style={{ fontSize: 12, maxWidth: 200 }}>
+                      style={{ fontSize: 12, width: 180, flex: 'none' }}>
                       <option value="">— Unassigned —</option>
                       {crew.map(m => <option key={m.id} value={m.id}>{displayName(m)}</option>)}
                     </select>
-                    <input type="date" value={aForm.due} onChange={e => setAForm(f => ({ ...f, due: e.target.value }))} style={{ fontSize: 12 }} />
+                    <input type="date" value={aForm.due} onChange={e => setAForm(f => ({ ...f, due: e.target.value }))} style={{ fontSize: 12, width: 140, flex: 'none' }} />
                     <button className="btn btn-primary btn-sm" disabled={aSaving} onClick={() => saveAssign(id, it.label, list.label)}>
                       {aSaving ? 'Saving…' : 'Assign'}
                     </button>

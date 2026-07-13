@@ -17,6 +17,7 @@ import Scripts from './Scripts.jsx';
 import ShotList from './ShotList.jsx';
 import ProducerChecklist from './ProducerChecklist.jsx';
 import Locations from './Locations.jsx';
+import HomeButton from '../../components/HomeButton.jsx';
 
 const BASE_TABS = [
   { id: 'overview',            label: 'Overview' },
@@ -459,6 +460,7 @@ export default function Project({ idOverride }) {
         <Link to="/" title="Back to the Unbridled Media hub" style={{ display:'flex', alignItems:'center', marginLeft:'auto', marginRight:10 }}>
           <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height:18, filter:'brightness(0) invert(1)', opacity:0.9 }} />
         </Link>
+        <HomeButton style={{ marginRight:8 }} />
         {!glassVisible && !isAgency && !isCrew && <ShareDropdown projectId={id} showShotList={showShotList} crews={project?.crews || []} />}
       </nav>
       {/* Mobile: Share moves below the nav line so the tab row wraps cleanly */}

@@ -773,3 +773,6 @@ body.pvd-nav-open .fin-dock { display: none !important; }
 @media (max-width: 700px) {
   .fp-versions { position: absolute !important; top: 0; right: 0; margin-left: 0 !important; width: auto !important; }
 }
+
+/* Inside Project View the workspace header already carries the home button */
+.pvd-embed .nav .home-glass { display: none !important; }
