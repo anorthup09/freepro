@@ -217,7 +217,7 @@ export default function GearRequestModal({ projectId, existing, onClose, onSubmi
     setAmending(true);
   }
 
-  const ok = f.projectId && f.name && f.crew && f.checkOut && f.checkIn && f.moving && f.drives.length > 0 && items.length > 0;
+  const ok = f.projectId && f.name && f.crew && f.checkOut && f.checkIn && f.moving && f.drives.length > 0;
 
   async function submit() {
     if (!ok || saving) return;
@@ -299,7 +299,7 @@ export default function GearRequestModal({ projectId, existing, onClose, onSubmi
               ))}
             </div>
             <div>
-              <label style={lbl}>7. What gear do you need, by department?{req} <span style={{ color:'var(--muted)', fontWeight:400 }}>Pick from the equipment inventory — set how many of each.</span></label>
+              <label style={lbl}>7. What gear do you need, by department? <span style={{ color:'var(--muted)', fontWeight:400 }}>Pick from the equipment inventory — set how many of each.</span></label>
               {DEPTS.map(([k, label]) => {
                 const deptItems = items.filter(i => i.category === k);
                 return (

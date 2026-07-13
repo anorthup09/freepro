@@ -101,10 +101,29 @@ router.get('/inventory', requireAuth, async (req, res, next) => {
       WHERE status NOT IN ('RETIRED', 'LOST')
       GROUP BY name, category
       ORDER BY name`;
-    // Kit-letter suffixes ("… CAM A" / "… CAM B") are one model — combine them
+    // Unit-ID suffixes are one model — combine "… CAM A", "… STUDIO 117",
+    // "… #3", and "… Z1/E5"-style tags. The letter+digit rule only merges
+    // when siblings exist, so real model names ("Sony FX6") never collapse.
+    const safeBase = n => n
+      .replace(/\s+CAM\s+[A-Z0-9]{1,2}$/i, '')
+      .replace(/\s+STUDIO\s+\d{1,4}$/i, '')
+      .replace(/\s+#\d+$/, '')
+      .trim();
+    const idBase = n => {
+      const b = n.replace(/\s+-?[A-Z]{1,2}\d{1,3}$/, '').trim();
+      return b.length >= 8 ? b : n;   // don't reduce short names to nothing
+    };
+    const pre = rows.map(r => ({ ...r, name: safeBase(r.name) }));
+    // letter+digit suffix merges only when >1 distinct raw name shares the base
+    const baseCount = {};
+    for (const r of pre) {
+      const b = idBase(r.name);
+      if (b !== r.name) (baseCount[b.toLowerCase()] ||= new Set()).add(r.name);
+    }
     const merged = new Map();
-    for (const r of rows) {
-      const name = r.name.replace(/\s+CAM\s+[A-Z0-9]{1,2}$/i, '').trim();
+    for (const r of pre) {
+      const b = idBase(r.name);
+      const name = b !== r.name && baseCount[b.toLowerCase()]?.size > 1 ? b : r.name;
       const key = name.toLowerCase() + '|' + (r.category || '');
       const m = merged.get(key);
       if (m) { m.total += r.total; m.available += r.available; }
