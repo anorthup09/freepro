@@ -5,6 +5,7 @@ import { api } from '../api.js';
 import { maybeMailNotice } from '../utils/mailNotice.js';
 import RosterLookup from '../components/RosterLookup.jsx';
 import HomeButton from '../components/HomeButton.jsx';
+import GlassDock from '../components/GlassDock.jsx';
 
 const BLUE = '#4a9eff';
 const PTO_TYPES = ['PTO', 'WFH', 'STL/DEN Only', 'Comp', 'Other OOO'];
@@ -120,15 +121,18 @@ export default function Team() {
       <div style={{ maxWidth:1150, margin:'0 auto', padding:'6px 16px 80px' }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, flexWrap:'wrap', marginBottom:4 }}>
           <div className="page-title" style={{ marginBottom:0 }}>Team Management</div>
-          <div style={{ display:'flex', border:`1px solid ${BLUE}55`, borderRadius:16, overflow:'hidden' }}>
-            {[['roster', 'Roster'], ['form', 'OOO Request'], ['pipeline', 'OOO Pipeline']].map(([v, label]) => (
-              <button key={v} onClick={() => setView(v)}
-                style={{ background: view === v ? `${BLUE}2e` : 'transparent', border:'none', color: view === v ? BLUE : 'var(--muted)', padding:'6px 16px', fontSize:11, fontWeight:800, cursor:'pointer' }}>
-                {label}
-              </button>
-            ))}
-          </div>
         </div>
+        <GlassDock active={view} onSelect={setView} items={[
+          { key:'roster', label:'Roster', color:BLUE, icon:(
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.4 2.9-5.5 6.5-5.5s6.5 2.1 6.5 5.5"/><circle cx="17" cy="9" r="2.4"/><path d="M16.5 14.7c2.9.3 5 2.1 5 4.8"/></svg>
+          )},
+          { key:'form', label:'OOO Request', color:BLUE, icon:(
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M8 3v4M16 3v4M3 10h18M12 13.5v4M10 15.5h4"/></svg>
+          )},
+          { key:'pipeline', label:'OOO Pipeline', color:BLUE, icon:(
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 6h16M4 12h16M4 18h10"/><circle cx="19" cy="18" r="2.2"/></svg>
+          )},
+        ]} />
         {view === 'roster' && <div style={{ maxWidth:760, margin:'12px auto 0' }}><RosterLookup /></div>}
         {view === 'form' && (
         <>
