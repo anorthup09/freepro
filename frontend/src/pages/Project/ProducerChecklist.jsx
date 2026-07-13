@@ -1,5 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { PRODUCER_CHECKLISTS } from '../../data/producerChecklists.js';
+import { api } from '../../api.js';
+import { displayName } from '../../utils/displayName.js';
+
+const HumanIcon = ({ color }) => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="7.5" r="3.5"/><path d="M4.5 20.5c0-4 3.4-6.5 7.5-6.5s7.5 2.5 7.5 6.5"/>
+  </svg>
+);
 
 const CARD_COLORS = ['#5ABF80', '#4a9eff', '#e6c229', '#d66a9b'];
 
@@ -12,11 +20,55 @@ export default function ProducerChecklist({ project }) {
   const [open, setOpen] = useState([]);       // keys of open checklists, in open order
   const [active, setActive] = useState(null); // which open checklist is displayed
   const [checked, setChecked] = useState({});
+  // Assignments: checklist item -> the real project task it created
+  const assignKey = storeKey + ':assigned';
+  const [assigned, setAssigned] = useState({});
+  const [crew, setCrew] = useState([]);
+  const [assigning, setAssigning] = useState(null);   // item id with the panel open
+  const [aForm, setAForm] = useState({ assigneeId: '', due: '' });
+  const [aSaving, setASaving] = useState(false);
 
   useEffect(() => {
     try { setChecked(JSON.parse(localStorage.getItem(storeKey) || '{}')); }
     catch { setChecked({}); }
+    try { setAssigned(JSON.parse(localStorage.getItem(assignKey) || '{}')); }
+    catch { setAssigned({}); }
   }, [storeKey]);
+
+  useEffect(() => {
+    api.getCrew()
+      .then(cs => setCrew(cs.filter(m => (m.company || '').toLowerCase().includes('unbridled'))
+        .sort((a, b) => displayName(a).localeCompare(displayName(b)))))
+      .catch(() => {});
+  }, []);
+
+  function openAssign(id) {
+    const a = assigned[id];
+    setAForm({ assigneeId: a?.assigneeId || '', due: a?.due || '' });
+    setAssigning(prev => prev === id ? null : id);
+  }
+
+  async function saveAssign(id, label, listLabel) {
+    if (aSaving) return;
+    setASaving(true);
+    try {
+      const a = assigned[id];
+      let taskId = a?.taskId;
+      if (!taskId) {
+        const t = await api.addProjectTask(project.id, { text: `${listLabel}: ${label}` });
+        taskId = t.id;
+      }
+      await api.updateProjectTask(taskId, { assigneeId: aForm.assigneeId || null, dueDate: aForm.due || null });
+      const m = crew.find(c => c.id === aForm.assigneeId);
+      const next = { ...assigned };
+      if (aForm.assigneeId) next[id] = { taskId, assigneeId: aForm.assigneeId, name: m ? displayName(m) : '', due: aForm.due };
+      else next[id] = { ...next[id], taskId, assigneeId: '', name: '', due: aForm.due };
+      setAssigned(next);
+      try { localStorage.setItem(assignKey, JSON.stringify(next)); } catch {}
+      setAssigning(null);
+    } catch (e) { alert(e.message); }
+    setASaving(false);
+  }
 
   function toggle(id) {
     setChecked(prev => {
@@ -119,19 +171,47 @@ export default function ProducerChecklist({ project }) {
           {sec.items.map((it, ii) => {
             const id = `${list.key}|${si}|${ii}`;
             const on = !!checked[id];
+            const a = assigned[id];
+            const hasAssignee = !!(a && a.assigneeId);
             return (
-              <label key={ii} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '7px 6px',
-                borderBottom: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer' }}>
-                <input type="checkbox" checked={on} onChange={() => toggle(id)}
-                  style={{ marginTop: 2, width: 15, height: 15, accentColor: accent, flexShrink: 0, cursor: 'pointer' }} />
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 12.5, fontWeight: 700, color: on ? 'var(--muted)' : 'var(--text)',
-                    textDecoration: on ? 'line-through' : 'none' }}>{it.label}</div>
-                  {it.note && (
-                    <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2, whiteSpace: 'pre-line', lineHeight: 1.4 }}>{it.note}</div>
-                  )}
-                </div>
-              </label>
+              <div key={ii} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', position: 'relative' }}>
+                <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '7px 6px', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={on} onChange={() => toggle(id)}
+                    style={{ marginTop: 2, width: 15, height: 15, accentColor: accent, flexShrink: 0, cursor: 'pointer' }} />
+                  <button onClick={ev => { ev.preventDefault(); ev.stopPropagation(); openAssign(id); }}
+                    title={hasAssignee ? `Assigned to ${a.name}${a.due ? ' · due ' + a.due : ''}` : 'Assign this task to a teammate'}
+                    style={{ background: 'none', border: 'none', padding: '1px 0 0', cursor: 'pointer', flexShrink: 0, lineHeight: 0 }}>
+                    <HumanIcon color={hasAssignee ? accent : 'rgba(255,255,255,0.22)'} />
+                  </button>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 700, color: on ? 'var(--muted)' : 'var(--text)',
+                      textDecoration: on ? 'line-through' : 'none' }}>{it.label}</div>
+                    {it.note && (
+                      <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2, whiteSpace: 'pre-line', lineHeight: 1.4 }}>{it.note}</div>
+                    )}
+                    {hasAssignee && (
+                      <div style={{ fontSize: 10, color: accent, marginTop: 2, fontWeight: 700 }}>
+                        → {a.name}{a.due ? ` · due ${new Date(a.due + 'T12:00:00').toLocaleDateString()}` : ''}
+                      </div>
+                    )}
+                  </div>
+                </label>
+                {assigning === id && (
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', padding: '4px 6px 10px 52px' }}>
+                    <select value={aForm.assigneeId} onChange={e => setAForm(f => ({ ...f, assigneeId: e.target.value }))}
+                      style={{ fontSize: 12, maxWidth: 200 }}>
+                      <option value="">— Unassigned —</option>
+                      {crew.map(m => <option key={m.id} value={m.id}>{displayName(m)}</option>)}
+                    </select>
+                    <input type="date" value={aForm.due} onChange={e => setAForm(f => ({ ...f, due: e.target.value }))} style={{ fontSize: 12 }} />
+                    <button className="btn btn-primary btn-sm" disabled={aSaving} onClick={() => saveAssign(id, it.label, list.label)}>
+                      {aSaving ? 'Saving…' : 'Assign'}
+                    </button>
+                    <button className="btn btn-ghost btn-sm" onClick={() => setAssigning(null)}>Cancel</button>
+                    <span style={{ fontSize: 10, color: 'var(--muted)' }}>Shows on their Hub to-do list.</span>
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>
