@@ -29,9 +29,16 @@ const TAB_ICONS = {
 // labels at the top of the page, shrinking to icons alone once you scroll.
 function MobileTabDock({ tabs, tab, setTab }) {
   const [shrunk, setShrunk] = useState(false);
-  // Only the Finance tab collapses the nav (its own Budget/VCC dock owns the
-  // bottom-right); expanding swaps the Budget/VCC dock out for this one.
-  const collapsible = tab === 'finance';
+  const [mobile, setMobile] = useState(typeof window !== 'undefined' && window.innerWidth <= 700);
+  useEffect(() => {
+    const onR = () => setMobile(window.innerWidth <= 700);
+    window.addEventListener('resize', onR);
+    return () => window.removeEventListener('resize', onR);
+  }, []);
+  // Only the Finance tab on MOBILE collapses the nav (its Budget/VCC dock owns
+  // the bottom-right there). On desktop both docks fit: nav bottom-center,
+  // Harbinger/Budget/VCC bottom-right.
+  const collapsible = mobile && tab === 'finance';
   const [min, setMin] = useState(true);
   useEffect(() => { setMin(true); }, [collapsible]);
   useEffect(() => {
@@ -81,7 +88,8 @@ function MobileTabDock({ tabs, tab, setTab }) {
     <>
     {menuBtn}
     <div className="pvd-dock no-print" style={{
-      position:'fixed', right:14, bottom:'calc(env(safe-area-inset-bottom, 0px) + 14px)',
+      position:'fixed', bottom:'calc(env(safe-area-inset-bottom, 0px) + 14px)',
+      ...(mobile ? { right:14 } : { left:'50%', transform:'translateX(-50%)' }),
       zIndex:110, display:'flex', alignItems:'center', gap:2,
       padding: shrunk ? '6px 10px' : '8px 12px',
       background:'rgba(24,22,19,0.81)', backdropFilter:'blur(18px) saturate(1.5)', WebkitBackdropFilter:'blur(18px) saturate(1.5)',
