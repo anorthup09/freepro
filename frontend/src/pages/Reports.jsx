@@ -82,12 +82,14 @@ export default function Reports() {
             accent: '#f7b52d', to: '/reports/ways-of-being',
           }] : [])].map((r, i, arr) => { const accent = gradientAccent(i, arr.length); return (
             <div key={r.title} onClick={() => nav(r.to)}
-              style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderTop:`3px solid ${accent}`, borderRadius:12, padding:'22px 22px 18px', cursor:'pointer', transition:'transform .15s ease' }}
+              style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderTop:`3px solid ${accent}`, borderRadius:12, padding:'12px 18px 11px', cursor:'pointer', transition:'transform .15s ease' }}
               onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-3px)'}
               onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
-              <div style={{ fontSize:15, fontWeight:800, margin:'8px 0 4px' }}>{r.title}</div>
-              <div style={{ fontSize:12, color:'var(--muted)', lineHeight:1.5 }}>{r.desc}</div>
-              <div style={{ fontSize:11, color:accent, fontWeight:600, marginTop:12 }}>Open →</div>
+              <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', gap:10, margin:'2px 0 2px' }}>
+                <div style={{ fontSize:14, fontWeight:800 }}>{r.title}</div>
+                <div style={{ fontSize:11, color:accent, fontWeight:600, whiteSpace:'nowrap' }}>Open →</div>
+              </div>
+              <div style={{ fontSize:11.5, color:'var(--muted)', lineHeight:1.45 }}>{r.desc}</div>
             </div>
           ); })}
         </div>
