@@ -650,6 +650,9 @@ textarea { resize: vertical; min-height: 70px; }
 .pvd-embed .ov-head .proj-code,
 .pvd-embed .ov-head .proj-title,
 .pvd-embed .ov-head .proj-meta .meta:nth-child(2) { display: none !important; }
+/* Finance id block repeats the code + project name too — keep Edit + client */
+.pvd-embed .fp-idblock .fp-code,
+.pvd-embed .fp-idblock .page-title { display: none !important; }
 
 /* Budget shoot header: code / trip / description stack on phones; the cost
    column stays pinned top-right instead of wrapping underneath */
