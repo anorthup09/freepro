@@ -1832,6 +1832,20 @@ const DOCK_ICONS = {
 
 function ShareGlassDock({ items }) {
   const [shrunk, setShrunk] = useState(false);
+  const btnRefs = useRef({});
+  const [bubble, setBubble] = useState(null);   // sliding highlight behind the active icon
+  const activeKey = (items.find(it => it.active) || {}).key;
+  useEffect(() => {
+    const measure = () => {
+      const el = btnRefs.current[activeKey];
+      if (el) setBubble({ left: el.offsetLeft, top: el.offsetTop, width: el.offsetWidth, height: el.offsetHeight });
+      else setBubble(null);
+    };
+    measure();
+    const t = setTimeout(measure, 300);
+    window.addEventListener('resize', measure);
+    return () => { clearTimeout(t); window.removeEventListener('resize', measure); };
+  }, [activeKey, shrunk, items.length]);
   useEffect(() => {
     let raf = null;
     const onScroll = () => {
@@ -1853,11 +1867,18 @@ function ShareGlassDock({ items }) {
       boxShadow:'0 10px 34px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.08)',
       transition:'padding .25s ease',
     }}>
+      {bubble && (
+        <div aria-hidden style={{
+          position:'absolute', left:bubble.left, top:bubble.top, width:bubble.width, height:bubble.height,
+          background:'rgba(255,255,255,0.10)', borderRadius:22, pointerEvents:'none',
+          transition:'left .3s cubic-bezier(.34,1.3,.5,1), width .3s cubic-bezier(.34,1.3,.5,1), top .3s ease, height .3s ease',
+        }} />
+      )}
       {items.map(it => (
-        <button key={it.key} onClick={it.onClick} aria-label={it.label}
+        <button key={it.key} ref={el => { btnRefs.current[it.key] = el; }} onClick={it.onClick} aria-label={it.label}
           style={{
-            display:'flex', flexDirection:'column', alignItems:'center', gap:3,
-            background: it.active ? 'rgba(255,255,255,0.10)' : 'transparent', border:'none', cursor:'pointer',
+            display:'flex', flexDirection:'column', alignItems:'center', gap:3, position:'relative',
+            background:'transparent', border:'none', cursor:'pointer',
             color: it.active ? 'var(--orange)' : 'rgba(255,255,255,0.55)',
             borderRadius:22, padding: shrunk ? '8px 11px' : '7px 11px 6px',
             transition:'all .25s ease', flexShrink:0,

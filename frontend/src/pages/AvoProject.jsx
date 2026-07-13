@@ -810,13 +810,16 @@ export default function AvoProject({ idOverride, embedded }) {
         {page && (
           <>
             <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'space-between', gap:10, flexWrap:'wrap', marginBottom:14 }}>
-              <div>
-                <div className="page-title">{page.code}</div>
-                <input value={page.title || ''} placeholder="Add a project title…"
-                  onChange={e => setPage(p => ({ ...p, title: e.target.value }))}
-                  onBlur={e => api.updateAvoProject(id, { title: e.target.value }).catch(er => alert(er.message))}
-                  style={{ ...cellInput, marginTop:4, maxWidth:340, color:'var(--muted)' }} />
-              </div>
+              {/* Project View's header already shows code + title above the nav */}
+              {!embedded ? (
+                <div>
+                  <div className="page-title">{page.code}</div>
+                  <input value={page.title || ''} placeholder="Add a project title…"
+                    onChange={e => setPage(p => ({ ...p, title: e.target.value }))}
+                    onBlur={e => api.updateAvoProject(id, { title: e.target.value }).catch(er => alert(er.message))}
+                    style={{ ...cellInput, marginTop:4, maxWidth:340, color:'var(--muted)' }} />
+                </div>
+              ) : <div />}
               <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text, #e05252)' }} onClick={removePage}>Delete Page</button>
             </div>
 

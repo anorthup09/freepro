@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../App.jsx';
 import { api } from '../api.js';
@@ -29,6 +29,19 @@ const TAB_ICONS = {
 // labels at the top of the page, shrinking to icons alone once you scroll.
 function MobileTabDock({ tabs, tab, setTab }) {
   const [shrunk, setShrunk] = useState(false);
+  const btnRefs = useRef({});
+  const [bubble, setBubble] = useState(null);   // sliding highlight behind the active icon
+  useEffect(() => {
+    const measure = () => {
+      const el = btnRefs.current[tab];
+      if (el) setBubble({ left: el.offsetLeft, top: el.offsetTop, width: el.offsetWidth, height: el.offsetHeight });
+    };
+    measure();
+    // icon labels collapse/expand over 250ms — re-measure once they settle
+    const t = setTimeout(measure, 300);
+    window.addEventListener('resize', measure);
+    return () => { clearTimeout(t); window.removeEventListener('resize', measure); };
+  }, [tab, shrunk, tabs.length]);
   useEffect(() => {
     let raf = null;
     const onScroll = () => {
@@ -49,14 +62,21 @@ function MobileTabDock({ tabs, tab, setTab }) {
       boxShadow:'0 10px 34px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.08)',
       transition:'padding .25s ease',
     }}>
+      {bubble && (
+        <div aria-hidden style={{
+          position:'absolute', left:bubble.left, top:bubble.top, width:bubble.width, height:bubble.height,
+          background:'rgba(255,255,255,0.10)', borderRadius:22, pointerEvents:'none',
+          transition:'left .3s cubic-bezier(.34,1.3,.5,1), width .3s cubic-bezier(.34,1.3,.5,1), top .3s ease, height .3s ease',
+        }} />
+      )}
       {tabs.map(([k, label, color]) => {
         const on = tab === k;
         return (
-          <button key={k} onClick={() => { setTab(k); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+          <button key={k} ref={el => { btnRefs.current[k] = el; }} onClick={() => { setTab(k); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
             aria-label={label}
             style={{
-              display:'flex', flexDirection:'column', alignItems:'center', gap:3,
-              background: on ? 'rgba(255,255,255,0.10)' : 'transparent', border:'none', cursor:'pointer',
+              display:'flex', flexDirection:'column', alignItems:'center', gap:3, position:'relative',
+              background:'transparent', border:'none', cursor:'pointer',
               color: on ? color : 'rgba(255,255,255,0.55)',
               borderRadius:22, padding: shrunk ? '8px 12px' : '7px 12px 6px',
               transition:'all .25s ease',
