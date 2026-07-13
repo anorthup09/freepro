@@ -701,10 +701,10 @@ router.get('/:id/gear-items', requireAuth, async (req, res, next) => {
 
 router.post('/:id/gear-items', requireAuth, requireRole('ADMIN','PRODUCER','AGENCY'), async (req, res, next) => {
   try {
-    const { category, item, source, notes, sortOrder } = req.body;
+    const { category, item, source, notes, sortOrder, qty, contractorName } = req.body;
     const [row] = await sql`
-      INSERT INTO gear_items (id, project_id, category, item, source, notes, sort_order)
-      VALUES (gen_random_uuid()::text, ${req.params.id}, ${category||'other'}, ${item}, ${source||'internal'}, ${notes||null}, ${sortOrder||0})
+      INSERT INTO gear_items (id, project_id, category, item, source, notes, sort_order, qty, contractor_name)
+      VALUES (gen_random_uuid()::text, ${req.params.id}, ${category||'other'}, ${item}, ${source||'internal'}, ${notes||null}, ${sortOrder||0}, ${Number(qty)||1}, ${contractorName||null})
       RETURNING *`;
     res.status(201).json(row);
   } catch(e){next(e);}
@@ -718,6 +718,8 @@ router.patch('/:id/gear-items/:itemId', requireAuth, requireRole('ADMIN','PRODUC
         category = COALESCE(${d.category??null}, category),
         item     = COALESCE(${d.item??null}, item),
         source   = COALESCE(${d.source??null}, source),
+        qty      = COALESCE(${d.qty !== undefined ? Number(d.qty) || 1 : null}, qty),
+        contractor_name = ${d.contractorName !== undefined ? (d.contractorName||null) : sql`contractor_name`},
         notes    = ${d.notes !== undefined ? (d.notes||null) : sql`notes`}
       WHERE id = ${req.params.itemId} AND project_id = ${req.params.id}
       RETURNING *`;

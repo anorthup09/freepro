@@ -45,6 +45,12 @@ function CrewMultiSelect({ value, onChange, crew }) {
   );
 }
 
+const DEPTS = [
+  ['camera', 'Camera'], ['grip', 'Grip'], ['electric', 'Electric'],
+  ['audio', 'Audio'], ['media_management', 'Media Management'], ['editing', 'Editing'],
+];
+const DEPT_LABEL = Object.fromEntries(DEPTS);
+
 const MOVING_OPTS = ['Flying', 'Local/Driving', 'In-house (not moving)'];
 const DRIVE_OPTS = ['Editing Drive', 'SSD', 'No, I do not need a drive provided to me.'];
 const SIZE_OPTS = ['1TB', '2TB', '4TB', 'MORE'];
@@ -76,10 +82,20 @@ export function GearRequestView({ r }) {
       </div>
       {row('Who from Media is traveling with gear', r.crew, true)}
       {row('How is this gear moving', r.moving)}
-      {row('Camera gear & accessories', r.camera, true)}
-      {row('Lights & light peripherals', r.lights, true)}
-      {row('Grip', r.grip, true)}
-      {row('Other', r.other, true)}
+      {Array.isArray(r.items) && r.items.length > 0 ? (
+        DEPTS.map(([k, label]) => {
+          const list = r.items.filter(i => i.category === k);
+          if (!list.length) return null;
+          return row(label, list.map(i => `${i.qty} × ${i.name}`).join('\n'), true);
+        })
+      ) : (
+        <>
+          {row('Camera gear & accessories', r.camera, true)}
+          {row('Lights & light peripherals', r.lights, true)}
+          {row('Grip', r.grip, true)}
+          {row('Other', r.other, true)}
+        </>
+      )}
       <div style={{ display:'flex', gap:24, flexWrap:'wrap' }}>
         <div style={{ flex:2, minWidth:180 }}>{row('Media drives', r.drives)}</div>
         <div style={{ flex:1, minWidth:100 }}>{row('Drive size', r.drive_size)}</div>
@@ -87,6 +103,51 @@ export function GearRequestView({ r }) {
       </div>
       {row('Special instructions', r.notes, true)}
       <div style={{ fontSize:10, color:'var(--muted)' }}>Submitted {r.created_at ? new Date(r.created_at).toLocaleString() : ''}{r.submitted_by ? ` · ${r.submitted_by}` : ''}</div>
+    </div>
+  );
+}
+
+// Inventory picker window: equipment MODELS for one department (assets deduped
+// by name — six C70s show once), with qty steppers and a custom-item row.
+function InventoryPicker({ dept, inventory, qtyOf, setQty, onClose }) {
+  const [q, setQ] = useState('');
+  const [custom, setCustom] = useState('');
+  const list = (inventory || []).filter(m => m.dept === dept)
+    .filter(m => !q.trim() || m.name.toLowerCase().includes(q.trim().toLowerCase()));
+  const stepBtn = { width:24, height:24, borderRadius:6, border:'1px solid var(--border)', background:'var(--bg)', color:'var(--text)', fontWeight:800, cursor:'pointer', fontSize:13, lineHeight:1 };
+  return (
+    <div onClick={e => e.target === e.currentTarget && onClose()}
+      style={{ position:'fixed', inset:0, zIndex:260, background:'rgba(0,0,0,0.72)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+      <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid var(--orange)', borderRadius:12, width:'100%', maxWidth:560, maxHeight:'82vh', display:'flex', flexDirection:'column', padding:'18px 20px' }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
+          <div style={{ fontSize:15, fontWeight:800 }}>{DEPT_LABEL[dept]} — Equipment Inventory</div>
+          <button className="btn btn-ghost btn-sm" onClick={onClose}>Done</button>
+        </div>
+        <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search equipment…" style={{ marginBottom:8 }} autoFocus />
+        <div style={{ overflowY:'auto', flex:1, border:'1px solid var(--border)', borderRadius:8 }}>
+          {inventory === null && <div style={{ padding:'10px 14px', fontSize:12, color:'var(--muted)' }}>Loading inventory…</div>}
+          {list.map(m => {
+            const n = qtyOf(dept, m.name);
+            return (
+              <div key={m.name} style={{ display:'flex', alignItems:'center', gap:10, padding:'7px 12px', borderBottom:'1px solid rgba(255,255,255,0.04)', background: n > 0 ? 'rgba(232,80,10,0.07)' : 'transparent' }}>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontSize:12, fontWeight: n > 0 ? 700 : 500 }}>{m.name}</div>
+                  <div style={{ fontSize:9, color:'var(--muted)' }}>{m.available} of {m.total} available · {m.category}</div>
+                </div>
+                <button type="button" style={stepBtn} onClick={() => setQty(dept, m.name, Math.max(0, n - 1))}>−</button>
+                <span style={{ width:22, textAlign:'center', fontSize:13, fontWeight:800, color: n > 0 ? 'var(--orange)' : 'var(--muted)' }}>{n}</span>
+                <button type="button" style={stepBtn} onClick={() => setQty(dept, m.name, n + 1)}>+</button>
+              </div>
+            );
+          })}
+          {inventory !== null && list.length === 0 && <div style={{ padding:'10px 14px', fontSize:12, color:'var(--muted)', fontStyle:'italic' }}>Nothing in the inventory matches.</div>}
+        </div>
+        <div style={{ display:'flex', gap:8, marginTop:10 }}>
+          <input value={custom} onChange={e => setCustom(e.target.value)} placeholder="Not in the inventory? Type it here…" style={{ flex:1 }}
+            onKeyDown={e => { if (e.key === 'Enter' && custom.trim()) { setQty(dept, custom.trim(), qtyOf(dept, custom.trim()) + 1); setCustom(''); e.preventDefault(); } }} />
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => { if (custom.trim()) { setQty(dept, custom.trim(), qtyOf(dept, custom.trim()) + 1); setCustom(''); } }}>Add</button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -104,7 +165,17 @@ export default function GearRequestModal({ projectId, existing, onClose, onSubmi
     drives: [], driveSize: '', driveQty: '', notes: '',
   });
   const [saving, setSaving] = useState(false);
+  const [items, setItems] = useState([]);          // [{category, name, qty}]
+  const [inventory, setInventory] = useState(null); // asset models by department
+  const [pickerDept, setPickerDept] = useState(null);
   const set = k => e => setF(v => ({ ...v, [k]: e.target.value }));
+  const setQty = (category, name, qty) => setItems(prev => {
+    const next = prev.filter(i => !(i.category === category && i.name === name));
+    return qty > 0 ? [...next, ...(prev.some(i => i.category === category && i.name === name)
+      ? [{ ...prev.find(i => i.category === category && i.name === name), qty }]
+      : [{ category, name, qty }])].sort((a, b) => a.name.localeCompare(b.name)) : next;
+  });
+  const qtyOf = (category, name) => items.find(i => i.category === category && i.name === name)?.qty || 0;
   const isView = !!existing && !amending;
   const showForm = !existing || amending;
 
@@ -112,6 +183,7 @@ export default function GearRequestModal({ projectId, existing, onClose, onSubmi
     if (showForm) {
       api.gearRequestProjects().then(setProjects).catch(() => setProjects([]));
       api.getCrew().then(setCrew).catch(() => {});
+      api.gearInventory().then(setInventory).catch(() => setInventory([]));
     }
   }, [showForm]);
 
@@ -141,18 +213,20 @@ export default function GearRequestModal({ projectId, existing, onClose, onSubmi
       drives: String(existing.drives || '').split(',').map(s => s.trim()).filter(Boolean),
       driveSize: existing.drive_size || '', driveQty: existing.drive_qty || '', notes: existing.notes || '',
     });
+    setItems(Array.isArray(existing.items) ? existing.items : []);
     setAmending(true);
   }
 
-  const ok = f.projectId && f.name && f.crew && f.checkOut && f.checkIn && f.moving && f.drives.length > 0;
+  const ok = f.projectId && f.name && f.crew && f.checkOut && f.checkIn && f.moving && f.drives.length > 0 && items.length > 0;
 
   async function submit() {
     if (!ok || saving) return;
     setSaving(true);
     try {
+      const payload = { ...f, items };
       const r = amending
-        ? await api.amendGearRequest(existing.project_id, f)
-        : await api.createGearRequest(f);
+        ? await api.amendGearRequest(existing.project_id, payload)
+        : await api.createGearRequest(payload);
       maybeMailNotice(amending ? 'The amendment report email to the gear team' : 'The gear request email to the gear team');
       onSubmitted && onSubmitted(r);
       if (amending && embedded) { setAmending(false); setSaving(false); return; }
@@ -225,21 +299,34 @@ export default function GearRequestModal({ projectId, existing, onClose, onSubmi
               ))}
             </div>
             <div>
-              <label style={lbl}>7. Camera Gear and Camera Accessories needed? <span style={{ color:'var(--muted)', fontWeight:400 }}>(one item per line, e.g. 3x c70kits ⏎ 3x 5" Monitor ⏎ 2x 24-70mm)</span></label>
-              <textarea style={areaStyle} value={f.camera} onChange={set('camera')} />
+              <label style={lbl}>7. What gear do you need, by department?{req} <span style={{ color:'var(--muted)', fontWeight:400 }}>Pick from the equipment inventory — set how many of each.</span></label>
+              {DEPTS.map(([k, label]) => {
+                const deptItems = items.filter(i => i.category === k);
+                return (
+                  <div key={k} style={{ border:'1px solid var(--border)', borderRadius:8, padding:'8px 12px', marginBottom:6 }}>
+                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
+                      <div style={{ fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.05em', color: deptItems.length ? 'var(--orange)' : 'var(--muted)' }}>
+                        {label}{deptItems.length > 0 && <span style={{ fontWeight:600 }}> · {deptItems.reduce((s2, i) => s2 + Number(i.qty), 0)} item{deptItems.reduce((s2, i) => s2 + Number(i.qty), 0) !== 1 ? 's' : ''}</span>}
+                      </div>
+                      <button type="button" className="btn btn-ghost btn-sm" style={{ padding:'2px 10px', fontSize:10 }} onClick={() => setPickerDept(k)}>+ Add Gear</button>
+                    </div>
+                    {deptItems.length > 0 && (
+                      <div style={{ display:'flex', flexWrap:'wrap', gap:5, marginTop:6 }}>
+                        {deptItems.map(i => (
+                          <span key={i.name} style={{ display:'inline-flex', alignItems:'center', gap:6, background:'rgba(232,80,10,0.12)', border:'1px solid rgba(232,80,10,0.5)', color:'var(--text)', borderRadius:12, padding:'2px 9px', fontSize:11 }}>
+                            <b style={{ color:'var(--orange)' }}>{i.qty}×</b> {i.name}
+                            <span onClick={() => setQty(k, i.name, 0)} style={{ cursor:'pointer', color:'var(--muted)', fontWeight:800 }}>✕</span>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
-            <div>
-              <label style={lbl}>8. Lights and Light Peripherals? <span style={{ color:'var(--muted)', fontWeight:400 }}>Same format.</span></label>
-              <textarea style={areaStyle} value={f.lights} onChange={set('lights')} />
-            </div>
-            <div>
-              <label style={lbl}>9. Grip? <span style={{ color:'var(--muted)', fontWeight:400 }}>Same format.</span></label>
-              <textarea style={areaStyle} value={f.grip} onChange={set('grip')} />
-            </div>
-            <div>
-              <label style={lbl}>10. Other? <span style={{ color:'var(--muted)', fontWeight:400 }}>Same format.</span></label>
-              <textarea style={areaStyle} value={f.other} onChange={set('other')} />
-            </div>
+            {pickerDept && (
+              <InventoryPicker dept={pickerDept} inventory={inventory} qtyOf={qtyOf} setQty={setQty} onClose={() => setPickerDept(null)} />
+            )}
             <div>
               <label style={lbl}>11. Do you need media drives provided? (Select all that apply){req}</label>
               {DRIVE_OPTS.map(opt => (

@@ -776,3 +776,14 @@ body.pvd-nav-open .fin-dock { display: none !important; }
 
 /* Inside Project View the workspace header already carries the home button */
 .pvd-embed .nav .home-glass { display: none !important; }
+
+/* Gear List "By Source": the category list slides left into its column */
+.gl-left { animation: glSlideLeft .35s cubic-bezier(.3,.9,.4,1); }
+@keyframes glSlideLeft {
+  from { transform: translateX(26%); opacity: 0.4; }
+  to   { transform: translateX(0);   opacity: 1; }
+}
+@media (max-width: 760px) {
+  .gl-split { flex-direction: column; }
+  .gl-split .gl-left { flex: 1 1 auto !important; width: 100%; }
+}

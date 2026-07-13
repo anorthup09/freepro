@@ -1051,6 +1051,12 @@ async function migrate() {
       created_at TIMESTAMPTZ DEFAULT NOW(),
       updated_at TIMESTAMPTZ DEFAULT NOW()
     )`;
+  // Gear request departments: items picked from the asset inventory
+  await sql`ALTER TABLE gear_items ADD COLUMN IF NOT EXISTS qty INTEGER DEFAULT 1`;
+  await sql`ALTER TABLE gear_items ADD COLUMN IF NOT EXISTS contractor_name TEXT`;
+  await sql`ALTER TABLE gear_items ADD COLUMN IF NOT EXISTS from_request BOOLEAN DEFAULT FALSE`;
+  await sql`ALTER TABLE gear_requests ADD COLUMN IF NOT EXISTS items JSONB`;
+
   // One-time seed from the asset spreadsheet export (only into an empty table)
   const [{ n: assetCount }] = await sql`SELECT COUNT(*)::int as n FROM gear_assets`;
   if (assetCount === 0) {

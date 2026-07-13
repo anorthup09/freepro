@@ -11,6 +11,7 @@ const CATEGORIES = [
   { id: 'other',            label: 'Other' },
 ];
 
+const UNASSIGNED = { id: 'unassigned', label: 'Unassigned', color: '#7A7565', bg: 'rgba(122,117,101,0.12)' };
 const SOURCES = [
   { id: 'internal',      label: 'Internal',      color: '#4a9eff', bg: 'rgba(74,158,255,0.12)' },
   { id: 'contractor',    label: 'Contractor',    color: '#a78bfa', bg: 'rgba(167,139,250,0.12)' },
@@ -19,7 +20,7 @@ const SOURCES = [
 ];
 
 function sourceMeta(id) {
-  return SOURCES.find(s => s.id === id) || SOURCES[0];
+  return SOURCES.find(s => s.id === id) || UNASSIGNED;
 }
 
 const BLANK_FORM = { category: 'camera', item: '', source: 'internal', notes: '' };
@@ -33,6 +34,19 @@ export default function GearList({ project }) {
   const [editId, setEditId] = useState(null);
   const [editForm, setEditForm] = useState(BLANK_FORM);
   const [loading, setLoading] = useState(true);
+  const [dragId, setDragId] = useState(null);
+  const [overZone, setOverZone] = useState(null);
+
+  async function assign(itemId, source, contractorName) {
+    try {
+      const item = await api.updateGearItem(project.id, itemId, { source, contractorName: contractorName || '' });
+      setItems(prev => prev.map(i => i.id === item.id ? item : i));
+    } catch (err) { alert(err.message); }
+  }
+  const contractors = [...new Set((project.crewAssignments || [])
+    .filter(a => a.crewMember)
+    .map(a => [a.crewMember.preferredFirstName, a.crewMember.preferredLastName].filter(Boolean).join(' ').trim() || a.crewMember.name)
+    .filter(Boolean))].sort();
 
   useEffect(() => {
     api.getGearItems(project.id)
@@ -79,7 +93,7 @@ export default function GearList({ project }) {
     : SOURCES.map(src => ({ key: src.id, label: src.label, items: items.filter(i => i.source === src.id), meta: src })).filter(g => g.items.length > 0 || true);
 
   const totalItems = items.length;
-  const sourceSummary = SOURCES.map(s => ({ ...s, count: items.filter(i => i.source === s.id).length })).filter(s => s.count > 0);
+  const sourceSummary = [...SOURCES, UNASSIGNED].map(s => ({ ...s, count: items.filter(i => (i.source || 'unassigned') === s.id).length })).filter(s => s.count > 0);
 
   return (
     <div>
@@ -176,32 +190,110 @@ export default function GearList({ project }) {
           );
         })
       ) : (
-        SOURCES.map(src => {
-          const srcItems = items.filter(i => i.source === src.id);
-          return (
-            <div key={src.id} style={{ background:'var(--bg2)', border:`1px solid var(--border)`, borderRadius:8, marginBottom:12, overflow:'hidden' }}>
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 14px', borderBottom: srcItems.length ? '1px solid var(--border)' : 'none', borderLeft:`3px solid ${src.color}` }}>
-                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                  <div style={{ width:8, height:8, borderRadius:'50%', background:src.color }} />
-                  <div style={{ fontSize:12, fontWeight:700, textTransform:'uppercase', letterSpacing:'.07em', color:src.color }}>{src.label}</div>
-                  {srcItems.length > 0 && <div style={{ fontSize:11, color:'var(--muted)' }}>({srcItems.length})</div>}
+        <div className="gl-split" style={{ display:'flex', gap:14, alignItems:'flex-start' }}>
+          {/* Left: the By Category list slides into a column — drag items right */}
+          <div className="gl-left" style={{ flex:'0 0 46%', minWidth:0 }}>
+            <div style={{ fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--muted)', marginBottom:8 }}>
+              By Category — drag each piece into its source →
+            </div>
+            {CATEGORIES.map(cat => {
+              const catItems = items.filter(i => i.category === cat.id);
+              if (!catItems.length) return null;
+              return (
+                <div key={cat.id} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, marginBottom:10, overflow:'hidden' }}>
+                  <div style={{ padding:'7px 12px', borderBottom:'1px solid var(--border)', fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'.07em', color:'var(--muted)' }}>{cat.label}</div>
+                  {catItems.map(item => {
+                    const sm = sourceMeta(item.source || 'unassigned');
+                    const assigned = item.source && item.source !== 'unassigned';
+                    return (
+                      <div key={item.id} draggable
+                        onDragStart={e => { setDragId(item.id); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', item.id); }}
+                        onDragEnd={() => { setDragId(null); setOverZone(null); }}
+                        style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 12px', borderBottom:'1px solid rgba(255,255,255,0.04)',
+                          cursor:'grab', opacity: dragId === item.id ? 0.4 : 1, background: assigned ? 'transparent' : 'rgba(232,80,10,0.05)' }}>
+                        <span style={{ color:'var(--muted)', fontSize:12, flexShrink:0 }}>⠿</span>
+                        <span style={{ fontSize:12, flex:1, minWidth:0 }}>{Number(item.qty) > 1 && <b style={{ color:'var(--orange)' }}>{item.qty}× </b>}{item.item}</span>
+                        <span title={item.contractor_name || sm.label}
+                          style={{ fontSize:9, fontWeight:800, textTransform:'uppercase', padding:'2px 8px', borderRadius:12, background:sm.bg, color:sm.color, border:`1px solid ${sm.color}44`, whiteSpace:'nowrap' }}>
+                          {item.source === 'contractor' && item.contractor_name ? item.contractor_name : sm.label}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
+              );
+            })}
+            {items.length === 0 && <div className="empty">No gear items yet.</div>}
+          </div>
+
+          {/* Right: source drop zones */}
+          <div style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', gap:10 }}>
+            <div style={{ fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--muted)', marginBottom:-2 }}>Sources</div>
+            {SOURCES.filter(s2 => s2.id !== 'contractor').map(src => {
+              const zoneItems = items.filter(i => i.source === src.id);
+              const over = overZone === src.id;
+              return (
+                <div key={src.id}
+                  onDragOver={e => { e.preventDefault(); setOverZone(src.id); }}
+                  onDragLeave={() => setOverZone(z => z === src.id ? null : z)}
+                  onDrop={e => { e.preventDefault(); const id = e.dataTransfer.getData('text/plain') || dragId; if (id) assign(id, src.id, null); setOverZone(null); setDragId(null); }}
+                  style={{ background: over ? src.bg : 'var(--bg2)', border:`1px ${over ? 'solid' : 'dashed'} ${over ? src.color : 'var(--border)'}`,
+                    borderLeft:`3px solid ${src.color}`, borderRadius:8, padding:'9px 12px', minHeight:44, transition:'background .15s ease, border-color .15s ease' }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                    <div style={{ width:8, height:8, borderRadius:'50%', background:src.color }} />
+                    <div style={{ fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:'.06em', color:src.color }}>{src.label}</div>
+                    <div style={{ fontSize:10, color:'var(--muted)' }}>({zoneItems.length})</div>
+                  </div>
+                  {zoneItems.length > 0 && (
+                    <div style={{ display:'flex', flexWrap:'wrap', gap:4, marginTop:6 }}>
+                      {zoneItems.map(i => (
+                        <span key={i.id} style={{ fontSize:10, background:'var(--bg)', border:'1px solid var(--border)', borderRadius:10, padding:'2px 8px' }}>
+                          {Number(i.qty) > 1 ? `${i.qty}× ` : ''}{i.item}
+                          <span onClick={() => assign(i.id, 'unassigned', null)} style={{ marginLeft:5, cursor:'pointer', color:'var(--muted)', fontWeight:800 }}>✕</span>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            {/* Contractor: one sub-zone per crew member on the shoot */}
+            <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderLeft:'3px solid #a78bfa', borderRadius:8, padding:'9px 12px' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom: contractors.length ? 6 : 0 }}>
+                <div style={{ width:8, height:8, borderRadius:'50%', background:'#a78bfa' }} />
+                <div style={{ fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:'.06em', color:'#a78bfa' }}>Contractor</div>
+                <div style={{ fontSize:10, color:'var(--muted)' }}>({items.filter(i => i.source === 'contractor').length})</div>
               </div>
-              {srcItems.length === 0 && (
-                <div style={{ padding:'10px 14px', fontSize:12, color:'var(--muted)', fontStyle:'italic' }}>No items in this category.</div>
-              )}
-              {srcItems.map(item => {
-                const catLabel = CATEGORIES.find(c => c.id === item.category)?.label || item.category;
+              {contractors.length === 0 && <div style={{ fontSize:10, color:'var(--muted)', fontStyle:'italic' }}>No crew on this shoot yet — assign crew to see contractor lanes.</div>}
+              {contractors.map(name => {
+                const zone = 'contractor:' + name;
+                const zoneItems = items.filter(i => i.source === 'contractor' && i.contractor_name === name);
+                const over = overZone === zone;
                 return (
-                  <GearItemRow key={item.id} item={item} editId={editId} editForm={editForm} catLabel={catLabel}
-                    onEdit={() => { setEditId(item.id); setEditForm({ category: item.category, item: item.item, source: item.source, notes: item.notes||'' }); setShowAdd(false); }}
-                    onSave={handleEdit} onCancel={() => setEditId(null)} onDelete={() => handleDelete(item.id)}
-                    setEditForm={setEditForm} />
+                  <div key={name}
+                    onDragOver={e => { e.preventDefault(); setOverZone(zone); }}
+                    onDragLeave={() => setOverZone(z => z === zone ? null : z)}
+                    onDrop={e => { e.preventDefault(); const id = e.dataTransfer.getData('text/plain') || dragId; if (id) assign(id, 'contractor', name); setOverZone(null); setDragId(null); }}
+                    style={{ border:`1px ${over ? 'solid #a78bfa' : 'dashed var(--border)'}`, background: over ? 'rgba(167,139,250,0.12)' : 'transparent',
+                      borderRadius:7, padding:'6px 10px', marginBottom:5, transition:'background .15s ease, border-color .15s ease' }}>
+                    <div style={{ fontSize:11, fontWeight:700 }}>{name} <span style={{ fontSize:9, color:'var(--muted)' }}>({zoneItems.length})</span></div>
+                    {zoneItems.length > 0 && (
+                      <div style={{ display:'flex', flexWrap:'wrap', gap:4, marginTop:4 }}>
+                        {zoneItems.map(i => (
+                          <span key={i.id} style={{ fontSize:10, background:'var(--bg)', border:'1px solid var(--border)', borderRadius:10, padding:'2px 8px' }}>
+                            {Number(i.qty) > 1 ? `${i.qty}× ` : ''}{i.item}
+                            <span onClick={() => assign(i.id, 'unassigned', null)} style={{ marginLeft:5, cursor:'pointer', color:'var(--muted)', fontWeight:800 }}>✕</span>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </div>
-          );
-        })
+          </div>
+        </div>
       )}
 
       {!loading && items.length === 0 && !showAdd && (
@@ -296,7 +388,7 @@ function GearItemRow({ item, editId, editForm, setEditForm, onEdit, onSave, onCa
     <div style={{ display:'flex', alignItems:'flex-start', padding:'10px 14px', borderBottom:'1px solid var(--border)', gap:12 }}>
       <div style={{ flex:1, minWidth:0 }}>
         <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
-          <span style={{ fontSize:13, fontWeight:500, color:'var(--text)' }}>{item.item}</span>
+          <span style={{ fontSize:13, fontWeight:500, color:'var(--text)' }}>{Number(item.qty) > 1 && <b style={{ color:'var(--orange)' }}>{item.qty}× </b>}{item.item}</span>
           <span style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.06em', padding:'2px 8px', borderRadius:20, background:sm.bg, color:sm.color, border:`1px solid ${sm.color}33` }}>{sm.label}</span>
           {catLabel && <span style={{ fontSize:10, color:'var(--muted)', fontStyle:'italic' }}>{catLabel}</span>}
         </div>

@@ -9,6 +9,23 @@ const GEAR_REQUEST_TO = 'mvitro@unbridledmedia.com';
 // Build a human-readable change report between an old and a new gear request.
 // List fields (camera/lights/grip/other/crew/drives) diff item-by-item —
 // showing what's new (+) and what's been removed (-). Scalars show old → new.
+// The request's picked items feed the project's Gear List. Request-created
+// rows are replaced wholesale on each (re)submission; rows the gear manager
+// added by hand (from_request = FALSE) are left alone. Source assignments on
+// surviving identical items are preserved.
+async function syncRequestItems(projectId, items) {
+  const old = await sql`SELECT * FROM gear_items WHERE project_id = ${projectId} AND from_request = TRUE`;
+  await sql`DELETE FROM gear_items WHERE project_id = ${projectId} AND from_request = TRUE`;
+  let sort = 0;
+  for (const it of items) {
+    const prev = old.find(o => o.item === it.name && o.category === (it.category || 'other'));
+    await sql`
+      INSERT INTO gear_items (project_id, category, item, qty, source, contractor_name, from_request, sort_order)
+      VALUES (${projectId}, ${it.category || 'other'}, ${it.name}, ${Number(it.qty) || 1},
+              ${prev ? prev.source : 'unassigned'}, ${prev ? prev.contractor_name : null}, TRUE, ${sort++})`;
+  }
+}
+
 function amendmentReport(oldR, newR, author) {
   const clean = x => x.trim();
   const keep = x => x && !/^[—–-]+$/.test(x); // drop empty + placeholder dashes
@@ -163,11 +180,13 @@ router.post('/', requireAuth, async (req, res, next) => {
     }
     const [existing] = await sql`SELECT id FROM gear_requests WHERE project_id = ${d.projectId}`;
     if (existing) return res.status(409).json({ error: 'A gear request already exists for that project' });
+    const items = Array.isArray(d.items) ? d.items.filter(x => (x.name || '').trim() && Number(x.qty) > 0) : [];
     const [row] = await sql`
-      INSERT INTO gear_requests (project_id, name, crew, check_out, check_in, moving, camera, lights, grip, other, drives, drive_size, drive_qty, notes, submitted_by)
+      INSERT INTO gear_requests (project_id, name, crew, check_out, check_in, moving, camera, lights, grip, other, drives, drive_size, drive_qty, notes, submitted_by, items)
       VALUES (${d.projectId}, ${d.name}, ${d.crew}, ${d.checkOut}, ${d.checkIn}, ${d.moving}, ${d.camera || null}, ${d.lights || null}, ${d.grip || null}, ${d.other || null},
-              ${(d.drives || []).join(', ')}, ${d.driveSize || null}, ${d.driveQty || null}, ${d.notes || null}, ${req.user?.email || null})
+              ${(d.drives || []).join(', ')}, ${d.driveSize || null}, ${d.driveQty || null}, ${d.notes || null}, ${req.user?.email || null}, ${items.length ? sql.json(items) : null})
       RETURNING *`;
+    await syncRequestItems(d.projectId, items);
     await sql`INSERT INTO gear_activity (project_id, kind, body, author)
       VALUES (${d.projectId}, 'event', ${'Gear request submitted'}, ${d.name || req.user?.email || null})`.catch(() => {});
     const [proj] = await sql`SELECT code, title, client FROM projects WHERE id = ${d.projectId}`;
@@ -227,11 +246,13 @@ router.post('/project/:pid/amend', requireAuth, async (req, res, next) => {
     const report = amendmentReport(oldR, d, d.name || req.user?.name || req.user?.email);
     const [row] = await sql`
       UPDATE gear_requests SET
+        items = ${Array.isArray(d.items) && d.items.length ? sql.json(d.items.filter(x => (x.name || '').trim() && Number(x.qty) > 0)) : null},
         name = ${d.name}, crew = ${d.crew}, check_out = ${d.checkOut}, check_in = ${d.checkIn}, moving = ${d.moving},
         camera = ${d.camera || null}, lights = ${d.lights || null}, grip = ${d.grip || null}, other = ${d.other || null},
         drives = ${(d.drives || []).join(', ')}, drive_size = ${d.driveSize || null}, drive_qty = ${d.driveQty || null},
         notes = ${d.notes || null}, submitted_by = ${req.user?.email || null}
       WHERE project_id = ${pid} RETURNING *`;
+    await syncRequestItems(pid, Array.isArray(d.items) ? d.items.filter(x => (x.name || '').trim() && Number(x.qty) > 0) : []);
 
     // The change report lands in the activity feed for this shoot's gear dashboard.
     await sql`INSERT INTO gear_activity (project_id, kind, body, author)

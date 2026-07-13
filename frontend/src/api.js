@@ -237,6 +237,7 @@ export const api = {
   financeProjects: () => req('GET', '/finance/projects'),
   financeBundle: (pid) => req('GET', `/finance/${pid}`),
   createBudget: (pid) => req('POST', `/finance/${pid}/budget`),
+  gearInventory: () => req('GET', '/gear-assets/inventory'),
   getAssets: (q) => req('GET', '/gear-assets' + (q ? '?q=' + encodeURIComponent(q) : '')),
   createAsset: (data) => req('POST', '/gear-assets', data),
   updateAsset: (id, data) => req('PATCH', `/gear-assets/${id}`, data),

@@ -68,6 +68,43 @@ router.delete('/:id', requireAuth, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// Department buckets for the gear request pickers. Explicit map first, then
+// keyword fallback for the grab-bag "Equipment"/blank categories.
+const DEPT_BY_CATEGORY = {
+  'Cameras':'camera','Camera Accessories':'camera','Camera Equipment':'camera','Camera Stability':'camera',
+  'Lenses':'camera','Gimbal':'camera','Drone':'camera','GOPRO':'camera','Filter':'camera','Tripods/Heads':'camera','Monitor':'camera',
+  'Grip':'grip','Stands':'grip','Dolly System':'grip','Production/ Set Accessories':'grip','Tools':'grip',
+  'Lights':'electric','Strobe/Flash':'electric','Cable':'electric','Battery':'electric',
+  'Audio':'audio',
+  'HDD':'media_management','Media (Memory Cards)':'media_management',
+  'Computer equipment':'editing',
+};
+function deptOf(cat, name) {
+  if (DEPT_BY_CATEGORY[cat]) return DEPT_BY_CATEGORY[cat];
+  const n = (name || '').toLowerCase();
+  if (/\b(mic|audio|boom|lav|headphone|speaker)\b/.test(n)) return 'audio';
+  if (/(cable|charger|power|battery|light|dimmer)/.test(n)) return 'electric';
+  if (/(card|reader|ssd|drive|hdd|storage)/.test(n)) return 'media_management';
+  if (/(computer|laptop|imac|macbook|keyboard)/.test(n)) return 'editing';
+  if (/(lens|cap|mount|filter|matte|focus|monitor|camera|tripod|gimbal|timecode)/.test(n)) return 'camera';
+  return 'grip';
+}
+
+// GET /api/gear-assets/inventory — one row per equipment MODEL (assets deduped
+// by name), bucketed into the six gear departments, with availability counts.
+router.get('/inventory', requireAuth, async (req, res, next) => {
+  try {
+    const rows = await sql`
+      SELECT name, category, COUNT(*)::int as total,
+             COUNT(*) FILTER (WHERE status = 'AVAILABLE')::int as available
+      FROM gear_assets
+      WHERE status NOT IN ('RETIRED', 'LOST')
+      GROUP BY name, category
+      ORDER BY name`;
+    res.json(rows.map(r => ({ name: r.name, dept: deptOf(r.category, r.name), category: r.category, total: r.total, available: r.available })));
+  } catch (e) { next(e); }
+});
+
 // POST /api/gear-assets/import — bulk rows from a spreadsheet
 router.post('/import', requireAuth, async (req, res, next) => {
   try {
