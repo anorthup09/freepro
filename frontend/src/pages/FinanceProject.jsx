@@ -118,11 +118,7 @@ export default function FinanceProject({ pidOverride }) {
                     style={{ background:'rgba(230,194,41,0.15)', border:'1px solid #e6c229', color:'#e6c229', borderRadius:20, padding:'4px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
                     + Add Estimate{estimates.length ? ` (${estimates.length})` : ''}
                   </button>
-                  <button onClick={() => setOverview(true)}
-                    style={{ background:'rgba(90,191,128,0.12)', border:'1px solid #5ABF80', color:'#5ABF80', borderRadius:20, padding:'4px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
-                    Budget Overview
-                  </button>
-                  <ShareBudgetButton budget={budget}
+                  <ShareBudgetButton budget={budget} onOverview={() => setOverview(true)}
                     onModePicked={m => set(d => ({ budget: { ...d.budget, share_mode: m } }))} />
                 </div>
               </>
@@ -1553,7 +1549,8 @@ function VendorInvoicesButton({ pid }) {
 
 // Client Budget: pick how the client sees it (line items vs buckets) in a
 // pop-out, then open the shared page. No standing toggle in the header.
-function ShareBudgetButton({ budget, onModePicked }) {
+function ShareBudgetButton({ budget, onModePicked, onOverview }) {
+  const [underConstruction, setUnderConstruction] = useState(false);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   async function share(mode) {
@@ -1572,6 +1569,7 @@ function ShareBudgetButton({ budget, onModePicked }) {
   const OPTIONS = [
     ['lines', 'Line Items', 'The full budget line by line — every position, rate, and quantity.'],
     ['buckets', 'Buckets', 'Rolled-up section totals only — no individual line detail.'],
+    ['items-nocost', 'Itemized — No Costs', 'Every line item and quantity, with all dollar figures removed.'],
   ];
   return (
     <>
@@ -1589,6 +1587,11 @@ function ShareBudgetButton({ budget, onModePicked }) {
             </div>
             <div style={{ fontSize:11, color:'var(--muted)', marginBottom:12 }}>How should the client see this budget?</div>
             <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+              <button type="button" onClick={() => { setOpen(false); onOverview && onOverview(); }}
+                style={{ textAlign:'left', background:'var(--bg)', border:'1px solid #5ABF80', borderRadius:10, padding:'12px 14px', cursor:'pointer' }}>
+                <div style={{ fontSize:13, fontWeight:800, color:'#5ABF80' }}>Budget Overview</div>
+                <div style={{ fontSize:11, color:'var(--muted)', marginTop:2 }}>The client-facing summary — cost inclusions and headline numbers.</div>
+              </button>
               {OPTIONS.map(([m, label, desc]) => (
                 <button key={m} type="button" disabled={busy} onClick={() => share(m)}
                   style={{ textAlign:'left', background: current === m ? 'rgba(74,158,255,0.10)' : 'var(--bg)', border: current === m ? '1px solid #4a9eff' : '1px solid var(--border)',
@@ -1599,7 +1602,25 @@ function ShareBudgetButton({ budget, onModePicked }) {
                   <div style={{ fontSize:11, color:'var(--muted)', marginTop:2 }}>{desc}</div>
                 </button>
               ))}
+              <button type="button" onClick={() => setUnderConstruction(true)}
+                style={{ textAlign:'left', background:'var(--bg)', border:'1px dashed var(--border)', borderRadius:10, padding:'12px 14px', cursor:'pointer' }}>
+                <div style={{ fontSize:13, fontWeight:800, color:'var(--muted)' }}>Project Estimates PDF <span style={{ fontSize:9, fontWeight:800, textTransform:'uppercase', border:'1px solid var(--border)', borderRadius:10, padding:'1px 7px', marginLeft:6 }}>Coming Soon</span></div>
+                <div style={{ fontSize:11, color:'var(--muted)', marginTop:2 }}>A formatted estimate PDF from the Unbridled template.</div>
+              </button>
             </div>
+          </div>
+        </div>
+      )}
+      {underConstruction && (
+        <div onClick={e => e.target === e.currentTarget && setUnderConstruction(false)}
+          style={{ position:'fixed', inset:0, zIndex:140, background:'rgba(0,0,0,0.72)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+          <div style={{ width:'100%', maxWidth:360, background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid #e6c229', borderRadius:12, padding:'20px 22px', textAlign:'center' }}>
+            <div style={{ fontSize:26, marginBottom:6 }}>🚧</div>
+            <div style={{ fontSize:14, fontWeight:800, marginBottom:6 }}>Project Estimates PDF — under construction</div>
+            <div style={{ fontSize:12, color:'var(--muted)', lineHeight:1.5, marginBottom:14 }}>
+              This will generate a formatted estimate PDF once the Unbridled template is loaded in. Coming soon.
+            </div>
+            <button className="btn btn-ghost btn-sm" onClick={() => setUnderConstruction(false)}>Got it</button>
           </div>
         </div>
       )}

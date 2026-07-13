@@ -26,6 +26,7 @@ export default function BudgetShare() {
   const { project, budget, sections, lines } = data;
   const mgmtRate = budget.mgmt_fee_rate != null ? Number(budget.mgmt_fee_rate) : 0.15;
   const bucketMode = budget.share_mode === 'buckets';
+  const noCost = budget.share_mode === 'items-nocost';   // itemized scope, no dollars
 
   let nonTravel = 0, travel = 0, photo = 0;
   const photoIds = new Set(sections.filter(s => s.kind === 'photo').map(s => s.id));
@@ -67,7 +68,7 @@ export default function BudgetShare() {
 
         {sections.map(sec => {
           const secLines = (bySection[sec.id] || []).sort((a, b) => a.sort - b.sort);
-          const active = secLines.filter(l => lineSubtotal(l, secLines) > 0);
+          const active = secLines.filter(l => noCost ? num(l.qty) > 0 : lineSubtotal(l, secLines) > 0);
           if (!active.length) return null;
           const main = active.filter(l => !l.is_travel);
           const trav = active.filter(l => l.is_travel);
@@ -79,16 +80,16 @@ export default function BudgetShare() {
                   <div style={{ fontSize:12, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--tan)' }}>{sec.title}</div>
                   {sec.subtitle && <div style={{ fontSize:11, color:'var(--muted)', marginTop:2, whiteSpace:'pre-wrap' }}>{sec.subtitle}</div>}
                 </div>
-                <div style={{ fontSize:14, fontWeight:800, whiteSpace:'nowrap' }}>{fmt$(secTotal)}</div>
+                {!noCost && <div style={{ fontSize:14, fontWeight:800, whiteSpace:'nowrap' }}>{fmt$(secTotal)}</div>}
               </div>
               {!bucketMode && (
                 <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12 }}>
                   <tbody>
-                    {main.map(l => <ShareRow key={l.id} l={l} secLines={secLines} />)}
+                    {main.map(l => <ShareRow key={l.id} l={l} secLines={secLines} noCost={noCost} />)}
                     {trav.length > 0 && (
                       <tr><td colSpan={3} style={{ padding:'8px 20px 2px', fontSize:9, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--tan)' }}>Travel</td></tr>
                     )}
-                    {trav.map(l => <ShareRow key={l.id} l={l} secLines={secLines} />)}
+                    {trav.map(l => <ShareRow key={l.id} l={l} secLines={secLines} noCost={noCost} />)}
                   </tbody>
                 </table>
               )}
@@ -96,7 +97,7 @@ export default function BudgetShare() {
           );
         })}
 
-        <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, padding:'16px 22px' }}>
+        {noCost ? null : <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, padding:'16px 22px' }}>
           {[
             ['Production & Post-Production', nonTravel],
             ['Travel', travel],
@@ -110,7 +111,7 @@ export default function BudgetShare() {
           <div style={{ display:'flex', justifyContent:'space-between', fontSize:16, fontWeight:800, borderTop:'1px solid var(--border)', marginTop:8, paddingTop:10 }}>
             <span>TOTAL PROJECT ESTIMATE</span><span style={{ color:'var(--tan)' }}>{fmt$(total)}</span>
           </div>
-        </div>
+        </div>}
 
         <div style={{ textAlign:'center', marginTop:18 }}>
           <div style={{ fontSize:10, color:'var(--muted)', lineHeight:1.6 }}>
@@ -141,7 +142,7 @@ function ShareLinkButton() {
   );
 }
 
-function ShareRow({ l, secLines }) {
+function ShareRow({ l, secLines, noCost }) {
   const st = lineSubtotal(l, secLines);
   return (
     <tr style={{ borderTop:'1px solid rgba(255,255,255,0.03)' }}>
@@ -150,9 +151,9 @@ function ShareRow({ l, secLines }) {
         {l.notes && <div style={{ fontSize:10, color:'var(--muted)' }}>{l.notes}</div>}
       </td>
       <td style={{ padding:'6px 8px', textAlign:'right', whiteSpace:'nowrap', color:'var(--muted)', fontSize:11 }}>
-        {l.percent == null ? `${Number(l.qty)} × ${fmt$(l.unit_cost)}` : ''}
+        {noCost ? (l.percent == null && Number(l.qty) > 1 ? `×${Number(l.qty)}` : '') : (l.percent == null ? `${Number(l.qty)} × ${fmt$(l.unit_cost)}` : '')}
       </td>
-      <td style={{ padding:'6px 20px 6px 8px', textAlign:'right', fontWeight:700, whiteSpace:'nowrap', width:110 }}>{fmt$(st)}</td>
+      {!noCost && <td style={{ padding:'6px 20px 6px 8px', textAlign:'right', fontWeight:700, whiteSpace:'nowrap', width:110 }}>{fmt$(st)}</td>}
     </tr>
   );
 }
