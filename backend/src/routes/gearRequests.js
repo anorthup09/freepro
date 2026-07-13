@@ -111,6 +111,8 @@ router.get('/report', requireAuth, async (req, res, next) => {
              pg.rental_company, COALESCE(pg.internal_request_submitted, FALSE) as internal_request_submitted,
              (SELECT MIN(g.created_at) FROM gear_requests g WHERE g.project_id = p.id) as request_submitted,
              (SELECT g.submitted_by FROM gear_requests g WHERE g.project_id = p.id ORDER BY g.created_at LIMIT 1) as request_by,
+             (SELECT g.name FROM gear_requests g WHERE g.project_id = p.id ORDER BY g.created_at LIMIT 1) as request_name,
+             (SELECT COUNT(*) FROM gear_items gi WHERE gi.project_id = p.id AND COALESCE(gi.source, 'unassigned') = 'unassigned')::int as unassigned_items,
              (SELECT COUNT(*) FROM online_rentals o WHERE o.project_id = p.id)::int as online_rentals,
              (SELECT COALESCE(SUM(o.cost), 0) FROM online_rentals o WHERE o.project_id = p.id) as online_rental_cost,
              (SELECT STRING_AGG(DISTINCT COALESCE(NULLIF(TRIM(CONCAT(cm.preferred_first_name, ' ', cm.preferred_last_name)), ''), cm.name), ', ')

@@ -60,12 +60,14 @@ export default function GearReport() {
         {!rows && <div className="empty">Loading…</div>}
         {rows && (
           <div className="budget-tbl-wrap" style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 10, marginTop: 10, overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 980 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1120 }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)' }}>
                   <th style={th}>Shoot Code</th><th style={th}>Shoot Name</th>
                   <th style={th}>Start</th><th style={th}>End</th>
                   <th style={th}>Gear Request</th>
+                  <th style={th}>Request Name</th>
+                  <th style={th}>Needs Assignment</th>
                   <th style={{ ...th, borderLeft: '1px solid var(--border)' }}>Internal Gear</th>
                   <th style={th}>Online Rental</th><th style={th}>Rental House</th><th style={th}>Contractor(s)</th>
                 </tr>
@@ -89,9 +91,17 @@ export default function GearReport() {
                       <td style={{ ...td, whiteSpace: 'nowrap' }}>
                         {on
                           ? <span style={{ background: 'rgba(90,191,128,0.15)', border: '1px solid #5ABF80', color: '#5ABF80', borderRadius: 12, padding: '2px 10px', fontSize: 10, fontWeight: 800 }}>
-                              ✓ {fmtD(r.request_submitted)}{r.request_by ? ` · ${r.request_by}` : ''}
+                              ✓ {fmtD(r.request_submitted)}
                             </span>
                           : <span style={{ border: '1px solid var(--border)', color: 'var(--muted)', borderRadius: 12, padding: '2px 10px', fontSize: 10, fontWeight: 700 }}>Not requested</span>}
+                      </td>
+                      <td style={{ ...td, whiteSpace: 'nowrap' }}>{r.request_name || <span style={{ color: 'var(--muted)' }}>—</span>}</td>
+                      <td style={{ ...td, textAlign: 'center' }}>
+                        {Number(r.unassigned_items) > 0
+                          ? <span title={`${r.unassigned_items} gear item${Number(r.unassigned_items) !== 1 ? 's' : ''} not yet assigned to a source`}
+                              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20, borderRadius: '50%',
+                                background: 'rgba(90,191,128,0.18)', border: '1.5px solid #5ABF80', color: '#5ABF80', fontSize: 12, fontWeight: 900 }}>!</span>
+                          : <span style={{ color: 'var(--muted)', fontSize: 11 }}>—</span>}
                       </td>
                       <td style={{ ...td, borderLeft: '1px solid var(--border)' }}><Check on={on || r.internal_request_submitted} /></td>
                       <td style={td}>{Number(r.online_rentals) > 0
@@ -106,7 +116,7 @@ export default function GearReport() {
                     </tr>
                   );
                 })}
-                {shown.length === 0 && <tr><td colSpan={9} style={{ ...td, color: 'var(--muted)', fontStyle: 'italic' }}>No shoots found.</td></tr>}
+                {shown.length === 0 && <tr><td colSpan={11} style={{ ...td, color: 'var(--muted)', fontStyle: 'italic' }}>No shoots found.</td></tr>}
               </tbody>
             </table>
           </div>
