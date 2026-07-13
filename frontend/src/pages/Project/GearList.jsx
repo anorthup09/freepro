@@ -36,12 +36,52 @@ export default function GearList({ project }) {
   const [loading, setLoading] = useState(true);
   const [dragId, setDragId] = useState(null);
   const [overZone, setOverZone] = useState(null);
+  const [splitOpen, setSplitOpen] = useState({});   // itemId -> expanded
 
+  const sameLine = (a, b, source, contractorName) =>
+    a.item === b.item && a.category === b.category &&
+    (a.source || 'unassigned') === (source || 'unassigned') &&
+    (a.contractor_name || '') === (contractorName || '');
+
+  // Move the WHOLE card; if the target already holds the same item, merge qtys
   async function assign(itemId, source, contractorName) {
     try {
-      const item = await api.updateGearItem(project.id, itemId, { source, contractorName: contractorName || '' });
-      setItems(prev => prev.map(i => i.id === item.id ? item : i));
+      const me = items.find(i => i.id === itemId);
+      if (!me) return;
+      const dupe = items.find(i => i.id !== itemId && sameLine(i, me, source, contractorName));
+      if (dupe) {
+        const updated = await api.updateGearItem(project.id, dupe.id, { qty: Number(dupe.qty || 1) + Number(me.qty || 1) });
+        await api.deleteGearItem(project.id, itemId);
+        setItems(prev => prev.filter(i => i.id !== itemId).map(i => i.id === updated.id ? updated : i));
+      } else {
+        const item = await api.updateGearItem(project.id, itemId, { source, contractorName: contractorName || '' });
+        setItems(prev => prev.map(i => i.id === item.id ? item : i));
+      }
     } catch (err) { alert(err.message); }
+  }
+
+  // Move ONE unit of a multi-qty card: decrement the original and grow/create
+  // a row for the same item at the target source
+  async function assignUnit(itemId, source, contractorName) {
+    try {
+      const me = items.find(i => i.id === itemId);
+      if (!me) return;
+      if (Number(me.qty || 1) <= 1) return assign(itemId, source, contractorName);
+      const dec = await api.updateGearItem(project.id, itemId, { qty: Number(me.qty) - 1 });
+      const existing = items.find(i => i.id !== itemId && sameLine(i, me, source, contractorName));
+      if (existing) {
+        const grown = await api.updateGearItem(project.id, existing.id, { qty: Number(existing.qty || 1) + 1 });
+        setItems(prev => prev.map(i => i.id === dec.id ? dec : i.id === grown.id ? grown : i));
+      } else {
+        const created = await api.createGearItem(project.id, { category: me.category, item: me.item, qty: 1, source, contractorName: contractorName || '', notes: me.notes || '' });
+        setItems(prev => [...prev.map(i => i.id === dec.id ? dec : i), created]);
+      }
+    } catch (err) { alert(err.message); }
+  }
+  function handleDrop(data, source, contractorName) {
+    if (!data) return;
+    if (data.startsWith('unit:')) assignUnit(data.slice(5), source, contractorName);
+    else assign(data, source, contractorName);
   }
   // Only actual contractors get gear lanes — contract slots, or crew from a
   // non-Unbridled company
@@ -207,19 +247,40 @@ export default function GearList({ project }) {
                   {catItems.map(item => {
                     const sm = sourceMeta(item.source || 'unassigned');
                     const assigned = item.source && item.source !== 'unassigned';
+                    const multi = Number(item.qty) > 1;
+                    const open = !!splitOpen[item.id];
                     return (
-                      <div key={item.id} draggable
+                      <React.Fragment key={item.id}>
+                      <div draggable
                         onDragStart={e => { setDragId(item.id); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', item.id); }}
                         onDragEnd={() => { setDragId(null); setOverZone(null); }}
-                        style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 12px', borderBottom:'1px solid rgba(255,255,255,0.04)',
+                        style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 12px', borderBottom: open ? 'none' : '1px solid rgba(255,255,255,0.04)',
                           cursor:'grab', opacity: dragId === item.id ? 0.4 : 1, background: assigned ? 'transparent' : 'rgba(232,80,10,0.05)' }}>
                         <span style={{ color:'var(--muted)', fontSize:12, flexShrink:0 }}>⠿</span>
-                        <span style={{ fontSize:12, flex:1, minWidth:0 }}>{Number(item.qty) > 1 && <b style={{ color:'var(--orange)' }}>{item.qty}× </b>}{item.item}</span>
+                        <span style={{ fontSize:12, flex:1, minWidth:0 }}>{multi && <b style={{ color:'var(--orange)' }}>{item.qty}× </b>}{item.item}</span>
+                        {multi && (
+                          <button onClick={() => setSplitOpen(o => ({ ...o, [item.id]: !o[item.id] }))}
+                            title="Split — drag single units to different sources"
+                            style={{ background:'none', border:'1px solid var(--border)', color: open ? 'var(--orange)' : 'var(--muted)', borderRadius:10, padding:'1px 8px', fontSize:9, fontWeight:800, cursor:'pointer', flexShrink:0 }}>
+                            {open ? '▴ split' : '▾ split'}
+                          </button>
+                        )}
                         <span title={item.contractor_name || sm.label}
                           style={{ fontSize:9, fontWeight:800, textTransform:'uppercase', padding:'2px 8px', borderRadius:12, background:sm.bg, color:sm.color, border:`1px solid ${sm.color}44`, whiteSpace:'nowrap' }}>
                           {item.source === 'contractor' && item.contractor_name ? item.contractor_name : sm.label}
                         </span>
                       </div>
+                      {multi && open && (
+                        <div draggable
+                          onDragStart={e => { setDragId(item.id); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', 'unit:' + item.id); }}
+                          onDragEnd={() => { setDragId(null); setOverZone(null); }}
+                          style={{ display:'flex', alignItems:'center', gap:8, padding:'5px 12px 7px 34px', borderBottom:'1px solid rgba(255,255,255,0.04)',
+                            cursor:'grab', fontSize:11, color:'var(--muted)', background:'rgba(255,255,255,0.02)' }}>
+                          <span style={{ fontSize:11 }}>⠿</span>
+                          <span><b style={{ color:'var(--orange)' }}>1×</b> {item.item} — drag one unit to a different source (repeat to split again)</span>
+                        </div>
+                      )}
+                      </React.Fragment>
                     );
                   })}
                 </div>
@@ -238,7 +299,7 @@ export default function GearList({ project }) {
                 <div key={src.id}
                   onDragOver={e => { e.preventDefault(); setOverZone(src.id); }}
                   onDragLeave={() => setOverZone(z => z === src.id ? null : z)}
-                  onDrop={e => { e.preventDefault(); const id = e.dataTransfer.getData('text/plain') || dragId; if (id) assign(id, src.id, null); setOverZone(null); setDragId(null); }}
+                  onDrop={e => { e.preventDefault(); handleDrop(e.dataTransfer.getData('text/plain') || dragId, src.id, null); setOverZone(null); setDragId(null); }}
                   style={{ background: over ? src.bg : 'var(--bg2)', border:`1px ${over ? 'solid' : 'dashed'} ${over ? src.color : 'var(--border)'}`,
                     borderLeft:`3px solid ${src.color}`, borderRadius:8, padding:'9px 12px', minHeight:44, transition:'background .15s ease, border-color .15s ease' }}>
                   <div style={{ display:'flex', alignItems:'center', gap:8 }}>
@@ -276,7 +337,7 @@ export default function GearList({ project }) {
                   <div key={name}
                     onDragOver={e => { e.preventDefault(); setOverZone(zone); }}
                     onDragLeave={() => setOverZone(z => z === zone ? null : z)}
-                    onDrop={e => { e.preventDefault(); const id = e.dataTransfer.getData('text/plain') || dragId; if (id) assign(id, 'contractor', name); setOverZone(null); setDragId(null); }}
+                    onDrop={e => { e.preventDefault(); handleDrop(e.dataTransfer.getData('text/plain') || dragId, 'contractor', name); setOverZone(null); setDragId(null); }}
                     style={{ border:`1px ${over ? 'solid #a78bfa' : 'dashed var(--border)'}`, background: over ? 'rgba(167,139,250,0.12)' : 'transparent',
                       borderRadius:7, padding:'6px 10px', marginBottom:5, transition:'background .15s ease, border-color .15s ease' }}>
                     <div style={{ fontSize:11, fontWeight:700 }}>{name} <span style={{ fontSize:9, color:'var(--muted)' }}>({zoneItems.length})</span></div>
