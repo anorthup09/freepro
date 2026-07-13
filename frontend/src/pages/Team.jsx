@@ -55,6 +55,7 @@ export default function Team() {
   const [f, setF] = useState(BLANK);
   const [saving, setSaving] = useState(false);
   const [closedOpen, setClosedOpen] = useState(false);
+  const [myView, setMyView] = useState(false);   // pipeline: only my requests (assignee or supervisor)
   const [view, setView] = useState('form'); // 'form' | 'pipeline'
   const { user } = useAuth();
 
@@ -218,9 +219,21 @@ export default function Team() {
         {/* ── Pipeline ── */}
         {view === 'pipeline' && (
         <div style={{ marginTop:16 }}>
+        <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:10 }}>
+          <button onClick={() => setMyView(v => !v)}
+            title="Only requests where you are the assignee or the supervisor"
+            style={myView
+              ? { background:`${BLUE}2e`, border:`1px solid ${BLUE}`, color:BLUE, borderRadius:16, padding:'5px 16px', fontSize:11, fontWeight:800, cursor:'pointer' }
+              : { background:'transparent', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:16, padding:'5px 16px', fontSize:11, fontWeight:800, cursor:'pointer' }}>
+            {myView ? '✓ ' : ''}My View
+          </button>
+        </div>
         {!rows && <div className="empty">Loading…</div>}
-        {rows && GROUPS.map(([key, label, color]) => {
-          const group = rows.filter(r => r.status === key);
+        {rows && (() => {
+          const meId = (roster.find(m => (m.email || '').toLowerCase() === (user?.email || '').toLowerCase()) || {}).id;
+          const shown = myView && meId ? rows.filter(r => r.member_id === meId || r.manager_id === meId) : rows;
+          return GROUPS.map(([key, label, color]) => {
+          const group = shown.filter(r => r.status === key);
           const collapsed = key === 'CLOSED' && !closedOpen;
           return (
             <div key={key} style={{ marginBottom:20 }}>
@@ -285,7 +298,7 @@ export default function Team() {
               )}
             </div>
           );
-        })}
+        }); })()}
         <div style={{ fontSize:10, color:'var(--muted)' }}>
           Approving a request moves it to the PTO/WFH Calendar; once the end date passes it closes automatically. All requests appear on the Crew Calendar.
         </div>
