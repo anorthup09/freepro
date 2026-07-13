@@ -61,24 +61,25 @@ function MobileTabDock({ tabs, tab, setTab }) {
     onScroll();
     return () => { window.removeEventListener('scroll', onScroll); if (raf) cancelAnimationFrame(raf); };
   }, []);
-  if (collapsible && min) {
-    const active = tabs.find(([k]) => k === tab);
-    return (
-      <button className="pvd-dock no-print" onClick={() => setMin(false)} aria-label="Open navigation"
-        style={{
-          position:'fixed', left:64, bottom:'calc(env(safe-area-inset-bottom, 0px) + 14px)',
-          zIndex:110, display:'flex', alignItems:'center', gap:8, padding:'10px 14px', cursor:'pointer',
-          background:'rgba(24,22,19,0.81)', backdropFilter:'blur(18px) saturate(1.5)', WebkitBackdropFilter:'blur(18px) saturate(1.5)',
-          border:'1px solid rgba(255,255,255,0.12)', borderRadius:32,
-          boxShadow:'0 10px 34px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.08)',
-          color: active ? active[2] : 'rgba(255,255,255,0.8)',
-        }}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.8)" strokeWidth="2.2" strokeLinecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
-        {active && TAB_ICONS[active[0]]}
-      </button>
-    );
-  }
+  const menuBtn = collapsible && (
+    <button className="pvd-menu no-print" onClick={() => setMin(m => !m)} aria-label={min ? 'Open navigation' : 'Back to finance navigation'}
+      style={{
+        position:'fixed', left:64, bottom:'calc(env(safe-area-inset-bottom, 0px) + 14px)',
+        zIndex:111, display:'flex', alignItems:'center', gap:8, padding:'10px 14px', cursor:'pointer',
+        background: min ? 'rgba(24,22,19,0.81)' : 'rgba(45,42,36,0.92)',
+        backdropFilter:'blur(18px) saturate(1.5)', WebkitBackdropFilter:'blur(18px) saturate(1.5)',
+        border: min ? '1px solid rgba(255,255,255,0.12)' : '1px solid rgba(255,255,255,0.28)', borderRadius:32,
+        boxShadow:'0 10px 34px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.08)',
+        color:'rgba(255,255,255,0.8)', transition:'background .2s ease, border-color .2s ease',
+      }}>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.8)" strokeWidth="2.2" strokeLinecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      {min && tabs.find(([k]) => k === tab) && TAB_ICONS[tab]}
+    </button>
+  );
+  if (collapsible && min) return menuBtn;
   return (
+    <>
+    {menuBtn}
     <div className="pvd-dock no-print" style={{
       position:'fixed', right:14, bottom:'calc(env(safe-area-inset-bottom, 0px) + 14px)',
       zIndex:110, display:'flex', alignItems:'center', gap:2,
@@ -117,6 +118,7 @@ function MobileTabDock({ tabs, tab, setTab }) {
         );
       })}
     </div>
+    </>
   );
 }
 

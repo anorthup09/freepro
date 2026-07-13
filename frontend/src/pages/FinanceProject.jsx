@@ -111,12 +111,6 @@ export default function FinanceProject({ pidOverride }) {
           </div>
           <div className="fp-actions" style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:8 }}>
             {budget && <BudgetVersions budget={budget} pid={pid} reload={() => api.financeBundle(pid).then(setData)} />}
-            {harbinger && (
-              <button onClick={() => setShowHarbinger(true)}
-                style={{ background:'rgba(90,191,128,0.12)', border:'1px solid #5ABF80', color:'#5ABF80', borderRadius:20, padding:'4px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
-                View Harbinger
-              </button>
-            )}
             {budget && (
               <>
                 <div className="fp-btnrow" style={{ display:'flex', gap:8, flexWrap:'wrap', justifyContent:'flex-end' }}>
@@ -328,6 +322,17 @@ const FIN_DOCK_ICONS = {
 function FinanceDock({ tab, setTab, onHarbinger }) {
   const btnRefs = useRef({});
   const [bubble, setBubble] = useState(null);
+  const [shrunk, setShrunk] = useState(false);
+  useEffect(() => {
+    let raf = null;
+    const onScroll = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => { setShrunk(window.innerWidth <= 700 && window.scrollY > 60); raf = null; });
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => { window.removeEventListener('scroll', onScroll); if (raf) cancelAnimationFrame(raf); };
+  }, []);
   useEffect(() => {
     const measure = () => {
       const el = btnRefs.current[tab];
@@ -337,11 +342,11 @@ function FinanceDock({ tab, setTab, onHarbinger }) {
     const t = setTimeout(measure, 300);
     window.addEventListener('resize', measure);
     return () => { clearTimeout(t); window.removeEventListener('resize', measure); };
-  }, [tab]);
+  }, [tab, shrunk]);
   return (
     <div className="fin-dock no-print" style={{
       position:'fixed', right:14, bottom:'calc(env(safe-area-inset-bottom, 0px) + 14px)',
-      zIndex:110, display:'flex', alignItems:'center', gap:2, padding:'8px 12px',
+      zIndex:110, display:'flex', alignItems:'center', gap:2, padding: shrunk ? '6px 10px' : '8px 12px', transition:'padding .25s ease',
       background:'rgba(24,22,19,0.81)', backdropFilter:'blur(18px) saturate(1.5)', WebkitBackdropFilter:'blur(18px) saturate(1.5)',
       border:'1px solid rgba(255,255,255,0.12)', borderRadius:32,
       boxShadow:'0 10px 34px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.08)',
@@ -359,7 +364,7 @@ function FinanceDock({ tab, setTab, onHarbinger }) {
             background:'transparent', border:'none', cursor:'pointer', color:'#5ABF80',
             borderRadius:22, padding:'7px 14px 6px' }}>
           {FIN_DOCK_ICONS.harbinger}
-          <span style={{ fontSize:9, fontWeight:800, letterSpacing:'0.02em', whiteSpace:'nowrap' }}>Harbinger</span>
+          <span style={{ fontSize:9, fontWeight:800, letterSpacing:'0.02em', whiteSpace:'nowrap', maxHeight: shrunk ? 0 : 12, opacity: shrunk ? 0 : 1, overflow:'hidden', transition:'max-height .25s ease, opacity .2s ease' }}>Harbinger</span>
         </button>
       )}
       {[['budget', 'Budget'], ['vcc', 'VCC']].map(([k, label]) => {
@@ -374,7 +379,7 @@ function FinanceDock({ tab, setTab, onHarbinger }) {
               borderRadius:22, padding:'7px 14px 6px', transition:'color .25s ease',
             }}>
             {FIN_DOCK_ICONS[k]}
-            <span style={{ fontSize:9, fontWeight:800, letterSpacing:'0.02em', whiteSpace:'nowrap' }}>{label}</span>
+            <span style={{ fontSize:9, fontWeight:800, letterSpacing:'0.02em', whiteSpace:'nowrap', maxHeight: shrunk ? 0 : 12, opacity: shrunk ? 0 : 1, overflow:'hidden', transition:'max-height .25s ease, opacity .2s ease' }}>{label}</span>
           </button>
         );
       })}
