@@ -1450,6 +1450,10 @@ async function migrate() {
   // Unbridled Solutions toggle — reveals Solutions-specific fields when on
   await sql`ALTER TABLE budgets ADD COLUMN IF NOT EXISTS unbridled_solutions BOOLEAN DEFAULT FALSE`;
 
+  // Shoots in the budgeting phase can have TBD dates (kept off the calendar)
+  await sql`ALTER TABLE projects ALTER COLUMN start_date DROP NOT NULL`;
+  await sql`ALTER TABLE projects ALTER COLUMN end_date DROP NOT NULL`;
+
   // Hub personality: daily greetings cache + UM Fun Facts
   await sql`
     CREATE TABLE IF NOT EXISTS daily_greetings (

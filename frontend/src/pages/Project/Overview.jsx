@@ -183,8 +183,8 @@ export default function Overview({ project, setProject, onTabChange }) {
       const { code, client, ...editable } = info;
       const updated = await api.updateProject(project.id, {
         ...editable,
-        startDate: info.startDate ? new Date(info.startDate + 'T12:00:00').toISOString() : undefined,
-        endDate: info.endDate ? new Date(info.endDate + 'T12:00:00').toISOString() : undefined,
+        startDate: info.startDate ? new Date(info.startDate + 'T12:00:00').toISOString() : '',
+        endDate: info.endDate ? new Date(info.endDate + 'T12:00:00').toISOString() : '',
       });
       setProject(p => ({ ...p, ...updated }));
       setInfo({ code: updated.code, title: updated.title, client: updated.client, city: updated.city, state: updated.state, startDate: (updated.start_date||updated.startDate)?.slice(0,10), endDate: (updated.end_date||updated.endDate)?.slice(0,10), status: updated.status, notes: updated.notes || '' });
@@ -314,7 +314,7 @@ export default function Overview({ project, setProject, onTabChange }) {
             <div style={{ fontSize:13, fontWeight:700, color:'var(--orange)', marginTop:2 }}>Shoot: {project.shoot_name || project.subtitle}</div>
           )}
           <div className="proj-meta">
-            <div className="meta"><span className="dot6" />{fmtDate(startDate)} – {fmtDate(endDate)}</div>
+            <div className="meta"><span className="dot6" />{startDate || endDate ? `${fmtDate(startDate) || 'TBD'} – ${fmtDate(endDate) || 'TBD'}` : 'Dates TBD'}</div>
             <div className="meta"><span className="dot6" />{project.client}</div>
           </div>
           {project.notes && (
@@ -504,8 +504,8 @@ export default function Overview({ project, setProject, onTabChange }) {
                     {['PLANNING','ACTIVE','WRAPPED','ARCHIVED'].map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
-                <div className="field"><label>Start Date</label><input type="date" value={info.startDate} onChange={e => setInfo(i=>({...i,startDate:e.target.value}))} /></div>
-                <div className="field"><label>End Date</label><input type="date" value={info.endDate} onChange={e => setInfo(i=>({...i,endDate:e.target.value}))} /></div>
+                <div className="field"><label>Start Date (blank = TBD)</label><input type="date" value={info.startDate || ''} onChange={e => setInfo(i=>({...i,startDate:e.target.value}))} /></div>
+                <div className="field"><label>End Date (blank = TBD)</label><input type="date" value={info.endDate || ''} onChange={e => setInfo(i=>({...i,endDate:e.target.value}))} /></div>
                 <div className="field span2"><label>Notes</label><textarea value={info.notes} onChange={e => setInfo(i=>({...i,notes:e.target.value}))} /></div>
               </div>
               <div className="btn-row" style={{ alignItems:'center' }}>

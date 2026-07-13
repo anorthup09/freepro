@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { api } from '../api.js';
 import { maybeMailNotice } from '../utils/mailNotice.js';
+import { moneyConfetti } from '../lib/confetti.js';
 
 // Close-month options: 6 months back through ~3 years out. Value stays YYYY-MM
 // (matches how the budget stores close_month); label shows MM-YYYY.
@@ -242,6 +243,7 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted, sol
     setSaving(true);
     try {
       await api.submitHarbinger(pid, f);
+      moneyConfetti(8000);   // celebrate: 8s of gold confetti + dollar signs
       maybeMailNotice('The Harbinger kickoff report email to accounting');
       onSubmitted && onSubmitted();
       onClose();

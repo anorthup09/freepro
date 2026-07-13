@@ -241,8 +241,8 @@ export default function Projects() {
     try {
       const proj = await api.createProject({
         ...form,
-        startDate: new Date(form.startDate).toISOString(),
-        endDate: new Date(form.endDate).toISOString(),
+        startDate: form.startDate ? new Date(form.startDate).toISOString() : undefined,
+        endDate: form.endDate ? new Date(form.endDate).toISOString() : undefined,
       });
       setProjects(p => [proj, ...p]);
       setShowNew(false);
@@ -440,12 +440,12 @@ export default function Projects() {
                   <input placeholder="MO" value={form.state} onChange={e => setForm(f=>({...f,state:e.target.value}))} required />
                 </div>
                 <div className="field">
-                  <label>Start Date</label>
-                  <input type="date" value={form.startDate} onChange={e => setForm(f=>({...f,startDate:e.target.value}))} required />
+                  <label>Start Date (blank = TBD)</label>
+                  <input type="date" value={form.startDate} onChange={e => setForm(f=>({...f,startDate:e.target.value}))} />
                 </div>
                 <div className="field">
-                  <label>End Date</label>
-                  <input type="date" value={form.endDate} onChange={e => setForm(f=>({...f,endDate:e.target.value}))} required />
+                  <label>End Date (blank = TBD)</label>
+                  <input type="date" value={form.endDate} onChange={e => setForm(f=>({...f,endDate:e.target.value}))} />
                 </div>
               </div>
               <div className="btn-row" style={{ alignItems:'center' }}>

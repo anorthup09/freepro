@@ -127,9 +127,9 @@ export function NewProjectModal({ onClose, onCreated }) {
     if (!ok || saving) return;
     setSaving(true);
     try {
-      const today = new Date().toISOString().slice(0, 10);
       const code = f.code || `RFP-${Date.now().toString(36).toUpperCase().slice(-6)}`;
-      const p = await api.createProject({ ...f, code, city: '—', state: '—', startDate: today, endDate: today, clientLogo: logo });
+      // Dates stay TBD while budgeting — set later from Edit Shoot Info
+      const p = await api.createProject({ ...f, code, city: '—', state: '—', clientLogo: logo });
       await api.createBudget(p.id);
       onCreated(p);
     } catch (e) { alert(e.message); setSaving(false); }

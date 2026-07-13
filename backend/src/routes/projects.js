@@ -254,10 +254,10 @@ router.get('/:id', requireAuth, async (req, res, next) => {
 // POST /api/projects
 router.post('/', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const d = z.object({ code:z.string(), title:z.string(), subtitle:z.string().optional(), client:z.string(), city:z.string(), state:z.string(), startDate:z.string(), endDate:z.string(), status:z.string().optional(), notes:z.string().optional(), includePhoto:z.boolean().optional(), clientLogo:z.string().nullable().optional() }).parse(req.body);
+    const d = z.object({ code:z.string(), title:z.string(), subtitle:z.string().optional(), client:z.string(), city:z.string(), state:z.string(), startDate:z.string().optional(), endDate:z.string().optional(), status:z.string().optional(), notes:z.string().optional(), includePhoto:z.boolean().optional(), clientLogo:z.string().nullable().optional() }).parse(req.body);
     const [p] = await sql`
       INSERT INTO projects (id, code, title, subtitle, client, city, state, start_date, end_date, status, notes, include_photo, client_logo)
-      VALUES (gen_random_uuid()::text, ${d.code}, ${d.title}, ${d.subtitle||null}, ${d.client}, ${d.city}, ${d.state}, ${d.startDate}, ${d.endDate}, ${d.status||'PLANNING'}, ${d.notes||null}, ${d.includePhoto !== false}, ${d.clientLogo||null})
+      VALUES (gen_random_uuid()::text, ${d.code}, ${d.title}, ${d.subtitle||null}, ${d.client}, ${d.city}, ${d.state}, ${d.startDate||null}, ${d.endDate||null}, ${d.status||'PLANNING'}, ${d.notes||null}, ${d.includePhoto !== false}, ${d.clientLogo||null})
       RETURNING *`;
     res.status(201).json(p);
   } catch (err) {
@@ -286,8 +286,8 @@ router.patch('/:id', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, r
         client = COALESCE(${d.client??null}, client),
         city = COALESCE(${d.city??null}, city),
         state = COALESCE(${d.state??null}, state),
-        start_date = COALESCE(${d.startDate??null}, start_date),
-        end_date = COALESCE(${d.endDate??null}, end_date),
+        start_date = CASE WHEN ${d.startDate !== undefined} THEN ${d.startDate||null} ELSE start_date END,
+        end_date = CASE WHEN ${d.endDate !== undefined} THEN ${d.endDate||null} ELSE end_date END,
         status = COALESCE(${d.status??null}::project_status, status),
         notes = COALESCE(${d.notes??null}, notes),
         poc_crew_member_id = CASE WHEN ${d.pocCrewMemberId !== undefined} THEN ${d.pocCrewMemberId||null} ELSE poc_crew_member_id END,
