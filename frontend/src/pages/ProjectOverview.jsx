@@ -208,6 +208,19 @@ function AssigneeChip({ assigneeId, assigneeName, members, onPick }) {
   );
 }
 
+// Date input that doesn't fight typed entry: while typing, the browser reports
+// '' until the date is complete — only complete values (or a blur-clear) save.
+function DateField({ value, onSave, style }) {
+  const [v, setV] = useState(value || '');
+  useEffect(() => setV(value || ''), [value]);
+  return (
+    <input type="date" value={v}
+      onChange={e => { setV(e.target.value); if (e.target.value) onSave(e.target.value); }}
+      onBlur={e => { if ((e.target.value || '') !== (value || '')) onSave(e.target.value); }}
+      style={style} />
+  );
+}
+
 // ── One-off task row: checkbox / task / tag / due date; click ▸ for notes ──
 function TaskRow({ t, members, onSave, onDelete }) {
   const [open, setOpen] = useState(false);
@@ -231,8 +244,8 @@ function TaskRow({ t, members, onSave, onDelete }) {
           style={{ background:'none', border:'none', color:'var(--muted)', fontSize:11, cursor:'pointer', padding:'0 2px' }}>✕</button>
       </div>
       <div style={{ display:'flex', alignItems:'center', gap:8, padding:'0 2px 8px 56px' }}>
-        <input type="date" value={t.due_date ? String(t.due_date).slice(0, 10) : ''}
-          onChange={e => onSave({ dueDate: e.target.value })}
+        <DateField value={t.due_date ? String(t.due_date).slice(0, 10) : ''}
+          onSave={v => onSave({ dueDate: v })}
           style={{ width:'auto', fontSize:10, padding:'3px 6px', color: overdue ? '#e05252' : undefined }} />
       </div>
       {open && (
@@ -251,6 +264,7 @@ export default function ProjectOverview({ pid, onOpenFinance }) {
   const [data, setData] = useState(null);
   const [members, setMembers] = useState([]);
   const [err, setErr] = useState('');
+  const [armedNote, setArmedNote] = useState(null);   // call note id awaiting delete confirmation
 
   useEffect(() => {
     api.projectOverview(pid).then(setData).catch(e => setErr(e.message));
@@ -342,9 +356,9 @@ export default function ProjectOverview({ pid, onOpenFinance }) {
           {callNotes.length === 0 && <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>No call notes yet — capture takeaways from each client call here.</div>}
           {callNotes.map(n => (
             <div key={n.id} style={{ display:'flex', gap:8, alignItems:'flex-start', padding:'8px 0', borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
-              <input type="date" value={n.call_date ? String(n.call_date).slice(0, 10) : ''}
-                onChange={async e => {
-                  try { const u = await api.updateCallNote(n.id, { callDate: e.target.value }); setNotes(ns => ns.map(x => x.id === n.id ? u : x)); }
+              <DateField value={n.call_date ? String(n.call_date).slice(0, 10) : ''}
+                onSave={async v => {
+                  try { const u = await api.updateCallNote(n.id, { callDate: v }); setNotes(ns => ns.map(x => x.id === n.id ? u : x)); }
                   catch (er) { alert(er.message); }
                 }}
                 style={{ width:'auto', fontSize:10, padding:'3px 6px', flexShrink:0 }} />
@@ -356,10 +370,14 @@ export default function ProjectOverview({ pid, onOpenFinance }) {
                 }}
                 style={{ flex:1, minHeight:40, fontSize:12 }} />
               <button title="Delete note" onClick={async () => {
-                if (!confirm('Delete this call note?')) return;
-                try { await api.deleteCallNote(n.id); setNotes(ns => ns.filter(x => x.id !== n.id)); }
+                if (armedNote !== n.id) { setArmedNote(n.id); setTimeout(() => setArmedNote(a => a === n.id ? null : a), 3000); return; }
+                try { await api.deleteCallNote(n.id); setNotes(ns => ns.filter(x => x.id !== n.id)); setArmedNote(null); }
                 catch (e) { alert(e.message); }
-              }} style={{ background:'none', border:'none', color:'var(--muted)', fontSize:12, cursor:'pointer', paddingTop:6 }}>✕</button>
+              }} style={armedNote === n.id
+                ? { background:'rgba(224,82,82,0.18)', border:'1px solid #e05252', color:'#e05252', fontSize:10, fontWeight:800, cursor:'pointer', borderRadius:10, padding:'3px 8px', marginTop:3, whiteSpace:'nowrap' }
+                : { background:'none', border:'none', color:'var(--muted)', fontSize:12, cursor:'pointer', paddingTop:6 }}>
+                {armedNote === n.id ? 'Delete?' : '✕'}
+              </button>
             </div>
           ))}
         </div>
