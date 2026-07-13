@@ -267,7 +267,9 @@ export default function GearList({ project }) {
                         )}
                         <span title={item.contractor_name || sm.label}
                           style={{ fontSize:9, fontWeight:800, textTransform:'uppercase', padding:'2px 8px', borderRadius:12, background:sm.bg, color:sm.color, border:`1px solid ${sm.color}44`, whiteSpace:'nowrap' }}>
-                          {item.source === 'contractor' && item.contractor_name ? item.contractor_name : sm.label}
+                          {item.contractor_name && (item.source === 'contractor' || item.source === 'internal')
+                            ? (item.source === 'internal' ? `Internal · ${item.contractor_name}` : item.contractor_name)
+                            : sm.label}
                         </span>
                       </div>
                       {multi && open && (
@@ -292,7 +294,46 @@ export default function GearList({ project }) {
           {/* Right: source drop zones */}
           <div style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', gap:10 }}>
             <div style={{ fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--muted)', marginBottom:-2 }}>Sources</div>
-            {SOURCES.filter(s2 => s2.id !== 'contractor').map(src => {
+            {/* Internal — split by office */}
+            {(() => {
+              const internal = SOURCES.find(s2 => s2.id === 'internal');
+              const count = items.filter(i => i.source === 'internal').length;
+              return (
+                <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderLeft:`3px solid ${internal.color}`, borderRadius:8, padding:'9px 12px' }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
+                    <div style={{ width:8, height:8, borderRadius:'50%', background:internal.color }} />
+                    <div style={{ fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:'.06em', color:internal.color }}>Internal</div>
+                    <div style={{ fontSize:10, color:'var(--muted)' }}>({count})</div>
+                  </div>
+                  {[['STL', 'St. Louis'], ['DEN', 'Denver']].map(([site, siteLabel]) => {
+                    const zone = 'internal:' + site;
+                    const zoneItems = items.filter(i => i.source === 'internal' && i.contractor_name === site);
+                    const over = overZone === zone;
+                    return (
+                      <div key={site}
+                        onDragOver={e => { e.preventDefault(); setOverZone(zone); }}
+                        onDragLeave={() => setOverZone(z => z === zone ? null : z)}
+                        onDrop={e => { e.preventDefault(); handleDrop(e.dataTransfer.getData('text/plain') || dragId, 'internal', site); setOverZone(null); setDragId(null); }}
+                        style={{ border:`1px ${over ? 'solid ' + internal.color : 'dashed var(--border)'}`, background: over ? internal.bg : 'transparent',
+                          borderRadius:7, padding:'6px 10px', marginBottom:5, transition:'background .15s ease, border-color .15s ease' }}>
+                        <div style={{ fontSize:11, fontWeight:700 }}>{siteLabel} <span style={{ fontSize:9, color:'var(--muted)' }}>({zoneItems.length})</span></div>
+                        {zoneItems.length > 0 && (
+                          <div style={{ display:'flex', flexWrap:'wrap', gap:4, marginTop:4 }}>
+                            {zoneItems.map(i => (
+                              <span key={i.id} style={{ fontSize:10, background:'var(--bg)', border:'1px solid var(--border)', borderRadius:10, padding:'2px 8px' }}>
+                                {Number(i.qty) > 1 ? `${i.qty}× ` : ''}{i.item}
+                                <span onClick={() => assign(i.id, 'unassigned', null)} style={{ marginLeft:5, cursor:'pointer', color:'var(--muted)', fontWeight:800 }}>✕</span>
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+            {SOURCES.filter(s2 => s2.id !== 'contractor' && s2.id !== 'internal').map(src => {
               const zoneItems = items.filter(i => i.source === src.id);
               const over = overZone === src.id;
               return (

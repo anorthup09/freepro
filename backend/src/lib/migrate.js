@@ -1057,21 +1057,6 @@ async function migrate() {
   await sql`ALTER TABLE gear_items ADD COLUMN IF NOT EXISTS from_request BOOLEAN DEFAULT FALSE`;
   await sql`ALTER TABLE gear_requests ADD COLUMN IF NOT EXISTS items JSONB`;
 
-  // One-time seed from the asset spreadsheet export (only into an empty table)
-  const [{ n: assetCount }] = await sql`SELECT COUNT(*)::int as n FROM gear_assets`;
-  if (assetCount === 0) {
-    try {
-      const seed = JSON.parse(require('fs').readFileSync(require('path').join(__dirname, '../../data/assets-import.json'), 'utf8'));
-      for (const b of seed) {
-        await sql`
-          INSERT INTO gear_assets (asset_tag, name, category, make, model, serial_number, qty, status, location, assigned_to, purchase_date, purchase_price, notes, extra)
-          VALUES (${b.assetTag||null}, ${b.name}, ${b.category||null}, ${b.make||null}, ${b.model||null}, ${b.serialNumber||null},
-                  ${b.qty ?? 1}, ${b.status||'AVAILABLE'}, ${b.location||null}, ${b.assignedTo||null},
-                  ${b.purchaseDate||null}, ${b.purchasePrice ?? null}, ${b.notes||null}, ${sql.json(b.extra || {})})`;
-      }
-      console.log(`Asset seed: imported ${seed.length} assets.`);
-    } catch (e) { console.error('Asset seed skipped:', e.message); }
-  }
   await sql`
     CREATE TABLE IF NOT EXISTS edit_activity (
       id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
@@ -1501,6 +1486,21 @@ async function migrate() {
       created_at TIMESTAMPTZ DEFAULT NOW(),
       updated_at TIMESTAMPTZ DEFAULT NOW()
     )`;
+  // One-time seed from the asset spreadsheet export (only into an empty table)
+  const [{ n: assetCount }] = await sql`SELECT COUNT(*)::int as n FROM gear_assets`;
+  if (assetCount === 0) {
+    try {
+      const seed = JSON.parse(require('fs').readFileSync(require('path').join(__dirname, '../../data/assets-import.json'), 'utf8'));
+      for (const b of seed) {
+        await sql`
+          INSERT INTO gear_assets (asset_tag, name, category, make, model, serial_number, qty, status, location, assigned_to, purchase_date, purchase_price, notes, extra)
+          VALUES (${b.assetTag||null}, ${b.name}, ${b.category||null}, ${b.make||null}, ${b.model||null}, ${b.serialNumber||null},
+                  ${b.qty ?? 1}, ${b.status||'AVAILABLE'}, ${b.location||null}, ${b.assignedTo||null},
+                  ${b.purchaseDate||null}, ${b.purchasePrice ?? null}, ${b.notes||null}, ${sql.json(b.extra || {})})`;
+      }
+      console.log(`Asset seed: imported ${seed.length} assets.`);
+    } catch (e) { console.error('Asset seed skipped:', e.message); }
+  }
 
   // Hub personality: daily greetings cache + UM Fun Facts
   await sql`

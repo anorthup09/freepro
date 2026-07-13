@@ -5,6 +5,7 @@ const { requireAuth, requireRole } = require('../middleware/auth');
 const { bizToday } = require('../lib/dates');
 const { displayCodes, applyDisplayCode } = require('../lib/displayCode');
 const { sendCalendarHold, sendCalendarCancel } = require('../lib/ics');
+const { syncGearAssignTask } = require('../lib/gearTask');
 
 // Email an Outlook calendar hold to the assigned crew member (fire-and-forget)
 async function sendAssignmentHold(assignmentId) {
@@ -706,6 +707,7 @@ router.post('/:id/gear-items', requireAuth, requireRole('ADMIN','PRODUCER','AGEN
       INSERT INTO gear_items (id, project_id, category, item, source, notes, sort_order, qty, contractor_name)
       VALUES (gen_random_uuid()::text, ${req.params.id}, ${category||'other'}, ${item}, ${source||'internal'}, ${notes||null}, ${sortOrder||0}, ${Number(qty)||1}, ${contractorName||null})
       RETURNING *`;
+    await syncGearAssignTask(req.params.id);
     res.status(201).json(row);
   } catch(e){next(e);}
 });
@@ -724,6 +726,7 @@ router.patch('/:id/gear-items/:itemId', requireAuth, requireRole('ADMIN','PRODUC
       WHERE id = ${req.params.itemId} AND project_id = ${req.params.id}
       RETURNING *`;
     if (!row) return res.status(404).json({ error: 'Not found' });
+    await syncGearAssignTask(req.params.id);
     res.json(row);
   } catch(e){next(e);}
 });
@@ -731,6 +734,7 @@ router.patch('/:id/gear-items/:itemId', requireAuth, requireRole('ADMIN','PRODUC
 router.delete('/:id/gear-items/:itemId', requireAuth, requireRole('ADMIN','PRODUCER','AGENCY'), async (req, res, next) => {
   try {
     await sql`DELETE FROM gear_items WHERE id = ${req.params.itemId} AND project_id = ${req.params.id}`;
+    await syncGearAssignTask(req.params.id);
     res.status(204).end();
   } catch(e){next(e);}
 });

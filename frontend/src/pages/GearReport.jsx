@@ -21,15 +21,23 @@ const CAT_LABEL = { camera:'Camera', grip:'Grip', electric:'Electric', audio:'Au
 // print dialog over a clean black-on-white checklist.
 async function printInternalChecklist(r) {
   const items = (await api.getGearItems(r.id)).filter(i => i.source === 'internal');
-  const byCat = {};
-  for (const i of items) (byCat[i.category] ||= []).push(i);
-  const rows = Object.entries(byCat).map(([cat, list]) => `
-    <h2>${CAT_LABEL[cat] || cat}</h2>
-    ${list.map(i => `<div class="row"><span class="box"></span><b>${Number(i.qty) > 1 ? i.qty + '× ' : ''}</b>${i.item}${i.notes ? `<span class="note"> — ${i.notes}</span>` : ''}</div>`).join('')}`).join('');
+  const SITE_LABEL = { STL: 'St. Louis', DEN: 'Denver' };
+  const bySite = {};
+  for (const i of items) (bySite[i.contractor_name || ''] ||= []).push(i);
+  const rows = Object.entries(bySite).map(([site, siteItems]) => {
+    const byCat = {};
+    for (const i of siteItems) (byCat[i.category] ||= []).push(i);
+    return `
+    ${site || Object.keys(bySite).length > 1 ? `<h1 class="site">${SITE_LABEL[site] || site || 'Office not set'}</h1>` : ''}
+    ${Object.entries(byCat).map(([cat, list]) => `
+      <h2>${CAT_LABEL[cat] || cat}</h2>
+      ${list.map(i => `<div class="row"><span class="box"></span><b>${Number(i.qty) > 1 ? i.qty + '× ' : ''}</b>${i.item}${i.notes ? `<span class="note"> — ${i.notes}</span>` : ''}</div>`).join('')}`).join('')}`;
+  }).join('');
   const w = window.open('', '_blank');
   w.document.write(`<!doctype html><html><head><title>Internal Gear — ${r.code}</title><style>
     body { font-family: Arial, Helvetica, sans-serif; color: #111; margin: 40px; }
     h1 { font-size: 20px; margin: 0 0 2px; }
+    h1.site { font-size: 14px; margin: 22px 0 0; color: #E8500A; }
     .sub { color: #555; font-size: 12px; margin-bottom: 18px; }
     h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; border-bottom: 1.5px solid #111; padding-bottom: 3px; margin: 18px 0 6px; }
     .row { display: flex; align-items: center; gap: 10px; font-size: 13px; padding: 5px 0; border-bottom: 1px solid #e5e5e5; }

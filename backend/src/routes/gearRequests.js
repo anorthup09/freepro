@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const sql = require('../lib/db');
 const { requireAuth } = require('../middleware/auth');
+const { syncGearAssignTask } = require('../lib/gearTask');
 const { sendMail } = require('../lib/mailer');
 const { displayCodes } = require('../lib/displayCode');
 
@@ -190,6 +191,7 @@ router.post('/', requireAuth, async (req, res, next) => {
               ${(d.drives || []).join(', ')}, ${d.driveSize || null}, ${d.driveQty || null}, ${d.notes || null}, ${req.user?.email || null}, ${items.length ? sql.json(items) : null})
       RETURNING *`;
     await syncRequestItems(d.projectId, items);
+    await syncGearAssignTask(d.projectId);
     await sql`INSERT INTO gear_activity (project_id, kind, body, author)
       VALUES (${d.projectId}, 'event', ${'Gear request submitted'}, ${d.name || req.user?.email || null})`.catch(() => {});
     const [proj] = await sql`SELECT code, title, client FROM projects WHERE id = ${d.projectId}`;
@@ -256,6 +258,7 @@ router.post('/project/:pid/amend', requireAuth, async (req, res, next) => {
         notes = ${d.notes || null}, submitted_by = ${req.user?.email || null}
       WHERE project_id = ${pid} RETURNING *`;
     await syncRequestItems(pid, Array.isArray(d.items) ? d.items.filter(x => (x.name || '').trim() && Number(x.qty) > 0) : []);
+    await syncGearAssignTask(pid);
 
     // The change report lands in the activity feed for this shoot's gear dashboard.
     await sql`INSERT INTO gear_activity (project_id, kind, body, author)
