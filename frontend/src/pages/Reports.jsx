@@ -41,6 +41,15 @@ const REPORTS = [
   },
 ];
 
+// Tiles fade from gray (top) to Unbridled orange (bottom) in list order
+const GRAY = [122, 117, 101];   // var(--muted)
+const ORANGE = [232, 80, 10];   // var(--orange)
+const gradientAccent = (i, n) => {
+  const t = n <= 1 ? 1 : i / (n - 1);
+  const c = GRAY.map((g, k) => Math.round(g + (ORANGE[k] - g) * t));
+  return `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
+};
+
 export default function Reports() {
   const nav = useNavigate();
   const { user, setUser } = useAuth();
@@ -66,16 +75,16 @@ export default function Reports() {
             title: 'Ways of Being',
             desc: 'Every shoutout for a teammate going above and beyond — collected two per week from the MediaMoment prompts.',
             accent: '#f7b52d', to: '/reports/ways-of-being',
-          }] : [])].map(r => (
+          }] : [])].map((r, i, arr) => { const accent = gradientAccent(i, arr.length); return (
             <div key={r.title} onClick={() => nav(r.to)}
-              style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderTop:`3px solid ${r.accent}`, borderRadius:12, padding:'22px 22px 18px', cursor:'pointer', transition:'transform .15s ease' }}
+              style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderTop:`3px solid ${accent}`, borderRadius:12, padding:'22px 22px 18px', cursor:'pointer', transition:'transform .15s ease' }}
               onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-3px)'}
               onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
               <div style={{ fontSize:15, fontWeight:800, margin:'8px 0 4px' }}>{r.title}</div>
               <div style={{ fontSize:12, color:'var(--muted)', lineHeight:1.5 }}>{r.desc}</div>
-              <div style={{ fontSize:11, color:r.accent, fontWeight:600, marginTop:12 }}>Open →</div>
+              <div style={{ fontSize:11, color:accent, fontWeight:600, marginTop:12 }}>Open →</div>
             </div>
-          ))}
+          ); })}
         </div>
       </div>
     </div>
