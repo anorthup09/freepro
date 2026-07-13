@@ -109,7 +109,7 @@ export default function GearReport() {
                 {shown.map(r => {
                   const on = !!r.request_submitted;
                   return (
-                    <tr key={r.id} onClick={() => nav(`/projects/${r.id}`)}
+                    <tr key={r.id} onClick={() => nav(`/projects/${r.id}?tab=gear-request`)}
                       style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer',
                         opacity: on ? 1 : 0.45, filter: on ? 'none' : 'grayscale(0.7)', transition: 'opacity .15s ease' }}
                       onMouseEnter={e => { if (!on) e.currentTarget.style.opacity = 0.75; }}
