@@ -1030,6 +1030,7 @@ function LineRow({ l, secLines, patchLine, saveLine, delLine, dupLine, dragCtl }
 }
 
 export function VccTab({ pid, budget, sections, lines, vcc, categories, set, vccOnly }) {
+  const { user } = useAuth();
   const mgmtRate = budget.mgmt_fee_rate != null ? Number(budget.mgmt_fee_rate) : 0.15;
   const t = useMemo(() => totals(sections, lines, mgmtRate), [sections, lines, mgmtRate]);
   const [form, setForm] = useState({ entryDate:'', vendor:'', description:'', category:'', trip:'', amount:'', status:'HOLD' });
@@ -1181,9 +1182,15 @@ export function VccTab({ pid, budget, sections, lines, vcc, categories, set, vcc
                       <div className="modal-title">Add Invoice</div>
                       <form onSubmit={e => {
                         e.preventDefault();
-                        saveExtras([...extras, { amount: invForm.amount === '' ? null : Number(invForm.amount), date: null,
+                        const entry = { amount: invForm.amount === '' ? null : Number(invForm.amount), date: null,
                           number: invForm.number.trim(), sendToName: invForm.sendToName.trim(), sendToEmail: invForm.sendToEmail.trim(),
-                          cc: invForm.cc.trim(), description: invForm.description.trim() }]);
+                          cc: invForm.cc.trim(), description: invForm.description.trim(),
+                          requestedAt: today(), requestedBy: user?.name || user?.email || '' };
+                        saveExtras([...extras, entry]);
+                        api.requestInvoice(budget.id, entry).catch(e2 => {
+                          if (e2.status === 501 || /not connected|not configured/i.test(e2.message)) maybeMailNotice('The invoice request email to billing@unbridledmedia.com');
+                          else alert('Invoice saved, but the billing email failed: ' + e2.message);
+                        });
                         setInvForm(null);
                       }}>
                         <div className="form-grid" style={{ marginBottom:12 }}>

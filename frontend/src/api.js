@@ -114,6 +114,7 @@ export const api = {
   mailAutomations: () => req('GET', '/mail/automations'),
   updateMailAutomation: (key, data) => req('PATCH', `/mail/automations/${key}`, data),
   previewMailAutomation: (key) => req('GET', `/mail/automations/${key}/preview`),
+  requestInvoice: (bid, data) => req('POST', `/finance/budget/${bid}/invoice-request`, data),
   sendClientInvoice: (bid, label, amount, extra) => req('POST', `/finance/budget/${bid}/send-invoice`, { label, amount, ...(extra || {}) }),
   addMyTask: (data) => req('POST', '/dashboard/tasks', data),
   ptoList: () => req('GET', '/team/pto'),

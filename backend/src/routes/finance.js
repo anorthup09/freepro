@@ -390,6 +390,41 @@ router.get('/mail/status', requireAuth, (req, res) => {
 
 // Email a client invoice summary (deposit or final) to the budget's client
 // contacts. Buttons still stamp the invoice date locally; this adds the send.
+// New invoice request → billing@unbridledmedia.com, sent on behalf of the
+// requesting user so accounting can cut the formal invoice
+router.post('/finance/budget/:bid/invoice-request', ...finance, async (req, res, next) => {
+  try {
+    if (!mailReady()) return res.status(501).json({ error: 'Email is not connected yet' });
+    const { number, sendToName, sendToEmail, cc, description, amount } = req.body || {};
+    const [b] = await sql`SELECT * FROM budgets WHERE id = ${req.params.bid}`;
+    if (!b) return res.status(404).json({ error: 'Budget not found' });
+    const [proj] = await sql`SELECT * FROM projects WHERE id = ${b.project_id}`;
+    const who = req.user?.name || req.user?.email || 'Unknown';
+    const fmt = n => '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const sendTo = [sendToName, sendToEmail].filter(Boolean).join(' — ');
+    await sendMail({ identity: 'accounting',
+      to: 'billing@unbridledmedia.com',
+      subject: `Invoice Request — ${proj.code} ${proj.title} (Deposit ${number || '?'})`,
+      text: who + ' requested a client invoice.\n\nProject: ' + proj.code + ' — ' + proj.title +
+        '\nDeposit #: ' + (number || '') + '\nAmount: ' + fmt(amount) + '\nSend To: ' + sendTo +
+        '\nCC: ' + (cc || '—') + '\nDescription: ' + (description || ''),
+      html: noticeHtml({ tag: 'Invoice Request', note: `Deposit ${number || ''}`,
+        title: proj.title, subtitle: proj.code,
+        intro: `${who} requested a client invoice — details below.`,
+        rows: [
+          ['Deposit #', number || '—'],
+          ['Amount', fmt(amount)],
+          ['Send To', sendTo || '—'],
+          ['CC', cc || '—'],
+          ['Description', description || '—'],
+          ['Requested By', who],
+        ],
+        postmark: new Date(), color: '#5ABF80' }),
+    });
+    res.json({ ok: true });
+  } catch (e) { next(e); }
+});
+
 router.post('/finance/budget/:bid/send-invoice', ...finance, async (req, res, next) => {
   try {
     if (!mailReady()) return res.status(501).json({ error: 'Email is not connected yet' });

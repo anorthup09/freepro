@@ -26,6 +26,7 @@ export default function ClientInvoiceReport() {
   const [projects, setProjects] = useState(null);
   const [year, setYear] = useState(String(new Date().getFullYear()));
   const [expanded, setExpanded] = useState({});   // months whose settled projects are expanded
+  const [view, setView] = useState('months');     // 'months' | 'requests'
 
   useEffect(() => { api.financeProjects().then(setProjects).catch(() => setProjects([])); }, []);
 
@@ -42,6 +43,11 @@ export default function ClientInvoiceReport() {
     ys.add(String(new Date().getFullYear()));
     return [...ys].sort().reverse();
   }, [rows]);
+
+  const requests = useMemo(() => rows.flatMap(r => r.extras
+    .map((x, i) => ({ ...x, i, project: r }))
+    .filter(x => x.number || x.sendToEmail || x.description || x.requestedAt))
+    .sort((a, b) => String(b.requestedAt || '').localeCompare(String(a.requestedAt || ''))), [rows]);
 
   const inYear = rows.filter(r => (r.close_month || '').slice(0, 4) === year);
   const noClose = rows.filter(r => !r.close_month);
@@ -130,19 +136,77 @@ export default function ClientInvoiceReport() {
             <div className="page-title">Client Invoice Report</div>
             <div className="page-sub">Deposit and final invoices for live and closed projects, grouped by close month</div>
           </div>
-          <label style={{ fontSize: 11, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 8 }}>Year
-            <select value={year} onChange={e => setYear(e.target.value)} style={{ width: 'auto' }}>
-              {years.map(y => <option key={y} value={y}>{y}</option>)}
-            </select>
-          </label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden' }}>
+              {[['months', 'By Close Month'], ['requests', `Invoice Requests (${requests.length})`]].map(([k, label]) => (
+                <button key={k} onClick={() => setView(k)}
+                  style={{ background: view === k ? 'rgba(90,191,128,0.2)' : 'transparent', border: 'none',
+                    color: view === k ? '#5ABF80' : 'var(--muted)', fontSize: 11, fontWeight: 800, padding: '6px 14px', cursor: 'pointer' }}>
+                  {label}
+                </button>
+              ))}
+            </div>
+            {view === 'months' && <label style={{ fontSize: 11, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 8 }}>Year
+              <select value={year} onChange={e => setYear(e.target.value)} style={{ width: 'auto' }}>
+                {years.map(y => <option key={y} value={y}>{y}</option>)}
+              </select>
+            </label>}
+          </div>
         </div>
 
+        {projects && view === 'requests' && (
+          <div style={{ overflowX: 'auto', background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 10, marginTop: 16 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, minWidth: 900 }}>
+              <thead>
+                <tr>
+                  <th style={th}>Project</th>
+                  <th style={th}>Deposit #</th>
+                  <th style={th}>Description</th>
+                  <th style={th}>Send To</th>
+                  <th style={thR}>Amount</th>
+                  <th style={th}>Requested</th>
+                  <th style={th}>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {requests.map((x, idx) => (
+                  <tr key={idx} onClick={() => nav(`/finance/${x.project.id}`)} title="Open in ProFi"
+                    style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer' }}>
+                    <td style={{ padding: 8, whiteSpace: 'nowrap' }}>
+                      <span style={{ fontWeight: 700 }}>{x.project.code}</span>
+                      <div style={{ fontSize: 9, color: 'var(--muted)' }}>{x.project.title}</div>
+                    </td>
+                    <td style={{ padding: 8, fontWeight: 700 }}>{x.number || x.i + 2}</td>
+                    <td style={{ padding: 8, minWidth: 160 }}>{x.description || '—'}</td>
+                    <td style={{ padding: 8 }}>
+                      {x.sendToName || '—'}
+                      {x.sendToEmail && <div style={{ fontSize: 9, color: 'var(--muted)' }}>{x.sendToEmail}{x.cc ? ` · cc ${x.cc}` : ''}</div>}
+                    </td>
+                    <td style={{ padding: 8, textAlign: 'right', fontWeight: 800, color: '#5ABF80', whiteSpace: 'nowrap' }}>{x.amount != null ? fmt$(x.amount) : '—'}</td>
+                    <td style={{ padding: 8, whiteSpace: 'nowrap', fontSize: 11 }}>
+                      {x.requestedAt ? new Date(String(x.requestedAt).slice(0,10) + 'T12:00:00').toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' }) : '—'}
+                      {x.requestedBy && <div style={{ fontSize: 9, color: 'var(--muted)' }}>{x.requestedBy}</div>}
+                    </td>
+                    <td style={{ padding: 8, whiteSpace: 'nowrap' }}>
+                      {x.date
+                        ? <span style={{ background: 'rgba(90,191,128,0.15)', border: '1px solid #5ABF80', color: '#5ABF80', borderRadius: 12, padding: '2px 10px', fontSize: 10, fontWeight: 800 }}>✓ Sent {new Date(String(x.date).slice(0,10) + 'T12:00:00').toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' })}</span>
+                        : <span style={{ background: 'rgba(230,194,41,0.12)', border: '1px solid #e6c229', color: '#e6c229', borderRadius: 12, padding: '2px 10px', fontSize: 10, fontWeight: 800 }}>Requested</span>}
+                    </td>
+                  </tr>
+                ))}
+                {requests.length === 0 && <tr><td colSpan={7} style={{ padding: 12, color: 'var(--muted)', fontStyle: 'italic' }}>No invoice requests yet — add one from a project's VCC.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {view === 'requests' ? null : <></>}
+
         {!projects && <div style={{ fontSize: 12, color: 'var(--muted)', padding: '30px 0' }}>Loading…</div>}
-        {projects && months.length === 0 && noClose.length === 0 && (
+        {projects && view === 'months' && months.length === 0 && noClose.length === 0 && (
           <div className="empty" style={{ marginTop: 20 }}>No live or closed projects with a {year} close month.</div>
         )}
 
-        {months.map(m => {
+        {view === 'months' && months.map(m => {
           const set = inYear.filter(r => r.close_month === m);
           const nowMonth = new Date().toISOString().slice(0, 7);
           // Fully settled = closed AND final invoice sent. In past months these
@@ -174,7 +238,7 @@ export default function ClientInvoiceReport() {
           );
         })}
 
-        {noClose.length > 0 && (
+        {view === 'months' && noClose.length > 0 && (
           <div style={{ marginTop: 22 }}>
             <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--muted)', marginBottom: 8 }}>
               No Close Month Set
