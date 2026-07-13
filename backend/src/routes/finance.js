@@ -393,7 +393,7 @@ router.get('/mail/status', requireAuth, (req, res) => {
 router.post('/finance/budget/:bid/send-invoice', ...finance, async (req, res, next) => {
   try {
     if (!mailReady()) return res.status(501).json({ error: 'Email is not connected yet' });
-    const { label, amount } = req.body;   // e.g. "Deposit" / "Deposit 2" / "Final Invoice"
+    const { label, amount, to: toOverride, cc: ccOverride, description } = req.body;   // per-invoice Send To/CC win when set
     const [b] = await sql`SELECT * FROM budgets WHERE id = ${req.params.bid}`;
     if (!b) return res.status(404).json({ error: 'Budget not found' });
     const [proj] = await sql`SELECT * FROM projects WHERE id = ${b.project_id}`;
@@ -406,12 +406,13 @@ router.post('/finance/budget/:bid/send-invoice', ...finance, async (req, res, ne
       if (dta) h = { primary_contact_email: dta.primaryContactEmail, invoice_cc: dta.invoiceCc };
     } catch { /* no harbinger yet */ }
     if (h?.primary_contact_email && !to.includes(h.primary_contact_email)) to.push(h.primary_contact_email);
+    if (toOverride) to = [toOverride];
     if (!to.length) return res.status(400).json({ error: 'No client contact emails on this project — add one on the Overview or Harbinger first' });
     const fmt = n => '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     await sendMail({ identity: 'accounting',
       to: to.join(', '),
-      cc: h?.invoice_cc || undefined,
-      subject: `Invoice — ${proj.code} ${proj.title} (${label})`,
+      cc: ccOverride || h?.invoice_cc || undefined,
+      subject: `Invoice — ${proj.code} ${proj.title} (${label})${description ? ` — ${description}` : ''}`,
       text: `Hello,\n\nPlease find the ${label.toLowerCase()} for ${proj.title} (${proj.code}).\n\n${label}: ${fmt(amount)}\n\nA formal invoice document follows from our accounting team. Reply to this email with any questions.\n\nThank you,\nUnbridled Media`,
       html: noticeHtml({ tag: 'Invoice', note: label,
         title: proj.title, subtitle: proj.code,

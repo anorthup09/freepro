@@ -1033,6 +1033,8 @@ export function VccTab({ pid, budget, sections, lines, vcc, categories, set, vcc
   const mgmtRate = budget.mgmt_fee_rate != null ? Number(budget.mgmt_fee_rate) : 0.15;
   const t = useMemo(() => totals(sections, lines, mgmtRate), [sections, lines, mgmtRate]);
   const [form, setForm] = useState({ entryDate:'', vendor:'', description:'', category:'', trip:'', amount:'', status:'HOLD' });
+  const [invForm, setInvForm] = useState(null);    // Add Invoice form state (null = closed)
+  const [invReview, setInvReview] = useState(null); // extra-deposit index being reviewed
 
   const deposits = num(budget.deposit) + num(budget.additional_deposit) + (Array.isArray(budget.extra_deposits) ? budget.extra_deposits : []).reduce((a, x) => a + num(x.amount), 0);
   const finalInvoice = Math.max(t.total - deposits, 0);
@@ -1114,9 +1116,9 @@ export function VccTab({ pid, budget, sections, lines, vcc, categories, set, vcc
             const saveExtras = next => { patchBudget({ extra_deposits: next }); saveBudget({ extraDeposits: next }); };
             const today = () => new Date().toISOString().slice(0, 10);
             const fmtD = d => d ? new Date(d.slice(0,10) + 'T12:00:00').toLocaleDateString('en-US', { month:'numeric', day:'numeric', year:'2-digit' }) : '';
-            const sendMsg = async (label, amount) => {
+            const sendMsg = async (label, amount, extra) => {
               try {
-                const r = await api.sendClientInvoice(budget.id, label, amount);
+                const r = await api.sendClientInvoice(budget.id, label, amount, extra);
                 alert(`Invoice email sent to ${Array.isArray(r.to) ? r.to.join(', ') : r.to}. Invoice date recorded as today.`);
               } catch (e2) {
                 if (e2.status === 501 || /not connected|not configured/i.test(e2.message)) maybeMailNotice('The client invoice email');
@@ -1150,17 +1152,21 @@ export function VccTab({ pid, budget, sections, lines, vcc, categories, set, vcc
                 <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
                   <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'#5ABF80' }}>Client Deposits</div>
                   <button type="button" className="btn btn-ghost btn-sm" style={{ fontSize:10, whiteSpace:'nowrap' }}
-                    onClick={() => saveExtras([...extras, { amount: null, date: null }])}>+ Add Deposit</button>
+                    onClick={() => setInvForm({ number: String(extras.length + 2), sendToName: '', sendToEmail: '', cc: '', description: '', amount: '' })}>+ Add Invoice</button>
                 </div>
                 <div style={{ display:'grid', gridTemplateColumns:'auto 110px 64px auto', gap:'7px 10px', fontSize:11, alignItems:'center' }}>
                   {row('dep0', 'Deposit',
                     <MoneyInput value={budget.deposit ?? ''} width={110} onCommit={v => { patchBudget({ deposit: v }); saveBudget({ deposit: v }); }} />,
                     budget.deposit_due, () => send('deposit_due', 'depositDue', 'Deposit', num(budget.deposit)))}
-                  {extras.map((x, i) => row(`dep${i + 1}`, `Deposit ${i + 2}`,
+                  {extras.map((x, i) => row(`dep${i + 1}`,
+                    (x.sendToEmail || x.description || x.sendToName)
+                      ? <span onClick={() => setInvReview(i)} title="Review this invoice"
+                          style={{ color:'#5ABF80', textDecoration:'underline', cursor:'pointer' }}>Deposit {x.number || i + 2}</span>
+                      : `Deposit ${x.number || i + 2}`,
                     <MoneyInput value={x.amount ?? ''} width={110}
                       onCommit={v => saveExtras(extras.map((y, j) => j === i ? { ...y, amount: v } : y))} />,
                     x.date,
-                    () => { saveExtras(extras.map((y, j) => j === i ? { ...y, date: today() } : y)); sendMsg(`Deposit ${i + 2}`, num(x.amount)); },
+                    () => { saveExtras(extras.map((y, j) => j === i ? { ...y, date: today() } : y)); sendMsg(`Deposit ${x.number || i + 2}`, num(x.amount), { to: x.sendToEmail || undefined, cc: x.cc || undefined, description: x.description || undefined }); },
                     () => { if (confirm('Remove this deposit?')) saveExtras(extras.filter((_, j) => j !== i)); }))}
                   {row('final', 'Final Invoice',
                     <span style={{ fontWeight:700, padding:'4px 6px' }}>{fmt$(finalInvoice)}</span>,
@@ -1169,6 +1175,53 @@ export function VccTab({ pid, budget, sections, lines, vcc, categories, set, vcc
                     <span style={{ fontWeight:800, color:'#5ABF80', padding:'4px 6px' }}>{fmt$(t.total)}</span>,
                     null, null)}
                 </div>
+                {invForm && (
+                  <div className="modal-bg" onClick={e => e.target === e.currentTarget && setInvForm(null)} style={{ zIndex:250 }}>
+                    <div className="modal" style={{ maxWidth:460 }}>
+                      <div className="modal-title">Add Invoice</div>
+                      <form onSubmit={e => {
+                        e.preventDefault();
+                        saveExtras([...extras, { amount: invForm.amount === '' ? null : Number(invForm.amount), date: null,
+                          number: invForm.number.trim(), sendToName: invForm.sendToName.trim(), sendToEmail: invForm.sendToEmail.trim(),
+                          cc: invForm.cc.trim(), description: invForm.description.trim() }]);
+                        setInvForm(null);
+                      }}>
+                        <div className="form-grid" style={{ marginBottom:12 }}>
+                          <div className="field"><label>Deposit #</label><input value={invForm.number} onChange={e => setInvForm(f=>({...f,number:e.target.value}))} required /></div>
+                          <div className="field"><label>Amount</label><input type="number" step="0.01" value={invForm.amount} onChange={e => setInvForm(f=>({...f,amount:e.target.value}))} required /></div>
+                          <div className="field"><label>Send To — Name</label><input value={invForm.sendToName} onChange={e => setInvForm(f=>({...f,sendToName:e.target.value}))} required /></div>
+                          <div className="field"><label>Send To — Email</label><input type="email" value={invForm.sendToEmail} onChange={e => setInvForm(f=>({...f,sendToEmail:e.target.value}))} required /></div>
+                          <div className="field span2"><label>Who to CC</label><input value={invForm.cc} onChange={e => setInvForm(f=>({...f,cc:e.target.value}))} placeholder="emails, comma separated" /></div>
+                          <div className="field span2">
+                            <label>Invoice Description <span style={{ color: invForm.description.length >= 35 ? '#e05252' : 'var(--muted)', textTransform:'none' }}>({invForm.description.length}/35)</span></label>
+                            <input value={invForm.description} maxLength={35} onChange={e => setInvForm(f=>({...f,description:e.target.value.slice(0,35)}))} required />
+                          </div>
+                        </div>
+                        <div className="btn-row">
+                          <button className="btn btn-primary">Add Invoice</button>
+                          <button type="button" className="btn btn-ghost" onClick={() => setInvForm(null)}>Cancel</button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                )}
+                {invReview != null && extras[invReview] && (() => { const x = extras[invReview]; return (
+                  <div className="modal-bg" onClick={e => e.target === e.currentTarget && setInvReview(null)} style={{ zIndex:250 }}>
+                    <div className="modal" style={{ maxWidth:420 }}>
+                      <div className="modal-title">Deposit {x.number || invReview + 2}</div>
+                      <div style={{ display:'grid', gridTemplateColumns:'110px 1fr', gap:'7px 12px', fontSize:12, marginBottom:14 }}>
+                        <span style={{ color:'var(--muted)' }}>Amount</span><span style={{ fontWeight:700, color:'#5ABF80' }}>{x.amount != null ? fmt$(x.amount) : '—'}</span>
+                        <span style={{ color:'var(--muted)' }}>Send To</span><span>{[x.sendToName, x.sendToEmail].filter(Boolean).join(' — ') || '—'}</span>
+                        <span style={{ color:'var(--muted)' }}>CC</span><span>{x.cc || '—'}</span>
+                        <span style={{ color:'var(--muted)' }}>Description</span><span>{x.description || '—'}</span>
+                        <span style={{ color:'var(--muted)' }}>Invoice Date</span><span>{x.date ? fmtD(x.date) : 'Not sent yet'}</span>
+                      </div>
+                      <div className="btn-row">
+                        <button type="button" className="btn btn-ghost" onClick={() => setInvReview(null)}>Close</button>
+                      </div>
+                    </div>
+                  </div>
+                ); })()}
               </>
             );
           })()}
