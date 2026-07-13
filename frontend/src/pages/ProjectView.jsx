@@ -29,6 +29,7 @@ const TAB_ICONS = {
 // labels at the top of the page, shrinking to icons alone once you scroll.
 function MobileTabDock({ tabs, tab, setTab }) {
   const [shrunk, setShrunk] = useState(false);
+  const [min, setMin] = useState(true);   // minimized to a ≡ button until tapped
   const btnRefs = useRef({});
   const [bubble, setBubble] = useState(null);   // sliding highlight behind the active icon
   useEffect(() => {
@@ -41,7 +42,7 @@ function MobileTabDock({ tabs, tab, setTab }) {
     const t = setTimeout(measure, 300);
     window.addEventListener('resize', measure);
     return () => { clearTimeout(t); window.removeEventListener('resize', measure); };
-  }, [tab, shrunk, tabs.length]);
+  }, [tab, shrunk, tabs.length, min]);
   useEffect(() => {
     let raf = null;
     const onScroll = () => {
@@ -52,9 +53,26 @@ function MobileTabDock({ tabs, tab, setTab }) {
     onScroll();
     return () => { window.removeEventListener('scroll', onScroll); if (raf) cancelAnimationFrame(raf); };
   }, []);
+  if (min) {
+    const active = tabs.find(([k]) => k === tab);
+    return (
+      <button className="pvd-dock no-print" onClick={() => setMin(false)} aria-label="Open navigation"
+        style={{
+          position:'fixed', left:64, bottom:'calc(env(safe-area-inset-bottom, 0px) + 14px)',
+          zIndex:110, display:'flex', alignItems:'center', gap:8, padding:'10px 14px', cursor:'pointer',
+          background:'rgba(24,22,19,0.81)', backdropFilter:'blur(18px) saturate(1.5)', WebkitBackdropFilter:'blur(18px) saturate(1.5)',
+          border:'1px solid rgba(255,255,255,0.12)', borderRadius:32,
+          boxShadow:'0 10px 34px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.08)',
+          color: active ? active[2] : 'rgba(255,255,255,0.8)',
+        }}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.8)" strokeWidth="2.2" strokeLinecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        {active && TAB_ICONS[active[0]]}
+      </button>
+    );
+  }
   return (
     <div className="pvd-dock no-print" style={{
-      position:'fixed', right:14, bottom:'calc(env(safe-area-inset-bottom, 0px) + 14px)',
+      position:'fixed', left:64, bottom:'calc(env(safe-area-inset-bottom, 0px) + 14px)',
       zIndex:110, display:'flex', alignItems:'center', gap:2,
       padding: shrunk ? '6px 10px' : '8px 12px',
       background:'rgba(24,22,19,0.81)', backdropFilter:'blur(18px) saturate(1.5)', WebkitBackdropFilter:'blur(18px) saturate(1.5)',
@@ -72,7 +90,7 @@ function MobileTabDock({ tabs, tab, setTab }) {
       {tabs.map(([k, label, color]) => {
         const on = tab === k;
         return (
-          <button key={k} ref={el => { btnRefs.current[k] = el; }} onClick={() => { setTab(k); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+          <button key={k} ref={el => { btnRefs.current[k] = el; }} onClick={() => { setTab(k); setMin(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
             aria-label={label}
             style={{
               display:'flex', flexDirection:'column', alignItems:'center', gap:3, position:'relative',

@@ -92,6 +92,7 @@ export default function FinanceProject({ pidOverride }) {
   return (
     <div style={{ minHeight:'100vh', background:'var(--bg)' }}>
       <FinanceHeader />
+      <FinanceDock tab={tab} setTab={setTab} />
       <div style={{ maxWidth:1100, margin:'0 auto', padding:'6px 16px 80px' }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:10, marginBottom:14 }}>
           <div className="fp-idblock">
@@ -102,16 +103,9 @@ export default function FinanceProject({ pidOverride }) {
             <div className="fp-code" style={{ fontSize:10, color:'var(--muted)' }}>{project.code}</div>
             <div className="page-title">{project.title}</div>
             <div className="page-sub">{project.client}</div>
-            <div className="seg-toggle" style={{ display:'inline-flex', marginTop:8, border:'1px solid var(--border)', borderRadius:16, overflow:'hidden' }}>
-              {[['budget', 'Budget'], ['vcc', 'VCC']].map(([k, label]) => (
-                <button key={k} onClick={() => setTab(k)}
-                  style={{ background: tab === k ? 'rgba(232,80,10,0.25)' : 'transparent', border:'none',
-                    color: tab === k ? 'var(--orange)' : 'var(--muted)', fontSize:12, fontWeight:800, padding:'6px 18px', cursor:'pointer' }}>
-                  {label}
-                </button>
-              ))}
+            <div className="seg-toggle" style={{ display:'inline-flex', marginTop:8 }}>
+              {budget && <BudgetVersions budget={budget} pid={pid} reload={() => api.financeBundle(pid).then(setData)} />}
             </div>
-            {budget && <BudgetVersions budget={budget} pid={pid} reload={() => api.financeBundle(pid).then(setData)} />}
           </div>
           <div className="fp-actions" style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:8 }}>
             {harbinger && (
@@ -318,6 +312,59 @@ function ClientContactField({ budget, patchBudget, saveBudget }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Bottom-right liquid-glass dock: Budget / VCC navigation ──────────────
+const FIN_DOCK_ICONS = {
+  budget: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M15 9.5c0-1.4-1.3-2.5-3-2.5s-3 .9-3 2.2c0 3 6 1.6 6 4.6 0 1.3-1.3 2.2-3 2.2s-3-1.1-3-2.5"/></svg>,
+  vcc: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 9.5h19M6 15h4"/></svg>,
+};
+function FinanceDock({ tab, setTab }) {
+  const btnRefs = useRef({});
+  const [bubble, setBubble] = useState(null);
+  useEffect(() => {
+    const measure = () => {
+      const el = btnRefs.current[tab];
+      if (el) setBubble({ left: el.offsetLeft, top: el.offsetTop, width: el.offsetWidth, height: el.offsetHeight });
+    };
+    measure();
+    const t = setTimeout(measure, 300);
+    window.addEventListener('resize', measure);
+    return () => { clearTimeout(t); window.removeEventListener('resize', measure); };
+  }, [tab]);
+  return (
+    <div className="fin-dock no-print" style={{
+      position:'fixed', right:14, bottom:'calc(env(safe-area-inset-bottom, 0px) + 14px)',
+      zIndex:110, display:'flex', alignItems:'center', gap:2, padding:'8px 12px',
+      background:'rgba(24,22,19,0.81)', backdropFilter:'blur(18px) saturate(1.5)', WebkitBackdropFilter:'blur(18px) saturate(1.5)',
+      border:'1px solid rgba(255,255,255,0.12)', borderRadius:32,
+      boxShadow:'0 10px 34px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.08)',
+    }}>
+      {bubble && (
+        <div aria-hidden style={{
+          position:'absolute', left:bubble.left, top:bubble.top, width:bubble.width, height:bubble.height,
+          background:'rgba(255,255,255,0.10)', borderRadius:22, pointerEvents:'none',
+          transition:'left .3s cubic-bezier(.34,1.3,.5,1), width .3s cubic-bezier(.34,1.3,.5,1), top .3s ease, height .3s ease',
+        }} />
+      )}
+      {[['budget', 'Budget'], ['vcc', 'VCC']].map(([k, label]) => {
+        const on = tab === k;
+        return (
+          <button key={k} ref={el => { btnRefs.current[k] = el; }} onClick={() => { setTab(k); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+            aria-label={label}
+            style={{
+              display:'flex', flexDirection:'column', alignItems:'center', gap:3, position:'relative',
+              background:'transparent', border:'none', cursor:'pointer',
+              color: on ? 'var(--orange)' : 'rgba(255,255,255,0.55)',
+              borderRadius:22, padding:'7px 14px 6px', transition:'color .25s ease',
+            }}>
+            {FIN_DOCK_ICONS[k]}
+            <span style={{ fontSize:9, fontWeight:800, letterSpacing:'0.02em', whiteSpace:'nowrap' }}>{label}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }
