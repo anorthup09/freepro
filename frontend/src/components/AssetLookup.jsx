@@ -7,6 +7,7 @@ const STATUSES = [
   ['AVAILABLE', 'Available', '#5ABF80'],
   ['CHECKED_OUT', 'Checked Out', '#e6c229'],
   ['IN_REPAIR', 'In Repair', '#f87171'],
+  ['LOST', 'Lost/Missing', '#e08080'],
   ['RETIRED', 'Retired', '#7A7565'],
 ];
 const statusOf = s => STATUSES.find(x => x[0] === s) || STATUSES[0];

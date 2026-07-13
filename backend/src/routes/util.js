@@ -220,6 +220,8 @@ router.get('/flight-lookup', requireAuth, async (req, res, next) => {
         destinationName: f.arrival?.airport?.name || '',
         departTime: f.departure?.scheduledTime?.utc || departLocal || null,
         arriveTime: f.arrival?.scheduledTime?.utc || arriveLocal || null,
+        departTimeLocal: departLocal,
+        arriveTimeLocal: arriveLocal,
         departDisplay: fmtLocalTime(departLocal),
         arriveDisplay: fmtLocalTime(arriveLocal),
         status: f.status || '',

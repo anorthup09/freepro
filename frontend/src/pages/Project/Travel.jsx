@@ -183,6 +183,9 @@ export default function Travel({ project }) {
     return isNaN(d.getTime()) ? null : d.toISOString();
   }
 
+  // Airport-local "YYYY-MM-DD HH:mm±TZ" → "YYYY-MM-DDTHH:mm" for datetime-local
+  const localWall = t2 => t2 ? String(t2).replace(' ', 'T').slice(0, 16) : null;
+
   // ── Flight lookup ──────────────────────────────────────────────────────────
   // A flight number can fly several legs in one day. Every lookup fills a legs
   // dropdown under the number/date row; picking a leg applies it to the form.
@@ -193,8 +196,8 @@ export default function Travel({ project }) {
       airline: leg.airline || f.airline,
       origin: leg.origin || f.origin,
       destination: leg.destination || f.destination,
-      departTime: safeIso(leg.departTime)?.slice(0,16) || f.departTime,
-      arriveTime: safeIso(leg.arriveTime)?.slice(0,16) || f.arriveTime,
+      departTime: localWall(leg.departTimeLocal) || safeIso(leg.departTime)?.slice(0,16) || f.departTime,
+      arriveTime: localWall(leg.arriveTimeLocal) || safeIso(leg.arriveTime)?.slice(0,16) || f.arriveTime,
       departDisplay: leg.departDisplay || '',
       arriveDisplay: leg.arriveDisplay || '',
       status: leg.status || '',
@@ -454,11 +457,21 @@ export default function Travel({ project }) {
         </div>
         <button className="btn btn-ghost btn-sm" onClick={() => setShowFlight(true)}>+ Add Flight</button>
       </div>
-      {flights.map(f => {
+      {(() => { let lastDay = null; return [...flights]
+        .sort((a, b) => String(a.depart_time || '9999').localeCompare(String(b.depart_time || '9999')))
+        .map(f => {
         const hoursUntil = f.depart_time ? (new Date(f.depart_time) - Date.now()) / 3600000 : Infinity;
         const showLive = hoursUntil <= 24;
+        const day = f.depart_time ? String(f.depart_time).slice(0, 10) : 'tbd';
+        const header = day !== lastDay ? (lastDay = day) && (
+          <div style={{ fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)', margin:'12px 0 4px' }}>
+            {day === 'tbd' ? 'Date TBD' : new Date(day + 'T12:00:00').toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' })}
+          </div>
+        ) : null;
         return (
-          <div key={f.id} className="frow" style={{ flexDirection:'column', alignItems:'stretch', gap:5 }}>
+          <React.Fragment key={f.id}>
+          {header}
+          <div className="frow" style={{ flexDirection:'column', alignItems:'stretch', gap:5 }}>
             <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
               <div className="fname">{f.crew_name || f.passenger_name}</div>
               <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:6 }}>
@@ -484,8 +497,9 @@ export default function Travel({ project }) {
             </div>
             {f.confirmation && <div style={{ fontSize:10, color:'var(--muted)' }}>Conf # {f.confirmation}</div>}
           </div>
+          </React.Fragment>
         );
-      })}
+      }); })()}
       {flights.length === 0 && <div className="empty">No flights added yet.</div>}
 
       {/* ── Rental Cars ── */}
