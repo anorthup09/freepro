@@ -24,7 +24,37 @@ const brief = s => {
   return b;
 };
 
-const feats = entries.map((e, i) => {
+// Group features by the page/area they live on, for orientation walk-throughs.
+const GROUPS = [
+  'The Hub',
+  'Project View & Overviews',
+  'ProFi — Project Finance',
+  'FreePro — Production',
+  'AvocadoPost — Post-Production',
+  'Reports',
+  'Emails & Automations',
+  'Platform & Admin',
+];
+const pageOf = e => {
+  if (e.page) return e.page;
+  const ti = String(e.title || '').toLowerCase();
+  const t = `${ti} ${e.where || ''}`.toLowerCase();
+  if (/automation/.test(t)) return 'Emails & Automations';
+  if (/harbinger/.test(t)) return 'ProFi — Project Finance';
+  if (/ways of being/.test(t)) return 'The Hub';
+  if (/client hub|project hub/.test(ti)) return 'Project View & Overviews';
+  if (/hub/.test(ti)) return 'The Hub';
+  if (/report/.test(t)) return 'Reports';
+  if (/avocadopost|avo |gantt|timeline/.test(t)) return 'AvocadoPost — Post-Production';
+  if (/freepro|call sheet|shot list|gear|deliverable|crew tab|schedule|locations/.test(t)) return 'FreePro — Production';
+  if (/profi|budget|vcc|harbinger|deposit|client roster|finance/.test(t)) return 'ProFi — Project Finance';
+  if (/project view|project overview|overview tab|client hub|workspace/.test(t)) return 'Project View & Overviews';
+  if (/hub/.test(t)) return 'The Hub';
+  return 'Platform & Admin';
+};
+
+const grouped = GROUPS.flatMap(g => entries.filter(e => pageOf(e) === g).map(e => ({ ...e, group: g })));
+const feats = grouped.map((e, i) => {
   const code = `F${i + 1}`;
   const shotPath = e.screenshot ? path.join(dir, 'shots', e.screenshot) : null;
   const hasShot = shotPath && fs.existsSync(shotPath);
@@ -60,13 +90,16 @@ const html = `<!doctype html><html><head><meta charset="utf-8"><style>
   .shot .cap { font-size: 9px; font-weight: 700; padding: 4px 8px; background: #f6f4f0; border-bottom: 1px solid #ddd; }
   .shot .cap b { color: #E8500A; }
   .shot img { width: 100%; height: 118px; object-fit: cover; object-position: top; display: block; }
+  .sec { margin: 14px 0 2px; padding: 5px 8px; background: #E8500A; color: #fff; font-size: 10.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; border-radius: 4px; page-break-after: avoid; }
+  .sec .n { float: right; font-weight: 600; opacity: .85; }
 </style></head><body>
 
 <div class="flow">
     <div class="hdr">
-      <div><h1>What's New — Feature Index</h1><div class="tag">Unbridled Operating Platform · ${feats.length} features · screenshots in the appendix</div></div>
+      <div><h1>What's New — Feature Index</h1><div class="tag">Unbridled Operating Platform · ${feats.length} features · grouped by page · screenshots in the appendix</div></div>
     </div>
-    ${feats.map(f => `
+    ${feats.map((f, i) => `
+      ${(i === 0 || f.group !== feats[i - 1].group) ? `<div class="sec">${f.group}<span class="n">${feats.filter(x => x.group === f.group).length} features</span></div>` : ''}
       <div class="feat">
         <div class="code">${f.code}</div>
         <div class="fbody">
