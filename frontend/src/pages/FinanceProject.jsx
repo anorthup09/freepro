@@ -484,7 +484,6 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
             {BUDGET_OWNERS.map(n => <option key={n}>{n}</option>)}
           </select>
         </div>
-        <ClientContactField budget={budget} patchBudget={patchBudget} saveBudget={saveBudget} />
         <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
           <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Est. Final Delivery</label>
           <input type="date" value={budget.est_final_delivery ? String(budget.est_final_delivery).slice(0, 10) : ''} style={{ width:140, fontSize:12 }}
@@ -501,6 +500,7 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
             {closeMonthOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </div>
+        <ClientContactField budget={budget} patchBudget={patchBudget} saveBudget={saveBudget} />
         <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
           <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Tagged</label>
           <TagRow budgetId={budget.id} ownerName={budget.media_rep} />
