@@ -683,7 +683,8 @@ textarea { resize: vertical; min-height: 70px; }
 .share-row-mobile { display: none; }
 @media (max-width: 700px) {
   .nav .share-wrap { display: none; }
-  .share-row-mobile { display: flex; justify-content: flex-end; padding: 8px 16px 0; }
+  /* negative margin pulls the content's first line up beside Share — no dead row */
+  .share-row-mobile { display: flex; justify-content: flex-end; padding: 8px 16px 0; margin-bottom: -34px; position: relative; z-index: 5; }
 }
 
 /* Sign out sits clear of the fixed bottom docks on phones */
