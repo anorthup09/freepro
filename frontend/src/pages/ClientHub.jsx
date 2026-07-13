@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../App.jsx';
 import { api } from '../api.js';
+import HomeButton from '../components/HomeButton.jsx';
 
 const WHITE = '#e8e8e8';
 const KINDS = [
@@ -162,7 +163,7 @@ export default function ClientHub() {
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:12 }}>
           <span style={{ fontSize:11, color:'var(--muted)' }}>{user?.name}</span>
-          <Link to="/" className="btn btn-ghost btn-sm" style={{ textDecoration:'none' }}>Back to Hub</Link>
+          <HomeButton />
         </div>
       </div>
       <div style={{ maxWidth:1100, margin:'0 auto', padding:'0 16px 80px' }}>

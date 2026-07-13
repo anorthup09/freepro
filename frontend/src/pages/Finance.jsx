@@ -4,6 +4,7 @@ import { useAuth } from '../App.jsx';
 import { api, onSaveState } from '../api.js';
 import { STATUS_COLORS } from './Hub.jsx';
 import ClientSelect from '../components/ClientSelect.jsx';
+import HomeButton from '../components/HomeButton.jsx';
 
 const fmt$ = n => '$' + Number(n || 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
 
@@ -47,7 +48,7 @@ export function FinanceHeader({ crumb }) {
       </div>
       <div style={{ display:'flex', alignItems:'center', gap:12 }}>
         <span style={{ fontSize:11, color:'var(--muted)' }}>{user?.name}</span>
-        <Link to="/" className="btn btn-ghost btn-sm" style={{ textDecoration:'none' }}>Back to Hub</Link>
+        <HomeButton />
       </div>
     </div>
   );

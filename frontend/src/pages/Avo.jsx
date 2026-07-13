@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../App.jsx';
 import { api } from '../api.js';
+import HomeButton from '../components/HomeButton.jsx';
 
 export const AVO = '#9DC183';
 export const AVO_STATUSES = [
@@ -23,7 +24,7 @@ export function AvoHeader() {
       </div>
       <div style={{ display:'flex', alignItems:'center', gap:12 }}>
         <span style={{ fontSize:11, color:'var(--muted)' }}>{user?.name}</span>
-        <Link to="/" className="btn btn-ghost btn-sm" style={{ textDecoration:'none' }}>Back to Hub</Link>
+        <HomeButton />
       </div>
     </div>
   );

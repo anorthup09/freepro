@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../App.jsx';
 import GearRequestModal from '../components/GearRequestModal.jsx';
+import HomeButton from '../components/HomeButton.jsx';
 
 const STATUS_PILL = {
   PLANNING:  'amber',
@@ -280,7 +281,7 @@ export default function Projects() {
           <span style={{ fontSize:9, color:'var(--muted)', letterSpacing:'0.06em', paddingLeft:1 }}>Powered by Unbridled Media</span>
         </div>
         <span style={{ color: 'var(--muted)', fontSize: 12, flex: 1, textAlign: 'center' }}>{user?.name}</span>
-        <Link to="/" className="btn btn-ghost btn-sm" style={{ textDecoration:'none', marginRight:8 }}>Back to Hub</Link>
+        <HomeButton style={{ marginRight:8 }} />
       </nav>
       <div className="wrap">
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:18, flexWrap:'wrap', gap:10 }}>

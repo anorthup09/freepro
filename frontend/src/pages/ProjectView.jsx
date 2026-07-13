@@ -7,6 +7,7 @@ import Project from './Project/index.jsx';
 import AvoProject from './AvoProject.jsx';
 import ProjectOverview from './ProjectOverview.jsx';
 import { markRecentProject } from '../utils/recentProjects.js';
+import HomeButton from '../components/HomeButton.jsx';
 
 const WHITE = '#e8e8e8';
 const TABS = [
@@ -85,7 +86,7 @@ function PVHeader({ showBack }) {
       </div>
       <div style={{ display:'flex', alignItems:'center', gap:12 }}>
         {showBack && <button className="btn btn-ghost btn-sm" onClick={() => nav('/project-view')}>‹ Projects</button>}
-        <Link to="/" className="btn btn-ghost btn-sm" style={{ textDecoration:'none' }}>‹ Hub</Link>
+        <HomeButton />
       </div>
     </div>
   );

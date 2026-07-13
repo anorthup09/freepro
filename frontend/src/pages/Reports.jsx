@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../App.jsx';
+import HomeButton from '../components/HomeButton.jsx';
 
 const REPORTS = [
   {
@@ -49,7 +50,7 @@ export default function Reports() {
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:12 }}>
           <span style={{ fontSize:11, color:'var(--muted)' }}>{user?.name}</span>
-          <Link to="/" className="btn btn-ghost btn-sm" style={{ textDecoration:'none' }}>Back to Hub</Link>
+          <HomeButton />
         </div>
       </div>
       <div style={{ maxWidth:900, margin:'0 auto', padding:'10px 16px 60px' }}>

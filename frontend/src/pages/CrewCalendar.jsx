@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api.js';
+import HomeButton from '../components/HomeButton.jsx';
 
 const COLORS = ['#E8500A', '#5ABF80', '#4a9eff', '#e6c229', '#a78bfa', '#f87171', '#40A0A0', '#D0A030'];
 const colorFor = str => { let h = 0; for (const c of str || '') h = (h * 31 + c.charCodeAt(0)) & 0xffffffff; return COLORS[Math.abs(h) % COLORS.length]; };
@@ -61,7 +62,7 @@ export default function CrewCalendar() {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <button className="btn btn-ghost btn-sm" onClick={() => { if (scrollRef.current) scrollRef.current.scrollTo({ left: (PAST_DAYS - 3) * DAY_W, behavior: 'smooth' }); }}>Today</button>
-            <Link to="/" className="btn btn-ghost btn-sm" style={{ textDecoration: 'none' }}>Back to Hub</Link>
+            <HomeButton />
           </div>
         </div>
 

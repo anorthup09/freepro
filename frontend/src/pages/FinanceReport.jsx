@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api.js';
 import { STATUS_COLORS } from './Hub.jsx';
+import HomeButton from '../components/HomeButton.jsx';
 
 const fmt$ = n => '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtCM = m => {
@@ -46,7 +47,7 @@ export default function FinanceReport() {
           </div>
           <div className="no-print" style={{ display:'flex', gap:8 }}>
             <button className="btn btn-primary btn-sm" onClick={() => window.print()}>Print / Save PDF</button>
-            <Link to="/" className="btn btn-ghost btn-sm" style={{ textDecoration:'none' }}>Back to Hub</Link>
+            <HomeButton />
           </div>
         </div>
 

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../App.jsx';
 import { api } from '../api.js';
+import HomeButton from '../components/HomeButton.jsx';
 
 const fmt$ = n => '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2 });
 const fmtSize = n => n > 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB';
@@ -93,7 +94,7 @@ export default function InvoiceSearch() {
         <div style={{ display:'flex', alignItems:'center', gap:12 }}>
           <span style={{ fontSize:11, color:'var(--muted)' }}>{user?.name}</span>
           <Link to="/reports" className="btn btn-ghost btn-sm" style={{ textDecoration:'none' }}>‹ Reports</Link>
-          <Link to="/" className="btn btn-ghost btn-sm" style={{ textDecoration:'none' }}>Back to Hub</Link>
+          <HomeButton />
         </div>
       </div>
       <div style={{ maxWidth:1000, margin:'0 auto', padding:'10px 16px 60px' }}>
