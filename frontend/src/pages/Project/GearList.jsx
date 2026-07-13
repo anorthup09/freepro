@@ -43,8 +43,10 @@ export default function GearList({ project }) {
       setItems(prev => prev.map(i => i.id === item.id ? item : i));
     } catch (err) { alert(err.message); }
   }
+  // Only actual contractors get gear lanes — contract slots, or crew from a
+  // non-Unbridled company
   const contractors = [...new Set((project.crewAssignments || [])
-    .filter(a => a.crewMember)
+    .filter(a => a.crewMember && (a.is_contractor || !(a.crewMember.company || '').toLowerCase().includes('unbridled')))
     .map(a => [a.crewMember.preferredFirstName, a.crewMember.preferredLastName].filter(Boolean).join(' ').trim() || a.crewMember.name)
     .filter(Boolean))].sort();
 
