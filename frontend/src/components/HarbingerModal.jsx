@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { api } from '../api.js';
 import { maybeMailNotice } from '../utils/mailNotice.js';
+import { useAuth } from '../App.jsx';
 import { moneyConfetti } from '../lib/confetti.js';
 
 // Close-month options: 6 months back through ~3 years out. Value stays YYYY-MM
@@ -146,10 +147,19 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted, sol
   const set = k => e => setF(v => ({ ...v, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
   const setVal = (k, val) => setF(v => ({ ...v, [k]: val }));
 
+  const { user } = useAuth();
   const [crew, setCrew] = useState([]);
   const [contacts, setContacts] = useState([]);
   const [sowLoading, setSowLoading] = useState(false);
   const cmOptions = useMemo(closeMonthOptions, []);
+  // Unbridled Media employees for the Budget Owner dropdown
+  const umCrew = useMemo(() => crew.filter(m => (m.company || '').toLowerCase().includes('unbridled') && (m.name || '').trim())
+    .sort((a, b) => a.name.localeCompare(b.name)), [crew]);
+
+  // Budget Owner defaults to whoever is submitting the Harbinger
+  useEffect(() => {
+    if (user?.name) setF(v => v.budgetOwner ? v : { ...v, budgetOwner: user.name });
+  }, [user]);
 
   // Load crew roster + saved client contacts, and draft the SOW synopsis with AI
   useEffect(() => {
@@ -367,7 +377,14 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted, sol
           {row(text('Media Revenue (Total Budget minus CapCo Allocation)', 'mediaRevenue', true),
                text('Capture Co Revenue Amount (If Applicable)', 'capcoRevenue'))}
           {row(text('Media Commission Owner(s) (If applicable)', 'mediaCommissionOwners'),
-               text('Budget Owner (Primary Contact at Unbridled Media)', 'budgetOwner', true))}
+            <div key="budgetOwner">
+              <label style={lbl}>Budget Owner (Primary Contact at Unbridled Media){req}</label>
+              <select style={inS} value={f.budgetOwner} onChange={set('budgetOwner')}>
+                {!f.budgetOwner && <option value="">Select…</option>}
+                {f.budgetOwner && !umCrew.some(m => m.name === f.budgetOwner) && <option value={f.budgetOwner}>{f.budgetOwner}</option>}
+                {umCrew.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}
+              </select>
+            </div>)}
           {text('Media Commission % Breakdown', 'mediaCommissionPct')}
           {solutionsOn && row(text('Solutions Commission Owner(s) (If Applicable)', 'solutionsCommissionOwners'),
                text('% for Solutions Commission(s)', 'solutionsCommissionPct'))}
