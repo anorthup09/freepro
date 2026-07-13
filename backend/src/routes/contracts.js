@@ -1,6 +1,7 @@
 const express = require('express');
 const sql = require('../lib/db');
 const { requireAuth, requireRole } = require('../middleware/auth');
+const { displayCodes } = require('../lib/displayCode');
 
 const router = express.Router();
 
@@ -206,6 +207,32 @@ router.post('/contract/:token/sign', async (req, res, next) => {
       } catch (err) { console.error('Contract-signed lookup failed:', err.message); }
     } else console.log('Contract-signed email skipped (SMTP not configured)');
     res.json(signed);
+  } catch (e) { next(e); }
+});
+
+// Vendor Contract Report — every contractor slot in production & post, with
+// the estimated total and whether their contract has gone out
+router.get('/reports/vendor-contracts', requireAuth, requireRole('ADMIN','PRODUCER','FINANCE'), async (req, res, next) => {
+  try {
+    const rows = await sql`
+      SELECT ca.id, ca.project_id, ca.day_rate, ca.labor_days, ca.gear_cost, ca.gear_days,
+             COALESCE(NULLIF(TRIM(CONCAT(cm.preferred_first_name, ' ', cm.preferred_last_name)), ''), cm.name) as contractor_name,
+             po.name as position_name,
+             pr.code, pr.title, pr.status as project_status, pr.start_date, pr.parent_project_id,
+             (SELECT c.status FROM contracts c WHERE c.crew_assignment_id = ca.id ORDER BY c.created_at DESC LIMIT 1) as contract_status,
+             (SELECT c.created_at FROM contracts c WHERE c.crew_assignment_id = ca.id ORDER BY c.created_at DESC LIMIT 1) as contract_sent_at
+      FROM crew_assignments ca
+      JOIN crew_members cm ON cm.id = ca.crew_member_id
+      JOIN positions po ON po.id = ca.position_id
+      JOIN projects pr ON pr.id = ca.project_id
+      WHERE ca.is_contractor = TRUE AND pr.status != 'ARCHIVED'
+      ORDER BY pr.start_date DESC NULLS LAST, contractor_name`;
+    const codes = await displayCodes([...new Set(rows.map(r => r.project_id))]);
+    res.json(rows.map(r => ({
+      ...r,
+      code: codes[r.project_id] || r.code,
+      est_total: (Number(r.day_rate) || 0) * (Number(r.labor_days) || 0) + (Number(r.gear_cost) || 0) * (Number(r.gear_days) || 0),
+    })));
   } catch (e) { next(e); }
 });
 

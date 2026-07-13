@@ -35,6 +35,11 @@ const REPORTS = [
     accent: '#E8500A', to: '/reports/gear',
   },
   {
+    title: 'Vendor Contracts',
+    desc: 'Every contractor being hired across production and post — estimated totals and whether their contract has been sent.',
+    accent: '#a78bfa', to: '/reports/vendor-contracts',
+  },
+  {
     title: 'Weekly Finance Report',
     desc: 'Snapshot report of budgets and close months for the finance team.',
     accent: '#4a9eff', to: '/finance/report',
