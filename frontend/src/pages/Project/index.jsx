@@ -461,6 +461,12 @@ export default function Project({ idOverride }) {
         </Link>
         {!glassVisible && !isAgency && !isCrew && <ShareDropdown projectId={id} showShotList={showShotList} crews={project?.crews || []} />}
       </nav>
+      {/* Mobile: Share moves below the nav line so the tab row wraps cleanly */}
+      {!glassVisible && !isAgency && !isCrew && (
+        <div className="share-row-mobile">
+          <ShareDropdown projectId={id} showShotList={showShotList} crews={project?.crews || []} />
+        </div>
+      )}
 
       <div className="wrap">
         {tab === 'overview'             && <Overview     project={project} setProject={setProject} onTabChange={setTab} />}

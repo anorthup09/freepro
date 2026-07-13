@@ -678,10 +678,12 @@ textarea { resize: vertical; min-height: 70px; }
   .fp-idblock .seg-toggle { order: 5; flex-basis: 100%; margin-top: 4px !important; }
 }
 
-/* Mobile: when the nav wraps, Share hugs the right edge so it stacks neatly
-   above the status pill instead of dangling alone at the left */
+/* Mobile: Share leaves the nav and sits on its own row just below the line,
+   right-aligned, so the tab row wraps cleanly */
+.share-row-mobile { display: none; }
 @media (max-width: 700px) {
-  .nav .share-wrap { margin-left: auto; }
+  .nav .share-wrap { display: none; }
+  .share-row-mobile { display: flex; justify-content: flex-end; padding: 8px 16px 0; }
 }
 
 /* Sign out sits clear of the fixed bottom docks on phones */
