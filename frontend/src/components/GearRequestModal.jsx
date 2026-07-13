@@ -58,7 +58,7 @@ const SIZE_OPTS = ['1TB', '2TB', '4TB', 'MORE'];
 const areaStyle = { background:'var(--bg)', border:'1px solid var(--border)', borderRadius:6, color:'var(--text)', padding:'8px 10px', fontSize:13, width:'100%', minHeight:64, fontFamily:'inherit' };
 const inStyle = { ...areaStyle, minHeight:0 };
 const lbl = { fontSize:11, fontWeight:600, color:'var(--text)', display:'block', marginBottom:5, textTransform:'none', letterSpacing:'normal', textAlign:'left' };
-const req = <span style={{ color:'#e05252' }}> *</span>;
+const req = <span style={{ color:'#e05252' }}>{'\u00A0'}*</span>;
 
 function fmtDate(d) {
   if (!d) return '—';
