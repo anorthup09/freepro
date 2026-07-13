@@ -85,10 +85,9 @@
   {
     "title": "Start a new project from the hub",
     "what": "A Start New Project button on the hub opens the New Project form and drops you straight into the new project’s view — no need to detour through Finance first.",
-    "where": "The hub in Project View — the green Start New Project button sits just below the Project View / Operations View toggle.",
+    "where": "The hub — the green Start New Project button next to the navigation pill.",
     "how": [
-      "On the hub, make sure you're in Project View.",
-      "Click the green + Start New Project button under the view toggle.",
+      "On the hub, click the green <b>+ Start New Project</b> button beside the View ▾ / Calendar / Reports pill.",
       "Fill in project code, client, and name (a budget is created in RFP).",
       "You land in the new project's Project View, ready to build it out."
     ],
@@ -182,7 +181,7 @@
   {
     "title": "Daily personal greeting on the Hub",
     "what": "The plain username is gone — the Hub now greets you with one fun, personal line each day, written fresh from what the platform knows: upcoming travel gigs, PTO countdowns, your MediaMoment answer, your home office, and the day of the week.",
-    "where": "Hub — centered above the Unbridled Media logo.",
+    "where": "Hub — centered under the Unbridled Media logo.",
     "how": [
       "Open the Hub.",
       "Read your line — it changes every day and gets more personal as the platform learns about you.",
@@ -204,9 +203,9 @@
   {
     "title": "Automations dashboard (Admin)",
     "what": "Every email automation on the platform in one place: where each one sends from, who it goes to, and a live preview of what the email looks like. From/To/Cc are editable where fixed lists apply; dynamic recipients (like \"the contractor being hired\") are described.",
-    "where": "Hub — bottom of the page, next to User Management (Admin only).",
+    "where": "Hub → ⚙ Admin → Automations (Admin only).",
     "how": [
-      "Scroll to the bottom of the Hub and click \"Automations ▸\".",
+      "At the bottom of the Hub, click <b>⚙ Admin ▸</b>, then <b>Automations</b>.",
       "Edit any From address (or To/Cc where shown) and hit Save.",
       "Click Preview on any row to see the exact email design."
     ],

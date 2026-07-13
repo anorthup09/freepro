@@ -25,18 +25,6 @@
     "screenshot": "my-projects-filter.png"
   },
   {
-    "title": "Hub: Project View / Operations View toggle",
-    "what": "The hub now has two modes. Project View lists every project as a tile, organized by project code, with search. Operations View shows the three apps (ProFi, FreePro, AvocadoPost). Team Management stays as a full-width bar below both views. The hub remembers which view you used last.",
-    "where": "The hub (home page) — the toggle sits centered under \"Where to today?\".",
-    "how": [
-      "Sign in — the hub opens in the view you used last.",
-      "Click <b>🗂 Project View</b> to browse all projects by code (use the search box for code, title, or client).",
-      "Click <b>⚙ Operations View</b> to jump into ProFi, FreePro, or AvocadoPost directly.",
-      "<b>Team Management</b> is always available in the elongated blue tile below."
-    ],
-    "screenshot": "hub-project-view.png"
-  },
-  {
     "title": "Project Workspace — Finance, Pre-Production & Post in one view",
     "what": "Opening a project from Project View lands in a single workspace where you flip between the full ProFi budget, the FreePro production page, and the AvocadoPost project page. These are the real pages, not copies — any change made here (budget lines, schedules, edits) is instantly the same everywhere.",
     "where": "Hub → Project View → click any project tile.",
@@ -87,9 +75,9 @@
   {
     "title": "Reports section (Project Finance Overview moved here)",
     "what": "A new Reports area on the hub collects cross-project rollups. Project Finance Overview has moved out of ProFi into Reports, alongside the Weekly Finance Report.",
-    "where": "Hub → the 📈 Reports button at the top, next to Crew Calendar.",
+    "where": "Hub → Reports on the navigation pill (right side).",
     "how": [
-      "Click <b>📈 Reports</b> on the hub.",
+      "Click <b>Reports</b> on the hub navigation pill.",
       "Pick a report card — <b>Project Finance Overview</b> (budgets, direct costs, gross profit per project) or <b>Weekly Finance Report</b>.",
       "The overview is no longer on the ProFi page — this is its new home."
     ],
@@ -122,7 +110,7 @@
   {
     "title": "Invoice Search report",
     "what": "A cross-project invoice finder in Reports. Search every uploaded vendor invoice by vendor name, project code, or exact invoice total, and click any result to preview the actual file in a pop-out viewer (PDFs and photos render inline).",
-    "where": "Hub → 📈 Reports → Invoice Search.",
+    "where": "Hub → Reports (navigation pill) → Invoice Search.",
     "how": [
       "Open <b>Reports</b> from the hub and click <b>Invoice Search</b>.",
       "Type in any of the three filters — <b>Vendor</b> (matches the AI-read vendor name or the filename), <b>Project Code</b>, or <b>Invoice Total</b> (exact amount). Results update as you type.",
@@ -146,7 +134,7 @@
   {
     "title": "Project Hub & Client Hub on Project View",
     "what": "Project View is now split into two sections, each with its own search bar. Project Hub lists every project as a tile. Client Hub gives every client a mini-hub: all of their projects in one place plus a Client Resources library for logos, brand guidelines, and other shared files. Each client hub also has a Client View toggle — the future client portal (coming soon) — which marks the page with an orange border so it's obvious you're looking at what the client will see.",
-    "where": "Hub → Project View toggle (or the standalone Project View page). Client tiles sit below the project tiles.",
+    "where": "Hub → View ▾ → Project View. Client tiles sit below the project tiles.",
     "how": [
       "Switch the hub to <b>Project View</b> — <b>Project Hub</b> is at the top with its search bar beside it.",
       "Scroll to <b>Client Hub</b> and use its own search bar to find a client, then click their tile.",
@@ -282,13 +270,13 @@
     "screenshot": "additional-docs.png"
   },
   {
-    "title": "Testing — Feedback & Features button",
-    "what": "A big red button at the very top of the hub opens the team's one running checklist for testing feedback and feature requests. Anyone signed in — crew included — can add items, check them off when handled, and delete them. Each entry shows who added it and when, and the header counts what's still open. This is the only place the list lives.",
-    "where": "The hub (home page) — the red button above everything else.",
+    "title": "Feedback & Features — the red F button",
+    "what": "The floating red F button opens the team's one running checklist for testing feedback and feature requests, and it follows you on every page of the platform. Anyone signed in — crew included — can add items, check them off when handled, and delete them. Each entry shows who added it and when, and the header counts what's still open. This is the only place the list lives.",
+    "where": "The round red F button — bottom corner of every page.",
     "how": [
-      "Click <b>! Testing - Feedback and Features !</b> at the top of the hub.",
+      "Click the red <b>F</b> button (it follows you as you navigate).",
       "Type your feedback or feature request and press <b>Add</b> (or Enter).",
-      "Check an item off when it's been handled — it strikes through and drops below the open items.",
+      "Check an item off when it has been handled — it strikes through and drops below the open items.",
       "✕ deletes an item (with a confirm)."
     ],
     "screenshot": "feedback-board.png"
