@@ -30,6 +30,11 @@ const REPORTS = [
     accent: '#c084fc', to: '/reports/vcc',
   },
   {
+    title: 'Gear Report',
+    desc: "Every shoot reporting into FreePro for the Gear Manager — greyed until a gear request is in, with where the gear is coming from.",
+    accent: '#E8500A', to: '/reports/gear',
+  },
+  {
     title: 'Weekly Finance Report',
     desc: 'Snapshot report of budgets and close months for the finance team.',
     accent: '#4a9eff', to: '/finance/report',

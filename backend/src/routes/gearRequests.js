@@ -86,6 +86,31 @@ router.get('/overview', requireAuth, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// Gear Manager report — every production shoot with where its gear comes from
+router.get('/report', requireAuth, async (req, res, next) => {
+  try {
+    const rows = await sql`
+      SELECT p.id, p.code, p.title, p.subtitle, p.start_date, p.end_date, p.status,
+             pg.rental_company, COALESCE(pg.internal_request_submitted, FALSE) as internal_request_submitted,
+             (SELECT MIN(g.created_at) FROM gear_requests g WHERE g.project_id = p.id) as request_submitted,
+             (SELECT g.submitted_by FROM gear_requests g WHERE g.project_id = p.id ORDER BY g.created_at LIMIT 1) as request_by,
+             (SELECT COUNT(*) FROM online_rentals o WHERE o.project_id = p.id)::int as online_rentals,
+             (SELECT COALESCE(SUM(o.cost), 0) FROM online_rentals o WHERE o.project_id = p.id) as online_rental_cost,
+             (SELECT STRING_AGG(DISTINCT COALESCE(NULLIF(TRIM(CONCAT(cm.preferred_first_name, ' ', cm.preferred_last_name)), ''), cm.name), ', ')
+              FROM crew_assignments ca JOIN crew_members cm ON cm.id = ca.crew_member_id
+              WHERE ca.project_id = p.id AND COALESCE(ca.gear_cost, 0) > 0) as contractor_gear
+      FROM projects p
+      LEFT JOIN project_gear pg ON pg.project_id = p.id
+      WHERE p.status != 'ARCHIVED'
+        AND (NOT EXISTS (SELECT 1 FROM budgets b WHERE b.project_id = p.id AND COALESCE(b.kind, 'main') = 'main')
+             OR EXISTS (SELECT 1 FROM budgets b JOIN budget_sections bs ON bs.budget_id = b.id
+                        WHERE b.project_id = p.id AND COALESCE(b.kind, 'main') = 'main' AND bs.kind = 'shoot'))
+      ORDER BY p.start_date NULLS LAST, p.code`;
+    const codes = await displayCodes(rows.map(r => r.id));
+    res.json(rows.map(r => ({ ...r, code: codes[r.id] || r.code })));
+  } catch (e) { next(e); }
+});
+
 // Activity feed for one shoot's gear (comments + events)
 router.get('/project/:pid/activity', requireAuth, async (req, res, next) => {
   try {
