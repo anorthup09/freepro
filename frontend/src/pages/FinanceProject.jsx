@@ -94,7 +94,7 @@ export default function FinanceProject({ pidOverride }) {
       <FinanceHeader />
       <FinanceDock tab={tab} setTab={setTab} />
       <div style={{ maxWidth:1100, margin:'0 auto', padding:'6px 16px 80px' }}>
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:10, marginBottom:14 }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:10, marginBottom:14, position:'relative' }}>
           <div className="fp-idblock">
             <button className="fp-edit" onClick={() => setEditProject(true)}
               style={{ marginBottom:6, background:'none', border:'1px solid var(--border)', borderRadius:12, padding:'2px 12px', fontSize:10, fontWeight:600, color:'var(--muted)', cursor:'pointer' }}>
@@ -103,11 +103,10 @@ export default function FinanceProject({ pidOverride }) {
             <div className="fp-code" style={{ fontSize:10, color:'var(--muted)' }}>{project.code}</div>
             <div className="page-title">{project.title}</div>
             <div className="page-sub">{project.client}</div>
-            <div className="seg-toggle" style={{ display:'inline-flex', marginTop:8 }}>
-              {budget && <BudgetVersions budget={budget} pid={pid} reload={() => api.financeBundle(pid).then(setData)} />}
-            </div>
+
           </div>
           <div className="fp-actions" style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:8 }}>
+            {budget && <BudgetVersions budget={budget} pid={pid} reload={() => api.financeBundle(pid).then(setData)} />}
             {harbinger && (
               <button onClick={() => setShowHarbinger(true)}
                 style={{ background:'rgba(90,191,128,0.12)', border:'1px solid #5ABF80', color:'#5ABF80', borderRadius:20, padding:'4px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
@@ -392,7 +391,7 @@ function BudgetVersions({ budget, pid, reload }) {
     setBusy(false);
   }
   return (
-    <span ref={ref} style={{ position:'relative', display:'inline-block', marginLeft:8 }}>
+    <span ref={ref} className="fp-versions" style={{ position:'relative', display:'inline-block', marginLeft:8 }}>
       <button onClick={() => setOpen(o => !o)} title="Budget versions"
         style={{ background:'none', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:16, padding:'5px 12px', fontSize:11, fontWeight:800, cursor:'pointer', whiteSpace:'nowrap' }}>
         V{budget.version || 1} ▾

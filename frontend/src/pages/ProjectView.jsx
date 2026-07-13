@@ -29,7 +29,15 @@ const TAB_ICONS = {
 // labels at the top of the page, shrinking to icons alone once you scroll.
 function MobileTabDock({ tabs, tab, setTab }) {
   const [shrunk, setShrunk] = useState(false);
-  const [min, setMin] = useState(true);   // minimized to a ≡ button until tapped
+  // Only the Finance tab collapses the nav (its own Budget/VCC dock owns the
+  // bottom-right); expanding swaps the Budget/VCC dock out for this one.
+  const collapsible = tab === 'finance';
+  const [min, setMin] = useState(true);
+  useEffect(() => { setMin(true); }, [collapsible]);
+  useEffect(() => {
+    document.body.classList.toggle('pvd-nav-open', collapsible && !min);
+    return () => document.body.classList.remove('pvd-nav-open');
+  }, [collapsible, min]);
   const btnRefs = useRef({});
   const [bubble, setBubble] = useState(null);   // sliding highlight behind the active icon
   useEffect(() => {
@@ -53,7 +61,7 @@ function MobileTabDock({ tabs, tab, setTab }) {
     onScroll();
     return () => { window.removeEventListener('scroll', onScroll); if (raf) cancelAnimationFrame(raf); };
   }, []);
-  if (min) {
+  if (collapsible && min) {
     const active = tabs.find(([k]) => k === tab);
     return (
       <button className="pvd-dock no-print" onClick={() => setMin(false)} aria-label="Open navigation"
@@ -72,7 +80,7 @@ function MobileTabDock({ tabs, tab, setTab }) {
   }
   return (
     <div className="pvd-dock no-print" style={{
-      position:'fixed', left:64, bottom:'calc(env(safe-area-inset-bottom, 0px) + 14px)',
+      position:'fixed', right:14, bottom:'calc(env(safe-area-inset-bottom, 0px) + 14px)',
       zIndex:110, display:'flex', alignItems:'center', gap:2,
       padding: shrunk ? '6px 10px' : '8px 12px',
       background:'rgba(24,22,19,0.81)', backdropFilter:'blur(18px) saturate(1.5)', WebkitBackdropFilter:'blur(18px) saturate(1.5)',

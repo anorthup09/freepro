@@ -764,3 +764,12 @@ body { padding-top: env(safe-area-inset-top, 0px); }
     0 6px 18px rgba(0,0,0,0.4);
 }
 .home-glass:active { transform: translateY(0) scale(0.95); }
+
+/* While the Project View nav is expanded on the Finance tab, it swaps in for
+   the Budget/VCC dock at the bottom right */
+body.pvd-nav-open .fin-dock { display: none !important; }
+
+/* Mobile: the V# versions pill pins top-right, level with the client name */
+@media (max-width: 700px) {
+  .fp-versions { position: absolute !important; top: 0; right: 0; margin-left: 0 !important; width: auto !important; }
+}
