@@ -332,7 +332,7 @@ export default function GearRequestModal({ projectId, existing, onClose, onSubmi
               {DRIVE_OPTS.map(opt => (
                 <div key={opt} onClick={() => toggleDrive(opt)}
                   style={{ display:'flex', alignItems:'center', justifyContent:'flex-start', gap:8, fontSize:13, padding:'3px 0', cursor:'pointer', color:'var(--text)' }}>
-                  <input type="checkbox" checked={f.drives.includes(opt)} onChange={() => toggleDrive(opt)} style={{ width:'auto', margin:0, flexShrink:0 }} />
+                  <input type="checkbox" checked={f.drives.includes(opt)} onChange={() => toggleDrive(opt)} onClick={e => e.stopPropagation()} style={{ width:'auto', margin:0, flexShrink:0 }} />
                   <span>{opt}</span>
                 </div>
               ))}
