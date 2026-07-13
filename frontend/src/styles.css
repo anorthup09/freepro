@@ -645,6 +645,11 @@ textarea { resize: vertical; min-height: 70px; }
 .pvd-embed .nav > div:first-child,
 .pvd-embed .nav > a[title="Back to the Unbridled Media hub"] { display: none !important; }
 .pvd-embed .nav { padding-top: 0; }
+/* The shoot Overview repeats the project code, title, and client that the
+   Project View header already shows above the nav — hide only when embedded */
+.pvd-embed .ov-head .proj-code,
+.pvd-embed .ov-head .proj-title,
+.pvd-embed .ov-head .proj-meta .meta:nth-child(2) { display: none !important; }
 
 /* Budget shoot header: code / trip / description stack on phones; the cost
    column stays pinned top-right instead of wrapping underneath */
