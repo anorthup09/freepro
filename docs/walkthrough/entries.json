@@ -343,5 +343,17 @@
       "In Project View, tap the <b>≡</b> pill (bottom left) to swap in the Overview/Finance/Pre-Pro/Post-Pro nav — tap ≡ again to swap back."
     ],
     "screenshot": "finance-dock.png"
+  },
+  {
+    "title": "Producer Checklist — assign tasks to teammates",
+    "what": "Checklist items can now be handed off. A small person icon sits between each checkbox and task — tap it to pick an Unbridled Media employee and a due date, and a real project task is created that lands on their Hub My Tasks tile with a due badge. Assigned items show who owns them and when it's due, and reopening the icon reassigns the same task instead of duplicating. Open checklists also stay open per project now, even after navigating to other tabs.",
+    "where": "FreePro — any shoot → Logistics → Producer Checklist. The person icon on every checklist row.",
+    "how": [
+      "Open a shoot → <b>Logistics → Producer Checklist</b> and open a playbook.",
+      "Tap the grey <b>person icon</b> next to any task.",
+      "Pick the Unbridled employee and a due date, then hit <b>Assign</b>.",
+      "The row shows \"→ Name · due date\" and the task appears on their Hub to-do list."
+    ],
+    "screenshot": "checklist-assign.png"
   }
 ]
