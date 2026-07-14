@@ -1803,7 +1803,7 @@ function openEstimatePdf({ project, budget, sections, lines, preparedBy }) {
   if (!w) return alert('Pop-up blocked — allow pop-ups to generate the estimate PDF.');
   w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Project Estimate — ${esc(project.code)}</title>
     <style>
-      @page { margin: 0.7in; }
+      @page { size: letter; margin: 0; }   /* zero page margin = no browser URL/date header-footer */
       * { box-sizing: border-box; }
       body { font-family: 'Helvetica Neue', Arial, sans-serif; color:#2b2f33; margin:0; padding:32px 40px; background:#fff; }
       .hdr { display:flex; align-items:center; justify-content:space-between; border-bottom:3px solid #d95a1a; padding-bottom:14px; margin-bottom:18px; }
@@ -1822,7 +1822,7 @@ function openEstimatePdf({ project, budget, sections, lines, preparedBy }) {
       .inv tr.total td { background:#f4f5f6; font-weight:800; font-size:12.5px; }
       .next { font-size:11.5px; line-height:1.55; color:#444; margin-top:20px; }
       .next b { color:#d95a1a; letter-spacing:0.06em; }
-      @media print { body { padding:0; } }
+      @media print { body { padding: 0.7in; } }
     </style></head><body>
     <div class="hdr"><img src="${window.location.origin}/unbridled-logo.png" alt="Unbridled Media"><div class="t">PROJECT ESTIMATE</div></div>
     <div class="intro">This estimate reflects the proposed SOW and associated costs for the project outlined below. Changes to scope, timeline, or deliverables may impact final pricing. Estimate is valid for 30 days from the date sent.</div>
