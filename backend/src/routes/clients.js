@@ -74,18 +74,21 @@ router.get('/contacts', ...staff, async (req, res, next) => {
 // Powers the searchable name autofill on the budget's + Add Client Contact.
 router.get('/contact-people', ...staff, async (req, res, next) => {
   try {
-    const [roster, budgets, harbs] = await Promise.all([
+    const [roster, budgets, harbs, invoiceContacts, projectContacts] = await Promise.all([
       sql`SELECT name AS company, primary_contact_name AS name, primary_contact_email AS email, mailing_address AS address
           FROM clients WHERE primary_contact_name IS NOT NULL AND primary_contact_name <> ''`,
       sql`SELECT client_contact FROM budgets WHERE client_contact IS NOT NULL`,
       sql`SELECT data FROM harbingers ORDER BY created_at DESC`,
+      sql`SELECT name, email FROM invoice_contacts`,
+      sql`SELECT cc.name, cc.email, p.client AS company FROM client_contacts cc JOIN projects p ON p.id = cc.project_id WHERE cc.email IS NOT NULL AND cc.email <> ''`,
     ]);
     const seen = new Map();
     const add = (p) => {
-      const key = String(p.name || '').trim().toLowerCase();
+      // key by name; nameless entries (raw emails saved from CC) key by email
+      const key = String(p.name || '').trim().toLowerCase() || String(p.email || '').trim().toLowerCase();
       if (!key) return;
       const cur = seen.get(key);
-      if (!cur) seen.set(key, { name: String(p.name).trim(), email: p.email || '', address: p.address || '', company: p.company || '' });
+      if (!cur) seen.set(key, { name: String(p.name || '').trim(), email: p.email || '', address: p.address || '', company: p.company || '' });
       else { // fill blanks from later sources, never overwrite
         if (!cur.email && p.email) cur.email = p.email;
         if (!cur.address && p.address) cur.address = p.address;
@@ -98,7 +101,24 @@ router.get('/contact-people', ...staff, async (req, res, next) => {
       const d = typeof h.data === 'string' ? JSON.parse(h.data) : h.data;
       if (d && d.primaryContactName) add({ name: d.primaryContactName, email: d.primaryContactEmail, address: d.mailingAddress, company: d.clientCompany });
     });
-    res.json([...seen.values()].sort((a, b) => a.name.localeCompare(b.name)));
+    invoiceContacts.forEach(add);
+    projectContacts.forEach(add);
+    res.json([...seen.values()].sort((a, b) => (a.name || a.email).localeCompare(b.name || b.email)));
+  } catch (e) { next(e); }
+});
+
+// Save a contact used on an invoice so it autofills everywhere from now on
+router.post('/contact-people', ...staff, async (req, res, next) => {
+  try {
+    const email = String(req.body.email || '').trim();
+    const name = String(req.body.name || '').trim() || null;
+    if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return res.status(400).json({ error: 'Valid email required' });
+    const [r] = await sql`
+      INSERT INTO invoice_contacts (name, email, added_by)
+      VALUES (${name}, ${email}, ${req.user?.name || req.user?.email || null})
+      ON CONFLICT (LOWER(email)) DO UPDATE SET name = COALESCE(EXCLUDED.name, invoice_contacts.name)
+      RETURNING *`;
+    res.status(201).json(r);
   } catch (e) { next(e); }
 });
 

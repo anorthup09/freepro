@@ -508,6 +508,17 @@ async function migrate() {
   `;
   await sql`ALTER TABLE talent_day_calls ADD COLUMN IF NOT EXISTS call_location TEXT`;
 
+  // Contacts saved from the Add Invoice form — reusable across the platform
+  await sql`
+    CREATE TABLE IF NOT EXISTS invoice_contacts (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      name TEXT,
+      email TEXT NOT NULL,
+      added_by TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`;
+  await sql`CREATE UNIQUE INDEX IF NOT EXISTS invoice_contacts_email_key ON invoice_contacts (LOWER(email))`;
+
   // Resource libraries (Reports): music resources + video references
   await sql`
     CREATE TABLE IF NOT EXISTS resource_links (
