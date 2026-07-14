@@ -158,5 +158,18 @@
       "Each tag/upload writes a note into that video's activity; click a file name to download it."
     ],
     "screenshot": "creative-assets.png"
+  },
+  {
+    "title": "Travel \u2014 Driving with schedule tiles",
+    "page": "FreePro \u2014 Production",
+    "what": "A Driving section on the Travel tab (below Rental Cars) for crew driving to a shoot. + Driver opens a form with the driver (crew dropdown), tap-to-tag passengers, required From and To cities with live map-validated autocomplete (type 'Columbia MO' or 'Columbia, Missouri' \u2014 both work; unmappable entries are flagged in red), a required departure date and time, car make/model, and notes. Saving computes an estimated drive time from the route and feeds two tiles onto the Schedule timeline: \ud83d\ude97 Drive Departure at the departure time (with the ~drive-time badge, route, car, and passengers) and \ud83d\ude97 Approx. Drive Arrival at departure-plus-drive-time.",
+    "where": "FreePro \u2192 open a shoot \u2192 Logistics \u2192 Travel \u2192 Driving \u2192 + Driver",
+    "how": [
+      "On the Travel tab, click + Driver under the Driving section.",
+      "Pick the driver, tap teammates to tag them as passengers.",
+      "Type the From and To cities and pick from the live suggestions (state codes or full names both match); set the departure date and time; add the car make/model.",
+      "Save \u2014 the drive shows on Travel with the estimated drive time, and the Schedule timeline gets Drive Departure and Approx. Drive Arrival tiles for the right day(s)."
+    ],
+    "screenshot": "driving-schedule.png"
   }
 ]

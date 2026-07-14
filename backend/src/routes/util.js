@@ -84,6 +84,22 @@ router.get('/geo-search', requireAuth, async (req, res, next) => {
     const { q } = req.query;
     if (!q || q.trim().length < 2) return res.json([]);
     const { getJson } = require('../lib/weather');
+    // "Columbia MO" / "Columbia, Missouri" — peel a trailing US state (code or
+    // full name) off the query so both forms match. Google handles this natively;
+    // the fallback geocoder needs the city and state split.
+    const US_STATES = { AL:'Alabama', AK:'Alaska', AZ:'Arizona', AR:'Arkansas', CA:'California', CO:'Colorado', CT:'Connecticut', DE:'Delaware', FL:'Florida', GA:'Georgia', HI:'Hawaii', ID:'Idaho', IL:'Illinois', IN:'Indiana', IA:'Iowa', KS:'Kansas', KY:'Kentucky', LA:'Louisiana', ME:'Maine', MD:'Maryland', MA:'Massachusetts', MI:'Michigan', MN:'Minnesota', MS:'Mississippi', MO:'Missouri', MT:'Montana', NE:'Nebraska', NV:'Nevada', NH:'New Hampshire', NJ:'New Jersey', NM:'New Mexico', NY:'New York', NC:'North Carolina', ND:'North Dakota', OH:'Ohio', OK:'Oklahoma', OR:'Oregon', PA:'Pennsylvania', RI:'Rhode Island', SC:'South Carolina', SD:'South Dakota', TN:'Tennessee', TX:'Texas', UT:'Utah', VT:'Vermont', VA:'Virginia', WA:'Washington', WV:'West Virginia', WI:'Wisconsin', WY:'Wyoming', DC:'District of Columbia' };
+    const NAME_TO_CODE = Object.fromEntries(Object.entries(US_STATES).map(([c, n]) => [n.toLowerCase(), c]));
+    let cityQ = q.trim(), stateFilter = null;
+    {
+      const parts = cityQ.replace(/,/g, ' ').split(/\s+/);
+      if (parts.length >= 2) {
+        const last1 = parts[parts.length - 1], last2 = parts.slice(-2).join(' ');
+        if (NAME_TO_CODE[last2.toLowerCase()]) { stateFilter = US_STATES[NAME_TO_CODE[last2.toLowerCase()]]; cityQ = parts.slice(0, -2).join(' '); }
+        else if (NAME_TO_CODE[last1.toLowerCase()]) { stateFilter = US_STATES[NAME_TO_CODE[last1.toLowerCase()]]; cityQ = parts.slice(0, -1).join(' '); }
+        else if (US_STATES[last1.toUpperCase()] && parts.length > 1) { stateFilter = US_STATES[last1.toUpperCase()]; cityQ = parts.slice(0, -1).join(' '); }
+      }
+      if (!cityQ) { cityQ = q.trim(); stateFilter = null; }
+    }
     if (process.env.GOOGLE_MAPS_API_KEY) {
       try {
         const g = await getJson(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(q.trim())}&key=${process.env.GOOGLE_MAPS_API_KEY}`);
@@ -110,8 +126,13 @@ router.get('/geo-search', requireAuth, async (req, res, next) => {
         if (list.length) return res.json(list);
       } catch { /* fall through to Open-Meteo */ }
     }
-    const data = await getJson(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q.trim())}&count=8&language=en&format=json`);
-    res.json((data.results || []).map(p => ({
+    const data = await getJson(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityQ)}&count=${stateFilter ? 20 : 8}&language=en&format=json`);
+    let results = data.results || [];
+    if (stateFilter) {
+      const filtered = results.filter(p => (p.admin1 || '').toLowerCase() === stateFilter.toLowerCase());
+      if (filtered.length) results = filtered;
+    }
+    res.json(results.slice(0, 8).map(p => ({
       name: p.name,
       admin1: p.admin1 || '',
       country: p.country_code || '',
