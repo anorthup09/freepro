@@ -14,9 +14,9 @@ const DEFS = [
   { key: 'client-invoice', title: 'Client Invoice Send', identity: 'accounting', editable: 'from',
     toDesc: "Project's client contacts + Harbinger invoice CC",
     desc: 'Invoice summary when a deposit or final invoice is sent from Client Deposits.' },
-  { key: 'invoice-request', title: 'Invoice Request to Billing', identity: 'accounting', editable: true,
+  { key: 'invoice-request', title: 'Invoice Request to Billing', identity: 'accounting', editable: true, noCc: true,
     defaultTo: 'billing@unbridledmedia.com',
-    desc: 'Request details for accounting when + Add Invoice is submitted in the VCC — deposit #, amount, send-to, CC, description, and who asked.' },
+    desc: 'Request details for accounting when + Add Invoice is submitted in the VCC — deposit #, amount, the invoice\'s send-to and CC, description, and who asked.' },
   { key: 'gear-request', title: 'Gear Request Submitted', identity: 'gear', editable: true,
     defaultTo: 'mvitro@unbridledmedia.com',
     desc: 'The full gear request when a crew member submits one.' },
@@ -67,7 +67,7 @@ async function automation(key) {
 async function listAutomations() {
   const o = await overrides();
   return DEFS.map(d => ({
-    key: d.key, title: d.title, desc: d.desc, editable: d.editable,
+    key: d.key, title: d.title, desc: d.desc, editable: d.editable, noCc: d.noCc || false,
     from: (o[d.key] && o[d.key].from_addr) || addrFor(d.identity),
     to: (o[d.key] && o[d.key].to_addrs) || d.defaultTo || null,
     cc: (o[d.key] && o[d.key].cc_addrs) || d.defaultCc || null,

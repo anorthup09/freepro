@@ -599,7 +599,7 @@ function Automations() {
                       ? <input style={inputStyle} value={val(a, 'to')} onChange={e => setVal(a.key, 'to', e.target.value)} placeholder="comma-separated emails" />
                       : <span style={{ fontSize:11, color:'var(--text)', opacity:0.85 }}>{a.toDesc}</span>}
                   </div>
-                  {a.editable === true && (
+                  {a.editable === true && !a.noCc && (
                     <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                       <span style={{ fontSize:9, fontWeight:800, color:'var(--muted)', width:34, textAlign:'right', flexShrink:0 }}>CC</span>
                       <input style={inputStyle} value={val(a, 'cc')} onChange={e => setVal(a.key, 'cc', e.target.value)} placeholder="comma-separated emails" />
