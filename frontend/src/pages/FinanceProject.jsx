@@ -1858,22 +1858,22 @@ function ShareBudgetButton({ budget, project, sections, lines, onModePicked, onO
   }
   const current = budget.share_mode || 'lines';
   const OPTIONS = [
-    ['lines', 'Line Items', 'The full budget line by line — every position, rate, and quantity.'],
-    ['buckets', 'Buckets', 'Rolled-up section totals only — no individual line detail.'],
-    ['items-nocost', 'Itemized — No Costs', 'Every line item and quantity, with all dollar figures removed.'],
+    ['lines', 'Itemized with Cost', 'The full budget line by line — every position, rate, and quantity.'],
+    ['items-nocost', 'Itemized — Subtotals Only', 'Every line item and quantity, with dollars only at the section subtotal and total level.'],
+    ['buckets', 'Non-Itemized with Subtotal Costs', 'Rolled-up section subtotals only — no individual line detail.'],
   ];
   return (
     <>
       <button type="button" onClick={() => setOpen(true)} title="Open the client-facing budget page in a new window"
         style={{ background:'rgba(74,158,255,0.12)', border:'1px solid #4a9eff', color:'#4a9eff', borderRadius:20, padding:'4px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
-        Client Budget
+        Share Budget Options
       </button>
       {open && (
         <div onClick={e => e.target === e.currentTarget && setOpen(false)}
           style={{ position:'fixed', inset:0, zIndex:130, background:'rgba(0,0,0,0.72)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
           <div style={{ width:'100%', maxWidth:420, background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid #4a9eff', borderRadius:12, padding:'18px 20px' }}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4 }}>
-              <div style={{ fontSize:14, fontWeight:800 }}>Client Budget</div>
+              <div style={{ fontSize:14, fontWeight:800 }}>Share Budget Options</div>
               <button className="btn btn-ghost btn-sm" onClick={() => setOpen(false)}>✕</button>
             </div>
             <div style={{ fontSize:11, color:'var(--muted)', marginBottom:12 }}>How should the client see this budget?</div>

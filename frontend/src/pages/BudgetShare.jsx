@@ -26,7 +26,7 @@ export default function BudgetShare() {
   const { project, budget, sections, lines } = data;
   const mgmtRate = budget.mgmt_fee_rate != null ? Number(budget.mgmt_fee_rate) : 0.15;
   const bucketMode = budget.share_mode === 'buckets';
-  const noCost = budget.share_mode === 'items-nocost';   // itemized scope, no dollars
+  const noCost = budget.share_mode === 'items-nocost';   // itemized scope, dollars at subtotal level only
 
   let nonTravel = 0, travel = 0, photo = 0;
   const photoIds = new Set(sections.filter(s => s.kind === 'photo').map(s => s.id));
@@ -80,7 +80,7 @@ export default function BudgetShare() {
                   <div style={{ fontSize:12, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--tan)' }}>{sec.title}</div>
                   {sec.subtitle && <div style={{ fontSize:11, color:'var(--muted)', marginTop:2, whiteSpace:'pre-wrap' }}>{sec.subtitle}</div>}
                 </div>
-                {!noCost && <div style={{ fontSize:14, fontWeight:800, whiteSpace:'nowrap' }}>{fmt$(secTotal)}</div>}
+                <div style={{ fontSize:14, fontWeight:800, whiteSpace:'nowrap' }}>{fmt$(secTotal)}</div>
               </div>
               {!bucketMode && (
                 <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12 }}>
@@ -97,7 +97,7 @@ export default function BudgetShare() {
           );
         })}
 
-        {noCost ? null : <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, padding:'16px 22px' }}>
+        {<div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, padding:'16px 22px' }}>
           {[
             ['Production & Post-Production', nonTravel],
             ['Travel', travel],
