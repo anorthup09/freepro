@@ -361,7 +361,7 @@ router.post('/edits/:id/hold-cost', ...staff, async (req, res, next) => {
         WHERE id = ${existing.id} RETURNING *`;
     } else {
       [entry] = await sql`INSERT INTO vcc_entries (project_id, entry_date, vendor, description, category, amount, status, source)
-        VALUES (${e.project_id}, ${require('../lib/dates').bizToday()}, ${vendor}, ${description}, ${'Post-Production'}, ${amount}, 'HOLD', ${source})
+        VALUES (${e.project_id}, ${require('../lib/dates').bizToday()}, ${vendor}, ${description}, ${'5400 Logistics Labor (B)'}, ${amount}, 'HOLD', ${source})
         RETURNING *`;
     }
     await logAct(e.id, 'log', req.user?.email || 'someone', `held $${amount.toLocaleString()} on the project VCC for ${labels[role].toLowerCase()}`);
@@ -492,7 +492,7 @@ router.post('/contractors/:id/hold-cost', ...staff, async (req, res, next) => {
         WHERE id = ${existing.id} RETURNING *`;
     } else {
       [entry] = await sql`INSERT INTO vcc_entries (project_id, entry_date, vendor, description, category, amount, status, source)
-        VALUES (${proj.id}, ${require('../lib/dates').bizToday()}, ${vendor}, ${description}, ${'Post-Production'}, ${amount}, 'HOLD', ${source})
+        VALUES (${proj.id}, ${require('../lib/dates').bizToday()}, ${vendor}, ${description}, ${'5400 Logistics Labor (B)'}, ${amount}, 'HOLD', ${source})
         RETURNING *`;
     }
     res.json(entry);
