@@ -106,5 +106,57 @@
       "The talent's shared call sheet shows their call time and location in the day header."
     ],
     "screenshot": "talent-call-schedule.png"
+  },
+  {
+    "title": "Hard drive tracking + Hard Drives report",
+    "page": "Reports",
+    "what": "Every hard drive in the asset database (HDD category) now has a live location. Tag drives onto a shoot from the shoot's Gear tab DIT \u2014 Drives tile (or its gear dashboard); return them when they come home. The Hard Drives report is the roster: every drive with where it is right now \u2014 \u2708 out on a shoot (with the shoot code and who tagged it, since when) or \ud83c\udfe0 home at its office location \u2014 filterable to All / On Shoots / In Office and searchable by name, tag, serial, or location.",
+    "where": "Reports \u2192 Hard Drives (tagging happens on each shoot's Gear tab)",
+    "how": [
+      "Open Reports \u2192 Hard Drives to see the full roster and each drive's current location.",
+      "Filter with the All / On Shoots / In Office pills or search by name, tag, serial, or location.",
+      "Click a row on an out drive to jump to the shoot holding it.",
+      "To tag or return a drive, use the DIT \u2014 Drives tile on a shoot's Gear tab: + Tag Drive to send it out, Return when it's back."
+    ],
+    "screenshot": "hard-drives-report.png"
+  },
+  {
+    "title": "Gear request availability \u2014 reservations subtracted",
+    "page": "FreePro \u2014 Production",
+    "what": "The equipment picker in the gear request form now shows what's actually available for your dates, not just what exists. Each model's count is the assets marked available in Asset Management minus the quantity sourced 'Internal' on any other shoot whose dates overlap yours \u2014 shown as e.g. '6 of 10 available \u00b7 4 on other shoots' with the reserved note in yellow (red at zero). Counts refresh if you switch the project on the form; shoots without dates are treated conservatively.",
+    "where": "Gear Report \u2192 + New Gear Request \u2192 any department's + Add Gear picker (also on a shoot's Gear Request tab)",
+    "how": [
+      "Open a gear request and pick the project \u2014 the inventory counts key off that shoot's dates.",
+      "Open a department's + Add Gear picker: each model shows 'X of Y available' after subtracting internal reservations on overlapping shoots.",
+      "A yellow 'N on other shoots' note shows how many are spoken for; zero available turns red.",
+      "Set quantities as usual \u2014 the counts are informational, so you can still request more and sort sourcing on the Gear List."
+    ],
+    "screenshot": "gear-availability.png"
+  },
+  {
+    "title": "Gear Report \u2014 the Gear Manager's home base",
+    "page": "Reports",
+    "what": "The Gear Report absorbed the old FreePro Gear Management page (that toggle is gone). One page now has it all: a shoot timeline (gantt) capped at five rows with vertical scroll and pinned date headers, and the full shoot table \u2014 Countdown, code, name, Person Responsible, dates, Travel, gear request status (greyed shoots haven't requested), request name, the green (!) needs-assignment flag, and the four gear-source columns with the printable internal check-out list. + New Gear Request and the Asset Management database live in the header. Rows open the shoot's gear dashboard; a green \u2713 quick-views the submitted request.",
+    "where": "Reports \u2192 Gear Report",
+    "how": [
+      "Open Reports \u2192 Gear Report \u2014 the timeline shows upcoming shoots (scroll vertically for more than five, horizontally through dates).",
+      "Scan the table: greyed rows still need a gear request; the green (!) means gear awaits source assignment.",
+      "Click + New Gear Request to submit one, or Asset Management to open the equipment database.",
+      "Click a row for the shoot's gear dashboard, a green \u2713 to quick-view its request, or the print icon for the internal check-out list."
+    ],
+    "screenshot": "gear-report-merged.png"
+  },
+  {
+    "title": "Creative Assets (AvocadoPost)",
+    "page": "AvocadoPost \u2014 Post-Production",
+    "what": "A Creative Assets tab next to each project's Video Tracker: drag photos, motion graphics, or any files anywhere onto the panel (or multi-select via + Upload Asset, 20MB each). It's a list view \u2014 file name (click to download), size, uploader, and date \u2014 and every asset can be tagged to one or more videos from the tracker. Tags show as chips with \u2715 to untag, a 'Tag new uploads to' selector pre-tags drops, and every tag or upload logs a note in that video's activity feed so its history shows what arrived and when.",
+    "where": "AvocadoPost \u2192 open a project page \u2192 Creative Assets tab",
+    "how": [
+      "Open the project page in AvocadoPost and click Creative Assets (next to Project Video Tracker).",
+      "Drag files onto the panel, or click + Upload Asset \u2014 optionally set 'Tag new uploads to' first so drops land pre-tagged.",
+      "Tag any asset to more videos with its + tag\u2026 dropdown; click a chip's \u2715 to untag one video.",
+      "Each tag/upload writes a note into that video's activity; click a file name to download it."
+    ],
+    "screenshot": "creative-assets.png"
   }
 ]
