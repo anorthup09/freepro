@@ -40,5 +40,18 @@
       "Click any row to jump to that project in ProFi."
     ],
     "screenshot": "client-invoice-report.png"
+  },
+  {
+    "title": "Project Estimate PDF",
+    "page": "ProFi \u2014 Project Finance",
+    "what": "A client-ready Project Estimate generated straight from the budget on the Unbridled template. It auto-fills the summary block (client, project title, total, today as the sent date, a valid-through date 30 days out, and who prepared it) and rolls every budget line into the template's four investment buckets: scripting/storyboarding plus the coordination fee land in Pre-Production/Creative; shoots, photography, virtual recording, and misc in Production; the post section in Post-Production; and every travel line in Travel. The bottom line always equals the budget's grand total. It opens as a print-ready page with the print dialog popped \u2014 save as PDF or print \u2014 with no browser headers or footers on the output.",
+    "where": "ProFi \u2192 open a project \u2192 Client Budget \u2192 Project Estimate PDF",
+    "how": [
+      "Open the project's budget in ProFi and click Client Budget (top right).",
+      "Choose Project Estimate PDF in the pop-out.",
+      "A print-ready estimate opens in a new tab with the print dialog ready \u2014 pick Save as PDF (or a printer).",
+      "Check the four bucket subtotals; the total matches the live budget, so update the budget and regenerate if numbers move."
+    ],
+    "screenshot": "project-estimate-pdf.png"
   }
 ]
