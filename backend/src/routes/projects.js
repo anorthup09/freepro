@@ -416,7 +416,7 @@ router.delete('/:id/talent/:tid', requireAuth, requireRole('ADMIN','PRODUCER'), 
 router.get('/:id/talent-day-calls', requireAuth, async (req, res, next) => {
   try {
     res.json(await sql`
-      SELECT tdc.shoot_day_id, tdc.call_time, kt.name, kt.role
+      SELECT tdc.shoot_day_id, tdc.call_time, tdc.call_location, kt.name, kt.role
       FROM talent_day_calls tdc
       JOIN key_talent kt ON kt.id = tdc.talent_id
       WHERE kt.project_id = ${req.params.id} AND tdc.call_time IS NOT NULL
@@ -428,13 +428,13 @@ router.get('/:id/talent/:tid/day-calls', requireAuth, async (req, res, next) => 
 });
 router.put('/:id/talent/:tid/day-calls', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const calls = req.body; // [{ shootDayId, callTime }]
+    const calls = req.body; // [{ shootDayId, callTime, callLocation }]
     await sql`DELETE FROM talent_day_calls WHERE talent_id = ${req.params.tid}`;
     if (calls.length) {
       await Promise.all(calls.map(c => sql`
-        INSERT INTO talent_day_calls (id, talent_id, shoot_day_id, call_time)
-        VALUES (gen_random_uuid()::text, ${req.params.tid}, ${c.shootDayId}, ${c.callTime||null})
-        ON CONFLICT (talent_id, shoot_day_id) DO UPDATE SET call_time = EXCLUDED.call_time`));
+        INSERT INTO talent_day_calls (id, talent_id, shoot_day_id, call_time, call_location)
+        VALUES (gen_random_uuid()::text, ${req.params.tid}, ${c.shootDayId}, ${c.callTime||null}, ${c.callLocation||null})
+        ON CONFLICT (talent_id, shoot_day_id) DO UPDATE SET call_time = EXCLUDED.call_time, call_location = EXCLUDED.call_location`));
     }
     res.json(await sql`SELECT * FROM talent_day_calls WHERE talent_id = ${req.params.tid} ORDER BY shoot_day_id`);
   } catch(e){next(e);}

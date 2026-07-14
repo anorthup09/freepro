@@ -422,8 +422,8 @@ export default function Crew({ project, onProjectUpdate }) {
     try {
       const t = await api.createTalent(project.id, talentForm);
       const dayCalls = Object.entries(addTalentDayCalls)
-        .filter(([, v]) => v)
-        .map(([shootDayId, callTime]) => ({ shootDayId, callTime }));
+        .filter(([, v]) => v && (v.time || v.location))
+        .map(([shootDayId, v]) => ({ shootDayId, callTime: v.time || null, callLocation: v.location || null }));
       if (dayCalls.length) await api.saveTalentDayCalls(project.id, t.id, dayCalls).catch(() => {});
       if (onProjectUpdate) onProjectUpdate(p => ({ ...p, keyTalent: [...(p.keyTalent||[]), t] }));
       setShowTalentModal(false);
@@ -435,8 +435,8 @@ export default function Crew({ project, onProjectUpdate }) {
     e.preventDefault();
     try {
       const dayCalls = Object.entries(talentDayCallsForm)
-        .filter(([, v]) => v)
-        .map(([shootDayId, callTime]) => ({ shootDayId, callTime }));
+        .filter(([, v]) => v && (v.time || v.location))
+        .map(([shootDayId, v]) => ({ shootDayId, callTime: v.time || null, callLocation: v.location || null }));
       const [t] = await Promise.all([
         api.updateTalent(project.id, editTalent.id, editTalentForm),
         api.saveTalentDayCalls(project.id, editTalent.id, dayCalls),
@@ -823,7 +823,7 @@ export default function Crew({ project, onProjectUpdate }) {
                           ]).then(([days, calls]) => {
                             setTalentDays(days);
                             const m = {};
-                            calls.forEach(c => { m[c.shoot_day_id] = c.call_time || ''; });
+                            calls.forEach(c => { m[c.shoot_day_id] = { time: c.call_time || '', location: c.call_location || '' }; });
                             setTalentDayCallsForm(m);
                           }).catch(() => {});
                         }}>Edit</button>
@@ -1286,7 +1286,10 @@ export default function Crew({ project, onProjectUpdate }) {
                           <div style={{ display:'flex', alignItems:'center', fontSize:12, color:'var(--text)', fontWeight:500 }}>
                             Day {i+1}{dateLabel ? ` — ${dateLabel}` : ''}
                           </div>
-                          <input type="time" value={talentDayCallsForm[day.id] || ''} onChange={e => setTalentDayCallsForm(m => ({ ...m, [day.id]: e.target.value }))} />
+                          <span style={{ display:'flex', gap:6, minWidth:0 }}>
+                            <input type="time" value={(talentDayCallsForm[day.id] || {}).time || ''} onChange={e => setTalentDayCallsForm(m => ({ ...m, [day.id]: { ...(m[day.id] || {}), time: e.target.value } }))} style={{ flex:'0 0 auto', width:110 }} />
+                            <input value={(talentDayCallsForm[day.id] || {}).location || ''} placeholder="Call location…" onChange={e => setTalentDayCallsForm(m => ({ ...m, [day.id]: { ...(m[day.id] || {}), location: e.target.value } }))} style={{ flex:1, minWidth:0 }} />
+                          </span>
                         </React.Fragment>
                       );
                     })}
@@ -1332,7 +1335,10 @@ export default function Crew({ project, onProjectUpdate }) {
                           <div style={{ display:'flex', alignItems:'center', fontSize:12, color:'var(--text)', fontWeight:500 }}>
                             Day {i+1}{dateLabel ? ` — ${dateLabel}` : ''}
                           </div>
-                          <input type="time" value={addTalentDayCalls[day.id] || ''} onChange={e => setAddTalentDayCalls(m => ({ ...m, [day.id]: e.target.value }))} />
+                          <span style={{ display:'flex', gap:6, minWidth:0 }}>
+                            <input type="time" value={(addTalentDayCalls[day.id] || {}).time || ''} onChange={e => setAddTalentDayCalls(m => ({ ...m, [day.id]: { ...(m[day.id] || {}), time: e.target.value } }))} style={{ flex:'0 0 auto', width:110 }} />
+                            <input value={(addTalentDayCalls[day.id] || {}).location || ''} placeholder="Call location…" onChange={e => setAddTalentDayCalls(m => ({ ...m, [day.id]: { ...(m[day.id] || {}), location: e.target.value } }))} style={{ flex:1, minWidth:0 }} />
+                          </span>
                         </React.Fragment>
                       );
                     })}

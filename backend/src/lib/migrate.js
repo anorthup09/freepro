@@ -506,6 +506,7 @@ async function migrate() {
       UNIQUE(talent_id, shoot_day_id)
     )
   `;
+  await sql`ALTER TABLE talent_day_calls ADD COLUMN IF NOT EXISTS call_location TEXT`;
 
   await sql`ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS day_type TEXT DEFAULT 'SHOOT'`;
 

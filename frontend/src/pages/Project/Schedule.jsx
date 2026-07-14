@@ -1125,7 +1125,11 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                             <div className="ev-title">Talent Call — {item.name}</div>
                             <span className="etag t" style={{ flexShrink:0 }}>Talent</span>
                           </div>
-                          {item.role && <div className="ev-detail" style={{ color:'var(--muted)' }}>{item.role}</div>}
+                          {(item.role || item.call_location) && (
+                            <div className="ev-detail" style={{ color:'var(--muted)' }}>
+                              {[item.role, item.call_location && `📍 ${item.call_location}`].filter(Boolean).join(' · ')}
+                            </div>
+                          )}
                         </div>
                       </div>
                     ) : item._type === 'catering' ? (() => {

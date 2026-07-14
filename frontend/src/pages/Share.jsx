@@ -1810,7 +1810,7 @@ function TalentView({ data }) {
           </section>
         )}
         {filteredSchedule.map((day, i) => (
-          <DaySection key={day.id} day={day} showCalls={false} dayIndex={i} talentCallTime={day.talent_call_time} hideCallWrap talentMode includePhoto={project.include_photo !== false} projectCity={[project.city, project.state].filter(Boolean).join(', ')} />
+          <DaySection key={day.id} day={day} showCalls={false} dayIndex={i} talentCallTime={day.talent_call_time} talentCallLocation={day.talent_call_location} hideCallWrap talentMode includePhoto={project.include_photo !== false} projectCity={[project.city, project.state].filter(Boolean).join(', ')} />
         ))}
       </div>
     </div>
@@ -2012,7 +2012,7 @@ function CateringBadge({ catering, detail }) {
   );
 }
 
-function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCallWrap, tagFilter, personFilter, cateringDetail, shotList, slDays, slBreaks, onOpenShotList, crewAssignments, projectCity, talentMode, includePhoto }) {
+function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, talentCallLocation, hideCallWrap, tagFilter, personFilter, cateringDetail, shotList, slDays, slBreaks, onOpenShotList, crewAssignments, projectCity, talentMode, includePhoto }) {
   const [clapEvent, setClapEvent] = useState(null);
   const crewByPosition = (posName) => {
     const a = (crewAssignments || []).find(x => (x.position?.name || '').toLowerCase() === posName && x.crewMember);
@@ -2154,6 +2154,7 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, hideCal
             <div style={{ textAlign:'right' }}>
               <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', lineHeight:1, marginBottom:2 }}>Call Time</div>
               <div style={{ fontSize:20, fontWeight:800, color:'var(--text)', letterSpacing:'-0.02em', lineHeight:1 }}>{fmtTime(talentCallTime)}</div>
+              {talentCallLocation && <div style={{ fontSize:11, color:'var(--muted)', marginTop:3 }}>📍 {talentCallLocation}</div>}
             </div>
           )}
           {allItems.length > 0 && (

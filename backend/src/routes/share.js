@@ -285,13 +285,14 @@ router.get('/:token', async (req, res, next) => {
     } else if (viewType === 'talent') {
       const talentRecord = keyTalent.find(t => t.name === talentName);
       const talentDayCalls = talentRecord
-        ? await sql`SELECT shoot_day_id, call_time FROM talent_day_calls WHERE talent_id = ${talentRecord.id}`
+        ? await sql`SELECT shoot_day_id, call_time, call_location FROM talent_day_calls WHERE talent_id = ${talentRecord.id}`
         : [];
-      const dayCallMap = {};
-      talentDayCalls.forEach(c => { dayCallMap[c.shoot_day_id] = c.call_time; });
+      const dayCallMap = {}, dayCallLocMap = {};
+      talentDayCalls.forEach(c => { dayCallMap[c.shoot_day_id] = c.call_time; dayCallLocMap[c.shoot_day_id] = c.call_location; });
       const filteredDays = daysWithData.map(day => ({
         ...day,
         talent_call_time: dayCallMap[day.id] || null,
+        talent_call_location: dayCallLocMap[day.id] || null,
         events: day.events.filter(e => (e.audience || []).includes(talentName)),
         crewCalls: day.crewCalls.filter(c => !c.audience || c.audience.length === 0 || c.audience.includes(talentName) || c.audience.includes('talent')),
       }));
