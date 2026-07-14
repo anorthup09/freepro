@@ -754,7 +754,7 @@ function CreativeAssets({ pageId, assets, setAssets, edits }) {
     reader.onload = async () => {
       setBusy(n => n + 1);
       try {
-        const a = await api.uploadAvoAsset(pageId, { filename: file.name, mime: file.type, fileBase64: String(reader.result).split(',')[1], editId: tagTo || null });
+        const a = await api.uploadAvoAsset(pageId, { filename: file.name, mime: file.type, fileBase64: String(reader.result).split(',')[1], editIds: tagTo ? [tagTo] : [] });
         setAssets(as => [a, ...as]);
       } catch (e) { alert(e.message); }
       setBusy(n => n - 1);
@@ -767,9 +767,10 @@ function CreativeAssets({ pageId, assets, setAssets, edits }) {
     setDragging(false);
     Array.from(ev.dataTransfer?.files || []).forEach(uploadOne);
   }
-  async function retag(a, editId) {
+  const tagsOf = a => Array.isArray(a.edit_ids) ? a.edit_ids : [];
+  async function saveTags(a, editIds) {
     try {
-      const next = await api.updateAvoAsset(a.id, { editId: editId || null });
+      const next = await api.updateAvoAsset(a.id, { editIds });
       setAssets(as => as.map(x => x.id === a.id ? next : x));
     } catch (e) { alert(e.message); }
   }
@@ -831,14 +832,24 @@ function CreativeAssets({ pageId, assets, setAssets, edits }) {
             <div onClick={() => download(a)} style={{ fontSize:12, fontWeight:700, color:'#4a9eff', cursor:'pointer', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{a.filename}</div>
             <div style={{ fontSize:10, color:'var(--muted)' }}>{fmtSize(a.size)} · {a.uploaded_by || 'unknown'} · {new Date(a.created_at).toLocaleDateString()}</div>
           </div>
-          <select value={a.edit_id || ''} onChange={e => retag(a, e.target.value)}
-            title="Tag this asset to a video — a note lands in that video's activity"
-            style={{ fontSize:11, padding:'4px 8px', borderRadius:12, maxWidth:200,
-              background: a.edit_id ? `${AVO}22` : 'var(--bg)', border:`1px solid ${a.edit_id ? AVO : 'var(--border)'}`, color: a.edit_id ? AVO : 'var(--muted)', fontWeight:700 }}>
-            <option value="">— untagged —</option>
-            {a.edit_id && !titleOf(a.edit_id) && <option value={a.edit_id}>(video removed)</option>}
-            {edits.map(e => <option key={e.id} value={e.id}>{e.title}</option>)}
-          </select>
+          <div style={{ display:'flex', alignItems:'center', gap:5, flexWrap:'wrap', justifyContent:'flex-end', maxWidth:340 }}>
+            {tagsOf(a).map(eid => (
+              <span key={eid} style={{ display:'inline-flex', alignItems:'center', gap:4, background:`${AVO}22`, border:`1px solid ${AVO}`, color:AVO, borderRadius:12, padding:'2px 8px', fontSize:10, fontWeight:700, whiteSpace:'nowrap' }}>
+                {titleOf(eid) || '(video removed)'}
+                <span title="Untag this video" onClick={() => saveTags(a, tagsOf(a).filter(x => x !== eid))}
+                  style={{ cursor:'pointer', fontWeight:800, opacity:0.8 }}>✕</span>
+              </span>
+            ))}
+            {edits.some(e => !tagsOf(a).includes(e.id)) && (
+              <select value="" onChange={e => e.target.value && saveTags(a, [...tagsOf(a), e.target.value])}
+                title="Tag this asset to a video — a note lands in that video's activity"
+                style={{ fontSize:10, padding:'3px 6px', borderRadius:12, maxWidth:120,
+                  background:'var(--bg)', border:'1px solid var(--border)', color:'var(--muted)', fontWeight:700 }}>
+                <option value="">{tagsOf(a).length ? '+ tag…' : '+ tag video…'}</option>
+                {edits.filter(e => !tagsOf(a).includes(e.id)).map(e => <option key={e.id} value={e.id}>{e.title}</option>)}
+              </select>
+            )}
+          </div>
           <button className="btn btn-ghost btn-sm" onClick={() => download(a)}>⬇</button>
           <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text, #e05252)' }} onClick={() => remove(a)}>✕</button>
         </div>

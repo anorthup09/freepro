@@ -498,29 +498,35 @@ router.delete('/files/:fid', ...staff, async (req, res, next) => {
 });
 
 // ── Creative assets on a project page (photos, motion gfx…), taggable to a video ──
+const cleanEditIds = v => [...new Set((Array.isArray(v) ? v : v ? [v] : []).filter(Boolean).map(String))];
 router.post('/projects/:id/assets', ...staff, async (req, res, next) => {
   try {
-    const { filename, mime, fileBase64, editId } = req.body;
+    const { filename, mime, fileBase64 } = req.body;
+    const editIds = cleanEditIds(req.body.editIds ?? req.body.editId);
     const buf = Buffer.from(String(fileBase64 || ''), 'base64');
     if (!buf.length || !filename) return res.status(400).json({ error: 'No file received' });
     if (buf.length > 20 * 1024 * 1024) return res.status(400).json({ error: 'File too large (20MB max)' });
     const who = req.user?.email || 'someone';
     const [a] = await sql`
-      INSERT INTO avo_assets (page_id, filename, mime, size, data, edit_id, uploaded_by)
-      VALUES (${req.params.id}, ${filename}, ${mime || 'application/octet-stream'}, ${buf.length}, ${buf}, ${editId || null}, ${who})
-      RETURNING id, page_id, filename, mime, size, edit_id, uploaded_by, created_at`;
-    if (editId) await logAct(editId, 'log', who, `uploaded creative asset ${filename}`);
+      INSERT INTO avo_assets (page_id, filename, mime, size, data, edit_ids, uploaded_by)
+      VALUES (${req.params.id}, ${filename}, ${mime || 'application/octet-stream'}, ${buf.length}, ${buf}, ${sql.json(editIds)}, ${who})
+      RETURNING id, page_id, filename, mime, size, edit_ids, uploaded_by, created_at`;
+    for (const eid of editIds) await logAct(eid, 'log', who, `uploaded creative asset ${filename}`);
     res.status(201).json(a);
   } catch (e) { next(e); }
 });
 router.patch('/assets/:aid', ...staff, async (req, res, next) => {
   try {
-    const editId = req.body.editId || null;
-    const [a] = await sql`UPDATE avo_assets SET edit_id = ${editId}
+    const editIds = cleanEditIds(req.body.editIds ?? req.body.editId);
+    const [before] = await sql`SELECT edit_ids FROM avo_assets WHERE id = ${req.params.aid}`;
+    if (!before) return res.status(404).json({ error: 'Asset not found' });
+    const [a] = await sql`UPDATE avo_assets SET edit_ids = ${sql.json(editIds)}
       WHERE id = ${req.params.aid}
-      RETURNING id, page_id, filename, mime, size, edit_id, uploaded_by, created_at`;
-    if (!a) return res.status(404).json({ error: 'Asset not found' });
-    if (editId) await logAct(editId, 'log', req.user?.email || 'someone', `tagged creative asset ${a.filename} to this video`);
+      RETURNING id, page_id, filename, mime, size, edit_ids, uploaded_by, created_at`;
+    const prev = new Set(cleanEditIds(before.edit_ids));
+    const who = req.user?.email || 'someone';
+    for (const eid of editIds.filter(x => !prev.has(x)))
+      await logAct(eid, 'log', who, `tagged creative asset ${a.filename} to this video`);
     res.json(a);
   } catch (e) { next(e); }
 });
@@ -535,8 +541,8 @@ router.get('/assets/:aid/file', ...staff, async (req, res, next) => {
 });
 router.delete('/assets/:aid', ...staff, async (req, res, next) => {
   try {
-    const [f] = await sql`DELETE FROM avo_assets WHERE id = ${req.params.aid} RETURNING edit_id, filename`;
-    if (f?.edit_id) await logAct(f.edit_id, 'log', req.user?.email || 'someone', `deleted creative asset ${f.filename}`);
+    const [f] = await sql`DELETE FROM avo_assets WHERE id = ${req.params.aid} RETURNING edit_ids, filename`;
+    for (const eid of cleanEditIds(f?.edit_ids)) await logAct(eid, 'log', req.user?.email || 'someone', `deleted creative asset ${f.filename}`);
     res.status(204).end();
   } catch (e) { next(e); }
 });
@@ -620,7 +626,7 @@ router.get('/projects/:id', ...staff, async (req, res, next) => {
       FROM edits e
       WHERE e.project_code = ${page.code} OR e.project_code LIKE ${page.code + '-%'}
       ORDER BY e.tracker_sort NULLS LAST, e.end_date NULLS LAST, e.created_at`;
-    const assets = await sql`SELECT id, page_id, filename, mime, size, edit_id, uploaded_by, created_at FROM avo_assets WHERE page_id = ${page.id} ORDER BY created_at DESC`;
+    const assets = await sql`SELECT id, page_id, filename, mime, size, edit_ids, uploaded_by, created_at FROM avo_assets WHERE page_id = ${page.id} ORDER BY created_at DESC`;
     const tables = await sql`SELECT * FROM avo_custom_tables WHERE page_id = ${page.id} ORDER BY sort, created_at`;
     const tRows = tables.length ? await sql`SELECT * FROM avo_custom_rows WHERE table_id IN ${sql(tables.map(t => t.id))} ORDER BY sort, created_at` : [];
     const customTables = tables.map(t => ({ ...t, rows: tRows.filter(r => r.table_id === t.id) }));

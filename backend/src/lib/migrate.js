@@ -1150,6 +1150,10 @@ async function migrate() {
       uploaded_by TEXT,
       created_at TIMESTAMPTZ DEFAULT NOW()
     )`;
+  // An asset can be tagged to multiple videos (e.g. a lower third used across edits)
+  await sql`ALTER TABLE avo_assets ADD COLUMN IF NOT EXISTS edit_ids JSONB DEFAULT '[]'::jsonb`;
+  await sql`UPDATE avo_assets SET edit_ids = jsonb_build_array(edit_id)
+    WHERE edit_id IS NOT NULL AND (edit_ids IS NULL OR edit_ids = '[]'::jsonb)`;
   // Video-tracker columns on edits (Type / Style / Notes / Video Assets)
   await sql`ALTER TABLE edits ADD COLUMN IF NOT EXISTS tracker_type TEXT`;
   await sql`ALTER TABLE edits ADD COLUMN IF NOT EXISTS style TEXT`;
