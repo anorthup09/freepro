@@ -184,6 +184,7 @@ export const api = {
   gearOverview: () => req('GET', '/gear-requests/overview'),
   gearReport: () => req('GET', '/gear-requests/report'),
   vendorContractReport: () => req('GET', '/reports/vendor-contracts'),
+  vendorContractDetail: (aid) => req('GET', `/reports/vendor-contracts/${aid}/detail`),
   gearRequestProjects: () => req('GET', '/gear-requests/available-projects'),
   gearRequestForProject: (pid) => req('GET', `/gear-requests/project/${pid}`),
   createGearRequest: (data) => req('POST', '/gear-requests', data),

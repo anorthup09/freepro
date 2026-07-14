@@ -236,4 +236,13 @@ router.get('/reports/vendor-contracts', requireAuth, requireRole('ADMIN','PRODUC
   } catch (e) { next(e); }
 });
 
+// Latest contract for a crew assignment — powers the Vendor Contract Report's
+// detail pop-out (null contract = nothing sent yet)
+router.get('/reports/vendor-contracts/:assignmentId/detail', requireAuth, requireRole('ADMIN','PRODUCER','FINANCE'), async (req, res, next) => {
+  try {
+    const [c] = await sql`SELECT * FROM contracts WHERE crew_assignment_id = ${req.params.assignmentId} ORDER BY created_at DESC LIMIT 1`;
+    res.json(c || null);
+  } catch (e) { next(e); }
+});
+
 module.exports = router;
