@@ -3,6 +3,28 @@ import { api } from '../../api.js';
 import { displayName } from '../../utils/displayName.js';
 import Clapboard from '../../components/Clapboard.jsx';
 
+// Room/Space input with quick-fill: rooms already saved on this shoot show as
+// native suggestions (datalist) and as clickable chips below the field
+function RoomSpaceField({ value, onChange, options }) {
+  const chips = options.filter(o => o.toLowerCase() !== (value || '').trim().toLowerCase()).slice(0, 8);
+  return (
+    <>
+      <input value={value} list="room-space-saved" placeholder="Ballroom 3" onChange={e => onChange(e.target.value)} />
+      <datalist id="room-space-saved">{options.map(o => <option key={o} value={o} />)}</datalist>
+      {chips.length > 0 && (
+        <div style={{ display:'flex', flexWrap:'wrap', gap:4, marginTop:5 }}>
+          {chips.map(o => (
+            <button key={o} type="button" onClick={() => onChange(o)} title="Quick-fill this room/space"
+              style={{ background:'var(--bg)', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:10, padding:'2px 9px', fontSize:10, fontWeight:600, cursor:'pointer' }}>
+              {o}
+            </button>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
 function isoDateOf(ts) {
   if (!ts) return null;
   return new Date(ts).toISOString().slice(0, 10);
@@ -277,6 +299,11 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
   const [editEventId, setEditEventId] = useState(null);
   const [editEventForm, setEditEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', roomSpace:'', isAlert:false, isFilming:false, tags:[], audience:[], crewIds:[], locationId:'' });
   const [dayCardCollapsed, setDayCardCollapsed] = useState(true);
+
+  // Every Room/Space already used on this shoot's schedule — saved with the
+  // events themselves, offered as quick-fill on the event forms
+  const usedRooms = [...new Set(days.flatMap(d => (d.events || []).map(ev => (ev.room_space || '').trim())).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b));
 
   // Jump straight to a specific day (from the shot list day tiles) with the
   // day details expanded for editing
@@ -1293,7 +1320,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                       </select>
                   }
                 </div>
-                <div className="field"><label>Room / Space</label><input value={eventForm.roomSpace} onChange={e => setEventForm(f=>({...f,roomSpace:e.target.value}))} placeholder="Ballroom 3" /></div>
+                <div className="field"><label>Room / Space</label><RoomSpaceField value={eventForm.roomSpace} options={usedRooms} onChange={v => setEventForm(f=>({...f,roomSpace:v}))} /></div>
                 <div className="field span2">
                   <label>Tags</label>
                   <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:4 }}>
@@ -1443,7 +1470,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                       </select>
                   }
                 </div>
-                <div className="field"><label>Room / Space</label><input value={editEventForm.roomSpace} onChange={e => setEditEventForm(f=>({...f,roomSpace:e.target.value}))} placeholder="Ballroom 3" /></div>
+                <div className="field"><label>Room / Space</label><RoomSpaceField value={editEventForm.roomSpace} options={usedRooms} onChange={v => setEditEventForm(f=>({...f,roomSpace:v}))} /></div>
                 <div className="field span2">
                   <label>Tags</label>
                   <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:4 }}>
