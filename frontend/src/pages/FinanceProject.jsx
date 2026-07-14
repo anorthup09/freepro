@@ -118,7 +118,7 @@ export default function FinanceProject({ pidOverride }) {
                     style={{ background:'rgba(230,194,41,0.15)', border:'1px solid #e6c229', color:'#e6c229', borderRadius:20, padding:'4px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
                     + Add Estimate{estimates.length ? ` (${estimates.length})` : ''}
                   </button>
-                  <ShareBudgetButton budget={budget} onOverview={() => setOverview(true)}
+                  <ShareBudgetButton budget={budget} project={project} sections={sections} lines={lines} onOverview={() => setOverview(true)}
                     onModePicked={m => set(d => ({ budget: { ...d.budget, share_mode: m } }))} />
                 </div>
               </>
@@ -1575,8 +1575,96 @@ function VendorInvoicesButton({ pid }) {
 
 // Client Budget: pick how the client sees it (line items vs buckets) in a
 // pop-out, then open the shared page. No standing toggle in the header.
-function ShareBudgetButton({ budget, onModePicked, onOverview }) {
-  const [underConstruction, setUnderConstruction] = useState(false);
+// Project Estimate PDF: the Unbridled template auto-populated from the budget.
+// Buckets: Pre-Production/Creative (scripting/storyboarding + mgmt fee),
+// Production (shoots, photography, virtual recording, misc), Post-Production,
+// Travel (every is_travel line). Opens a white print-ready page → Save as PDF.
+function openEstimatePdf({ project, budget, sections, lines, preparedBy }) {
+  const mgmtRate = budget.mgmt_fee_rate != null ? Number(budget.mgmt_fee_rate) : 0.15;
+  const bySection = {};
+  for (const l of lines) (bySection[l.section_id] ||= []).push(l);
+  let pre = 0, prod = 0, post = 0, travel = 0, photo = 0;
+  for (const sec of sections) {
+    const secLines = bySection[sec.id] || [];
+    for (const l of secLines) {
+      const st = lineSubtotal(l, secLines);
+      if (l.is_travel) { travel += st; continue; }
+      if (sec.kind === 'photo') { photo += st; continue; }
+      if (sec.kind === 'shoot') { prod += st; continue; }
+      const t = String(sec.title || '').toLowerCase();
+      if (/post/.test(t)) post += st;
+      else if (/script|storyboard|creative|concept/.test(t)) pre += st;
+      else prod += st;
+    }
+  }
+  // Coordination fee uses the same base as the budget total (non-travel, non-photo),
+  // and lands in Pre-Production/Creative ("planning, logistics, and coordination").
+  const mgmt = mgmtRate * (pre + prod + post);
+  pre += mgmt;
+  prod += photo;
+  const total = pre + prod + post + travel;
+  const money = n => '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const today = new Date();
+  const valid = new Date(today.getTime() + 30 * 24 * 3600 * 1000);
+  const fmtLong = d => d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  const esc = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  const ROWS = [
+    ['Pre-Production / Creative Costs', 'Reflects costs associated with creative development, planning, logistics, and coordination.', pre],
+    ['Production Costs', 'Crew, equipment, and resources required to capture content and execute shoot(s).', prod],
+    ['Post-Production Costs', 'Editing, color, sound, motion graphics, revisions, and delivery of final assets.', post],
+    ['Travel Costs', 'Projected costs associated with crew travel, including airfare, lodging, per diem, ground transportation, and insurance.', travel],
+  ];
+  const summary = [
+    ['Client Company Name:', esc(project.client)],
+    ['Project Title:', esc(project.title)],
+    ['Total Estimated Investment:', money(total)],
+    ['Date Estimate Sent:', fmtLong(today)],
+    ['Estimate Valid Through:', fmtLong(valid)],
+    ['Prepared By:', esc(preparedBy)],
+  ];
+  const w = window.open('', '_blank');
+  if (!w) return alert('Pop-up blocked — allow pop-ups to generate the estimate PDF.');
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Project Estimate — ${esc(project.code)}</title>
+    <style>
+      @page { margin: 0.7in; }
+      * { box-sizing: border-box; }
+      body { font-family: 'Helvetica Neue', Arial, sans-serif; color:#2b2f33; margin:0; padding:32px 40px; background:#fff; }
+      .hdr { display:flex; align-items:center; justify-content:space-between; border-bottom:3px solid #d95a1a; padding-bottom:14px; margin-bottom:18px; }
+      .hdr img { height:44px; }
+      .hdr .t { font-size:21px; font-weight:800; letter-spacing:0.12em; color:#3d4449; }
+      .intro { font-size:11.5px; line-height:1.55; color:#444; margin-bottom:20px; }
+      h2 { font-size:12.5px; letter-spacing:0.08em; color:#d95a1a; margin:22px 0 8px; text-transform:uppercase; }
+      table { width:100%; border-collapse:collapse; font-size:11.5px; }
+      .sum td { border:1px solid #cfd3d6; padding:7px 10px; }
+      .sum td:first-child { width:38%; font-weight:700; background:#f4f5f6; }
+      .inv th { border:1px solid #cfd3d6; padding:7px 10px; background:#3d4449; color:#fff; text-align:left; font-size:11px; letter-spacing:0.05em; }
+      .inv th:last-child, .inv td.amt { text-align:right; width:130px; white-space:nowrap; }
+      .inv td { border:1px solid #cfd3d6; padding:7px 10px; vertical-align:top; }
+      .inv .cat { font-weight:800; }
+      .inv .desc { font-size:10px; color:#666; margin-top:2px; line-height:1.4; }
+      .inv tr.total td { background:#f4f5f6; font-weight:800; font-size:12.5px; }
+      .next { font-size:11.5px; line-height:1.55; color:#444; margin-top:20px; }
+      .next b { color:#d95a1a; letter-spacing:0.06em; }
+      @media print { body { padding:0; } }
+    </style></head><body>
+    <div class="hdr"><img src="${window.location.origin}/unbridled-logo.png" alt="Unbridled Media"><div class="t">PROJECT ESTIMATE</div></div>
+    <div class="intro">This estimate reflects the proposed SOW and associated costs for the project outlined below. Changes to scope, timeline, or deliverables may impact final pricing. Estimate is valid for 30 days from the date sent.</div>
+    <h2>Estimate Summary</h2>
+    <table class="sum"><tbody>${summary.map(([k, v]) => `<tr><td>${k}</td><td>${v || '&nbsp;'}</td></tr>`).join('')}</tbody></table>
+    <h2>Project Investment</h2>
+    <table class="inv"><thead><tr><th></th><th>Subtotal</th></tr></thead><tbody>
+      ${ROWS.map(([cat, desc, amt]) => `<tr><td><div class="cat">${cat}</div><div class="desc">${desc}</div></td><td class="amt">${money(amt)}</td></tr>`).join('')}
+      <tr class="total"><td>TOTAL PROJECT ESTIMATE:</td><td class="amt">${money(total)}</td></tr>
+    </tbody></table>
+    <div class="next"><b>NEXT STEPS:</b> Once these estimated costs are approved, Unbridled Media will follow up with a formal contract outlining full terms and conditions. The contract will include the final project estimate for review and signature prior to project kickoff.
+    <br><br>Thank you for the opportunity to collaborate! Please don’t hesitate to reach out with any questions as you review this estimate.</div>
+    <script>window.onload = () => setTimeout(() => window.print(), 350);</` + `script>
+    </body></html>`);
+  w.document.close();
+}
+
+function ShareBudgetButton({ budget, project, sections, lines, onModePicked, onOverview }) {
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   async function share(mode) {
@@ -1628,25 +1716,12 @@ function ShareBudgetButton({ budget, onModePicked, onOverview }) {
                   <div style={{ fontSize:11, color:'var(--muted)', marginTop:2 }}>{desc}</div>
                 </button>
               ))}
-              <button type="button" onClick={() => setUnderConstruction(true)}
-                style={{ textAlign:'left', background:'var(--bg)', border:'1px dashed var(--border)', borderRadius:10, padding:'12px 14px', cursor:'pointer' }}>
-                <div style={{ fontSize:13, fontWeight:800, color:'var(--muted)' }}>Project Estimates PDF <span style={{ fontSize:9, fontWeight:800, textTransform:'uppercase', border:'1px solid var(--border)', borderRadius:10, padding:'1px 7px', marginLeft:6 }}>Coming Soon</span></div>
-                <div style={{ fontSize:11, color:'var(--muted)', marginTop:2 }}>A formatted estimate PDF from the Unbridled template.</div>
+              <button type="button" onClick={() => { setOpen(false); openEstimatePdf({ project, budget, sections, lines, preparedBy: user?.name || user?.email || '' }); }}
+                style={{ textAlign:'left', background:'var(--bg)', border:'1px solid #e6c229', borderRadius:10, padding:'12px 14px', cursor:'pointer' }}>
+                <div style={{ fontSize:13, fontWeight:800, color:'#e6c229' }}>Project Estimate PDF</div>
+                <div style={{ fontSize:11, color:'var(--muted)', marginTop:2 }}>The Unbridled estimate template auto-filled from this budget — opens print-ready, save as PDF.</div>
               </button>
             </div>
-          </div>
-        </div>
-      )}
-      {underConstruction && (
-        <div onClick={e => e.target === e.currentTarget && setUnderConstruction(false)}
-          style={{ position:'fixed', inset:0, zIndex:140, background:'rgba(0,0,0,0.72)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
-          <div style={{ width:'100%', maxWidth:360, background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid #e6c229', borderRadius:12, padding:'20px 22px', textAlign:'center' }}>
-            <div style={{ fontSize:26, marginBottom:6 }}>🚧</div>
-            <div style={{ fontSize:14, fontWeight:800, marginBottom:6 }}>Project Estimates PDF — under construction</div>
-            <div style={{ fontSize:12, color:'var(--muted)', lineHeight:1.5, marginBottom:14 }}>
-              This will generate a formatted estimate PDF once the Unbridled template is loaded in. Coming soon.
-            </div>
-            <button className="btn btn-ghost btn-sm" onClick={() => setUnderConstruction(false)}>Got it</button>
           </div>
         </div>
       )}
