@@ -228,22 +228,27 @@ router.get('/reports/vendor-contracts', requireAuth, requireRole('ADMIN','PRODUC
       JOIN positions po ON po.id = ca.position_id
       JOIN projects pr ON pr.id = ca.project_id
       WHERE ca.is_contractor = TRUE AND pr.status != 'ARCHIVED'`;
-    // Post-production contractors (AvocadoPost Color & Audio tracker)
+    // Post-production contractors, straight from each project's Video Tracker
+    // (Color & Audio). The project join is best-effort: pages whose code has
+    // no matching project still appear, using the page's own code/title.
+    // Post work runs past the shoot, so slot dates are the tracker's own —
+    // no fallback to project dates (that would auto-archive live post work).
     const postRows = await sql`
       SELECT ac.id, pr.id as project_id, NULL::numeric as day_rate, NULL::numeric as labor_days,
              NULL::numeric as gear_cost, NULL::numeric as gear_days,
              ac.name as contractor_name,
              CASE WHEN ac.role = 'color' THEN 'Color' ELSE 'Audio' END as position_name,
-             pr.code, pr.title, pr.status as project_status, pr.start_date, pr.parent_project_id,
-             COALESCE(ac.start_date, pr.start_date::text) as slot_start,
-             COALESCE(ac.end_date, pr.end_date::text) as slot_end,
+             COALESCE(pr.code, pp.code) as code, COALESCE(pr.title, pp.title) as title,
+             pr.status as project_status, pr.start_date, pr.parent_project_id,
+             ac.start_date as slot_start,
+             ac.end_date as slot_end,
              c.status as contract_status, c.created_at as contract_sent_at,
              ac.total as post_total, pp.id as avo_page_id
       FROM avo_contractors ac
       JOIN avo_project_pages pp ON pp.id = ac.page_id
-      JOIN projects pr ON pr.code = pp.code
+      LEFT JOIN projects pr ON pr.code = pp.code
       LEFT JOIN contracts c ON c.id = ac.contract_id
-      WHERE pr.status != 'ARCHIVED' AND NULLIF(TRIM(ac.name), '') IS NOT NULL`;
+      WHERE (pr.id IS NULL OR pr.status != 'ARCHIVED') AND NULLIF(TRIM(ac.name), '') IS NOT NULL`;
     const rows = [...crewRows, ...postRows];
     const codes = await displayCodes([...new Set(rows.map(r => r.project_id))]);
     const today = new Date().toISOString().slice(0, 10);
