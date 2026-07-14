@@ -13,5 +13,19 @@
       "Track every request in Reports \u2192 Client Invoice Report \u2192 Requests view."
     ],
     "screenshot": "add-invoice.png"
+  },
+  {
+    "title": "Invoice Request to Billing \u2014 email automation",
+    "page": "Emails & Automations",
+    "what": "Submitting + Add Invoice in the VCC fires a branded request email to accounting with the deposit #, amount, the invoice's send-to and CC, the 35-character description, and who asked. It's now a managed automation in the admin Automations dashboard: the From and To addresses are editable (default billing@unbridledmedia.com) and the email design can be previewed. There is deliberately no CC field on the automation \u2014 the invoice's CC list travels inside the email body for accounting to use on the formal invoice.",
+    "where": "Hub \u2192 Admin \u2192 Automations \u25b8 \u2192 Invoice Request to Billing",
+    "how": [
+      "Open the Hub as an admin and click Admin, then Automations \u25b8.",
+      "Find Invoice Request to Billing in the list.",
+      "Edit From or To if the request should route somewhere else, and Save.",
+      "Click Preview to see exactly what accounting receives.",
+      "Every + Add Invoice submission from any project's VCC then emails that address automatically (once SMTP is connected)."
+    ],
+    "screenshot": "invoice-request-automation.png"
   }
 ]
