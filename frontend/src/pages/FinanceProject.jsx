@@ -1860,7 +1860,7 @@ function ShareBudgetButton({ budget, project, sections, lines, onModePicked, onO
   const OPTIONS = [
     ['lines', 'Itemized with Cost', 'The full budget line by line — every position, rate, and quantity.'],
     ['items-nocost', 'Itemized — Subtotals Only', 'Every line item and quantity, with dollars only at the section subtotal and total level.'],
-    ['buckets', 'Non-Itemized with Subtotal Costs', 'Rolled-up section subtotals only — no individual line detail.'],
+    ['buckets', 'Non-Itemized — Subtotals Only', 'Rolled-up section subtotals only — no individual line detail.'],
   ];
   return (
     <>
