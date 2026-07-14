@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { api } from '../../api.js';
 import { displayName } from '../../utils/displayName.js';
 import GearRequestModal from '../../components/GearRequestModal.jsx';
+import DrivesTile from '../../components/DrivesTile.jsx';
 
 function Field({ label, value, onChange, onBlur, placeholder, type='text' }) {
   return (
@@ -184,14 +185,6 @@ export default function Gear({ project, setProject }) {
           onSubmitted={r => setGearRequest({ ...r, code: project.code, title: project.title })} />
       )}
 
-      {/* ── Storage Location ── */}
-      <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'16px', marginBottom:20 }}>
-        <div className="sec-lbl" style={{ marginTop:0 }}>Storage Location</div>
-        <div className="field" style={{ margin:0 }}>
-          <input {...field('storageLocation')} placeholder="Room 104B — locked cage near freight elevator" />
-        </div>
-      </div>
-
       {/* ── Person Responsible ── */}
       <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'16px', marginBottom:20 }}>
         <div className="sec-lbl" style={{ marginTop:0 }}>Person Responsible for Gear</div>
@@ -211,6 +204,17 @@ export default function Gear({ project, setProject }) {
               {gearPerson.email && <span style={{ color:'var(--muted)' }}>{gearPerson.email}</span>}
             </div>
           )}
+        </div>
+      </div>
+
+      {/* ── DIT — drives on this shoot ── */}
+      <DrivesTile pid={project.id} title="DIT — Drives" style={{ flex: 'none', width: '100%', marginBottom: 20, borderRadius: 8, borderTop: '1px solid var(--border)' }} />
+
+      {/* ── Storage Location ── */}
+      <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'16px', marginBottom:20 }}>
+        <div className="sec-lbl" style={{ marginTop:0 }}>Storage Location</div>
+        <div className="field" style={{ margin:0 }}>
+          <input {...field('storageLocation')} placeholder="Room 104B — locked cage near freight elevator" />
         </div>
       </div>
 

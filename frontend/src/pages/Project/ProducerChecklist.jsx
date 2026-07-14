@@ -29,6 +29,10 @@ export default function ProducerChecklist({ project }) {
   const [checked, setChecked] = useState({});
   // Assignments: checklist item -> the real project task it created
   const assignKey = storeKey + ':assigned';
+  // Custom groups/items + deletions, per project (browser-local like checks)
+  const customKey = storeKey + ':custom';
+  const [custom, setCustom] = useState({});
+  const [addForm, setAddForm] = useState(null);   // { kind:'group'|'item', group, text }
   const [assigned, setAssigned] = useState({});
   const [crew, setCrew] = useState([]);
   const [assigning, setAssigning] = useState(null);   // item id with the panel open
@@ -40,6 +44,8 @@ export default function ProducerChecklist({ project }) {
     catch { setChecked({}); }
     try { setAssigned(JSON.parse(localStorage.getItem(assignKey) || '{}')); }
     catch { setAssigned({}); }
+    try { setCustom(JSON.parse(localStorage.getItem(customKey) || '{}')); }
+    catch { setCustom({}); }
   }, [storeKey]);
 
   useEffect(() => {
@@ -48,6 +54,28 @@ export default function ProducerChecklist({ project }) {
         .sort((a, b) => displayName(a).localeCompare(displayName(b)))))
       .catch(() => {});
   }, []);
+
+  const curCustom = custom[active] || { groups: [], items: [], removed: [] };
+  const saveCustom = next => setCustom(c => {
+    const n = { ...c, [active]: next };
+    try { localStorage.setItem(customKey, JSON.stringify(n)); } catch {}
+    return n;
+  });
+  // Merge the playbook's sections with this project's custom groups and items,
+  // dropping anything deleted
+  function mergedSections(l, cust) {
+    const removed = new Set(cust.removed || []);
+    const secs = [
+      ...l.sections.map((s2, si) => ({ label: s2.section || '', items: s2.items.map((it, ii) => ({ ...it, id: `${l.key}|${si}|${ii}` })) })),
+      ...(cust.groups || []).map(g => ({ label: g, items: [], custom: true })),
+    ];
+    (cust.items || []).forEach((x, ci) => {
+      const target = secs.find(s2 => (s2.label || '') === (x.group || '')) || secs[0];
+      target.items.push({ label: x.label, id: `${l.key}|c|${ci}` });
+    });
+    for (const s2 of secs) s2.items = s2.items.filter(it => !removed.has(it.id));
+    return secs;
+  }
 
   function openAssign(id) {
     const a = assigned[id];
@@ -104,9 +132,9 @@ export default function ProducerChecklist({ project }) {
   // Progress counts per checklist
   const progressFor = l => {
     let total = 0, done = 0;
-    l.sections.forEach((s, si) => s.items.forEach((it, ii) => {
+    mergedSections(l, custom[l.key] || { groups: [], items: [], removed: [] }).forEach(s2 => s2.items.forEach(it => {
       total++;
-      if (checked[`${l.key}|${si}|${ii}`]) done++;
+      if (checked[it.id]) done++;
     }));
     return { total, done };
   };
@@ -162,21 +190,55 @@ export default function ProducerChecklist({ project }) {
       )}
 
       {list && <>
-      <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 2 }}>{list.title}</div>
-      <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 16 }}>
-        Sourced from the Unbridled production resources master doc. Checks save to your browser for this project.
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+        <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 2 }}>{list.title}</div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button className="btn btn-ghost btn-sm" style={{ fontSize: 10 }}
+            onClick={() => setAddForm(f => f?.kind === 'group' ? null : { kind: 'group', text: '' })}>+ Add Group</button>
+          <button className="btn btn-ghost btn-sm" style={{ fontSize: 10 }}
+            onClick={() => setAddForm(f => f?.kind === 'item' ? null : { kind: 'item', group: '', text: '' })}>+ Add Item</button>
+        </div>
       </div>
+      <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 12 }}>
+        Sourced from the Unbridled production resources master doc. Checks, added items, and deletions save to your browser for this project.
+      </div>
+      {addForm && (
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', border: `1px solid ${accent}55`, borderRadius: 8, padding: '8px 12px', marginBottom: 14 }}>
+          {addForm.kind === 'item' && (
+            <select value={addForm.group} onChange={e => setAddForm(f => ({ ...f, group: e.target.value }))} style={{ fontSize: 12, width: 200, flex: 'none' }}>
+              <option value="">— Pick a group —</option>
+              {mergedSections(list, curCustom).map((s2, i) => <option key={i} value={s2.label}>{s2.label || `Section ${i + 1}`}</option>)}
+            </select>
+          )}
+          <input value={addForm.text} autoFocus
+            placeholder={addForm.kind === 'group' ? 'New group name…' : 'New checklist item…'}
+            onChange={e => setAddForm(f => ({ ...f, text: e.target.value }))}
+            onKeyDown={e => e.key === 'Enter' && document.getElementById('pc-add-btn')?.click()}
+            style={{ fontSize: 12, flex: 1, minWidth: 180 }} />
+          <button id="pc-add-btn" className="btn btn-primary btn-sm" onClick={() => {
+            const t = (addForm.text || '').trim();
+            if (!t) return;
+            if (addForm.kind === 'group') saveCustom({ ...curCustom, groups: [...(curCustom.groups || []), t] });
+            else saveCustom({ ...curCustom, items: [...(curCustom.items || []), { group: addForm.group || '', label: t }] });
+            setAddForm(f => ({ ...f, text: '' }));
+          }}>Add</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => setAddForm(null)}>Done</button>
+        </div>
+      )}
 
-      {list.sections.map((sec, si) => (
+      {mergedSections(list, curCustom).map((sec, si) => (
         <div key={si} style={{ marginBottom: 20 }}>
-          {sec.section && (
+          {sec.label && (
             <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase',
               color: accent, borderBottom: `1px solid ${accent}44`, paddingBottom: 5, marginBottom: 8 }}>
-              {sec.section}
+              {sec.label}
             </div>
           )}
+          {sec.items.length === 0 && sec.custom && (
+            <div style={{ fontSize: 11, color: 'var(--muted)', fontStyle: 'italic', padding: '4px 6px' }}>Empty group — use + Add Item to fill it.</div>
+          )}
           {sec.items.map((it, ii) => {
-            const id = `${list.key}|${si}|${ii}`;
+            const id = it.id;
             const on = !!checked[id];
             const a = assigned[id];
             const hasAssignee = !!(a && a.assigneeId);
@@ -202,6 +264,10 @@ export default function ProducerChecklist({ project }) {
                       </div>
                     )}
                   </div>
+                  <button title="Delete this checklist item"
+                    onClick={ev => { ev.preventDefault(); ev.stopPropagation();
+                      if (confirm(`Delete "${it.label}" from this checklist?`)) saveCustom({ ...curCustom, removed: [...(curCustom.removed || []), id] }); }}
+                    style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.25)', fontSize: 11, cursor: 'pointer', marginLeft: 'auto', flexShrink: 0, padding: '0 2px' }}>✕</button>
                 </label>
                 {assigning === id && (
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', padding: '4px 6px 10px 52px' }}>

@@ -1057,16 +1057,6 @@ async function migrate() {
   await sql`ALTER TABLE gear_items ADD COLUMN IF NOT EXISTS from_request BOOLEAN DEFAULT FALSE`;
   await sql`ALTER TABLE gear_requests ADD COLUMN IF NOT EXISTS items JSONB`;
 
-  // Hard drive tracking: which drive is on which shoot (open row = still out)
-  await sql`
-    CREATE TABLE IF NOT EXISTS drive_assignments (
-      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-      asset_id TEXT NOT NULL REFERENCES gear_assets(id) ON DELETE CASCADE,
-      project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-      assigned_by TEXT,
-      assigned_at TIMESTAMPTZ DEFAULT NOW(),
-      returned_at TIMESTAMPTZ
-    )`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS edit_activity (
@@ -1512,6 +1502,16 @@ async function migrate() {
       console.log(`Asset seed: imported ${seed.length} assets.`);
     } catch (e) { console.error('Asset seed skipped:', e.message); }
   }
+  // Hard drive tracking: which drive is on which shoot (open row = still out)
+  await sql`
+    CREATE TABLE IF NOT EXISTS drive_assignments (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      asset_id TEXT NOT NULL REFERENCES gear_assets(id) ON DELETE CASCADE,
+      project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      assigned_by TEXT,
+      assigned_at TIMESTAMPTZ DEFAULT NOW(),
+      returned_at TIMESTAMPTZ
+    )`;
 
   // Hub personality: daily greetings cache + UM Fun Facts
   await sql`
