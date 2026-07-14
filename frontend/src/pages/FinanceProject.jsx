@@ -1461,11 +1461,9 @@ function VendorInvoicesButton({ pid }) {
     if (open) api.vendorInvoices(pid).then(setFiles).catch(e => alert(e.message));
   }, [open, pid]);
 
-  function pick(ev) {
-    const file = ev.target.files?.[0];
-    ev.target.value = '';
+  function uploadOne(file) {
     if (!file) return;
-    if (file.size > 20 * 1024 * 1024) return alert('File too large (20MB max)');
+    if (file.size > 20 * 1024 * 1024) return alert(`${file.name}: file too large (20MB max)`);
     const reader = new FileReader();
     reader.onload = async () => {
       setBusy(true);
@@ -1476,6 +1474,21 @@ function VendorInvoicesButton({ pid }) {
       setBusy(false);
     };
     reader.readAsDataURL(file);
+  }
+
+  function pick(ev) {
+    const list = Array.from(ev.target.files || []);
+    ev.target.value = '';
+    list.forEach(uploadOne);
+  }
+
+  const [dragging, setDragging] = useState(false);
+  const dragDepth = useRef(0);
+  function onDrop(ev) {
+    ev.preventDefault();
+    dragDepth.current = 0;
+    setDragging(false);
+    Array.from(ev.dataTransfer?.files || []).forEach(uploadOne);
   }
 
   async function download(f) {
@@ -1508,18 +1521,31 @@ function VendorInvoicesButton({ pid }) {
       {open && (
         <div onClick={e => e.target === e.currentTarget && setOpen(false)}
           style={{ position:'fixed', inset:0, zIndex:120, background:'rgba(0,0,0,0.7)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
-          <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid #e6c229', borderRadius:12, width:'100%', maxWidth:620, maxHeight:'85vh', display:'flex', flexDirection:'column', overflow:'hidden' }}>
+          <div
+            onDragEnter={e => { e.preventDefault(); dragDepth.current += 1; setDragging(true); }}
+            onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; }}
+            onDragLeave={e => { e.preventDefault(); dragDepth.current -= 1; if (dragDepth.current <= 0) { dragDepth.current = 0; setDragging(false); } }}
+            onDrop={onDrop}
+            style={{ position:'relative', background:'var(--bg2)', border: dragging ? '1px dashed #e6c229' : '1px solid var(--border)', borderTop:'3px solid #e6c229', borderRadius:12, width:'100%', maxWidth:620, maxHeight:'85vh', display:'flex', flexDirection:'column', overflow:'hidden' }}>
+            {dragging && (
+              <div style={{ position:'absolute', inset:0, zIndex:5, background:'rgba(230,194,41,0.10)', display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
+                <div style={{ fontSize:14, fontWeight:800, color:'#e6c229', background:'var(--bg2)', border:'1px dashed #e6c229', borderRadius:10, padding:'12px 22px' }}>
+                  Drop to upload invoice{`…`}
+                </div>
+              </div>
+            )}
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 18px', borderBottom:'1px solid var(--border)' }}>
               <div style={{ fontSize:14, fontWeight:800 }}>🧾 Vendor Invoices</div>
               <div style={{ display:'flex', gap:8 }}>
                 <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => fileRef.current?.click()}>{busy ? 'Uploading…' : '+ Upload Invoice'}</button>
-                <input ref={fileRef} type="file" accept=".pdf,.png,.jpg,.jpeg,.xlsx,.xls,.csv,.doc,.docx" style={{ display:'none' }} onChange={pick} />
+                <input ref={fileRef} type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.xlsx,.xls,.csv,.doc,.docx" style={{ display:'none' }} onChange={pick} />
                 <button className="btn btn-ghost btn-sm" onClick={() => setOpen(false)}>✕</button>
               </div>
             </div>
             <div style={{ overflowY:'auto', padding:'8px 18px 16px' }}>
               {!files && <div style={{ fontSize:11, color:'var(--muted)', padding:'12px 0' }}>Loading…</div>}
-              {files && files.length === 0 && <div style={{ fontSize:12, color:'var(--muted)', fontStyle:'italic', padding:'14px 0' }}>No invoices uploaded yet — drop vendor invoice files here so they live with the project.</div>}
+              {files && files.length === 0 && <div style={{ fontSize:12, color:'var(--muted)', fontStyle:'italic', padding:'14px 0' }}>No invoices uploaded yet — drag files anywhere onto this window (or use + Upload Invoice) so they live with the project.</div>}
+              {files && files.length > 0 && <div style={{ fontSize:10, color:'var(--muted)', padding:'6px 0 2px', textAlign:'center' }}>Tip: drag & drop files anywhere on this window to upload.</div>}
               {(files || []).map(f => (
                 <div key={f.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 0', borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
                   <div style={{ flex:1, minWidth:0 }}>
