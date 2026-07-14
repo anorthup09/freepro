@@ -54,10 +54,10 @@ export default function ClientInvoiceReport() {
   const months = [...new Set(inYear.map(r => r.close_month))].sort();
   const maxExtras = Math.max(0, ...inYear.concat(noClose).map(r => r.extras.length));
 
-  const sentCell = (amount, sentDate) => (
+  const sentCell = (amount, sentDate, { badgeAlways = false } = {}) => (
     <td style={{ padding: 8, textAlign: 'right', whiteSpace: 'nowrap' }}>
-      <span style={{ fontWeight: 700 }}>{amount != null ? fmt$(amount) : '—'}</span>
-      {amount != null && (
+      <span style={{ fontWeight: 700 }}>{amount != null ? fmt$(amount) : (badgeAlways ? '' : '—')}</span>
+      {(amount != null || badgeAlways) && (
         <span style={{ fontSize: 9, fontWeight: 800, marginLeft: 6, textTransform: 'uppercase', letterSpacing: '0.04em',
           color: sentDate ? '#5ABF80' : '#e6c229' }}>
           {sentDate ? 'Sent' : 'Unsent'}
@@ -77,6 +77,7 @@ export default function ClientInvoiceReport() {
             <th style={{ ...th, width: 64 }} />
             <th style={th}>Project Code</th>
             <th style={th}>Project Name</th>
+            <th style={th}>Budget Owner</th>
             <th style={thR}>First Invoice</th>
             {Array.from({ length: maxExtras }, (_, i) => <th key={i} style={thR}>Deposit {i + 2}</th>)}
             <th style={thR}>Final Invoice</th>
@@ -101,12 +102,13 @@ export default function ClientInvoiceReport() {
               </td>
               <td style={{ padding: 8, whiteSpace: 'nowrap', fontWeight: 700 }}>{r.code}</td>
               <td style={{ padding: 8, minWidth: 160 }}>{r.title}</td>
+              <td style={{ padding: 8, whiteSpace: 'nowrap', color: 'var(--muted)' }}>{r.media_rep || '—'}</td>
               {sentCell(r.deposit != null && num(r.deposit) !== 0 ? num(r.deposit) : null, r.deposit_due)}
               {Array.from({ length: maxExtras }, (_, i) => {
                 const x = r.extras[i];
                 return x ? sentCell(num(x.amount), x.date) : <td key={i} style={{ padding: 8, textAlign: 'right', color: 'var(--muted)' }}>—</td>;
               })}
-              {sentCell(r.finalInvoice, r.final_inv_date)}
+              {sentCell(r.final_inv_date ? r.finalInvoice : null, r.final_inv_date, { badgeAlways: true })}
               <td style={{ padding: 8, textAlign: 'right', fontWeight: 800, color: '#5ABF80', whiteSpace: 'nowrap' }}>{fmt$(r.budget_total)}</td>
               <td style={{ padding: 8, textAlign: 'center', whiteSpace: 'nowrap' }}>{fmtCloseMonth(r.close_month)}</td>
             </tr>
