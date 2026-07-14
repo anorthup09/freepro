@@ -13,8 +13,22 @@ export default function ResourceLibrary({ kind, title, sub, accent, placeholderT
   const [form, setForm] = useState(null);   // { title, url, category, note } | null
   const [busy, setBusy] = useState(false);
   const [q, setQ] = useState('');
+  const [tags, setTags] = useState([]);      // shared grouping tags
+  const [tagFilter, setTagFilter] = useState(null);
 
   useEffect(() => { api.resourceLinks(kind).then(setRows).catch(e => alert(e.message)); }, [kind]);
+  useEffect(() => { api.resourceTags().then(setTags).catch(() => {}); }, []);
+
+  async function newTag(then) {
+    const name = (prompt('New tag name:') || '').trim();
+    if (!name) return;
+    if (tags.some(t => t.name.toLowerCase() === name.toLowerCase())) return alert('That tag already exists.');
+    try {
+      const t = await api.addResourceTag(name);
+      setTags(ts => [...ts, t].sort((a, b) => a.name.localeCompare(b.name)));
+      if (then) then(t.name);
+    } catch (e) { alert(e.message); }
+  }
 
   async function add(ev) {
     ev.preventDefault();
@@ -34,10 +48,10 @@ export default function ResourceLibrary({ kind, title, sub, accent, placeholderT
   }
 
   const needle = q.trim().toLowerCase();
-  const shown = (rows || []).filter(r => !needle
-    || [r.title, r.category, r.note, r.url].some(v => (v || '').toLowerCase().includes(needle)));
+  const shown = (rows || []).filter(r => (!needle
+    || [r.title, r.category, r.note, r.url].some(v => (v || '').toLowerCase().includes(needle)))
+    && (!tagFilter || (r.category || 'General') === tagFilter));
   const cats = [...new Set(shown.map(r => r.category || 'General'))].sort((a, b) => a.localeCompare(b));
-  const existingCats = [...new Set((rows || []).map(r => r.category).filter(Boolean))].sort();
   const host = u => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return u; } };
 
   return (
@@ -62,12 +76,30 @@ export default function ResourceLibrary({ kind, title, sub, accent, placeholderT
           </div>
           <button className="btn btn-primary btn-sm" onClick={() => setForm({ title:'', url:'', category:'', note:'' })}>+ Add Resource</button>
         </div>
-        <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search by name, category, or link…"
+        <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search by name, tag, or link…"
           style={{ width:'100%', margin:'12px 0 4px', fontSize:12, padding:'9px 12px', borderRadius:8, background:'var(--bg2)', border:'1px solid var(--border)', color:'var(--text)' }} />
+
+        {/* tag chips — click to filter to a group */}
+        <div style={{ display:'flex', flexWrap:'wrap', gap:6, margin:'8px 0 2px' }}>
+          {tags.map(t => {
+            const active = tagFilter === t.name;
+            return (
+              <button key={t.id} onClick={() => setTagFilter(active ? null : t.name)}
+                style={{ background: active ? accent : 'var(--bg2)', border:`1px solid ${active ? accent : 'var(--border)'}`,
+                  color: active ? '#000' : 'var(--muted)', borderRadius:12, padding:'3px 11px', fontSize:10.5, fontWeight:700, cursor:'pointer' }}>
+                {t.name}
+              </button>
+            );
+          })}
+          <button onClick={() => newTag()} title="Add a new tag"
+            style={{ background:'transparent', border:'1px dashed var(--border)', color:'var(--muted)', borderRadius:12, padding:'3px 11px', fontSize:10.5, fontWeight:700, cursor:'pointer' }}>
+            + Add tag
+          </button>
+        </div>
 
         {!rows && <div className="empty">Loading…</div>}
         {rows && rows.length === 0 && <div className="empty">Nothing here yet — add the first resource with the button above.</div>}
-        {rows && rows.length > 0 && shown.length === 0 && <div className="empty">No matches for “{q}”.</div>}
+        {rows && rows.length > 0 && shown.length === 0 && <div className="empty">{needle ? <>No matches for “{q}”.</> : <>Nothing tagged “{tagFilter}” yet.</>}</div>}
 
         {cats.map(cat => (
           <div key={cat} style={{ marginTop:18 }}>
@@ -102,9 +134,15 @@ export default function ResourceLibrary({ kind, title, sub, accent, placeholderT
                   <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder={placeholderTitle} required autoFocus /></div>
                 <div className="field"><label>Link</label>
                   <input value={form.url} onChange={e => setForm(f => ({ ...f, url: e.target.value }))} placeholder="https://…" /></div>
-                <div className="field"><label>Category</label>
-                  <input value={form.category} list={`cats-${kind}`} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} placeholder={placeholderCat} />
-                  <datalist id={`cats-${kind}`}>{existingCats.map(c => <option key={c} value={c} />)}</datalist></div>
+                <div className="field"><label>Tag</label>
+                  <select value={form.category}
+                    onChange={e => e.target.value === '__new__'
+                      ? newTag(name => setForm(f => ({ ...f, category: name })))
+                      : setForm(f => ({ ...f, category: e.target.value }))}>
+                    <option value="">— No tag (General) —</option>
+                    {tags.map(t => <option key={t.id} value={t.name}>{t.name}</option>)}
+                    <option value="__new__">+ Add new tag…</option>
+                  </select></div>
                 <div className="field"><label>Notes</label>
                   <input value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} placeholder="What it's good for, license notes…" /></div>
               </div>

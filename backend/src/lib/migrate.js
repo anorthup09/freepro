@@ -534,6 +534,23 @@ async function migrate() {
       created_at TIMESTAMPTZ DEFAULT NOW()
     )`;
 
+  // Shared tag list that groups resource links (music + video libraries).
+  // Seeded once with the starter set; teams add more from the page.
+  await sql`
+    CREATE TABLE IF NOT EXISTS resource_tags (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      name TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`;
+  await sql`CREATE UNIQUE INDEX IF NOT EXISTS resource_tags_name_key ON resource_tags (LOWER(name))`;
+  const [{ count: rtCount }] = await sql`SELECT COUNT(*)::int as count FROM resource_tags`;
+  if (rtCount === 0) {
+    const starter = ['Recap', 'Corporate Talking Head', 'Documentary', 'Show Opener', 'Destination Teasers',
+      'Concert Sizzle', 'Product & How-To', 'Man on the Street', 'Social Content', 'Training Videos',
+      'Trade Shows', 'Culture Pieces', 'Investor Relations', 'Award Videos'];
+    for (const name of starter) await sql`INSERT INTO resource_tags (name) VALUES (${name}) ON CONFLICT DO NOTHING`;
+  }
+
   await sql`ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS day_type TEXT DEFAULT 'SHOOT'`;
 
   await sql`ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS call_time_location_id TEXT REFERENCES locations(id)`;
