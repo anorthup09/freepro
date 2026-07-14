@@ -66,5 +66,32 @@
       "Use Project Estimate PDF from the same pop-out for the print-ready estimate document."
     ],
     "screenshot": "share-budget-options.png"
+  },
+  {
+    "title": "Checklists \u2014 custom groups, items, and deletes",
+    "page": "FreePro \u2014 Production",
+    "what": "Each of the four Logistics checklists (Recap, Interviews/B-Roll, Commercial/Creative, What to Bring to Set) can now be shaped per project: add your own groups, add items into any group (built-in or custom), and delete any row with the \u2715 at its right. Customizations save to your browser per project, just like the checkmarks, and the progress counts include them.",
+    "where": "FreePro \u2192 open a shoot \u2192 Logistics \u2192 Producer Checklist",
+    "how": [
+      "Open a checklist from the row of pills at the top of the Producer Checklist tab.",
+      "Click + Add Group, type a name, and hit Add \u2014 the new section appears at the bottom.",
+      "Click + Add Item, pick which group it belongs to, type the item, and Add.",
+      "Delete any row \u2014 built-in or custom \u2014 with the \u2715 at its right (with a confirm).",
+      "Assignments (the person icon) and checkmarks work the same on custom items."
+    ],
+    "screenshot": "checklist-custom.png"
+  },
+  {
+    "title": "Per-shoot Gear tab \u2014 Person Responsible + DIT drives",
+    "page": "FreePro \u2014 Production",
+    "what": "The shoot's Gear Management tab now leads with who owns the gear: the Person Responsible for Gear picker sits at the top, with a DIT \u2014 Drives tile directly beneath it for tagging hard drives to this shoot. + Tag Drive opens a searchable picker (name, tag, serial, or location); tagging a drive that's on another shoot warns before moving it, and returned drives go back to their home location. Everything feeds the Hard Drives report. Storage Location, Online Rentals, and Rental House info follow below.",
+    "where": "FreePro \u2192 open a shoot \u2192 Gear \u2192 Gear Management",
+    "how": [
+      "Open the shoot's Gear tab \u2014 Person Responsible for Gear is the first tile; pick the crew member who owns gear for this shoot.",
+      "In DIT \u2014 Drives, click + Tag Drive and search by drive name, asset tag, serial, or location.",
+      "Click a drive to tag it to this shoot (a warning appears if it's currently on another shoot).",
+      "Click Return on a drive when it comes back \u2014 it shows in the office again on the Hard Drives report."
+    ],
+    "screenshot": "gear-tab-dit.png"
   }
 ]
