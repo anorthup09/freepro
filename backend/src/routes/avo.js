@@ -373,6 +373,129 @@ router.delete('/edits/:id', ...staff, requireRole('ADMIN', 'PRODUCER'), async (r
   try { await sql`DELETE FROM edits WHERE id = ${req.params.id}`; res.status(204).end(); } catch (e) { next(e); }
 });
 
+// ── Color & Audio contractor tracker (Project Video Tracker tab) ──
+const CONTRACTOR_ROLES = ['color', 'audio'];
+
+router.get('/pages/:id/contractors', ...staff, async (req, res, next) => {
+  try {
+    res.json(await sql`SELECT * FROM avo_contractors WHERE page_id = ${req.params.id} ORDER BY created_at`);
+  } catch (e) { next(e); }
+});
+
+router.post('/pages/:id/contractors', ...staff, async (req, res, next) => {
+  try {
+    const d = req.body;
+    if (!CONTRACTOR_ROLES.includes(d.role)) return res.status(400).json({ error: 'Role must be color or audio' });
+    const [r] = await sql`
+      INSERT INTO avo_contractors (page_id, role, name, email, rate, services, total, invoice_pm_id)
+      VALUES (${req.params.id}, ${d.role}, ${d.name || ''}, ${d.email || ''}, ${d.rate || ''}, ${d.services || ''},
+        ${d.total === '' || d.total == null ? null : Number(d.total) || 0}, ${d.invoicePmId || null})
+      RETURNING *`;
+    res.status(201).json(r);
+  } catch (e) { next(e); }
+});
+
+router.patch('/contractors/:id', ...staff, async (req, res, next) => {
+  try {
+    const d = req.body;
+    const [r] = await sql`
+      UPDATE avo_contractors SET
+        name = ${d.name !== undefined ? (d.name || '') : sql`name`},
+        email = ${d.email !== undefined ? (d.email || '') : sql`email`},
+        rate = ${d.rate !== undefined ? (d.rate || '') : sql`rate`},
+        services = ${d.services !== undefined ? (d.services || '') : sql`services`},
+        total = ${d.total !== undefined ? (d.total === '' || d.total == null ? null : Number(d.total) || 0) : sql`total`},
+        invoice_pm_id = ${d.invoicePmId !== undefined ? (d.invoicePmId || null) : sql`invoice_pm_id`}
+      WHERE id = ${req.params.id} RETURNING *`;
+    if (!r) return res.status(404).json({ error: 'Not found' });
+    res.json(r);
+  } catch (e) { next(e); }
+});
+
+router.delete('/contractors/:id', ...staff, async (req, res, next) => {
+  try { await sql`DELETE FROM avo_contractors WHERE id = ${req.params.id}`; res.status(204).end(); } catch (e) { next(e); }
+});
+
+// Create (or regenerate) a signable contract for a Color/Audio contractor.
+// Reuses the crew-contract email/signing flow: the frontend follows up with
+// /projects/:pid/contracts/:cid/email-prefill + /email.
+router.post('/contractors/:id/contract', ...staff, requireRole('ADMIN', 'PRODUCER'), async (req, res, next) => {
+  try {
+    const [c] = await sql`SELECT ac.*, pp.code FROM avo_contractors ac JOIN avo_project_pages pp ON pp.id = ac.page_id WHERE ac.id = ${req.params.id}`;
+    if (!c) return res.status(404).json({ error: 'Not found' });
+    if (!c.name || !c.email) return res.status(400).json({ error: 'Fill in the contractor name and email first' });
+    const [proj] = await sql`SELECT * FROM projects WHERE code = ${c.code}`;
+    if (!proj) return res.status(400).json({ error: `No project with code ${c.code} to contract against` });
+    if (c.contract_id) await sql`DELETE FROM contracts WHERE id = ${c.contract_id} AND signed_at IS NULL`;
+    const position = c.role === 'color' ? 'Color' : 'Audio';
+    const scope = [c.services, c.rate ? `Rate: ${c.rate}` : null].filter(Boolean).join('\n\n') || null;
+    const [k] = await sql`
+      INSERT INTO contracts (project_id, contractor_name, contractor_email, position_name,
+        project_title, project_code, start_date, end_date, scope, quoted_total)
+      VALUES (${proj.id}, ${c.name}, ${c.email}, ${position}, ${proj.title}, ${proj.code},
+        ${proj.start_date ? new Date(proj.start_date).toISOString().slice(0, 10) : null},
+        ${proj.end_date ? new Date(proj.end_date).toISOString().slice(0, 10) : null}, ${scope}, ${Number(c.total) || null})
+      RETURNING *`;
+    await sql`UPDATE avo_contractors SET contract_id = ${k.id} WHERE id = ${c.id}`;
+    res.status(201).json({ contract: k, projectId: proj.id, total: c.total });
+  } catch (e) { next(e); }
+});
+
+// Same for the edit's Contract Editor tile (data lives in edits.extra)
+router.post('/edits/:id/contract', ...staff, requireRole('ADMIN', 'PRODUCER'), async (req, res, next) => {
+  try {
+    const [e] = await FULL_EDIT(req.params.id);
+    if (!e) return res.status(404).json({ error: 'Edit not found' });
+    if (!e.project_id) return res.status(400).json({ error: 'This edit is not linked to a project' });
+    const tile = (e.extra || {}).contract_editor || {};
+    const name = tile.name || e.lead_editor_name_resolved;
+    const email = tile.email || e.lead_editor_email;
+    if (!name || !email) return res.status(400).json({ error: 'Fill in the contract editor name and email first' });
+    if (tile.contractId) await sql`DELETE FROM contracts WHERE id = ${tile.contractId} AND signed_at IS NULL`;
+    const [proj] = await sql`SELECT * FROM projects WHERE id = ${e.project_id}`;
+    const scope = [tile.services, tile.rate ? `Rate: ${tile.rate}` : null].filter(Boolean).join('\n\n') || null;
+    const [k] = await sql`
+      INSERT INTO contracts (project_id, contractor_name, contractor_email, position_name,
+        project_title, project_code, start_date, end_date, scope, quoted_total)
+      VALUES (${e.project_id}, ${name}, ${email}, ${'Contract Editor'}, ${proj?.title || e.project_title}, ${e.project_code},
+        ${e.start_date ? new Date(e.start_date).toISOString().slice(0, 10) : null},
+        ${e.end_date ? new Date(e.end_date).toISOString().slice(0, 10) : null}, ${scope},
+        ${(Number(tile.total) || Number(e.cost_estimate)) + (Number(tile.misc) || 0) || null})
+      RETURNING *`;
+    await sql`UPDATE edits SET extra = COALESCE(extra, '{}'::jsonb) || ${sql.json({ contract_editor: { ...tile, contractId: k.id } })} WHERE id = ${e.id}`;
+    await logAct(e.id, 'log', req.user?.email || 'someone', `generated a contract for ${name}`);
+    const total = Number(tile.total) || Number(e.cost_estimate) || null;
+    res.status(201).json({ contract: k, projectId: e.project_id, total });
+  } catch (e) { next(e); }
+});
+
+// Hold a contractor's total estimate on the project VCC (idempotent per contractor)
+router.post('/contractors/:id/hold-cost', ...staff, async (req, res, next) => {
+  try {
+    const [c] = await sql`SELECT ac.*, pp.code FROM avo_contractors ac JOIN avo_project_pages pp ON pp.id = ac.page_id WHERE ac.id = ${req.params.id}`;
+    if (!c) return res.status(404).json({ error: 'Not found' });
+    const [proj] = await sql`SELECT id, title FROM projects WHERE code = ${c.code}`;
+    if (!proj) return res.status(400).json({ error: `No project with code ${c.code} to hold against` });
+    const amount = Number(c.total);
+    if (!amount) return res.status(400).json({ error: 'Set a total estimate first' });
+    const label = c.role === 'color' ? 'Color' : 'Audio';
+    const vendor = c.name || null;
+    const source = `avocontractor:${c.id}`;
+    const description = `${label} — ${proj.title || c.code}${vendor ? ` (${vendor})` : ''}`;
+    const [existing] = await sql`SELECT id FROM vcc_entries WHERE source = ${source}`;
+    let entry;
+    if (existing) {
+      [entry] = await sql`UPDATE vcc_entries SET amount = ${amount}, description = ${description}, vendor = ${vendor}
+        WHERE id = ${existing.id} RETURNING *`;
+    } else {
+      [entry] = await sql`INSERT INTO vcc_entries (project_id, entry_date, vendor, description, category, amount, status, source)
+        VALUES (${proj.id}, ${require('../lib/dates').bizToday()}, ${vendor}, ${description}, ${'Post-Production'}, ${amount}, 'HOLD', ${source})
+        RETURNING *`;
+    }
+    res.json(entry);
+  } catch (e) { next(e); }
+});
+
 // ── Comments (with @mention emails) ──
 router.post('/edits/:id/comments', ...staff, async (req, res, next) => {
   try {

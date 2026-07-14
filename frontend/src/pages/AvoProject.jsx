@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api.js';
-import { AvoHeader, AVO, AVO_STATUSES } from './Avo.jsx';
+import { AvoHeader, AVO, AVO_STATUSES, EditorSelect } from './Avo.jsx';
 import { AvoForm, BLANK_DELIVERABLE_FORM } from './Project/Deliverables.jsx';
+import ContractSendModal from '../components/ContractSendModal.jsx';
 
 const th = { padding:'7px 10px', fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', textAlign:'left', whiteSpace:'nowrap' };
 const td = { padding:'4px 6px', verticalAlign:'middle' };
@@ -356,6 +357,154 @@ function VideoTracker({ edits, setEdits, config, onConfig, code }) {
           onSubmit={submitAdd} onCancel={() => setAddForm(null)} saving={savingAdd} />
       )}
     </>
+  );
+}
+
+// ── Color & Audio contractor tracker (below the Video Tracker) ──
+// Each row is a post-production contractor with billing info; costs can be
+// held on the project VCC and a contract emailed from info@ for signature.
+const CONTRACTOR_META = { color: { label: 'Color', accent: '#c77dff' }, audio: { label: 'Audio', accent: '#35c4c8' } };
+const fmt$ = n => (n === null || n === undefined || n === '') ? '' : '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const BLANK_CONTRACTOR = { name: '', email: '', rate: '', services: '', total: '', invoicePmId: '' };
+
+function ContractorTracker({ pageId }) {
+  const [rows, setRows] = useState(null);
+  const [form, setForm] = useState(null);       // { role, ...BLANK_CONTRACTOR }
+  const [busy, setBusy] = useState(false);
+  const [sendCtr, setSendCtr] = useState(null); // { contract, projectId, total }
+
+  useEffect(() => { api.avoContractors(pageId).then(setRows).catch(() => setRows([])); }, [pageId]);
+
+  async function saveCell(id, data) {
+    try { const r = await api.updateAvoContractor(id, data); setRows(rs => rs.map(x => x.id === id ? r : x)); }
+    catch (e) { alert(e.message); }
+  }
+  async function submit(ev) {
+    ev.preventDefault();
+    if (busy) return;
+    setBusy(true);
+    try { const r = await api.addAvoContractor(pageId, form); setRows(rs => [...(rs || []), r]); setForm(null); }
+    catch (e) { alert(e.message); }
+    setBusy(false);
+  }
+  async function remove(r) {
+    if (!confirm(`Remove ${CONTRACTOR_META[r.role].label} contractor${r.name ? ` ${r.name}` : ''}?`)) return;
+    try { await api.deleteAvoContractor(r.id); setRows(rs => rs.filter(x => x.id !== r.id)); }
+    catch (e) { alert(e.message); }
+  }
+  async function hold(r) {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const entry = await api.holdAvoContractorCost(r.id);
+      alert(`Held $${Number(entry.amount).toLocaleString('en-US')} on the project's VCC for ${CONTRACTOR_META[r.role].label.toLowerCase()}.`);
+    } catch (e) { alert(e.message); }
+    setBusy(false);
+  }
+  async function sendContract(r) {
+    if (busy) return;
+    setBusy(true);
+    try { setSendCtr(await api.avoContractorContract(r.id)); }
+    catch (e) { alert(e.message); }
+    setBusy(false);
+  }
+
+  const actBtn = (color) => ({ background: `${color}18`, border: `1px solid ${color}`, color, borderRadius: 12, padding: '3px 10px', fontSize: 9.5, fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap' });
+  return (
+    <div style={{ marginTop: 22 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
+        <div style={{ fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: AVO }}>Color & Audio Contractors</div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {['color', 'audio'].map(role => (
+            <button key={role} onClick={() => setForm({ role, ...BLANK_CONTRACTOR })}
+              style={{ background: 'transparent', border: `1px solid ${CONTRACTOR_META[role].accent}`, color: CONTRACTOR_META[role].accent, borderRadius: 14, padding: '4px 14px', fontSize: 10.5, fontWeight: 800, cursor: 'pointer' }}>
+              + Add {CONTRACTOR_META[role].label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 10, overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 900 }}>
+          <thead>
+            <tr style={{ borderBottom: '1px solid var(--border)' }}>
+              <th style={th}>Role</th><th style={th}>Name</th><th style={th}>Email</th><th style={th}>Rate</th>
+              <th style={th}>Services Provided</th><th style={{ ...th, textAlign: 'right' }}>Total Estimate</th>
+              <th style={th}>Send Final Invoice To</th><th style={th}></th>
+            </tr>
+          </thead>
+          <tbody>
+            {(rows || []).length === 0 && (
+              <tr><td colSpan={8} style={{ ...td, padding: '12px 14px', fontSize: 11, color: 'var(--muted)', fontStyle: 'italic' }}>
+                No color or audio contractors yet — add them with the buttons above.
+              </td></tr>
+            )}
+            {(rows || []).map(r => {
+              const meta = CONTRACTOR_META[r.role] || CONTRACTOR_META.color;
+              return (
+                <tr key={r.id} style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+                  <td style={{ ...td, padding: '4px 10px' }}>
+                    <span style={{ background: `${meta.accent}22`, border: `1px solid ${meta.accent}`, color: meta.accent, borderRadius: 12, padding: '2px 10px', fontSize: 9.5, fontWeight: 800, whiteSpace: 'nowrap' }}>{meta.label}</span>
+                  </td>
+                  <td style={{ ...td, minWidth: 120 }}><Cell value={r.name} placeholder="Name…" onSave={v => saveCell(r.id, { name: v })} /></td>
+                  <td style={{ ...td, minWidth: 150 }}><Cell value={r.email} placeholder="email@…" onSave={v => saveCell(r.id, { email: v })} /></td>
+                  <td style={{ ...td, minWidth: 100 }}><Cell value={r.rate} placeholder="$95/hr…" onSave={v => saveCell(r.id, { rate: v })} /></td>
+                  <td style={{ ...td, minWidth: 160 }}><Cell value={r.services} placeholder="Services…" onSave={v => saveCell(r.id, { services: v })} /></td>
+                  <td style={{ ...td, minWidth: 100 }}>
+                    <Cell value={r.total === null || r.total === undefined ? '' : fmt$(r.total)} placeholder="$0.00" style={{ textAlign: 'right', color: '#5ABF80', fontWeight: 700 }}
+                      onSave={v => { const n = parseFloat(String(v).replace(/[^0-9.\-]/g, '')); saveCell(r.id, { total: Number.isFinite(n) ? n : null }); }} />
+                  </td>
+                  <td style={{ ...td, minWidth: 150 }}>
+                    <EditorSelect value={r.invoice_pm_id || ''} unbridledOnly placeholder="— Pick a PM —" onChange={v => saveCell(r.id, { invoicePmId: v })} />
+                  </td>
+                  <td style={{ ...td, whiteSpace: 'nowrap', padding: '4px 10px' }}>
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                      <button disabled={busy || !(Number(r.total) > 0)} onClick={() => hold(r)}
+                        title={Number(r.total) > 0 ? 'Post this cost to the project VCC as a hold' : 'Enter a total estimate first'}
+                        style={{ ...actBtn('#5ABF80'), opacity: (busy || !(Number(r.total) > 0)) ? 0.45 : 1 }}>Hold Cost → VCC</button>
+                      <button disabled={busy} onClick={() => sendContract(r)}
+                        title="Preview the contract email and send it from info@ for review & signature"
+                        style={actBtn(meta.accent)}>Send Contract</button>
+                      <button onClick={() => remove(r)} style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', fontSize: 11 }}>✕</button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      {form && (
+        <div className="modal-bg" onClick={e => e.target === e.currentTarget && setForm(null)}>
+          <div className="modal">
+            <div className="modal-title">Add {CONTRACTOR_META[form.role].label} Contractor</div>
+            <form onSubmit={submit}>
+              <div className="form-grid cols1" style={{ marginBottom: 12 }}>
+                <div className="field"><label>Name *</label>
+                  <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} required autoFocus /></div>
+                <div className="field"><label>Email</label>
+                  <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} /></div>
+                <div className="field"><label>Rate</label>
+                  <input value={form.rate} placeholder="$550/day, $95/hr…" onChange={e => setForm(f => ({ ...f, rate: e.target.value }))} /></div>
+                <div className="field"><label>Services Provided</label>
+                  <input value={form.services} placeholder="Color grade all deliverables…" onChange={e => setForm(f => ({ ...f, services: e.target.value }))} /></div>
+                <div className="field"><label>Total Estimate ($)</label>
+                  <input value={form.total} placeholder="1200" onChange={e => setForm(f => ({ ...f, total: e.target.value.replace(/[^0-9.]/g, '') }))} /></div>
+                <div className="field"><label>Send Final Invoice To</label>
+                  <EditorSelect value={form.invoicePmId} unbridledOnly placeholder="— Pick a project manager —" onChange={v => setForm(f => ({ ...f, invoicePmId: v }))} /></div>
+              </div>
+              <div className="btn-row">
+                <button className="btn btn-primary" disabled={busy}>{busy ? 'Adding…' : `Add ${CONTRACTOR_META[form.role].label}`}</button>
+                <button type="button" className="btn btn-ghost" onClick={() => setForm(null)}>Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {sendCtr && (
+        <ContractSendModal projectId={sendCtr.projectId} contract={sendCtr.contract} total={sendCtr.total}
+          onClose={() => setSendCtr(null)} onSent={to => alert(`Contract sent to ${to}.`)} />
+      )}
+    </div>
   );
 }
 
@@ -971,7 +1120,10 @@ export default function AvoProject({ idOverride, embedded }) {
               </button>
             </div>
 
-            {tab === 'tracker' && <VideoTracker edits={edits} setEdits={setEdits} code={page.code} config={cfgFor('tracker')} onConfig={saveCfg('tracker')} />}
+            {tab === 'tracker' && <>
+              <VideoTracker edits={edits} setEdits={setEdits} code={page.code} config={cfgFor('tracker')} onConfig={saveCfg('tracker')} />
+              <ContractorTracker pageId={id} />
+            </>}
             {tab === 'assets' && <CreativeAssets pageId={id} assets={assets} setAssets={setAssets} edits={edits} />}
             {tab === 'todos' && (
               <Grid kind="todos" pageId={id} doneKey="done" rows={todos} setRows={setTodos} renderCell={todoCell}

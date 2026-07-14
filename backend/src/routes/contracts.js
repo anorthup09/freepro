@@ -88,7 +88,7 @@ router.get('/projects/:id/contracts/:cid/email-prefill', requireAuth, requireRol
         + (Number(c.day_rate) ? ` — $${Number(c.day_rate).toLocaleString()}/day × ${Number(c.labor_days) || 0} day${Number(c.labor_days) === 1 ? '' : 's'}` : ''),
       dayRate: Number(c.day_rate) || 0, laborDays: Number(c.labor_days) || 0,
       gearRate: Number(c.gear_rate) || 0, gearDays: Number(c.gear_days) || 0,
-      quotedTotal: laborTotal + gearTotal,
+      quotedTotal: Number(c.quoted_total) || laborTotal + gearTotal,
       travelLocations: locations.map(l => l.name).filter(Boolean).join(', '),
       travelAllowance,
       perDiem,
@@ -115,7 +115,7 @@ router.post('/projects/:id/contracts/:cid/email', requireAuth, requireRole('ADMI
     const fmt$ = n => '$' + Number(n || 0).toLocaleString('en-US', { maximumFractionDigits: 2 });
     const laborTotal = (Number(c.day_rate) || 0) * (Number(c.labor_days) || 0);
     const gearTotal = (Number(c.gear_rate) || 0) * (Number(c.gear_days) || 0);
-    const quotedTotal = d.quotedTotal !== undefined && d.quotedTotal !== '' ? Number(d.quotedTotal) : laborTotal + gearTotal;
+    const quotedTotal = d.quotedTotal !== undefined && d.quotedTotal !== '' ? Number(d.quotedTotal) : (Number(c.quoted_total) || laborTotal + gearTotal);
     const datesText = d.datesText || `${c.start_date || ''}${c.end_date && c.end_date !== c.start_date ? ` through ${c.end_date}` : ''}`;
     const perDiem = d.perDiem !== undefined && d.perDiem !== '' ? Number(d.perDiem) : 75;
     const travelAllowance = d.travelAllowance !== undefined && d.travelAllowance !== '' ? Number(d.travelAllowance) : null;
@@ -129,7 +129,7 @@ router.post('/projects/:id/contracts/:cid/email', requireAuth, requireRole('ADMI
       ...(gearTotal ? [['Gear', `${fmt$(c.gear_rate)}/day × ${Number(c.gear_days) || 0} days = ${fmt$(gearTotal)}`]] : []),
       ['Quoted Total for Project', fmt$(quotedTotal)],
       ...(travelAllowance != null ? [['Travel Expense Allowance', `Up to ${fmt$(travelAllowance)}, reimbursable with receipts`]] : []),
-      ['Per Diem', `Up to ${fmt$(perDiem)}/day allowable expense reimbursement, with receipts`],
+      ...(perDiem ? [['Per Diem', `Up to ${fmt$(perDiem)}/day allowable expense reimbursement, with receipts`]] : []),
       ...(d.invoiceTo ? [['Send your final invoice to', d.invoiceTo]] : []),
     ];
     const scope = d.scope !== undefined ? d.scope : c.scope;

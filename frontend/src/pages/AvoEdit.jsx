@@ -4,6 +4,7 @@ import { api } from '../api.js';
 import { maybeMailNotice } from '../utils/mailNotice.js';
 import { AvoHeader, EditorSelect, AVO, AVO_STATUSES, fmtV, stepV, VersionInput } from './Avo.jsx';
 import { MILESTONES, milestoneText, milestoneRunners } from '../components/GanttChart.jsx';
+import ContractSendModal from '../components/ContractSendModal.jsx';
 
 const lbl = { fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4, display:'block' };
 const KIND_STYLE = {
@@ -313,7 +314,7 @@ const CONTRACT_ROLES = {
   color: { label: 'Color', accent: '#c77dff', rateLabel: 'Rate', misc: false },
   audio: { label: 'Audio', accent: '#35c4c8', rateLabel: 'Rate', misc: false },
 };
-function ContractTile({ role, data, busy, onSave, onRemove, onHold }) {
+function ContractTile({ role, data, busy, onSave, onRemove, onHold, onSendContract }) {
   const cfg = CONTRACT_ROLES[role];
   const [d, setD] = useState(data || {});
   useEffect(() => { setD(data || {}); }, [data]);
@@ -363,11 +364,20 @@ function ContractTile({ role, data, busy, onSave, onRemove, onHold }) {
           <EditorSelect value={d.invoicePmId || ''} unbridledOnly placeholder="— Pick a project manager —"
             onChange={v => commit({ invoicePmId: v })} />
         </div>
-        <button disabled={busy || !canHold} onClick={onHold}
-          title={canHold ? `Post this ${cfg.label.toLowerCase()} cost to the project VCC as a hold` : 'Enter a total estimate first'}
-          style={{ width:'100%', background:'rgba(90,191,128,0.12)', border:'1px solid #5ABF80', color:'#5ABF80', borderRadius:8, padding:'8px 14px', fontSize:12, fontWeight:800, cursor: (busy || !canHold) ? 'default' : 'pointer', opacity: (busy || !canHold) ? 0.5 : 1 }}>
-          Hold Cost → VCC
-        </button>
+        <div style={{ display:'flex', gap:8 }}>
+          <button disabled={busy || !canHold} onClick={onHold}
+            title={canHold ? `Post this ${cfg.label.toLowerCase()} cost to the project VCC as a hold` : 'Enter a total estimate first'}
+            style={{ flex:1, background:'rgba(90,191,128,0.12)', border:'1px solid #5ABF80', color:'#5ABF80', borderRadius:8, padding:'8px 14px', fontSize:12, fontWeight:800, cursor: (busy || !canHold) ? 'default' : 'pointer', opacity: (busy || !canHold) ? 0.5 : 1 }}>
+            Hold Cost → VCC
+          </button>
+          {onSendContract && (
+            <button disabled={busy} onClick={onSendContract}
+              title="Preview the contract email and send it from info@ for review & signature"
+              style={{ flex:1, background:`${cfg.accent}18`, border:`1px solid ${cfg.accent}`, color:cfg.accent, borderRadius:8, padding:'8px 14px', fontSize:12, fontWeight:800, cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.5 : 1 }}>
+              Send Contract
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -387,6 +397,7 @@ export default function AvoEdit() {
   // Auto-fill knobs (defaults: business days, 2-day client reviews)
   const [tlOpts, setTlOpts] = useState({ skipWknd: true, editDaysAfterScript: 5, editDaysAfterFeedback: 3, reviewDays: 2 });
   const [busy, setBusy] = useState(false);
+  const [sendCtr, setSendCtr] = useState(null);   // { contract, projectId, total } for the send pop-out
   const fileRef = useRef(null);
   const feedRef = useRef(null);
 
@@ -737,7 +748,7 @@ export default function AvoEdit() {
                     {e.review_link && <a className="btn btn-ghost btn-sm" href={e.review_link} target="_blank" rel="noreferrer" style={{ textDecoration:'none' }}>▶ Open</a>}
                   </div>
                 </div>
-                <div style={{ display:'flex', gap:8, flexWrap:'wrap', alignItems:'center' }}>
+                <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
                   <button disabled={busy} onClick={() => action(() => api.avoRfr(id))}
                     style={{ background:'rgba(230,194,41,0.12)', border:'1px solid #e6c229', color:'#e6c229', borderRadius:20, padding:'6px 16px', fontSize:11, fontWeight:800, cursor:'pointer' }}>
                     RFR — Ready For Review
@@ -746,20 +757,6 @@ export default function AvoEdit() {
                     style={{ background:'rgba(74,158,255,0.12)', border:'1px solid #4a9eff', color:'#4a9eff', borderRadius:20, padding:'6px 16px', fontSize:11, fontWeight:800, cursor:'pointer' }}>
                     Sent to Client
                   </button>
-                  <div style={{ marginLeft:'auto', display:'flex', gap:8 }}>
-                    {['color', 'audio'].map(role => {
-                      const cfg = CONTRACT_ROLES[role];
-                      const has = !!(e.extra || {})[`contract_${role}`];
-                      return (
-                        <button key={role} disabled={busy}
-                          title={has ? `${cfg.label} contract tile is under the Activity feed` : `Add a ${cfg.label} contract tile under the Activity feed`}
-                          onClick={() => { if (!has) save({ extra: { [`contract_${role}`]: {} } }); }}
-                          style={{ background: has ? `${cfg.accent}22` : 'transparent', border:`1px solid ${cfg.accent}`, color:cfg.accent, borderRadius:20, padding:'6px 16px', fontSize:11, fontWeight:800, cursor:'pointer', opacity: busy ? 0.6 : 1 }}>
-                          {has ? '✓ ' : '+ '}{cfg.label}
-                        </button>
-                      );
-                    })}
-                  </div>
                 </div>
               </div>}
             </div>
@@ -833,18 +830,18 @@ export default function AvoEdit() {
             </div>
           </div>
 
-          {/* ── Contract tiles: editor always, color/audio when added ── */}
-          {['editor', 'color', 'audio'].map(role => {
-            const key = `contract_${role}`;
-            const data = (e.extra || {})[key];
-            if (role !== 'editor' && !data) return null;
-            return (
-              <ContractTile key={role} role={role} data={data} busy={busy}
-                onSave={d => save({ extra: { [key]: d } })}
-                onRemove={role !== 'editor' ? () => { if (confirm(`Remove the ${CONTRACT_ROLES[role].label} tile?`)) save({ extra: { [key]: null } }); } : null}
-                onHold={() => holdCost(role)} />
-            );
-          })}
+          {/* ── Contract Editor tile (Color & Audio live on the Project Video Tracker) ── */}
+          <ContractTile role="editor" data={(e.extra || {}).contract_editor} busy={busy}
+            onSave={d => save({ extra: { contract_editor: d } })}
+            onHold={() => holdCost('editor')}
+            onSendContract={async () => {
+              try { setSendCtr(await api.avoEditContract(id)); }
+              catch (err) { alert(err.message); }
+            }} />
+          {sendCtr && (
+            <ContractSendModal projectId={sendCtr.projectId} contract={sendCtr.contract} total={sendCtr.total}
+              onClose={() => setSendCtr(null)} onSent={to => alert(`Contract sent to ${to}.`)} />
+          )}
           </div>
         </div>
       </div>

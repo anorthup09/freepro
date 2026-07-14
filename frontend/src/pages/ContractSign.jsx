@@ -37,7 +37,8 @@ export default function ContractSign() {
 
   const laborTotal = (Number(contract.day_rate)||0) * (Number(contract.labor_days)||0);
   const gearTotal = (Number(contract.gear_rate)||0) * (Number(contract.gear_days)||0);
-  const grandTotal = laborTotal + gearTotal;
+  // Post-production contracts carry a flat quoted total instead of day rates
+  const grandTotal = Number(contract.quoted_total) || (laborTotal + gearTotal);
   const signed = !!contract.signed_at;
 
   const row = { display:'flex', justifyContent:'space-between', gap:12, padding:'7px 0', borderBottom:'1px solid var(--border)', fontSize:13 };
@@ -58,10 +59,12 @@ export default function ContractSign() {
           <div style={row}><span style={lbl}>Contractor</span><span style={{ fontWeight:600 }}>{contract.contractor_name}</span></div>
           <div style={row}><span style={lbl}>Position</span><span>{contract.position_name}</span></div>
           <div style={row}><span style={lbl}>Dates</span><span>{fmtDate(contract.start_date)} – {fmtDate(contract.end_date)}</span></div>
-          <div style={row}>
-            <span style={lbl}>Labor</span>
-            <span>{fmt$(contract.day_rate)}/day × {Number(contract.labor_days)||0} day{Number(contract.labor_days) === 1 ? '' : 's'} = <b style={{ color:'var(--green)' }}>{fmt$(laborTotal)}</b></span>
-          </div>
+          {Number(contract.day_rate) > 0 && (
+            <div style={row}>
+              <span style={lbl}>Labor</span>
+              <span>{fmt$(contract.day_rate)}/day × {Number(contract.labor_days)||0} day{Number(contract.labor_days) === 1 ? '' : 's'} = <b style={{ color:'var(--green)' }}>{fmt$(laborTotal)}</b></span>
+            </div>
+          )}
           {(Number(contract.gear_rate) > 0 || Number(contract.gear_days) > 0) && (
             <div style={row}>
               <span style={lbl}>Gear</span>

@@ -799,6 +799,8 @@ async function migrate() {
       signed_ip TEXT,
       created_at TIMESTAMPTZ DEFAULT NOW()
     )`;
+  // Flat quoted total for post-production contracts (no day-rate breakdown)
+  await sql`ALTER TABLE contracts ADD COLUMN IF NOT EXISTS quoted_total NUMERIC`;
 
   // ── ProFi: project finance ──
   await sql`
@@ -1150,6 +1152,21 @@ async function migrate() {
       code TEXT UNIQUE NOT NULL,
       title TEXT,
       last_opened_at TIMESTAMPTZ DEFAULT NOW(),
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`;
+  // Color & Audio contractor tracker on the Project Video Tracker tab
+  await sql`
+    CREATE TABLE IF NOT EXISTS avo_contractors (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      page_id TEXT NOT NULL REFERENCES avo_project_pages(id) ON DELETE CASCADE,
+      role TEXT NOT NULL,
+      name TEXT DEFAULT '',
+      email TEXT DEFAULT '',
+      rate TEXT DEFAULT '',
+      services TEXT DEFAULT '',
+      total NUMERIC,
+      invoice_pm_id TEXT,
+      contract_id TEXT,
       created_at TIMESTAMPTZ DEFAULT NOW()
     )`;
   await sql`
