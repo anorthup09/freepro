@@ -305,6 +305,74 @@ function CopyTimelineFrom({ edit, onCopied, save }) {
 }
 const parseMs = v => typeof v === 'string' ? JSON.parse(v || '{}') : (v || {});
 
+// ── Post-production contract tiles stacked under the Activity feed ──
+// The editor tile is always shown; Color and Audio tiles are added with the
+// buttons at the bottom of the edit form. Each holds its own cost on the VCC.
+const CONTRACT_ROLES = {
+  editor: { label: 'Contract Editor', accent: AVO, rateLabel: 'Hourly/Day Rate', misc: true },
+  color: { label: 'Color', accent: '#c77dff', rateLabel: 'Rate', misc: false },
+  audio: { label: 'Audio', accent: '#35c4c8', rateLabel: 'Rate', misc: false },
+};
+function ContractTile({ role, data, busy, onSave, onRemove, onHold }) {
+  const cfg = CONTRACT_ROLES[role];
+  const [d, setD] = useState(data || {});
+  useEffect(() => { setD(data || {}); }, [data]);
+  const set = k => ev => setD(x => ({ ...x, [k]: ev.target.value }));
+  const commit = (patchObj) => onSave({ ...d, ...(patchObj || {}) });
+  const canHold = Number(d.total) > 0;
+  return (
+    <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderTop:`3px solid ${cfg.accent}`, borderRadius:12, padding:'14px 18px' }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, marginBottom:10 }}>
+        <div style={{ fontSize:12, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.06em', color:cfg.accent }}>{cfg.label}</div>
+        {onRemove && <button title={`Remove the ${cfg.label} tile`} onClick={onRemove}
+          style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:12 }}>✕</button>}
+      </div>
+      <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+        <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
+          <div style={{ flex:1, minWidth:130 }}>
+            <span style={lbl}>Name</span>
+            <input value={d.name || ''} onChange={set('name')} onBlur={() => commit()} />
+          </div>
+          <div style={{ flex:1, minWidth:130 }}>
+            <span style={lbl}>Email</span>
+            <input type="email" value={d.email || ''} onChange={set('email')} onBlur={() => commit()} />
+          </div>
+        </div>
+        <div>
+          <span style={lbl}>{cfg.rateLabel}</span>
+          <input value={d.rate || ''} placeholder="$550/day, $95/hr…" onChange={set('rate')} onBlur={() => commit()} />
+        </div>
+        <div>
+          <span style={lbl}>Services Provided</span>
+          <textarea value={d.services || ''} style={{ minHeight:52 }} onChange={set('services')} onBlur={() => commit()} />
+        </div>
+        <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
+          {cfg.misc && (
+            <div style={{ flex:1, minWidth:130 }}>
+              <span style={lbl}>Additional Misc Costs</span>
+              <MoneyField value={d.misc} onCommit={v => commit({ misc: v })} />
+            </div>
+          )}
+          <div style={{ flex:1, minWidth:130 }}>
+            <span style={lbl}>Total Estimate</span>
+            <MoneyField value={d.total} onCommit={v => commit({ total: v })} />
+          </div>
+        </div>
+        <div>
+          <span style={lbl}>Send Final Invoice to</span>
+          <EditorSelect value={d.invoicePmId || ''} unbridledOnly placeholder="— Pick a project manager —"
+            onChange={v => commit({ invoicePmId: v })} />
+        </div>
+        <button disabled={busy || !canHold} onClick={onHold}
+          title={canHold ? `Post this ${cfg.label.toLowerCase()} cost to the project VCC as a hold` : 'Enter a total estimate first'}
+          style={{ width:'100%', background:'rgba(90,191,128,0.12)', border:'1px solid #5ABF80', color:'#5ABF80', borderRadius:8, padding:'8px 14px', fontSize:12, fontWeight:800, cursor: (busy || !canHold) ? 'default' : 'pointer', opacity: (busy || !canHold) ? 0.5 : 1 }}>
+          Hold Cost → VCC
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function AvoEdit() {
   const { id } = useParams();
   const nav = useNavigate();
@@ -350,15 +418,15 @@ export default function AvoEdit() {
     setBusy(false);
   }
 
-  // Push the contract editor's cost estimate onto the project VCC as a HOLD
-  async function holdCost() {
+  // Push a contract tile's total estimate onto the project VCC as a HOLD
+  async function holdCost(role) {
     if (busy) return;
     setBusy(true);
     try {
-      const entry = await api.holdEditCost(id);
+      const entry = await api.holdEditCost(id, role);
       const full = await api.avoEdit(id);
       setE(full);
-      alert(`Held $${Number(entry.amount).toLocaleString('en-US')} on the project's VCC for the contract editor.`);
+      alert(`Held $${Number(entry.amount).toLocaleString('en-US')} on the project's VCC for ${CONTRACT_ROLES[role].label.toLowerCase()}.`);
     } catch (err) { alert(err.message); }
     setBusy(false);
   }
@@ -656,20 +724,6 @@ export default function AvoEdit() {
                   {field('Asset Ref', 'asset_ref', 'assetRef')}
                   {field('Music Ref', 'music_ref', 'musicRef')}
                 </div>
-                <div style={{ display:'flex', gap:12, flexWrap:'wrap', alignItems:'flex-end' }}>
-                  <div style={{ flex:1, minWidth:150 }}>
-                    <span style={lbl}>Contract Editor Cost</span>
-                    <MoneyField value={e.cost_estimate} onCommit={v => { patch({ cost_estimate: v }); save({ costEstimate: v }); }} />
-                  </div>
-                  <div style={{ flex:1, minWidth:150 }}>
-                    <span style={lbl}>Hold to VCC</span>
-                    <button disabled={busy || !(Number(e.cost_estimate) > 0)} onClick={holdCost}
-                      title={!(e.project_id) ? 'Link this edit to a project code first' : Number(e.cost_estimate) > 0 ? 'Post this editor cost to the project VCC as a hold' : 'Enter a cost first'}
-                      style={{ width:'100%', background:'rgba(90,191,128,0.12)', border:'1px solid #5ABF80', color:'#5ABF80', borderRadius:8, padding:'8px 14px', fontSize:12, fontWeight:800, cursor: (busy || !(Number(e.cost_estimate) > 0)) ? 'default' : 'pointer', opacity: (busy || !(Number(e.cost_estimate) > 0)) ? 0.5 : 1 }}>
-                      Hold Cost → VCC
-                    </button>
-                  </div>
-                </div>
                 <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
                   {field('Start Date', 'start_date', 'startDate', 'date')}
                   {field('Due Date', 'end_date', 'endDate', 'date')}
@@ -683,7 +737,7 @@ export default function AvoEdit() {
                     {e.review_link && <a className="btn btn-ghost btn-sm" href={e.review_link} target="_blank" rel="noreferrer" style={{ textDecoration:'none' }}>▶ Open</a>}
                   </div>
                 </div>
-                <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+                <div style={{ display:'flex', gap:8, flexWrap:'wrap', alignItems:'center' }}>
                   <button disabled={busy} onClick={() => action(() => api.avoRfr(id))}
                     style={{ background:'rgba(230,194,41,0.12)', border:'1px solid #e6c229', color:'#e6c229', borderRadius:20, padding:'6px 16px', fontSize:11, fontWeight:800, cursor:'pointer' }}>
                     RFR — Ready For Review
@@ -692,6 +746,20 @@ export default function AvoEdit() {
                     style={{ background:'rgba(74,158,255,0.12)', border:'1px solid #4a9eff', color:'#4a9eff', borderRadius:20, padding:'6px 16px', fontSize:11, fontWeight:800, cursor:'pointer' }}>
                     Sent to Client
                   </button>
+                  <div style={{ marginLeft:'auto', display:'flex', gap:8 }}>
+                    {['color', 'audio'].map(role => {
+                      const cfg = CONTRACT_ROLES[role];
+                      const has = !!(e.extra || {})[`contract_${role}`];
+                      return (
+                        <button key={role} disabled={busy}
+                          title={has ? `${cfg.label} contract tile is under the Activity feed` : `Add a ${cfg.label} contract tile under the Activity feed`}
+                          onClick={() => { if (!has) save({ extra: { [`contract_${role}`]: {} } }); }}
+                          style={{ background: has ? `${cfg.accent}22` : 'transparent', border:`1px solid ${cfg.accent}`, color:cfg.accent, borderRadius:20, padding:'6px 16px', fontSize:11, fontWeight:800, cursor:'pointer', opacity: busy ? 0.6 : 1 }}>
+                          {has ? '✓ ' : '+ '}{cfg.label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>}
             </div>
@@ -722,7 +790,8 @@ export default function AvoEdit() {
           </div>
 
           {/* ── Right: activity — jumps to the top when the layout stacks ── */}
-          <div className="ae-activity" style={{ flex:'1 1 380px', minWidth:300, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, display:'flex', flexDirection:'column', maxHeight:'80vh' }}>
+          <div style={{ flex:'1 1 380px', minWidth:300, display:'flex', flexDirection:'column', gap:16 }}>
+          <div className="ae-activity" style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, display:'flex', flexDirection:'column', maxHeight:'80vh' }}>
             <div style={{ padding:'14px 18px', borderBottom:'1px solid var(--border)', fontSize:12, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.06em' }}>Activity</div>
             <div ref={feedRef} style={{ flex:1, overflowY:'auto', padding:'12px 18px', display:'flex', flexDirection:'column', gap:8 }}>
               {groupActivity(e.activity || []).map(item => item.group ? (
@@ -762,6 +831,20 @@ export default function AvoEdit() {
                 </button>
               </div>
             </div>
+          </div>
+
+          {/* ── Contract tiles: editor always, color/audio when added ── */}
+          {['editor', 'color', 'audio'].map(role => {
+            const key = `contract_${role}`;
+            const data = (e.extra || {})[key];
+            if (role !== 'editor' && !data) return null;
+            return (
+              <ContractTile key={role} role={role} data={data} busy={busy}
+                onSave={d => save({ extra: { [key]: d } })}
+                onRemove={role !== 'editor' ? () => { if (confirm(`Remove the ${CONTRACT_ROLES[role].label} tile?`)) save({ extra: { [key]: null } }); } : null}
+                onHold={() => holdCost(role)} />
+            );
+          })}
           </div>
         </div>
       </div>

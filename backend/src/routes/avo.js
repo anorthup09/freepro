@@ -346,22 +346,25 @@ router.post('/edits/:id/hold-cost', ...staff, async (req, res, next) => {
     const [e] = await FULL_EDIT(req.params.id);
     if (!e) return res.status(404).json({ error: 'Edit not found' });
     if (!e.project_id) return res.status(400).json({ error: 'This edit is not linked to a project, so there is no VCC to hold against' });
-    const amount = Number(e.cost_estimate);
-    if (!amount) return res.status(400).json({ error: 'Set a cost estimate first' });
-    const editor = (await memberName(e.lead_editor_id))?.n || null;
-    const source = `editcost:${e.id}`;
-    const description = `Contract editor — ${e.title}${editor ? ` (${editor})` : ''}`;
+    const role = ['editor', 'color', 'audio'].includes(req.body?.role) ? req.body.role : 'editor';
+    const tile = (e.extra || {})[`contract_${role}`] || {};
+    const amount = Number(tile.total) || (role === 'editor' ? Number(e.cost_estimate) : 0);
+    if (!amount) return res.status(400).json({ error: 'Set a total estimate on the tile first' });
+    const labels = { editor: 'Contract editor', color: 'Color', audio: 'Audio' };
+    const vendor = tile.name || (role === 'editor' ? (await memberName(e.lead_editor_id))?.n : null) || null;
+    const source = role === 'editor' ? `editcost:${e.id}` : `editcost:${e.id}:${role}`;
+    const description = `${labels[role]} — ${e.title}${vendor ? ` (${vendor})` : ''}`;
     const [existing] = await sql`SELECT id FROM vcc_entries WHERE source = ${source}`;
     let entry;
     if (existing) {
-      [entry] = await sql`UPDATE vcc_entries SET amount = ${amount}, description = ${description}, vendor = ${editor}
+      [entry] = await sql`UPDATE vcc_entries SET amount = ${amount}, description = ${description}, vendor = ${vendor}
         WHERE id = ${existing.id} RETURNING *`;
     } else {
       [entry] = await sql`INSERT INTO vcc_entries (project_id, entry_date, vendor, description, category, amount, status, source)
-        VALUES (${e.project_id}, ${require('../lib/dates').bizToday()}, ${editor}, ${description}, ${'Post-Production'}, ${amount}, 'HOLD', ${source})
+        VALUES (${e.project_id}, ${require('../lib/dates').bizToday()}, ${vendor}, ${description}, ${'Post-Production'}, ${amount}, 'HOLD', ${source})
         RETURNING *`;
     }
-    await logAct(e.id, 'log', req.user?.email || 'someone', `held $${amount.toLocaleString()} on the project VCC for the contract editor`);
+    await logAct(e.id, 'log', req.user?.email || 'someone', `held $${amount.toLocaleString()} on the project VCC for ${labels[role].toLowerCase()}`);
     res.json(entry);
   } catch (e) { next(e); }
 });
