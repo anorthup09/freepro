@@ -133,6 +133,47 @@ router.get('/inventory', requireAuth, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// ── Hard drive tracking ──────────────────────────────────────────────────
+// Every HDD-category asset, with where it currently is: the shoot holding it
+// (open assignment) or its home location.
+router.get('/drives', requireAuth, async (req, res, next) => {
+  try {
+    const rows = await sql`
+      SELECT a.id, a.asset_tag, a.name, a.serial_number, a.location, a.status,
+             da.id as assignment_id, da.assigned_at, da.assigned_by,
+             p.id as project_id, p.code as project_code, p.title as project_title
+      FROM gear_assets a
+      LEFT JOIN drive_assignments da ON da.asset_id = a.id AND da.returned_at IS NULL
+      LEFT JOIN projects p ON p.id = da.project_id
+      WHERE a.category = 'HDD' AND a.status NOT IN ('RETIRED', 'LOST')
+      ORDER BY a.name, a.asset_tag`;
+    res.json(rows);
+  } catch (e) { next(e); }
+});
+
+// Tag a drive onto a shoot (closes any open assignment first — a drive is
+// only ever in one place)
+router.post('/drives/:assetId/assign', requireAuth, async (req, res, next) => {
+  try {
+    const { projectId } = req.body || {};
+    if (!projectId) return res.status(400).json({ error: 'projectId required' });
+    await sql`UPDATE drive_assignments SET returned_at = NOW() WHERE asset_id = ${req.params.assetId} AND returned_at IS NULL`;
+    const [row] = await sql`
+      INSERT INTO drive_assignments (asset_id, project_id, assigned_by)
+      VALUES (${req.params.assetId}, ${projectId}, ${req.user?.name || req.user?.email || null})
+      RETURNING *`;
+    res.status(201).json(row);
+  } catch (e) { next(e); }
+});
+
+// Drive comes home
+router.post('/drives/:assetId/return', requireAuth, async (req, res, next) => {
+  try {
+    await sql`UPDATE drive_assignments SET returned_at = NOW() WHERE asset_id = ${req.params.assetId} AND returned_at IS NULL`;
+    res.json({ ok: true });
+  } catch (e) { next(e); }
+});
+
 // POST /api/gear-assets/import — bulk rows from a spreadsheet
 router.post('/import', requireAuth, async (req, res, next) => {
   try {

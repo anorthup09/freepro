@@ -40,6 +40,11 @@ const REPORTS = [
     accent: '#a78bfa', to: '/reports/vendor-contracts',
   },
   {
+    title: 'Hard Drives',
+    desc: 'The drive roster and where every drive is right now — out on a shoot or home in the office.',
+    accent: '#4a9eff', to: '/reports/drives',
+  },
+  {
     title: 'Weekly Finance Report',
     desc: 'Snapshot report of budgets and close months for the finance team.',
     accent: '#4a9eff', to: '/finance/report',
