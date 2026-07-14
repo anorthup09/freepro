@@ -45,6 +45,16 @@ const REPORTS = [
     accent: '#4a9eff', to: '/reports/drives',
   },
   {
+    title: 'Music Resources',
+    desc: "The team's shared music library — licensing platforms, go-to tracks, and playlists, grouped by category.",
+    accent: '#e6c229', to: '/reports/music-resources',
+  },
+  {
+    title: 'Video References',
+    desc: 'Reference and inspiration videos — style frames, past work, and examples to share, grouped by category.',
+    accent: '#a78bfa', to: '/reports/video-references',
+  },
+  {
     title: 'Weekly Finance Report',
     desc: 'Snapshot report of budgets and close months for the finance team.',
     accent: '#4a9eff', to: '/finance/report',

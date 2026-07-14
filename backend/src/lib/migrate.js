@@ -508,6 +508,19 @@ async function migrate() {
   `;
   await sql`ALTER TABLE talent_day_calls ADD COLUMN IF NOT EXISTS call_location TEXT`;
 
+  // Resource libraries (Reports): music resources + video references
+  await sql`
+    CREATE TABLE IF NOT EXISTS resource_links (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      kind TEXT NOT NULL,
+      title TEXT NOT NULL,
+      url TEXT,
+      category TEXT,
+      note TEXT,
+      added_by TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`;
+
   await sql`ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS day_type TEXT DEFAULT 'SHOOT'`;
 
   await sql`ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS call_time_location_id TEXT REFERENCES locations(id)`;

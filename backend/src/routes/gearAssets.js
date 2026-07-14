@@ -101,6 +101,31 @@ router.get('/inventory', requireAuth, async (req, res, next) => {
       WHERE status NOT IN ('RETIRED', 'LOST')
       GROUP BY name, category
       ORDER BY name`;
+    // Internal reservations on OTHER shoots running at the same time reduce
+    // what's actually available. Pass ?projectId= to subtract them.
+    const reserved = {};   // lower(item) -> qty reserved elsewhere during this shoot
+    if (req.query.projectId) {
+      const [me] = await sql`SELECT id, start_date, end_date FROM projects WHERE id = ${req.query.projectId}`;
+      if (me) {
+        // A shoot with no dates yet overlaps everything active (conservative).
+        const resRows = me.start_date && me.end_date
+          ? await sql`
+              SELECT LOWER(gi.item) as item, SUM(gi.qty)::int as qty
+              FROM gear_items gi JOIN projects p ON p.id = gi.project_id
+              WHERE gi.source = 'internal' AND gi.project_id != ${me.id}
+                AND p.status NOT IN ('ARCHIVED')
+                AND p.start_date IS NOT NULL AND p.end_date IS NOT NULL
+                AND p.start_date <= ${me.end_date} AND p.end_date >= ${me.start_date}
+              GROUP BY LOWER(gi.item)`
+          : await sql`
+              SELECT LOWER(gi.item) as item, SUM(gi.qty)::int as qty
+              FROM gear_items gi JOIN projects p ON p.id = gi.project_id
+              WHERE gi.source = 'internal' AND gi.project_id != ${me.id}
+                AND p.status NOT IN ('ARCHIVED', 'WRAPPED')
+              GROUP BY LOWER(gi.item)`;
+        for (const r of resRows) reserved[r.item] = Number(r.qty) || 0;
+      }
+    }
     // Unit-ID suffixes are one model — combine "… CAM A", "… STUDIO 117",
     // "… #3", and "… Z1/E5"-style tags. The letter+digit rule only merges
     // when siblings exist, so real model names ("Sony FX6") never collapse.
@@ -129,7 +154,12 @@ router.get('/inventory', requireAuth, async (req, res, next) => {
       if (m) { m.total += r.total; m.available += r.available; }
       else merged.set(key, { name, dept: deptOf(r.category, name), category: r.category, total: r.total, available: r.available });
     }
-    res.json([...merged.values()].sort((a, b) => a.name.localeCompare(b.name)));
+    res.json([...merged.values()]
+      .map(m => {
+        const r = reserved[m.name.toLowerCase()] || 0;
+        return { ...m, reserved: r, available_now: Math.max(0, m.available - r) };
+      })
+      .sort((a, b) => a.name.localeCompare(b.name)));
   } catch (e) { next(e); }
 });
 

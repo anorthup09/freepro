@@ -132,7 +132,13 @@ function InventoryPicker({ dept, inventory, qtyOf, setQty, onClose }) {
               <div key={m.name} style={{ display:'flex', alignItems:'center', gap:10, padding:'7px 12px', borderBottom:'1px solid rgba(255,255,255,0.04)', background: n > 0 ? 'rgba(232,80,10,0.07)' : 'transparent' }}>
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ fontSize:12, fontWeight: n > 0 ? 700 : 500 }}>{m.name}</div>
-                  <div style={{ fontSize:9, color:'var(--muted)' }}>{m.available} of {m.total} available · {m.category}</div>
+                  <div style={{ fontSize:9, color:'var(--muted)' }}>
+                    <span style={{ color: (m.available_now ?? m.available) === 0 ? 'var(--red-text, #e05252)' : undefined }}>
+                      {m.available_now ?? m.available} of {m.total} available
+                    </span>
+                    {m.reserved > 0 && <span style={{ color:'#e6c229' }}> · {m.reserved} on other shoots</span>}
+                    {' · '}{m.category}
+                  </div>
                 </div>
                 <button type="button" style={stepBtn} onClick={() => setQty(dept, m.name, Math.max(0, n - 1))}>−</button>
                 <span style={{ width:22, textAlign:'center', fontSize:13, fontWeight:800, color: n > 0 ? 'var(--orange)' : 'var(--muted)' }}>{n}</span>
@@ -183,9 +189,14 @@ export default function GearRequestModal({ projectId, existing, onClose, onSubmi
     if (showForm) {
       api.gearRequestProjects().then(setProjects).catch(() => setProjects([]));
       api.getCrew().then(setCrew).catch(() => {});
-      api.gearInventory().then(setInventory).catch(() => setInventory([]));
     }
   }, [showForm]);
+
+  // Inventory availability is date-aware: gear reserved internally on other
+  // shoots running at the same time is subtracted. Refetch when the project changes.
+  useEffect(() => {
+    if (showForm) api.gearInventory(f.projectId || undefined).then(setInventory).catch(() => setInventory([]));
+  }, [showForm, f.projectId]);
 
   // "Your name" carries the account's FULL name. The account name may be just a
   // first name, so resolve first + last from the crew roster by email; if there's
