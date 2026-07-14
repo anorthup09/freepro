@@ -113,6 +113,9 @@ router.get('/report', requireAuth, async (req, res, next) => {
              (SELECT MIN(g.created_at) FROM gear_requests g WHERE g.project_id = p.id) as request_submitted,
              (SELECT g.submitted_by FROM gear_requests g WHERE g.project_id = p.id ORDER BY g.created_at LIMIT 1) as request_by,
              (SELECT g.name FROM gear_requests g WHERE g.project_id = p.id ORDER BY g.created_at LIMIT 1) as request_name,
+             (SELECT COALESCE(NULLIF(TRIM(CONCAT(cm.preferred_first_name, ' ', cm.preferred_last_name)), ''), cm.name)
+              FROM crew_members cm WHERE cm.id = pg.gear_person_id) as person_responsible,
+             (SELECT g.moving FROM gear_requests g WHERE g.project_id = p.id ORDER BY g.created_at LIMIT 1) as form_of_travel,
              (SELECT COUNT(*) FROM gear_items gi WHERE gi.project_id = p.id AND COALESCE(gi.source, 'unassigned') = 'unassigned')::int as unassigned_items,
              (SELECT COUNT(*) FROM gear_items gi WHERE gi.project_id = p.id AND gi.source = 'internal')::int as internal_items,
              (SELECT COUNT(*) FROM online_rentals o WHERE o.project_id = p.id)::int as online_rentals,

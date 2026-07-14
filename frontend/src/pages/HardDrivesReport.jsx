@@ -102,7 +102,7 @@ export default function HardDrivesReport() {
           </div>
         )}
         <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 8 }}>
-          Drives come from the HDD category of the asset database. Tag them onto shoots from Gear Management → a shoot's gear dashboard → Drives tile. Click a row to open the holding shoot.
+          Drives come from the HDD category of the asset database. Tag them onto shoots from the Gear Report → a shoot's gear dashboard → Drives tile, or the shoot's Gear tab. Click a row to open the holding shoot.
         </div>
       </div>
     </div>

@@ -2,9 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../App.jsx';
-import GearRequestModal from '../components/GearRequestModal.jsx';
 import HomeButton from '../components/HomeButton.jsx';
-import AssetLookup from '../components/AssetLookup.jsx';
 
 const STATUS_PILL = {
   PLANNING:  'amber',
@@ -17,203 +15,6 @@ const STATUS_PILL = {
 const gth = { padding:'8px 12px', fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', textAlign:'left', whiteSpace:'nowrap', borderBottom:'1px solid var(--border)' };
 const gtd = { padding:'10px 12px', fontSize:12, borderBottom:'1px solid rgba(255,255,255,0.05)', verticalAlign:'middle' };
 const fmtGD = d => d ? new Date(String(d).slice(0,10)+'T12:00:00').toLocaleDateString('en-US', { month:'numeric', day:'numeric', year:'2-digit' }) : '—';
-const dayMs = 86400000;
-const gTime = d => new Date(String(d).slice(0,10)+'T00:00:00').getTime();
-function daysUntilStart(d) {
-  if (!d) return null;
-  const today = new Date(); today.setHours(0,0,0,0);
-  return Math.round((gTime(d) - today.getTime()) / dayMs);
-}
-function countdownLabel(d) {
-  const n = daysUntilStart(d);
-  if (n === null) return '—';
-  if (n > 0) return `${n} day${n === 1 ? '' : 's'}`;
-  if (n === 0) return 'Today';
-  return 'Started';
-}
-
-// Calendar-grid timeline (like the Crew Calendar): one row per shoot, bars span
-// the shoot dates, each labeled with its Shoot Title. Today's column is orange.
-const G_DAY_W = 30;
-const G_NAME_W = 190;
-function GearGantt({ rows, onOpen }) {
-  const scrollRef = useRef(null);
-  const dated = (rows || []).filter(r => r.start_date);
-  const today = new Date(); today.setHours(12, 0, 0, 0);
-
-  const starts = dated.map(r => gTime(r.start_date));
-  const ends = dated.map(r => gTime(r.end_date || r.start_date));
-  const minMs = dated.length ? Math.min(today.getTime(), ...starts) : today.getTime();
-  const maxMs = dated.length ? Math.max(today.getTime(), ...ends) : today.getTime();
-  const startDate = new Date(minMs - 5 * dayMs); startDate.setHours(12, 0, 0, 0);
-  const totalDays = Math.round((maxMs + 5 * dayMs - startDate.getTime()) / dayMs) + 1;
-  const dayAt = i => new Date(startDate.getTime() + i * dayMs);
-  const idxOf = d => Math.round((gTime(d) - startDate.getTime()) / dayMs);
-  const todayIdx = Math.round((today.getTime() - startDate.getTime()) / dayMs);
-
-  useEffect(() => {
-    if (scrollRef.current && dated.length) scrollRef.current.scrollLeft = Math.max(0, (todayIdx - 3) * G_DAY_W);
-  }, [rows]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  if (!dated.length) return null;
-
-  const months = [];
-  for (let i = 0; i < totalDays; i++) { const d = dayAt(i); if (i === 0 || d.getDate() === 1) months.push({ i, label: d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) }); }
-  const sorted = [...dated].sort((a, b) => gTime(a.start_date) - gTime(b.start_date));
-  const DOW = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-
-  return (
-    <div ref={scrollRef} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, overflowX:'auto', marginBottom:16 }}>
-      <div style={{ width: G_NAME_W + totalDays * G_DAY_W, position:'relative' }}>
-        {/* month row */}
-        <div style={{ display:'flex', height:24, borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
-          <div style={{ width:G_NAME_W, flexShrink:0, position:'sticky', left:0, background:'var(--bg2)', zIndex:3, borderRight:'1px solid var(--border)' }} />
-          <div style={{ position:'relative', flex:1 }}>
-            {months.map(m => <div key={m.i} style={{ position:'absolute', left:m.i * G_DAY_W + 6, top:5, fontSize:10, fontWeight:800, color:'var(--text)', whiteSpace:'nowrap' }}>{m.label}</div>)}
-          </div>
-        </div>
-        {/* day header */}
-        <div style={{ display:'flex', borderBottom:'1px solid var(--border)' }}>
-          <div style={{ width:G_NAME_W, flexShrink:0, position:'sticky', left:0, background:'var(--bg2)', zIndex:3, borderRight:'1px solid var(--border)' }} />
-          {Array.from({ length: totalDays }, (_, i) => {
-            const d = dayAt(i); const wknd = d.getDay() === 0 || d.getDay() === 6; const isToday = i === todayIdx;
-            return (
-              <div key={i} style={{ width:G_DAY_W, flexShrink:0, textAlign:'center', padding:'4px 0 5px', fontSize:9, color: isToday ? 'var(--orange)' : wknd ? 'rgba(255,255,255,0.25)' : 'var(--muted)', fontWeight: isToday ? 800 : 600 }}>
-                <div>{DOW[d.getDay()]}</div><div style={{ fontSize:10 }}>{d.getDate()}</div>
-              </div>
-            );
-          })}
-        </div>
-        {/* shoot rows */}
-        {sorted.map(r => {
-          const from = Math.max(0, idxOf(r.start_date));
-          const to = Math.min(totalDays - 1, idxOf(r.end_date || r.start_date));
-          const title = r.subtitle || r.title || r.code;
-          return (
-            <div key={r.id} style={{ display:'flex', borderBottom:'1px solid rgba(255,255,255,0.04)', position:'relative', minHeight:40 }}>
-              <div style={{ width:G_NAME_W, flexShrink:0, padding:'10px 12px', fontSize:12, fontWeight:700, position:'sticky', left:0, background:'var(--bg2)', zIndex:2, borderRight:'1px solid var(--border)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{title}</div>
-              {Array.from({ length: totalDays }, (_, i) => {
-                const d = dayAt(i); const wknd = d.getDay() === 0 || d.getDay() === 6;
-                if (!wknd) return null;
-                return <div key={i} style={{ position:'absolute', left:G_NAME_W + i * G_DAY_W, top:0, bottom:0, width:G_DAY_W, background:'rgba(255,255,255,0.02)' }} />;
-              })}
-              <div style={{ position:'absolute', left:G_NAME_W + todayIdx * G_DAY_W + G_DAY_W / 2, top:0, bottom:0, width:1, background:'var(--orange)', opacity:0.45, zIndex:1 }} />
-              <div onClick={() => onOpen && onOpen(r.id)} title={`${title} · ${fmtGD(r.start_date)} – ${fmtGD(r.end_date || r.start_date)}`}
-                style={{ position:'absolute', top:8, height:24, zIndex:1, left:G_NAME_W + from * G_DAY_W, width:(to - from + 1) * G_DAY_W - 4,
-                  background:'rgba(232,80,10,0.2)', border:'1px solid var(--orange)', borderRadius:6, display:'flex', alignItems:'center', padding:'0 8px', overflow:'hidden', cursor:'pointer', fontSize:10, fontWeight:800, color:'var(--orange)', whiteSpace:'nowrap' }}>
-                {title}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function GearManagement() {
-  const nav = useNavigate();
-  const [rows, setRows] = useState(null);
-  const [gearMgr, setGearMgr] = useState(null);
-  useEffect(() => {
-    api.getCrew().then(cs => {
-      const m = cs.find(c => `${c.preferred_first_name || ''} ${c.preferred_last_name || ''}`.trim().toLowerCase() === 'mason vitro'
-        || (c.name || '').toLowerCase() === 'mason vitro');
-      setGearMgr(m || null);
-    }).catch(() => {});
-  }, []);
-  const [tab, setTab] = useState('requested'); // 'requested' | 'none'
-  const [showForm, setShowForm] = useState(false);
-  const [viewing, setViewing] = useState(null);
-  const load = () => api.gearOverview().then(setRows).catch(e => alert(e.message));
-  useEffect(() => { load(); }, []);
-
-  async function quickView(e, pid) {
-    e.stopPropagation();
-    try { setViewing(await api.gearRequestForProject(pid)); }
-    catch { alert('Could not load the gear request.'); }
-  }
-
-  const shown = (rows || []).filter(r => tab === 'requested' ? r.hasRequest : !r.hasRequest);
-
-  return (
-    <div>
-      {gearMgr && (
-        <div style={{ display:'flex', alignItems:'center', gap:10, background:'rgba(232,80,10,0.08)', border:'1px solid rgba(232,80,10,0.4)', borderRadius:10, padding:'8px 14px', marginBottom:12 }}>
-          <span style={{ fontSize:16 }}>🎒</span>
-          <div>
-            <div style={{ fontSize:12, fontWeight:800 }}>Gear Manager — {[gearMgr.preferred_first_name, gearMgr.preferred_last_name].filter(Boolean).join(' ') || gearMgr.name}</div>
-            <div style={{ fontSize:10, color:'var(--muted)' }}>
-              {[gearMgr.email && <a key="e" href={`mailto:${gearMgr.email}`} style={{ color:'var(--orange)', textDecoration:'none' }}>{gearMgr.email}</a>,
-                gearMgr.phone && <a key="p" href={`tel:${String(gearMgr.phone).replace(/[^+\d]/g, '')}`} style={{ color:'var(--orange)', textDecoration:'none' }}>{gearMgr.phone}</a>]
-                .filter(Boolean).reduce((acc, el, i) => acc === null ? [el] : [...acc, ' · ', el], null) || 'Gear questions go here first.'}
-            </div>
-          </div>
-        </div>
-      )}
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14, flexWrap:'wrap', gap:8 }}>
-        <div className="page-sub">Each production shoot has its own gear tile — click a row to open its gear dashboard.</div>
-        <button className="btn btn-primary" onClick={() => setShowForm(true)}>+ New Gear Request</button>
-      </div>
-
-      {/* Requested / No Request toggle */}
-      <div style={{ display:'inline-flex', border:'1px solid var(--border)', borderRadius:18, overflow:'hidden', marginBottom:14 }}>
-        {[['requested', 'Gear Requested'], ['none', 'No Gear Request']].map(([k, label]) => (
-          <button key={k} onClick={() => setTab(k)}
-            style={{ background: tab === k ? 'rgba(232,80,10,0.22)' : 'transparent', border:'none',
-              color: tab === k ? 'var(--orange)' : 'var(--muted)', fontSize:11, fontWeight:800, padding:'7px 18px', cursor:'pointer' }}>
-            {label} {rows ? `(${(rows).filter(r => k === 'requested' ? r.hasRequest : !r.hasRequest).length})` : ''}
-          </button>
-        ))}
-      </div>
-
-      {rows && shown.length > 0 && <GearGantt rows={shown} onOpen={pid => nav(`/gear/${pid}`)} />}
-
-      {!rows && <div className="empty">Loading…</div>}
-      {rows && shown.length === 0 && (
-        <div className="empty">{tab === 'requested' ? 'No shoots with a gear request yet.' : 'Every shoot has a gear request.'}</div>
-      )}
-      {rows && shown.length > 0 && (
-        <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, overflowX:'auto' }}>
-          <table style={{ width:'100%', borderCollapse:'collapse', minWidth:900 }}>
-            <thead>
-              <tr>
-                <th style={{ ...gth, background:'rgba(232,80,10,0.15)', color:'var(--orange)', textAlign:'center' }}>Countdown</th>
-                <th style={gth}>Shoot Code</th><th style={gth}>Shoot Title</th>
-                <th style={gth}>Person Responsible</th><th style={gth}>Start</th><th style={gth}>End</th>
-                <th style={gth}>Form of Travel</th><th style={{ ...gth, textAlign:'center' }}>Gear Request</th>
-              </tr>
-            </thead>
-            <tbody>
-              {shown.map(r => (
-                <tr key={r.id} onClick={() => nav(`/gear/${r.id}`)} style={{ cursor:'pointer' }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                  <td style={{ ...gtd, background:'rgba(232,80,10,0.12)', color:'var(--orange)', fontWeight:800, textAlign:'center', whiteSpace:'nowrap' }}>{countdownLabel(r.start_date)}</td>
-                  <td style={{ ...gtd, fontWeight:800, whiteSpace:'nowrap' }}>{r.code}</td>
-                  <td style={gtd}>{r.subtitle || r.title}</td>
-                  <td style={gtd}>{r.person_responsible || <span style={{ color:'var(--muted)' }}>—</span>}</td>
-                  <td style={{ ...gtd, whiteSpace:'nowrap' }}>{fmtGD(r.start_date)}</td>
-                  <td style={{ ...gtd, whiteSpace:'nowrap' }}>{fmtGD(r.end_date)}</td>
-                  <td style={gtd}>{r.form_of_travel || <span style={{ color:'var(--muted)' }}>—</span>}</td>
-                  <td style={{ ...gtd, textAlign:'center' }}>
-                    {r.hasRequest
-                      ? <button onClick={e => quickView(e, r.id)}
-                          style={{ background:'rgba(232,80,10,0.14)', border:'1px solid var(--orange)', color:'var(--orange)', borderRadius:10, padding:'3px 12px', fontSize:10, fontWeight:800, cursor:'pointer', whiteSpace:'nowrap' }}>Quick View</button>
-                      : <span style={{ fontSize:10, color:'var(--muted)' }}>—</span>}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-      {showForm && <GearRequestModal onClose={() => setShowForm(false)} onSubmitted={load} />}
-      {viewing && <GearRequestModal existing={viewing} onClose={() => setViewing(null)} />}
-    </div>
-  );
-}
-
 export default function Projects() {
   const { user, setUser } = useAuth();
   const nav = useNavigate();
@@ -222,8 +23,6 @@ export default function Projects() {
   const [form, setForm] = useState({ code:'', title:'', client:'', city:'', state:'', startDate:'', endDate:'' });
   const [saving, setSaving] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
-  const [view, setView] = useState('production');
-  const [gearMode, setGearMode] = useState('shoots');   // 'shoots' | 'assets'
   const isCrew = user?.role === 'CREW';
   const isAgency = user?.role === 'AGENCY';
 
@@ -309,29 +108,14 @@ export default function Projects() {
       <div className="wrap">
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:18, flexWrap:'wrap', gap:10 }}>
           <div>
-            <div style={{ display:'flex', border:'1px solid var(--border)', borderRadius:18, overflow:'hidden', marginBottom:6, width:'fit-content' }}>
-              {[['production', 'Production Management'], ['gear', 'Gear Management']].map(([k, label]) => (
-                <button key={k} onClick={() => setView(k)}
-                  style={{ background: view === k ? 'rgba(232,80,10,0.25)' : 'transparent', border:'none',
-                    color: view === k ? 'var(--orange)' : 'var(--muted)', fontSize:12, fontWeight:800, padding:'7px 18px', cursor:'pointer', fontFamily:'inherit' }}>
-                  {label}
-                </button>
-              ))}
-            </div>
-            {view === 'production' && !isCrew && (() => {
+            <div className="page-title" style={{ marginBottom:2 }}>Production Management</div>
+            {!isCrew && (() => {
               const planning = prodProjects.filter(p => p.status === 'PLANNING').length;
               const live = prodProjects.filter(p => p.status === 'ACTIVE').length;
               return <div className="page-sub">{planning} planning · {live} live shoot{live !== 1 ? 's' : ''}</div>;
             })()}
           </div>
-          {view === 'gear' && (
-            <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
-              <button className={gearMode === 'assets' ? 'btn btn-primary' : 'btn btn-ghost'} onClick={() => setGearMode(m => m === 'assets' ? 'shoots' : 'assets')}>
-                {gearMode === 'assets' ? '‹ Back to Shoots' : 'Asset Management'}
-              </button>
-            </div>
-          )}
-          {view === 'production' && (
+          {(
             <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
               {!isCrew && !isAgency && <Link to="/crew-calendar" className="btn btn-ghost">Crew Calendar</Link>}
               <Link to="/crew-views" className="btn btn-ghost">Crew Views</Link>
@@ -340,16 +124,15 @@ export default function Projects() {
           )}
         </div>
 
-        {view === 'gear' && (gearMode === 'assets' ? <AssetLookup /> : <GearManagement />)}
-        {view === 'production' && isCrew && (
+        {isCrew && (
           <div className="empty" style={{ padding:'40px 20px', textAlign:'center' }}>
             Head to <Link to="/crew-views" style={{ color:'var(--orange)' }}>Crew Views</Link> for your call sheets and schedules,
-            or switch to Gear Management above to submit and track gear requests.
+            or use the Gear Report under Reports to submit and track gear requests.
           </div>
         )}
-        {view === 'production' && !isCrew && projects.length === 0 && <div className="empty">No projects yet — create one to get started.</div>}
+        {!isCrew && projects.length === 0 && <div className="empty">No projects yet — create one to get started.</div>}
 
-        {view === 'production' && !isCrew && (
+        {!isCrew && (
         <div className="proj-list">
           {activeProjects.map(p => {
             const d = daysUntil(p.start_date);
@@ -385,7 +168,7 @@ export default function Projects() {
         </div>
         )}
 
-        {view === 'production' && !isCrew && wrappedProjects.length > 0 && (
+        {!isCrew && wrappedProjects.length > 0 && (
           <div style={{ marginTop:24 }}>
             <div style={{ fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--muted)', marginBottom:8 }}>
               Wrapped ({wrappedProjects.length})
@@ -412,7 +195,7 @@ export default function Projects() {
           </div>
         )}
 
-        {view === 'production' && !isCrew && projects.some(p => p.status === 'ARCHIVED') && (
+        {!isCrew && projects.some(p => p.status === 'ARCHIVED') && (
           <div style={{ marginTop:24 }}>
             <button
               className="btn btn-ghost btn-sm"

@@ -3,6 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../App.jsx';
 import { api } from '../api.js';
 import HomeButton from '../components/HomeButton.jsx';
+import GearGantt, { countdownLabel } from '../components/GearGantt.jsx';
+import GearRequestModal from '../components/GearRequestModal.jsx';
+import AssetLookup from '../components/AssetLookup.jsx';
 
 // Gear Manager report — every production shoot at a glance, ordered by start
 // date. Shoots with a submitted gear request render in full color; shoots
@@ -61,8 +64,26 @@ export default function GearReport() {
   const nav = useNavigate();
   const [rows, setRows] = useState(null);
   const [showPast, setShowPast] = useState(false);
+  const [mode, setMode] = useState('shoots');      // 'shoots' | 'assets'
+  const [showForm, setShowForm] = useState(false); // + New Gear Request
+  const [viewing, setViewing] = useState(null);    // quick-view of a submitted request
+  const [gearMgr, setGearMgr] = useState(null);
 
-  useEffect(() => { api.gearReport().then(setRows).catch(e => alert(e.message)); }, []);
+  const load = () => api.gearReport().then(setRows).catch(e => alert(e.message));
+  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    api.getCrew().then(cs => {
+      const m = cs.find(c => `${c.preferred_first_name || ''} ${c.preferred_last_name || ''}`.trim().toLowerCase() === 'mason vitro'
+        || (c.name || '').toLowerCase() === 'mason vitro');
+      setGearMgr(m || null);
+    }).catch(() => {});
+  }, []);
+
+  async function quickView(e, pid) {
+    e.stopPropagation();
+    try { setViewing(await api.gearRequestForProject(pid)); }
+    catch { alert('Could not load the gear request.'); }
+  }
 
   const today = new Date().toISOString().slice(0, 10);
   const upcoming = (rows || []).filter(r => !r.end_date || String(r.end_date).slice(0, 10) >= today);
@@ -86,6 +107,19 @@ export default function GearReport() {
         </div>
       </div>
       <div style={{ maxWidth: 1150, margin: '0 auto', padding: '10px 16px 60px' }}>
+        {gearMgr && (
+          <div style={{ display:'flex', alignItems:'center', gap:10, background:'rgba(232,80,10,0.08)', border:'1px solid rgba(232,80,10,0.4)', borderRadius:10, padding:'8px 14px', marginBottom:12 }}>
+            <span style={{ fontSize:16 }}>🎒</span>
+            <div>
+              <div style={{ fontSize:12, fontWeight:800 }}>Gear Manager — {[gearMgr.preferred_first_name, gearMgr.preferred_last_name].filter(Boolean).join(' ') || gearMgr.name}</div>
+              <div style={{ fontSize:10, color:'var(--muted)' }}>
+                {[gearMgr.email && <a key="e" href={`mailto:${gearMgr.email}`} style={{ color:'var(--orange)', textDecoration:'none' }}>{gearMgr.email}</a>,
+                  gearMgr.phone && <a key="p" href={`tel:${String(gearMgr.phone).replace(/[^+\d]/g, '')}`} style={{ color:'var(--orange)', textDecoration:'none' }}>{gearMgr.phone}</a>]
+                  .filter(Boolean).reduce((acc, el) => acc === null ? [el] : [...acc, ' · ', el], null) || 'Gear questions go here first.'}
+              </div>
+            </div>
+          </div>
+        )}
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
           <div>
             <div className="page-title">Gear Report</div>
@@ -94,18 +128,31 @@ export default function GearReport() {
               {rows && <span> · <b style={{ color: '#5ABF80' }}>{requested}</b> of {upcoming.length} upcoming shoots requested</span>}
             </div>
           </div>
-          <button className="btn btn-ghost btn-sm" onClick={() => setShowPast(p => !p)}>
-            {showPast ? 'Hide past shoots' : `Show past shoots (${past.length})`}
-          </button>
+          <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+            <button className="btn btn-ghost btn-sm" onClick={() => setShowPast(p => !p)}>
+              {showPast ? 'Hide past shoots' : `Show past shoots (${past.length})`}
+            </button>
+            <button className={mode === 'assets' ? 'btn btn-primary btn-sm' : 'btn btn-ghost btn-sm'} onClick={() => setMode(m => m === 'assets' ? 'shoots' : 'assets')}>
+              {mode === 'assets' ? '‹ Back to Shoots' : 'Asset Management'}
+            </button>
+            <button className="btn btn-primary btn-sm" onClick={() => setShowForm(true)}>+ New Gear Request</button>
+          </div>
         </div>
-        {!rows && <div className="empty">Loading…</div>}
-        {rows && (
+        {mode === 'assets' && <div style={{ marginTop:14 }}><AssetLookup /></div>}
+        {mode === 'shoots' && rows && shown.length > 0 && (
+          <div style={{ marginTop:12 }}><GearGantt rows={shown} onOpen={pid => nav(`/gear/${pid}`)} /></div>
+        )}
+        {mode === 'shoots' && !rows && <div className="empty">Loading…</div>}
+        {mode === 'shoots' && rows && (
           <div className="budget-tbl-wrap" style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 10, marginTop: 10, overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1120 }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                  <th style={{ ...th, background: 'rgba(232,80,10,0.15)', color: 'var(--orange)', textAlign: 'center' }}>Countdown</th>
                   <th style={th}>Shoot Code</th><th style={th}>Shoot Name</th>
+                  <th style={th}>Person Responsible</th>
                   <th style={th}>Start</th><th style={th}>End</th>
+                  <th style={th}>Travel</th>
                   <th style={th}>Gear Request</th>
                   <th style={th}>Request Name</th>
                   <th style={th}>Needs Assignment</th>
@@ -117,21 +164,25 @@ export default function GearReport() {
                 {shown.map(r => {
                   const on = !!r.request_submitted;
                   return (
-                    <tr key={r.id} onClick={() => nav(`/projects/${r.id}?tab=gear-request`)}
+                    <tr key={r.id} onClick={() => nav(`/gear/${r.id}`)}
                       style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer',
                         opacity: on ? 1 : 0.45, filter: on ? 'none' : 'grayscale(0.7)', transition: 'opacity .15s ease' }}
                       onMouseEnter={e => { if (!on) e.currentTarget.style.opacity = 0.75; }}
                       onMouseLeave={e => { if (!on) e.currentTarget.style.opacity = 0.45; }}>
+                      <td style={{ ...td, background: 'rgba(232,80,10,0.12)', color: 'var(--orange)', fontWeight: 800, textAlign: 'center', whiteSpace: 'nowrap' }}>{countdownLabel(r.start_date)}</td>
                       <td style={{ ...td, fontWeight: 700, color: 'var(--orange)', whiteSpace: 'nowrap' }}>{r.code}</td>
                       <td style={td}>
                         <div style={{ fontWeight: 600 }}>{r.title}</div>
                         {r.subtitle && <div style={{ fontSize: 10, color: 'var(--muted)' }}>{r.subtitle}</div>}
                       </td>
+                      <td style={{ ...td, whiteSpace: 'nowrap' }}>{r.person_responsible || <span style={{ color: 'var(--muted)' }}>—</span>}</td>
                       <td style={{ ...td, whiteSpace: 'nowrap' }}>{fmtD(r.start_date)}</td>
                       <td style={{ ...td, whiteSpace: 'nowrap' }}>{fmtD(r.end_date)}</td>
+                      <td style={{ ...td, whiteSpace: 'nowrap' }}>{r.form_of_travel || <span style={{ color: 'var(--muted)' }}>—</span>}</td>
                       <td style={{ ...td, whiteSpace: 'nowrap' }}>
                         {on
-                          ? <span style={{ background: 'rgba(90,191,128,0.15)', border: '1px solid #5ABF80', color: '#5ABF80', borderRadius: 12, padding: '2px 10px', fontSize: 10, fontWeight: 800 }}>
+                          ? <span onClick={e => quickView(e, r.id)} title="Quick view the submitted request"
+                              style={{ background: 'rgba(90,191,128,0.15)', border: '1px solid #5ABF80', color: '#5ABF80', borderRadius: 12, padding: '2px 10px', fontSize: 10, fontWeight: 800, cursor: 'pointer' }}>
                               ✓ {fmtD(r.request_submitted)}
                             </span>
                           : <span style={{ border: '1px solid var(--border)', color: 'var(--muted)', borderRadius: 12, padding: '2px 10px', fontSize: 10, fontWeight: 700 }}>Not requested</span>}
@@ -166,16 +217,18 @@ export default function GearReport() {
                     </tr>
                   );
                 })}
-                {shown.length === 0 && <tr><td colSpan={11} style={{ ...td, color: 'var(--muted)', fontStyle: 'italic' }}>No shoots found.</td></tr>}
+                {shown.length === 0 && <tr><td colSpan={14} style={{ ...td, color: 'var(--muted)', fontStyle: 'italic' }}>No shoots found.</td></tr>}
               </tbody>
             </table>
           </div>
         )}
-        <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 8 }}>
+        {mode === 'shoots' && <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 8 }}>
           Internal Gear = a gear request covers cage equipment · Online Rental = entries on the shoot's Online Rentals list ·
-          Rental House = a rental company on the Gear tab · Contractors = crew carrying a gear rate. Click any row to open the shoot.
-        </div>
+          Rental House = a rental company on the Gear tab · Contractors = crew carrying a gear rate. Click any row to open the shoot's gear dashboard; click a green ✓ to quick-view the request.
+        </div>}
       </div>
+      {showForm && <GearRequestModal onClose={() => setShowForm(false)} onSubmitted={load} />}
+      {viewing && <GearRequestModal existing={viewing} onClose={() => setViewing(null)} />}
     </div>
   );
 }
