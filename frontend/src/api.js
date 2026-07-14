@@ -144,6 +144,7 @@ export const api = {
   searchInvoices: (params) => req('GET', `/finance/vendor-invoices/search?${new URLSearchParams(params)}`),
   uploadVendorInvoice: (pid, data) => req('POST', `/finance/${pid}/vendor-invoices`, data),
   deleteVendorInvoice: (id) => req('DELETE', `/finance/vendor-invoices/${id}`),
+  extractVendorInvoice: (id) => req('POST', `/finance/vendor-invoices/${id}/extract`),
   projectOverview: (pid) => req('GET', `/project-overview/${pid}`),
   addCallNote: (pid, data) => req('POST', `/project-overview/${pid}/call-notes`, data),
   updateCallNote: (id, data) => req('PATCH', `/call-notes/${id}`, data),

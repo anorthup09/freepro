@@ -133,7 +133,18 @@ export default function InvoiceSearch() {
                     <td style={{ ...td, fontWeight:700 }}>{r.vendor_name || <span style={{ color:'var(--muted)', fontWeight:400 }}>—</span>}</td>
                     <td style={{ ...td, color:'#4a9eff', maxWidth:240, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{r.filename}</td>
                     <td style={td}><span style={{ fontWeight:700 }}>{r.code}</span> <span style={{ color:'var(--muted)', fontSize:11 }}>· {r.title}</span></td>
-                    <td style={{ ...td, textAlign:'right', fontWeight:800, color:'#e6c229', whiteSpace:'nowrap' }}>{r.amount != null ? fmt$(r.amount) : '—'}</td>
+                    <td style={{ ...td, textAlign:'right', fontWeight:800, color:'#e6c229', whiteSpace:'nowrap' }}>
+                      {r.amount != null ? fmt$(r.amount) : (
+                        <button title="Read the vendor and total from this invoice"
+                          onClick={async ev => {
+                            ev.stopPropagation();
+                            ev.target.textContent = 'Reading…';
+                            try { const row = await api.extractVendorInvoice(r.id); setRows(rs => rs.map(x => x.id === r.id ? { ...x, ...row } : x)); }
+                            catch (e2) { alert(e2.message); ev.target.textContent = '↻ Read'; }
+                          }}
+                          style={{ background:'none', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:10, padding:'2px 10px', fontSize:10, fontWeight:700, cursor:'pointer' }}>↻ Read</button>
+                      )}
+                    </td>
                     <td style={{ ...td, fontSize:11, color:'var(--muted)', whiteSpace:'nowrap' }}>{new Date(r.created_at).toLocaleDateString()} · {r.uploaded_by || '—'}</td>
                   </tr>
                 ))}

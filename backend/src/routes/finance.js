@@ -1317,10 +1317,10 @@ router.patch('/finance/pipeline/:pid', ...finance, async (req, res, next) => {
 // ── Vendor invoices: uploaded files per project ──
 // Claude reads the invoice and pulls out the vendor + total (needs ANTHROPIC_API_KEY)
 async function extractInvoiceFields(mime, base64) {
-  if (!process.env.ANTHROPIC_API_KEY) return null;
+  if (!process.env.ANTHROPIC_API_KEY) throw new Error('AI reading is not configured on the server (ANTHROPIC_API_KEY is not set)');
   const isPdf = (mime || '').includes('pdf');
   const isImg = /image\/(png|jpe?g|webp|gif)/.test(mime || '');
-  if (!isPdf && !isImg) return null;
+  if (!isPdf && !isImg) throw new Error('Only PDF and image invoices can be read automatically');
   const block = isPdf
     ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } }
     : { type: 'image', source: { type: 'base64', media_type: mime, data: base64 } };
@@ -1366,6 +1366,21 @@ router.post('/finance/:pid/vendor-invoices', ...finance, async (req, res, next) 
     res.status(201).json(row);
   } catch (e) { next(e); }
 });
+// Re-run the AI read on a stored invoice (upload-time extraction failed or was skipped)
+router.post('/finance/vendor-invoices/:id/extract', ...finance, async (req, res, next) => {
+  try {
+    const [f] = await sql`SELECT id, mime, data FROM vendor_invoices WHERE id = ${req.params.id}`;
+    if (!f) return res.status(404).json({ error: 'Invoice not found' });
+    let ai;
+    try { ai = await extractInvoiceFields(f.mime, Buffer.from(f.data).toString('base64')); }
+    catch (e2) { return res.status(400).json({ error: e2.message }); }
+    if (!ai || (!ai.vendor && ai.total == null)) return res.status(400).json({ error: 'Could not find a vendor or total in this file' });
+    const [row] = await sql`UPDATE vendor_invoices SET vendor_name = ${ai.vendor}, amount = ${ai.total}
+      WHERE id = ${f.id} RETURNING id, filename, mime, size, note, uploaded_by, vendor_name, amount, created_at`;
+    res.json(row);
+  } catch (e) { next(e); }
+});
+
 // Cross-project invoice search: vendor, project code, and/or total amount
 router.get('/finance/vendor-invoices/search', ...finance, async (req, res, next) => {
   try {
