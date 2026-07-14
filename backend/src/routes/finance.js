@@ -328,6 +328,56 @@ async function ensureShootProjects(budgetId) {
   }
 }
 
+// ── Link an existing FreePro project to a budget shoot section ───────────
+// For shoots someone hand-created before the budget spawned its own tile:
+// adopt the existing project as this shoot (aligning its code + parent).
+router.get('/finance/section/:sid/link-candidates', ...finance, async (req, res, next) => {
+  try {
+    const [sec] = await sql`
+      SELECT s.*, b.project_id as parent_id FROM budget_sections s
+      JOIN budgets b ON b.id = s.budget_id WHERE s.id = ${req.params.sid}`;
+    if (!sec) return res.status(404).json({ error: 'Section not found' });
+    const rows = await sql`
+      SELECT p.id, p.code, p.title, p.start_date, p.end_date
+      FROM projects p
+      WHERE p.status != 'ARCHIVED'
+        AND p.id != ${sec.parent_id}
+        AND p.id != ${sec.freepro_project_id || '~none~'}
+        AND NOT EXISTS (SELECT 1 FROM budget_sections bs WHERE bs.freepro_project_id = p.id AND bs.id != ${sec.id})
+        AND NOT EXISTS (SELECT 1 FROM budgets bb WHERE bb.project_id = p.id)
+      ORDER BY p.created_at DESC
+      LIMIT 100`;
+    res.json(rows);
+  } catch (e) { next(e); }
+});
+router.post('/finance/section/:sid/link-shoot', ...finance, async (req, res, next) => {
+  try {
+    const { projectId } = req.body;
+    if (!projectId) return res.status(400).json({ error: 'projectId required' });
+    const [sec] = await sql`
+      SELECT s.*, b.project_id as parent_id FROM budget_sections s
+      JOIN budgets b ON b.id = s.budget_id WHERE s.id = ${req.params.sid} AND s.kind = 'shoot'`;
+    if (!sec) return res.status(404).json({ error: 'Shoot section not found' });
+    const [target] = await sql`SELECT * FROM projects WHERE id = ${projectId}`;
+    if (!target) return res.status(404).json({ error: 'Project not found' });
+    if (target.id === sec.parent_id) return res.status(400).json({ error: 'That is the parent ProFi project — pick the shoot itself' });
+    const [taken] = await sql`SELECT id FROM budget_sections WHERE freepro_project_id = ${projectId} AND id != ${sec.id}`;
+    if (taken) return res.status(400).json({ error: 'That project is already linked to another budget shoot' });
+    // Align: shoot code, parent, and the link itself
+    if (sec.shoot_code && target.code !== sec.shoot_code) {
+      const [clash] = await sql`SELECT id FROM projects WHERE code = ${sec.shoot_code} AND id != ${projectId}`;
+      if (clash) {
+        // The auto-spawned duplicate holds the code — archive it and free the code up
+        await sql`UPDATE projects SET code = ${sec.shoot_code + '-old'}, status = 'ARCHIVED' WHERE id = ${clash.id}`;
+      }
+      await sql`UPDATE projects SET code = ${sec.shoot_code} WHERE id = ${projectId}`;
+    }
+    await sql`UPDATE projects SET parent_project_id = ${sec.parent_id} WHERE id = ${projectId}`;
+    await sql`UPDATE budget_sections SET freepro_project_id = ${projectId} WHERE id = ${sec.id}`;
+    res.json({ ok: true, code: sec.shoot_code || target.code });
+  } catch (e) { next(e); }
+});
+
 // ── Budget versioning ────────────────────────────────────────────────────
 // Freeze the current budget as an immutable snapshot (kind='version'),
 // then keep editing the live budget as the next version number.

@@ -496,6 +496,76 @@ function VersionViewer({ vid, onClose }) {
   );
 }
 
+// Adopt a hand-created FreePro shoot as this budget shoot: aligns its code to
+// the section's shoot code, parents it under the ProFi project, and links it.
+function LinkShootButton({ sec, onLinked }) {
+  const [open, setOpen] = useState(false);
+  const [candidates, setCandidates] = useState(null);
+  const [pick, setPick] = useState('');
+  const [busy, setBusy] = useState(false);
+  async function openPicker() {
+    setOpen(true);
+    setCandidates(null);
+    try { setCandidates(await api.linkShootCandidates(sec.id)); }
+    catch (e) { alert(e.message); setOpen(false); }
+  }
+  async function link() {
+    if (!pick || busy) return;
+    setBusy(true);
+    try {
+      const r = await api.linkShootProject(sec.id, pick);
+      setOpen(false);
+      alert(`Linked. That shoot now carries the code ${r.code} and feeds this budget section.`);
+      onLinked && onLinked();
+    } catch (e) { alert(e.message); }
+    setBusy(false);
+  }
+  return (
+    <span style={{ position:'relative' }}>
+      <button type="button" onClick={openPicker}
+        title={sec.freepro_project_id ? 'Re-link this shoot to a different FreePro project' : 'Connect an existing FreePro shoot to this budget section'}
+        style={{ fontSize:10, fontWeight:700, color:'var(--muted)', background:'none', border:'1px solid var(--border)', borderRadius:12, padding:'3px 10px', cursor:'pointer', whiteSpace:'nowrap' }}>
+        🔗 {sec.freepro_project_id ? 'Re-link' : 'Link shoot'}
+      </button>
+      {open && (
+        <div onClick={e => e.target === e.currentTarget && setOpen(false)}
+          style={{ position:'fixed', inset:0, zIndex:140, background:'rgba(0,0,0,0.72)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+          <div style={{ width:'100%', maxWidth:440, background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid #e6c229', borderRadius:12, padding:'18px 20px' }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4 }}>
+              <div style={{ fontSize:14, fontWeight:800 }}>Link FreePro Shoot — {sec.shoot_code || sec.title}</div>
+              <button className="btn btn-ghost btn-sm" onClick={() => setOpen(false)}>✕</button>
+            </div>
+            <div style={{ fontSize:11, color:'var(--muted)', marginBottom:12, lineHeight:1.5 }}>
+              Pick the FreePro project that IS this shoot (e.g. one someone started by hand). It will take the shoot code
+              {sec.shoot_code ? <b style={{ color:'#e6c229' }}> {sec.shoot_code}</b> : ''}, be filed under this production, and feed this budget section.
+              {sec.freepro_project_id ? ' The tile currently linked here gets archived if it holds the code.' : ''}
+            </div>
+            {!candidates && <div style={{ fontSize:11, color:'var(--muted)' }}>Loading projects…</div>}
+            {candidates && candidates.length === 0 && <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>No unlinked FreePro projects found.</div>}
+            {candidates && candidates.length > 0 && (
+              <>
+                <select value={pick} onChange={e => setPick(e.target.value)}
+                  style={{ width:'100%', fontSize:12, padding:'8px 10px', borderRadius:8, background:'var(--bg)', border:'1px solid var(--border)', color:'var(--text)', marginBottom:12 }}>
+                  <option value="">— Select the shoot project —</option>
+                  {candidates.map(c => (
+                    <option key={c.id} value={c.id}>
+                      {c.code} — {c.title}{c.start_date ? ` (${new Date(String(c.start_date).slice(0,10)+'T12:00:00').toLocaleDateString()})` : ''}
+                    </option>
+                  ))}
+                </select>
+                <div className="btn-row">
+                  <button className="btn btn-primary" disabled={!pick || busy} onClick={link}>{busy ? 'Linking…' : 'Link Shoot'}</button>
+                  <button className="btn btn-ghost" onClick={() => setOpen(false)}>Cancel</button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </span>
+  );
+}
+
 function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
   const { user } = useAuth();
   const [harbingerOpen, setHarbingerOpen] = useState(false);
@@ -779,11 +849,16 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
                   <div style={{ fontSize:13, fontWeight:700, whiteSpace:'nowrap' }}>{fmt$(mainTotal + travelTotal)}</div>
                   <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text)' }} onClick={() => delSection(sec.id)}>✕</button>
                 </div>
-                {sec.kind === 'shoot' && sec.freepro_project_id && (
-                  <a href={`/projects/${sec.freepro_project_id}`}
-                    style={{ fontSize:10, fontWeight:700, color:'var(--orange)', border:'1px solid rgba(232,80,10,0.45)', borderRadius:12, padding:'3px 10px', textDecoration:'none', whiteSpace:'nowrap' }}>
-                    Go to FreePro ›
-                  </a>
+                {sec.kind === 'shoot' && (
+                  <span style={{ display:'flex', alignItems:'center', gap:6 }}>
+                    {sec.freepro_project_id && (
+                      <a href={`/projects/${sec.freepro_project_id}`}
+                        style={{ fontSize:10, fontWeight:700, color:'var(--orange)', border:'1px solid rgba(232,80,10,0.45)', borderRadius:12, padding:'3px 10px', textDecoration:'none', whiteSpace:'nowrap' }}>
+                        Go to FreePro ›
+                      </a>
+                    )}
+                    <LinkShootButton sec={sec} onLinked={() => reload && reload()} />
+                  </span>
                 )}
                 {sec.kind === 'shoot' && sec.fp_start_date && (
                   dateEdit?.secId === sec.id ? (
