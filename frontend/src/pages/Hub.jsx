@@ -301,14 +301,14 @@ export function FeedbackBoard({ variant = 'banner' }) {
             <div style={{ overflowY:'auto', padding:'6px 18px 14px' }}>
               {items.length === 0 && <div style={{ fontSize:12, color:'var(--muted)', fontStyle:'italic', padding:'12px 0' }}>Nothing yet — this is the one running list for testing feedback and feature requests.</div>}
               {items.map(i => (
-                <div key={i.id} style={{ display:'flex', alignItems:'flex-start', gap:10, padding:'8px 0', borderBottom:'1px solid rgba(255,255,255,0.05)', opacity: i.done ? 0.5 : 1 }}>
+                <div key={i.id} style={{ display:'flex', alignItems:'flex-start', gap:10, padding:'8px 0', borderBottom:'1px solid rgba(255,255,255,0.05)', opacity: i.done ? 0.6 : 1 }}>
                   <input type="checkbox" checked={i.done || false} style={{ width:'auto', accentColor:'#5ABF80', marginTop:2 }}
                     onChange={async e => {
                       try { const u = await api.updateFeedback(i.id, { done: e.target.checked }); setItems(xs => xs.map(x => x.id === i.id ? u : x)); }
                       catch (er) { alert(er.message); }
                     }} />
                   <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontSize:13, fontWeight:600, textDecoration: i.done ? 'line-through' : 'none', overflowWrap:'anywhere' }}>{i.text}</div>
+                    <div style={{ fontSize:13, fontWeight:600, color: i.done ? '#5ABF80' : 'var(--text)', overflowWrap:'anywhere' }}>{i.text}</div>
                     <div style={{ fontSize:10, color:'var(--muted)' }}>
                       {i.created_by || 'someone'} · {new Date(i.created_at).toLocaleDateString('en-US', { month:'numeric', day:'numeric' })}
                       <button onClick={() => { setReplyFor(r => r === i.id ? null : i.id); setReplyText(''); }}
