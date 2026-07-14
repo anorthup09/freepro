@@ -6,117 +6,93 @@ import { api } from '../api.js';
 const fmt$ = n => '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const num = v => Number(v || 0);
 const INCLUDED = ['Live', 'Reconcile', 'Reconciled', 'Closed'];
-const STATUS_DOT = { Live: '#5ABF80', Reconcile: '#9DC183', Reconciled: '#9DC183', Closed: '#8a8f98' };
+const fmtD = d => d ? new Date(String(d).slice(0, 10) + 'T12:00:00').toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' }) : '—';
 
-function fmtCloseMonth(m) {
-  if (!m) return '—';
-  const [y, mo] = m.split('-');
-  return `${mo}/${y.slice(2)}`;
-}
-function closeMonthLabel(m) {
-  const [y, mo] = m.split('-');
-  return new Date(Number(y), Number(mo) - 1, 15).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-}
-
-// Client Invoice Report — deposit + final invoices for every live/closed
-// project, grouped by close month within the selected year.
+// Client Invoice Report — invoices that have been requested but not yet sent,
+// plus the full request history.
 export default function ClientInvoiceReport() {
-  const { user, setUser } = useAuth();
+  const { user } = useAuth();
   const nav = useNavigate();
   const [projects, setProjects] = useState(null);
-  const [year, setYear] = useState(String(new Date().getFullYear()));
-  const [expanded, setExpanded] = useState({});   // months whose settled projects are expanded
-  const [view, setView] = useState('months');     // 'months' | 'requests'
+  const [view, setView] = useState('outstanding');   // 'outstanding' | 'requests'
 
   useEffect(() => { api.financeProjects().then(setProjects).catch(() => setProjects([])); }, []);
 
   const rows = useMemo(() => (projects || [])
     .filter(p => p.budget_id && INCLUDED.includes(p.budget_status))
-    .map(p => {
-      const extras = Array.isArray(p.extra_deposits) ? p.extra_deposits : [];
-      const deposits = num(p.deposit) + num(p.additional_deposit) + extras.reduce((a, x) => a + num(x.amount), 0);
-      return { ...p, extras, finalInvoice: Math.max(num(p.budget_total) - deposits, 0) };
-    }), [projects]);
-
-  const years = useMemo(() => {
-    const ys = new Set(rows.map(r => (r.close_month || '').slice(0, 4)).filter(Boolean));
-    ys.add(String(new Date().getFullYear()));
-    return [...ys].sort().reverse();
-  }, [rows]);
+    .map(p => ({ ...p, extras: Array.isArray(p.extra_deposits) ? p.extra_deposits : [] })), [projects]);
 
   const requests = useMemo(() => rows.flatMap(r => r.extras
     .map((x, i) => ({ ...x, i, project: r }))
     .filter(x => x.number || x.sendToEmail || x.description || x.requestedAt))
     .sort((a, b) => String(b.requestedAt || '').localeCompare(String(a.requestedAt || ''))), [rows]);
 
-  const inYear = rows.filter(r => (r.close_month || '').slice(0, 4) === year);
-  const noClose = rows.filter(r => !r.close_month);
-  const months = [...new Set(inYear.map(r => r.close_month))].sort();
-  const maxExtras = Math.max(0, ...inYear.concat(noClose).map(r => r.extras.length));
-
-  const sentCell = (amount, sentDate, { badgeAlways = false } = {}) => (
-    <td style={{ padding: 8, textAlign: 'right', whiteSpace: 'nowrap' }}>
-      <span style={{ fontWeight: 700 }}>{amount != null ? fmt$(amount) : (badgeAlways ? '' : '—')}</span>
-      {(amount != null || badgeAlways) && (
-        <span style={{ fontSize: 9, fontWeight: 800, marginLeft: 6, textTransform: 'uppercase', letterSpacing: '0.04em',
-          color: sentDate ? '#5ABF80' : '#e6c229' }}>
-          {sentDate ? 'Sent' : 'Unsent'}
-        </span>
-      )}
-    </td>
-  );
+  const outstanding = useMemo(() => requests.filter(x => !x.date), [requests]);
 
   const th = { padding: 8, textAlign: 'left', fontSize: 9, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)', whiteSpace: 'nowrap', borderBottom: '1px solid var(--border)' };
   const thR = { ...th, textAlign: 'right' };
 
-  const table = list => (
-    <div style={{ overflowX: 'auto', background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 10 }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, minWidth: 760 + maxExtras * 150 }}>
+  const statusPill = r => r.budget_status === 'Live'
+    ? <span style={{ display: 'inline-block', fontSize: 9, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#5ABF80', border: '1px solid #5ABF80', borderRadius: 10, padding: '2px 9px' }}>Live</span>
+    : <span style={{ display: 'inline-block', fontSize: 9, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#0b0b0b', background: '#8a8f98', border: '1px solid #8a8f98', borderRadius: 10, padding: '2px 9px' }}>Closed</span>;
+
+  const requestTable = (list, { withStatus }) => (
+    <div style={{ overflowX: 'auto', background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 10, marginTop: 16 }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, minWidth: 940 }}>
         <thead>
           <tr>
             <th style={{ ...th, width: 64 }} />
-            <th style={th}>Project Code</th>
-            <th style={th}>Project Name</th>
+            <th style={th}>Project</th>
             <th style={th}>Budget Owner</th>
-            <th style={thR}>First Invoice</th>
-            {Array.from({ length: maxExtras }, (_, i) => <th key={i} style={thR}>Deposit {i + 2}</th>)}
-            <th style={thR}>Final Invoice</th>
-            <th style={thR}>Total Budget</th>
-            <th style={{ ...th, textAlign: 'center' }}>Close MM/YY</th>
+            <th style={th}>Deposit #</th>
+            <th style={th}>Description</th>
+            <th style={th}>Send To</th>
+            <th style={thR}>Amount</th>
+            <th style={th}>Requested</th>
+            {withStatus && <th style={th}>Status</th>}
           </tr>
         </thead>
         <tbody>
-          {list.map(r => (
-            <tr key={r.id} onClick={() => nav(`/finance/${r.id}`)} title="Open in ProFi"
+          {list.map((x, idx) => (
+            <tr key={idx} onClick={() => nav(`/finance/${x.project.id}`)} title="Open in ProFi"
               style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer' }}>
-              <td style={{ padding: '8px 0 8px 10px', width: 64 }}>
-                {r.budget_status === 'Live' ? (
-                  <span title="Live"
-                    style={{ display: 'inline-block', fontSize: 9, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em',
-                    color: '#5ABF80', border: '1px solid #5ABF80', borderRadius: 10, padding: '2px 9px', cursor: 'pointer' }}>Live</span>
-                ) : (
-                  <span title={r.budget_status}
-                    style={{ display: 'inline-block', fontSize: 9, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em',
-                    color: '#0b0b0b', background: '#8a8f98', border: '1px solid #8a8f98', borderRadius: 10, padding: '2px 9px', cursor: 'pointer' }}>Closed</span>
-                )}
+              <td style={{ padding: '8px 0 8px 10px', width: 64 }}>{statusPill(x.project)}</td>
+              <td style={{ padding: 8, whiteSpace: 'nowrap' }}>
+                <span style={{ fontWeight: 700 }}>{x.project.code}</span>
+                <div style={{ fontSize: 9, color: 'var(--muted)' }}>{x.project.title}</div>
               </td>
-              <td style={{ padding: 8, whiteSpace: 'nowrap', fontWeight: 700 }}>{r.code}</td>
-              <td style={{ padding: 8, minWidth: 160 }}>{r.title}</td>
-              <td style={{ padding: 8, whiteSpace: 'nowrap', color: 'var(--muted)' }}>{r.media_rep || '—'}</td>
-              {sentCell(r.deposit != null && num(r.deposit) !== 0 ? num(r.deposit) : null, r.deposit_due)}
-              {Array.from({ length: maxExtras }, (_, i) => {
-                const x = r.extras[i];
-                return x ? sentCell(num(x.amount), x.date) : <td key={i} style={{ padding: 8, textAlign: 'right', color: 'var(--muted)' }}>—</td>;
-              })}
-              {sentCell(r.final_inv_date ? r.finalInvoice : null, r.final_inv_date, { badgeAlways: true })}
-              <td style={{ padding: 8, textAlign: 'right', fontWeight: 800, color: '#5ABF80', whiteSpace: 'nowrap' }}>{fmt$(r.budget_total)}</td>
-              <td style={{ padding: 8, textAlign: 'center', whiteSpace: 'nowrap' }}>{fmtCloseMonth(r.close_month)}</td>
+              <td style={{ padding: 8, whiteSpace: 'nowrap', color: 'var(--muted)' }}>{x.project.media_rep || '—'}</td>
+              <td style={{ padding: 8, fontWeight: 700 }}>{x.number || x.i + 2}</td>
+              <td style={{ padding: 8, minWidth: 160 }}>{x.description || '—'}</td>
+              <td style={{ padding: 8 }}>
+                {x.sendToName || '—'}
+                {x.sendToEmail && <div style={{ fontSize: 9, color: 'var(--muted)' }}>{x.sendToEmail}{x.cc ? ` · cc ${x.cc}` : ''}</div>}
+              </td>
+              <td style={{ padding: 8, textAlign: 'right', fontWeight: 800, color: '#5ABF80', whiteSpace: 'nowrap' }}>{x.amount != null ? fmt$(x.amount) : '—'}</td>
+              <td style={{ padding: 8, whiteSpace: 'nowrap', fontSize: 11 }}>
+                {fmtD(x.requestedAt)}
+                {x.requestedBy && <div style={{ fontSize: 9, color: 'var(--muted)' }}>{x.requestedBy}</div>}
+              </td>
+              {withStatus && (
+                <td style={{ padding: 8, whiteSpace: 'nowrap' }}>
+                  {x.date
+                    ? <span style={{ background: 'rgba(90,191,128,0.15)', border: '1px solid #5ABF80', color: '#5ABF80', borderRadius: 12, padding: '2px 10px', fontSize: 10, fontWeight: 800 }}>✓ Sent {fmtD(x.date)}</span>
+                    : <span style={{ background: 'rgba(230,194,41,0.12)', border: '1px solid #e6c229', color: '#e6c229', borderRadius: 12, padding: '2px 10px', fontSize: 10, fontWeight: 800 }}>Unsent</span>}
+                </td>
+              )}
             </tr>
           ))}
+          {list.length === 0 && (
+            <tr><td colSpan={withStatus ? 9 : 8} style={{ padding: 14, color: 'var(--muted)', fontStyle: 'italic' }}>
+              {withStatus ? "No invoice requests yet — add one from a project's VCC." : 'Nothing outstanding — every requested invoice has been sent.'}
+            </td></tr>
+          )}
         </tbody>
       </table>
     </div>
   );
+
+  const totalOutstanding = outstanding.reduce((a, x) => a + num(x.amount), 0);
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
@@ -136,118 +112,22 @@ export default function ClientInvoiceReport() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
           <div>
             <div className="page-title">Client Invoice Report</div>
-            <div className="page-sub">Deposit and final invoices for live and closed projects, grouped by close month</div>
+            <div className="page-sub">Requested invoices waiting to go out{outstanding.length ? ` — ${outstanding.length} unsent · ${fmt$(totalOutstanding)}` : ''}</div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden' }}>
-              {[['months', 'By Close Month'], ['requests', `Invoice Requests (${requests.length})`]].map(([k, label]) => (
-                <button key={k} onClick={() => setView(k)}
-                  style={{ background: view === k ? 'rgba(90,191,128,0.2)' : 'transparent', border: 'none',
-                    color: view === k ? '#5ABF80' : 'var(--muted)', fontSize: 11, fontWeight: 800, padding: '6px 14px', cursor: 'pointer' }}>
-                  {label}
-                </button>
-              ))}
-            </div>
-            {view === 'months' && <label style={{ fontSize: 11, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 8 }}>Year
-              <select value={year} onChange={e => setYear(e.target.value)} style={{ width: 'auto' }}>
-                {years.map(y => <option key={y} value={y}>{y}</option>)}
-              </select>
-            </label>}
+          <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden' }}>
+            {[['outstanding', `Unsent (${outstanding.length})`], ['requests', `All Requests (${requests.length})`]].map(([k, label]) => (
+              <button key={k} onClick={() => setView(k)}
+                style={{ background: view === k ? 'rgba(90,191,128,0.2)' : 'transparent', border: 'none',
+                  color: view === k ? '#5ABF80' : 'var(--muted)', fontSize: 11, fontWeight: 800, padding: '6px 14px', cursor: 'pointer' }}>
+                {label}
+              </button>
+            ))}
           </div>
         </div>
 
-        {projects && view === 'requests' && (
-          <div style={{ overflowX: 'auto', background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 10, marginTop: 16 }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, minWidth: 900 }}>
-              <thead>
-                <tr>
-                  <th style={th}>Project</th>
-                  <th style={th}>Deposit #</th>
-                  <th style={th}>Description</th>
-                  <th style={th}>Send To</th>
-                  <th style={thR}>Amount</th>
-                  <th style={th}>Requested</th>
-                  <th style={th}>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {requests.map((x, idx) => (
-                  <tr key={idx} onClick={() => nav(`/finance/${x.project.id}`)} title="Open in ProFi"
-                    style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer' }}>
-                    <td style={{ padding: 8, whiteSpace: 'nowrap' }}>
-                      <span style={{ fontWeight: 700 }}>{x.project.code}</span>
-                      <div style={{ fontSize: 9, color: 'var(--muted)' }}>{x.project.title}</div>
-                    </td>
-                    <td style={{ padding: 8, fontWeight: 700 }}>{x.number || x.i + 2}</td>
-                    <td style={{ padding: 8, minWidth: 160 }}>{x.description || '—'}</td>
-                    <td style={{ padding: 8 }}>
-                      {x.sendToName || '—'}
-                      {x.sendToEmail && <div style={{ fontSize: 9, color: 'var(--muted)' }}>{x.sendToEmail}{x.cc ? ` · cc ${x.cc}` : ''}</div>}
-                    </td>
-                    <td style={{ padding: 8, textAlign: 'right', fontWeight: 800, color: '#5ABF80', whiteSpace: 'nowrap' }}>{x.amount != null ? fmt$(x.amount) : '—'}</td>
-                    <td style={{ padding: 8, whiteSpace: 'nowrap', fontSize: 11 }}>
-                      {x.requestedAt ? new Date(String(x.requestedAt).slice(0,10) + 'T12:00:00').toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' }) : '—'}
-                      {x.requestedBy && <div style={{ fontSize: 9, color: 'var(--muted)' }}>{x.requestedBy}</div>}
-                    </td>
-                    <td style={{ padding: 8, whiteSpace: 'nowrap' }}>
-                      {x.date
-                        ? <span style={{ background: 'rgba(90,191,128,0.15)', border: '1px solid #5ABF80', color: '#5ABF80', borderRadius: 12, padding: '2px 10px', fontSize: 10, fontWeight: 800 }}>✓ Sent {new Date(String(x.date).slice(0,10) + 'T12:00:00').toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' })}</span>
-                        : <span style={{ background: 'rgba(230,194,41,0.12)', border: '1px solid #e6c229', color: '#e6c229', borderRadius: 12, padding: '2px 10px', fontSize: 10, fontWeight: 800 }}>Requested</span>}
-                    </td>
-                  </tr>
-                ))}
-                {requests.length === 0 && <tr><td colSpan={7} style={{ padding: 12, color: 'var(--muted)', fontStyle: 'italic' }}>No invoice requests yet — add one from a project's VCC.</td></tr>}
-              </tbody>
-            </table>
-          </div>
-        )}
-        {view === 'requests' ? null : <></>}
-
         {!projects && <div style={{ fontSize: 12, color: 'var(--muted)', padding: '30px 0' }}>Loading…</div>}
-        {projects && view === 'months' && months.length === 0 && noClose.length === 0 && (
-          <div className="empty" style={{ marginTop: 20 }}>No live or closed projects with a {year} close month.</div>
-        )}
-
-        {view === 'months' && months.map(m => {
-          const set = inYear.filter(r => r.close_month === m);
-          const nowMonth = new Date().toISOString().slice(0, 7);
-          // Fully settled = closed AND final invoice sent. In past months these
-          // condense into a single strip up top; anything still open — not
-          // closed, or closed without a final invoice — stays expanded.
-          const settled = m < nowMonth ? set.filter(r => r.budget_status !== 'Live' && r.final_inv_date) : [];
-          const active = set.filter(r => !settled.includes(r));
-          const ordered = [...active.filter(r => r.budget_status === 'Live'), ...active.filter(r => r.budget_status !== 'Live')];
-          const isOpen = !!expanded[m];
-          return (
-            <div key={m} style={{ marginTop: 22 }}>
-              <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#5ABF80', marginBottom: 8 }}>
-                {closeMonthLabel(m)}
-              </div>
-              {settled.length > 0 && (
-                <div style={{ marginBottom: ordered.length ? 8 : 0 }}>
-                  <div onClick={() => setExpanded(x => ({ ...x, [m]: !x[m] }))}
-                    style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg2)', border: '1px solid var(--border)',
-                      borderRadius: isOpen ? '10px 10px 0 0' : 10, padding: '8px 14px', cursor: 'pointer', fontSize: 11, color: 'var(--muted)' }}>
-                    <span style={{ fontSize: 9 }}>{isOpen ? '▾' : '▸'}</span>
-                    <span style={{ fontWeight: 700 }}>{settled.length} closed & final-invoiced project{settled.length !== 1 ? 's' : ''}</span>
-                    <span style={{ marginLeft: 'auto', fontWeight: 800, color: '#5ABF80' }}>{fmt$(settled.reduce((a, r) => a + num(r.budget_total), 0))}</span>
-                  </div>
-                  {isOpen && table(settled)}
-                </div>
-              )}
-              {ordered.length > 0 && table(ordered)}
-            </div>
-          );
-        })}
-
-        {view === 'months' && noClose.length > 0 && (
-          <div style={{ marginTop: 22 }}>
-            <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--muted)', marginBottom: 8 }}>
-              No Close Month Set
-            </div>
-            {table(noClose)}
-          </div>
-        )}
+        {projects && view === 'outstanding' && requestTable(outstanding, { withStatus: false })}
+        {projects && view === 'requests' && requestTable(requests, { withStatus: true })}
       </div>
     </div>
   );

@@ -31,13 +31,12 @@
   {
     "title": "Client Invoice Report",
     "page": "Reports",
-    "what": "One report tracking every client invoice across live and closed projects. The By Close Month view groups projects under their close month (past months collapse once a project is closed and final-invoiced) and shows each deposit and the final invoice with Sent/Unsent status \u2014 the final invoice amount stays blank until it has actually been sent, and a Budget Owner column sits beside the project name. The Invoice Requests view lists every + Add Invoice request with deposit #, description, send-to and CC, amount, who requested it and when, and whether it has gone out.",
+    "what": "One report tracking client invoice requests. The default Unsent view lists every invoice that has been requested from a project's VCC but not yet sent \u2014 status pill, project, budget owner, deposit #, description, send-to and CC, amount, and who requested it when \u2014 with a running unsent total in the header. The All Requests view adds the full history with \u2713 Sent / Unsent status on each.",
     "where": "Reports \u2192 Client Invoice Report",
     "how": [
       "Open Reports from the Hub and click Client Invoice Report.",
-      "Use the By Close Month / Invoice Requests toggle at the top right to switch views.",
-      "In By Close Month, pick the year, scan each month's table \u2014 status pill, code, name, budget owner, deposits with Sent/Unsent, final invoice (amount appears once sent), total budget, and close month.",
-      "Expand a past month's settled projects if you need the history.",
+      "The Unsent view loads first: everything requested but not yet sent, newest first, with the unsent count and dollar total up top.",
+      "Switch to All Requests for the full history including sent invoices and their sent dates.",
       "Click any row to jump to that project in ProFi."
     ],
     "screenshot": "client-invoice-report.png"
