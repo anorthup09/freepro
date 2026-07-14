@@ -1363,6 +1363,10 @@ export default function Crew({ project, onProjectUpdate }) {
                 <div className="field"><label>Phone</label><input value={crewForm.phone} onChange={e => setCrewForm(f=>({...f,phone:e.target.value}))} /></div>
                 <div className="field span2"><label>Company</label><input value={crewForm.company} onChange={e => setCrewForm(f=>({...f,company:e.target.value}))} /></div>
               </div>
+              <div style={{ fontSize:11, color:'var(--muted)', lineHeight:1.5, marginBottom:12, padding:'8px 12px', background:'rgba(255,255,255,0.03)', border:'1px solid var(--border)', borderRadius:8 }}>
+                💡 This saves the basics. For travel information, dietary restrictions, rates, and the rest, open their full roster card in{' '}
+                <a href="/team" target="_blank" rel="noreferrer" style={{ color:'#4a9eff' }}>Team Management → Roster</a> after saving.
+              </div>
               <div className="btn-row"><button className="btn btn-primary">Save to Roster</button><button type="button" className="btn btn-ghost" onClick={() => setShowAddCrew(false)}>Cancel</button></div>
             </form>
           </div>
