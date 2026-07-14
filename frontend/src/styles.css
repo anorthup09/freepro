@@ -685,6 +685,8 @@ textarea { resize: vertical; min-height: 70px; }
   .nav .share-wrap { display: none; }
   /* negative margin pulls the content's first line up beside Share — no dead row */
   .share-row-mobile { display: flex; justify-content: flex-end; padding: 8px 16px 0; margin-bottom: -34px; position: relative; z-index: 5; }
+  /* Schedule's Quick Slate sits top-right too — leave room so Share doesn't overlap it */
+  .sched-head { padding-right: 96px; }
 }
 
 /* Sign out sits clear of the fixed bottom docks on phones */

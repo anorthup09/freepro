@@ -789,7 +789,6 @@ export default function Crew({ project, onProjectUpdate }) {
                   <th>Email</th>
                   <th>Dietary</th>
                   <th>Travel</th>
-                  <th>Call Time</th>
                   <th></th>
                 </tr>
               </thead>
@@ -812,7 +811,6 @@ export default function Crew({ project, onProjectUpdate }) {
                         ? <button type="button" onClick={() => toggleTalentTravelLocal(t)} title="Click to switch to Travel" style={{ fontSize:9, fontWeight:800, color:'#8a8f98', background:'transparent', border:'1px solid #8a8f98', borderRadius:10, padding:'1px 8px', cursor:'pointer' }}>LOCAL</button>
                         : <button type="button" onClick={() => toggleTalentTravelLocal(t)} title="Click to switch to Local" style={{ fontSize:9, fontWeight:800, color:'#4a9eff', background:'transparent', border:'1px solid #4a9eff', borderRadius:10, padding:'1px 8px', cursor:'pointer' }}>TRAVEL</button>}
                     </td>
-                    <td style={{ fontSize:11, color:'var(--muted)', whiteSpace:'nowrap' }}>{t.call_time ? fmtTime(t.call_time) : '—'}</td>
                     <td style={{ textAlign:'right' }}>
                       <div style={{ display:'flex', gap:6, justifyContent:'flex-end' }}>
                         <button className="btn btn-ghost btn-sm" onClick={() => {

@@ -106,7 +106,10 @@ router.delete('/:id/travel/flights/:fid', requireAuth, requireRole('ADMIN','PROD
 // ─── Drive Groups ────────────────────────────────────────────────────────────
 router.get('/:id/travel/drives', requireAuth, async (req, res, next) => {
   try {
-    const drives = await sql`SELECT * FROM drive_groups WHERE project_id = ${req.params.id}`;
+    const drives = await sql`
+      SELECT d.*, COALESCE(NULLIF(TRIM(CONCAT(cm.preferred_first_name, ' ', cm.preferred_last_name)), ''), cm.name, d.driver_name) as driver
+      FROM drive_groups d LEFT JOIN crew_members cm ON cm.id = d.driver_crew_member_id
+      WHERE d.project_id = ${req.params.id} ORDER BY d.depart_time NULLS LAST`;
     const result = await Promise.all(drives.map(async d => {
       const members = await sql`SELECT * FROM drive_group_members WHERE drive_group_id = ${d.id}`;
       return { ...d, members };
@@ -117,10 +120,13 @@ router.get('/:id/travel/drives', requireAuth, async (req, res, next) => {
 
 router.post('/:id/travel/drives', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const { origin, destination, notes, members=[] } = req.body;
-    const [d] = await sql`INSERT INTO drive_groups (id, project_id, origin, destination, notes) VALUES (gen_random_uuid()::text, ${req.params.id}, ${origin}, ${destination}, ${notes||null}) RETURNING *`;
+    const { origin, destination, notes, members=[], driverCrewMemberId, driverName } = req.body;
+    const [d] = await sql`
+      INSERT INTO drive_groups (id, project_id, origin, destination, notes, driver_crew_member_id, driver_name)
+      VALUES (gen_random_uuid()::text, ${req.params.id}, ${origin||null}, ${destination||null}, ${notes||null}, ${driverCrewMemberId||null}, ${driverName||null})
+      RETURNING *`;
     const mems = await Promise.all(members.map(m => sql`INSERT INTO drive_group_members (id, drive_group_id, name, crew_member_id) VALUES (gen_random_uuid()::text, ${d.id}, ${m.name}, ${m.crewMemberId||null}) RETURNING *`));
-    res.status(201).json({ ...d, members: mems.flat() });
+    res.status(201).json({ ...d, driver: driverName || null, members: mems.flat() });
   } catch(e){next(e);}
 });
 

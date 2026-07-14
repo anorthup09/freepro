@@ -335,7 +335,7 @@ export default function Projects() {
             <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
               {!isCrew && !isAgency && <Link to="/crew-calendar" className="btn btn-ghost">Crew Calendar</Link>}
               <Link to="/crew-views" className="btn btn-ghost">Crew Views</Link>
-              {!isCrew && !isAgency && <button className="btn btn-primary" onClick={() => setShowNew(true)}>+ New Project</button>}
+              {/* New Project removed: shoots populate from ProFi budgets (shoot sections) */}
             </div>
           )}
         </div>

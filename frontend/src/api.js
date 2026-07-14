@@ -209,6 +209,7 @@ export const api = {
   createTalent: (projectId, data) => req('POST', `/projects/${projectId}/talent`, data),
   updateTalent: (projectId, id, data) => req('PATCH', `/projects/${projectId}/talent/${id}`, data),
   deleteTalent: (projectId, id) => req('DELETE', `/projects/${projectId}/talent/${id}`),
+  getProjectTalentCalls: (projectId) => req('GET', `/projects/${projectId}/talent-day-calls`),
   getTalentDayCalls: (projectId, talentId) => req('GET', `/projects/${projectId}/talent/${talentId}/day-calls`),
   saveTalentDayCalls: (projectId, talentId, calls) => req('PUT', `/projects/${projectId}/talent/${talentId}/day-calls`, calls),
 

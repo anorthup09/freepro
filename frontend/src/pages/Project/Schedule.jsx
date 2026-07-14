@@ -290,6 +290,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
     onFocusConsumed?.();
   }, [focusDate, days]);
   const [keyTalent, setKeyTalent] = useState([]);
+  const [talentCalls, setTalentCalls] = useState([]);   // individual talent call times, shown on the timeline
   const [editCallId, setEditCallId] = useState(null);
   const [callTime, setCallTime] = useState('');
   const [dayTimesForm, setDayTimesForm] = useState({});
@@ -316,6 +317,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
 
   useEffect(() => {
     api.getTalent(project.id).then(setKeyTalent).catch(() => {});
+    api.getProjectTalentCalls(project.id).then(setTalentCalls).catch(() => {});
     api.getShotList(project.id).then(setShotListScenes).catch(() => {});
     api.getSlDays(project.id).then(setSlDays).catch(() => {});
   }, [project.id]);
@@ -687,7 +689,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
         </div>
       )}
       <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:14, flexWrap:'wrap', gap:10 }}>
-        <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:10, flex:'1 1 100%' }}>
+        <div className="sched-head" style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:10, flex:'1 1 100%' }}>
           <div>
             <div className="page-title">Schedule</div>
             <div className="page-sub">{parseDay(project.start_date||project.startDate).toLocaleDateString()} – {parseDay(project.end_date||project.endDate).toLocaleDateString()}</div>
@@ -926,7 +928,10 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                 return matchingSlDayIds.has(s.day_id);
               })
               .map(s => ({ _type: 'scene', _sort: timeToMinutes(s.est_start_time), _key: `scene-${s.id}`, ...s }));
-            const items = [...syntheticItems, ...eventItems, ...flightItems, ...cateringItems, ...previewItems, ...sceneItems].sort((a, b) => a._sort - b._sort);
+            const talentItems = talentCalls
+              .filter(c => c.shoot_day_id === currentDay.id && c.call_time)
+              .map((c, i) => ({ _type:'talentcall', _sort: timeToMinutes(c.call_time), _key:`tc-${currentDay.id}-${i}`, ...c }));
+            const items = [...syntheticItems, ...eventItems, ...flightItems, ...cateringItems, ...previewItems, ...sceneItems, ...talentItems].sort((a, b) => a._sort - b._sort);
 
             return (
               <>
@@ -1112,7 +1117,18 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                           </div>
                         </div>
                       );
-                    })() : item._type === 'catering' ? (() => {
+                    })() : item._type === 'talentcall' ? (
+                      <div key={item._key} className="ev">
+                        <div className="ev-time">{fmtTime(item.call_time)}</div>
+                        <div className="ev-body" style={{ borderLeft:'2px solid #a78bfa' }}>
+                          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:8 }}>
+                            <div className="ev-title">Talent Call — {item.name}</div>
+                            <span className="etag t" style={{ flexShrink:0 }}>Talent</span>
+                          </div>
+                          {item.role && <div className="ev-detail" style={{ color:'var(--muted)' }}>{item.role}</div>}
+                        </div>
+                      </div>
+                    ) : item._type === 'catering' ? (() => {
                       const mc = MEAL_COLORS[item.meal_type] || MEAL_COLORS.BREAKFAST;
                       return (
                         <div key={item._key} className="ev">

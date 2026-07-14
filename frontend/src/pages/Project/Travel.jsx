@@ -101,6 +101,11 @@ export default function Travel({ project }) {
   const [showCar, setShowCar] = useState(false);
   const [carForm, setCarForm] = useState({ crewMemberId:'', vendor:'', pickupLocation:'', dropoffLocation:'', pickupDate:'', dropoffDate:'', confirmation:'', cost:'', notes:'' });
 
+  // Driving (driver + tagged passengers)
+  const [drives, setDrives] = useState([]);
+  const [showDrive, setShowDrive] = useState(false);
+  const [driveForm, setDriveForm] = useState({ driverCrewMemberId:'', passengerIds:[], origin:'', destination:'', notes:'' });
+
   const projectCrew = project.crewAssignments || [];
 
   useEffect(() => {
@@ -108,7 +113,8 @@ export default function Travel({ project }) {
       api.getHotels(project.id),
       api.getFlights(project.id),
       api.getRentalCars(project.id),
-    ]).then(([h,f,c]) => { setHotels(h); setFlights(f); setCars(c); });
+      api.getDrives(project.id),
+    ]).then(([h,f,c,d]) => { setHotels(h); setFlights(f); setCars(c); setDrives(d); });
   }, [project.id]);
 
   // ── Hotel search ──────────────────────────────────────────────────────────
@@ -269,6 +275,29 @@ export default function Travel({ project }) {
   async function removeCar(id) {
     await api.deleteRentalCar(project.id, id);
     setCars(prev => prev.filter(c => c.id !== id));
+  }
+
+  // ── Driving ───────────────────────────────────────────────────────────────
+  const crewById = id => projectCrew.find(a => a.crewMember?.id === id)?.crewMember;
+  async function addDrive(e) {
+    e.preventDefault();
+    try {
+      const d = await api.createDrive(project.id, {
+        driverCrewMemberId: driveForm.driverCrewMemberId,
+        driverName: displayName(crewById(driveForm.driverCrewMemberId)) || null,
+        origin: driveForm.origin || null,
+        destination: driveForm.destination || null,
+        notes: driveForm.notes || null,
+        members: driveForm.passengerIds.map(id => ({ crewMemberId: id, name: displayName(crewById(id)) || '' })),
+      });
+      setDrives(prev => [...prev, d]);
+      setShowDrive(false);
+      setDriveForm({ driverCrewMemberId:'', passengerIds:[], origin:'', destination:'', notes:'' });
+    } catch (err) { alert(err.message); }
+  }
+  async function removeDrive(id) {
+    await api.deleteDrive(project.id, id);
+    setDrives(prev => prev.filter(d => d.id !== id));
   }
 
   // ── Edit handlers ─────────────────────────────────────────────────────────
@@ -524,6 +553,84 @@ export default function Travel({ project }) {
       ))}
       {cars.length === 0 && <div className="empty">No rental cars added yet.</div>}
 
+      {/* ── Driving ── */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+        <div className="sec-lbl">Driving</div>
+        <button className="btn btn-ghost btn-sm" onClick={() => setShowDrive(true)}>+ Driver</button>
+      </div>
+      {drives.map(d => (
+        <div key={d.id} className="frow" style={{ flexWrap:'wrap', gap:8 }}>
+          <div className="fname">🚗 {d.driver || d.driver_name || 'Driver TBD'}</div>
+          <span style={{ fontSize:9, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)', border:'1px solid var(--border)', borderRadius:10, padding:'1px 7px' }}>Driver</span>
+          {(d.origin || d.destination) && (
+            <div className="froute"><span>{d.origin || '?'}</span><span className="farrow">→</span><span>{d.destination || '?'}</span></div>
+          )}
+          {(d.members || []).length > 0 && (
+            <div style={{ display:'flex', alignItems:'center', gap:5, flexWrap:'wrap' }}>
+              <span style={{ fontSize:10, color:'var(--muted)' }}>Passengers:</span>
+              {(d.members || []).map(m => (
+                <span key={m.id} style={{ fontSize:10, fontWeight:700, background:'rgba(90,191,128,0.12)', border:'1px solid rgba(90,191,128,0.5)', color:'#5ABF80', borderRadius:10, padding:'1px 8px', whiteSpace:'nowrap' }}>{m.name}</span>
+              ))}
+            </div>
+          )}
+          {d.notes && <span style={{ fontSize:10, color:'var(--muted)' }}>{d.notes}</span>}
+          <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11, marginLeft:'auto' }} onClick={() => removeDrive(d.id)}>✕</button>
+        </div>
+      ))}
+      {drives.length === 0 && <div className="empty">No drivers added yet.</div>}
+
+
+      {/* ── Add Driver Modal ── */}
+      {showDrive && (
+        <div className="modal-bg" onClick={e => e.target === e.currentTarget && setShowDrive(false)}>
+          <div className="modal">
+            <div className="modal-title">Add Driver</div>
+            <form onSubmit={addDrive}>
+              <div className="form-grid cols1" style={{ marginBottom:12 }}>
+                <div className="field">
+                  <label>Driver <span style={{ color:'var(--red-text)', marginLeft:3 }}>*</span></label>
+                  <select value={driveForm.driverCrewMemberId} required
+                    onChange={e => setDriveForm(f => ({ ...f, driverCrewMemberId: e.target.value, passengerIds: f.passengerIds.filter(id => id !== e.target.value) }))}>
+                    <option value="">— Select crew member —</option>
+                    {projectCrew.filter(a => a.crewMember).map(a => (
+                      <option key={a.crewMember.id} value={a.crewMember.id}>{displayName(a.crewMember)} — {a.position.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="field">
+                  <label>Passengers <span style={{ color:'var(--muted)', fontSize:10 }}>(tap to tag)</span></label>
+                  <div style={{ display:'flex', flexWrap:'wrap', gap:6, padding:'6px 0' }}>
+                    {projectCrew.filter(a => a.crewMember && a.crewMember.id !== driveForm.driverCrewMemberId).map(a => {
+                      const id = a.crewMember.id;
+                      const on = driveForm.passengerIds.includes(id);
+                      return (
+                        <button key={id} type="button"
+                          onClick={() => setDriveForm(f => ({ ...f, passengerIds: on ? f.passengerIds.filter(x => x !== id) : [...f.passengerIds, id] }))}
+                          style={{ fontSize:11, fontWeight:700, borderRadius:14, padding:'4px 12px', cursor:'pointer',
+                            background: on ? 'rgba(90,191,128,0.15)' : 'var(--bg)',
+                            border: on ? '1px solid #5ABF80' : '1px solid var(--border)',
+                            color: on ? '#5ABF80' : 'var(--muted)' }}>
+                          {on ? '✓ ' : ''}{displayName(a.crewMember)}
+                        </button>
+                      );
+                    })}
+                    {projectCrew.filter(a => a.crewMember).length === 0 && (
+                      <span style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>No crew assigned to this project yet.</span>
+                    )}
+                  </div>
+                </div>
+                <div className="field"><label>From <span style={{ color:'var(--muted)', fontSize:10 }}>(optional)</span></label><input value={driveForm.origin} onChange={e => setDriveForm(f=>({...f,origin:e.target.value}))} placeholder="Office / STL" /></div>
+                <div className="field"><label>To <span style={{ color:'var(--muted)', fontSize:10 }}>(optional)</span></label><input value={driveForm.destination} onChange={e => setDriveForm(f=>({...f,destination:e.target.value}))} placeholder="Venue / hotel" /></div>
+                <div className="field"><label>Notes</label><input value={driveForm.notes} onChange={e => setDriveForm(f=>({...f,notes:e.target.value}))} placeholder="Van, leaves at 7am…" /></div>
+              </div>
+              <div className="btn-row">
+                <button className="btn btn-primary">Add Driver</button>
+                <button type="button" className="btn btn-ghost" onClick={() => setShowDrive(false)}>Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* ── Add Hotel Modal ── */}
       {showHotel && (

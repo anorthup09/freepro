@@ -412,6 +412,17 @@ router.delete('/:id/talent/:tid', requireAuth, requireRole('ADMIN','PRODUCER'), 
 });
 
 // ─── Talent Day Calls ────────────────────────────────────────────────────────
+// All talent call times across the project, for the schedule's day view
+router.get('/:id/talent-day-calls', requireAuth, async (req, res, next) => {
+  try {
+    res.json(await sql`
+      SELECT tdc.shoot_day_id, tdc.call_time, kt.name, kt.role
+      FROM talent_day_calls tdc
+      JOIN key_talent kt ON kt.id = tdc.talent_id
+      WHERE kt.project_id = ${req.params.id} AND tdc.call_time IS NOT NULL
+      ORDER BY tdc.call_time`);
+  } catch(e){next(e);}
+});
 router.get('/:id/talent/:tid/day-calls', requireAuth, async (req, res, next) => {
   try { res.json(await sql`SELECT * FROM talent_day_calls WHERE talent_id = ${req.params.tid} ORDER BY shoot_day_id`); } catch(e){next(e);}
 });
