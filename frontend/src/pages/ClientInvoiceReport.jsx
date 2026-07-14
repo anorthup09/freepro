@@ -111,7 +111,7 @@ export default function ClientInvoiceReport() {
       <div style={{ maxWidth: 1150, margin: '0 auto', padding: '10px 16px 60px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
           <div>
-            <div className="page-title">Client Invoice Report</div>
+            <div className="page-title">Client Outstanding Invoice Report</div>
             <div className="page-sub">Requested invoices waiting to go out{outstanding.length ? ` — ${outstanding.length} unsent · ${fmt$(totalOutstanding)}` : ''}</div>
           </div>
           <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden' }}>

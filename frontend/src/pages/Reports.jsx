@@ -20,7 +20,7 @@ const REPORTS = [
     accent: '#e6c229', to: '/reports/invoices',
   },
   {
-    title: 'Client Invoice Report',
+    title: 'Client Outstanding Invoice Report',
     desc: 'Deposit and final invoices for every live or closed project, grouped by close month.',
     accent: '#5ABF80', to: '/reports/client-invoices',
   },

@@ -29,12 +29,12 @@
     "screenshot": "invoice-request-automation.png"
   },
   {
-    "title": "Client Invoice Report",
+    "title": "Client Outstanding Invoice Report",
     "page": "Reports",
     "what": "One report tracking client invoice requests. The default Unsent view lists every invoice that has been requested from a project's VCC but not yet sent \u2014 status pill, project, budget owner, deposit #, description, send-to and CC, amount, and who requested it when \u2014 with a running unsent total in the header. The All Requests view adds the full history with \u2713 Sent / Unsent status on each.",
-    "where": "Reports \u2192 Client Invoice Report",
+    "where": "Reports \u2192 Client Outstanding Invoice Report",
     "how": [
-      "Open Reports from the Hub and click Client Invoice Report.",
+      "Open Reports from the Hub and click Client Outstanding Invoice Report.",
       "The Unsent view loads first: everything requested but not yet sent, newest first, with the unsent count and dollar total up top.",
       "Switch to All Requests for the full history including sent invoices and their sent dates.",
       "Click any row to jump to that project in ProFi."
