@@ -1169,6 +1169,8 @@ async function migrate() {
       contract_id TEXT,
       created_at TIMESTAMPTZ DEFAULT NOW()
     )`;
+  await sql`ALTER TABLE avo_contractors ADD COLUMN IF NOT EXISTS start_date TEXT`;
+  await sql`ALTER TABLE avo_contractors ADD COLUMN IF NOT EXISTS end_date TEXT`;
   await sql`
     CREATE TABLE IF NOT EXISTS avo_lower_thirds (
       id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,

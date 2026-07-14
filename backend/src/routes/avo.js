@@ -387,9 +387,10 @@ router.post('/pages/:id/contractors', ...staff, async (req, res, next) => {
     const d = req.body;
     if (!CONTRACTOR_ROLES.includes(d.role)) return res.status(400).json({ error: 'Role must be color or audio' });
     const [r] = await sql`
-      INSERT INTO avo_contractors (page_id, role, name, email, rate, services, total, invoice_pm_id)
+      INSERT INTO avo_contractors (page_id, role, name, email, rate, services, total, invoice_pm_id, start_date, end_date)
       VALUES (${req.params.id}, ${d.role}, ${d.name || ''}, ${d.email || ''}, ${d.rate || ''}, ${d.services || ''},
-        ${d.total === '' || d.total == null ? null : Number(d.total) || 0}, ${d.invoicePmId || null})
+        ${d.total === '' || d.total == null ? null : Number(d.total) || 0}, ${d.invoicePmId || null},
+        ${d.startDate || null}, ${d.endDate || null})
       RETURNING *`;
     res.status(201).json(r);
   } catch (e) { next(e); }
@@ -405,7 +406,9 @@ router.patch('/contractors/:id', ...staff, async (req, res, next) => {
         rate = ${d.rate !== undefined ? (d.rate || '') : sql`rate`},
         services = ${d.services !== undefined ? (d.services || '') : sql`services`},
         total = ${d.total !== undefined ? (d.total === '' || d.total == null ? null : Number(d.total) || 0) : sql`total`},
-        invoice_pm_id = ${d.invoicePmId !== undefined ? (d.invoicePmId || null) : sql`invoice_pm_id`}
+        invoice_pm_id = ${d.invoicePmId !== undefined ? (d.invoicePmId || null) : sql`invoice_pm_id`},
+        start_date = ${d.startDate !== undefined ? (d.startDate || null) : sql`start_date`},
+        end_date = ${d.endDate !== undefined ? (d.endDate || null) : sql`end_date`}
       WHERE id = ${req.params.id} RETURNING *`;
     if (!r) return res.status(404).json({ error: 'Not found' });
     res.json(r);
@@ -433,8 +436,8 @@ router.post('/contractors/:id/contract', ...staff, requireRole('ADMIN', 'PRODUCE
       INSERT INTO contracts (project_id, contractor_name, contractor_email, position_name,
         project_title, project_code, start_date, end_date, scope, quoted_total)
       VALUES (${proj.id}, ${c.name}, ${c.email}, ${position}, ${proj.title}, ${proj.code},
-        ${proj.start_date ? new Date(proj.start_date).toISOString().slice(0, 10) : null},
-        ${proj.end_date ? new Date(proj.end_date).toISOString().slice(0, 10) : null}, ${scope}, ${Number(c.total) || null})
+        ${c.start_date || (proj.start_date ? new Date(proj.start_date).toISOString().slice(0, 10) : null)},
+        ${c.end_date || (proj.end_date ? new Date(proj.end_date).toISOString().slice(0, 10) : null)}, ${scope}, ${Number(c.total) || null})
       RETURNING *`;
     await sql`UPDATE avo_contractors SET contract_id = ${k.id} WHERE id = ${c.id}`;
     res.status(201).json({ contract: k, projectId: proj.id, total: c.total });

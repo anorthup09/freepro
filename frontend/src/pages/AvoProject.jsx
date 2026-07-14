@@ -365,15 +365,45 @@ function VideoTracker({ edits, setEdits, config, onConfig, code }) {
 // held on the project VCC and a contract emailed from info@ for signature.
 const CONTRACTOR_META = { color: { label: 'Color', accent: '#c77dff' }, audio: { label: 'Audio', accent: '#35c4c8' } };
 const fmt$ = n => (n === null || n === undefined || n === '') ? '' : '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const BLANK_CONTRACTOR = { name: '', email: '', rate: '', services: '', total: '', invoicePmId: '' };
+const BLANK_CONTRACTOR = { name: '', email: '', rate: '', services: '', startDate: '', endDate: '', total: '', invoicePmId: '' };
+
+// Name input with live roster search: picking a person also fills their email
+function RosterNameField({ value, roster, onChange, onPick }) {
+  const [open, setOpen] = useState(false);
+  const q = (value || '').trim().toLowerCase();
+  const matches = q.length < 2 ? [] : roster.filter(m => (m.__display || '').toLowerCase().includes(q)).slice(0, 6);
+  return (
+    <div style={{ position: 'relative' }}>
+      <input value={value} required autoFocus placeholder="Start typing a roster name…"
+        onChange={e => { onChange(e.target.value); setOpen(true); }}
+        onBlur={() => setTimeout(() => setOpen(false), 150)} />
+      {open && matches.length > 0 && (
+        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 30, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden', boxShadow: '0 8px 24px rgba(0,0,0,0.5)' }}>
+          {matches.map(m => (
+            <div key={m.id} onMouseDown={() => { onPick(m); setOpen(false); }}
+              style={{ padding: '7px 12px', fontSize: 12, cursor: 'pointer', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+              <b>{m.__display}</b>{m.email && <span style={{ color: 'var(--muted)', fontSize: 10.5 }}> — {m.email}</span>}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function ContractorTracker({ pageId }) {
   const [rows, setRows] = useState(null);
   const [form, setForm] = useState(null);       // { role, ...BLANK_CONTRACTOR }
   const [busy, setBusy] = useState(false);
   const [sendCtr, setSendCtr] = useState(null); // { contract, projectId, total }
+  const [roster, setRoster] = useState([]);
 
   useEffect(() => { api.avoContractors(pageId).then(setRows).catch(() => setRows([])); }, [pageId]);
+  useEffect(() => {
+    api.getCrew().then(ms => setRoster((ms || []).map(m => ({
+      ...m, __display: [m.preferred_first_name, m.preferred_last_name].filter(Boolean).join(' ') || m.name,
+    })))).catch(() => {});
+  }, []);
 
   async function saveCell(id, data) {
     try { const r = await api.updateAvoContractor(id, data); setRows(rs => rs.map(x => x.id === id ? r : x)); }
@@ -413,7 +443,7 @@ function ContractorTracker({ pageId }) {
   return (
     <div style={{ marginTop: 22 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
-        <div style={{ fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: AVO }}>Color & Audio Contractors</div>
+        <div style={{ fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: AVO }}>Color & Audio</div>
         <div style={{ display: 'flex', gap: 8 }}>
           {['color', 'audio'].map(role => (
             <button key={role} onClick={() => setForm({ role, ...BLANK_CONTRACTOR })}
@@ -428,13 +458,14 @@ function ContractorTracker({ pageId }) {
           <thead>
             <tr style={{ borderBottom: '1px solid var(--border)' }}>
               <th style={th}>Role</th><th style={th}>Name</th><th style={th}>Email</th><th style={th}>Rate</th>
-              <th style={th}>Services Provided</th><th style={{ ...th, textAlign: 'right' }}>Total Estimate</th>
+              <th style={th}>Services Provided</th><th style={th}>Start</th><th style={th}>End</th>
+              <th style={{ ...th, textAlign: 'right' }}>Total Estimate</th>
               <th style={th}>Send Final Invoice To</th><th style={th}></th>
             </tr>
           </thead>
           <tbody>
             {(rows || []).length === 0 && (
-              <tr><td colSpan={8} style={{ ...td, padding: '12px 14px', fontSize: 11, color: 'var(--muted)', fontStyle: 'italic' }}>
+              <tr><td colSpan={10} style={{ ...td, padding: '12px 14px', fontSize: 11, color: 'var(--muted)', fontStyle: 'italic' }}>
                 No color or audio contractors yet — add them with the buttons above.
               </td></tr>
             )}
@@ -449,6 +480,14 @@ function ContractorTracker({ pageId }) {
                   <td style={{ ...td, minWidth: 150 }}><Cell value={r.email} placeholder="email@…" onSave={v => saveCell(r.id, { email: v })} /></td>
                   <td style={{ ...td, minWidth: 100 }}><Cell value={r.rate} placeholder="$95/hr…" onSave={v => saveCell(r.id, { rate: v })} /></td>
                   <td style={{ ...td, minWidth: 160 }}><Cell value={r.services} placeholder="Services…" onSave={v => saveCell(r.id, { services: v })} /></td>
+                  <td style={td}>
+                    <input type="date" value={r.start_date ? String(r.start_date).slice(0, 10) : ''} style={cellInput}
+                      onChange={ev => saveCell(r.id, { startDate: ev.target.value })} />
+                  </td>
+                  <td style={td}>
+                    <input type="date" value={r.end_date ? String(r.end_date).slice(0, 10) : ''} style={cellInput}
+                      onChange={ev => saveCell(r.id, { endDate: ev.target.value })} />
+                  </td>
                   <td style={{ ...td, minWidth: 100 }}>
                     <Cell value={r.total === null || r.total === undefined ? '' : fmt$(r.total)} placeholder="$0.00" style={{ textAlign: 'right', color: '#5ABF80', fontWeight: 700 }}
                       onSave={v => { const n = parseFloat(String(v).replace(/[^0-9.\-]/g, '')); saveCell(r.id, { total: Number.isFinite(n) ? n : null }); }} />
@@ -480,13 +519,21 @@ function ContractorTracker({ pageId }) {
             <form onSubmit={submit}>
               <div className="form-grid cols1" style={{ marginBottom: 12 }}>
                 <div className="field"><label>Name *</label>
-                  <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} required autoFocus /></div>
+                  <RosterNameField value={form.name} roster={roster}
+                    onChange={v => setForm(f => ({ ...f, name: v }))}
+                    onPick={m => setForm(f => ({ ...f, name: m.__display, email: m.email || f.email }))} /></div>
                 <div className="field"><label>Email</label>
                   <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} /></div>
                 <div className="field"><label>Rate</label>
                   <input value={form.rate} placeholder="$550/day, $95/hr…" onChange={e => setForm(f => ({ ...f, rate: e.target.value }))} /></div>
                 <div className="field"><label>Services Provided</label>
                   <input value={form.services} placeholder="Color grade all deliverables…" onChange={e => setForm(f => ({ ...f, services: e.target.value }))} /></div>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <div className="field" style={{ flex: 1 }}><label>Start Date</label>
+                    <input type="date" value={form.startDate} onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))} /></div>
+                  <div className="field" style={{ flex: 1 }}><label>End Date</label>
+                    <input type="date" value={form.endDate} onChange={e => setForm(f => ({ ...f, endDate: e.target.value }))} /></div>
+                </div>
                 <div className="field"><label>Total Estimate ($)</label>
                   <input value={form.total} placeholder="1200" onChange={e => setForm(f => ({ ...f, total: e.target.value.replace(/[^0-9.]/g, '') }))} /></div>
                 <div className="field"><label>Send Final Invoice To</label>
