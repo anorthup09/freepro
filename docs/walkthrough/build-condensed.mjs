@@ -31,7 +31,7 @@ const GROUPS = [
   'ProFi — Project Finance',
   'FreePro — Production',
   'AvocadoPost — Post-Production',
-  'Reports',
+  'Reports & Resources',
   'Emails & Automations',
   'Platform & Admin',
 ];
@@ -44,7 +44,7 @@ const pageOf = e => {
   if (/ways of being/.test(t)) return 'The Hub';
   if (/client hub|project hub/.test(ti)) return 'Project View & Overviews';
   if (/hub/.test(ti)) return 'The Hub';
-  if (/report/.test(t)) return 'Reports';
+  if (/report/.test(t)) return 'Reports & Resources';
   if (/avocadopost|avo |gantt|timeline/.test(t)) return 'AvocadoPost — Post-Production';
   if (/freepro|call sheet|shot list|gear|deliverable|crew tab|schedule|locations/.test(t)) return 'FreePro — Production';
   if (/profi|budget|vcc|harbinger|deposit|client roster|finance/.test(t)) return 'ProFi — Project Finance';

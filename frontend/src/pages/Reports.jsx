@@ -88,8 +88,8 @@ export default function Reports() {
         </div>
       </div>
       <div style={{ maxWidth:900, margin:'0 auto', padding:'10px 16px 60px' }}>
-        <div className="page-title">Reports</div>
-        <div className="page-sub">Cross-project rollups and recurring reports</div>
+        <div className="page-title">Reports &amp; Resources</div>
+        <div className="page-sub">Cross-project rollups, recurring reports, and team resource libraries</div>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(280px, 1fr))', gap:16, marginTop:8 }}>
           {[...REPORTS, ...(user?.role === 'ADMIN' ? [{
             title: 'Ways of Being',
