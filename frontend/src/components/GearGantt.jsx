@@ -49,17 +49,17 @@ export default function GearGantt({ rows, onOpen }) {
   const DOW = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
   return (
-    <div ref={scrollRef} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, overflowX:'auto', marginBottom:16 }}>
+    <div ref={scrollRef} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, overflowX:'auto', overflowY:'auto', maxHeight: 24 + 34 + 5 * 40 + 2, marginBottom:16 }}>
       <div style={{ width: G_NAME_W + totalDays * G_DAY_W, position:'relative' }}>
         {/* month row */}
-        <div style={{ display:'flex', height:24, borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
+        <div style={{ display:'flex', height:24, borderBottom:'1px solid rgba(255,255,255,0.04)', position:'sticky', top:0, background:'var(--bg2)', zIndex:4 }}>
           <div style={{ width:G_NAME_W, flexShrink:0, position:'sticky', left:0, background:'var(--bg2)', zIndex:3, borderRight:'1px solid var(--border)' }} />
           <div style={{ position:'relative', flex:1 }}>
             {months.map(m => <div key={m.i} style={{ position:'absolute', left:m.i * G_DAY_W + 6, top:5, fontSize:10, fontWeight:800, color:'var(--text)', whiteSpace:'nowrap' }}>{m.label}</div>)}
           </div>
         </div>
         {/* day header */}
-        <div style={{ display:'flex', borderBottom:'1px solid var(--border)' }}>
+        <div style={{ display:'flex', borderBottom:'1px solid var(--border)', position:'sticky', top:24, background:'var(--bg2)', zIndex:4 }}>
           <div style={{ width:G_NAME_W, flexShrink:0, position:'sticky', left:0, background:'var(--bg2)', zIndex:3, borderRight:'1px solid var(--border)' }} />
           {Array.from({ length: totalDays }, (_, i) => {
             const d = dayAt(i); const wknd = d.getDay() === 0 || d.getDay() === 6; const isToday = i === todayIdx;
