@@ -53,5 +53,18 @@
       "Check the four bucket subtotals; the total matches the live budget, so update the budget and regenerate if numbers move."
     ],
     "screenshot": "project-estimate-pdf.png"
+  },
+  {
+    "title": "Share Budget Options",
+    "page": "ProFi \u2014 Project Finance",
+    "what": "One pop-out for every client-facing view of the budget, opened from the Share Budget Options button on the Finance page. It gathers the Budget Overview, three share views \u2014 Itemized with Cost (the full line-by-line budget), Itemized \u2014 Subtotals Only (every line item and quantity, with dollars only at section subtotal and total level), and Non-Itemized \u2014 Subtotals Only (rolled-up section subtotals, no line detail) \u2014 plus the Project Estimate PDF. The last-used share view is remembered, and picking one opens the shareable client page in a new tab.",
+    "where": "ProFi \u2192 open a project's budget \u2192 Share Budget Options (top right)",
+    "how": [
+      "Open the project's budget in ProFi and click Share Budget Options.",
+      "Pick how the client should see it: Budget Overview, Itemized with Cost, Itemized \u2014 Subtotals Only, or Non-Itemized \u2014 Subtotals Only.",
+      "The client page opens in a new tab \u2014 copy its link to send; the choice is saved as the budget's share mode.",
+      "Use Project Estimate PDF from the same pop-out for the print-ready estimate document."
+    ],
+    "screenshot": "share-budget-options.png"
   }
 ]
