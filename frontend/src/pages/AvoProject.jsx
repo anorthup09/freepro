@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api.js';
+import { useAuth } from '../App.jsx';
 import { AvoHeader, AVO, AVO_STATUSES, EditorSelect } from './Avo.jsx';
 import { AvoForm, BLANK_DELIVERABLE_FORM } from './Project/Deliverables.jsx';
 import ContractSendModal from '../components/ContractSendModal.jsx';
@@ -392,11 +393,15 @@ function RosterNameField({ value, roster, onChange, onPick }) {
 }
 
 function ContractorTracker({ pageId }) {
+  const { user } = useAuth();
   const [rows, setRows] = useState(null);
   const [form, setForm] = useState(null);       // { role, ...BLANK_CONTRACTOR }
   const [busy, setBusy] = useState(false);
   const [sendCtr, setSendCtr] = useState(null); // { contract, projectId, total }
   const [roster, setRoster] = useState([]);
+
+  // "Send Final Invoice To" defaults to whoever is adding the contractor
+  const myPmId = roster.find(m => (m.email || '').toLowerCase() === (user?.email || '').toLowerCase())?.id || '';
 
   useEffect(() => { api.avoContractors(pageId).then(setRows).catch(() => setRows([])); }, [pageId]);
   useEffect(() => {
@@ -405,15 +410,31 @@ function ContractorTracker({ pageId }) {
     })))).catch(() => {});
   }, []);
 
-  async function saveCell(id, data) {
-    try { const r = await api.updateAvoContractor(id, data); setRows(rs => rs.map(x => x.id === id ? r : x)); }
-    catch (e) { alert(e.message); }
+  function openEdit(r) {
+    setForm({
+      id: r.id, role: r.role, name: r.name || '', email: r.email || '', rate: r.rate || '',
+      services: r.services || '', startDate: r.start_date ? String(r.start_date).slice(0, 10) : '',
+      endDate: r.end_date ? String(r.end_date).slice(0, 10) : '',
+      total: r.total === null || r.total === undefined ? '' : String(r.total),
+      invoicePmId: r.invoice_pm_id || '',
+    });
+  }
+  // Persist the form (create or update) and return the saved row
+  async function persistForm() {
+    if (form.id) {
+      const r = await api.updateAvoContractor(form.id, form);
+      setRows(rs => rs.map(x => x.id === r.id ? r : x));
+      return r;
+    }
+    const r = await api.addAvoContractor(pageId, form);
+    setRows(rs => [...(rs || []), r]);
+    return r;
   }
   async function submit(ev) {
     ev.preventDefault();
     if (busy) return;
     setBusy(true);
-    try { const r = await api.addAvoContractor(pageId, form); setRows(rs => [...(rs || []), r]); setForm(null); }
+    try { await persistForm(); setForm(null); }
     catch (e) { alert(e.message); }
     setBusy(false);
   }
@@ -422,31 +443,35 @@ function ContractorTracker({ pageId }) {
     try { await api.deleteAvoContractor(r.id); setRows(rs => rs.filter(x => x.id !== r.id)); }
     catch (e) { alert(e.message); }
   }
-  async function hold(r) {
+  // Save the form first so the hold/contract reflect what's on screen
+  async function holdFromForm() {
     if (busy) return;
     setBusy(true);
     try {
+      const r = await persistForm();
+      setForm(f => f && { ...f, id: r.id });
       const entry = await api.holdAvoContractorCost(r.id);
       alert(`Held $${Number(entry.amount).toLocaleString('en-US')} on the project's VCC for ${CONTRACTOR_META[r.role].label.toLowerCase()}.`);
     } catch (e) { alert(e.message); }
     setBusy(false);
   }
-  async function sendContract(r) {
+  async function sendContractFromForm() {
     if (busy) return;
     setBusy(true);
-    try { setSendCtr(await api.avoContractorContract(r.id)); }
-    catch (e) { alert(e.message); }
+    try {
+      const r = await persistForm();
+      setForm(f => f && { ...f, id: r.id });
+      setSendCtr(await api.avoContractorContract(r.id));
+    } catch (e) { alert(e.message); }
     setBusy(false);
   }
-
-  const actBtn = (color) => ({ background: `${color}18`, border: `1px solid ${color}`, color, borderRadius: 12, padding: '3px 10px', fontSize: 9.5, fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap' });
   return (
     <div style={{ marginTop: 22 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
         <div style={{ fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: AVO }}>Color & Audio</div>
         <div style={{ display: 'flex', gap: 8 }}>
           {['color', 'audio'].map(role => (
-            <button key={role} onClick={() => setForm({ role, ...BLANK_CONTRACTOR })}
+            <button key={role} onClick={() => setForm({ role, ...BLANK_CONTRACTOR, invoicePmId: myPmId })}
               style={{ background: 'transparent', border: `1px solid ${CONTRACTOR_META[role].accent}`, color: CONTRACTOR_META[role].accent, borderRadius: 14, padding: '4px 14px', fontSize: 10.5, fontWeight: 800, cursor: 'pointer' }}>
               + Add {CONTRACTOR_META[role].label}
             </button>
@@ -471,40 +496,25 @@ function ContractorTracker({ pageId }) {
             )}
             {(rows || []).map(r => {
               const meta = CONTRACTOR_META[r.role] || CONTRACTOR_META.color;
+              const pm = roster.find(m => m.id === r.invoice_pm_id);
+              const cellTxt = { ...td, padding: '9px 10px', fontSize: 12 };
               return (
-                <tr key={r.id} style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+                <tr key={r.id} onClick={() => openEdit(r)} title="Click to open this contractor's form"
+                  style={{ borderTop: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer' }}>
                   <td style={{ ...td, padding: '4px 10px' }}>
                     <span style={{ background: `${meta.accent}22`, border: `1px solid ${meta.accent}`, color: meta.accent, borderRadius: 12, padding: '2px 10px', fontSize: 9.5, fontWeight: 800, whiteSpace: 'nowrap' }}>{meta.label}</span>
                   </td>
-                  <td style={{ ...td, minWidth: 120 }}><Cell value={r.name} placeholder="Name…" onSave={v => saveCell(r.id, { name: v })} /></td>
-                  <td style={{ ...td, minWidth: 150 }}><Cell value={r.email} placeholder="email@…" onSave={v => saveCell(r.id, { email: v })} /></td>
-                  <td style={{ ...td, minWidth: 100 }}><Cell value={r.rate} placeholder="$95/hr…" onSave={v => saveCell(r.id, { rate: v })} /></td>
-                  <td style={{ ...td, minWidth: 160 }}><Cell value={r.services} placeholder="Services…" onSave={v => saveCell(r.id, { services: v })} /></td>
-                  <td style={td}>
-                    <input type="date" value={r.start_date ? String(r.start_date).slice(0, 10) : ''} style={cellInput}
-                      onChange={ev => saveCell(r.id, { startDate: ev.target.value })} />
-                  </td>
-                  <td style={td}>
-                    <input type="date" value={r.end_date ? String(r.end_date).slice(0, 10) : ''} style={cellInput}
-                      onChange={ev => saveCell(r.id, { endDate: ev.target.value })} />
-                  </td>
-                  <td style={{ ...td, minWidth: 100 }}>
-                    <Cell value={r.total === null || r.total === undefined ? '' : fmt$(r.total)} placeholder="$0.00" style={{ textAlign: 'right', color: '#5ABF80', fontWeight: 700 }}
-                      onSave={v => { const n = parseFloat(String(v).replace(/[^0-9.\-]/g, '')); saveCell(r.id, { total: Number.isFinite(n) ? n : null }); }} />
-                  </td>
-                  <td style={{ ...td, minWidth: 150 }}>
-                    <EditorSelect value={r.invoice_pm_id || ''} unbridledOnly placeholder="— Pick a PM —" onChange={v => saveCell(r.id, { invoicePmId: v })} />
-                  </td>
-                  <td style={{ ...td, whiteSpace: 'nowrap', padding: '4px 10px' }}>
-                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                      <button disabled={busy || !(Number(r.total) > 0)} onClick={() => hold(r)}
-                        title={Number(r.total) > 0 ? 'Post this cost to the project VCC as a hold' : 'Enter a total estimate first'}
-                        style={{ ...actBtn('#5ABF80'), opacity: (busy || !(Number(r.total) > 0)) ? 0.45 : 1 }}>Hold Cost → VCC</button>
-                      <button disabled={busy} onClick={() => sendContract(r)}
-                        title="Preview the contract email and send it from info@ for review & signature"
-                        style={actBtn(meta.accent)}>Send Contract</button>
-                      <button onClick={() => remove(r)} style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', fontSize: 11 }}>✕</button>
-                    </div>
+                  <td style={{ ...cellTxt, fontWeight: 600, minWidth: 120 }}>{r.name || '—'}</td>
+                  <td style={{ ...cellTxt, color: 'var(--muted)', minWidth: 150 }}>{r.email || '—'}</td>
+                  <td style={{ ...cellTxt, minWidth: 90 }}>{r.rate || '—'}</td>
+                  <td style={{ ...cellTxt, minWidth: 160 }}>{r.services || '—'}</td>
+                  <td style={{ ...cellTxt, whiteSpace: 'nowrap' }}>{r.start_date ? fmtD(r.start_date) : '—'}</td>
+                  <td style={{ ...cellTxt, whiteSpace: 'nowrap' }}>{r.end_date ? fmtD(r.end_date) : '—'}</td>
+                  <td style={{ ...cellTxt, textAlign: 'right', color: '#5ABF80', fontWeight: 700, whiteSpace: 'nowrap' }}>{r.total === null || r.total === undefined ? '—' : fmt$(r.total)}</td>
+                  <td style={{ ...cellTxt, minWidth: 130 }}>{pm ? pm.__display : '—'}</td>
+                  <td style={{ ...td, padding: '4px 10px' }}>
+                    <button onClick={ev => { ev.stopPropagation(); remove(r); }} title="Remove"
+                      style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', fontSize: 11 }}>✕</button>
                   </td>
                 </tr>
               );
@@ -515,7 +525,7 @@ function ContractorTracker({ pageId }) {
       {form && (
         <div className="modal-bg" onClick={e => e.target === e.currentTarget && setForm(null)}>
           <div className="modal">
-            <div className="modal-title">Add {CONTRACTOR_META[form.role].label} Contractor</div>
+            <div className="modal-title">{form.id ? '' : 'Add '}{CONTRACTOR_META[form.role].label} Contractor</div>
             <form onSubmit={submit}>
               <div className="form-grid cols1" style={{ marginBottom: 12 }}>
                 <div className="field"><label>Name *</label>
@@ -539,8 +549,18 @@ function ContractorTracker({ pageId }) {
                 <div className="field"><label>Send Final Invoice To</label>
                   <EditorSelect value={form.invoicePmId} unbridledOnly placeholder="— Pick a project manager —" onChange={v => setForm(f => ({ ...f, invoicePmId: v }))} /></div>
               </div>
-              <div className="btn-row">
-                <button className="btn btn-primary" disabled={busy}>{busy ? 'Adding…' : `Add ${CONTRACTOR_META[form.role].label}`}</button>
+              <div className="btn-row" style={{ flexWrap: 'wrap', gap: 8 }}>
+                <button className="btn btn-primary" disabled={busy}>{busy ? 'Saving…' : form.id ? 'Save' : `Add ${CONTRACTOR_META[form.role].label}`}</button>
+                <button type="button" disabled={busy || !(Number(form.total) > 0)} onClick={holdFromForm}
+                  title={Number(form.total) > 0 ? 'Save and post this cost to the project VCC as a hold' : 'Enter a total estimate first'}
+                  style={{ background: 'rgba(90,191,128,0.12)', border: '1px solid #5ABF80', color: '#5ABF80', borderRadius: 8, padding: '8px 14px', fontSize: 12, fontWeight: 800, cursor: 'pointer', opacity: (busy || !(Number(form.total) > 0)) ? 0.5 : 1 }}>
+                  Hold Cost → VCC
+                </button>
+                <button type="button" disabled={busy} onClick={sendContractFromForm}
+                  title="Save, then preview the contract email and send it from info@ for review & signature"
+                  style={{ background: `${CONTRACTOR_META[form.role].accent}18`, border: `1px solid ${CONTRACTOR_META[form.role].accent}`, color: CONTRACTOR_META[form.role].accent, borderRadius: 8, padding: '8px 14px', fontSize: 12, fontWeight: 800, cursor: 'pointer', opacity: busy ? 0.5 : 1 }}>
+                  Send Contract
+                </button>
                 <button type="button" className="btn btn-ghost" onClick={() => setForm(null)}>Cancel</button>
               </div>
             </form>

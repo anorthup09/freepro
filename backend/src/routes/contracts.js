@@ -214,33 +214,66 @@ router.post('/contract/:token/sign', async (req, res, next) => {
 // the estimated total and whether their contract has gone out
 router.get('/reports/vendor-contracts', requireAuth, requireRole('ADMIN','PRODUCER','FINANCE'), async (req, res, next) => {
   try {
-    const rows = await sql`
+    const crewRows = await sql`
       SELECT ca.id, ca.project_id, ca.day_rate, ca.labor_days, ca.gear_cost, ca.gear_days,
              COALESCE(NULLIF(TRIM(CONCAT(cm.preferred_first_name, ' ', cm.preferred_last_name)), ''), cm.name) as contractor_name,
              po.name as position_name,
              pr.code, pr.title, pr.status as project_status, pr.start_date, pr.parent_project_id,
+             COALESCE(ca.start_date::text, pr.start_date::text) as slot_start,
+             COALESCE(ca.end_date::text, pr.end_date::text) as slot_end,
              (SELECT c.status FROM contracts c WHERE c.crew_assignment_id = ca.id ORDER BY c.created_at DESC LIMIT 1) as contract_status,
              (SELECT c.created_at FROM contracts c WHERE c.crew_assignment_id = ca.id ORDER BY c.created_at DESC LIMIT 1) as contract_sent_at
       FROM crew_assignments ca
       JOIN crew_members cm ON cm.id = ca.crew_member_id
       JOIN positions po ON po.id = ca.position_id
       JOIN projects pr ON pr.id = ca.project_id
-      WHERE ca.is_contractor = TRUE AND pr.status != 'ARCHIVED'
-      ORDER BY pr.start_date DESC NULLS LAST, contractor_name`;
+      WHERE ca.is_contractor = TRUE AND pr.status != 'ARCHIVED'`;
+    // Post-production contractors (AvocadoPost Color & Audio tracker)
+    const postRows = await sql`
+      SELECT ac.id, pr.id as project_id, NULL::numeric as day_rate, NULL::numeric as labor_days,
+             NULL::numeric as gear_cost, NULL::numeric as gear_days,
+             ac.name as contractor_name,
+             CASE WHEN ac.role = 'color' THEN 'Color' ELSE 'Audio' END as position_name,
+             pr.code, pr.title, pr.status as project_status, pr.start_date, pr.parent_project_id,
+             COALESCE(ac.start_date, pr.start_date::text) as slot_start,
+             COALESCE(ac.end_date, pr.end_date::text) as slot_end,
+             c.status as contract_status, c.created_at as contract_sent_at,
+             ac.total as post_total, pp.id as avo_page_id
+      FROM avo_contractors ac
+      JOIN avo_project_pages pp ON pp.id = ac.page_id
+      JOIN projects pr ON pr.code = pp.code
+      LEFT JOIN contracts c ON c.id = ac.contract_id
+      WHERE pr.status != 'ARCHIVED' AND NULLIF(TRIM(ac.name), '') IS NOT NULL`;
+    const rows = [...crewRows, ...postRows];
     const codes = await displayCodes([...new Set(rows.map(r => r.project_id))]);
-    res.json(rows.map(r => ({
+    const today = new Date().toISOString().slice(0, 10);
+    const day = s => s ? String(s).slice(0, 10) : null;
+    const mapped = rows.map(r => ({
       ...r,
       code: codes[r.project_id] || r.code,
-      est_total: (Number(r.day_rate) || 0) * (Number(r.labor_days) || 0) + (Number(r.gear_cost) || 0) * (Number(r.gear_days) || 0),
-    })));
+      slot_start: day(r.slot_start),
+      slot_end: day(r.slot_end),
+      est_total: r.post_total !== undefined
+        ? Number(r.post_total) || 0
+        : (Number(r.day_rate) || 0) * (Number(r.labor_days) || 0) + (Number(r.gear_cost) || 0) * (Number(r.gear_days) || 0),
+      // Slot is archived once its end date has passed
+      archived: !!(day(r.slot_end) && day(r.slot_end) < today),
+    }));
+    mapped.sort((a, b) => (a.slot_start || '9999').localeCompare(b.slot_start || '9999')
+      || String(a.contractor_name || '').localeCompare(String(b.contractor_name || '')));
+    res.json(mapped);
   } catch (e) { next(e); }
 });
 
-// Latest contract for a crew assignment — powers the Vendor Contract Report's
-// detail pop-out (null contract = nothing sent yet)
+// Latest contract for a report row — the id is either a crew assignment or an
+// AvocadoPost Color/Audio contractor (null contract = nothing sent yet)
 router.get('/reports/vendor-contracts/:assignmentId/detail', requireAuth, requireRole('ADMIN','PRODUCER','FINANCE'), async (req, res, next) => {
   try {
-    const [c] = await sql`SELECT * FROM contracts WHERE crew_assignment_id = ${req.params.assignmentId} ORDER BY created_at DESC LIMIT 1`;
+    const [c] = await sql`
+      SELECT * FROM contracts
+      WHERE crew_assignment_id = ${req.params.assignmentId}
+         OR id = (SELECT contract_id FROM avo_contractors WHERE id = ${req.params.assignmentId})
+      ORDER BY created_at DESC LIMIT 1`;
     res.json(c || null);
   } catch (e) { next(e); }
 });
