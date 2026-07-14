@@ -93,5 +93,18 @@
       "Click Return on a drive when it comes back \u2014 it shows in the office again on the Hard Drives report."
     ],
     "screenshot": "gear-tab-dit.png"
+  },
+  {
+    "title": "Talent call times feed the Schedule",
+    "page": "FreePro \u2014 Production",
+    "what": "Individual talent call times now live on the schedule instead of a column on the crew sheet. Each talent's per-day call time \u2014 set in their Add/Edit Talent form under Call Times by Day, now with a call location field beside each time \u2014 appears on that day's Schedule timeline as its own 'Talent Call \u2014 [name]' entry with a Talent tag, their role, and a \ud83d\udccd location. The same call time and location show on the talent's shared call sheet under the day header.",
+    "where": "FreePro \u2192 open a shoot \u2192 Crew \u2192 talent's Edit form \u2192 Call Times by Day (shows on Logistics \u2192 Schedule)",
+    "how": [
+      "Open the shoot's Crew tab and click Edit on a talent row (or + Add Talent).",
+      "Under Call Times by Day, set the time and type the call location for each shoot day they're needed.",
+      "Save \u2014 the Schedule timeline for that day now shows 'Talent Call \u2014 [name]' at the right slot with the location.",
+      "The talent's shared call sheet shows their call time and location in the day header."
+    ],
+    "screenshot": "talent-call-schedule.png"
   }
 ]
