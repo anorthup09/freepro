@@ -120,10 +120,11 @@ router.get('/:id/travel/drives', requireAuth, async (req, res, next) => {
 
 router.post('/:id/travel/drives', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const { origin, destination, notes, members=[], driverCrewMemberId, driverName } = req.body;
+    const { origin, destination, notes, members=[], driverCrewMemberId, driverName, departTime, arriveTime, driveMinutes, car } = req.body;
     const [d] = await sql`
-      INSERT INTO drive_groups (id, project_id, origin, destination, notes, driver_crew_member_id, driver_name)
-      VALUES (gen_random_uuid()::text, ${req.params.id}, ${origin||null}, ${destination||null}, ${notes||null}, ${driverCrewMemberId||null}, ${driverName||null})
+      INSERT INTO drive_groups (id, project_id, origin, destination, notes, driver_crew_member_id, driver_name, depart_time, arrive_time, drive_minutes, car)
+      VALUES (gen_random_uuid()::text, ${req.params.id}, ${origin||null}, ${destination||null}, ${notes||null}, ${driverCrewMemberId||null}, ${driverName||null},
+        ${departTime||null}, ${arriveTime||null}, ${driveMinutes||null}, ${car||null})
       RETURNING *`;
     const mems = await Promise.all(members.map(m => sql`INSERT INTO drive_group_members (id, drive_group_id, name, crew_member_id) VALUES (gen_random_uuid()::text, ${d.id}, ${m.name}, ${m.crewMemberId||null}) RETURNING *`));
     res.status(201).json({ ...d, driver: driverName || null, members: mems.flat() });

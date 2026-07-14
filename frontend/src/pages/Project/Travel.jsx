@@ -63,6 +63,42 @@ function statusColor(status) {
   return 'var(--muted)';
 }
 
+// City-level autocomplete (City, ST) backed by the geo search used for weather
+function CityField({ label, required, value, onPick, placeholder }) {
+  const [q, setQ] = useState(value?.label || '');
+  const [sugs, setSugs] = useState([]);
+  const timer = useRef(null);
+  useEffect(() => { setQ(value?.label || ''); }, [value]);
+  function onChange(e) {
+    const v = e.target.value;
+    setQ(v);
+    onPick(null);
+    clearTimeout(timer.current);
+    if (v.trim().length < 2) { setSugs([]); return; }
+    timer.current = setTimeout(async () => {
+      try { setSugs(await api.geoSearch(v)); } catch { setSugs([]); }
+    }, 350);
+  }
+  return (
+    <div className="field" style={{ position:'relative' }}>
+      <label>{label} {required && <span style={{ color:'var(--red-text)' }}>*</span>}</label>
+      <input value={q} onChange={onChange} placeholder={placeholder || 'Start typing a city…'} autoComplete="off" required={required && !value} />
+      {sugs.length > 0 && (
+        <div style={{ position:'absolute', top:'100%', left:0, right:0, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:6, zIndex:120, maxHeight:190, overflowY:'auto' }}>
+          {sugs.map((sg, i) => (
+            <div key={i} style={{ padding:'7px 12px', cursor:'pointer', borderBottom:'1px solid var(--border)', fontSize:12 }}
+              onMouseDown={() => { onPick({ label: sg.label, latitude: sg.latitude, longitude: sg.longitude }); setSugs([]); }}>
+              {sg.label}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const fmtDriveMins = m => m == null ? null : (m < 60 ? `${m} min` : `${Math.floor(m / 60)}h ${m % 60}m`);
+
 export default function Travel({ project }) {
   const [hotels, setHotels] = useState([]);
   const [flights, setFlights] = useState([]);
@@ -104,7 +140,8 @@ export default function Travel({ project }) {
   // Driving (driver + tagged passengers)
   const [drives, setDrives] = useState([]);
   const [showDrive, setShowDrive] = useState(false);
-  const [driveForm, setDriveForm] = useState({ driverCrewMemberId:'', passengerIds:[], origin:'', destination:'', notes:'' });
+  const BLANK_DRIVE = { driverCrewMemberId:'', passengerIds:[], origin:null, destination:null, departDate:'', departTime:'', car:'', notes:'' }; // origin/destination: { label, latitude, longitude }
+  const [driveForm, setDriveForm] = useState(BLANK_DRIVE);
 
   const projectCrew = project.crewAssignments || [];
 
@@ -281,18 +318,33 @@ export default function Travel({ project }) {
   const crewById = id => projectCrew.find(a => a.crewMember?.id === id)?.crewMember;
   async function addDrive(e) {
     e.preventDefault();
+    const f = driveForm;
+    if (!f.origin || !f.destination) return alert('Pick the From and To cities from the suggestions.');
     try {
+      // Estimated drive time via OSRM between the two picked cities
+      let driveMinutes = null;
+      try {
+        const r = await fetch(`https://router.project-osrm.org/route/v1/driving/${f.origin.longitude},${f.origin.latitude};${f.destination.longitude},${f.destination.latitude}?overview=false`);
+        const dj = await r.json();
+        if (dj.routes?.[0]?.duration) driveMinutes = Math.round(dj.routes[0].duration / 60);
+      } catch { /* estimate unavailable — save without it */ }
+      const departISO = f.departDate && f.departTime ? new Date(`${f.departDate}T${f.departTime}`).toISOString() : null;
+      const arriveISO = departISO && driveMinutes != null ? new Date(new Date(departISO).getTime() + driveMinutes * 60000).toISOString() : null;
       const d = await api.createDrive(project.id, {
-        driverCrewMemberId: driveForm.driverCrewMemberId,
-        driverName: displayName(crewById(driveForm.driverCrewMemberId)) || null,
-        origin: driveForm.origin || null,
-        destination: driveForm.destination || null,
-        notes: driveForm.notes || null,
-        members: driveForm.passengerIds.map(id => ({ crewMemberId: id, name: displayName(crewById(id)) || '' })),
+        driverCrewMemberId: f.driverCrewMemberId,
+        driverName: displayName(crewById(f.driverCrewMemberId)) || null,
+        origin: f.origin.label,
+        destination: f.destination.label,
+        departTime: departISO,
+        arriveTime: arriveISO,
+        driveMinutes,
+        car: f.car || null,
+        notes: f.notes || null,
+        members: f.passengerIds.map(id => ({ crewMemberId: id, name: displayName(crewById(id)) || '' })),
       });
       setDrives(prev => [...prev, d]);
       setShowDrive(false);
-      setDriveForm({ driverCrewMemberId:'', passengerIds:[], origin:'', destination:'', notes:'' });
+      setDriveForm(BLANK_DRIVE);
     } catch (err) { alert(err.message); }
   }
   async function removeDrive(id) {
@@ -565,6 +617,9 @@ export default function Travel({ project }) {
           {(d.origin || d.destination) && (
             <div className="froute"><span>{d.origin || '?'}</span><span className="farrow">→</span><span>{d.destination || '?'}</span></div>
           )}
+          {d.depart_time && <div className="ftimes">{fmtDT(d.depart_time)}{d.arrive_time ? ` → ~${fmtDT(d.arrive_time)}` : ''}</div>}
+          {d.drive_minutes != null && <span style={{ fontSize:10, color:'#e6c229', fontWeight:700 }}>~{fmtDriveMins(d.drive_minutes)} drive</span>}
+          {d.car && <span style={{ fontSize:10, color:'var(--muted)' }}>🚐 {d.car}</span>}
           {(d.members || []).length > 0 && (
             <div style={{ display:'flex', alignItems:'center', gap:5, flexWrap:'wrap' }}>
               <span style={{ fontSize:10, color:'var(--muted)' }}>Passengers:</span>
@@ -619,9 +674,16 @@ export default function Travel({ project }) {
                     )}
                   </div>
                 </div>
-                <div className="field"><label>From <span style={{ color:'var(--muted)', fontSize:10 }}>(optional)</span></label><input value={driveForm.origin} onChange={e => setDriveForm(f=>({...f,origin:e.target.value}))} placeholder="Office / STL" /></div>
-                <div className="field"><label>To <span style={{ color:'var(--muted)', fontSize:10 }}>(optional)</span></label><input value={driveForm.destination} onChange={e => setDriveForm(f=>({...f,destination:e.target.value}))} placeholder="Venue / hotel" /></div>
-                <div className="field"><label>Notes</label><input value={driveForm.notes} onChange={e => setDriveForm(f=>({...f,notes:e.target.value}))} placeholder="Van, leaves at 7am…" /></div>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 130px 110px', gap:'6px 10px' }}>
+                  <CityField label="From (City)" required value={driveForm.origin} onPick={v => setDriveForm(f=>({...f,origin:v}))} placeholder="St. Louis, Missouri…" />
+                  <div className="field"><label>Departure Date <span style={{ color:'var(--red-text)' }}>*</span></label>
+                    <input type="date" value={driveForm.departDate} onChange={e => setDriveForm(f=>({...f,departDate:e.target.value}))} required /></div>
+                  <div className="field"><label>Time <span style={{ color:'var(--red-text)' }}>*</span></label>
+                    <input type="time" value={driveForm.departTime} onChange={e => setDriveForm(f=>({...f,departTime:e.target.value}))} required /></div>
+                </div>
+                <CityField label="To (City)" required value={driveForm.destination} onPick={v => setDriveForm(f=>({...f,destination:v}))} placeholder="Columbia, Missouri…" />
+                <div className="field"><label>Car Make/Model</label><input value={driveForm.car} onChange={e => setDriveForm(f=>({...f,car:e.target.value}))} placeholder="Ford Transit 350…" /></div>
+                <div className="field"><label>Notes</label><input value={driveForm.notes} onChange={e => setDriveForm(f=>({...f,notes:e.target.value}))} placeholder="Pick up catering on the way…" /></div>
               </div>
               <div className="btn-row">
                 <button className="btn btn-primary">Add Driver</button>

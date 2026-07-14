@@ -275,6 +275,8 @@ async function migrate() {
   // Driving section on the Travel tab: a drive has a driver + tagged passengers
   await sql`ALTER TABLE drive_groups ADD COLUMN IF NOT EXISTS driver_crew_member_id TEXT REFERENCES crew_members(id)`;
   await sql`ALTER TABLE drive_groups ADD COLUMN IF NOT EXISTS driver_name TEXT`;
+  await sql`ALTER TABLE drive_groups ADD COLUMN IF NOT EXISTS car TEXT`;
+  await sql`ALTER TABLE drive_groups ADD COLUMN IF NOT EXISTS drive_minutes INT`;
   await sql`ALTER TABLE drive_groups ALTER COLUMN origin DROP NOT NULL`;
   await sql`ALTER TABLE drive_groups ALTER COLUMN destination DROP NOT NULL`;
 

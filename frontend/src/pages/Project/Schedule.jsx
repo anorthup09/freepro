@@ -291,6 +291,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
   }, [focusDate, days]);
   const [keyTalent, setKeyTalent] = useState([]);
   const [talentCalls, setTalentCalls] = useState([]);   // individual talent call times, shown on the timeline
+  const [drives, setDrives] = useState([]);             // Travel tab drives — departure/arrival tiles on the timeline
   const [editCallId, setEditCallId] = useState(null);
   const [callTime, setCallTime] = useState('');
   const [dayTimesForm, setDayTimesForm] = useState({});
@@ -318,6 +319,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
   useEffect(() => {
     api.getTalent(project.id).then(setKeyTalent).catch(() => {});
     api.getProjectTalentCalls(project.id).then(setTalentCalls).catch(() => {});
+    api.getDrives(project.id).then(setDrives).catch(() => {});
     api.getShotList(project.id).then(setShotListScenes).catch(() => {});
     api.getSlDays(project.id).then(setSlDays).catch(() => {});
   }, [project.id]);
@@ -931,7 +933,17 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
             const talentItems = talentCalls
               .filter(c => c.shoot_day_id === currentDay.id && c.call_time)
               .map((c, i) => ({ _type:'talentcall', _sort: timeToMinutes(c.call_time), _key:`tc-${currentDay.id}-${i}`, ...c }));
-            const items = [...syntheticItems, ...eventItems, ...flightItems, ...cateringItems, ...previewItems, ...sceneItems, ...talentItems].sort((a, b) => a._sort - b._sort);
+            const dayISO2 = currentDay.date?.slice(0, 10);
+            const timeOf = iso => { const d = new Date(iso); return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; };
+            const driveItems = drives.flatMap((d, i) => {
+              const out = [];
+              if (d.depart_time && String(new Date(d.depart_time).toLocaleDateString('en-CA')) === dayISO2)
+                out.push({ _type:'drive', _leg:'depart', _sort: timeToMinutes(timeOf(d.depart_time)), _key:`dr-d-${i}`, _time: timeOf(d.depart_time), ...d });
+              if (d.arrive_time && String(new Date(d.arrive_time).toLocaleDateString('en-CA')) === dayISO2)
+                out.push({ _type:'drive', _leg:'arrive', _sort: timeToMinutes(timeOf(d.arrive_time)), _key:`dr-a-${i}`, _time: timeOf(d.arrive_time), ...d });
+              return out;
+            });
+            const items = [...syntheticItems, ...eventItems, ...flightItems, ...cateringItems, ...previewItems, ...sceneItems, ...talentItems, ...driveItems].sort((a, b) => a._sort - b._sort);
 
             return (
               <>
@@ -1113,6 +1125,26 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                                   <span style={{ fontSize: 10, color: st.color, opacity: 0.6, whiteSpace: 'nowrap' }}>→ Shot List</span>
                                 </div>
                               </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })() : item._type === 'drive' ? (() => {
+                      const mins = item.drive_minutes;
+                      const est = mins == null ? null : (mins < 60 ? `${mins} min` : `${Math.floor(mins / 60)}h ${mins % 60}m`);
+                      const dep = item._leg === 'depart';
+                      return (
+                        <div key={item._key} className="ev">
+                          <div className="ev-time">🚗 {fmtTime(item._time)}</div>
+                          <div className="ev-body" style={{ borderLeft:`2px solid ${dep ? '#4a9eff' : '#5ABF80'}` }}>
+                            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:8 }}>
+                              <div className="ev-title">{dep ? 'Drive Departure' : 'Approx. Drive Arrival'} — {item.driver || item.driver_name || 'Driver TBD'}</div>
+                              {dep && est && <span style={{ fontSize:10, fontWeight:800, color:'#e6c229', whiteSpace:'nowrap', flexShrink:0 }}>~{est} drive</span>}
+                            </div>
+                            <div className="ev-detail" style={{ color:'var(--muted)' }}>
+                              {item.origin} → {item.destination}
+                              {item.car ? ` · ${item.car}` : ''}
+                              {(item.members || []).length ? ` · ${(item.members || []).map(m => m.name).join(', ')}` : ''}
                             </div>
                           </div>
                         </div>
