@@ -85,7 +85,7 @@ export default function Reports() {
             title: 'Ways of Being',
             desc: 'Every shoutout for a teammate going above and beyond — collected two per week from the MediaMoment prompts.',
             accent: '#f7b52d', to: '/reports/ways-of-being',
-          }] : [])].map((r, i, arr) => { const accent = gradientAccent(i, arr.length); return (
+          }] : [])].sort((a, b) => a.title.localeCompare(b.title)).map((r, i, arr) => { const accent = gradientAccent(i, arr.length); return (
             <div key={r.title} onClick={() => nav(r.to)}
               style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderTop:`3px solid ${accent}`, borderRadius:12, padding:'12px 18px 11px', cursor:'pointer', transition:'transform .15s ease' }}
               onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-3px)'}

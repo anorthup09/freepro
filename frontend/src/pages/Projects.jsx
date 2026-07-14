@@ -114,6 +114,14 @@ function GearGantt({ rows, onOpen }) {
 function GearManagement() {
   const nav = useNavigate();
   const [rows, setRows] = useState(null);
+  const [gearMgr, setGearMgr] = useState(null);
+  useEffect(() => {
+    api.getCrew().then(cs => {
+      const m = cs.find(c => `${c.preferred_first_name || ''} ${c.preferred_last_name || ''}`.trim().toLowerCase() === 'mason vitro'
+        || (c.name || '').toLowerCase() === 'mason vitro');
+      setGearMgr(m || null);
+    }).catch(() => {});
+  }, []);
   const [tab, setTab] = useState('requested'); // 'requested' | 'none'
   const [showForm, setShowForm] = useState(false);
   const [viewing, setViewing] = useState(null);
@@ -130,6 +138,19 @@ function GearManagement() {
 
   return (
     <div>
+      {gearMgr && (
+        <div style={{ display:'flex', alignItems:'center', gap:10, background:'rgba(232,80,10,0.08)', border:'1px solid rgba(232,80,10,0.4)', borderRadius:10, padding:'8px 14px', marginBottom:12 }}>
+          <span style={{ fontSize:16 }}>🎒</span>
+          <div>
+            <div style={{ fontSize:12, fontWeight:800 }}>Gear Manager — {[gearMgr.preferred_first_name, gearMgr.preferred_last_name].filter(Boolean).join(' ') || gearMgr.name}</div>
+            <div style={{ fontSize:10, color:'var(--muted)' }}>
+              {[gearMgr.email && <a key="e" href={`mailto:${gearMgr.email}`} style={{ color:'var(--orange)', textDecoration:'none' }}>{gearMgr.email}</a>,
+                gearMgr.phone && <a key="p" href={`tel:${String(gearMgr.phone).replace(/[^+\d]/g, '')}`} style={{ color:'var(--orange)', textDecoration:'none' }}>{gearMgr.phone}</a>]
+                .filter(Boolean).reduce((acc, el, i) => acc === null ? [el] : [...acc, ' · ', el], null) || 'Gear questions go here first.'}
+            </div>
+          </div>
+        </div>
+      )}
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14, flexWrap:'wrap', gap:8 }}>
         <div className="page-sub">Each production shoot has its own gear tile — click a row to open its gear dashboard.</div>
         <button className="btn btn-primary" onClick={() => setShowForm(true)}>+ New Gear Request</button>
