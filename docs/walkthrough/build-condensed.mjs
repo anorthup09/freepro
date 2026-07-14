@@ -2,17 +2,17 @@
 // with a code (F1, F2, …), flowing as many as fit per page, and all screenshots collected
 // in an appendix at the end, 10 to a page, labeled by feature code.
 //
-// Sources: entries-v1.2.json + entries.json (in order).
+// Sources: entries.json (v1.4+ features only). Frozen archives:
+// entries-v1.2.json → whats-new-v1.2.pdf, entries-v1.3.json → whats-new-v1.3.pdf
+// (v1.3 PDF covers everything through v1.3, i.e. v1.2 + v1.3 entries).
 // Usage: node docs/walkthrough/build-condensed.mjs [output.pdf]
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
 const dir = path.dirname(fileURLToPath(import.meta.url));
-const entries = [
-  ...JSON.parse(fs.readFileSync(path.join(dir, 'entries-v1.2.json'), 'utf8')),
-  ...JSON.parse(fs.readFileSync(path.join(dir, 'entries.json'), 'utf8')),
-];
+const VERSION = '1.4';
+const entries = JSON.parse(fs.readFileSync(path.join(dir, 'entries.json'), 'utf8'));
 const out = process.argv[2] || path.join(dir, 'whats-new-condensed.pdf');
 
 // First sentence (or ~200 chars) of the long description
@@ -96,7 +96,7 @@ const html = `<!doctype html><html><head><meta charset="utf-8"><style>
 
 <div class="flow">
     <div class="hdr">
-      <div><h1>What's New — Feature Index</h1><div class="tag">Unbridled Operating Platform · ${feats.length} features · grouped by page · screenshots in the appendix</div></div>
+      <div><h1>What's New — v${VERSION}</h1><div class="tag">Unbridled Operating Platform · ${feats.length} features · grouped by page · screenshots in the appendix</div></div>
     </div>
     ${feats.map((f, i) => `
       ${(i === 0 || f.group !== feats[i - 1].group) ? `<div class="sec">${f.group}<span class="n">${feats.filter(x => x.group === f.group).length} features</span></div>` : ''}

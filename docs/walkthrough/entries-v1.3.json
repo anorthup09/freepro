@@ -1,0 +1,428 @@
+[
+  {
+    "title": "Timeline zoom on the Gantt views",
+    "what": "Zoom controls on every Gantt timeline let you expand or condense how many days are visible — zoom in for a tight look at a busy week, zoom out to see the whole schedule.",
+    "where": "Any Gantt timeline — an edit's Timeline tab, the project Gantt share link, or the Full Pipeline view. Controls sit at the top right of the chart.",
+    "how": [
+      "Open any Gantt timeline view.",
+      "Click + to zoom in (fewer days, more detail) or − to zoom out (more days visible).",
+      "Click Fit to snap back to the full schedule."
+    ],
+    "screenshot": "gantt-zoom.png"
+  },
+  {
+    "title": "Admin role preview (View as…)",
+    "what": "Admins can preview the entire platform exactly as any other role sees it — Producer, Finance, Crew, Agency, or Client — without signing out. Tiles, pages, and menus all follow the previewed role.",
+    "where": "Hub header, next to the Backup button: the 'View as…' dropdown. A purple banner at the top of every page shows which role you're previewing.",
+    "how": [
+      "On the hub, open the 'View as…' dropdown in the top-right header.",
+      "Pick a role — the platform immediately re-renders as that role would see it.",
+      "Browse anywhere; the purple 'Previewing as …' banner stays at the top.",
+      "Click Exit Preview on the banner (or reset the dropdown) to return to your admin view."
+    ],
+    "screenshot": "role-preview.png"
+  },
+  {
+    "title": "Agency role",
+    "what": "A new user role for agency partners. Agency accounts see the hub dashboard (Day in Review, My Tasks, Team Today), Team Management, AvocadoPost, and each project's logistics — with edit access only where they need it: the Gear and Deliverable tabs. Everything else stays view-only and finance stays hidden.",
+    "where": "User Management (set a user's role to AGENCY). Agency users open projects from the FreePro tile; each project shows the Logistics dropdown (Schedule, Travel, Shot List, Additional Docs), Gear, and Deliverable.",
+    "how": [
+      "Open User Management on the hub and set the member's role to AGENCY.",
+      "The agency user signs in and opens a project from the FreePro tile.",
+      "Logistics dropdown: Schedule, Travel, Shot List, and Additional Docs — view-only.",
+      "Gear and Deliverable tabs are fully editable for agency users."
+    ],
+    "screenshot": "agency-role.png"
+  },
+  {
+    "title": "Travel / Local, clickable everywhere",
+    "what": "Mark any crew member or talent as Travel or Local and flip it with one click. Anyone set to Local has all travel detail — flights, hotel blocks, rental cars, and travel-tagged schedule items — stripped from their personal call sheet.",
+    "where": "A project's Crew tab. The Travel/Local badge sits in the Travel column of both the crew positions table and the Talent list. The same switch is pinned to the top-right of the Add Position, crew Edit, Add Talent, and Edit Talent forms.",
+    "how": [
+      "Open a project and go to the Crew tab.",
+      "In the Travel column, click a crew member's or talent's badge to flip it between TRAVEL and LOCAL — it saves instantly.",
+      "Or set it while adding/editing: the Travel / Local switch is at the top-right of the Add Position and Add/Edit Talent forms.",
+      "Local people automatically lose flights, hotels, rental cars, and travel-tagged events from their call sheet."
+    ],
+    "screenshot": "travel-local-toggle.png"
+  },
+  {
+    "title": "Travel tag on schedule events",
+    "what": "Schedule events can now carry a Travel tag. Any event tagged Travel is automatically hidden from the call sheets of anyone marked Local, so local crew and talent never see departures and transfers that do not apply to them. The tag row is ordered All Crew, Video, Photo, Talent, Travel.",
+    "where": "A project's Schedule tab. Add an event or edit an existing one, then use the Tags row near the bottom of the form.",
+    "how": [
+      "Open a project's Schedule tab and click + Add Event, or edit an event.",
+      "In the Tags row, click Travel to tag the event as travel.",
+      "Tag order is All Crew, Video, Photo, Talent, Travel.",
+      "Save — the event now hides from every Local person's call sheet."
+    ],
+    "screenshot": "event-travel-tag.png"
+  },
+  {
+    "title": "Review any call sheet before sending",
+    "what": "Preview the exact call sheet each recipient will get, right from the email screen. Crew and producers open their personal filtered view, client contacts open the client call sheet, and talent open their own tagged sheet.",
+    "where": "A project, then Send Call Sheet Emails. A Review button sits on every recipient row across the Producers, Crew, Client, and Talent groups.",
+    "how": [
+      "Open a project and click Send Call Sheet Emails.",
+      "Find any recipient — producer, crew, client, or talent.",
+      "Click Review to open their call sheet in a preview window, with an Open in Tab link.",
+      "Confirm it looks right, then draft and send."
+    ],
+    "screenshot": "callsheet-review.png"
+  },
+  {
+    "title": "Arrival notes on locations",
+    "what": "Every location can carry Arrival Notes — parking, entrance, check-in, loading dock — and they show up wherever the location appears, including the crew, producer, and client call sheets. Crew call sheets also no longer list Airport or Hotel locations, since crew get those from their own flights and hotel blocks.",
+    "where": "A project's Overview tab, in the Locations section. Add a location or edit an existing one to find the Arrival Notes field.",
+    "how": [
+      "Open a project and go to its Overview tab.",
+      "In Locations, click + Add (or the pencil to edit a location).",
+      "Type parking, entrance, and check-in details into Arrival Notes and save.",
+      "The note appears under the location on the Overview and on call sheets."
+    ],
+    "screenshot": "location-arrival-notes.png"
+  },
+  {
+    "title": "Start a new project from the hub",
+    "what": "A Start New Project button on the hub opens the New Project form and drops you straight into the new project’s view — no need to detour through Finance first.",
+    "where": "The hub — the green Start New Project button next to the navigation pill.",
+    "how": [
+      "On the hub, click the green <b>+ Start New Project</b> button beside the View ▾ / Calendar / Reports pill.",
+      "Fill in project code, client, and name (a budget is created in RFP).",
+      "You land in the new project's Project View, ready to build it out."
+    ],
+    "screenshot": "start-new-project.png"
+  },
+  {
+    "title": "Tag Unbridled crew on project to-dos",
+    "what": "Assign any Project View to-do to an Unbridled crew member. Their First + Last initials show as a colored chip, and tagged tasks surface on that person’s hub dashboard so nothing slips.",
+    "where": "Project View, Overview tab, the To-Do panel on the right — click the + chip on any task.",
+    "how": [
+      "Open a project in Project View and stay on the Overview tab.",
+      "In the To-Do panel, click + Add Task (or use an existing task).",
+      "Click the dashed + chip and pick an Unbridled crew member from the list.",
+      "Their initials chip appears, and the task shows on their hub dashboard."
+    ],
+    "screenshot": "todo-tagging.png"
+  },
+  {
+    "title": "Gear Management overview & per-shoot dashboards",
+    "what": "Gear Management is now a report of every production shoot, sorted by start date, with a calendar timeline up top. Each row shows the shoot code (with its suffix), the shoot title, who is responsible for gear, the dates, and the form of travel — plus a Quick View of the submitted gear request. Toggle between shoots that have a gear request and those that still need one. Click any shoot to open its own gear dashboard: a locked copy of the submitted request beside a live activity feed.",
+    "where": "FreePro → Gear Management (toggle at the top of the Production Management page).",
+    "how": [
+      "Open FreePro and switch to Gear Management at the top.",
+      "Use the Gear Requested / No Gear Request toggle to filter the shoots.",
+      "Scan the calendar timeline and the orange Countdown column to see what is coming up.",
+      "Click Quick View to preview a submitted request, or click a row to open that shoot’s gear dashboard (locked request + activity feed)."
+    ],
+    "screenshot": "gear-management.png"
+  },
+  {
+    "title": "Gear Request tab",
+    "what": "The gear request form is now its own tab at the top of the Gear dropdown on a shoot. Fill it out inline; once it is submitted the tab locks to a read-only copy so the request can’t be changed after the fact.",
+    "where": "FreePro → open a shoot → Gear dropdown → Gear Request.",
+    "how": [
+      "Open a shoot in FreePro and click the Gear dropdown.",
+      "Choose Gear Request (the first item).",
+      "Fill out the form and submit it.",
+      "After submitting, the tab shows the locked, read-only request."
+    ],
+    "screenshot": "gear-request.png"
+  },
+  {
+    "title": "Crews — schedules & call sheets by unit",
+    "what": "Split a shoot into named crews (e.g. Recap Crew, Interview Crew). People tag into one or more crews (a cam op can be on both; untagged floats across all). Schedule events tag to a crew — untagged events apply to everyone. Each crew gets its own call-sheet link showing only their events and people, and day-level call times and logistics can carry per-crew overrides (blank = day default). One schedule, no double entry.",
+    "where": "FreePro → open a shoot → Logistics → Crew (Crews row up top), Schedule (crew chips on events + Per-Crew Overrides in the day header), and Share ▾ for the per-crew links.",
+    "how": [
+      "On the Crew tab, click + Add Crew and name your units (each gets a color).",
+      "In the new Crew column, check each person into their crew(s) — leave unchecked to float across all.",
+      "On the Schedule, tag events with a crew chip; untagged events show for everyone.",
+      "Need different call times or meal spots per crew? Open Per-Crew Overrides in the day header and fill only what differs.",
+      "From Share ▾, copy “Crew View — [Crew]” (or its PDF) and send each crew their own call sheet."
+    ],
+    "screenshot": "crew-units.png"
+  },
+  {
+    "title": "Space maps on the Locations tab",
+    "what": "Floor plans and room maps now live right on the Locations tab — the separate Room/Space Info tab is gone. Every location tile has an Upload Map button (Replace/Remove once one is attached), the Add Location form takes a map up front, and attached maps show on the producer and crew call sheets under the location.",
+    "where": "FreePro → open a shoot → Logistics → Locations.",
+    "how": [
+      "Open the Locations tab on a shoot.",
+      "Click + Upload Map on any location tile and pick an image (or attach one while adding a new location via + Add Location).",
+      "The map previews on the tile — use Replace Map or Remove Map to change it.",
+      "Producer and crew call sheets automatically show the map under that location."
+    ],
+    "screenshot": "locations-maps.png"
+  },
+  {
+    "title": "My Tasks quick-add — with teammate tagging",
+    "what": "Add a task to your own list straight from the Hub, without opening a project. The Add Task form takes a project, the task, an optional due date, and an optional teammate tag — tagging someone drops the same task on their My Tasks list, marked as tagged by you.",
+    "where": "Hub → Day in Review → My Tasks → + Add New.",
+    "how": [
+      "On the Hub dashboard, click + Add New next to My Tasks.",
+      "Pick the project and type the task; add a due date if it has one.",
+      "Optionally tag a teammate from the Unbridled roster — the task will appear on their list too, noted as tagged by you.",
+      "Click Add Task; it shows up in your My Tasks immediately."
+    ],
+    "screenshot": "task-add-tag.png"
+  },
+  {
+    "title": "Editor PTO / OOO conflict flags on the edit timeline",
+    "what": "AvocadoPost now cross-checks every timeline date against the lead editor's PTO and OOO requests from Team Management. Any milestone that lands on a day the editor is out gets a red (!) flag beside the assignee dropdown — click it for the specifics: who is out, the request type, the date range, and whether it's approved or still pending.",
+    "where": "AvocadoPost → open an edit → Timeline view. Flags appear automatically on conflicting dates.",
+    "how": [
+      "Open an edit and switch to the Timeline view.",
+      "Look for a red (!) beside a milestone's editor dropdown — that date overlaps the lead editor's PTO/OOO.",
+      "Click the flag for the details: request type, dates, and approval status.",
+      "Adjust the milestone date or reassign the task, and the flag clears itself."
+    ],
+    "screenshot": "pto-conflict.png"
+  },
+  {
+    "title": "Daily personal greeting on the Hub",
+    "what": "The plain username is gone — the Hub now greets you with one fun, personal line each day, written fresh from what the platform knows: upcoming travel gigs, PTO countdowns, your MediaMoment answer, your home office, and the day of the week.",
+    "where": "Hub — centered under the Unbridled Media logo.",
+    "how": [
+      "Open the Hub.",
+      "Read your line — it changes every day and gets more personal as the platform learns about you.",
+      "Travel this week or PTO coming up? Expect to get roasted lovingly."
+    ],
+    "screenshot": "hub-greeting.png"
+  },
+  {
+    "title": "MediaMoment — weekly questions & the daily blob",
+    "what": "Team fun facts, institutionalized. The first time you open the Hub each week you get your own question (from a 100-question pool — food, movies, childhood, college, chaos). Each day, one teammate's answer takes over the Team Today card as an animated orange blob, with a faint photo or emoji of whatever their answer is about.",
+    "where": "Hub — the question pops up on your first visit of the week; the blob appears over Team Today once per day.",
+    "how": [
+      "Answer your weekly question when it pops up (or hit \"Maybe next week\").",
+      "Enjoy the day's MediaMoment on the Team Today card.",
+      "Click the ✕ to dismiss it — it stays gone until tomorrow."
+    ],
+    "screenshot": "mediamoment.png"
+  },
+  {
+    "title": "Automations dashboard (Admin)",
+    "what": "Every email automation on the platform in one place: where each one sends from, who it goes to, and a live preview of what the email looks like. From/To/Cc are editable where fixed lists apply; dynamic recipients (like \"the contractor being hired\") are described.",
+    "where": "Hub → ⚙ Admin → Automations (Admin only).",
+    "how": [
+      "At the bottom of the Hub, click <b>⚙ Admin ▸</b>, then <b>Automations</b>.",
+      "Edit any From address (or To/Cc where shown) and hit Save.",
+      "Click Preview on any row to see the exact email design."
+    ],
+    "screenshot": "automations-dashboard.png"
+  },
+  {
+    "title": "Branded email design across every notification",
+    "what": "Every automated email now shares one design: dark Unbridled Media header, colored hero, labeled detail rows, action buttons, quick-copy link boxes, and a postmark timestamp. This covers invoices, gear requests, calendar holds, contracts, PTO, crew questions, password resets, and the new AvocadoPost RFR (to the PM, with the review link) and Sent (to the editor) notifications.",
+    "where": "Everywhere email goes — preview any of them from the Automations dashboard.",
+    "how": [
+      "No action needed — every automation sends the branded design once Outlook is connected.",
+      "In Avo, RFR emails the PM that a version is ready (with a quick-copy review link); Sent emails the editor that it went out."
+    ],
+    "screenshot": "email-design.png"
+  },
+  {
+    "title": "Harbinger — designed report & full review before submit",
+    "what": "The Harbinger email is now a designed HTML report from info@unbridledmedia.com (recipients editable in Automations), and submitting one shows the entire Harbinger for a final read first — with the AI-drafted Budget Brief editable right in the review.",
+    "where": "ProFi — Submit Harbinger on any RFP budget.",
+    "how": [
+      "Fill the Harbinger form (the ✨ Budget Brief button drafts the SOW from the budget).",
+      "Click \"Submit Harbinger & Go Live\" — the full review pops out.",
+      "Edit or regenerate the brief in place, then \"Looks good — Submit\"."
+    ],
+    "screenshot": "harbinger-review.png"
+  },
+  {
+    "title": "Budget client contact & Est. Final Delivery",
+    "what": "Each budget header now carries a Client Contact (name shows in ProFi; email and address ride along into the Harbinger) and an Est. Final Delivery date. The contact name search autofills from everyone we've used before — client roster, past budgets, and past Harbingers.",
+    "where": "ProFi — the budget header row.",
+    "how": [
+      "Click \"+ Add Client Contact\" in the budget header.",
+      "Start typing a name — pick a past contact to autofill email and address.",
+      "Set Est. Final Delivery next to it; both prefill the Harbinger."
+    ],
+    "screenshot": "budget-client-contact.png"
+  },
+  {
+    "title": "Unbridled Solutions toggle",
+    "what": "Solutions-specific fields now hide until you need them. A toggle in the budget header (off by default) reveals the Solutions Code field in the budget and the Solutions Code + Solutions Commission fields in the Harbinger.",
+    "where": "ProFi — budget header, left of Submit Harbinger.",
+    "how": [
+      "Click \"Unbridled Solutions\" to toggle it on (it turns blue with a check).",
+      "The Solutions Code field appears in the header; the Harbinger gains its Solutions fields.",
+      "Toggle off to hide them all again — saved per budget."
+    ],
+    "screenshot": "solutions-toggle.png"
+  },
+  {
+    "title": "Client Budget — pick Line Items or Buckets on send",
+    "what": "The standing Line Items/Buckets toggle is gone from the budget header. Clicking Client Budget now asks how the client should see it — full line-by-line detail or rolled-up section totals — then opens the shared page.",
+    "where": "ProFi — the Client Budget button on any budget.",
+    "how": [
+      "Click Client Budget.",
+      "Pick Line Items or Buckets (your last choice is highlighted).",
+      "The client page opens in a new tab with that view."
+    ],
+    "screenshot": "client-budget-popout.png"
+  },
+  {
+    "title": "Contractor email — full SOW, autofilled, reviewed before sending",
+    "what": "Send Contract now opens a review of the complete contractor email — project code, position, travel locations, dates & day rate, quoted total, travel expense allowance and per diem (both pulled from the budget's travel section, reimbursable with receipts), invoice-to (a dropdown of Unbridled employees, defaulting to you), scope of work, and a new-vendor packet note — all editable before it sends from info@unbridledmedia.com with the signing link.",
+    "where": "FreePro — Crew tab, Send Contract on any contract crew slot.",
+    "how": [
+      "Open the crew slot and click Send Contract.",
+      "Review the autofilled email — tweak travel allowance, per diem, or anything else.",
+      "Check \"New vendor\" if they need a vendor packet, then \"Send from info@unbridledmedia.com\"."
+    ],
+    "screenshot": "contract-review.png"
+  },
+  {
+    "title": "Ways of Being — weekly shoutouts",
+    "what": "Culture, built in. Every week two people are chosen to give a quick Ways of Being for a teammate going above and beyond — and that prompt can't be skipped. The shoutout lands on the recipient's hub as a gold banner, joins the daily MediaMoment rotation, and every one is archived in an Admin-only report.",
+    "where": "Hub — the prompt appears for the two chosen people each week; recipients see their banner under the daily greeting. Admins: Reports → Ways of Being.",
+    "how": [
+      "If you're chosen, the Ways of Being prompt replaces your weekly question — pick the teammate and write the shoutout (it returns every visit until you do).",
+      "The recipient sees a gold \"Someone noticed\" banner on their hub for 30 days.",
+      "Watch for shoutouts in the daily MediaMoment blob; Admins can browse the full archive from Reports."
+    ],
+    "screenshot": "ways-of-being.png"
+  },
+  {
+    "title": "Client Deposits — multiple deposits per project",
+    "what": "The VCC deposits tile is now simply Deposit and Final Invoice, with a + Add Deposit button for as many additional deposits as a project needs. Each row carries its amount, sent date, and a ✉ Send Invoice button, and the closing guard checks that every deposit plus the final invoice equals the total budget before a project can close.",
+    "where": "ProFi — any project, VCC tab, the Client Deposits tile.",
+    "how": [
+      "Open the VCC tab and find Client Deposits (top right).",
+      "Click + Add Deposit for each extra deposit; enter the amount.",
+      "Use ✉ Send Invoice on any row to date it and email the client summary; remove an extra deposit with its ✕."
+    ],
+    "screenshot": "client-deposits.png"
+  },
+  {
+    "title": "Client Invoice Report",
+    "what": "Every live and closed project's client invoicing in one report: first invoice, extra deposits, and final invoice with sent/unsent status, total budget, and close month — grouped by close month, filtered by year (defaults to the current one). Live projects sit above closed within each month; fully-invoiced closed months collapse to the top, and any project still open or missing a final invoice stays expanded. Every tile clicks through to that project's ProFi page.",
+    "where": "Reports → Client Invoice Report.",
+    "how": [
+      "Open Reports from the hub pill and pick Client Invoice Report.",
+      "Pick the year — months list newest first with Live above Closed.",
+      "Click any project row to jump straight into its ProFi page."
+    ],
+    "screenshot": "client-invoice-report.png"
+  },
+  {
+    "title": "Simplified Hub navigation",
+    "what": "The hub trimmed down to one pill: View ▾ (pick Project View or Operations View from a dropdown), Calendar (the crew calendar), and Reports — with Start New Project standing alone. The Unbridled Media logo leads the page with your daily greeting under it, and the admin tools (User Management + Automations) fold into a single ⚙ Admin button above Sign out.",
+    "where": "The Hub — front and center.",
+    "how": [
+      "Click View ▾ to switch between Project View and Operations View.",
+      "Calendar and Reports are one tap away on the same pill.",
+      "Admins: the ⚙ Admin button at the bottom unfolds User Management and Automations."
+    ],
+    "screenshot": "hub-simplified.png"
+  },
+  {
+    "title": "Budget Versions — duplicate and keep editing",
+    "what": "Snapshot a budget before making big changes. Start New Version freezes the entire current budget — every section, line, and header field — as a read-only version, and you keep editing the live budget as the next version number. Old versions stay one click away with their date and total, and never feed the pipeline, reports, or Harbinger.",
+    "where": "ProFi — the V# dropdown to the right of the Budget/VCC toggle on any project budget.",
+    "how": [
+      "Open a project budget and click the <b>V1 ▾</b> pill next to the Budget/VCC toggle.",
+      "Click <b>+ Start New Version</b> and confirm — the current budget is saved as a read-only snapshot.",
+      "Keep editing as normal; the pill now reads the new version number.",
+      "Reopen the dropdown any time to view a past version — sections, lines, and totals, read-only."
+    ],
+    "screenshot": "budget-versions.png"
+  },
+  {
+    "title": "Finance dock — Harbinger, Budget & VCC at the bottom right",
+    "what": "Finance navigation moved into a liquid-glass dock pinned to the bottom right: Harbinger (submit before, view after — one button, both jobs), Budget, and VCC, with a sliding highlight and labels that tuck away as you scroll. Inside Project View the workspace nav collapses to a ≡ pill at the bottom left on the Finance tab; tapping ≡ swaps the two docks so both navigations share the same corner without crowding.",
+    "where": "ProFi — any project budget, bottom right. In Project View → Project Finance, the ≡ pill sits bottom left.",
+    "how": [
+      "Open a project budget — the dock sits at the bottom right with <b>Harbinger · Budget · VCC</b>.",
+      "Tap <b>Budget</b> or <b>VCC</b> to switch tabs; the highlight slides across.",
+      "Tap <b>Harbinger</b> to submit one (or view it once submitted).",
+      "In Project View, tap the <b>≡</b> pill (bottom left) to swap in the Overview/Finance/Pre-Pro/Post-Pro nav — tap ≡ again to swap back."
+    ],
+    "screenshot": "finance-dock.png"
+  },
+  {
+    "title": "Producer Checklist — assign tasks to teammates",
+    "what": "Checklist items can now be handed off. A small person icon sits between each checkbox and task — tap it to pick an Unbridled Media employee and a due date, and a real project task is created that lands on their Hub My Tasks tile with a due badge. Assigned items show who owns them and when it's due, and reopening the icon reassigns the same task instead of duplicating. Open checklists also stay open per project now, even after navigating to other tabs.",
+    "where": "FreePro — any shoot → Logistics → Producer Checklist. The person icon on every checklist row.",
+    "how": [
+      "Open a shoot → <b>Logistics → Producer Checklist</b> and open a playbook.",
+      "Tap the grey <b>person icon</b> next to any task.",
+      "Pick the Unbridled employee and a due date, then hit <b>Assign</b>.",
+      "The row shows \"→ Name · due date\" and the task appears on their Hub to-do list."
+    ],
+    "screenshot": "checklist-assign.png"
+  },
+  {
+    "title": "TBD shoot dates",
+    "what": "Shoots in the budgeting phase no longer need placeholder dates. New projects created from a budget start with no dates at all — headers read 'Dates TBD', nothing lands on the crew calendar until real dates exist, and Edit Shoot Info can set (or clear) dates any time.",
+    "where": "Everywhere dates show — new budgets default to TBD; FreePro → Edit Shoot Info to set or clear.",
+    "how": [
+      "Create a project from ProFi — no dates are stamped.",
+      "Headers and tiles show \"Dates TBD\" until you set them.",
+      "Set real dates from Edit Shoot Info when the shoot firms up; the calendar picks them up then."
+    ],
+    "screenshot": "tbd-dates.png"
+  },
+  {
+    "title": "Team Management dock + My View",
+    "what": "Team Management's Roster / OOO Request / OOO Pipeline tabs moved into the bottom-center liquid-glass dock with the sliding highlight. The OOO Pipeline also gained a My View toggle that filters every group down to requests where you're the assignee or the supervisor.",
+    "where": "Team Management — the dock at the bottom center; My View at the top right of the OOO Pipeline.",
+    "how": [
+      "Open Team Management and use the bottom dock to switch pages.",
+      "On OOO Pipeline, tap My View to see only your requests (as requester or approving supervisor).",
+      "Tap again for the full pipeline."
+    ],
+    "screenshot": "team-dock.png"
+  },
+  {
+    "title": "Asset Management — the gear database",
+    "what": "A company-wide equipment database inside Gear Management, seeded with all 1,135 assets from the asset spreadsheet. Search by name, tag, serial, category, location, or person; filter by category chips; open any asset for full detail (purchase info, depreciation fields, site) with edit/delete and + New Asset.",
+    "where": "FreePro → Gear Management → the Asset Management button (top right).",
+    "how": [
+      "Open Gear Management and hit Asset Management.",
+      "Search or tap a category chip to browse.",
+      "Click an asset for details, Edit, or Delete; + New Asset adds one."
+    ],
+    "screenshot": "asset-db.png"
+  },
+  {
+    "title": "Gear Report — every shoot for the Gear Manager",
+    "what": "A Reports tile showing every shoot reporting into FreePro, ordered by start date. Shoots without a gear request are greyed out; requested shoots show the submission date, who requested, a green (!) when gear still needs a source, the four gear sources (Internal / Online Rental / Rental House / Contractors), and a print icon that produces a check-out list of the internal gear grouped by St. Louis / Denver. Rows click through to the shoot's Gear Request tab.",
+    "where": "Reports → Gear Report.",
+    "how": [
+      "Open Reports → Gear Report.",
+      "Grey rows = no gear request yet; the green (!) = unassigned gear.",
+      "Hit the printer icon on Internal Gear for the check-out PDF.",
+      "Click any row to jump to that shoot’s Gear Request."
+    ],
+    "screenshot": "gear-report.png"
+  },
+  {
+    "title": "Gear Request — six departments from live inventory",
+    "what": "The request form's gear questions became six departments: Camera, Grip, Electric, Audio, Media Management, Editing. Each opens an inventory window of real equipment models from the asset database (duplicates like six C70s combine into one line with availability counts) with quantity steppers and a custom-item row. Everything picked flows straight into the shoot's Gear List.",
+    "where": "FreePro → any shoot → Gear → Gear Request, question 7.",
+    "how": [
+      "Open the Gear Request and hit + Add Gear on a department.",
+      "Search the inventory, tap + to set quantities (availability shows under each model).",
+      "Type anything not in the inventory into the custom row.",
+      "Submit — the items land on the Gear List, and Mason gets an \"Assign gear to sources\" Hub task."
+    ],
+    "screenshot": "gear-departments.png"
+  },
+  {
+    "title": "Gear List — drag & drop sourcing board",
+    "what": "The Gear List's By Source view is now a sourcing board: the category list slides into a left column and you drag each piece into its source on the right — Internal (split into St. Louis and Denver lanes), Rental House, Online Rental, or a lane per contractor from the crew list. Multi-quantity items can split: drag the whole card, or open ▾ split and drag single units to different sources. When everything is sourced, Mason's assignment task checks itself off.",
+    "where": "FreePro → shoot → Gear → Gear List → the By Source toggle.",
+    "how": [
+      "Switch the Gear List to By Source.",
+      "Drag items from the left column into Internal STL/DEN, rentals, or a contractor lane.",
+      "Use ▾ split on multi-qty items to source units separately.",
+      "✕ on any chip sends it back to Unassigned."
+    ],
+    "screenshot": "gear-sources.png"
+  }
+]

@@ -1137,6 +1137,19 @@ async function migrate() {
       sort INT DEFAULT 0,
       created_at TIMESTAMPTZ DEFAULT NOW()
     )`;
+  // Creative assets dropped on a project page (photos, motion gfx…), taggable to a video
+  await sql`
+    CREATE TABLE IF NOT EXISTS avo_assets (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      page_id TEXT NOT NULL REFERENCES avo_project_pages(id) ON DELETE CASCADE,
+      filename TEXT NOT NULL,
+      mime TEXT,
+      size INT,
+      data BYTEA,
+      edit_id TEXT REFERENCES edits(id) ON DELETE SET NULL,
+      uploaded_by TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`;
   // Video-tracker columns on edits (Type / Style / Notes / Video Assets)
   await sql`ALTER TABLE edits ADD COLUMN IF NOT EXISTS tracker_type TEXT`;
   await sql`ALTER TABLE edits ADD COLUMN IF NOT EXISTS style TEXT`;

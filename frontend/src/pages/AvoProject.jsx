@@ -739,7 +739,116 @@ function CustomTable({ table, onChange, onDelete }) {
   );
 }
 
-const TABS = [['tracker', 'Project Video Tracker'], ['todos', 'To-Do List'], ['music', 'Music Options'], ['lower-thirds', 'Lower Thirds']];
+// ── Creative assets: drop photos / motion gfx on the page, tag them to a video ──
+function CreativeAssets({ pageId, assets, setAssets, edits }) {
+  const fileRef = React.useRef(null);
+  const [busy, setBusy] = useState(0);          // uploads in flight
+  const [dragging, setDragging] = useState(false);
+  const dragDepth = React.useRef(0);
+  const [tagTo, setTagTo] = useState('');       // pre-tag new uploads to this video
+
+  function uploadOne(file) {
+    if (!file) return;
+    if (file.size > 20 * 1024 * 1024) return alert(`${file.name}: file too large (20MB max)`);
+    const reader = new FileReader();
+    reader.onload = async () => {
+      setBusy(n => n + 1);
+      try {
+        const a = await api.uploadAvoAsset(pageId, { filename: file.name, mime: file.type, fileBase64: String(reader.result).split(',')[1], editId: tagTo || null });
+        setAssets(as => [a, ...as]);
+      } catch (e) { alert(e.message); }
+      setBusy(n => n - 1);
+    };
+    reader.readAsDataURL(file);
+  }
+  function onDrop(ev) {
+    ev.preventDefault();
+    dragDepth.current = 0;
+    setDragging(false);
+    Array.from(ev.dataTransfer?.files || []).forEach(uploadOne);
+  }
+  async function retag(a, editId) {
+    try {
+      const next = await api.updateAvoAsset(a.id, { editId: editId || null });
+      setAssets(as => as.map(x => x.id === a.id ? next : x));
+    } catch (e) { alert(e.message); }
+  }
+  async function remove(a) {
+    if (!confirm(`Delete ${a.filename}?`)) return;
+    try { await api.deleteAvoAsset(a.id); setAssets(as => as.filter(x => x.id !== a.id)); }
+    catch (e) { alert(e.message); }
+  }
+  async function download(a) {
+    try {
+      const r = await fetch(`/api/avo/assets/${a.id}/file`, { headers: { Authorization: `Bearer ${localStorage.getItem('fp_token')}` } });
+      if (!r.ok) throw new Error('Download failed');
+      const blob = await r.blob();
+      const el = document.createElement('a');
+      el.href = URL.createObjectURL(blob);
+      el.download = a.filename;
+      el.click();
+      URL.revokeObjectURL(el.href);
+    } catch (e) { alert(e.message); }
+  }
+  const fmtSize = n => n > 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB';
+  const iconFor = m => (m || '').startsWith('image/') ? '🖼' : (m || '').startsWith('video/') ? '🎞' : (m || '').startsWith('audio/') ? '🎵' : '📄';
+  const titleOf = eid => edits.find(e => e.id === eid)?.title;
+
+  return (
+    <div
+      onDragEnter={e => { e.preventDefault(); dragDepth.current += 1; setDragging(true); }}
+      onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; }}
+      onDragLeave={e => { e.preventDefault(); dragDepth.current -= 1; if (dragDepth.current <= 0) { dragDepth.current = 0; setDragging(false); } }}
+      onDrop={onDrop}
+      style={{ position:'relative', border: dragging ? `1px dashed ${AVO}` : '1px solid var(--border)', borderRadius:10, background:'var(--bg2)', padding:'12px 16px 16px', minHeight:220 }}>
+      {dragging && (
+        <div style={{ position:'absolute', inset:0, zIndex:5, background:`${AVO}14`, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none', borderRadius:10 }}>
+          <div style={{ fontSize:13, fontWeight:800, color:AVO, background:'var(--bg2)', border:`1px dashed ${AVO}`, borderRadius:10, padding:'12px 22px' }}>Drop to upload creative assets…</div>
+        </div>
+      )}
+      <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap', marginBottom:10 }}>
+        <div style={{ fontSize:12, fontWeight:800 }}>Creative Assets{assets.length ? ` (${assets.length})` : ''}</div>
+        <div style={{ flex:1 }} />
+        <label style={{ fontSize:10, color:'var(--muted)', fontWeight:700 }}>Tag new uploads to:</label>
+        <select value={tagTo} onChange={e => setTagTo(e.target.value)}
+          style={{ fontSize:11, padding:'4px 8px', borderRadius:8, background:'var(--bg)', border:'1px solid var(--border)', color:'var(--text)', maxWidth:220 }}>
+          <option value="">— no video —</option>
+          {edits.map(e => <option key={e.id} value={e.id}>{e.title}</option>)}
+        </select>
+        <button className="btn btn-ghost btn-sm" disabled={busy > 0} onClick={() => fileRef.current?.click()}>{busy > 0 ? 'Uploading…' : '+ Upload Asset'}</button>
+        <input ref={fileRef} type="file" multiple style={{ display:'none' }}
+          onChange={ev => { Array.from(ev.target.files || []).forEach(uploadOne); ev.target.value = ''; }} />
+      </div>
+      {assets.length === 0 && (
+        <div style={{ fontSize:12, color:'var(--muted)', fontStyle:'italic', padding:'30px 0', textAlign:'center' }}>
+          No creative assets yet — drag photos, motion graphics, or any files anywhere onto this panel (or use + Upload Asset).
+        </div>
+      )}
+      {assets.map(a => (
+        <div key={a.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 0', borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
+          <span style={{ fontSize:16 }}>{iconFor(a.mime)}</span>
+          <div style={{ flex:1, minWidth:0 }}>
+            <div onClick={() => download(a)} style={{ fontSize:12, fontWeight:700, color:'#4a9eff', cursor:'pointer', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{a.filename}</div>
+            <div style={{ fontSize:10, color:'var(--muted)' }}>{fmtSize(a.size)} · {a.uploaded_by || 'unknown'} · {new Date(a.created_at).toLocaleDateString()}</div>
+          </div>
+          <select value={a.edit_id || ''} onChange={e => retag(a, e.target.value)}
+            title="Tag this asset to a video — a note lands in that video's activity"
+            style={{ fontSize:11, padding:'4px 8px', borderRadius:12, maxWidth:200,
+              background: a.edit_id ? `${AVO}22` : 'var(--bg)', border:`1px solid ${a.edit_id ? AVO : 'var(--border)'}`, color: a.edit_id ? AVO : 'var(--muted)', fontWeight:700 }}>
+            <option value="">— untagged —</option>
+            {a.edit_id && !titleOf(a.edit_id) && <option value={a.edit_id}>(video removed)</option>}
+            {edits.map(e => <option key={e.id} value={e.id}>{e.title}</option>)}
+          </select>
+          <button className="btn btn-ghost btn-sm" onClick={() => download(a)}>⬇</button>
+          <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text, #e05252)' }} onClick={() => remove(a)}>✕</button>
+        </div>
+      ))}
+      {assets.length > 0 && <div style={{ fontSize:10, color:'var(--muted)', padding:'8px 0 0', textAlign:'center' }}>Tip: drag & drop files anywhere on this panel to upload. Tagging an asset to a video logs it in that video's activity.</div>}
+    </div>
+  );
+}
+
+const TABS = [['tracker', 'Project Video Tracker'], ['assets', 'Creative Assets'], ['todos', 'To-Do List'], ['music', 'Music Options'], ['lower-thirds', 'Lower Thirds']];
 
 export default function AvoProject({ idOverride, embedded }) {
   const { id: idParam } = useParams();
@@ -751,12 +860,13 @@ export default function AvoProject({ idOverride, embedded }) {
   const [todos, setTodos] = useState([]);
   const [music, setMusic] = useState([]);
   const [tables, setTables] = useState([]);
+  const [assets, setAssets] = useState([]);
   const [tab, setTab] = useState('tracker');
   const [err, setErr] = useState('');
 
   useEffect(() => {
     api.avoProject(id)
-      .then(p => { setPage(p); setEdits(p.edits || []); setLowerThirds(p.lowerThirds || []); setTodos(p.todos || []); setMusic(p.music || []); setTables(p.customTables || []); })
+      .then(p => { setPage(p); setEdits(p.edits || []); setLowerThirds(p.lowerThirds || []); setTodos(p.todos || []); setMusic(p.music || []); setTables(p.customTables || []); setAssets(p.assets || []); })
       .catch(e => setErr(e.message));
   }, [id]);
 
@@ -851,6 +961,7 @@ export default function AvoProject({ idOverride, embedded }) {
             </div>
 
             {tab === 'tracker' && <VideoTracker edits={edits} setEdits={setEdits} code={page.code} config={cfgFor('tracker')} onConfig={saveCfg('tracker')} />}
+            {tab === 'assets' && <CreativeAssets pageId={id} assets={assets} setAssets={setAssets} edits={edits} />}
             {tab === 'todos' && (
               <Grid kind="todos" pageId={id} doneKey="done" rows={todos} setRows={setTodos} renderCell={todoCell}
                 config={cfgFor('todos')} onConfig={saveCfg('todos')}
