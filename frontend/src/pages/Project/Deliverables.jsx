@@ -11,7 +11,7 @@ const STATUS_DOT = { WAITING_ON_ASSETS:'wait', IN_PROGRESS:'prog', ROUGH_CUT:'pr
 const TYPE_GROUPS = [['Pre-Event', '#4a9eff'], ['On-Site', '#e6c229'], ['Post-Event', '#9DC183'], ['Standard Edit', '#a78bfa']];
 const LEGACY_TYPE = { PRE_PRODUCED:'Pre-Event', ON_SITE:'On-Site', POST_SHOOT:'Post-Event' };
 const typeOf = item => item.tracker_type || LEGACY_TYPE[item.category] || item.category || null;
-const AVO_CATEGORIES = ['Event Recap', 'Opener', 'Sizzle', 'Interstitial', 'Documentary', 'Teaser', 'Social Cutdown', 'Photo Slideshow', 'Other'];
+const AVO_CATEGORIES = ['Brand Video', 'Event Recap', 'Opener', 'Sizzle', 'Interstitial', 'Documentary', 'Teaser', 'Social Cutdown', 'Photo Slideshow', 'Other'];
 export const BLANK_DELIVERABLE_FORM = { title:'', description:'', status:'COMING_SOON', trackerType:'', category:'', leadEditorId:'', pmId:'', aspectRatio:'', resolution:'', assetRef:'', musicRef:'', startDate:'', endDate:'', reviewLink:'', costEstimate:'' };
 
 // Same fields as the AvocadoPost edit form — one form for add and edit
@@ -56,10 +56,16 @@ export function AvoForm({ title, form, setForm, onSubmit, onCancel, saving, edit
               </select>
             </div>
             <div className="field"><label>Category</label>
-              <select value={form.category || ''} onChange={e => setForm(f=>({...f,category:e.target.value}))}>
+              <select value={form.category || ''} onChange={e => {
+                if (e.target.value === '__add__') {
+                  const c = prompt('New category name:');
+                  if (c && c.trim()) setForm(f => ({ ...f, category: c.trim() }));
+                } else setForm(f => ({ ...f, category: e.target.value }));
+              }}>
                 <option value="">—</option>
                 {form.category && !AVO_CATEGORIES.includes(form.category) && <option value={form.category}>{form.category}</option>}
                 {AVO_CATEGORIES.map(c => <option key={c}>{c}</option>)}
+                <option value="__add__">+ Add category…</option>
               </select>
             </div>
             <div className="field"><label>Lead Editor</label><EditorSelect value={form.leadEditorId} onChange={v => setForm(f=>({...f,leadEditorId:v}))} /></div>

@@ -11,7 +11,7 @@ const KIND_STYLE = {
   rfr: { border:'1px solid rgba(230,194,41,0.5)', background:'rgba(230,194,41,0.06)' },
   sent: { border:'1px solid rgba(74,158,255,0.5)', background:'rgba(74,158,255,0.06)' },
 };
-const CATEGORIES = ['Event Recap', 'Opener', 'Sizzle', 'Interstitial', 'Documentary', 'Teaser', 'Social Cutdown', 'Photo Slideshow', 'Other'];
+const CATEGORIES = ['Brand Video', 'Event Recap', 'Opener', 'Sizzle', 'Interstitial', 'Documentary', 'Teaser', 'Social Cutdown', 'Photo Slideshow', 'Other'];
 
 // Milestones that are the lead editor's deliverables — tagged with their name
 // and fed to the Crew Calendar
@@ -638,10 +638,16 @@ export default function AvoEdit() {
                 <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
                   <div style={{ flex:1, minWidth:150 }}>
                     <span style={lbl}>Category</span>
-                    <select value={e.category || ''} onChange={ev => { patch({ category: ev.target.value }); save({ category: ev.target.value }); }}>
+                    <select value={e.category || ''} onChange={ev => {
+                      if (ev.target.value === '__add__') {
+                        const c = prompt('New category name:');
+                        if (c && c.trim()) { patch({ category: c.trim() }); save({ category: c.trim() }); }
+                      } else { patch({ category: ev.target.value }); save({ category: ev.target.value }); }
+                    }}>
                       <option value="">—</option>
                       {e.category && !CATEGORIES.includes(e.category) && <option value={e.category}>{e.category}</option>}
                       {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+                      <option value="__add__">+ Add category…</option>
                     </select>
                   </div>
                   {field('Drive', 'drive', 'drive')}
