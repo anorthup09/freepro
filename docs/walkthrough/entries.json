@@ -1,1 +1,17 @@
-[]
+[
+  {
+    "title": "Add Invoice \u2014 request form with saved contacts",
+    "page": "ProFi \u2014 Project Finance",
+    "what": "The VCC's Add Deposit button is now Add Invoice: a full request form (deposit #, amount, send-to, CC, 35-character description) that emails the details to billing@unbridledmedia.com and records the request. Send To autofills from every client contact the platform has ever seen, and new name/email pairs are saved automatically for future invoices. Who to CC is a contact search with an + Add New option \u2014 each address becomes a removable pill. The billing email is a configurable automation (Invoice Request to Billing) in the admin Automations dashboard.",
+    "where": "ProFi \u2192 open a project \u2192 VCC \u2192 Client Deposits \u2192 + Add Invoice",
+    "how": [
+      "Open the project's VCC tab and click + Add Invoice in the Client Deposits tile.",
+      "Fill Deposit # and Amount.",
+      "Start typing in Send To \u2014 Name: pick a contact to autofill their email, or type a new name and email (saved for next time).",
+      "In Who to CC, search contacts and click to add, or type a new email and hit + Add New \u2014 addresses stack as pills with \u2715 to remove.",
+      "Add the invoice description (35 characters max) and submit \u2014 billing@unbridledmedia.com gets the request email and the deposit line appears with the invoice number clickable to review.",
+      "Track every request in Reports \u2192 Client Invoice Report \u2192 Requests view."
+    ],
+    "screenshot": "add-invoice.png"
+  }
+]

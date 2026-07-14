@@ -452,8 +452,11 @@ router.post('/finance/budget/:bid/invoice-request', ...finance, async (req, res,
     const who = req.user?.name || req.user?.email || 'Unknown';
     const fmt = n => '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const sendTo = [sendToName, sendToEmail].filter(Boolean).join(' — ');
+    const cfg = await automation('invoice-request').catch(() => null);
     await sendMail({ identity: 'accounting',
-      to: 'billing@unbridledmedia.com',
+      ...(cfg?.from ? { from: cfg.from } : {}),
+      to: cfg?.to || 'billing@unbridledmedia.com',
+      ...(cfg?.cc ? { cc: cfg.cc } : {}),
       subject: `Invoice Request — ${proj.code} ${proj.title} (Deposit ${number || '?'})`,
       text: who + ' requested a client invoice.\n\nProject: ' + proj.code + ' — ' + proj.title +
         '\nDeposit #: ' + (number || '') + '\nAmount: ' + fmt(amount) + '\nSend To: ' + sendTo +
