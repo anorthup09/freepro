@@ -67,27 +67,56 @@ function statusColor(status) {
 function CityField({ label, required, value, onPick, placeholder }) {
   const [q, setQ] = useState(value?.label || '');
   const [sugs, setSugs] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [noMatch, setNoMatch] = useState(false);
   const timer = useRef(null);
+  const lastSugs = useRef([]);
   useEffect(() => { setQ(value?.label || ''); }, [value]);
   function onChange(e) {
     const v = e.target.value;
     setQ(v);
     onPick(null);
+    setNoMatch(false);
     clearTimeout(timer.current);
-    if (v.trim().length < 2) { setSugs([]); return; }
+    if (v.trim().length < 2) { setSugs([]); lastSugs.current = []; return; }
+    setSearching(true);
     timer.current = setTimeout(async () => {
-      try { setSugs(await api.geoSearch(v)); } catch { setSugs([]); }
-    }, 350);
+      try {
+        const r = await api.geoSearch(v);
+        setSugs(r); lastSugs.current = r;
+        setNoMatch(r.length === 0);
+      } catch { setSugs([]); lastSugs.current = []; setNoMatch(true); }
+      setSearching(false);
+    }, 300);
+  }
+  // Leaving the field without picking: snap to the top live match so the
+  // saved value is always a real, mappable place.
+  function onBlur() {
+    setTimeout(() => {
+      setSugs([]);
+      if (!value && q.trim().length >= 2 && lastSugs.current.length) {
+        const top = lastSugs.current[0];
+        onPick({ label: top.label, latitude: top.latitude, longitude: top.longitude });
+        setNoMatch(false);
+      }
+    }, 150);
   }
   return (
     <div className="field" style={{ position:'relative' }}>
-      <label>{label} {required && <span style={{ color:'var(--red-text)' }}>*</span>}</label>
-      <input value={q} onChange={onChange} placeholder={placeholder || 'Start typing a city…'} autoComplete="off" required={required && !value} />
+      <label>{label} {required && <span style={{ color:'var(--red-text)' }}>*</span>}
+        {value && <span style={{ color:'#5ABF80', marginLeft:6, fontSize:10 }}>✓</span>}
+        {searching && <span style={{ color:'var(--muted)', marginLeft:6, fontSize:9 }}>searching…</span>}
+      </label>
+      <input value={q} onChange={onChange} onBlur={onBlur} placeholder={placeholder || 'Start typing a city…'} autoComplete="off" required={required && !value}
+        style={noMatch && !value ? { borderColor:'var(--red-text, #e05252)' } : undefined} />
+      {noMatch && !value && q.trim().length >= 2 && !searching && (
+        <div style={{ fontSize:10, color:'var(--red-text, #e05252)', marginTop:3 }}>No mappable city found — check the spelling and pick from the list.</div>
+      )}
       {sugs.length > 0 && (
         <div style={{ position:'absolute', top:'100%', left:0, right:0, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:6, zIndex:120, maxHeight:190, overflowY:'auto' }}>
           {sugs.map((sg, i) => (
             <div key={i} style={{ padding:'7px 12px', cursor:'pointer', borderBottom:'1px solid var(--border)', fontSize:12 }}
-              onMouseDown={() => { onPick({ label: sg.label, latitude: sg.latitude, longitude: sg.longitude }); setSugs([]); }}>
+              onMouseDown={() => { onPick({ label: sg.label, latitude: sg.latitude, longitude: sg.longitude }); setSugs([]); setNoMatch(false); }}>
               {sg.label}
             </div>
           ))}

@@ -76,12 +76,40 @@ router.get('/hotel-search', requireAuth, async (req, res, next) => {
   } catch(e) { next(e); }
 });
 
-// ─── City / ZIP search (Open-Meteo geocoding) ────────────────────────────────
+// ─── City / ZIP search ───────────────────────────────────────────────────────
+// Google Geocoding when GOOGLE_MAPS_API_KEY is set (guarantees a mappable
+// place), otherwise Open-Meteo geocoding. Both return the same shape.
 router.get('/geo-search', requireAuth, async (req, res, next) => {
   try {
     const { q } = req.query;
     if (!q || q.trim().length < 2) return res.json([]);
     const { getJson } = require('../lib/weather');
+    if (process.env.GOOGLE_MAPS_API_KEY) {
+      try {
+        const g = await getJson(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(q.trim())}&key=${process.env.GOOGLE_MAPS_API_KEY}`);
+        const CITYISH = ['locality', 'sublocality', 'postal_town', 'administrative_area_level_3', 'neighborhood'];
+        const list = (g.results || [])
+          .filter(r => (r.types || []).some(t => CITYISH.includes(t)))
+          .slice(0, 8)
+          .map(r => {
+            const comp = t => (r.address_components || []).find(c => (c.types || []).includes(t));
+            const city = comp('locality') || comp('postal_town') || comp('sublocality') || comp('administrative_area_level_3');
+            const state = comp('administrative_area_level_1');
+            const country = comp('country');
+            return {
+              name: city?.long_name || r.formatted_address,
+              admin1: state?.long_name || '',
+              country: country?.short_name || '',
+              latitude: r.geometry?.location?.lat,
+              longitude: r.geometry?.location?.lng,
+              label: [city?.long_name, state?.short_name || state?.long_name, country?.short_name === 'US' ? null : country?.short_name]
+                .filter(Boolean).join(', ') || r.formatted_address,
+            };
+          })
+          .filter(x => x.latitude != null);
+        if (list.length) return res.json(list);
+      } catch { /* fall through to Open-Meteo */ }
+    }
     const data = await getJson(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q.trim())}&count=8&language=en&format=json`);
     res.json((data.results || []).map(p => ({
       name: p.name,
