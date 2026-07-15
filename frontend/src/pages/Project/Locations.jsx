@@ -132,7 +132,7 @@ export default function Locations({ project, setProject }) {
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+      <div className="sched-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
         <div className="sec-lbl" style={{ marginBottom: 0, marginTop: 0, fontWeight: 700, fontSize: 12, color: 'var(--text)' }}>Locations</div>
         <button className="btn btn-ghost btn-sm" onClick={() => setShowLocModal(true)}>+ Add Location</button>
       </div>
