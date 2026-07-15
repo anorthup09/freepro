@@ -433,16 +433,6 @@ export default function Travel({ project }) {
       cost: carForm.cost || null,
     });
     setCars(prev => [...prev, c]);
-    // Feed the rental pickup spot into the Locations tab
-    if (carForm.pickupLocation) {
-      api.createLocation(project.id, {
-        name: `${carForm.vendor || 'Rental Car'} — Pickup`,
-        address: carForm.pickupAddress || carForm.pickupLocation,
-        type: 'OTHER', emoji: '🚗',
-        notes: carForm.dropoffLocation && carForm.dropoffLocation !== carForm.pickupLocation
-          ? `Dropoff: ${carForm.dropoffAddress || carForm.dropoffLocation}` : null,
-      }).catch(() => {});
-    }
     setShowCar(false);
     setCarForm({ crewMemberId:'', vendor:'', pickupLocation:'', pickupAddress:'', dropoffLocation:'', dropoffAddress:'', pickupDate:'', dropoffDate:'', confirmation:'', cost:'', notes:'' });
   }
