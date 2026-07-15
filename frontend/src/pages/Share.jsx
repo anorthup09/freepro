@@ -10,6 +10,28 @@ const isMobileNow = () => typeof window !== 'undefined' && window.matchMedia('(m
 
 // Travel-tagged schedule events are stripped from a local person's call sheet.
 const eventIsTravel = e => (e.tags || []).some(t => (t?.type || t) === 'TRAVEL');
+// Jump straight to what's happening now: the live event on today's schedule,
+// else one that started in the last hour, else the next one coming up
+function jumpToTime(schedule) {
+  const now = new Date();
+  const todayISO = now.toLocaleDateString('en-CA');
+  const nowMins = now.getHours() * 60 + now.getMinutes();
+  const today = (schedule || []).find(d => d.date && String(d.date).slice(0, 10) === todayISO);
+  if (!today) { alert('No schedule for today.'); return; }
+  const evs = (today.events || []).filter(e => timeToMins(e.start_time) < 1440)
+    .sort((a, b) => timeToMins(a.start_time) - timeToMins(b.start_time));
+  const target =
+    [...evs].reverse().find(e => {
+      const st = timeToMins(e.start_time);
+      const en = e.end_time ? timeToMins(e.end_time) : st + 60;
+      return nowMins >= st && nowMins < en;
+    })
+    || [...evs].reverse().find(e => nowMins >= timeToMins(e.start_time) && nowMins - timeToMins(e.start_time) <= 60)
+    || evs.find(e => timeToMins(e.start_time) >= nowMins);
+  if (!target) { alert('No events around the current time today.'); return; }
+  document.getElementById(`ev-${target.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
 const stripTravelEvents = schedule => (schedule || []).map(day => ({ ...day, events: (day.events || []).filter(e => !eventIsTravel(e)) }));
 
 function useNow() {
@@ -507,9 +529,15 @@ function ProducerView({ data, hideGear, onOpenShotList }) {
             </div>
           </div>
           {schedule?.length > 0 && (
-            <button onClick={() => scheduleRef.current?.scrollIntoView({ behavior:'smooth' })} style={{ flexShrink:0, marginTop:4, padding:'6px 14px', fontSize:12, fontWeight:600, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:6, color:'var(--text)', cursor:'pointer', whiteSpace:'nowrap' }}>
-              <span className='jump-sched-label'>Jump to Schedule ↓</span>
-            </button>
+            <div style={{ display:'flex', flexDirection:'column', gap:6, flexShrink:0, marginTop:4 }}>
+              <button onClick={() => scheduleRef.current?.scrollIntoView({ behavior:'smooth' })} style={{ padding:'6px 14px', fontSize:12, fontWeight:600, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:6, color:'var(--text)', cursor:'pointer', whiteSpace:'nowrap' }}>
+                <span className='jump-sched-label'>Jump to Schedule ↓</span>
+              </button>
+              <button onClick={() => jumpToTime(schedule)} title="Scroll to what's happening right now"
+                style={{ padding:'6px 14px', fontSize:12, fontWeight:600, background:'rgba(232,80,10,0.10)', border:'1px solid rgba(232,80,10,0.5)', borderRadius:6, color:'var(--orange)', cursor:'pointer', whiteSpace:'nowrap' }}>
+                <span className='jump-sched-label'>Jump to Time ◉</span>
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -741,9 +769,15 @@ function CrewView({ data, shareToken, hideGear, onOpenShotList }) {
             </div>
           </div>
           {schedule?.length > 0 && (
-            <button onClick={() => scheduleRef.current?.scrollIntoView({ behavior:'smooth' })} style={{ flexShrink:0, marginTop:4, padding:'6px 14px', fontSize:12, fontWeight:600, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:6, color:'var(--text)', cursor:'pointer', whiteSpace:'nowrap' }}>
-              <span className='jump-sched-label'>Jump to Schedule ↓</span>
-            </button>
+            <div style={{ display:'flex', flexDirection:'column', gap:6, flexShrink:0, marginTop:4 }}>
+              <button onClick={() => scheduleRef.current?.scrollIntoView({ behavior:'smooth' })} style={{ padding:'6px 14px', fontSize:12, fontWeight:600, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:6, color:'var(--text)', cursor:'pointer', whiteSpace:'nowrap' }}>
+                <span className='jump-sched-label'>Jump to Schedule ↓</span>
+              </button>
+              <button onClick={() => jumpToTime(schedule)} title="Scroll to what's happening right now"
+                style={{ padding:'6px 14px', fontSize:12, fontWeight:600, background:'rgba(232,80,10,0.10)', border:'1px solid rgba(232,80,10,0.5)', borderRadius:6, color:'var(--orange)', cursor:'pointer', whiteSpace:'nowrap' }}>
+                <span className='jump-sched-label'>Jump to Time ◉</span>
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -1538,14 +1572,30 @@ function ShotListShareView({ scenes: initialScenes, days: initialDays = [], brea
 // ── Client View ──────────────────────────────────────────────────────────────
 function ClientView({ data, onOpenShotList }) {
   const { project, locations, clientContacts, keyTalent, crewAssignments, schedule, shotList = [], slDays = [], slBreaks = [] } = data;
+  const scheduleRef = useRef(null);
   return (
     <div className="share-view" style={{ position:'relative' }}>
       <div className="share-header">
-        <div className="proj-code">{project.code}</div>
-        <div className="proj-title">{project.title}</div>
-        <div className="proj-meta" style={{ marginTop: 6 }}>
-          <span className="meta">{project.client}</span>
-          <span className="meta">{fmt(project.start_date)} – {fmt(project.end_date)}</span>
+        <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, flexWrap:'wrap' }}>
+          <div>
+            <div className="proj-code">{project.code}</div>
+            <div className="proj-title">{project.title}</div>
+            <div className="proj-meta" style={{ marginTop: 6 }}>
+              <span className="meta">{project.client}</span>
+              <span className="meta">{fmt(project.start_date)} – {fmt(project.end_date)}</span>
+            </div>
+          </div>
+          {schedule?.length > 0 && (
+            <div style={{ display:'flex', flexDirection:'column', gap:6, flexShrink:0, marginTop:4 }}>
+              <button onClick={() => scheduleRef.current?.scrollIntoView({ behavior:'smooth' })} style={{ padding:'6px 14px', fontSize:12, fontWeight:600, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:6, color:'var(--text)', cursor:'pointer', whiteSpace:'nowrap' }}>
+                <span className='jump-sched-label'>Jump to Schedule ↓</span>
+              </button>
+              <button onClick={() => jumpToTime(schedule)} title="Scroll to what's happening right now"
+                style={{ padding:'6px 14px', fontSize:12, fontWeight:600, background:'rgba(232,80,10,0.10)', border:'1px solid rgba(232,80,10,0.5)', borderRadius:6, color:'var(--orange)', cursor:'pointer', whiteSpace:'nowrap' }}>
+                <span className='jump-sched-label'>Jump to Time ◉</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
       {project.poc_name && (
@@ -1651,9 +1701,11 @@ function ClientView({ data, onOpenShotList }) {
           <ShareTable cols={['Name','Role','Phone','Email']} colClasses={['','','nowrap','']} rows={keyTalent.map(t => [t.name, t.role||'—', (t.phone ? <Tel v={t.phone} /> : '—'), (t.email ? <Mail v={t.email} /> : '—')])} />
         </section>
       )}
+      <div ref={scheduleRef}>
       {[...(schedule||[])].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map((day, i) => (
         <DaySection key={day.id} day={day} showCalls={false} dayIndex={i} cateringDetail="name" shotList={shotList} slDays={slDays} slBreaks={slBreaks} onOpenShotList={onOpenShotList} includePhoto={project.include_photo !== false} projectCity={[project.city, project.state].filter(Boolean).join(', ')} />
       ))}
+      </div>
     </div>
   );
 }
@@ -2366,7 +2418,7 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, talentC
                 const driveKey = prevAddr && thisAddr && prevAddr !== thisAddr ? `${prevAddr}||${thisAddr}` : null;
                 const driveTime = driveKey ? driveTimes[driveKey] : null;
                 return (
-                  <div key={item.id || i} className="ev">
+                  <div key={item.id || i} id={item.id ? `ev-${item.id}` : undefined} className="ev">
                     <div className="ev-time">{fmtTime(item.start_time)}{item.end_time ? ` – ${fmtTime(item.end_time)}` : ''}</div>
                     <div className={`ev-body${item.is_alert ? ' warn' : ''}${isLive(item.start_time, item.end_time) ? ' ev-live' : ''}`} style={!item.is_alert ? { borderLeft:'2px solid var(--orange)',  } : {}}>
                       <div style={{ display:'flex', gap:'4px 14px', justifyContent:'space-between', alignItems:'flex-start', flexWrap:'wrap' }}>
