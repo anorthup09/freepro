@@ -278,6 +278,7 @@ router.get('/:token', async (req, res, next) => {
         locations,
         clientContacts,
         keyTalent,
+        crewAssignments: mappedCrew,
         schedule: filteredDays,
         shotList: clientShotList,
         slDays: clientSlDays,

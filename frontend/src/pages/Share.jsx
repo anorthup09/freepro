@@ -538,6 +538,13 @@ function ProducerView({ data, hideGear, onOpenShotList }) {
         </section>
       )}
 
+      {crewAssignments?.length > 0 && (
+        <section className="share-section">
+          <div className="sec-lbl">Crew</div>
+          <ShareTable cols={['Name','Position','Start','End','Phone','Email','Dietary']} colClasses={['','','nowrap','nowrap','nowrap','','']} rows={crewAssignments.filter(a => a.crewMember).map(a => [displayName(a.crewMember)||'TBD', a.position.name, fmtAD(a.start_date), fmtAD(a.end_date), (a.crewMember?.phone ? <Tel v={a.crewMember.phone} /> : '—'), (a.crewMember?.email ? <Mail v={a.crewMember.email} /> : '—'), <DietaryCell key={a.id} value={a.crewMember?.dietaryRestrictions} />])} />
+        </section>
+      )}
+
       {(() => {
         const dayLogistics = (schedule||[]).filter(d => d.crew_lunch || d.gear_storage || d.gs_audio);
         if (!dayLogistics.length) return null;
@@ -637,13 +644,6 @@ function ProducerView({ data, hideGear, onOpenShotList }) {
         <section className="share-section">
           <div className="sec-lbl">Talent</div>
           <ShareTable cols={['Name','Role','Phone','Email','Dietary']} colClasses={['','','nowrap','','']} rows={keyTalent.map(t => [t.name, t.role||'—', (t.phone ? <Tel v={t.phone} /> : '—'), (t.email ? <Mail v={t.email} /> : '—'), t.dietary_restrictions && t.dietary_restrictions !== 'N/A' ? `⚠️ ${t.dietary_restrictions}` : '—'])} />
-        </section>
-      )}
-
-      {crewAssignments?.length > 0 && (
-        <section className="share-section">
-          <div className="sec-lbl">Crew</div>
-          <ShareTable cols={['Name','Position','Start','End','Phone','Email','Dietary']} colClasses={['','','nowrap','nowrap','nowrap','','']} rows={crewAssignments.filter(a => a.crewMember).map(a => [displayName(a.crewMember)||'TBD', a.position.name, fmtAD(a.start_date), fmtAD(a.end_date), (a.crewMember?.phone ? <Tel v={a.crewMember.phone} /> : '—'), (a.crewMember?.email ? <Mail v={a.crewMember.email} /> : '—'), <DietaryCell key={a.id} value={a.crewMember?.dietaryRestrictions} />])} />
         </section>
       )}
 
@@ -771,6 +771,13 @@ function CrewView({ data, shareToken, hideGear, onOpenShotList }) {
         </section>
       )}
 
+      {crewAssignments?.length > 0 && (
+        <section className="share-section">
+          <div className="sec-lbl">Crew</div>
+          <ShareTable cols={['Name','Position','Start','End','Phone','Email','Dietary']} colClasses={['','','nowrap','nowrap','nowrap','','']} rows={crewAssignments.filter(a => a.crewMember).map(a => [shortName(displayName(a.crewMember))||'TBD', a.position.name, fmtAD(a.start_date), fmtAD(a.end_date), (a.crewMember?.phone ? <Tel v={a.crewMember.phone} /> : '—'), (a.crewMember?.email ? <Mail v={a.crewMember.email} /> : '—'), <DietaryCell key={a.id} value={a.crewMember?.dietaryRestrictions} />])} />
+        </section>
+      )}
+
       {(() => {
         const dayLogistics = (sortedSchedule||[]).filter(d => d.crew_lunch || d.gear_storage || d.gs_audio);
         if (!dayLogistics.length) return null;
@@ -863,13 +870,6 @@ function CrewView({ data, shareToken, hideGear, onOpenShotList }) {
         <section className="share-section">
           <div className="sec-lbl">Talent</div>
           <ShareTable cols={['Name','Role','Phone','Email','Dietary']} colClasses={['','','nowrap','','']} rows={keyTalent.map(t => [t.name, t.role||'—', (t.phone ? <Tel v={t.phone} /> : '—'), (t.email ? <Mail v={t.email} /> : '—'), t.dietary_restrictions && t.dietary_restrictions !== 'N/A' ? `⚠️ ${t.dietary_restrictions}` : '—'])} />
-        </section>
-      )}
-
-      {crewAssignments?.length > 0 && (
-        <section className="share-section">
-          <div className="sec-lbl">Crew</div>
-          <ShareTable cols={['Name','Position','Start','End','Phone','Email','Dietary']} colClasses={['','','nowrap','nowrap','nowrap','','']} rows={crewAssignments.filter(a => a.crewMember).map(a => [shortName(displayName(a.crewMember))||'TBD', a.position.name, fmtAD(a.start_date), fmtAD(a.end_date), (a.crewMember?.phone ? <Tel v={a.crewMember.phone} /> : '—'), (a.crewMember?.email ? <Mail v={a.crewMember.email} /> : '—'), <DietaryCell key={a.id} value={a.crewMember?.dietaryRestrictions} />])} />
         </section>
       )}
 
@@ -1537,7 +1537,7 @@ function ShotListShareView({ scenes: initialScenes, days: initialDays = [], brea
 
 // ── Client View ──────────────────────────────────────────────────────────────
 function ClientView({ data, onOpenShotList }) {
-  const { project, locations, clientContacts, keyTalent, schedule, shotList = [], slDays = [], slBreaks = [] } = data;
+  const { project, locations, clientContacts, keyTalent, crewAssignments, schedule, shotList = [], slDays = [], slBreaks = [] } = data;
   return (
     <div className="share-view">
       <div className="share-header">
@@ -1557,6 +1557,12 @@ function ClientView({ data, onOpenShotList }) {
             {project.poc_phone && <div style={{ fontSize:12, color:'var(--tan)', marginTop:2 }}><Tel v={project.poc_phone} /></div>}
             {project.poc_email && <div style={{ fontSize:11, color:'var(--muted)' }}><Mail v={project.poc_email} /></div>}
           </div>
+        </section>
+      )}
+      {crewAssignments?.length > 0 && (
+        <section className="share-section">
+          <div className="sec-lbl">Crew</div>
+          <ShareTable cols={['Name','Position','Phone','Email']} colClasses={['','','nowrap','']} rows={crewAssignments.filter(a => a.crewMember).map(a => [shortName(displayName(a.crewMember))||'TBD', a.position.name, (a.crewMember?.phone ? <Tel v={a.crewMember.phone} /> : '—'), (a.crewMember?.email ? <Mail v={a.crewMember.email} /> : '—')])} />
         </section>
       )}
       {(() => {
