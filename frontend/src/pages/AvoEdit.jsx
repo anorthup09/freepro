@@ -391,16 +391,16 @@ function CustomMilestoneRow({ cm, gap, onDate, onAssign, onRemove }) {
       <span className="tl-ms-label" style={{ ...lbl, marginBottom:0, flex:1, color:AVO }}>
         ◆ {cm.label}
       </span>
-      <span title="Assign anyone on the roster — this milestone lands on their Hub checklist with this due date"
+      <span className="tl-ms-assignee" title="Assign anyone on the roster — this milestone lands on their Hub checklist with this due date"
         style={{ display:'inline-block', width:140, flexShrink:0 }}>
         <EditorSelect value={(cm.assignees || [])[0]?.id || ''} placeholder="— Assign person —"
           onChange={v => onAssign(v)} />
       </span>
-      <button type="button" onClick={onRemove} title="Remove this milestone (and its checklist tasks)"
+      <button type="button" className="tl-ms-skip" onClick={onRemove} title="Remove this milestone (and its checklist tasks)"
         style={{ flexShrink:0, background:'none', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:10, padding:'1px 7px', fontSize:8.5, fontWeight:800, cursor:'pointer' }}>✕</button>
-      <input type="date" value={cm.date || ''} style={{ width:'auto', maxWidth:190 }}
+      <input type="date" className="tl-ms-date" value={cm.date || ''} style={{ width:'auto', maxWidth:190 }}
         onChange={ev => onDate(ev.target.value)} />
-      <span title="Time since the previous milestone"
+      <span className="tl-ms-gap" title="Time since the previous milestone"
         style={{ flexShrink:0, width:46, fontSize:9, fontWeight:800, color:AVO, whiteSpace:'nowrap' }}>
         {gap != null ? `${gap} Day${gap === 1 ? '' : 's'}` : ''}
       </span>
@@ -642,9 +642,9 @@ export default function AvoEdit() {
                           </span>
                           {(() => {
                             const hits = (!skipped && val) ? (e.pto_conflicts || []).filter(c => String(c.start_date).slice(0,10) <= val && String(c.end_date).slice(0,10) >= val) : [];
-                            if (!hits.length) return <span style={{ width:16, flexShrink:0 }} />;
+                            if (!hits.length) return <span className="tl-ms-flag" style={{ width:16, flexShrink:0 }} />;
                             return (
-                              <span style={{ position:'relative', flexShrink:0 }}>
+                              <span className="tl-ms-flag" style={{ position:'relative', flexShrink:0 }}>
                                 <button type="button" title="The lead editor has PTO / OOO on this date — click for details"
                                   onClick={() => setPtoFlagOpen(o => o === k ? null : k)}
                                   style={{ background:'rgba(224,49,49,0.15)', border:'1px solid #E03131', color:'#E03131',
@@ -669,7 +669,7 @@ export default function AvoEdit() {
                               </span>
                             );
                           })()}
-                          <span title="Who's responsible for this task — shows on the Crew Calendar"
+                          <span className="tl-ms-assignee" title="Who's responsible for this task — shows on the Crew Calendar"
                             style={{ display:'inline-block', width:140, flexShrink:0 }}>
                             {EDITOR_TASKS.includes(k) && (
                               <EditorSelect value={e.milestone_assignees?.[k] || ''}
@@ -680,20 +680,20 @@ export default function AvoEdit() {
                                 }} />
                             )}
                           </span>
-                          <button type="button" onClick={() => toggleSkip(k)}
+                          <button type="button" className="tl-ms-skip" onClick={() => toggleSkip(k)}
                             title={skipped ? 'Bring this milestone back into the timeline' : 'Skip this milestone — the timeline continues without it'}
                             style={{ flexShrink:0, background: skipped ? 'rgba(224,82,82,0.15)' : 'none', border:`1px solid ${skipped ? '#e05252' : 'var(--border)'}`, color: skipped ? '#e05252' : 'var(--muted)', borderRadius:10, padding:'1px 7px', fontSize:8.5, fontWeight:800, cursor:'pointer' }}>
                             {skipped ? 'Skipped ✕' : 'Skip'}
                           </button>
                           {skipped
-                            ? <span style={{ width:'auto', minWidth:120, maxWidth:190, textAlign:'center', fontSize:10, color:'var(--muted)', fontStyle:'italic' }}>— skipped —</span>
-                            : <input type="date" value={val || ''} style={{ width:'auto', maxWidth:190 }}
+                            ? <span className="tl-ms-date" style={{ width:'auto', minWidth:120, maxWidth:190, textAlign:'center', fontSize:10, color:'var(--muted)', fontStyle:'italic' }}>— skipped —</span>
+                            : <input type="date" className="tl-ms-date" value={val || ''} style={{ width:'auto', maxWidth:190 }}
                                 onChange={ev => {
                                   const v = ev.target.value;
                                   patch({ milestones: { ...ms, [k]: v || undefined } });
                                   save({ milestones: { [k]: v } });
                                 }} />}
-                          <span title="Time since the previous milestone"
+                          <span className="tl-ms-gap" title="Time since the previous milestone"
                             style={{ flexShrink:0, width:46, fontSize:9, fontWeight:800, color:AVO, whiteSpace:'nowrap' }}>
                             {gap != null ? `${gap} Day${gap === 1 ? '' : 's'}` : ''}
                           </span>
