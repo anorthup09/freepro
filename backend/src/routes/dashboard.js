@@ -183,6 +183,21 @@ router.get('/team', requireAuth, async (req, res, next) => {
 
 const DENVER_FIRSTS = ['anabelle', 'fabrizio'];
 
+// Best-effort city from a full address ("…, Denver, Colorado, 80203, USA" → Denver)
+function cityFromAddress(addr) {
+  if (!addr) return null;
+  const parts = String(addr).split(',').map(x => x.trim()).filter(Boolean)
+    .filter(x => !/^united states$/i.test(x) && !/^usa$/i.test(x) && !/^\d{5}(-\d{4})?$/.test(x) && !/^\d+$/.test(x));
+  if (!parts.length) return null;
+  const last = parts[parts.length - 1];
+  // "KC 64105" / "Kansas City MO 64105" — city is the alpha run before state/zip
+  const m = last.match(/^([A-Za-z. ]+?)\s+(?:[A-Z]{2}\s+)?\d{5}/) || last.match(/^([A-Za-z. ]+?)\s+[A-Z]{2}$/);
+  if (m) return m[1].trim();
+  // last segment is the state ("MO" / "Colorado") — city is the segment before it
+  return parts.length >= 2 ? parts[parts.length - 2] : null;
+}
+const realCity = c => c && String(c).trim() && String(c).trim() !== '—' ? String(c).trim() : null;
+
 async function greetingContext(user) {
   const today = bizToday();
   const cm = await myCrewMember(user.email);
@@ -191,13 +206,31 @@ async function greetingContext(user) {
   ctx.homeOffice = DENVER_FIRSTS.includes(first.toLowerCase()) ? 'Denver' : 'St. Louis';
   if (cm) {
     const [trip] = await sql`
-      SELECT pr.city, pr.state, pr.title, pr.code, ca.start_date
+      SELECT pr.id as project_id, pr.city, pr.state, pr.title, pr.code, ca.start_date
       FROM crew_assignments ca JOIN projects pr ON pr.id = ca.project_id
       WHERE ca.crew_member_id = ${cm.id} AND pr.status != 'ARCHIVED'
         AND COALESCE(ca.end_date, ca.start_date)::date >= ${today}
         AND ca.start_date::date <= ${bizToday(10)}
       ORDER BY ca.start_date LIMIT 1`;
-    if (trip) ctx.trip = { city: trip.city, state: trip.state, title: trip.title, startsToday: iso(trip.start_date) <= today };
+    if (trip) {
+      // The shoot's real location comes from the schedule: the day's weather
+      // location first, then a located venue's address, then the project record
+      let city = null, state = null;
+      const [wd] = await sql`
+        SELECT weather_location_name FROM shoot_days
+        WHERE project_id = ${trip.project_id} AND weather_location_name IS NOT NULL
+        ORDER BY date LIMIT 1`;
+      if (realCity(wd?.weather_location_name)) city = realCity(wd.weather_location_name);
+      if (!city) {
+        const locs = await sql`
+          SELECT address FROM locations
+          WHERE project_id = ${trip.project_id} AND address IS NOT NULL
+          ORDER BY (type = 'PRIMARY_VENUE') DESC, name LIMIT 6`;
+        for (const l of locs) { const c = realCity(cityFromAddress(l.address)); if (c) { city = c; break; } }
+      }
+      if (!city) { city = realCity(trip.city); state = realCity(trip.state); }
+      ctx.trip = { city, state, title: trip.title, startsToday: iso(trip.start_date) <= today };
+    }
     const [pto] = await sql`
       SELECT title, pto_type, start_date FROM pto_requests
       WHERE member_id = ${cm.id} AND status = 'APPROVED' AND pto_type != 'STL/DEN Only'
