@@ -385,24 +385,16 @@ function ContractTile({ role, data, busy, onSave, onRemove, onHold, onSendContra
 
 // A user-added milestone row on the edit timeline: date-ordered among the
 // standard milestones; tagged people get it on their Hub checklist
-function CustomMilestoneRow({ cm, gap, onDate, onTag, onUntag, onRemove, roster }) {
-  const tagged = (cm.assignees || []).map(a => roster.find(m => m.id === a.id)).filter(Boolean);
+function CustomMilestoneRow({ cm, gap, onDate, onAssign, onRemove }) {
   return (
-    <div style={{ display:'flex', alignItems:'center', gap:12, padding:'6px 0', borderBottom:'1px solid rgba(255,255,255,0.04)', background:'rgba(157,193,131,0.04)' }}>
-      <span style={{ ...lbl, marginBottom:0, flex:1, color:AVO, display:'flex', alignItems:'center', gap:6, flexWrap:'wrap' }}>
+    <div className="tl-ms-row" style={{ display:'flex', alignItems:'center', gap:12, padding:'6px 0', borderBottom:'1px solid rgba(255,255,255,0.04)', background:'rgba(157,193,131,0.04)' }}>
+      <span className="tl-ms-label" style={{ ...lbl, marginBottom:0, flex:1, color:AVO }}>
         ◆ {cm.label}
-        {tagged.map(m => (
-          <span key={m.id} title="Tagged — this milestone is on their Hub checklist. Click ✕ to untag."
-            style={{ fontSize:9, fontWeight:800, background:'rgba(157,193,131,0.12)', border:`1px solid ${AVO}66`, color:AVO, borderRadius:10, padding:'1px 7px', textTransform:'none', letterSpacing:0, display:'inline-flex', alignItems:'center', gap:4 }}>
-            {m.__display}
-            <span onClick={() => onUntag(m.id)} style={{ cursor:'pointer', opacity:0.7 }}>✕</span>
-          </span>
-        ))}
       </span>
-      <span title="Tag anyone on the roster — this milestone lands on their Hub checklist with this due date"
+      <span title="Assign anyone on the roster — this milestone lands on their Hub checklist with this due date"
         style={{ display:'inline-block', width:140, flexShrink:0 }}>
-        <EditorSelect value="" placeholder="+ Tag person"
-          onChange={v => { if (v) onTag(v); }} />
+        <EditorSelect value={(cm.assignees || [])[0]?.id || ''} placeholder="— Assign person —"
+          onChange={v => onAssign(v)} />
       </span>
       <button type="button" onClick={onRemove} title="Remove this milestone (and its checklist tasks)"
         style={{ flexShrink:0, background:'none', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:10, padding:'1px 7px', fontSize:8.5, fontWeight:800, cursor:'pointer' }}>✕</button>
@@ -432,12 +424,6 @@ export default function AvoEdit() {
   const [busy, setBusy] = useState(false);
   const [sendCtr, setSendCtr] = useState(null);   // { contract, projectId, total } for the send pop-out
   const [newMs, setNewMs] = useState(null);       // { label, date } for the add-milestone form
-  const [roster, setRoster] = useState([]);
-  useEffect(() => {
-    api.getCrew().then(ms2 => setRoster((ms2 || []).map(m => ({
-      ...m, __display: [m.preferred_first_name, m.preferred_last_name].filter(Boolean).join(' ') || m.name,
-    })))).catch(() => {});
-  }, []);
   const setCustoms = customs => setE(v => ({ ...v, custom_milestones: customs }));
   const fileRef = useRef(null);
   const feedRef = useRef(null);
@@ -598,7 +584,7 @@ export default function AvoEdit() {
                 return (
                 <div style={{ background:'var(--bg)', border:'1px solid var(--border)', borderRadius:8, padding:'12px 14px', marginTop:10 }}>
                   {/* auto-fill controls */}
-                  <div style={{ display:'flex', alignItems:'flex-end', gap:8, flexWrap:'nowrap', padding:'2px 0 10px', borderBottom:'1px solid var(--border)', marginBottom:10 }}>
+                  <div className="tl-autofill" style={{ display:'flex', alignItems:'flex-end', gap:8, flexWrap:'nowrap', padding:'2px 0 10px', borderBottom:'1px solid var(--border)', marginBottom:10 }}>
                     <label style={{ display:'flex', alignItems:'center', gap:6, fontSize:11, cursor:'pointer', paddingBottom:6 }}>
                       <input type="checkbox" checked={tlOpts.skipWknd} onChange={ev => setOpt('skipWknd', ev.target.checked)} style={{ width:'auto', accentColor:AVO }} />
                       Exclude weekends
@@ -637,10 +623,9 @@ export default function AvoEdit() {
                         if (cm.date && prevDate) cgap = daysBetween(prevDate, cm.date, tlOpts.skipWknd);
                         if (cm.date) prevDate = cm.date;
                         return (
-                          <CustomMilestoneRow key={cm.id} cm={cm} gap={cgap} roster={roster}
+                          <CustomMilestoneRow key={cm.id} cm={cm} gap={cgap}
                             onDate={v => saveMs(api.updateAvoMilestone(id, cm.id, { date: v || null }))}
-                            onTag={cid => saveMs(api.updateAvoMilestone(id, cm.id, { assigneeIds: [...(cm.assignees || []).map(a => a.id), cid] }))}
-                            onUntag={cid => saveMs(api.updateAvoMilestone(id, cm.id, { assigneeIds: (cm.assignees || []).map(a => a.id).filter(x => x !== cid) }))}
+                            onAssign={cid => saveMs(api.updateAvoMilestone(id, cm.id, { assigneeIds: cid ? [cid] : [] }))}
                             onRemove={() => { if (confirm(`Remove "${cm.label}" (and its checklist tasks)?`)) saveMs(api.deleteAvoMilestone(id, cm.id)); }} />
                         );
                       }
@@ -651,8 +636,8 @@ export default function AvoEdit() {
                       if (val && prevDate) gap = daysBetween(prevDate, val, tlOpts.skipWknd);
                       if (val) prevDate = val;
                       return (
-                        <div key={k} style={{ display:'flex', alignItems:'center', gap:12, padding:'6px 0', borderBottom:'1px solid rgba(255,255,255,0.04)', opacity: skipped ? 0.45 : 1 }}>
-                          <span style={{ ...lbl, marginBottom:0, flex:1, textDecoration: skipped ? 'line-through' : 'none' }}>
+                        <div key={k} className="tl-ms-row" style={{ display:'flex', alignItems:'center', gap:12, padding:'6px 0', borderBottom:'1px solid rgba(255,255,255,0.04)', opacity: skipped ? 0.45 : 1 }}>
+                          <span className="tl-ms-label" style={{ ...lbl, marginBottom:0, flex:1, textDecoration: skipped ? 'line-through' : 'none' }}>
                             {label}
                           </span>
                           {(() => {

@@ -703,6 +703,15 @@ textarea { resize: vertical; min-height: 70px; }
   .sched-head { padding-right: 96px; }
 }
 
+/* AvocadoPost edit timeline on phones: rows wrap instead of pushing the
+   date inputs off screen; label takes its own line */
+@media (max-width: 700px) {
+  .tl-autofill { flex-wrap: wrap !important; }
+  .tl-ms-row { flex-wrap: wrap !important; gap: 4px 10px !important; padding: 9px 0 !important; }
+  .tl-ms-row .tl-ms-label { flex: 1 1 100% !important; }
+  .tl-ms-row input[type="date"] { max-width: 150px !important; }
+}
+
 /* Sign out sits clear of the fixed bottom docks on phones */
 @media (max-width: 700px) {
   .signout-footer { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 104px) !important; }
