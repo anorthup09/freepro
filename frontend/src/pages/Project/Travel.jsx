@@ -338,6 +338,29 @@ export default function Travel({ project }) {
     } catch(err) { alert(err.message); }
   }
 
+  // Duplicate a flight for another crew member — same flight, new person,
+  // with the cost confirmed (fares often differ by booking)
+  const [dupFlight, setDupFlight] = useState(null);   // { source, crewMemberId, confirmation, cost }
+  async function submitDuplicate(e) {
+    e.preventDefault();
+    const s = dupFlight.source;
+    try {
+      const f = await api.createFlight(project.id, {
+        crewMemberId: dupFlight.crewMemberId || null,
+        passengerName: displayName(memberById(dupFlight.crewMemberId)) || 'Unknown',
+        flightNumber: s.flight_number || '', airline: s.airline || '',
+        origin: s.origin || '', destination: s.destination || '',
+        departTime: s.depart_time || null, arriveTime: s.arrive_time || null,
+        departDisplay: s.depart_display || null, arriveDisplay: s.arrive_display || null,
+        isReturn: s.is_return || false, status: s.status || '',
+        confirmation: dupFlight.confirmation || '',
+        cost: dupFlight.cost || null,
+      });
+      setFlights(prev => [...prev, f]);
+      setDupFlight(null);
+    } catch (err) { alert(err.message); }
+  }
+
   async function refreshFlightStatus(f) {
     if (!f.flight_number) return;
     const dateStr = f.depart_time ? f.depart_time.slice(0,10) : '';
@@ -628,6 +651,8 @@ export default function Travel({ project }) {
               <div className="froute"><span>{f.origin}</span><span className="farrow">→</span><span>{f.destination}</span></div>
               {f.cost && <span style={{ fontSize:10, color:'var(--green)', fontWeight:600 }}>{fmtCost(f.cost)}</span>}
               <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:10 }}>
+                <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} title="Add this same flight for another crew member"
+                  onClick={() => setDupFlight({ source: f, crewMemberId: '', confirmation: '', cost: f.cost || '' })}>Duplicate</button>
                 <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => openEditFlight(f)}>Edit</button>
                 <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => removeFlight(f.id)}>✕</button>
               </div>
@@ -966,10 +991,7 @@ export default function Travel({ project }) {
                 <div className="field span2">
                   <label>Crew Member</label>
                   <select value={editFlightForm.crewMemberId} onChange={e => setEditFlightForm(f=>({...f, crewMemberId: e.target.value}))}>
-                    <option value="">— None —</option>
-                    {projectCrew.filter(a => a.crewMember).map(a => (
-                      <option key={a.crewMember.id} value={a.crewMember.id}>{displayName(a.crewMember)} — {a.position.name}</option>
-                    ))}
+                    {crewOptions}
                   </select>
                 </div>
                 <div className="field"><label>Confirmation #</label><input value={editFlightForm.confirmation} onChange={e => setEditFlightForm(f=>({...f,confirmation:e.target.value}))} placeholder="APMKP8" /></div>
@@ -978,6 +1000,37 @@ export default function Travel({ project }) {
               <div className="btn-row">
                 <button className="btn btn-primary">Save</button>
                 <button type="button" className="btn btn-ghost" onClick={() => setEditFlight(null)}>Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Duplicate Flight Modal ── */}
+      {dupFlight && (
+        <div className="modal-bg" onClick={e => e.target === e.currentTarget && setDupFlight(null)}>
+          <div className="modal">
+            <div className="modal-title">Duplicate Flight — {dupFlight.source.flight_number || `${dupFlight.source.origin} → ${dupFlight.source.destination}`}</div>
+            <div style={{ fontSize:11, color:'var(--muted)', margin:'-6px 0 12px' }}>
+              {[dupFlight.source.airline, `${dupFlight.source.origin} → ${dupFlight.source.destination}`,
+                dupFlight.source.depart_display || (dupFlight.source.depart_time ? fmtDT(dupFlight.source.depart_time) : null)]
+                .filter(Boolean).join(' · ')} — same flight, added for another crew member.
+            </div>
+            <form onSubmit={submitDuplicate}>
+              <div className="form-grid" style={{ marginBottom:12 }}>
+                <div className="field span2">
+                  <label>Crew Member <span style={{ color:'var(--red-text)', marginLeft:3 }}>*</span></label>
+                  <select value={dupFlight.crewMemberId} required onChange={e => setDupFlight(d=>({ ...d, crewMemberId: e.target.value }))}>
+                    {crewOptions}
+                  </select>
+                </div>
+                <div className="field"><label>Confirmation #</label><input value={dupFlight.confirmation} onChange={e => setDupFlight(d=>({...d,confirmation:e.target.value}))} placeholder="APMKP8" /></div>
+                <div className="field"><label>Cost ($) <span style={{ color:'var(--muted)', fontSize:10 }}>confirm for this booking</span></label>
+                  <input type="number" step="0.01" min="0" value={dupFlight.cost} onChange={e => setDupFlight(d=>({...d,cost:e.target.value}))} placeholder="0.00" /></div>
+              </div>
+              <div className="btn-row">
+                <button className="btn btn-primary">Add Duplicate Flight</button>
+                <button type="button" className="btn btn-ghost" onClick={() => setDupFlight(null)}>Cancel</button>
               </div>
             </form>
           </div>
