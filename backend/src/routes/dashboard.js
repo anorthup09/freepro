@@ -196,7 +196,9 @@ function cityFromAddress(addr) {
   // last segment is the state ("MO" / "Colorado") — city is the segment before it
   return parts.length >= 2 ? parts[parts.length - 2] : null;
 }
-const realCity = c => c && String(c).trim() && String(c).trim() !== '—' ? String(c).trim() : null;
+// A usable city has to contain letters — placeholder dashes ("—", "–", "- -")
+// and bare punctuation from empty form fields all get rejected
+const realCity = c => { const s = String(c || '').trim(); return s && /[A-Za-z]/.test(s) ? s : null; };
 
 async function greetingContext(user) {
   const today = bizToday();
@@ -291,7 +293,9 @@ router.get('/greeting', requireAuth, async (req, res, next) => {
     const today = bizToday();
     const key = (req.user.email || req.user.id || '').toLowerCase();
     const [hit] = await sql`SELECT text FROM daily_greetings WHERE user_key = ${key} AND day = ${today}`;
-    if (hit) return res.json({ text: hit.text });
+    // A cached greeting with a placeholder city ("in — —", "in undefined") is
+    // broken — regenerate instead of serving it all day
+    if (hit && !/\bin\s+[—–-]\s|\bin undefined\b/.test(hit.text)) return res.json({ text: hit.text });
     const ctx = await greetingContext(req.user);
     const text = (await aiGreeting(ctx)) || fallbackGreeting(ctx);
     await sql`INSERT INTO daily_greetings (user_key, day, text) VALUES (${key}, ${today}, ${text})
