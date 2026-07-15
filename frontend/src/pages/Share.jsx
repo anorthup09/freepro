@@ -470,17 +470,6 @@ function FlightsTable({ flights }) {
 }
 
 // ── Producer View ────────────────────────────────────────────────────────────
-// Oversized Unbridled logo ghosted into the top-right of the share views,
-// bleeding off the screen edge (clipped so it never causes horizontal scroll)
-function HeaderWatermark() {
-  return (
-    <div aria-hidden style={{ position:'absolute', top:0, left:0, right:0, height:520, overflow:'hidden', pointerEvents:'none', zIndex:0 }}>
-      <img src="/unbridled-logo.png" alt=""
-        style={{ position:'absolute', top:120, right:'-16%', width:'min(460px, 60vw)', opacity:0.05, filter:'brightness(0) invert(1)', userSelect:'none' }} />
-    </div>
-  );
-}
-
 function ProducerView({ data, hideGear, onOpenShotList }) {
   const { project, locations, techSpecs, clientContacts, agencyContacts = [], keyTalent, crewAssignments, schedule: rawSchedule, flights: allFlights, hotelBlocks: allHotelBlocks, rentalCars: allRentalCars, deliverables, gear, onlineRentals = [], shotList = [], slDays = [], slBreaks = [] } = data;
   const scheduleRef = useRef(null);
@@ -500,7 +489,6 @@ function ProducerView({ data, hideGear, onOpenShotList }) {
   const rentalCars = isLocalPerson ? [] : allRentalCars;
   return (
     <div className="share-view" style={{ position:'relative' }}>
-      <HeaderWatermark />
       <div className="share-header">
         <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12 }}>
           <div>
@@ -742,7 +730,6 @@ function CrewView({ data, shareToken, hideGear, onOpenShotList }) {
   const rentalCars = isLocalPerson ? [] : allRentalCars;
   return (
     <div className="share-view" style={{ position:'relative' }}>
-      <HeaderWatermark />
       <div className="share-header">
         <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12 }}>
           <div>
@@ -1553,7 +1540,6 @@ function ClientView({ data, onOpenShotList }) {
   const { project, locations, clientContacts, keyTalent, crewAssignments, schedule, shotList = [], slDays = [], slBreaks = [] } = data;
   return (
     <div className="share-view" style={{ position:'relative' }}>
-      <HeaderWatermark />
       <div className="share-header">
         <div className="proj-code">{project.code}</div>
         <div className="proj-title">{project.title}</div>
