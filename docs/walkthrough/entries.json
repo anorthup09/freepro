@@ -198,5 +198,19 @@
       "Add notes like what the reference is good for (pacing, framing, look) so teammates know why it's saved."
     ],
     "screenshot": "video-references.png"
+  },
+  {
+    "title": "Vendor Contracts Report — every contractor, one page",
+    "page": "Reports & Resources",
+    "what": "One report of every contractor being hired across production and post: crew contractor slots plus Color and Audio contractors from each project's Video Tracker. Rows are ordered by start date with Start/End columns, estimated totals, and a contract status pill (Signed / Sent / Not sent). Clicking a row opens the contract's details — rates, dates, total, scope of work, signature status — with links to the signing page and the source (Crew tab or AvocadoPost). Slots archive automatically once their end date passes, tucked behind an Archived toggle.",
+    "where": "Reports & Resources → Vendor Contracts",
+    "how": [
+      "Open Reports & Resources from the hub and click Vendor Contracts.",
+      "Scan the list — active slots sort by start date; the header counts how many still have no contract sent.",
+      "Click any row to open the detail pop-out: contractor, dates, cost breakdown, scope, and signature status.",
+      "From the pop-out, open the signing page or jump to the project's Crew tab / AvocadoPost tracker to send or fix the contract.",
+      "Use 'Only not sent' to chase missing contracts, and 'Archived (N)' to review slots whose end date has passed."
+    ],
+    "screenshot": "vendor-contracts.png"
   }
 ]
