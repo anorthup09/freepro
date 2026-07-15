@@ -704,7 +704,7 @@ function ProducerView({ data, hideGear, onOpenShotList }) {
       <div ref={scheduleRef}>
         {(schedule||[]).length > 0 && (
           <div style={{ display:'flex', alignItems:'center', gap:8, margin:'24px 0 8px' }}>
-            <div style={{ fontSize:16, fontWeight:700, color:'var(--text)', letterSpacing:'-0.01em', flex:1 }}>Schedule</div>
+            <div style={{ fontSize:16, fontWeight:700, color:'var(--text)', letterSpacing:'-0.01em', flex:1 }}>Schedule<span style={{ fontSize:10, fontWeight:400, color:'var(--muted)', fontStyle:'italic', marginLeft:8, letterSpacing:0 }}>swipe left to add reminders</span></div>
             {['VIDEO', ...(project.include_photo !== false ? ['PHOTO'] : [])].map(tag => (
               <button key={tag} onClick={() => setTagFilter(f => f === tag ? null : tag)}
                 style={{ fontSize:11, fontWeight:700, padding:'5px 16px', borderRadius:100, border: tagFilter === tag ? 'none' : '1px solid rgba(255,255,255,0.12)', background: tagFilter === tag ? 'var(--orange)' : 'rgba(255,255,255,0.06)', color: tagFilter === tag ? '#fff' : 'rgba(255,255,255,0.5)', cursor:'pointer', letterSpacing:'.06em', transition:'all 0.15s' }}>
@@ -934,7 +934,7 @@ function CrewView({ data, shareToken, hideGear, onOpenShotList }) {
       <div ref={scheduleRef}>
         {sortedSchedule.length > 0 && (
           <div style={{ display:'flex', alignItems:'center', gap:8, margin:'24px 0 8px' }}>
-            <div style={{ fontSize:16, fontWeight:700, color:'var(--text)', letterSpacing:'-0.01em', flex:1 }}>Schedule</div>
+            <div style={{ fontSize:16, fontWeight:700, color:'var(--text)', letterSpacing:'-0.01em', flex:1 }}>Schedule<span style={{ fontSize:10, fontWeight:400, color:'var(--muted)', fontStyle:'italic', marginLeft:8, letterSpacing:0 }}>swipe left to add reminders</span></div>
             {['VIDEO', ...(project.include_photo !== false ? ['PHOTO'] : [])].map(tag => (
               <button key={tag} onClick={() => setTagFilter(f => f === tag ? null : tag)}
                 style={{ fontSize:11, fontWeight:700, padding:'5px 16px', borderRadius:100, border: tagFilter === tag ? 'none' : '1px solid rgba(255,255,255,0.12)', background: tagFilter === tag ? 'var(--orange)' : 'rgba(255,255,255,0.06)', color: tagFilter === tag ? '#fff' : 'rgba(255,255,255,0.5)', cursor:'pointer', letterSpacing:'.06em', transition:'all 0.15s' }}>
@@ -1702,6 +1702,9 @@ function ClientView({ data, onOpenShotList }) {
         </section>
       )}
       <div ref={scheduleRef}>
+      {(schedule||[]).length > 0 && (
+        <div style={{ fontSize:16, fontWeight:700, color:'var(--text)', margin:'24px 0 8px', letterSpacing:'-0.01em' }}>Schedule<span style={{ fontSize:10, fontWeight:400, color:'var(--muted)', fontStyle:'italic', marginLeft:8, letterSpacing:0 }}>swipe left to add reminders</span></div>
+      )}
       {[...(schedule||[])].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map((day, i) => (
         <DaySection key={day.id} day={day} showCalls={false} dayIndex={i} cateringDetail="name" shotList={shotList} slDays={slDays} slBreaks={slBreaks} onOpenShotList={onOpenShotList} includePhoto={project.include_photo !== false} projectCity={[project.city, project.state].filter(Boolean).join(', ')} />
       ))}
@@ -2577,7 +2580,6 @@ function SwipeReminder({ item, dayStr, children }) {
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3,
           cursor: 'pointer', letterSpacing: '.03em',
           opacity: dx < -10 ? 1 : 0, pointerEvents: dx < -10 ? 'auto' : 'none', transition: 'opacity .15s' }}>
-        <span style={{ fontSize: 17, lineHeight: 1 }}>⏰</span>
         +Reminder
       </button>
       <div onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} onTouchCancel={onTouchEnd}
