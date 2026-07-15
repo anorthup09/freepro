@@ -296,9 +296,9 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
   const [days, setDays] = useState([]);
   const [activeDay, setActiveDay] = useState(null);
   const [showAddEvent, setShowAddEvent] = useState(false);
-  const [eventForm, setEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', roomSpace:'', isAlert:false, isFilming:false, tags:[], audience:[], crewIds:[], locationId:'' });
+  const [eventForm, setEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', roomSpace:'', isAlert:false, isFilming:false, tags:[], audience:[], crewIds:[], locationId:'', adhocLocation:'' });
   const [editEventId, setEditEventId] = useState(null);
-  const [editEventForm, setEditEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', roomSpace:'', isAlert:false, isFilming:false, tags:[], audience:[], crewIds:[], locationId:'' });
+  const [editEventForm, setEditEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', roomSpace:'', isAlert:false, isFilming:false, tags:[], audience:[], crewIds:[], locationId:'', adhocLocation:'' });
   const [dayCardCollapsed, setDayCardCollapsed] = useState(true);
 
   // Every Room/Space already used on this shoot's schedule — saved with the
@@ -683,7 +683,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
 
   function openEditEvent(ev) {
     setEditEventId(ev.id);
-    setEditEventForm({ startTime: ev.start_time || ev.startTime || '', endTime: ev.end_time || ev.endTime || '', title: ev.title || '', detail: ev.detail || '', roomSpace: ev.room_space || '', isAlert: ev.is_alert || ev.isAlert || false, isFilming: ev.is_filming || ev.isFilming || false, tags: ev.tags || [], audience: ev.audience || [], crewIds: ev.crew_ids || [], locationId: ev.location_id || '' });
+    setEditEventForm({ startTime: ev.start_time || ev.startTime || '', endTime: ev.end_time || ev.endTime || '', title: ev.title || '', detail: ev.detail || '', roomSpace: ev.room_space || '', isAlert: ev.is_alert || ev.isAlert || false, isFilming: ev.is_filming || ev.isFilming || false, tags: ev.tags || [], audience: ev.audience || [], crewIds: ev.crew_ids || [], locationId: ev.location_id || '', adhocLocation: ev.adhoc_location || '' });
   }
 
   function toggleEditTag(type) {
@@ -1372,11 +1372,16 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                   <label>Location</label>
                   {(project.locations||[]).length === 0
                     ? <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic', paddingTop:4 }}>No locations yet — add in Overview.</div>
-                    : <select value={eventForm.locationId} onChange={e => setEventForm(f=>({...f,locationId:e.target.value}))}>
+                    : <select value={eventForm.locationId} onChange={e => setEventForm(f=>({...f,locationId:e.target.value, adhocLocation: e.target.value ? '' : f.adhocLocation}))}>
                         <option value="">— No location —</option>
                         {(project.locations||[]).map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
                       </select>
                   }
+                  {!eventForm.locationId && (
+                    <input value={eventForm.adhocLocation} placeholder="…or type a one-off location" style={{ marginTop:6 }}
+                      title="Shows on this event only — not saved to the Locations tab"
+                      onChange={e => setEventForm(f=>({...f,adhocLocation:e.target.value}))} />
+                  )}
                 </div>
                 <div className="field"><label>Room / Space</label><RoomSpaceField value={eventForm.roomSpace} options={usedRooms} onChange={v => setEventForm(f=>({...f,roomSpace:v}))} /></div>
                 <div className="field span2">
@@ -1530,11 +1535,16 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                   <label>Location</label>
                   {(project.locations||[]).length === 0
                     ? <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic', paddingTop:4 }}>No locations yet — add in Overview.</div>
-                    : <select value={editEventForm.locationId} onChange={e => setEditEventForm(f=>({...f,locationId:e.target.value}))}>
+                    : <select value={editEventForm.locationId} onChange={e => setEditEventForm(f=>({...f,locationId:e.target.value, adhocLocation: e.target.value ? '' : f.adhocLocation}))}>
                         <option value="">— No location —</option>
                         {(project.locations||[]).map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
                       </select>
                   }
+                  {!editEventForm.locationId && (
+                    <input value={editEventForm.adhocLocation} placeholder="…or type a one-off location" style={{ marginTop:6 }}
+                      title="Shows on this event only — not saved to the Locations tab"
+                      onChange={e => setEditEventForm(f=>({...f,adhocLocation:e.target.value}))} />
+                  )}
                 </div>
                 <div className="field"><label>Room / Space</label><RoomSpaceField value={editEventForm.roomSpace} options={usedRooms} onChange={v => setEditEventForm(f=>({...f,roomSpace:v}))} /></div>
                 <div className="field span2">

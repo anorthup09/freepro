@@ -155,7 +155,7 @@ router.get('/:token', async (req, res, next) => {
         // events (shared moments like load-in or lunch) always show
         events: events
           .filter(e => !crewGroupId || !(e.crew_ids || []).length || e.crew_ids.includes(crewGroupId))
-          .map(e => ({ ...e, tags: e.tags || [], crew_ids: e.crew_ids || [], location: e.location_name ? { name: e.location_name, address: e.location_address } : null })),
+          .map(e => ({ ...e, tags: e.tags || [], crew_ids: e.crew_ids || [], location: e.location_name ? { name: e.location_name, address: e.location_address } : (e.adhoc_location ? { name: e.adhoc_location, adhoc: true } : null) })),
         crewCalls: crewCalls
           .filter(c => inCrewGroup(c.crew_assignment_id))
           .map(c => ({
