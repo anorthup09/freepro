@@ -673,6 +673,19 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
   const stopAddr = x => x._type === 'event' ? x.location?.address
     : (x._type === 'catering' && x.is_delivery === false ? x.address : null);
 
+  // Live pulse: highlight the tile whose time block is happening right now
+  const [nowTick, setNowTick] = useState(() => new Date());
+  useEffect(() => { const t = setInterval(() => setNowTick(new Date()), 60000); return () => clearInterval(t); }, []);
+  const isLiveBlock = (start, end) => {
+    const dayISO2 = currentDay?.date ? String(currentDay.date).slice(0, 10) : null;
+    if (!dayISO2 || dayISO2 !== nowTick.toLocaleDateString('en-CA')) return false;
+    const st = timeToMinutes(start);
+    if (st >= 1440) return false;
+    const en = end ? timeToMinutes(end) : st + 60;
+    const nowMins = nowTick.getHours() * 60 + nowTick.getMinutes();
+    return nowMins >= st && nowMins < (en >= 1440 ? st + 60 : en);
+  };
+
   // Clapboard slate for filming events
   const [clapEvent, setClapEvent] = useState(null);
   const [quickSlate, setQuickSlate] = useState(false);
@@ -1097,7 +1110,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                       return (
                         <div key={item._key} className="ev">
                           <div className="ev-time">{fmtTime(item.startTime)}{item.endTime ? ` – ${fmtTime(item.endTime)}` : ''}</div>
-                          <div className="ev-body" style={{ borderLeft:`2px solid ${sm.color}`, cursor:'pointer' }}
+                          <div className={`ev-body${isLiveBlock(item.startTime, item.endTime) ? ' ev-live' : ''}`} style={{ borderLeft:`2px solid ${sm.color}`, cursor:'pointer' }}
                             onClick={() => setEditingSyntheticKey(isEditing ? null : item._key)}>
                             <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between' }}>
                               <div style={{ flex:1 }}>
@@ -1286,7 +1299,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                       return (
                         <div key={item._key} className="ev">
                           <div className="ev-time">{item.delivery_time ? fmtTime(item.delivery_time) : '—'}</div>
-                          <div className="ev-body" style={{ borderLeft:`2px solid ${mc.color}` }}>
+                          <div className={`ev-body${isLiveBlock(item.delivery_time, null) ? ' ev-live' : ''}`} style={{ borderLeft:`2px solid ${mc.color}` }}>
                             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
                               <div className="ev-title">{mc.label}{isOut ? <span style={{ fontSize:9, fontWeight:800, color:'var(--muted)', border:'1px solid var(--border)', borderRadius:10, padding:'1px 7px', marginLeft:8, textTransform:'uppercase', letterSpacing:'0.05em', whiteSpace:'nowrap', display:'inline-block' }}>Reservation</span> : null}</div>
                               <div style={{ textAlign:'right' }}>
@@ -1336,7 +1349,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                     })() : (
                       <div key={item.id} className="ev">
                         <div className="ev-time">{fmtTime(item.start_time || item.startTime)}{(item.end_time || item.endTime) ? ` – ${fmtTime(item.end_time || item.endTime)}` : ''}</div>
-                        <div className={`ev-body${(item.is_alert||item.isAlert) ? ' warn' : ''}`}
+                        <div className={`ev-body${(item.is_alert||item.isAlert) ? ' warn' : ''}${isLiveBlock(item.start_time || item.startTime, item.end_time || item.endTime) ? ' ev-live' : ''}`}
                           style={{ cursor:'pointer', ...(!(item.is_alert||item.isAlert) ? { borderLeft:'2px solid var(--orange)',  } : {}) }}
                           onClick={() => openEditEvent(item)}>
                           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:8 }}>
