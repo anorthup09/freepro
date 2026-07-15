@@ -174,6 +174,33 @@ export default function Travel({ project }) {
 
   const projectCrew = project.crewAssignments || [];
 
+  // Travel is often booked before the crew list is final, so the crew
+  // dropdowns offer everyone: assigned crew first, then the full roster
+  const [fullRoster, setFullRoster] = useState([]);
+  useEffect(() => { api.getCrew().then(rs => setFullRoster(rs || [])).catch(() => {}); }, []);
+  const assignedIds = new Set(projectCrew.filter(a => a.crewMember).map(a => a.crewMember.id));
+  const rosterExtras = fullRoster.filter(m => !assignedIds.has(m.id))
+    .sort((a, b) => (displayName(a) || '').localeCompare(displayName(b) || ''));
+  const memberById = id => projectCrew.find(a => a.crewMember?.id === id)?.crewMember
+    || fullRoster.find(m => m.id === id) || null;
+  const crewOptions = (
+    <>
+      <option value="">— Select crew member —</option>
+      {assignedIds.size > 0 && (
+        <optgroup label="On this shoot">
+          {projectCrew.filter(a => a.crewMember).map(a => (
+            <option key={a.id} value={a.crewMember.id}>{displayName(a.crewMember)} — {a.position.name}</option>
+          ))}
+        </optgroup>
+      )}
+      {rosterExtras.length > 0 && (
+        <optgroup label="Full roster">
+          {rosterExtras.map(m => <option key={m.id} value={m.id}>{displayName(m)}</option>)}
+        </optgroup>
+      )}
+    </>
+  );
+
   useEffect(() => {
     Promise.all([
       api.getHotels(project.id),
@@ -344,7 +371,7 @@ export default function Travel({ project }) {
   }
 
   // ── Driving ───────────────────────────────────────────────────────────────
-  const crewById = id => projectCrew.find(a => a.crewMember?.id === id)?.crewMember;
+  const crewById = id => memberById(id);
   async function addDrive(e) {
     e.preventDefault();
     const f = driveForm;
@@ -675,10 +702,7 @@ export default function Travel({ project }) {
                   <label>Driver <span style={{ color:'var(--red-text)', marginLeft:3 }}>*</span></label>
                   <select value={driveForm.driverCrewMemberId} required
                     onChange={e => setDriveForm(f => ({ ...f, driverCrewMemberId: e.target.value, passengerIds: f.passengerIds.filter(id => id !== e.target.value) }))}>
-                    <option value="">— Select crew member —</option>
-                    {projectCrew.filter(a => a.crewMember).map(a => (
-                      <option key={a.crewMember.id} value={a.crewMember.id}>{displayName(a.crewMember)} — {a.position.name}</option>
-                    ))}
+                    {crewOptions}
                   </select>
                 </div>
                 <div className="field">
@@ -790,13 +814,9 @@ export default function Travel({ project }) {
                   <label>Crew Member <span style={{ color:'var(--muted)', fontSize:10 }}>(optional)</span></label>
                   <select value={guestForm.crewMemberId} onChange={e => {
                     const id = e.target.value;
-                    const a = projectCrew.find(a => a.crewMember?.id === id);
-                    setGuestForm(f=>({ ...f, crewMemberId: id, guestName: displayName(a?.crewMember) || f.guestName }));
+                    setGuestForm(f=>({ ...f, crewMemberId: id, guestName: displayName(memberById(id)) || f.guestName }));
                   }}>
-                    <option value="">— Select crew member —</option>
-                    {projectCrew.filter(a => a.crewMember).map(a => (
-                      <option key={a.crewMember.id} value={a.crewMember.id}>{displayName(a.crewMember)} — {a.position.name}</option>
-                    ))}
+                    {crewOptions}
                   </select>
                 </div>
                 <div className="field span2">
@@ -874,13 +894,9 @@ export default function Travel({ project }) {
                   <label>Crew Member</label>
                   <select value={flightForm.crewMemberId || ''} onChange={e => {
                     const id = e.target.value || null;
-                    const a = projectCrew.find(a => a.crewMember?.id === id);
-                    setFlightForm(f=>({ ...f, crewMemberId: id, passengerName: displayName(a?.crewMember) || f.passengerName }));
+                    setFlightForm(f=>({ ...f, crewMemberId: id, passengerName: displayName(memberById(id)) || f.passengerName }));
                   }}>
-                    <option value="">— Select crew member —</option>
-                    {projectCrew.filter(a => a.crewMember).map(a => (
-                      <option key={a.crewMember.id} value={a.crewMember.id}>{displayName(a.crewMember)} — {a.position.name}</option>
-                    ))}
+                    {crewOptions}
                   </select>
                 </div>
 
@@ -919,10 +935,7 @@ export default function Travel({ project }) {
                 <div className="field span2">
                   <label>Crew Member</label>
                   <select value={carForm.crewMemberId} onChange={e => setCarForm(f=>({...f, crewMemberId: e.target.value}))}>
-                    <option value="">— Select crew member —</option>
-                    {projectCrew.filter(a => a.crewMember).map(a => (
-                      <option key={a.crewMember.id} value={a.crewMember.id}>{displayName(a.crewMember)} — {a.position.name}</option>
-                    ))}
+                    {crewOptions}
                   </select>
                 </div>
                 <div className="field span2"><label>Vendor</label><input value={carForm.vendor} onChange={e => setCarForm(f=>({...f,vendor:e.target.value}))} placeholder="Enterprise" required /></div>
