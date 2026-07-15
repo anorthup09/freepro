@@ -871,6 +871,90 @@ router.delete('/grid/:kind/:rowId', ...staff, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// ── Custom timeline milestones (with roster tagging → Hub checklists) ──
+// Stored on edits.custom_milestones as
+// [{ id, label, date, assignees: [{ id: crewMemberId, taskId }] }].
+// Each tagged person gets a project task due on the milestone date, which
+// shows on their Hub checklist; retagging/removal keeps the tasks in sync.
+const getCustoms = e => Array.isArray(e.custom_milestones) ? e.custom_milestones
+  : (typeof e.custom_milestones === 'string' ? JSON.parse(e.custom_milestones || '[]') : []);
+
+async function syncMilestoneTasks(e, m, assigneeIds) {
+  const prev = m.assignees || [];
+  const next = [];
+  const text = `${m.label} — ${e.title}`;
+  for (const cid of assigneeIds) {
+    const existing = prev.find(a => a.id === cid);
+    if (existing?.taskId) {
+      await sql`UPDATE project_tasks SET text = ${text}, due_date = ${m.date || null} WHERE id = ${existing.taskId}`;
+      next.push(existing);
+    } else if (e.project_id) {
+      const [t] = await sql`
+        INSERT INTO project_tasks (project_id, text, assignee_id, due_date, notes, created_by)
+        VALUES (${e.project_id}, ${text}, ${cid}, ${m.date || null},
+          ${'From the AvocadoPost timeline — this milestone was tagged to you.'}, 'AvocadoPost')
+        RETURNING id`;
+      next.push({ id: cid, taskId: t.id });
+    } else {
+      next.push({ id: cid });
+    }
+  }
+  for (const a of prev) {
+    if (!assigneeIds.includes(a.id) && a.taskId) {
+      await sql`DELETE FROM project_tasks WHERE id = ${a.taskId}`.catch(() => {});
+    }
+  }
+  return next;
+}
+
+async function saveCustoms(editId, customs) {
+  const [e] = await sql`UPDATE edits SET custom_milestones = ${sql.json(customs)} WHERE id = ${editId} RETURNING custom_milestones`;
+  return e.custom_milestones;
+}
+
+router.post('/edits/:id/custom-milestones', ...staff, async (req, res, next) => {
+  try {
+    const [e] = await FULL_EDIT(req.params.id);
+    if (!e) return res.status(404).json({ error: 'Edit not found' });
+    const label = String(req.body.label || '').trim();
+    if (!label) return res.status(400).json({ error: 'Milestone name required' });
+    const m = { id: require('crypto').randomUUID(), label, date: req.body.date || null, assignees: [] };
+    m.assignees = await syncMilestoneTasks(e, m, req.body.assigneeIds || []);
+    const customs = [...getCustoms(e), m];
+    await logAct(e.id, 'log', req.user?.email || 'someone', `added timeline milestone "${label}"${m.date ? ` (${m.date})` : ''}`);
+    res.status(201).json(await saveCustoms(e.id, customs));
+  } catch (er) { next(er); }
+});
+
+router.patch('/edits/:id/custom-milestones/:mid', ...staff, async (req, res, next) => {
+  try {
+    const [e] = await FULL_EDIT(req.params.id);
+    if (!e) return res.status(404).json({ error: 'Edit not found' });
+    const customs = getCustoms(e);
+    const m = customs.find(x => x.id === req.params.mid);
+    if (!m) return res.status(404).json({ error: 'Milestone not found' });
+    if (req.body.label !== undefined) m.label = String(req.body.label || '').trim() || m.label;
+    if (req.body.date !== undefined) m.date = req.body.date || null;
+    const ids = req.body.assigneeIds !== undefined ? req.body.assigneeIds : (m.assignees || []).map(a => a.id);
+    m.assignees = await syncMilestoneTasks(e, m, ids);
+    res.json(await saveCustoms(e.id, customs));
+  } catch (er) { next(er); }
+});
+
+router.delete('/edits/:id/custom-milestones/:mid', ...staff, async (req, res, next) => {
+  try {
+    const [e] = await FULL_EDIT(req.params.id);
+    if (!e) return res.status(404).json({ error: 'Edit not found' });
+    const customs = getCustoms(e);
+    const m = customs.find(x => x.id === req.params.mid);
+    if (!m) return res.status(404).json({ error: 'Milestone not found' });
+    for (const a of (m.assignees || [])) {
+      if (a.taskId) await sql`DELETE FROM project_tasks WHERE id = ${a.taskId}`.catch(() => {});
+    }
+    res.json(await saveCustoms(e.id, customs.filter(x => x.id !== req.params.mid)));
+  } catch (er) { next(er); }
+});
+
 module.exports = router;
 
 // Public gantt data (mounted separately without auth)

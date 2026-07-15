@@ -383,6 +383,52 @@ function ContractTile({ role, data, busy, onSave, onRemove, onHold, onSendContra
   );
 }
 
+// A user-added milestone row on the edit timeline: date-ordered among the
+// standard milestones; tagged people get it on their Hub checklist
+function CustomMilestoneRow({ cm, gap, onDate, onTag, onUntag, onRemove, roster }) {
+  const [tagging, setTagging] = useState(false);
+  const tagged = (cm.assignees || []).map(a => roster.find(m => m.id === a.id)).filter(Boolean);
+  return (
+    <div style={{ display:'flex', alignItems:'center', gap:12, padding:'6px 0', borderBottom:'1px solid rgba(255,255,255,0.04)', background:'rgba(157,193,131,0.04)' }}>
+      <span style={{ ...lbl, marginBottom:0, flex:1, color:AVO, display:'flex', alignItems:'center', gap:6, flexWrap:'wrap' }}>
+        ◆ {cm.label}
+        {tagged.map(m => (
+          <span key={m.id} title="Tagged — this milestone is on their Hub checklist. Click ✕ to untag."
+            style={{ fontSize:9, fontWeight:800, background:'rgba(157,193,131,0.12)', border:`1px solid ${AVO}66`, color:AVO, borderRadius:10, padding:'1px 7px', textTransform:'none', letterSpacing:0, display:'inline-flex', alignItems:'center', gap:4 }}>
+            {m.__display}
+            <span onClick={() => onUntag(m.id)} style={{ cursor:'pointer', opacity:0.7 }}>✕</span>
+          </span>
+        ))}
+      </span>
+      <span style={{ display:'inline-block', width:140, flexShrink:0 }}>
+        {tagging ? (
+          <select autoFocus defaultValue="" onBlur={() => setTagging(false)}
+            onChange={ev => { if (ev.target.value) onTag(ev.target.value); setTagging(false); }}>
+            <option value="">— Tag person —</option>
+            {roster.filter(m => !(cm.assignees || []).some(a => a.id === m.id)).map(m => (
+              <option key={m.id} value={m.id}>{m.__display}</option>
+            ))}
+          </select>
+        ) : (
+          <button type="button" onClick={() => setTagging(true)}
+            title="Tag anyone on the roster — this milestone lands on their Hub checklist with this due date"
+            style={{ background:'none', border:'1px dashed var(--border)', color:'var(--muted)', borderRadius:10, padding:'2px 10px', fontSize:9.5, fontWeight:700, cursor:'pointer' }}>
+            + Tag person
+          </button>
+        )}
+      </span>
+      <button type="button" onClick={onRemove} title="Remove this milestone (and its checklist tasks)"
+        style={{ flexShrink:0, background:'none', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:10, padding:'1px 7px', fontSize:8.5, fontWeight:800, cursor:'pointer' }}>✕</button>
+      <input type="date" value={cm.date || ''} style={{ width:'auto', maxWidth:190 }}
+        onChange={ev => onDate(ev.target.value)} />
+      <span title="Time since the previous milestone"
+        style={{ flexShrink:0, width:46, fontSize:9, fontWeight:800, color:AVO, whiteSpace:'nowrap' }}>
+        {gap != null ? `${gap} Day${gap === 1 ? '' : 's'}` : ''}
+      </span>
+    </div>
+  );
+}
+
 export default function AvoEdit() {
   const { id } = useParams();
   const nav = useNavigate();
@@ -398,6 +444,14 @@ export default function AvoEdit() {
   const [tlOpts, setTlOpts] = useState({ skipWknd: true, editDaysAfterScript: 5, editDaysAfterFeedback: 3, reviewDays: 2 });
   const [busy, setBusy] = useState(false);
   const [sendCtr, setSendCtr] = useState(null);   // { contract, projectId, total } for the send pop-out
+  const [newMs, setNewMs] = useState(null);       // { label, date } for the add-milestone form
+  const [roster, setRoster] = useState([]);
+  useEffect(() => {
+    api.getCrew().then(ms2 => setRoster((ms2 || []).map(m => ({
+      ...m, __display: [m.preferred_first_name, m.preferred_last_name].filter(Boolean).join(' ') || m.name,
+    })))).catch(() => {});
+  }, []);
+  const setCustoms = customs => setE(v => ({ ...v, custom_milestones: customs }));
   const fileRef = useRef(null);
   const feedRef = useRef(null);
 
@@ -540,6 +594,18 @@ export default function AvoEdit() {
                 }
                 // gap column: business days since the previous filled milestone
                 let prevDate = null;
+                // Custom milestones slot into the list by date (dateless ones at the end)
+                const customs = Array.isArray(e.custom_milestones) ? e.custom_milestones : [];
+                const tlRows = MILESTONES.map(([k, label]) => ({ kind:'std', k, label }));
+                for (const cm of [...customs].sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999'))) {
+                  let idx = tlRows.length;
+                  if (cm.date) {
+                    const j = tlRows.findIndex(r => r.kind === 'std' ? (ms[r.k] && ms[r.k] > cm.date) : (r.cm.date && r.cm.date > cm.date));
+                    if (j >= 0) idx = j;
+                  }
+                  tlRows.splice(idx, 0, { kind:'custom', cm });
+                }
+                const saveMs = (fn) => fn.then(setCustoms).catch(err => alert(err.message));
                 const optIn = { width:44, fontSize:11, padding:'4px 6px', textAlign:'center' };
                 const optLbl = { fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.05em' };
                 return (
@@ -577,7 +643,21 @@ export default function AvoEdit() {
                     </div>
                   </div>
                   <div style={{ display:'flex', flexDirection:'column' }}>
-                    {MILESTONES.map(([k, label]) => {
+                    {tlRows.map(row => {
+                      if (row.kind === 'custom') {
+                        const cm = row.cm;
+                        let cgap = null;
+                        if (cm.date && prevDate) cgap = daysBetween(prevDate, cm.date, tlOpts.skipWknd);
+                        if (cm.date) prevDate = cm.date;
+                        return (
+                          <CustomMilestoneRow key={cm.id} cm={cm} gap={cgap} roster={roster}
+                            onDate={v => saveMs(api.updateAvoMilestone(id, cm.id, { date: v || null }))}
+                            onTag={cid => saveMs(api.updateAvoMilestone(id, cm.id, { assigneeIds: [...(cm.assignees || []).map(a => a.id), cid] }))}
+                            onUntag={cid => saveMs(api.updateAvoMilestone(id, cm.id, { assigneeIds: (cm.assignees || []).map(a => a.id).filter(x => x !== cid) }))}
+                            onRemove={() => { if (confirm(`Remove "${cm.label}" (and its checklist tasks)?`)) saveMs(api.deleteAvoMilestone(id, cm.id)); }} />
+                        );
+                      }
+                      const { k, label } = row;
                       const skipped = skips.includes(k);
                       const val = skipped ? null : ms[k];
                       let gap = null;
@@ -648,6 +728,27 @@ export default function AvoEdit() {
                         </div>
                       );
                     })}
+                  </div>
+                  <div style={{ marginTop:8 }}>
+                    {newMs ? (
+                      <div style={{ display:'flex', gap:8, alignItems:'center', flexWrap:'wrap' }}>
+                        <input autoFocus value={newMs.label} placeholder="Milestone name — e.g. Legal Review"
+                          style={{ flex:'1 1 180px' }}
+                          onChange={ev => setNewMs(f => ({ ...f, label: ev.target.value }))}
+                          onKeyDown={ev => { if (ev.key === 'Enter' && newMs.label.trim()) { ev.preventDefault(); saveMs(api.addAvoMilestone(id, newMs)); setNewMs(null); } }} />
+                        <input type="date" value={newMs.date} style={{ width:'auto' }}
+                          onChange={ev => setNewMs(f => ({ ...f, date: ev.target.value }))} />
+                        <button type="button" className="btn btn-primary btn-sm" disabled={!newMs.label.trim()}
+                          onClick={() => { saveMs(api.addAvoMilestone(id, newMs)); setNewMs(null); }}>Add</button>
+                        <button type="button" className="btn btn-ghost btn-sm" onClick={() => setNewMs(null)}>Cancel</button>
+                      </div>
+                    ) : (
+                      <button type="button" onClick={() => setNewMs({ label:'', date:'' })}
+                        title="Add a custom milestone anywhere in the timeline — it slots in by date"
+                        style={{ background:'transparent', border:`1px dashed ${AVO}66`, color:AVO, borderRadius:14, padding:'4px 12px', fontSize:10, fontWeight:800, cursor:'pointer' }}>
+                        + Add Milestone
+                      </button>
+                    )}
                   </div>
                   <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, marginTop:10, flexWrap:'wrap' }}>
                     <div style={{ fontSize:10, color:'var(--muted)' }}>These dates appear as diamonds on the Gantt views; the public link and email copy only show dates that are filled in.</div>
