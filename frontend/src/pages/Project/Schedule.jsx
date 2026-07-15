@@ -1314,10 +1314,17 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                       );
                     })() : item._type === 'flight' ? (() => {
                       const fs = flightStatusLabel(item);
+                      // Pulse while the flight is in the air (UTC instants, timezone-safe)
+                      const depAt = item.depart_time ? new Date(item.depart_time) : null;
+                      const arrAt = item.arrive_time ? new Date(item.arrive_time) : null;
+                      const fst = (item.status || '').toUpperCase();
+                      const landed = fst.includes('ARRIV') || fst.includes('LAND') || fst.includes('CANCEL');
+                      const inFlight = !landed && depAt && !isNaN(depAt) && nowTick >= depAt &&
+                        (arrAt && !isNaN(arrAt) ? nowTick < arrAt : (nowTick - depAt) < 3 * 3600e3);
                       return (
                         <div key={item._key} className="ev">
                           <div className="ev-time">✈ {legDisplayTime(item)}</div>
-                          <div className="ev-body" style={{ borderLeft:`2px solid ${fs.alert ? fs.color : 'var(--orange)'}`, position:'relative', ...(fs.alert ? { background:`${fs.color}11` } : {}) }}>
+                          <div className={`ev-body${inFlight ? ' ev-live' : ''}`} style={{ borderLeft:`2px solid ${fs.alert ? fs.color : 'var(--orange)'}`, position:'relative', ...(fs.alert ? { background:`${fs.color}11` } : {}) }}>
                             {item._leg === 'depart' && (
                               <div style={{ position:'absolute', top:8, right:10, display:'inline-flex', alignItems:'center', gap:5, background:'rgba(0,0,0,0.2)', borderRadius:20, padding:'2px 10px' }}>
                                 {fs.dot && <div style={{ width:6, height:6, borderRadius:'50%', background:fs.dot }} />}

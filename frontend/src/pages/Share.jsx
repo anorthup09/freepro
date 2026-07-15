@@ -2376,10 +2376,17 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, talentC
                 const fs = flightStatus(item, now);
                 const adjustedArrival = item.arrive_display
                   || (item.arrive_time ? new Date(item.arrive_time).toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' }) : null);
+                // Pulse while the flight is in the air (UTC instants, timezone-safe)
+                const depAt = item.depart_time ? new Date(item.depart_time) : null;
+                const arrAt = item.arrive_time ? new Date(item.arrive_time) : null;
+                const st = (item.status || '').toUpperCase();
+                const landed = st.includes('ARRIV') || st.includes('LAND') || st.includes('CANCEL');
+                const inFlight = !landed && depAt && !isNaN(depAt) && now >= depAt &&
+                  (arrAt && !isNaN(arrAt) ? now < arrAt : (now - depAt) < 3 * 3600e3);
                 return (
                   <div key={`f-${item.id}-${item._leg}`} className="ev">
                     <div className="ev-time">✈ {item._time}</div>
-                    <div className="ev-body" style={{ borderLeft:`2px solid ${fs.alert ? fs.color : 'var(--orange)'}`, ...(fs.alert ? { background: `${fs.color}11` } : {}) }}>
+                    <div className={`ev-body${inFlight ? ' ev-live' : ''}`} style={{ borderLeft:`2px solid ${fs.alert ? fs.color : 'var(--orange)'}`, ...(fs.alert ? { background: `${fs.color}11` } : {}) }}>
                       {/* Flows and wraps on narrow screens — the pill and Arrives label drop
                           to their own line instead of overlapping the text (mobile fix) */}
                       <div style={{ display:'flex', alignItems:'flex-start', gap:'4px 10px', flexWrap:'wrap' }}>
