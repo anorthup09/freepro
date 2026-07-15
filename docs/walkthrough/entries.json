@@ -212,5 +212,106 @@
       "Use 'Only not sent' to chase missing contracts, and 'Archived (N)' to review slots whose end date has passed."
     ],
     "screenshot": "vendor-contracts.png"
+  },
+  {
+    "title": "Color & Audio tracker — post contractors on the Video Tracker",
+    "page": "AvocadoPost — Post-Production",
+    "what": "Each AvocadoPost project page gets a Color & Audio table under the Video Tracker. + Add Color / + Add Audio open a form with roster name search (auto-fills their email), rate, services, start/end dates, total estimate, and Send Final Invoice To (defaults to you). Click any row to reopen the form; Hold Cost → VCC posts the total to the project VCC under Labor, and every named contractor feeds the Vendor Contracts report automatically.",
+    "where": "AvocadoPost → open a project page → Project Video Tracker tab → Color & Audio",
+    "how": [
+      "Open the project's page in AvocadoPost and scroll below the Video Tracker.",
+      "Click + Add Color or + Add Audio; start typing a name to search the roster, or type a new contractor.",
+      "Fill rate, services, dates, and the total estimate; pick who gets the final invoice.",
+      "Click a row anytime to reopen the form; use Hold Cost → VCC to hold the total on the budget (coded to Labor).",
+      "The contractor now shows on Reports & Resources → Vendor Contracts with dates and status."
+    ],
+    "screenshot": "color-audio-tracker.png"
+  },
+  {
+    "title": "Send Contract — post-production contractors",
+    "page": "AvocadoPost — Post-Production",
+    "what": "Contract Editor tiles and Color/Audio rows can now send a signable contract, same flow as crew contracts. Send Contract generates the agreement from what's on screen and opens a review pop-out — recipient, working dates, quoted total, scope of work, invoice-to, new-vendor note — then emails it from info@unbridledmedia.com with a signing link. The signing page shows the flat quoted total, and signatures flow back to the Vendor Contracts report.",
+    "where": "AvocadoPost → edit page (Contract Editor tile) or Project Video Tracker → Color & Audio row",
+    "how": [
+      "Fill in the contractor's name, email, rate/services, and total.",
+      "Click Send Contract — the agreement is generated and the review pop-out opens prefilled.",
+      "Adjust anything (dates, total, scope), then Send Contract Email — or Copy Signing Link to send it yourself.",
+      "The contractor opens the link, reviews, and types their name to sign; status updates to Signed on the Vendor Contracts report."
+    ],
+    "screenshot": "send-contract-post.png"
+  },
+  {
+    "title": "Room/Space quick-fill on schedule events",
+    "page": "FreePro — Production",
+    "what": "Every Room/Space you've entered on a shoot's schedule is remembered for that shoot and offered back as one-click chips (and typing suggestions) under the field on both the add and edit event forms — so 'Ballroom 3' only ever gets typed once per show.",
+    "where": "FreePro → Schedule → + Add Event / edit an event → Room / Space",
+    "how": [
+      "Add an event and type a room into Room / Space — it's saved with the event.",
+      "On the next event, the saved rooms appear as chips under the field; click one to fill it.",
+      "Typing also suggests matches from the shoot's saved rooms."
+    ],
+    "screenshot": "room-space-fill.png"
+  },
+  {
+    "title": "Travel forms pull the full roster",
+    "page": "FreePro — Production",
+    "what": "Crew dropdowns across the Travel tab — flights, hotel confirmations, rental cars, and drivers — now offer everyone: people assigned to the shoot first (with their position), then the full company roster. Travel can be booked before the crew list is final. Rental car pickup/dropoff fields also live-search real places so the location carries a mappable address into the Locations tab.",
+    "where": "FreePro → Travel → any Add Flight / Add Confirmation / Add Rental Car / Add Driver form",
+    "how": [
+      "Open any travel form and click the crew dropdown — 'On this shoot' lists assigned crew, 'Full roster' lists everyone else.",
+      "Picking a person auto-fills their name on the booking.",
+      "For rental cars, type the pickup spot and pick a suggestion — the resolved address feeds the Locations tab.",
+      "Flights also have a Duplicate button to book the same flight for another crew member, confirming just their cost and confirmation #."
+    ],
+    "screenshot": "travel-roster.png"
+  },
+  {
+    "title": "Schedule tiles — addresses right, drive times built in",
+    "page": "FreePro — Production",
+    "what": "Event tiles on the internal schedule and all shared views (producer, crew, client) put the location's address on the right side of the tile, with an estimated drive time from the previous stop directly under it. The drive chain covers located events, one-off locations, and reservation meals — so a full shoot day reads like a route.",
+    "where": "FreePro → Schedule, and every shared schedule view",
+    "how": [
+      "Give events locations (saved or one-off) — the address shows right-aligned on the tile.",
+      "When consecutive events are at different addresses, '🚗 X min from prev' appears under the address automatically.",
+      "The same layout and drive times appear on producer, crew, and client links."
+    ],
+    "screenshot": "tile-layout.png"
+  },
+  {
+    "title": "Catering — Delivery checkbox & reservations as driving stops",
+    "page": "FreePro — Production",
+    "what": "Catering forms get a Delivery checkbox (top right) and the time field is now Reservation/Delivery Time. Checked = the food comes to you, exactly as before. Unchecked = it's a reservation: the meal tile gets a Reservation badge, the restaurant's address joins the day's driving chain with its own drive time, and the next event calculates its drive from the restaurant.",
+    "where": "FreePro → Schedule → + Catering/Meals (or the Catering/Meals page)",
+    "how": [
+      "Add or edit a meal; leave Delivery checked for drop-offs.",
+      "Uncheck Delivery for a restaurant reservation and enter the address and reservation time.",
+      "The schedule shows the meal with a Reservation badge and 🚗 drive times in and out of the stop — internally and on shared views."
+    ],
+    "screenshot": "catering-delivery.png"
+  },
+  {
+    "title": "One-off event locations with live place search",
+    "page": "FreePro — Production",
+    "what": "Event forms take a one-off location without touching the Locations tab: an '…or type a one-off location' field under the Location dropdown live-searches real places. Picking a result attaches the mappable address — it shows on the tile and joins the drive-time chain — while staying off the project's Locations list. Freehand text works too (label only).",
+    "where": "FreePro → Schedule → + Add Event / edit an event → Location",
+    "how": [
+      "Leave the Location dropdown on — No location —.",
+      "Type the place into the one-off field and pick a suggestion; a green ✓ shows the resolved address.",
+      "The event tile shows the 📍 name with the address on the right and drive times to/from it.",
+      "Picking a saved location from the dropdown clears the one-off."
+    ],
+    "screenshot": "one-off-location.png"
+  },
+  {
+    "title": "Jump to Live + pulsing live events",
+    "page": "FreePro — Production",
+    "what": "On producer, crew, and client links, any event whose time block is happening right now pulses an orange left edge — and a Jump to Live button (with a matching pulsing dot) sits under Jump to Schedule. It scrolls straight to the live event, or the one that started within the last hour, or the next one coming up, centered on screen. Events light up and clear on their own as the day moves.",
+    "where": "Any producer, crew, or client share link",
+    "how": [
+      "Open a share link on a shoot day — the current time block pulses orange.",
+      "Tap Jump to Live to land on what's happening right now.",
+      "Lunch and reservation meals pulse during their windows too."
+    ],
+    "screenshot": "jump-to-live.png"
   }
 ]
