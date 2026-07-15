@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { api } from '../../api.js';
 import { displayName } from '../../utils/displayName.js';
+import { driveTime } from '../../utils/driveTime.js';
 import Clapboard from '../../components/Clapboard.jsx';
 
 // Room/Space input with quick-fill: rooms already saved on this shoot show as
@@ -328,7 +329,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
   const [weatherByDay, setWeatherByDay] = useState({});
   const weatherResyncDone = useRef(false);
   const [cateringModal, setCateringModal] = useState(null);
-  const [cateringForm, setCateringForm] = useState({ mealTypes:[], name:'', address:'', orderNumber:'', deliveryTime:'' });
+  const [cateringForm, setCateringForm] = useState({ mealTypes:[], name:'', address:'', orderNumber:'', deliveryTime:'', isDelivery:true });
   const [shotListScenes, setShotListScenes] = useState([]);
   const [slDays, setSlDays] = useState([]);
   const [savedToast, setSavedToast] = useState(false);
@@ -491,19 +492,19 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
     const existing = day?.catering || [];
     const mealTypes = existing.map(c => c.meal_type);
     const first = existing[0] || {};
-    setCateringForm({ mealTypes, name: first.name||'', address: first.address||'', orderNumber: first.order_number||'', deliveryTime: first.delivery_time||'' });
+    setCateringForm({ mealTypes, name: first.name||'', address: first.address||'', orderNumber: first.order_number||'', deliveryTime: first.delivery_time||'', isDelivery: first.is_delivery !== false });
     setCateringModal(dayId);
   }
 
   async function saveCatering(e) {
     e.preventDefault();
     const dayId = cateringModal;
-    const { mealTypes, name, address, orderNumber, deliveryTime } = cateringForm;
+    const { mealTypes, name, address, orderNumber, deliveryTime, isDelivery } = cateringForm;
     const day = days.find(d => d.id === dayId);
     const existingTypes = (day?.catering || []).map(c => c.meal_type);
     const deleteMealTypes = existingTypes.filter(mt => !mealTypes.includes(mt));
     try {
-      const results = await api.saveCatering(project.id, dayId, { mealTypes, name, address, orderNumber, deliveryTime, deleteMealTypes });
+      const results = await api.saveCatering(project.id, dayId, { mealTypes, name, address, orderNumber, deliveryTime, isDelivery, deleteMealTypes });
       setDays(ds => ds.map(d => {
         if (d.id !== dayId) return d;
         const kept = (d.catering||[]).filter(c => !mealTypes.includes(c.meal_type) && !deleteMealTypes.includes(c.meal_type));
@@ -598,6 +599,38 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
   }
 
   const currentDay = days.find(d => d.id === activeDay);
+
+  // Drive times between consecutive located stops (same engine as share views):
+  // events with a location, plus non-delivery (reservation) catering addresses
+  const [driveTimes, setDriveTimes] = useState({});
+  useEffect(() => {
+    const stops = [
+      ...(currentDay?.events || []).filter(e => e.location?.address)
+        .map(e => ({ time: e.start_time || '', addr: e.location.address })),
+      ...(currentDay?.catering || []).filter(c => c.is_delivery === false && c.address)
+        .map(c => ({ time: c.delivery_time || '', addr: c.address })),
+    ].sort((a, b) => a.time.localeCompare(b.time));
+    const pairs = [];
+    for (let i = 1; i < stops.length; i++) {
+      const from = stops[i - 1].addr, to = stops[i].addr;
+      if (from !== to) pairs.push({ key: `${from}||${to}`, from, to });
+    }
+    if (!pairs.length) return;
+    let cancelled = false;
+    (async () => {
+      for (const { key, from, to } of pairs) {
+        if (cancelled) break;
+        const t = await driveTime(from, to);
+        if (!cancelled && t) setDriveTimes(dt => dt[key] === t ? dt : { ...dt, [key]: t });
+        await new Promise(r => setTimeout(r, 200));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [activeDay, currentDay?.events?.length, currentDay?.catering?.length]);
+
+  // Address a timeline item contributes to the driving chain (if any)
+  const stopAddr = x => x._type === 'event' ? x.location?.address
+    : (x._type === 'catering' && x.is_delivery === false ? x.address : null);
 
   // Clapboard slate for filming events
   const [clapEvent, setClapEvent] = useState(null);
@@ -1016,7 +1049,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                 <div style={{ marginTop:10 }}>
                   {items.length === 0 && <div className="empty">No events yet for this day.</div>}
                   <div className="tl">
-                    {items.map(item => item._type === 'synthetic' ? (() => {
+                    {items.map((item, _ii) => item._type === 'synthetic' ? (() => {
                       const sm = SYNTHETIC_META[item._key];
                       const isEditing = editingSyntheticKey === item._key;
                       const dt = dayTimesForm[currentDay.id] || {};
@@ -1206,16 +1239,20 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                       </div>
                     ) : item._type === 'catering' ? (() => {
                       const mc = MEAL_COLORS[item.meal_type] || MEAL_COLORS.BREAKFAST;
+                      const isOut = item.is_delivery === false && item.address;
+                      const prevAddr = isOut ? items.slice(0, _ii).reverse().map(stopAddr).find(Boolean) : null;
+                      const drv = prevAddr && prevAddr !== item.address ? driveTimes[`${prevAddr}||${item.address}`] : null;
                       return (
                         <div key={item._key} className="ev">
                           <div className="ev-time">{item.delivery_time ? fmtTime(item.delivery_time) : '—'}</div>
                           <div className="ev-body" style={{ borderLeft:`2px solid ${mc.color}` }}>
                             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
-                              <div className="ev-title">{mc.label}</div>
+                              <div className="ev-title">{mc.label}{isOut ? <span style={{ fontSize:9, fontWeight:800, color:'var(--muted)', border:'1px solid var(--border)', borderRadius:10, padding:'1px 7px', marginLeft:8, textTransform:'uppercase', letterSpacing:'0.05em' }}>Reservation</span> : null}</div>
                               <div style={{ textAlign:'right' }}>
                                 {item.name && <div style={{ fontSize:12, fontWeight:600, color:'var(--text)' }}>{item.name}</div>}
                                 {item.address && <div style={{ fontSize:10, color:'var(--muted)' }}>{item.address}</div>}
                                 {item.order_number && <div style={{ fontSize:10, color:'var(--muted)' }}>Order #{item.order_number}</div>}
+                                {drv && <div style={{ fontSize:10, color:'var(--muted)' }}>🚗 {drv} from prev</div>}
                               </div>
                             </div>
                           </div>
@@ -1277,9 +1314,17 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                                 )}
                                 {item.location && <span style={{ fontSize:10, color:'var(--tan)', fontWeight:600, overflowWrap:'anywhere' }}>📍 {item.location.name}</span>}
                               </div>
-                              {item.location?.address && (
-                                <div style={{ marginLeft:'auto', maxWidth:'60%', fontSize:10, color:'var(--muted)', textAlign:'right', overflowWrap:'anywhere' }}>{item.location.address}</div>
-                              )}
+                              {item.location?.address && (() => {
+                                const prevAddr = items.slice(0, _ii).reverse().map(stopAddr).find(Boolean);
+                                const t = prevAddr && prevAddr !== item.location.address
+                                  ? driveTimes[`${prevAddr}||${item.location.address}`] : null;
+                                return (
+                                  <div style={{ marginLeft:'auto', maxWidth:'60%', display:'flex', flexDirection:'column', alignItems:'flex-end', gap:2 }}>
+                                    <div style={{ fontSize:10, color:'var(--muted)', textAlign:'right', overflowWrap:'anywhere' }}>{item.location.address}</div>
+                                    {t && <div style={{ fontSize:10, color:'var(--muted)', whiteSpace:'nowrap' }}>🚗 {t} from prev</div>}
+                                  </div>
+                                );
+                              })()}
                             </div>
                           )}
                           {(item.tags?.length > 0 || item.is_filming || item.isFilming) && (
@@ -1423,7 +1468,15 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
       {cateringModal && (
         <div className="modal-bg" onClick={e => e.target === e.currentTarget && setCateringModal(null)}>
           <div className="modal">
-            <div className="modal-title">Add Catering Info</div>
+            <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:10 }}>
+              <div className="modal-title">Add Catering Info</div>
+              <label title="Checked: the food comes to you. Unchecked: it's a reservation — the address becomes a driving stop on the schedule."
+                style={{ display:'flex', alignItems:'center', gap:6, fontSize:12, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap', marginTop:2 }}>
+                <input type="checkbox" checked={cateringForm.isDelivery}
+                  onChange={e => setCateringForm(f=>({ ...f, isDelivery: e.target.checked }))} style={{ width:'auto', accentColor:'#4ade80' }} />
+                Delivery
+              </label>
+            </div>
             <form onSubmit={saveCatering}>
               <div style={{ marginBottom:14 }}>
                 <div style={{ fontSize:11, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)', marginBottom:8 }}>Meal(s)</div>
@@ -1445,7 +1498,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                 <div className="field span2"><label>Name of Catering / Restaurant</label><input value={cateringForm.name} onChange={e => setCateringForm(f=>({...f,name:e.target.value}))} placeholder="Catering Co." /></div>
                 <div className="field span2"><label>Address</label><input value={cateringForm.address} onChange={e => setCateringForm(f=>({...f,address:e.target.value}))} placeholder="123 Main St" /></div>
                 <div className="field"><label>Order Number</label><input value={cateringForm.orderNumber} onChange={e => setCateringForm(f=>({...f,orderNumber:e.target.value}))} placeholder="#12345" /></div>
-                <div className="field"><label>Est. Delivery Time</label><input type="time" value={cateringForm.deliveryTime} onChange={e => setCateringForm(f=>({...f,deliveryTime:e.target.value}))} /></div>
+                <div className="field"><label>Reservation/Delivery Time</label><input type="time" value={cateringForm.deliveryTime} onChange={e => setCateringForm(f=>({...f,deliveryTime:e.target.value}))} /></div>
               </div>
               <div className="btn-row">
                 <button className="btn btn-primary" type="submit">Save Catering</button>

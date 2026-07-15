@@ -478,6 +478,8 @@ async function migrate() {
   `;
 
   await sql`ALTER TABLE schedule_events ADD COLUMN IF NOT EXISTS is_filming BOOLEAN DEFAULT FALSE`;
+  // FALSE = the crew goes out (reservation) — the address becomes a driving stop
+  await sql`ALTER TABLE catering_orders ADD COLUMN IF NOT EXISTS is_delivery BOOLEAN DEFAULT TRUE`;
 
   await sql`ALTER TABLE key_talent ADD COLUMN IF NOT EXISTS call_time TEXT`;
 

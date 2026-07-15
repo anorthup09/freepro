@@ -355,16 +355,17 @@ router.patch('/:id/schedule/calls/:callId', requireAuth, requireRole('ADMIN','PR
 router.post('/:id/schedule/days/:dayId/catering', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
     const { mealTypes = [], name, address, orderNumber, deliveryTime, deleteMealTypes = [] } = req.body;
+    const isDelivery = req.body.isDelivery !== false;
     if (deleteMealTypes.length) {
       await sql`DELETE FROM catering_orders WHERE shoot_day_id = ${req.params.dayId} AND meal_type = ANY(${sql.array(deleteMealTypes)})`;
     }
     const results = [];
     for (const mealType of mealTypes) {
       const [row] = await sql`
-        INSERT INTO catering_orders (id, shoot_day_id, meal_type, name, address, order_number, delivery_time)
-        VALUES (gen_random_uuid()::text, ${req.params.dayId}, ${mealType}, ${name||null}, ${address||null}, ${orderNumber||null}, ${deliveryTime||null})
+        INSERT INTO catering_orders (id, shoot_day_id, meal_type, name, address, order_number, delivery_time, is_delivery)
+        VALUES (gen_random_uuid()::text, ${req.params.dayId}, ${mealType}, ${name||null}, ${address||null}, ${orderNumber||null}, ${deliveryTime||null}, ${isDelivery})
         ON CONFLICT (shoot_day_id, meal_type) DO UPDATE SET
-          name=${name||null}, address=${address||null}, order_number=${orderNumber||null}, delivery_time=${deliveryTime||null}
+          name=${name||null}, address=${address||null}, order_number=${orderNumber||null}, delivery_time=${deliveryTime||null}, is_delivery=${isDelivery}
         RETURNING *`;
       results.push(row);
     }
