@@ -535,7 +535,7 @@ function ProducerView({ data, hideGear, onOpenShotList }) {
               </button>
               <button onClick={() => jumpToTime(schedule)} title="Scroll to what's happening right now"
                 style={{ padding:'6px 14px', fontSize:12, fontWeight:600, background:'rgba(232,80,10,0.10)', border:'1px solid rgba(232,80,10,0.5)', borderRadius:6, color:'var(--orange)', cursor:'pointer', whiteSpace:'nowrap' }}>
-                <span className='jump-sched-label'>Jump to Time ◉</span>
+                <span className='jump-sched-label' style={{ display:'inline-flex', alignItems:'center', gap:7 }}><span className="live-dot" /> Jump to Live</span>
               </button>
             </div>
           )}
@@ -775,7 +775,7 @@ function CrewView({ data, shareToken, hideGear, onOpenShotList }) {
               </button>
               <button onClick={() => jumpToTime(schedule)} title="Scroll to what's happening right now"
                 style={{ padding:'6px 14px', fontSize:12, fontWeight:600, background:'rgba(232,80,10,0.10)', border:'1px solid rgba(232,80,10,0.5)', borderRadius:6, color:'var(--orange)', cursor:'pointer', whiteSpace:'nowrap' }}>
-                <span className='jump-sched-label'>Jump to Time ◉</span>
+                <span className='jump-sched-label' style={{ display:'inline-flex', alignItems:'center', gap:7 }}><span className="live-dot" /> Jump to Live</span>
               </button>
             </div>
           )}
@@ -1592,7 +1592,7 @@ function ClientView({ data, onOpenShotList }) {
               </button>
               <button onClick={() => jumpToTime(schedule)} title="Scroll to what's happening right now"
                 style={{ padding:'6px 14px', fontSize:12, fontWeight:600, background:'rgba(232,80,10,0.10)', border:'1px solid rgba(232,80,10,0.5)', borderRadius:6, color:'var(--orange)', cursor:'pointer', whiteSpace:'nowrap' }}>
-                <span className='jump-sched-label'>Jump to Time ◉</span>
+                <span className='jump-sched-label' style={{ display:'inline-flex', alignItems:'center', gap:7 }}><span className="live-dot" /> Jump to Live</span>
               </button>
             </div>
           )}

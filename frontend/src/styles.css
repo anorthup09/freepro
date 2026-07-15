@@ -97,6 +97,13 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
 .ev-time { font-size: 11px; color: var(--muted); width: 100px; min-width: 100px; max-width: 100px; padding-top: 4px; font-variant-numeric: tabular-nums; flex-shrink: 0; overflow: hidden; }
 .ev-body { background: var(--bg2); border: 1px solid var(--border); border-radius: 6px; padding: 11px 14px; flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .ev-body.warn { border-color: var(--red-border); }
+/* Pulsing dot for the Jump to Live button */
+.live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--orange); flex-shrink: 0; animation: live-dot-pulse 1.6s ease-in-out infinite; }
+@keyframes live-dot-pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 6px 1px rgba(232, 80, 10, 0.7); }
+  50% { opacity: 0.35; box-shadow: 0 0 0 0 rgba(232, 80, 10, 0); }
+}
+
 /* Event currently in progress: pulsing orange left edge */
 .ev-body.ev-live { border-left: 4px solid var(--orange) !important; animation: ev-live-pulse 1.6s ease-in-out infinite; }
 @keyframes ev-live-pulse {
