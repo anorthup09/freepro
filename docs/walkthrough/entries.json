@@ -313,5 +313,17 @@
       "Lunch and reservation meals pulse during their windows too."
     ],
     "screenshot": "jump-to-live.png"
+  },
+  {
+    "title": "Swipe left for phone reminders",
+    "page": "FreePro — Production",
+    "what": "On a phone, swipe any timeline tile left in producer, crew, or client view to reveal an orange +Reminder button. Tapping it opens the phone's calendar pre-filled with the item's title, time, and location, plus a 30-minutes-before alert — one tap to save and your phone pings you before the event. Works on schedule events, call/lunch/wrap, catering, and flights (flights use the real departure time, timezone-safe). A small “swipe left to add reminders” hint sits next to the Schedule header.",
+    "where": "Any producer, crew, or client share link on a phone",
+    "how": [
+      "Open a share link on your phone and scroll to the Schedule.",
+      "Swipe a tile to the left — the +Reminder button appears.",
+      "Tap it, then save the pre-filled event in your calendar; it alerts 30 minutes before."
+    ],
+    "screenshot": "swipe-reminder.png"
   }
 ]
