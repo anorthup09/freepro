@@ -2100,13 +2100,15 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, talentC
     ...breakItems,
   ].sort((a, b) => a._sort - b._sort);
 
-  // Compute driving times between consecutive events with different locations
+  // Compute driving times between consecutive located stops: events with a
+  // location plus non-delivery (reservation) catering addresses
+  const stopAddr = x => x._type === 'event' ? x.location?.address
+    : (x._type === 'catering' && x.is_delivery === false ? x.address : null);
   useEffect(() => {
-    const locItems = allItems.filter(i => i._type === 'event' && i.location?.address);
+    const seq = allItems.map(stopAddr).filter(Boolean);
     const pairs = [];
-    for (let i = 1; i < locItems.length; i++) {
-      const from = locItems[i-1].location.address;
-      const to   = locItems[i].location.address;
+    for (let i = 1; i < seq.length; i++) {
+      const from = seq[i-1], to = seq[i];
       if (from !== to) pairs.push({ key: `${from}||${to}`, from, to });
     }
     if (!pairs.length) return;
@@ -2201,17 +2203,21 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, talentC
         <div className="tl" style={{ marginTop:8 }}>
               {allItems.map((item, i) => item._type === 'catering' ? (() => {
                 const mm = MEAL_META[item.meal_type] || MEAL_META.BREAKFAST;
+                const isOut = item.is_delivery === false && item.address;
+                const prevAddr = isOut ? allItems.slice(0, i).reverse().map(stopAddr).find(Boolean) : null;
+                const drv = prevAddr && prevAddr !== item.address ? driveTimes[`${prevAddr}||${item.address}`] : null;
                 return (
                   <div key={item._key} className="ev">
                     <div className="ev-time">{item.delivery_time ? fmtTime(item.delivery_time) : '—'}</div>
                     <div className="ev-body" style={{ borderLeft:`2px solid ${mm.color}`, background: `${mm.color}14` }}>
                       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
-                        <div className="ev-title">{mm.label}</div>
+                        <div className="ev-title">{mm.label}{isOut ? <span style={{ fontSize:9, fontWeight:800, color:'var(--muted)', border:'1px solid var(--border)', borderRadius:10, padding:'1px 7px', marginLeft:8, textTransform:'uppercase', letterSpacing:'0.05em' }}>Reservation</span> : null}</div>
                         {cateringDetail && (
                           <div style={{ textAlign:'right' }}>
                             {item.name && <div style={{ fontSize:12, fontWeight:600, color:'var(--text)' }}>{item.name}</div>}
                             {cateringDetail === 'full' && item.address && <div style={{ fontSize:10, color:'var(--muted)' }}>{item.address}</div>}
                             {cateringDetail === 'full' && item.order_number && <div style={{ fontSize:10, color:'var(--muted)' }}>Order #{item.order_number}</div>}
+                            {drv && <div style={{ fontSize:10, color:'var(--muted)' }}>🚗 {drv} from prev</div>}
                           </div>
                         )}
                       </div>
@@ -2336,8 +2342,7 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, talentC
                 );
               })() : (() => {
                 const loc = item.location;
-                const prevLocItem = allItems.slice(0, i).reverse().find(x => x._type === 'event' && x.location?.address);
-                const prevAddr = prevLocItem?.location?.address;
+                const prevAddr = allItems.slice(0, i).reverse().map(stopAddr).find(Boolean);
                 const thisAddr = loc?.address;
                 const driveKey = prevAddr && thisAddr && prevAddr !== thisAddr ? `${prevAddr}||${thisAddr}` : null;
                 const driveTime = driveKey ? driveTimes[driveKey] : null;

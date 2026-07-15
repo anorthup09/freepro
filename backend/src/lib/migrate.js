@@ -480,6 +480,7 @@ async function migrate() {
   await sql`ALTER TABLE schedule_events ADD COLUMN IF NOT EXISTS is_filming BOOLEAN DEFAULT FALSE`;
   // One-off event location typed straight into the event (not in the Locations tab)
   await sql`ALTER TABLE schedule_events ADD COLUMN IF NOT EXISTS adhoc_location TEXT`;
+  await sql`ALTER TABLE schedule_events ADD COLUMN IF NOT EXISTS adhoc_address TEXT`;
   // FALSE = the crew goes out (reservation) — the address becomes a driving stop
   await sql`ALTER TABLE catering_orders ADD COLUMN IF NOT EXISTS is_delivery BOOLEAN DEFAULT TRUE`;
 

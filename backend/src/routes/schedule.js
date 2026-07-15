@@ -29,7 +29,7 @@ async function getDayFull(dayId) {
   if (!day) return null;
   return {
     ...day,
-    events: events.map(e => ({ ...e, tags: e.tags || [], crew_ids: e.crew_ids || [], location: e.location_name ? { name: e.location_name, address: e.location_address } : (e.adhoc_location ? { name: e.adhoc_location, adhoc: true } : null) })),
+    events: events.map(e => ({ ...e, tags: e.tags || [], crew_ids: e.crew_ids || [], location: e.location_name ? { name: e.location_name, address: e.location_address } : (e.adhoc_location ? { name: e.adhoc_location, address: e.adhoc_address || null, adhoc: true } : null) })),
     crewCalls: crewCalls.map(c => ({
       ...c,
       crewAssignment: { id: c.crew_assignment_id, positionId: c.position_id, slotNumber: c.slot_number, position: { name: c.position_name }, crewMember: c.cm_id ? { id: c.cm_id, name: c.cm_name, phone: c.cm_phone } : null }
@@ -145,7 +145,7 @@ router.get('/:id/schedule', requireAuth, async (req, res, next) => {
     const callsByDay = {};
     const cateringByDay = {};
     for (const e of events) {
-      (eventsByDay[e.shoot_day_id] ||= []).push({ ...e, tags: e.tags || [], crew_ids: e.crew_ids || [], location: e.location_name ? { name: e.location_name, address: e.location_address } : (e.adhoc_location ? { name: e.adhoc_location, adhoc: true } : null) });
+      (eventsByDay[e.shoot_day_id] ||= []).push({ ...e, tags: e.tags || [], crew_ids: e.crew_ids || [], location: e.location_name ? { name: e.location_name, address: e.location_address } : (e.adhoc_location ? { name: e.adhoc_location, address: e.adhoc_address || null, adhoc: true } : null) });
     }
     for (const c of crewCalls) {
       (callsByDay[c.shoot_day_id] ||= []).push({ ...c, crewAssignment: { id: c.crew_assignment_id, positionId: c.position_id, slotNumber: c.slot_number, position: { name: c.position_name }, crewMember: c.cm_id ? { id: c.cm_id, name: c.cm_name, phone: c.cm_phone } : null } });
@@ -251,7 +251,7 @@ router.delete('/:id/schedule/days/:dayId', requireAuth, requireRole('ADMIN','PRO
 // POST event
 router.post('/:id/schedule/days/:dayId/events', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const { startTime, endTime, title, detail, roomSpace, locationId, adhocLocation, isAlert, alertMessage, isFilming, isShootingCall, isLunch, tags=[], audience=[], crewIds=[] } = req.body;
+    const { startTime, endTime, title, detail, roomSpace, locationId, adhocLocation, adhocAddress, isAlert, alertMessage, isFilming, isShootingCall, isLunch, tags=[], audience=[], crewIds=[] } = req.body;
     const [dayExists] = await sql`SELECT id FROM shoot_days WHERE id = ${req.params.dayId}`;
     if (!dayExists) {
       const existing = await sql`SELECT id, day_number FROM shoot_days WHERE project_id = ${req.params.id}`;
@@ -259,8 +259,8 @@ router.post('/:id/schedule/days/:dayId/events', requireAuth, requireRole('ADMIN'
       return res.status(404).json({ error: 'Shoot day not found — the schedule will refresh, please try again.' });
     }
     const [ev] = await sql`
-      INSERT INTO schedule_events (id, shoot_day_id, start_time, end_time, title, detail, room_space, location_id, adhoc_location, is_alert, alert_message, is_filming, is_shooting_call, is_lunch, audience)
-      VALUES (gen_random_uuid()::text, ${req.params.dayId}, ${startTime}, ${endTime||null}, ${title}, ${detail||null}, ${roomSpace||null}, ${locationId||null}, ${locationId ? null : (adhocLocation||null)}, ${isAlert||false}, ${alertMessage||null}, ${isFilming||false}, ${isShootingCall||false}, ${isLunch||false}, ${sql.array(audience)})
+      INSERT INTO schedule_events (id, shoot_day_id, start_time, end_time, title, detail, room_space, location_id, adhoc_location, adhoc_address, is_alert, alert_message, is_filming, is_shooting_call, is_lunch, audience)
+      VALUES (gen_random_uuid()::text, ${req.params.dayId}, ${startTime}, ${endTime||null}, ${title}, ${detail||null}, ${roomSpace||null}, ${locationId||null}, ${locationId ? null : (adhocLocation||null)}, ${locationId ? null : (adhocAddress||null)}, ${isAlert||false}, ${alertMessage||null}, ${isFilming||false}, ${isShootingCall||false}, ${isLunch||false}, ${sql.array(audience)})
       RETURNING *`;
     if (tags.length) {
       await Promise.all(tags.map(t => sql`INSERT INTO event_tags (id, event_id, type, label) VALUES (gen_random_uuid()::text, ${ev.id}, ${t.type}::event_tag_type, ${t.label||null})`));
@@ -269,7 +269,7 @@ router.post('/:id/schedule/days/:dayId/events', requireAuth, requireRole('ADMIN'
       await Promise.all(crewIds.map(cid => sql`INSERT INTO event_crews (event_id, crew_id) VALUES (${ev.id}, ${cid}) ON CONFLICT DO NOTHING`));
     }
     const [loc] = ev.location_id ? await sql`SELECT id, name, address FROM locations WHERE id = ${ev.location_id}` : [null];
-    res.status(201).json({ ...ev, tags, crew_ids: crewIds, location: loc ? { name: loc.name, address: loc.address } : (ev.adhoc_location ? { name: ev.adhoc_location, adhoc: true } : null) });
+    res.status(201).json({ ...ev, tags, crew_ids: crewIds, location: loc ? { name: loc.name, address: loc.address } : (ev.adhoc_location ? { name: ev.adhoc_location, address: ev.adhoc_address || null, adhoc: true } : null) });
   } catch(e){next(e);}
 });
 
@@ -288,6 +288,7 @@ router.patch('/:id/schedule/events/:eventId', requireAuth, requireRole('ADMIN','
         room_space=${d.roomSpace !== undefined ? (d.roomSpace || null) : sql`room_space`},
         location_id=${d.locationId !== undefined ? (d.locationId || null) : sql`location_id`},
         adhoc_location=${d.adhocLocation !== undefined || d.locationId ? ((d.locationId ? null : d.adhocLocation) || null) : sql`adhoc_location`},
+        adhoc_address=${d.adhocAddress !== undefined || d.locationId ? ((d.locationId ? null : d.adhocAddress) || null) : sql`adhoc_address`},
         audience=COALESCE(${d.audience!=null?sql.array(d.audience):null},audience)
       WHERE id=${req.params.eventId} RETURNING *`;
     if (d.tags !== undefined) {

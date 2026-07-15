@@ -328,4 +328,40 @@ router.get('/flight-status', requireAuth, async (req, res, next) => {
   } catch(e) { next(e); }
 });
 
+// ─── Place search: mappable name + address for one-off event locations ───────
+// Google Places Text Search when GOOGLE_MAPS_API_KEY is set (businesses,
+// venues, addresses); OpenStreetMap Nominatim otherwise.
+router.get('/place-search', requireAuth, async (req, res, next) => {
+  try {
+    const q = String(req.query.q || '').trim();
+    if (q.length < 3) return res.json([]);
+    if (process.env.GOOGLE_MAPS_API_KEY) {
+      try {
+        const g = await getJson(`https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(q)}&key=${process.env.GOOGLE_MAPS_API_KEY}`);
+        const results = (g.results || []).slice(0, 6).map(p => ({
+          name: p.name || p.formatted_address?.split(',')[0] || q,
+          address: p.formatted_address || '',
+        })).filter(p => p.address);
+        if (results.length) return res.json(results);
+      } catch (e) { console.error('google place search failed:', e.message); }
+    }
+    let data = [];
+    try {
+      const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&addressdetails=1&limit=6`, {
+        headers: { 'User-Agent': 'FreePro/1.0 (video production management app)' },
+      });
+      data = await r.json();
+      if (!Array.isArray(data)) data = [];
+    } catch { data = []; }
+    res.json(data.map(p => {
+      const a = p.address || {};
+      const parts = [
+        a.house_number && a.road ? `${a.house_number} ${a.road}` : a.road,
+        a.city || a.town || a.village || a.county, a.state, a.postcode,
+      ].filter(Boolean);
+      return { name: p.name || p.display_name.split(',')[0], address: parts.join(', ') || p.display_name };
+    }).filter(p => p.address));
+  } catch (e) { next(e); }
+});
+
 module.exports = router;

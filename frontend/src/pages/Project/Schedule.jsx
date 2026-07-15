@@ -4,6 +4,47 @@ import { displayName } from '../../utils/displayName.js';
 import { driveTime } from '../../utils/driveTime.js';
 import Clapboard from '../../components/Clapboard.jsx';
 
+// One-off location: live place search (Google when configured) so the pick
+// carries a mappable address for travel calculations — never saved to Locations
+function OneOffLocationField({ value, address, onChange }) {
+  const [sugs, setSugs] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [open, setOpen] = useState(false);
+  const timer = useRef(null);
+  const onType = v => {
+    onChange({ name: v, address: '' });
+    clearTimeout(timer.current);
+    if (v.trim().length < 3) { setSugs([]); setSearching(false); return; }
+    setSearching(true);
+    timer.current = setTimeout(async () => {
+      try { const r = await api.placeSearch(v.trim()); setSugs(r || []); setOpen(true); }
+      catch { setSugs([]); }
+      setSearching(false);
+    }, 350);
+  };
+  return (
+    <div style={{ position:'relative', marginTop:6 }}>
+      <input value={value} placeholder="…or type a one-off location"
+        title="Shows on this event only — not saved to the Locations tab"
+        onChange={e => onType(e.target.value)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)} />
+      {searching && <div style={{ fontSize:10, color:'var(--muted)', marginTop:3 }}>searching…</div>}
+      {address && <div style={{ fontSize:10, color:'#5ABF80', marginTop:3 }}>✓ {address}</div>}
+      {open && sugs.length > 0 && (
+        <div style={{ position:'absolute', top:'100%', left:0, right:0, zIndex:120, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:6, maxHeight:200, overflowY:'auto' }}>
+          {sugs.map((sg, i) => (
+            <div key={i} onMouseDown={() => { onChange({ name: sg.name, address: sg.address }); setOpen(false); setSugs([]); }}
+              style={{ padding:'7px 12px', cursor:'pointer', borderBottom:'1px solid var(--border)', fontSize:12 }}>
+              <div style={{ fontWeight:600 }}>{sg.name}</div>
+              <div style={{ color:'var(--muted)', fontSize:10.5 }}>{sg.address}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Room/Space input with quick-fill: rooms already saved on this shoot show as
 // native suggestions (datalist) and as clickable chips below the field
 function RoomSpaceField({ value, onChange, options }) {
@@ -296,9 +337,9 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
   const [days, setDays] = useState([]);
   const [activeDay, setActiveDay] = useState(null);
   const [showAddEvent, setShowAddEvent] = useState(false);
-  const [eventForm, setEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', roomSpace:'', isAlert:false, isFilming:false, tags:[], audience:[], crewIds:[], locationId:'', adhocLocation:'' });
+  const [eventForm, setEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', roomSpace:'', isAlert:false, isFilming:false, tags:[], audience:[], crewIds:[], locationId:'', adhocLocation:'', adhocAddress:'' });
   const [editEventId, setEditEventId] = useState(null);
-  const [editEventForm, setEditEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', roomSpace:'', isAlert:false, isFilming:false, tags:[], audience:[], crewIds:[], locationId:'', adhocLocation:'' });
+  const [editEventForm, setEditEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', roomSpace:'', isAlert:false, isFilming:false, tags:[], audience:[], crewIds:[], locationId:'', adhocLocation:'', adhocAddress:'' });
   const [dayCardCollapsed, setDayCardCollapsed] = useState(true);
 
   // Every Room/Space already used on this shoot's schedule — saved with the
@@ -683,7 +724,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
 
   function openEditEvent(ev) {
     setEditEventId(ev.id);
-    setEditEventForm({ startTime: ev.start_time || ev.startTime || '', endTime: ev.end_time || ev.endTime || '', title: ev.title || '', detail: ev.detail || '', roomSpace: ev.room_space || '', isAlert: ev.is_alert || ev.isAlert || false, isFilming: ev.is_filming || ev.isFilming || false, tags: ev.tags || [], audience: ev.audience || [], crewIds: ev.crew_ids || [], locationId: ev.location_id || '', adhocLocation: ev.adhoc_location || '' });
+    setEditEventForm({ startTime: ev.start_time || ev.startTime || '', endTime: ev.end_time || ev.endTime || '', title: ev.title || '', detail: ev.detail || '', roomSpace: ev.room_space || '', isAlert: ev.is_alert || ev.isAlert || false, isFilming: ev.is_filming || ev.isFilming || false, tags: ev.tags || [], audience: ev.audience || [], crewIds: ev.crew_ids || [], locationId: ev.location_id || '', adhocLocation: ev.adhoc_location || '', adhocAddress: ev.adhoc_address || '' });
   }
 
   function toggleEditTag(type) {
@@ -1378,9 +1419,8 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                       </select>
                   }
                   {!eventForm.locationId && (
-                    <input value={eventForm.adhocLocation} placeholder="…or type a one-off location" style={{ marginTop:6 }}
-                      title="Shows on this event only — not saved to the Locations tab"
-                      onChange={e => setEventForm(f=>({...f,adhocLocation:e.target.value}))} />
+                    <OneOffLocationField value={eventForm.adhocLocation} address={eventForm.adhocAddress}
+                      onChange={v => setEventForm(f=>({...f, adhocLocation: v.name, adhocAddress: v.address}))} />
                   )}
                 </div>
                 <div className="field"><label>Room / Space</label><RoomSpaceField value={eventForm.roomSpace} options={usedRooms} onChange={v => setEventForm(f=>({...f,roomSpace:v}))} /></div>
@@ -1541,9 +1581,8 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                       </select>
                   }
                   {!editEventForm.locationId && (
-                    <input value={editEventForm.adhocLocation} placeholder="…or type a one-off location" style={{ marginTop:6 }}
-                      title="Shows on this event only — not saved to the Locations tab"
-                      onChange={e => setEditEventForm(f=>({...f,adhocLocation:e.target.value}))} />
+                    <OneOffLocationField value={editEventForm.adhocLocation} address={editEventForm.adhocAddress}
+                      onChange={v => setEditEventForm(f=>({...f, adhocLocation: v.name, adhocAddress: v.address}))} />
                   )}
                 </div>
                 <div className="field"><label>Room / Space</label><RoomSpaceField value={editEventForm.roomSpace} options={usedRooms} onChange={v => setEditEventForm(f=>({...f,roomSpace:v}))} /></div>

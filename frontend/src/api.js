@@ -347,6 +347,7 @@ export const api = {
   createDrive: (projectId, data) => req('POST', `/projects/${projectId}/travel/drives`, data),
   deleteDrive: (projectId, id) => req('DELETE', `/projects/${projectId}/travel/drives/${id}`),
   hotelSearch: (q) => req('GET', `/util/hotel-search?q=${encodeURIComponent(q)}`),
+  placeSearch: (q) => req('GET', `/util/place-search?q=${encodeURIComponent(q)}`),
   geoSearch: (q) => req('GET', `/util/geo-search?q=${encodeURIComponent(q)}`),
   flightLookup: (flight, date, origin) => req('GET', `/util/flight-lookup?flight=${encodeURIComponent(flight)}&date=${date}${origin ? `&origin=${encodeURIComponent(origin)}` : ''}`),
   flightStatus: (flight, date, origin) => req('GET', `/util/flight-status?flight=${encodeURIComponent(flight)}&date=${date}${origin ? `&origin=${encodeURIComponent(origin)}` : ''}`),
