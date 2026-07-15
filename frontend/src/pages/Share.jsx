@@ -2211,7 +2211,7 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, talentC
                     <div className="ev-time">{item.delivery_time ? fmtTime(item.delivery_time) : '—'}</div>
                     <div className="ev-body" style={{ borderLeft:`2px solid ${mm.color}`, background: `${mm.color}14` }}>
                       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
-                        <div className="ev-title">{mm.label}{isOut ? <span style={{ fontSize:9, fontWeight:800, color:'var(--muted)', border:'1px solid var(--border)', borderRadius:10, padding:'1px 7px', marginLeft:8, textTransform:'uppercase', letterSpacing:'0.05em' }}>Reservation</span> : null}</div>
+                        <div className="ev-title">{mm.label}{isOut ? <span style={{ fontSize:9, fontWeight:800, color:'var(--muted)', border:'1px solid var(--border)', borderRadius:10, padding:'1px 7px', marginLeft:8, textTransform:'uppercase', letterSpacing:'0.05em', whiteSpace:'nowrap', display:'inline-block' }}>Reservation</span> : null}</div>
                         {cateringDetail && (
                           <div style={{ textAlign:'right' }}>
                             {item.name && <div style={{ fontSize:12, fontWeight:600, color:'var(--text)' }}>{item.name}</div>}
