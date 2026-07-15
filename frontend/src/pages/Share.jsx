@@ -2578,7 +2578,7 @@ function SwipeReminder({ item, dayStr, children }) {
           cursor: 'pointer', letterSpacing: '.03em',
           opacity: dx < -10 ? 1 : 0, pointerEvents: dx < -10 ? 'auto' : 'none', transition: 'opacity .15s' }}>
         <span style={{ fontSize: 17, lineHeight: 1 }}>⏰</span>
-        + Add Reminder
+        +Reminder
       </button>
       <div onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} onTouchCancel={onTouchEnd}
         style={{ transform: `translateX(${dx}px)`, transition: dragging ? 'none' : 'transform .18s ease', touchAction: 'pan-y' }}>
