@@ -325,5 +325,17 @@
       "Tap it, then save the pre-filled event in your calendar; it alerts 30 minutes before."
     ],
     "screenshot": "swipe-reminder.png"
+  },
+  {
+    "title": "Live pulse everywhere — internal schedule + in-air flights",
+    "page": "FreePro — Production",
+    "what": "The pulsing orange live edge now runs everywhere, not just on share links. The internal Schedule tab pulses the current time block as you work, and flight tiles pulse while the plane is actually in the air — from departure until arrival, using the flight's real timestamps so timezones can't fool it. The pulse clears on its own when the block ends, the flight lands, or its live status flips to Arrived.",
+    "where": "Project → Schedule, plus producer, crew, and client share links",
+    "how": [
+      "Open the Schedule tab (or any share link) during a shoot day — the block happening right now pulses orange.",
+      "Flights pulse for the whole time they're in the air, then stop at landing.",
+      "Nothing to configure — tiles light up and clear automatically as the day moves."
+    ],
+    "screenshot": "live-pulse.png"
   }
 ]
