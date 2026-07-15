@@ -470,6 +470,17 @@ function FlightsTable({ flights }) {
 }
 
 // ── Producer View ────────────────────────────────────────────────────────────
+// Oversized Unbridled logo ghosted into the top-right of the share views,
+// bleeding off the screen edge (clipped so it never causes horizontal scroll)
+function HeaderWatermark() {
+  return (
+    <div aria-hidden style={{ position:'absolute', top:0, left:0, right:0, height:520, overflow:'hidden', pointerEvents:'none', zIndex:0 }}>
+      <img src="/unbridled-logo.png" alt=""
+        style={{ position:'absolute', top:120, right:'-16%', width:'min(460px, 60vw)', opacity:0.05, filter:'brightness(0) invert(1)', userSelect:'none' }} />
+    </div>
+  );
+}
+
 function ProducerView({ data, hideGear, onOpenShotList }) {
   const { project, locations, techSpecs, clientContacts, agencyContacts = [], keyTalent, crewAssignments, schedule: rawSchedule, flights: allFlights, hotelBlocks: allHotelBlocks, rentalCars: allRentalCars, deliverables, gear, onlineRentals = [], shotList = [], slDays = [], slBreaks = [] } = data;
   const scheduleRef = useRef(null);
@@ -488,7 +499,8 @@ function ProducerView({ data, hideGear, onOpenShotList }) {
   const hotelBlocks = isLocalPerson ? [] : allHotelBlocks;
   const rentalCars = isLocalPerson ? [] : allRentalCars;
   return (
-    <div className="share-view">
+    <div className="share-view" style={{ position:'relative' }}>
+      <HeaderWatermark />
       <div className="share-header">
         <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12 }}>
           <div>
@@ -729,7 +741,8 @@ function CrewView({ data, shareToken, hideGear, onOpenShotList }) {
   const hotelBlocks = isLocalPerson ? [] : allHotelBlocks;
   const rentalCars = isLocalPerson ? [] : allRentalCars;
   return (
-    <div className="share-view">
+    <div className="share-view" style={{ position:'relative' }}>
+      <HeaderWatermark />
       <div className="share-header">
         <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12 }}>
           <div>
@@ -974,7 +987,7 @@ function QuestionsView({ shareToken, pw, canAnswer, project }) {
   const answered = questions.filter(q => q.answer);
 
   return (
-    <div className="share-view">
+    <div className="share-view" style={{ position:'relative' }}>
       <div className="share-header" style={{ paddingBottom:16 }}>
         <div style={{ fontSize:16, fontWeight:700, letterSpacing:'-0.01em' }}>Questions</div>
         <div style={{ fontSize:12, color:'var(--muted)', marginTop:4 }}>
@@ -1539,7 +1552,8 @@ function ShotListShareView({ scenes: initialScenes, days: initialDays = [], brea
 function ClientView({ data, onOpenShotList }) {
   const { project, locations, clientContacts, keyTalent, crewAssignments, schedule, shotList = [], slDays = [], slBreaks = [] } = data;
   return (
-    <div className="share-view">
+    <div className="share-view" style={{ position:'relative' }}>
+      <HeaderWatermark />
       <div className="share-header">
         <div className="proj-code">{project.code}</div>
         <div className="proj-title">{project.title}</div>
@@ -1673,7 +1687,7 @@ function TalentView({ data }) {
   })).filter(day => day.events.length > 0);
 
   return (
-    <div className="share-view">
+    <div className="share-view" style={{ position:'relative' }}>
       <div className="share-header">
         <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12 }}>
           <div>
@@ -2504,7 +2518,7 @@ function GlassHeader({ project, showTime, clientMode, crewMode }) {
 function ScriptsShareView({ scripts, shareToken, pw }) {
   const base = `${window.location.origin}/api/share/${shareToken}`;
   return (
-    <div className="share-view">
+    <div className="share-view" style={{ position:'relative' }}>
       <div className="share-header" style={{ paddingBottom:16 }}>
         <div style={{ fontSize:16, fontWeight:700, letterSpacing:'-0.01em' }}>Scripts</div>
         <div style={{ fontSize:12, color:'var(--muted)', marginTop:4 }}>Tap a script to view or download it.</div>
@@ -2530,7 +2544,7 @@ function ScriptsShareView({ scripts, shareToken, pw }) {
 function ExtraDocsShareView({ docs, shareToken, pw }) {
   const base = `${window.location.origin}/api/share/${shareToken}`;
   return (
-    <div className="share-view">
+    <div className="share-view" style={{ position:'relative' }}>
       <div className="share-header" style={{ paddingBottom:16 }}>
         <div style={{ fontSize:16, fontWeight:700, letterSpacing:'-0.01em' }}>Additional Docs</div>
         <div style={{ fontSize:12, color:'var(--muted)', marginTop:4 }}>Reference documents, lighting grids, show flows — tap to view or download.</div>
