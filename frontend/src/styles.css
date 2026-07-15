@@ -97,6 +97,13 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
 .ev-time { font-size: 11px; color: var(--muted); width: 100px; min-width: 100px; max-width: 100px; padding-top: 4px; font-variant-numeric: tabular-nums; flex-shrink: 0; overflow: hidden; }
 .ev-body { background: var(--bg2); border: 1px solid var(--border); border-radius: 6px; padding: 11px 14px; flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .ev-body.warn { border-color: var(--red-border); }
+/* Event currently in progress: pulsing orange left edge */
+.ev-body.ev-live { border-left: 4px solid var(--orange) !important; animation: ev-live-pulse 1.6s ease-in-out infinite; }
+@keyframes ev-live-pulse {
+  0%, 100% { box-shadow: -7px 0 16px -2px rgba(232, 80, 10, 0.75), inset 4px 0 10px -5px rgba(232, 80, 10, 0.6); }
+  50% { box-shadow: -2px 0 4px -2px rgba(232, 80, 10, 0.15), inset 0 0 0 0 rgba(232, 80, 10, 0); }
+}
+@media print { .ev-body.ev-live { animation: none; } }
 .ev-title { font-size: 13px; font-weight: 600; }
 .ev-title.alert { color: var(--orange); }
 .ev-detail { font-size: 12px; color: var(--muted); margin-top: 3px; line-height: 1.4; }

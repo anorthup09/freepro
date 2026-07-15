@@ -2032,6 +2032,19 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, talentC
   const now = useNow();
   const [driveTimes, setDriveTimes] = useState({});
 
+  // An event is "live" when today is this day and the current time falls
+  // inside its block (no end time = the hour after it starts)
+  const liveDayISO = day.date ? String(day.date).slice(0, 10) : null;
+  const todayISO = now.toLocaleDateString('en-CA');
+  const nowMins = now.getHours() * 60 + now.getMinutes();
+  const isLive = (start, end) => {
+    if (!liveDayISO || liveDayISO !== todayISO) return false;
+    const st = timeToMins(start);
+    if (st >= 1440) return false;
+    const en = end ? timeToMins(end) : st + 60;
+    return nowMins >= st && nowMins < (en >= 1440 ? st + 60 : en);
+  };
+
   const personOk = e => !personFilter || !(e.audience || []).length || (e.audience || []).some(n => String(n).toLowerCase() === personFilter.toLowerCase());
   const filteredDay = {
     ...day,
@@ -2215,7 +2228,7 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, talentC
                 return (
                   <div key={item._key} className="ev">
                     <div className="ev-time">{item.delivery_time ? fmtTime(item.delivery_time) : '—'}</div>
-                    <div className="ev-body" style={{ borderLeft:`2px solid ${mm.color}`, background: `${mm.color}14` }}>
+                    <div className={`ev-body${isLive(item.delivery_time, null) ? ' ev-live' : ''}`} style={{ borderLeft:`2px solid ${mm.color}`, background: `${mm.color}14` }}>
                       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
                         <div className="ev-title">{mm.label}{isOut ? <span style={{ fontSize:9, fontWeight:800, color:'var(--muted)', border:'1px solid var(--border)', borderRadius:10, padding:'1px 7px', marginLeft:8, textTransform:'uppercase', letterSpacing:'0.05em', whiteSpace:'nowrap', display:'inline-block' }}>Reservation</span> : null}</div>
                         {cateringDetail && (
@@ -2237,7 +2250,7 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, talentC
                 return (
                   <div key={item._key} className="ev">
                     <div className="ev-time">{fmtTime(item.startTime)}{item.endTime ? ` – ${fmtTime(item.endTime)}` : ''}</div>
-                    <div className="ev-body" style={{ borderLeft:`2px solid ${sm.color}` }}>
+                    <div className={`ev-body${isLive(item.startTime, item.endTime) ? ' ev-live' : ''}`} style={{ borderLeft:`2px solid ${sm.color}` }}>
                       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
                         <div style={{ flex:1 }}>
                           <div className="ev-title">{item.title}</div>
@@ -2355,7 +2368,7 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, talentC
                 return (
                   <div key={item.id || i} className="ev">
                     <div className="ev-time">{fmtTime(item.start_time)}{item.end_time ? ` – ${fmtTime(item.end_time)}` : ''}</div>
-                    <div className={`ev-body${item.is_alert ? ' warn' : ''}`} style={!item.is_alert ? { borderLeft:'2px solid var(--orange)',  } : {}}>
+                    <div className={`ev-body${item.is_alert ? ' warn' : ''}${isLive(item.start_time, item.end_time) ? ' ev-live' : ''}`} style={!item.is_alert ? { borderLeft:'2px solid var(--orange)',  } : {}}>
                       <div style={{ display:'flex', gap:'4px 14px', justifyContent:'space-between', alignItems:'flex-start', flexWrap:'wrap' }}>
                         <div style={{ flex:'1 1 220px', minWidth:0 }}>
                           <div className={`ev-title${item.is_alert ? ' alert' : ''}`}>{item.is_filming ? '🎬 ' : ''}{item.title}</div>
