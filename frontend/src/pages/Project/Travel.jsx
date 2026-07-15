@@ -46,6 +46,46 @@ function FlightStatusBadge({ f }) {
   );
 }
 
+// Rental car location field: live place search so the pick carries a real,
+// mappable address (fed to the Locations tab); free text still allowed
+function PlaceField({ value, address, placeholder, onChange }) {
+  const [sugs, setSugs] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [open, setOpen] = useState(false);
+  const timer = useRef(null);
+  const onType = v => {
+    onChange({ text: v, address: '' });
+    clearTimeout(timer.current);
+    if (v.trim().length < 3) { setSugs([]); setSearching(false); return; }
+    setSearching(true);
+    timer.current = setTimeout(async () => {
+      try { const r = await api.placeSearch(v.trim()); setSugs(r || []); setOpen(true); }
+      catch { setSugs([]); }
+      setSearching(false);
+    }, 350);
+  };
+  return (
+    <div style={{ position:'relative' }}>
+      <input value={value} placeholder={placeholder}
+        onChange={e => onType(e.target.value)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)} />
+      {searching && <div style={{ fontSize:10, color:'var(--muted)', marginTop:3 }}>searching…</div>}
+      {address && <div style={{ fontSize:10, color:'#5ABF80', marginTop:3, overflowWrap:'anywhere' }}>✓ {address}</div>}
+      {open && sugs.length > 0 && (
+        <div style={{ position:'absolute', top:'100%', left:0, right:0, zIndex:120, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:6, maxHeight:200, overflowY:'auto' }}>
+          {sugs.map((sg, i) => (
+            <div key={i} onMouseDown={() => { onChange({ text: sg.name, address: sg.address }); setOpen(false); setSugs([]); }}
+              style={{ padding:'7px 12px', cursor:'pointer', borderBottom:'1px solid var(--border)', fontSize:12 }}>
+              <div style={{ fontWeight:600 }}>{sg.name}</div>
+              <div style={{ color:'var(--muted)', fontSize:10.5 }}>{sg.address}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Debounce hook
 function useDebounce(fn, delay) {
   const timer = useRef(null);
@@ -164,7 +204,7 @@ export default function Travel({ project }) {
 
   // Drive / car modals
   const [showCar, setShowCar] = useState(false);
-  const [carForm, setCarForm] = useState({ crewMemberId:'', vendor:'', pickupLocation:'', dropoffLocation:'', pickupDate:'', dropoffDate:'', confirmation:'', cost:'', notes:'' });
+  const [carForm, setCarForm] = useState({ crewMemberId:'', vendor:'', pickupLocation:'', pickupAddress:'', dropoffLocation:'', dropoffAddress:'', pickupDate:'', dropoffDate:'', confirmation:'', cost:'', notes:'' });
 
   // Driving (driver + tagged passengers)
   const [drives, setDrives] = useState([]);
@@ -396,13 +436,15 @@ export default function Travel({ project }) {
     // Feed the rental pickup spot into the Locations tab
     if (carForm.pickupLocation) {
       api.createLocation(project.id, {
-        name: `${carForm.vendor || 'Rental Car'} — Pickup`, address: carForm.pickupLocation,
+        name: `${carForm.vendor || 'Rental Car'} — Pickup`,
+        address: carForm.pickupAddress || carForm.pickupLocation,
         type: 'OTHER', emoji: '🚗',
-        notes: carForm.dropoffLocation && carForm.dropoffLocation !== carForm.pickupLocation ? `Dropoff: ${carForm.dropoffLocation}` : null,
+        notes: carForm.dropoffLocation && carForm.dropoffLocation !== carForm.pickupLocation
+          ? `Dropoff: ${carForm.dropoffAddress || carForm.dropoffLocation}` : null,
       }).catch(() => {});
     }
     setShowCar(false);
-    setCarForm({ crewMemberId:'', vendor:'', pickupLocation:'', dropoffLocation:'', pickupDate:'', dropoffDate:'', confirmation:'', cost:'', notes:'' });
+    setCarForm({ crewMemberId:'', vendor:'', pickupLocation:'', pickupAddress:'', dropoffLocation:'', dropoffAddress:'', pickupDate:'', dropoffDate:'', confirmation:'', cost:'', notes:'' });
   }
   async function removeCar(id) {
     await api.deleteRentalCar(project.id, id);
@@ -980,8 +1022,12 @@ export default function Travel({ project }) {
                   </select>
                 </div>
                 <div className="field span2"><label>Vendor</label><input value={carForm.vendor} onChange={e => setCarForm(f=>({...f,vendor:e.target.value}))} placeholder="Enterprise" required /></div>
-                <div className="field"><label>Pickup Location</label><input value={carForm.pickupLocation} onChange={e => setCarForm(f=>({...f,pickupLocation:e.target.value}))} placeholder="MCI Airport" /></div>
-                <div className="field"><label>Dropoff Location</label><input value={carForm.dropoffLocation} onChange={e => setCarForm(f=>({...f,dropoffLocation:e.target.value}))} placeholder="MCI Airport" /></div>
+                <div className="field"><label>Pickup Location</label>
+                  <PlaceField value={carForm.pickupLocation} address={carForm.pickupAddress} placeholder="MCI Airport"
+                    onChange={v => setCarForm(f=>({ ...f, pickupLocation: v.text, pickupAddress: v.address }))} /></div>
+                <div className="field"><label>Dropoff Location</label>
+                  <PlaceField value={carForm.dropoffLocation} address={carForm.dropoffAddress} placeholder="MCI Airport"
+                    onChange={v => setCarForm(f=>({ ...f, dropoffLocation: v.text, dropoffAddress: v.address }))} /></div>
                 <div className="field"><label>Pickup Date</label><input type="date" value={carForm.pickupDate} onChange={e => setCarForm(f=>({...f,pickupDate:e.target.value}))} /></div>
                 <div className="field"><label>Dropoff Date</label><input type="date" value={carForm.dropoffDate} onChange={e => setCarForm(f=>({...f,dropoffDate:e.target.value}))} /></div>
                 <div className="field"><label>Confirmation #</label><input value={carForm.confirmation} onChange={e => setCarForm(f=>({...f,confirmation:e.target.value}))} placeholder="XT29183K" /></div>

@@ -386,7 +386,6 @@ function ContractTile({ role, data, busy, onSave, onRemove, onHold, onSendContra
 // A user-added milestone row on the edit timeline: date-ordered among the
 // standard milestones; tagged people get it on their Hub checklist
 function CustomMilestoneRow({ cm, gap, onDate, onTag, onUntag, onRemove, roster }) {
-  const [tagging, setTagging] = useState(false);
   const tagged = (cm.assignees || []).map(a => roster.find(m => m.id === a.id)).filter(Boolean);
   return (
     <div style={{ display:'flex', alignItems:'center', gap:12, padding:'6px 0', borderBottom:'1px solid rgba(255,255,255,0.04)', background:'rgba(157,193,131,0.04)' }}>
@@ -400,22 +399,10 @@ function CustomMilestoneRow({ cm, gap, onDate, onTag, onUntag, onRemove, roster 
           </span>
         ))}
       </span>
-      <span style={{ display:'inline-block', width:140, flexShrink:0 }}>
-        {tagging ? (
-          <select autoFocus defaultValue="" onBlur={() => setTagging(false)}
-            onChange={ev => { if (ev.target.value) onTag(ev.target.value); setTagging(false); }}>
-            <option value="">— Tag person —</option>
-            {roster.filter(m => !(cm.assignees || []).some(a => a.id === m.id)).map(m => (
-              <option key={m.id} value={m.id}>{m.__display}</option>
-            ))}
-          </select>
-        ) : (
-          <button type="button" onClick={() => setTagging(true)}
-            title="Tag anyone on the roster — this milestone lands on their Hub checklist with this due date"
-            style={{ background:'none', border:'1px dashed var(--border)', color:'var(--muted)', borderRadius:10, padding:'2px 10px', fontSize:9.5, fontWeight:700, cursor:'pointer' }}>
-            + Tag person
-          </button>
-        )}
+      <span title="Tag anyone on the roster — this milestone lands on their Hub checklist with this due date"
+        style={{ display:'inline-block', width:140, flexShrink:0 }}>
+        <EditorSelect value="" placeholder="+ Tag person"
+          onChange={v => { if (v) onTag(v); }} />
       </span>
       <button type="button" onClick={onRemove} title="Remove this milestone (and its checklist tasks)"
         style={{ flexShrink:0, background:'none', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:10, padding:'1px 7px', fontSize:8.5, fontWeight:800, cursor:'pointer' }}>✕</button>
