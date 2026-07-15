@@ -241,6 +241,14 @@ export default function Travel({ project }) {
     e.preventDefault();
     const h = await api.createHotel(project.id, hotelForm);
     setHotels(prev => [...prev, { ...h, guests:[] }]);
+    // Feed the hotel (with its auto-pulled address) into the Locations tab
+    if (hotelForm.name) {
+      api.createLocation(project.id, {
+        name: hotelForm.name, address: hotelForm.address || '',
+        type: 'CREW_HOTEL', emoji: '🏨',
+        notes: hotelForm.phone ? `Phone: ${hotelForm.phone}` : null,
+      }).catch(() => {});
+    }
     setShowHotel(false);
     setHotelQuery(''); setHotelForm({ name:'', address:'', phone:'' }); setHotelSuggestions([]);
   }
@@ -385,6 +393,14 @@ export default function Travel({ project }) {
       cost: carForm.cost || null,
     });
     setCars(prev => [...prev, c]);
+    // Feed the rental pickup spot into the Locations tab
+    if (carForm.pickupLocation) {
+      api.createLocation(project.id, {
+        name: `${carForm.vendor || 'Rental Car'} — Pickup`, address: carForm.pickupLocation,
+        type: 'OTHER', emoji: '🚗',
+        notes: carForm.dropoffLocation && carForm.dropoffLocation !== carForm.pickupLocation ? `Dropoff: ${carForm.dropoffLocation}` : null,
+      }).catch(() => {});
+    }
     setShowCar(false);
     setCarForm({ crewMemberId:'', vendor:'', pickupLocation:'', dropoffLocation:'', pickupDate:'', dropoffDate:'', confirmation:'', cost:'', notes:'' });
   }

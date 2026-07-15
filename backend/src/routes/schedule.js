@@ -211,6 +211,7 @@ router.patch('/:id/schedule/days/:dayId', requireAuth, requireRole('ADMIN','PROD
         call_time=COALESCE(${d.callTime??null},call_time), wrap_time=COALESCE(${d.wrapTime??null},wrap_time),
         shooting_call_time=${d.shootingCallTime !== undefined ? (d.shootingCallTime||null) : sql`shooting_call_time`},
         lunch_time=${d.lunchTime !== undefined ? (d.lunchTime||null) : sql`lunch_time`},
+        lunch_end_time=${d.lunchEndTime !== undefined ? (d.lunchEndTime||null) : sql`lunch_end_time`},
         call_time_notes=${d.callTimeNotes !== undefined ? (d.callTimeNotes||null) : sql`call_time_notes`},
         call_time_tags=${d.callTimeTags !== undefined ? sql.array(d.callTimeTags) : sql`call_time_tags`},
         shooting_call_notes=${d.shootingCallNotes !== undefined ? (d.shootingCallNotes||null) : sql`shooting_call_notes`},

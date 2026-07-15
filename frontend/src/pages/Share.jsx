@@ -643,7 +643,7 @@ function ProducerView({ data, hideGear, onOpenShotList }) {
       {crewAssignments?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Crew</div>
-          <ShareTable cols={['Name','Position','Start','End','Phone','Email','Dietary']} colClasses={['','','nowrap','nowrap','nowrap','','']} rows={crewAssignments.map(a => [a.crewMember ? displayName(a.crewMember)||'TBD' : 'TBD', a.position.name, fmtAD(a.start_date), fmtAD(a.end_date), (a.crewMember?.phone ? <Tel v={a.crewMember.phone} /> : '—'), (a.crewMember?.email ? <Mail v={a.crewMember.email} /> : '—'), <DietaryCell key={a.id} value={a.crewMember?.dietaryRestrictions} />])} />
+          <ShareTable cols={['Name','Position','Start','End','Phone','Email','Dietary']} colClasses={['','','nowrap','nowrap','nowrap','','']} rows={crewAssignments.filter(a => a.crewMember).map(a => [displayName(a.crewMember)||'TBD', a.position.name, fmtAD(a.start_date), fmtAD(a.end_date), (a.crewMember?.phone ? <Tel v={a.crewMember.phone} /> : '—'), (a.crewMember?.email ? <Mail v={a.crewMember.email} /> : '—'), <DietaryCell key={a.id} value={a.crewMember?.dietaryRestrictions} />])} />
         </section>
       )}
 
@@ -869,7 +869,7 @@ function CrewView({ data, shareToken, hideGear, onOpenShotList }) {
       {crewAssignments?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Crew</div>
-          <ShareTable cols={['Name','Position','Start','End','Phone','Email','Dietary']} colClasses={['','','nowrap','nowrap','nowrap','','']} rows={crewAssignments.map(a => [a.crewMember ? shortName(displayName(a.crewMember))||'TBD' : 'TBD', a.position.name, fmtAD(a.start_date), fmtAD(a.end_date), (a.crewMember?.phone ? <Tel v={a.crewMember.phone} /> : '—'), (a.crewMember?.email ? <Mail v={a.crewMember.email} /> : '—'), <DietaryCell key={a.id} value={a.crewMember?.dietaryRestrictions} />])} />
+          <ShareTable cols={['Name','Position','Start','End','Phone','Email','Dietary']} colClasses={['','','nowrap','nowrap','nowrap','','']} rows={crewAssignments.filter(a => a.crewMember).map(a => [shortName(displayName(a.crewMember))||'TBD', a.position.name, fmtAD(a.start_date), fmtAD(a.end_date), (a.crewMember?.phone ? <Tel v={a.crewMember.phone} /> : '—'), (a.crewMember?.email ? <Mail v={a.crewMember.email} /> : '—'), <DietaryCell key={a.id} value={a.crewMember?.dietaryRestrictions} />])} />
         </section>
       )}
 
@@ -1734,7 +1734,7 @@ function TalentView({ data }) {
                       {c.email && <div style={{ fontSize:11, color:'var(--muted)', overflowWrap:'anywhere' }}><Mail v={c.email} /></div>}
                     </div>
                   ))}
-                  {(productionCrew || []).map(a => (
+                  {(productionCrew || []).filter(a => a.crewMember).map(a => (
                     <div key={a.id} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 14px', flex:'1 1 0', minWidth:0 }}>
                       <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:2 }}>{a.position.name}</div>
                       <div style={{ fontWeight:600, fontSize:13 }}>{a.crewMember ? shortName(displayName(a.crewMember)) || 'TBD' : 'TBD'}</div>
@@ -2061,7 +2061,7 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, talentC
   const syntheticAllItems = tagFilter ? [] : [
     day.call_time          && { _type:'synthetic', _key:'ct',  _sort: timeToMins(day.call_time),           startTime: day.call_time,          title:'General Call Time', notes: day.call_time_notes,      tags: day.call_time_tags },
     day.shooting_call_time && { _type:'synthetic', _key:'sct', _sort: timeToMins(day.shooting_call_time),  startTime: day.shooting_call_time, title:'Shooting Call',     notes: day.shooting_call_notes,  tags: day.shooting_call_tags },
-    day.lunch_time         && { _type:'synthetic', _key:'lt',  _sort: timeToMins(day.lunch_time),          startTime: day.lunch_time,         title:'Lunch',             notes: day.lunch_notes,          tags: day.lunch_tags },
+    day.lunch_time         && { _type:'synthetic', _key:'lt',  _sort: timeToMins(day.lunch_time),          startTime: day.lunch_time,         endTime: day.lunch_end_time,  title:'Lunch',             notes: day.lunch_notes,          tags: day.lunch_tags },
     day.wrap_time          && { _type:'synthetic', _key:'wt',  _sort: timeToMins(day.wrap_time),           startTime: day.wrap_time,          title:'Est. Wrap',         notes: day.wrap_time_notes,      tags: day.wrap_time_tags },
   ].filter(Boolean);
   // Talent views only see day-time tiles explicitly tagged for talent
@@ -2188,7 +2188,7 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, talentC
         <div style={{ marginTop:8 }}>
           <ShareTable
             cols={['Position','Name','Call','Wrap']}
-            rows={day.crewCalls.map(c => [c.crewAssignment.position.name, c.crewAssignment.crewMember ? displayName(c.crewAssignment.crewMember)||'TBD' : 'TBD', c.call_time ? fmtTime(c.call_time) : '—', c.wrap_time ? fmtTime(c.wrap_time) : '—'])}
+            rows={day.crewCalls.filter(c => c.crewAssignment.crewMember).map(c => [c.crewAssignment.position.name, displayName(c.crewAssignment.crewMember)||'TBD', c.call_time ? fmtTime(c.call_time) : '—', c.wrap_time ? fmtTime(c.wrap_time) : '—'])}
           />
         </div>
       )}
@@ -2224,7 +2224,7 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, talentC
                 const isLunch = item._key === 'lt';
                 return (
                   <div key={item._key} className="ev">
-                    <div className="ev-time">{fmtTime(item.startTime)}</div>
+                    <div className="ev-time">{fmtTime(item.startTime)}{item.endTime ? ` – ${fmtTime(item.endTime)}` : ''}</div>
                     <div className="ev-body" style={{ borderLeft:`2px solid ${sm.color}` }}>
                       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
                         <div style={{ flex:1 }}>
@@ -2345,41 +2345,39 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, talentC
                   <div key={item.id || i} className="ev">
                     <div className="ev-time">{fmtTime(item.start_time)}{item.end_time ? ` – ${fmtTime(item.end_time)}` : ''}</div>
                     <div className={`ev-body${item.is_alert ? ' warn' : ''}`} style={!item.is_alert ? { borderLeft:'2px solid var(--orange)',  } : {}}>
-                      <div className={`ev-title${item.is_alert ? ' alert' : ''}`}>{item.is_filming ? '🎬 ' : ''}{item.title}</div>
-                      {item.detail && <div className="ev-detail">{item.detail}</div>}
-                      {(item.room_space || loc) && (
-                        <div style={{ display:'flex', flexWrap:'wrap', gap:'2px 16px', marginTop:4, alignItems:'baseline' }}>
-                          {item.room_space && (
-                            <div style={{ fontSize:12, fontWeight:700, color:'var(--text)', overflowWrap:'anywhere' }}>
-                              <span style={{ fontWeight:400, color:'var(--muted)', fontSize:11 }}>Room/Space: </span>{item.room_space}
-                            </div>
-                          )}
-                          {loc && (
-                            <div style={{ minWidth:0, fontSize:11, color:'var(--muted)' }}>
-                              <span style={{ fontWeight:600, color:'var(--text)' }}>📍 {loc.name}</span>
-                              {loc.address && (
-                                <>
-                                  {' · '}
-                                  <a href={directionsUrl('', loc.address)} target="_blank" rel="noopener noreferrer"
-                                     style={{ color:'#4a9eff', textDecoration:'none', fontSize:10 }}
-                                     onClick={e => { e.stopPropagation(); window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loc.address)}`,'_blank'); e.preventDefault(); }}>
-                                    {loc.address}
-                                  </a>
-                                </>
+                      <div style={{ display:'flex', gap:'4px 14px', justifyContent:'space-between', alignItems:'flex-start', flexWrap:'wrap' }}>
+                        <div style={{ flex:'1 1 220px', minWidth:0 }}>
+                          <div className={`ev-title${item.is_alert ? ' alert' : ''}`}>{item.is_filming ? '🎬 ' : ''}{item.title}</div>
+                          {item.detail && <div className="ev-detail">{item.detail}</div>}
+                          {(item.room_space || loc) && (
+                            <div style={{ display:'flex', flexWrap:'wrap', gap:'2px 16px', marginTop:4, alignItems:'baseline' }}>
+                              {item.room_space && (
+                                <div style={{ fontSize:12, fontWeight:700, color:'var(--text)', overflowWrap:'anywhere' }}>
+                                  <span style={{ fontWeight:400, color:'var(--muted)', fontSize:11 }}>Room/Space: </span>{item.room_space}
+                                </div>
                               )}
-                              {driveTime && (
-                                <>
-                                  {' '}
-                                  <a href={directionsUrl(prevAddr, thisAddr)} target="_blank" rel="noopener noreferrer"
-                                     style={{ color:'var(--muted)', textDecoration:'none', fontSize:10 }}>
-                                    🚗 {driveTime} from prev
-                                  </a>
-                                </>
-                              )}
+                              {loc && <div style={{ fontSize:11, fontWeight:600, color:'var(--text)' }}>📍 {loc.name}</div>}
                             </div>
                           )}
                         </div>
-                      )}
+                        {(loc?.address || driveTime) && (
+                          <div style={{ flex:'0 1 auto', marginLeft:'auto', maxWidth:'60%', display:'flex', flexDirection:'column', alignItems:'flex-end', gap:2, textAlign:'right' }}>
+                            {loc?.address && (
+                              <a href={directionsUrl('', loc.address)} target="_blank" rel="noopener noreferrer"
+                                 style={{ color:'#4a9eff', textDecoration:'none', fontSize:10, overflowWrap:'anywhere' }}
+                                 onClick={e => { e.stopPropagation(); window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loc.address)}`,'_blank'); e.preventDefault(); }}>
+                                {loc.address}
+                              </a>
+                            )}
+                            {driveTime && (
+                              <a href={directionsUrl(prevAddr, thisAddr)} target="_blank" rel="noopener noreferrer"
+                                 style={{ color:'var(--muted)', textDecoration:'none', fontSize:10, whiteSpace:'nowrap' }}>
+                                🚗 {driveTime} from prev
+                              </a>
+                            )}
+                          </div>
+                        )}
+                      </div>
                       {item.is_filming && crewAssignments && (
                         <div style={{ display:'flex', justifyContent:'flex-end', marginTop:6 }}>
                           <button onClick={e => { e.stopPropagation(); setClapEvent(item); }}

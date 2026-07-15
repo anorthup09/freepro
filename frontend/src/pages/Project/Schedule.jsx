@@ -366,7 +366,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
         ov[day.id] = typeof day.crew_overrides === 'string' ? JSON.parse(day.crew_overrides || '{}') : (day.crew_overrides || {});
         meta[day.id] = { crewLunch: day.crew_lunch||'', gearStorage: day.gear_storage||'', gsAudio: day.gs_audio||'' };
         times[day.id] = {
-          callTime: day.call_time||'', shootingCallTime: day.shooting_call_time||'', lunchTime: day.lunch_time||'', wrapTime: day.wrap_time||'',
+          callTime: day.call_time||'', shootingCallTime: day.shooting_call_time||'', lunchTime: day.lunch_time||'', lunchEndTime: day.lunch_end_time||'', wrapTime: day.wrap_time||'',
           callTimeNotes: day.call_time_notes||'', callTimeTags: day.call_time_tags||[],
           shootingCallNotes: day.shooting_call_notes||'', shootingCallTags: day.shooting_call_tags||[],
           lunchNotes: day.lunch_notes||'', lunchTags: day.lunch_tags||[],
@@ -560,6 +560,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
         [meta.notesKey]: t[meta.notesKey]||null,
         [meta.tagsKey]: t[meta.tagsKey]||[],
         [meta.locationKey]: t[meta.locationKey]||null,
+        ...(key === 'lt' ? { lunchEndTime: t.lunchEndTime || null } : {}),
       });
       flashSaved();
     } catch(e) { alert(e.message); }
@@ -935,7 +936,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
             const syntheticItems = [
               dayTimes.callTime         && { _type:'synthetic', _key:'ct',  _sort: timeToMinutes(dayTimes.callTime),         startTime: dayTimes.callTime,         title:'General Call Time', notes: dayTimes.callTimeNotes,     tags: dayTimes.callTimeTags||[] },
               dayTimes.shootingCallTime && { _type:'synthetic', _key:'sct', _sort: timeToMinutes(dayTimes.shootingCallTime), startTime: dayTimes.shootingCallTime, title:'Shooting Call',      notes: dayTimes.shootingCallNotes, tags: dayTimes.shootingCallTags||[] },
-              dayTimes.lunchTime        && { _type:'synthetic', _key:'lt',  _sort: timeToMinutes(dayTimes.lunchTime),        startTime: dayTimes.lunchTime,        title:'Lunch',              notes: dayTimes.lunchNotes,        tags: dayTimes.lunchTags||[] },
+              dayTimes.lunchTime        && { _type:'synthetic', _key:'lt',  _sort: timeToMinutes(dayTimes.lunchTime),        startTime: dayTimes.lunchTime,        endTime: dayTimes.lunchEndTime,  title:'Lunch',              notes: dayTimes.lunchNotes,        tags: dayTimes.lunchTags||[] },
               dayTimes.wrapTime         && { _type:'synthetic', _key:'wt',  _sort: timeToMinutes(dayTimes.wrapTime),         startTime: dayTimes.wrapTime,         title:'Est. Wrap',          notes: dayTimes.wrapTimeNotes,     tags: dayTimes.wrapTimeTags||[] },
             ].filter(Boolean);
             const previewItems = (showAddEvent && (eventForm.title || eventForm.startTime))
@@ -1021,7 +1022,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                       const dt = dayTimesForm[currentDay.id] || {};
                       return (
                         <div key={item._key} className="ev">
-                          <div className="ev-time">{fmtTime(item.startTime)}</div>
+                          <div className="ev-time">{fmtTime(item.startTime)}{item.endTime ? ` – ${fmtTime(item.endTime)}` : ''}</div>
                           <div className="ev-body" style={{ borderLeft:`2px solid ${sm.color}`, cursor:'pointer' }}
                             onClick={() => setEditingSyntheticKey(isEditing ? null : item._key)}>
                             <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between' }}>
@@ -1057,6 +1058,18 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                             </div>
                             {isEditing && (
                               <div style={{ marginTop:8 }} onClick={e => e.stopPropagation()}>
+                                {item._key === 'lt' && (
+                                  <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
+                                    <span style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.05em' }}>End time</span>
+                                    <input type="time" value={dt.lunchEndTime||''}
+                                      style={{ width:120, fontSize:11, background:'var(--bg)', border:'1px solid var(--border)', borderRadius:4, padding:'4px 6px', color:'var(--text)' }}
+                                      onChange={e => setDayTimesForm(m => ({ ...m, [currentDay.id]: { ...m[currentDay.id], lunchEndTime: e.target.value } }))} />
+                                    {dt.lunchEndTime && (
+                                      <button type="button" style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:10 }}
+                                        onClick={() => setDayTimesForm(m => ({ ...m, [currentDay.id]: { ...m[currentDay.id], lunchEndTime: '' } }))}>✕ clear</button>
+                                    )}
+                                  </div>
+                                )}
                                 <textarea
                                   style={{ width:'100%', fontSize:11, background:'var(--bg)', border:'1px solid var(--border)', borderRadius:4, padding:'4px 6px', color:'var(--text)', resize:'vertical', minHeight:48, boxSizing:'border-box' }}
                                   placeholder="Notes…"
@@ -1255,17 +1268,17 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                           </div>
                           {item.detail && <div className="ev-detail">{item.detail}</div>}
                           {(item.room_space || item.location) && (
-                            <div style={{ display:'flex', flexWrap:'wrap', gap:'2px 16px', marginTop:4, alignItems:'baseline' }}>
-                              {item.room_space && (
-                                <div style={{ fontSize:12, fontWeight:700, color:'var(--text)', overflowWrap:'anywhere' }}>
-                                  <span style={{ fontWeight:400, color:'var(--muted)', fontSize:11 }}>Room/Space: </span>{item.room_space}
-                                </div>
-                              )}
-                              {item.location && (
-                                <div style={{ minWidth:0 }}>
-                                  <span style={{ fontSize:10, color:'var(--tan)', fontWeight:600, overflowWrap:'anywhere' }}>📍 {item.location.name}</span>
-                                  {item.location.address && <span style={{ fontSize:10, color:'var(--muted)', overflowWrap:'anywhere' }}> · {item.location.address}</span>}
-                                </div>
+                            <div style={{ display:'flex', flexWrap:'wrap', gap:'2px 14px', marginTop:4, alignItems:'flex-start', justifyContent:'space-between' }}>
+                              <div style={{ display:'flex', flexWrap:'wrap', gap:'2px 16px', alignItems:'baseline', flex:'1 1 200px', minWidth:0 }}>
+                                {item.room_space && (
+                                  <div style={{ fontSize:12, fontWeight:700, color:'var(--text)', overflowWrap:'anywhere' }}>
+                                    <span style={{ fontWeight:400, color:'var(--muted)', fontSize:11 }}>Room/Space: </span>{item.room_space}
+                                  </div>
+                                )}
+                                {item.location && <span style={{ fontSize:10, color:'var(--tan)', fontWeight:600, overflowWrap:'anywhere' }}>📍 {item.location.name}</span>}
+                              </div>
+                              {item.location?.address && (
+                                <div style={{ marginLeft:'auto', maxWidth:'60%', fontSize:10, color:'var(--muted)', textAlign:'right', overflowWrap:'anywhere' }}>{item.location.address}</div>
                               )}
                             </div>
                           )}
@@ -1371,7 +1384,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                     <div style={{ marginTop:8 }}>
                       <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4 }}>Crew on this event — leave empty for everyone</div>
                       <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
-                        {(project.crewAssignments || []).map(a => ({ id: a.id, name: a.crewMember?.name || a.cm_name || a.name, pos: a.position?.name || a.position_name })).filter(c => c.name).map(c => {
+                        {(project.crewAssignments || []).map(a => ({ id: a.id, name: (a.crewMember && displayName(a.crewMember)) || a.cm_name || a.name, pos: a.position?.name || a.position_name })).filter(c => c.name).map(c => {
                           const sel = eventForm.audience.includes(c.name);
                           return (
                             <button key={c.id} type="button"
@@ -1521,7 +1534,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                     <div style={{ marginTop:8 }}>
                       <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4 }}>Crew on this event — leave empty for everyone</div>
                       <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
-                        {(project.crewAssignments || []).map(a => ({ id: a.id, name: a.crewMember?.name || a.cm_name || a.name, pos: a.position?.name || a.position_name })).filter(c => c.name).map(c => {
+                        {(project.crewAssignments || []).map(a => ({ id: a.id, name: (a.crewMember && displayName(a.crewMember)) || a.cm_name || a.name, pos: a.position?.name || a.position_name })).filter(c => c.name).map(c => {
                           const sel = editEventForm.audience.includes(c.name);
                           return (
                             <button key={c.id} type="button"
