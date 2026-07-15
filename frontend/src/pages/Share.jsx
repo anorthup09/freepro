@@ -2272,7 +2272,7 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, talentC
 
       {allItems.length > 0 && open && (
         <div className="tl" style={{ marginTop:8 }}>
-              {allItems.map((item, i) => item._type === 'catering' ? (() => {
+              {allItems.map((item, i) => { const tile = item._type === 'catering' ? (() => {
                 const mm = MEAL_META[item.meal_type] || MEAL_META.BREAKFAST;
                 const isOut = item.is_delivery === false && item.address;
                 const prevAddr = isOut ? allItems.slice(0, i).reverse().map(stopAddr).find(Boolean) : null;
@@ -2472,7 +2472,13 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, talentC
                     </div>
                   </div>
                 );
-              })())}
+              })();
+                return (
+                  <SwipeReminder key={`sw-${item._key || item.id || i}`} item={item} dayStr={dayStr}>
+                    {tile}
+                  </SwipeReminder>
+                );
+              })}
             </div>
           )}
           {clapEvent && (
@@ -2487,6 +2493,98 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, talentC
         />
       )}
     </section>
+  );
+}
+
+// ── Swipe-to-remind ──────────────────────────────────────────────────────────
+// Swipe a timeline tile left on a phone to reveal "+ Add Reminder"; tapping it
+// downloads a calendar event (.ics) with a 30-min-before alert, which iPhone
+// and Android open straight into the native calendar.
+function reminderInfo(item, dayStr) {
+  if (item._type === 'flight') {
+    const dep = item.depart_time ? new Date(item.depart_time) : null;
+    if (!dep || isNaN(dep)) return null;
+    return {
+      title: `Flight — ${item.crew_name || item.passenger_name || ''} ${item.origin || ''} → ${item.destination || ''}`.replace(/\s+/g, ' ').trim(),
+      start: dep, utc: true, location: item.origin || '',
+    };
+  }
+  const time = item._type === 'catering' ? item.delivery_time : (item.start_time || item.startTime || item.est_start_time);
+  if (!dayStr || !time) return null;
+  const m = String(time).match(/^(\d{1,2}):(\d{2})/);
+  if (!m) return null;
+  const title = item._type === 'catering'
+    ? `${(item.meal_type || 'MEAL').charAt(0) + (item.meal_type || 'meal').slice(1).toLowerCase()} — ${item.name || 'Catering'}`
+    : (item.title || item.description || 'Schedule item');
+  return { title, dayStr, hm: `${m[1].padStart(2, '0')}${m[2]}00`, location: item.location?.address || item.address || '' };
+}
+
+function reminderICS(info) {
+  const esc = s => String(s || '').replace(/\\/g, '\\\\').replace(/[,;]/g, x => '\\' + x).replace(/\n/g, '\\n');
+  const p = n => String(n).padStart(2, '0');
+  const dtstart = info.utc
+    ? `DTSTART:${info.start.getUTCFullYear()}${p(info.start.getUTCMonth() + 1)}${p(info.start.getUTCDate())}T${p(info.start.getUTCHours())}${p(info.start.getUTCMinutes())}00Z`
+    : `DTSTART:${info.dayStr.replace(/-/g, '')}T${info.hm}`; // floating local time — fires in the shoot's timezone
+  return [
+    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Unbridled Media//FreePro//EN', 'BEGIN:VEVENT',
+    `UID:fp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@freepro`,
+    dtstart, `SUMMARY:${esc(info.title)}`,
+    info.location ? `LOCATION:${esc(info.location)}` : null,
+    'BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${esc(info.title)}`, 'TRIGGER:-PT30M', 'END:VALARM',
+    'END:VEVENT', 'END:VCALENDAR',
+  ].filter(Boolean).join('\r\n');
+}
+
+function SwipeReminder({ item, dayStr, children }) {
+  const [dx, setDx] = React.useState(0);
+  const [dragging, setDragging] = React.useState(false);
+  const startRef = React.useRef(null);
+  const info = reminderInfo(item, dayStr);
+  if (!info) return children;
+  const onTouchStart = e => {
+    startRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, dx, horiz: null };
+  };
+  const onTouchMove = e => {
+    const s = startRef.current;
+    if (!s) return;
+    const ddx = e.touches[0].clientX - s.x, ddy = e.touches[0].clientY - s.y;
+    if (s.horiz === null && (Math.abs(ddx) > 8 || Math.abs(ddy) > 8)) s.horiz = Math.abs(ddx) > Math.abs(ddy);
+    if (!s.horiz) return; // vertical scroll wins
+    if (!dragging) setDragging(true);
+    setDx(Math.max(-116, Math.min(0, s.dx + ddx)));
+  };
+  const onTouchEnd = () => {
+    setDragging(false);
+    setDx(d => (d <= -55 ? -116 : 0));
+    startRef.current = null;
+  };
+  const addReminder = () => {
+    const blob = new Blob([reminderICS(info)], { type: 'text/calendar;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `${info.title.replace(/[^\w ]+/g, '').trim().replace(/ +/g, '-') || 'reminder'}.ics`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    setDx(0);
+  };
+  return (
+    <div style={{ position: 'relative', overflow: 'hidden' }}>
+      <button type="button" onClick={addReminder} aria-label="Add reminder"
+        style={{ position: 'absolute', top: 3, bottom: 3, right: 0, width: 104, border: 'none', borderRadius: 10,
+          background: 'linear-gradient(135deg,#e8500a,#c2410c)', color: '#fff', fontWeight: 700, fontSize: 10.5,
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3,
+          cursor: 'pointer', letterSpacing: '.03em',
+          opacity: dx < -10 ? 1 : 0, pointerEvents: dx < -10 ? 'auto' : 'none', transition: 'opacity .15s' }}>
+        <span style={{ fontSize: 17, lineHeight: 1 }}>⏰</span>
+        + Add Reminder
+      </button>
+      <div onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} onTouchCancel={onTouchEnd}
+        style={{ transform: `translateX(${dx}px)`, transition: dragging ? 'none' : 'transform .18s ease', touchAction: 'pan-y' }}>
+        {children}
+      </div>
+    </div>
   );
 }
 
