@@ -103,6 +103,8 @@ export default function FoodieRecs() {
   const [recs, setRecs] = useState(null);
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ name:'', address:'', city:'', cuisine:'', price:'', notes:'' });
+  const [formRating, setFormRating] = useState(0);
+  const [search, setSearch] = useState('');
   const [formPhotos, setFormPhotos] = useState([]);
   const [saving, setSaving] = useState(false);
   const [lightbox, setLightbox] = useState(null);
@@ -144,6 +146,7 @@ export default function FoodieRecs() {
     setSaving(true);
     try {
       const rec = await api.addFoodieRec(form);
+      if (formRating) await api.rateFoodieRec(rec.id, formRating);
       for (const f of formPhotos) {
         const b64 = await new Promise((res, rej) => {
           const rd = new FileReader();
@@ -154,6 +157,7 @@ export default function FoodieRecs() {
         await api.addFoodiePhoto(rec.id, { filename: f.name, mime: f.type, fileBase64: b64 });
       }
       setForm({ name:'', address:'', city:'', cuisine:'', price:'', notes:'' });
+      setFormRating(0);
       setFormPhotos([]);
       setShowAdd(false);
       load();
@@ -229,6 +233,15 @@ export default function FoodieRecs() {
                 </select>
               </div>
               <div className="field span2"><label>Why it's great</label><textarea rows={2} value={form.notes} onChange={e => setForm(f => ({ ...f, notes:e.target.value }))} placeholder="Get the burnt ends. Trust." /></div>
+              <div className="field span2"><label>Your Rating</label>
+                <div style={{ display:'flex', gap:4, alignItems:'center', padding:'4px 0' }}>
+                  {[1,2,3,4,5].map(n => (
+                    <span key={n} onClick={() => setFormRating(r => r === n ? 0 : n)}
+                      style={{ fontSize:22, lineHeight:1, cursor:'pointer', filter: n <= formRating ? 'none' : 'grayscale(1) opacity(0.35)' }}>⭐</span>
+                  ))}
+                  <span style={{ fontSize:11, color:'var(--muted)', marginLeft:8 }}>{formRating ? `${formRating}/5 — counts as your vote` : 'optional — tap to rate it now'}</span>
+                </div>
+              </div>
               <div className="field span2"><label>Photos</label>
                 <input type="file" accept="image/*" multiple onChange={e => setFormPhotos([...e.target.files])} />
                 {formPhotos.length > 0 && <div style={{ fontSize:11, color:'var(--muted)', marginTop:4 }}>{formPhotos.length} photo{formPhotos.length > 1 ? 's' : ''} ready to upload</div>}
@@ -242,11 +255,22 @@ export default function FoodieRecs() {
 
         <div ref={mapRef} style={{ height:340, borderRadius:12, border:'1px solid var(--border)', marginTop:16, overflow:'hidden', zIndex:0 }} />
 
+        <input value={search} onChange={e => setSearch(e.target.value)}
+          placeholder="Search restaurants — name, cuisine, city, notes…"
+          style={{ width:'100%', marginTop:16, padding:'10px 14px', borderRadius:10, border:'1px solid var(--border)', background:'var(--bg2)', color:'var(--text)', fontSize:13 }} />
+
         {recs === null && <div className="empty" style={{ marginTop:16 }}>Loading…</div>}
         {recs?.length === 0 && <div className="empty" style={{ marginTop:16 }}>No recs yet — be the first to add a spot.</div>}
 
+        {(() => {
+          const q = search.trim().toLowerCase();
+          const match = r => !q || [r.name, r.cuisine, r.city, r.notes, r.address, r.added_by]
+            .some(v => (v || '').toLowerCase().includes(q));
+          const shown = (recs || []).map((r, i) => ({ r, i })).filter(({ r }) => match(r));
+          if (recs?.length > 0 && shown.length === 0) return <div className="empty" style={{ marginTop:16 }}>No restaurants match “{search}”.</div>;
+          return (
         <div style={{ display:'flex', flexDirection:'column', gap:12, marginTop:16 }}>
-          {(recs || []).map((r, i) => (
+          {shown.map(({ r, i }) => (
             <div key={r.id} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, padding:'14px 16px' }}>
               <div style={{ display:'flex', gap:12, alignItems:'flex-start' }}>
                 <div style={{ fontSize:20, fontWeight:800, color: i < 3 ? 'var(--orange)' : 'var(--muted)', minWidth:34, textAlign:'center', lineHeight:1.2 }}>
@@ -286,6 +310,8 @@ export default function FoodieRecs() {
             </div>
           ))}
         </div>
+          );
+        })()}
       </div>
 
       {lightbox && (
