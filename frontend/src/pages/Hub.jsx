@@ -67,6 +67,38 @@ export function HubGreeting() {
   );
 }
 
+// On the road today? Offer a one-tap jump to the public view for your role —
+// producer view for admin/producers/agency, crew view for crew accounts
+export function TripPrompt() {
+  const [trip, setTrip] = useState(null);
+  const [hidden, setHidden] = useState(false);
+  useEffect(() => { api.onTrip().then(setTrip).catch(() => {}); }, []);
+  if (!trip || hidden) return null;
+  const dismissKey = `fp_trip_prompt_${trip.project.id}_${new Date().toDateString()}`;
+  if (localStorage.getItem(dismissKey)) return null;
+  const viewLabel = trip.viewType === 'crew' ? 'Crew View' : 'Producer View';
+  return (
+    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:14, flexWrap:'wrap',
+      background:'rgba(232,80,10,0.10)', border:'1px solid rgba(232,80,10,0.45)', borderRadius:12,
+      padding:'12px 18px', margin:'0 auto 16px', maxWidth:620 }}>
+      <div style={{ fontSize:13, minWidth:0 }}>
+        <span style={{ fontWeight:800 }}>🎬 You're on the road — {trip.project.code} {trip.project.title}</span>
+        {trip.project.city && <span style={{ color:'var(--muted)' }}> · {[trip.project.city, trip.project.state].filter(Boolean).join(', ')}</span>}
+      </div>
+      <div style={{ display:'flex', alignItems:'center', gap:10, flexShrink:0 }}>
+        <a href={`/share/${trip.token}`}
+          style={{ background:'var(--orange)', color:'#fff', textDecoration:'none', fontSize:12, fontWeight:800,
+            padding:'7px 16px', borderRadius:20, letterSpacing:'.02em', whiteSpace:'nowrap' }}>
+          Open {viewLabel} →
+        </a>
+        <button onClick={() => { localStorage.setItem(dismissKey, '1'); setHidden(true); }}
+          title="Hide for today"
+          style={{ background:'none', border:'none', color:'var(--muted)', fontSize:14, cursor:'pointer', padding:2 }}>✕</button>
+      </div>
+    </div>
+  );
+}
+
 // MediaMoment weekly prompt. Two flavors:
 //  - fact: your fun question of the week (skippable)
 //  - wob:  "Ways of Being" shoutout — two people get this each week, and it
@@ -999,6 +1031,7 @@ export default function Hub() {
               <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height:52, filter:'brightness(0) invert(1)', opacity:0.97, display:'inline-block' }} />
             </div>
             <HubGreeting />
+            <TripPrompt />
             <WobBanner />
             <FunFactPrompt />
             {!isCrew && (

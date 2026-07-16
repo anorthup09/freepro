@@ -288,6 +288,36 @@ async function aiGreeting(ctx) {
   } catch (e) { console.error('greeting AI failed:', e.message); return null; }
 }
 
+// On a trip today? Hand back the public share view matching the user's role
+// so the hub can offer a one-tap jump (admin/producer/agency -> producer view,
+// crew -> crew view)
+router.get('/on-trip', requireAuth, async (req, res, next) => {
+  try {
+    const today = bizToday();
+    const cm = await myCrewMember(req.user.email);
+    if (!cm) return res.json(null);
+    const [trip] = await sql`
+      SELECT pr.id, pr.code, pr.title, pr.city, pr.state
+      FROM crew_assignments ca JOIN projects pr ON pr.id = ca.project_id
+      WHERE ca.crew_member_id = ${cm.id} AND pr.status != 'ARCHIVED'
+        AND ca.start_date::date <= ${today} AND COALESCE(ca.end_date, ca.start_date)::date >= ${today}
+      ORDER BY ca.start_date LIMIT 1`;
+    if (!trip) return res.json(null);
+    const viewType = req.user.role === 'CREW' ? 'crew' : 'producer';
+    let [share] = await sql`
+      SELECT token FROM project_shares
+      WHERE project_id = ${trip.id} AND view_type = ${viewType} AND talent_name IS NULL AND crew_group_id IS NULL
+      LIMIT 1`;
+    if (!share) {
+      [share] = await sql`
+        INSERT INTO project_shares (id, project_id, token, view_type)
+        VALUES (gen_random_uuid()::text, ${trip.id}, gen_random_uuid()::text, ${viewType})
+        RETURNING token`;
+    }
+    res.json({ project: { id: trip.id, code: trip.code, title: trip.title, city: trip.city, state: trip.state }, token: share.token, viewType });
+  } catch (e) { next(e); }
+});
+
 router.get('/greeting', requireAuth, async (req, res, next) => {
   try {
     const today = bizToday();

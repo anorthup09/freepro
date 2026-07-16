@@ -114,6 +114,7 @@ export const api = {
   dashboardToday: () => req('GET', '/dashboard/today'),
   dashboardTeam: () => req('GET', '/dashboard/team'),
   hubGreeting: () => req('GET', '/dashboard/greeting'),
+  onTrip: () => req('GET', '/dashboard/on-trip'),
   funFactPrompt: () => req('GET', '/dashboard/funfact/prompt'),
   submitFunFact: (answer) => req('POST', '/dashboard/funfact', { answer }),
   funFactToday: () => req('GET', '/dashboard/funfact/today'),
