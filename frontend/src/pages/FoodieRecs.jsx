@@ -47,6 +47,57 @@ function Stars({ value, myValue, onRate, size = 17 }) {
 
 const PRICE_OPTS = ['$', '$$', '$$$', '$$$$'];
 
+// Rough city from a "123 Main St, Kansas City, MO 64105" style address
+function cityFromAddr(addr) {
+  const parts = String(addr || '').split(',').map(s => s.trim()).filter(Boolean);
+  if (!parts.length) return '';
+  // "1000 W 39th St, Kansas City, MO 64111[, USA]" — city follows the street
+  // line; without a leading street number the first part is already the city
+  const cand = /^\d/.test(parts[0]) ? parts[1] : parts[0];
+  return cand && /[A-Za-z]/.test(cand) && !/\d{5}/.test(cand) ? cand : '';
+}
+
+// Restaurant name field with live place search — picking a result fills the
+// address and city automatically
+function NameSearchField({ value, onChange, onPick }) {
+  const [hits, setHits] = useState([]);
+  const [open, setOpen] = useState(false);
+  const timer = useRef(null);
+  const seq = useRef(0);
+  function type(v) {
+    onChange(v);
+    clearTimeout(timer.current);
+    if (v.trim().length < 3) { setHits([]); setOpen(false); return; }
+    timer.current = setTimeout(async () => {
+      const mySeq = ++seq.current;
+      try {
+        const r = await api.placeSearch(v.trim());
+        if (mySeq === seq.current) { setHits(r || []); setOpen((r || []).length > 0); }
+      } catch { /* search is best-effort */ }
+    }, 350);
+  }
+  return (
+    <div style={{ position:'relative' }}>
+      <input value={value} onChange={e => type(e.target.value)} placeholder="Joe's KC BBQ" required
+        onBlur={() => setTimeout(() => setOpen(false), 180)}
+        onFocus={() => hits.length && setOpen(true)} />
+      {open && (
+        <div style={{ position:'absolute', top:'100%', left:0, right:0, zIndex:30, background:'var(--bg)', border:'1px solid var(--border2)', borderRadius:8, marginTop:4, overflow:'hidden', boxShadow:'0 6px 20px rgba(0,0,0,0.5)' }}>
+          {hits.map((h, i) => (
+            <div key={i} onMouseDown={() => { onPick(h); setOpen(false); }}
+              style={{ padding:'8px 12px', cursor:'pointer', borderBottom: i < hits.length - 1 ? '1px solid var(--border)' : 'none' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+              <div style={{ fontSize:12, fontWeight:700 }}>{h.name}</div>
+              <div style={{ fontSize:10, color:'var(--muted)' }}>{h.address}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function FoodieRecs() {
   const { user, setUser } = useAuth();
   const [recs, setRecs] = useState(null);
@@ -164,7 +215,10 @@ export default function FoodieRecs() {
         {showAdd && (
           <form onSubmit={submit} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, padding:18, marginTop:14 }}>
             <div className="form-grid">
-              <div className="field"><label>Restaurant Name *</label><input value={form.name} onChange={e => setForm(f => ({ ...f, name:e.target.value }))} placeholder="Joe's KC BBQ" required /></div>
+              <div className="field"><label>Restaurant Name * <span style={{ fontWeight:400, textTransform:'none', letterSpacing:0 }}>(start typing to search)</span></label>
+                <NameSearchField value={form.name} onChange={v => setForm(f => ({ ...f, name:v }))}
+                  onPick={h => setForm(f => ({ ...f, name:h.name, address:h.address, city: cityFromAddr(h.address) || f.city }))} />
+              </div>
               <div className="field"><label>Cuisine</label><input value={form.cuisine} onChange={e => setForm(f => ({ ...f, cuisine:e.target.value }))} placeholder="BBQ, Tacos, Sushi…" /></div>
               <div className="field span2"><label>Address (used to pin it on the map)</label><input value={form.address} onChange={e => setForm(f => ({ ...f, address:e.target.value }))} placeholder="3002 W 47th Ave, Kansas City, KS" /></div>
               <div className="field"><label>City</label><input value={form.city} onChange={e => setForm(f => ({ ...f, city:e.target.value }))} placeholder="Kansas City" /></div>
