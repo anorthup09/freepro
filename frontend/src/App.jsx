@@ -71,6 +71,7 @@ import ClientHub from './pages/ClientHub.jsx';
 import ClientPortal from './pages/ClientPortal.jsx';
 import Reports from './pages/Reports.jsx';
 import InvoiceSearch from './pages/InvoiceSearch.jsx';
+import FoodieRecs from './pages/FoodieRecs.jsx';
 import ClientInvoiceReport from './pages/ClientInvoiceReport.jsx';
 import VccReport, { VccProjectPage } from './pages/VccReport.jsx';
 import WaysOfBeing from './pages/WaysOfBeing.jsx';
@@ -222,6 +223,7 @@ export default function App() {
         <Route path="/projects/:id/talent-callsheets" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/crew-views" /> : <TalentCallSheets />) : <Navigate to="/login" />} />
         <Route path="/projects/:id/emails" element={user ? <CallSheetEmails /> : <Navigate to="/login" />} />
         <Route path="/reports" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/" /> : <Reports />) : <Navigate to="/login" />} />
+        <Route path="/reports/foodie" element={user ? <FoodieRecs /> : <Navigate to="/login" />} />
         <Route path="/reports/gear" element={user ? <GearReport /> : <Navigate to="/login" />} />
         <Route path="/reports/vendor-contracts" element={user ? <VendorContractReport /> : <Navigate to="/login" />} />
         <Route path="/reports/drives" element={user ? <HardDrivesReport /> : <Navigate to="/login" />} />

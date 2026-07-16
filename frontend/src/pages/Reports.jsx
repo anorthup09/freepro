@@ -55,6 +55,11 @@ const REPORTS = [
     accent: '#a78bfa', to: '/reports/video-references',
   },
   {
+    title: 'Foodie Recs',
+    desc: "The team's favorite restaurants from the road — ranked by the crew, with photos and a map of every spot.",
+    accent: '#f0653c', to: '/reports/foodie',
+  },
+  {
     title: 'Weekly Finance Report',
     desc: 'Snapshot report of budgets and close months for the finance team.',
     accent: '#4a9eff', to: '/finance/report',

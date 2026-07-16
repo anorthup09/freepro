@@ -80,7 +80,7 @@ app.use('/api', (req, res, next) => {
       return res.status(403).json({ error: 'Your account is awaiting approval from an admin' });
     }
     const crewAllowed = (p, m) => p.startsWith('/auth') || p === '/crew-views' || p.startsWith('/share')
-      || p.startsWith('/avo') || p.startsWith('/team') || p.startsWith('/gantt-share') || p.startsWith('/dashboard') || p.startsWith('/feedback')
+      || p.startsWith('/avo') || p.startsWith('/team') || p.startsWith('/foodie') || p.startsWith('/gantt-share') || p.startsWith('/dashboard') || p.startsWith('/feedback')
       || (p.startsWith('/project-tasks') && m === 'PATCH')
       || (p.startsWith('/crew') && m === 'GET');
     if (u.role === 'CREW' && !crewAllowed(req.path, req.method)) {
@@ -98,7 +98,7 @@ app.use('/api', (req, res, next) => {
       || req.path.startsWith('/dashboard') || req.path.startsWith('/feedback') || req.path.startsWith('/team')
       || (req.path.startsWith('/crew') && req.method === 'GET')
       || (req.path.startsWith('/project-tasks') && req.method === 'PATCH')
-      || req.path.startsWith('/finance') || req.path.startsWith('/budget-share') || req.path.startsWith('/clients')
+      || req.path.startsWith('/finance') || req.path.startsWith('/budget-share') || req.path.startsWith('/clients') || req.path.startsWith('/foodie')
       || (req.method === 'GET' && req.path.startsWith('/projects')))) {
       return res.status(403).json({ error: 'Finance accounts can access ProFi, Reports, and Team Management' });
     }
@@ -144,6 +144,7 @@ app.use('/api/avo', require('./routes/avo'));
 app.use('/api', require('./routes/avo').publicRouter);
 app.use('/api', require('./routes/finance'));
 app.use('/api/clients', require('./routes/clients'));
+app.use('/api/foodie', require('./routes/foodie'));
 app.use('/api/mail', require('./routes/mail'));
 app.use('/api', require('./routes/overview'));
 app.use('/api/feedback', require('./routes/feedback'));

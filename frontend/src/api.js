@@ -351,6 +351,14 @@ export const api = {
   deleteDrive: (projectId, id) => req('DELETE', `/projects/${projectId}/travel/drives/${id}`),
   hotelSearch: (q) => req('GET', `/util/hotel-search?q=${encodeURIComponent(q)}`),
   placeSearch: (q) => req('GET', `/util/place-search?q=${encodeURIComponent(q)}`),
+
+  // Foodie recs
+  getFoodieRecs: () => req('GET', '/foodie'),
+  addFoodieRec: (data) => req('POST', '/foodie', data),
+  deleteFoodieRec: (id) => req('DELETE', `/foodie/${id}`),
+  rateFoodieRec: (id, rating) => req('POST', `/foodie/${id}/rate`, { rating }),
+  addFoodiePhoto: (id, data) => req('POST', `/foodie/${id}/photos`, data),
+  deleteFoodiePhoto: (id) => req('DELETE', `/foodie/photos/${id}`),
   geoSearch: (q) => req('GET', `/util/geo-search?q=${encodeURIComponent(q)}`),
   flightLookup: (flight, date, origin) => req('GET', `/util/flight-lookup?flight=${encodeURIComponent(flight)}&date=${date}${origin ? `&origin=${encodeURIComponent(origin)}` : ''}`),
   flightStatus: (flight, date, origin) => req('GET', `/util/flight-status?flight=${encodeURIComponent(flight)}&date=${date}${origin ? `&origin=${encodeURIComponent(origin)}` : ''}`),

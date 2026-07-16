@@ -1642,6 +1642,41 @@ async function migrate() {
   // One-time ClickUp PTO/OOO import (idempotent)
   try { await require('./seedPto')(); } catch (e) { console.error('PTO seed failed:', e.message); }
 
+  // Foodie recs — team restaurant recommendations with ratings, photos, and a map
+  await sql`
+    CREATE TABLE IF NOT EXISTS foodie_recs (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      name TEXT NOT NULL,
+      address TEXT,
+      city TEXT,
+      cuisine TEXT,
+      price TEXT,
+      notes TEXT,
+      lat DOUBLE PRECISION,
+      lon DOUBLE PRECISION,
+      added_by TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`;
+  await sql`
+    CREATE TABLE IF NOT EXISTS foodie_photos (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      rec_id TEXT REFERENCES foodie_recs(id) ON DELETE CASCADE,
+      filename TEXT NOT NULL,
+      mime TEXT,
+      size INT,
+      data BYTEA,
+      uploaded_by TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`;
+  await sql`
+    CREATE TABLE IF NOT EXISTS foodie_ratings (
+      rec_id TEXT REFERENCES foodie_recs(id) ON DELETE CASCADE,
+      user_key TEXT NOT NULL,
+      rating INT NOT NULL CHECK (rating BETWEEN 1 AND 5),
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      PRIMARY KEY (rec_id, user_key)
+    )`;
+
   console.log('Migration complete.');
 }
 
