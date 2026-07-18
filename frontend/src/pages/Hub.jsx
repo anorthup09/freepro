@@ -815,7 +815,7 @@ function HubDashboard() {
   return (
     <div className="hub-dash" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginTop:22 }}>
       <div style={card}>
-        <div style={{ ...hdr, marginBottom:2 }}>Day in Review</div>
+        <div style={{ ...hdr, marginBottom:2, color:'#e8500a' }}>Day in Review</div>
         <div style={{ fontSize:12, color:'var(--muted)', fontWeight:600, marginBottom:10 }}>{dateLabel}</div>
         {!day && <div style={{ fontSize:11, color:'var(--muted)' }}>Loading…</div>}
         {day && day.items.length === 0 && (
