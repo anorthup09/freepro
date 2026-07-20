@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../App.jsx';
 import { AvoHeader, AVO, AVO_STATUSES, EditorSelect } from './Avo.jsx';
+import { CATEGORIES } from './AvoEdit.jsx';
 import { AvoForm, BLANK_DELIVERABLE_FORM } from './Project/Deliverables.jsx';
 import ContractSendModal from '../components/ContractSendModal.jsx';
 
@@ -279,6 +280,10 @@ function SmartTable({ rows, colDefs, config, onConfig, saveExtra, leading, trail
 // 10 row color-coding options for the tracker (hover the pencil to pick)
 const ROW_COLORS = ['#e05252', '#E8500A', '#e6c229', '#5ABF80', '#35c4c8', '#4a9eff', '#6366f1', '#a78bfa', '#d66a9b', '#8a8f98'];
 
+// Stable color per category name so the pills read consistently
+const CAT_COLORS = ['#4a9eff', '#e6c229', '#9DC183', '#a78bfa', '#e05252', '#35c4c8', '#d66a9b', '#E8500A', '#6366f1', '#5ABF80'];
+const catColor = s => { if (!s) return null; let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) >>> 0; return CAT_COLORS[h % CAT_COLORS.length]; };
+
 // Pencil that opens the edit on click, and reveals a 10-swatch color palette on
 // hover to color-code the row. Palette is portaled so the scroll wrap can't clip it.
 function RowColorPencil({ edit, onOpen, onPick }) {
@@ -336,7 +341,25 @@ function VideoTracker({ edits, setEdits, config, onConfig, code }) {
     real.forEach((e, i) => api.updateAvoEdit(e.id, { trackerSort: i }).catch(() => {}));
   }
   const statusOf = k => AVO_STATUSES.find(([key]) => key === k);
+  // Category options: the standard list + any custom categories already used on
+  // this project's edits, so a category typed once is reusable from the dropdown.
+  const usedCategories = [...new Set(edits.map(e => e.category).filter(Boolean))];
+  const categoryOptions = [...new Set([...CATEGORIES, ...usedCategories])];
   const colDefs = [
+    { key:'category', label:'Category', minWidth:130, render: e => {
+      const cc = catColor(e.category);
+      return (
+        <select value={e.category || ''} onChange={ev => {
+          if (ev.target.value === '__add__') { const c = prompt('New category name:'); if (c && c.trim()) saveEdit(e.id, { category: c.trim() }); return; }
+          saveEdit(e.id, { category: ev.target.value });
+        }} style={{ fontSize:11, fontWeight:700, padding:'4px 8px', borderRadius:12, width:'100%',
+          background: cc ? `${cc}22` : 'transparent', border: `1px solid ${cc ? cc + '55' : 'var(--border)'}`, color: cc || 'var(--muted)', textAlign:'center' }}>
+          <option value="">—</option>
+          {categoryOptions.map(c => <option key={c} value={c}>{c}</option>)}
+          <option value="__add__">+ Add category…</option>
+        </select>
+      );
+    } },
     { key:'tracker_type', label:'Type', minWidth:120, render: e => {
       const TRACKER_TYPES = [['Pre-Event', '#4a9eff'], ['On-Site', '#e6c229'], ['Post-Event', '#9DC183'], ['Standard Edit', '#a78bfa']];
       const tc = (TRACKER_TYPES.find(([t]) => t === e.tracker_type) || [null, null])[1];
