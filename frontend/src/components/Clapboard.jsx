@@ -118,14 +118,14 @@ export default function Clapboard({ title, date, location, fieldProducer, direct
       }}>
         <TimecodeBar big={landscape} frozen={frozenTime} />
         <button onClick={onClose} aria-label="Close"
-          style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(255,255,255,0.12)', color: '#fff', border: 'none', borderRadius: 8, width: 32, height: 32, fontSize: 15, cursor: 'pointer', lineHeight: 1 }}>✕</button>
+          style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(255,255,255,0.12)', color: 'var(--text)', border: 'none', borderRadius: 8, width: 32, height: 32, fontSize: 15, cursor: 'pointer', lineHeight: 1 }}>✕</button>
 
         <div style={{ padding: 'min(10px, 1.4vh) 18px min(12px, 1.6vh)', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-evenly' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, borderBottom: '2px solid #111', padding: 'min(8px, 1.1vh) 2px min(5px, 0.7vh)' }}>
             <span style={lbl}>Prod:</span>
             <span style={val}>{fieldProducer || '—'}</span>
             <button onClick={slap} aria-label="Slap the sticks"
-              style={{ marginLeft: 'auto', background: '#E8500A', color: '#fff', border: 'none', borderRadius: 100, padding: 'min(8px, 1.2vh) min(18px, 2.6vh)', fontSize: 'min(16px, 3vh)', fontWeight: 800, cursor: 'pointer', letterSpacing: '.06em', boxShadow: '0 3px 12px rgba(0,0,0,0.3)', fontFamily: "'DM Sans', sans-serif", whiteSpace: 'nowrap', flexShrink: 0 }}>
+              style={{ marginLeft: 'auto', background: '#E8500A', color: 'var(--text)', border: 'none', borderRadius: 100, padding: 'min(8px, 1.2vh) min(18px, 2.6vh)', fontSize: 'min(16px, 3vh)', fontWeight: 800, cursor: 'pointer', letterSpacing: '.06em', boxShadow: '0 3px 12px rgba(0,0,0,0.3)', fontFamily: "'DM Sans', sans-serif", whiteSpace: 'nowrap', flexShrink: 0 }}>
               🎬 MARK
             </button>
           </div>

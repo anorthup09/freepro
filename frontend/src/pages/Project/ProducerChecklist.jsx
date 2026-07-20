@@ -174,7 +174,7 @@ export default function ProducerChecklist({ project }) {
         {closedLists.map(l => (
           <button key={l.key} onClick={() => openList(l.key)} title={`Open ${l.title}`}
             style={{
-              cursor: 'pointer', borderRadius: 16, padding: '6px 14px', background: '#0b0b0b',
+              cursor: 'pointer', borderRadius: 16, padding: '6px 14px', background: 'var(--bg3)',
               border: '1px solid var(--border)', color: 'var(--muted)',
               fontSize: 11, fontWeight: 800, whiteSpace: 'nowrap',
             }}>

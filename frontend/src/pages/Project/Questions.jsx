@@ -172,7 +172,7 @@ function QuestionTile({ q, isAnswering, answerInput, setAnswerInput, onStartAnsw
                   className="btn btn-sm"
                   disabled={submitting || !answerInput.trim()}
                   onClick={onSubmitAnswer}
-                  style={{ background:'#22c55e', color:'#fff', border:'none', fontWeight:600 }}
+                  style={{ background:'#22c55e', color:'var(--text)', border:'none', fontWeight:600 }}
                 >
                   {submitting ? 'Saving…' : 'Submit Answer'}
                 </button>
@@ -225,7 +225,7 @@ function AnsweredTile({ q, onDelete, onSaveAnswer }) {
                 style={{ width:'100%', boxSizing:'border-box', fontFamily:'inherit', fontSize:12, resize:'vertical', marginBottom:8 }}
               />
               <div style={{ display:'flex', gap:8 }}>
-                <button className="btn btn-sm" disabled={saving || !editVal.trim()} onClick={save} style={{ background:'#22c55e', color:'#fff', border:'none', fontWeight:600 }}>
+                <button className="btn btn-sm" disabled={saving || !editVal.trim()} onClick={save} style={{ background:'#22c55e', color:'var(--text)', border:'none', fontWeight:600 }}>
                   {saving ? 'Saving…' : 'Save'}
                 </button>
                 <button className="btn btn-ghost btn-sm" onClick={() => { setEditing(false); setEditVal(q.answer); }}>Cancel</button>

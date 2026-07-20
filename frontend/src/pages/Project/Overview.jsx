@@ -342,7 +342,7 @@ export default function Overview({ project, setProject, onTabChange }) {
 
       {/* Public View Password */}
       <form onSubmit={saveSharePw} className="ov-pw-form" style={{ display:'flex', alignItems:'center', gap:10, background:'rgba(232,80,10,0.12)', border:'1px solid rgba(232,80,10,0.45)', borderRadius:8, padding:'10px 14px', margin:'20px 0 10px' }}>
-        <span style={{ fontSize:13, fontWeight:700, whiteSpace:'nowrap', color:'#fff', flexShrink:0 }}>Public PW</span>
+        <span style={{ fontSize:13, fontWeight:700, whiteSpace:'nowrap', color:'var(--text)', flexShrink:0 }}>Public PW</span>
         <input
           value={sharePw}
           onChange={e => { setSharePw(e.target.value.replace(/[^a-zA-Z0-9]/g, '')); setSharePwSaved(false); }}
@@ -350,10 +350,10 @@ export default function Overview({ project, setProject, onTabChange }) {
           style={{ width:140, flexShrink:0 }}
         />
         <div className="ov-pw-actions" style={{ display:'flex', alignItems:'center', gap:8 }}>
-          <button className="btn btn-ghost btn-sm" type="submit" disabled={sharePwSaving} style={{ color:'#fff' }}>
+          <button className="btn btn-ghost btn-sm" type="submit" disabled={sharePwSaving} style={{ color:'var(--text)' }}>
             {sharePwSaved ? 'Saved!' : sharePwSaving ? 'Saving…' : 'Save'}
           </button>
-          {sharePw && <button type="button" className="btn btn-ghost btn-sm" style={{ color:'#fff' }} onClick={() => { setSharePw(''); }}>Clear</button>}
+          {sharePw && <button type="button" className="btn btn-ghost btn-sm" style={{ color:'var(--text)' }} onClick={() => { setSharePw(''); }}>Clear</button>}
         </div>
         <div className="ov-pw-divider" style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center' }}>
           <span style={{ color:'rgba(255,255,255,0.3)', fontSize:14, userSelect:'none' }}>|</span>
@@ -362,7 +362,7 @@ export default function Overview({ project, setProject, onTabChange }) {
           <span style={{ fontSize:9, color:'rgba(255,255,255,0.55)', textTransform:'uppercase', letterSpacing:'0.08em', fontWeight:600 }}>Quick Copy Links</span>
           <div style={{ display:'flex', gap:4 }}>
           {['producer','crew','client'].map(vt => (
-            <button key={vt} type="button" className="btn btn-ghost btn-sm" style={{ color:'#fff' }} onClick={() => copyShareLink(vt)}>
+            <button key={vt} type="button" className="btn btn-ghost btn-sm" style={{ color:'var(--text)' }} onClick={() => copyShareLink(vt)}>
               {copyToast === vt ? '✓ Copied!' : `${vt.charAt(0).toUpperCase() + vt.slice(1)} View`}
             </button>
           ))}
@@ -479,7 +479,7 @@ export default function Overview({ project, setProject, onTabChange }) {
               {(project.crewAssignments||[]).filter(a => a.crewMember).map((a, i) => (
                 <div key={a.id} style={{ padding:'10px 16px', borderRight:'1px solid rgba(255,255,255,0.10)', borderBottom:'1px solid rgba(255,255,255,0.10)', display:'flex', flexDirection:'column', gap:2 }}>
                   <div style={{ fontSize:10, textTransform:'uppercase', letterSpacing:'0.06em', color:'rgba(251,146,60,0.85)', fontWeight:700 }}>{a.position?.name}{a.slotNumber > 1 ? ` ${a.slotNumber}` : ''}</div>
-                  <div style={{ fontSize:13, fontWeight:600, color:'#fff' }}>{displayName(a.crewMember)}</div>
+                  <div style={{ fontSize:13, fontWeight:600, color:'var(--text)' }}>{displayName(a.crewMember)}</div>
                 </div>
               ))}
             </div>

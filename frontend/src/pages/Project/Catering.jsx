@@ -81,7 +81,7 @@ export default function Catering({ project }) {
   return (
     <div>
       {savedToast && (
-        <div style={{ position:'fixed', bottom:24, right:24, background:'#22c55e', color:'#fff', fontSize:13, fontWeight:600, padding:'8px 18px', borderRadius:20, zIndex:9999, boxShadow:'0 2px 12px rgba(0,0,0,0.25)', pointerEvents:'none', letterSpacing:'.02em' }}>
+        <div style={{ position:'fixed', bottom:24, right:24, background:'#22c55e', color:'var(--text)', fontSize:13, fontWeight:600, padding:'8px 18px', borderRadius:20, zIndex:9999, boxShadow:'0 2px 12px rgba(0,0,0,0.25)', pointerEvents:'none', letterSpacing:'.02em' }}>
           ✓ Saved
         </div>
       )}

@@ -153,11 +153,11 @@ export default function FinanceProject({ pidOverride }) {
           }}>
             {project.client_logo
               ? <img src={project.client_logo} alt={project.client} style={{ height:22, maxWidth:120, objectFit:'contain' }} />
-              : <span className="glass-client" style={{ fontSize:13, fontWeight:800, color:'#fff', whiteSpace:'nowrap' }}>{project.client}</span>}
+              : <span className="glass-client" style={{ fontSize:13, fontWeight:800, color:'var(--text)', whiteSpace:'nowrap' }}>{project.client}</span>}
             <span className="glass-mid" style={{ color:'rgba(255,255,255,0.25)' }}>|</span>
             <span className="glass-mid" style={{ fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.65)', letterSpacing:'0.08em', whiteSpace:'nowrap' }}>{project.code}</span>
             <span className="glass-mid" style={{ color:'rgba(255,255,255,0.25)' }}>|</span>
-            <span style={{ fontFamily:"'Syne', sans-serif", fontWeight:800, fontSize:15, color:'#fff', letterSpacing:'-0.3px', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', minWidth:0 }}>{project.title}</span>
+            <span style={{ fontFamily:"'Syne', sans-serif", fontWeight:800, fontSize:15, color:'var(--text)', letterSpacing:'-0.3px', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', minWidth:0 }}>{project.title}</span>
             <span style={{ marginLeft:'auto', textAlign:'right' }}>
               <span style={{ fontSize:9, fontWeight:700, color:'rgba(255,255,255,0.4)', textTransform:'uppercase', letterSpacing:'0.1em', marginRight:8 }}>Total Estimate</span>
               <span style={{ fontSize:16, fontWeight:800, color:'#5ABF80', fontVariantNumeric:'tabular-nums' }}>{fmt$(grand)}</span>

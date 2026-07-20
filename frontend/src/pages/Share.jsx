@@ -1061,7 +1061,7 @@ function QuestionsView({ shareToken, pw, canAnswer, project }) {
                     <div>
                       <textarea value={answerInput} onChange={e => setAnswerInput(e.target.value)} placeholder="Type your answer…" rows={3} autoFocus style={{ width:'100%', boxSizing:'border-box', fontFamily:'inherit', fontSize:12, resize:'vertical', marginBottom:8 }} />
                       <div style={{ display:'flex', gap:8 }}>
-                        <button className="btn btn-sm" disabled={answeringSubmitting || !answerInput.trim()} onClick={() => submitAnswer(q.id)} style={{ background:'#22c55e', color:'#fff', border:'none', fontWeight:600 }}>
+                        <button className="btn btn-sm" disabled={answeringSubmitting || !answerInput.trim()} onClick={() => submitAnswer(q.id)} style={{ background:'#22c55e', color:'var(--text)', border:'none', fontWeight:600 }}>
                           {answeringSubmitting ? 'Saving…' : 'Submit Answer'}
                         </button>
                         <button className="btn btn-ghost btn-sm" onClick={() => { setAnsweringId(null); setAnswerInput(''); }}>Cancel</button>
@@ -2578,7 +2578,7 @@ function SwipeReminder({ item, dayStr, children }) {
     <div style={{ position: 'relative', overflow: 'hidden' }}>
       <button type="button" onClick={addReminder} aria-label="Add reminder"
         style={{ position: 'absolute', top: 3, bottom: 3, right: 0, width: 104, border: 'none', borderRadius: 10,
-          background: 'linear-gradient(135deg,#e8500a,#c2410c)', color: '#fff', fontWeight: 700, fontSize: 10.5,
+          background: 'linear-gradient(135deg,#e8500a,#c2410c)', color: 'var(--text)', fontWeight: 700, fontSize: 10.5,
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3,
           cursor: 'pointer', letterSpacing: '.03em',
           opacity: dx < -10 ? 1 : 0, pointerEvents: dx < -10 ? 'auto' : 'none', transition: 'opacity .15s' }}>
@@ -2663,7 +2663,7 @@ function GlassHeader({ project, showTime, clientMode, crewMode }) {
         )}
       </div>
       <div style={{ textAlign:'right', marginLeft:'auto' }}>
-        <div style={{ fontFamily:"'Syne', sans-serif", fontWeight:800, fontSize:18, letterSpacing:'-0.3px', color:'#fff', lineHeight:1 }}>{project.title}</div>
+        <div style={{ fontFamily:"'Syne', sans-serif", fontWeight:800, fontSize:18, letterSpacing:'-0.3px', color:'var(--text)', lineHeight:1 }}>{project.title}</div>
         {(clientMode || crewMode) && (
           <div style={{ fontFamily:"'DM Sans', sans-serif", fontSize:11, fontWeight:500, color:'rgba(255,255,255,0.75)', marginTop:4, letterSpacing:'0.01em' }}>
             {fmt(project.start_date)} – {fmt(project.end_date)}
@@ -2786,10 +2786,10 @@ export default function Share() {
     <div style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:'100vh', background:'var(--bg)', color:'var(--text)', padding:16 }}>
       <div style={{ background:'rgba(232,80,10,0.80)', border:'1px solid rgba(255,255,255,0.35)', boxShadow:'inset 0 1px 0 rgba(255,255,255,0.25), inset -1px 0 0 rgba(0,0,0,0.4), 0 3px 10px rgba(0,0,0,0.5)', borderRadius:12, padding:'36px 40px', width:'100%', maxWidth:320, textAlign:'center' }}>
         <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:2, marginBottom:20 }}>
-          <div className="logo" style={{ justifyContent:'center', color:'#fff' }}>Free<em style={{ color:'#fff' }}>Pro</em></div>
+          <div className="logo" style={{ justifyContent:'center', color:'var(--text)' }}>Free<em style={{ color:'var(--text)' }}>Pro</em></div>
           <span style={{ fontSize:9, color:'rgba(255,255,255,0.6)', letterSpacing:'0.06em' }}>Powered by Unbridled Media</span>
         </div>
-        <div style={{ fontSize:15, fontWeight:700, marginBottom:6, color:'#fff' }}>Password Required</div>
+        <div style={{ fontSize:15, fontWeight:700, marginBottom:6, color:'var(--text)' }}>Password Required</div>
         <div style={{ fontSize:12, color:'rgba(255,255,255,0.7)', marginBottom:20 }}>This view is password protected.</div>
         <form onSubmit={submitPassword}>
           <input
@@ -2844,7 +2844,7 @@ export default function Share() {
           </span>
         )}
         {view_type === 'talent' && (
-          <div style={{ fontSize:11, color:'#fff', textTransform:'uppercase', letterSpacing:'.08em', border:'1px solid rgba(255,255,255,0.6)', borderRadius:6, padding:'4px 10px' }}>
+          <div style={{ fontSize:11, color:'var(--text)', textTransform:'uppercase', letterSpacing:'.08em', border:'1px solid rgba(255,255,255,0.6)', borderRadius:6, padding:'4px 10px' }}>
             {data.talent_name} — Talent
           </div>
         )}

@@ -77,7 +77,7 @@ export default function GearDashboard() {
               <input value={text} onChange={e => setText(e.target.value)} placeholder="Add a comment…"
                 onKeyDown={e => e.key === 'Enter' && post()} style={{ flex: 1, fontSize: 13 }} />
               <button onClick={post} disabled={!text.trim() || posting}
-                style={{ background: text.trim() ? 'var(--orange)' : 'var(--border)', color: '#fff', border: 'none', borderRadius: 8, padding: '7px 16px', fontSize: 12, fontWeight: 800, cursor: text.trim() ? 'pointer' : 'default' }}>
+                style={{ background: text.trim() ? 'var(--orange)' : 'var(--border)', color: 'var(--text)', border: 'none', borderRadius: 8, padding: '7px 16px', fontSize: 12, fontWeight: 800, cursor: text.trim() ? 'pointer' : 'default' }}>
                 Post
               </button>
             </div>

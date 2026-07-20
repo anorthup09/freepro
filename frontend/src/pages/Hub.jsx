@@ -87,7 +87,7 @@ export function TripPrompt() {
       </div>
       <div style={{ display:'flex', alignItems:'center', gap:10, flexShrink:0 }}>
         <a href={`/share/${trip.token}`}
-          style={{ background:'var(--orange)', color:'#fff', textDecoration:'none', fontSize:12, fontWeight:800,
+          style={{ background:'var(--orange)', color:'var(--text)', textDecoration:'none', fontSize:12, fontWeight:800,
             padding:'7px 16px', borderRadius:20, letterSpacing:'.02em', whiteSpace:'nowrap' }}>
           Open {viewLabel} →
         </a>
@@ -286,25 +286,25 @@ export function FeedbackBoard({ variant = 'banner' }) {
       {variant === 'banner' ? (
         <div style={{ display:'flex', justifyContent:'center', alignItems:'center', gap:10, padding:'14px 16px 0' }}>
           <button onClick={toggle}
-            style={{ background:'#e05252', border:'2px solid #ff6b6b', color:'#fff', borderRadius:12, padding:'10px 26px', fontSize:14, fontWeight:900, letterSpacing:'0.03em', cursor:'pointer', boxShadow:'0 4px 18px rgba(224,82,82,0.35)' }}>
+            style={{ background:'#e05252', border:'2px solid #ff6b6b', color:'var(--text)', borderRadius:12, padding:'10px 26px', fontSize:14, fontWeight:900, letterSpacing:'0.03em', cursor:'pointer', boxShadow:'0 4px 18px rgba(224,82,82,0.35)' }}>
             ! Testing - Feedback and Features !
           </button>
           {openCount > 0 && (
             <span onClick={toggle} title={`${openCount} unresolved item${openCount === 1 ? '' : 's'}`}
-              style={{ background:'#e05252', color:'#fff', borderRadius:'50%', minWidth:26, height:26, display:'inline-flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:900, cursor:'pointer', boxShadow:'0 2px 10px rgba(224,82,82,0.5)', padding:'0 6px' }}>
+              style={{ background:'#e05252', color:'var(--text)', borderRadius:'50%', minWidth:26, height:26, display:'inline-flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:900, cursor:'pointer', boxShadow:'0 2px 10px rgba(224,82,82,0.5)', padding:'0 6px' }}>
               {openCount}
             </span>
           )}
         </div>
       ) : (
         <span className="no-print fb-fab" style={{ position:'fixed', bottom:'calc(env(safe-area-inset-bottom, 0px) + 14px)', left:14, zIndex:125 }}>
-          <span className="fb-fab-label" style={{ position:'absolute', bottom:'calc(100% + 8px)', left:0, background:'#e05252', color:'#fff',
+          <span className="fb-fab-label" style={{ position:'absolute', bottom:'calc(100% + 8px)', left:0, background:'#e05252', color:'var(--text)',
             borderRadius:8, padding:'3px 10px', fontSize:10, fontWeight:900, letterSpacing:'0.03em', whiteSpace:'nowrap',
             opacity:0, pointerEvents:'none', transform:'translateY(4px)', transition:'opacity .18s ease, transform .18s ease' }}>
             Feedback
           </span>
           <button onClick={toggle} title="Testing — leave feedback or a feature request" aria-label="Feedback"
-            style={{ width:36, height:36, borderRadius:'50%', background:'#e05252', border:'1px solid #ff6b6b', color:'#fff',
+            style={{ width:36, height:36, borderRadius:'50%', background:'#e05252', border:'1px solid #ff6b6b', color:'var(--text)',
               fontSize: openCount > 0 ? 13 : 14, fontWeight:900, cursor:'pointer', boxShadow:'0 3px 12px rgba(224,82,82,0.5)',
               display:'flex', alignItems:'center', justifyContent:'center', padding:0 }}>
             {openCount > 0 ? openCount : 'F'}
@@ -337,7 +337,7 @@ export function FeedbackBoard({ variant = 'banner' }) {
                   style={{ height:34, width:48, objectFit:'cover', borderRadius:5, border:'1px solid var(--border)', cursor:'pointer' }} />
               )}
               <button onClick={add} disabled={!text.trim()}
-                style={{ background:'#e05252', border:'none', color:'#fff', borderRadius:8, padding:'7px 16px', fontSize:12, fontWeight:800, cursor:'pointer', opacity: text.trim() ? 1 : 0.5 }}>
+                style={{ background:'#e05252', border:'none', color:'var(--text)', borderRadius:8, padding:'7px 16px', fontSize:12, fontWeight:800, cursor:'pointer', opacity: text.trim() ? 1 : 0.5 }}>
                 Add
               </button>
             </div>
@@ -362,7 +362,7 @@ export function FeedbackBoard({ variant = 'banner' }) {
                               onChange={e => { readImage(e.target.files[0], v => setEditItem(x => ({ ...x, attachment: v }))); e.target.value = ''; }} />
                           </label>
                           <button onClick={saveItemEdit}
-                            style={{ background:'#e05252', border:'none', color:'#fff', borderRadius:8, padding:'5px 12px', fontSize:11, fontWeight:800, cursor:'pointer' }}>Save</button>
+                            style={{ background:'#e05252', border:'none', color:'var(--text)', borderRadius:8, padding:'5px 12px', fontSize:11, fontWeight:800, cursor:'pointer' }}>Save</button>
                           <button className="btn btn-ghost btn-sm" onClick={() => setEditItem(null)}>✕</button>
                         </div>
                         {editItem.attachment && (
@@ -399,7 +399,7 @@ export function FeedbackBoard({ variant = 'banner' }) {
                                   onChange={e => { readImage(e.target.files[0], v => setEditReply(er => ({ ...er, attachment: v }))); e.target.value = ''; }} />
                               </label>
                               <button onClick={saveReplyEdit} disabled={!editReply.text.trim() && !editReply.attachment}
-                                style={{ background:'#e05252', border:'none', color:'#fff', borderRadius:8, padding:'5px 12px', fontSize:11, fontWeight:800, cursor:'pointer', opacity: (editReply.text.trim() || editReply.attachment) ? 1 : 0.5 }}>Save</button>
+                                style={{ background:'#e05252', border:'none', color:'var(--text)', borderRadius:8, padding:'5px 12px', fontSize:11, fontWeight:800, cursor:'pointer', opacity: (editReply.text.trim() || editReply.attachment) ? 1 : 0.5 }}>Save</button>
                               <button className="btn btn-ghost btn-sm" onClick={() => setEditReply(null)}>✕</button>
                             </div>
                             {editReply.attachment && (
@@ -436,7 +436,7 @@ export function FeedbackBoard({ variant = 'banner' }) {
                               onChange={e => { readImage(e.target.files[0], setReplyAttachment); e.target.value = ''; }} />
                           </label>
                           <button onClick={() => sendReply(i.id)} disabled={!replyText.trim() && !replyAttachment}
-                            style={{ background:'#e05252', border:'none', color:'#fff', borderRadius:8, padding:'5px 12px', fontSize:11, fontWeight:800, cursor:'pointer', opacity: (replyText.trim() || replyAttachment) ? 1 : 0.5 }}>
+                            style={{ background:'#e05252', border:'none', color:'var(--text)', borderRadius:8, padding:'5px 12px', fontSize:11, fontWeight:800, cursor:'pointer', opacity: (replyText.trim() || replyAttachment) ? 1 : 0.5 }}>
                             Answer
                           </button>
                         </div>
@@ -483,7 +483,7 @@ function NewUserAlert({ onOpen }) {
   return (
     <button onClick={onOpen}
       title={`${count} pending signup${count === 1 ? '' : 's'} awaiting approval`}
-      style={{ display:'inline-flex', alignItems:'center', gap:6, background:'#e05252', border:'1px solid #ff6b6b', color:'#fff', borderRadius:20, padding:'5px 13px', fontSize:11, fontWeight:900, letterSpacing:'0.02em', cursor:'pointer', boxShadow:'0 2px 10px rgba(224,82,82,0.4)' }}>
+      style={{ display:'inline-flex', alignItems:'center', gap:6, background:'#e05252', border:'1px solid #ff6b6b', color:'var(--text)', borderRadius:20, padding:'5px 13px', fontSize:11, fontWeight:900, letterSpacing:'0.02em', cursor:'pointer', boxShadow:'0 2px 10px rgba(224,82,82,0.4)' }}>
       (!) New User{count > 1 ? `s · ${count}` : ''}
     </button>
   );
@@ -1067,7 +1067,7 @@ function HubDashboard() {
           <button onClick={() => nav('/team')}
             style={{ background:'rgba(74,158,255,0.14)', border:'1.5px solid #4a9eff', color:'#4a9eff',
               borderRadius:12, padding:'6px 14px', fontSize:11, fontWeight:800, cursor:'pointer', display:'flex', alignItems:'center', gap:6 }}>
-            <span style={{ fontSize:13 }}>👥</span> Team Management
+            Team Management
           </button>
         </div>
         {!team && <div style={{ fontSize:11, color:'var(--muted)' }}>Loading…</div>}
@@ -1226,7 +1226,7 @@ export default function Hub() {
                   )}
                 </div>
                 {!isFinance && (
-                <button onClick={() => setShowNewProject(true)}
+                <button onClick={() => setShowNewProject(true)} className="hub-newproj"
                   style={{ background:'#000', color:'#5ABF80', border:'1px solid #5ABF80', borderRadius:22,
                     padding:'10px 24px', fontSize:12.5, fontWeight:800, letterSpacing:'0.03em', cursor:'pointer',
                     boxShadow:'0 0 16px rgba(90,191,128,0.55)', transition:'box-shadow .15s ease, transform .15s ease' }}

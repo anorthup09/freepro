@@ -173,7 +173,7 @@ export default function Gear({ project, setProject }) {
           <button onClick={() => setShowGearReq(true)}
             title={gearRequest ? 'Gear request submitted — click to view' : 'No gear request yet — click to fill one out'}
             style={gearRequest
-              ? { background:'var(--orange)', border:'1px solid var(--orange)', color:'#fff', borderRadius:20, padding:'6px 16px', fontSize:11, fontWeight:800, cursor:'pointer' }
+              ? { background:'var(--orange)', border:'1px solid var(--orange)', color:'var(--text)', borderRadius:20, padding:'6px 16px', fontSize:11, fontWeight:800, cursor:'pointer' }
               : { background:'var(--bg2)', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:20, padding:'6px 16px', fontSize:11, fontWeight:800, cursor:'pointer' }}>
             View Gear Request
           </button>

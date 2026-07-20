@@ -368,7 +368,7 @@ export default function GearRequestModal({ projectId, existing, onClose, onSubmi
             <div style={{ display:'flex', justifyContent:'flex-end', gap:8 }}>
               <button className="btn btn-ghost btn-sm" onClick={() => amending ? setAmending(false) : onClose()}>Cancel</button>
               <button disabled={!ok || saving} onClick={submit}
-                style={{ background: ok ? 'var(--orange)' : 'var(--border)', color:'#fff', border:'none', borderRadius:8, padding:'9px 20px', fontSize:12, fontWeight:800, cursor: ok ? 'pointer' : 'default', opacity: saving ? 0.6 : 1 }}>
+                style={{ background: ok ? 'var(--orange)' : 'var(--border)', color:'var(--text)', border:'none', borderRadius:8, padding:'9px 20px', fontSize:12, fontWeight:800, cursor: ok ? 'pointer' : 'default', opacity: saving ? 0.6 : 1 }}>
                 {saving ? 'Submitting…' : amending ? 'Submit Amendment' : 'Submit Gear Request'}
               </button>
             </div>

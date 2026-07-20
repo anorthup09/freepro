@@ -72,7 +72,7 @@ export default function Login() {
         <div className="login-box">
           <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:16, marginBottom:16 }}>
             <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height:30, filter:'brightness(0) invert(1)', opacity:0.95 }} />
-            <div style={{ fontSize:10, fontWeight:700, letterSpacing:'0.05em', textAlign:'center', color:'#fff', whiteSpace:'nowrap' }}>
+            <div style={{ fontSize:10, fontWeight:700, letterSpacing:'0.05em', textAlign:'center', color:'var(--text)', whiteSpace:'nowrap' }}>
               Project Finance · Production · Post · Team Management
             </div>
           </div>
@@ -103,7 +103,7 @@ export default function Login() {
       <div className="login-box">
         <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:16, marginBottom:16 }}>
             <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height:30, filter:'brightness(0) invert(1)', opacity:0.95 }} />
-            <div style={{ fontSize:10, fontWeight:700, letterSpacing:'0.05em', textAlign:'center', color:'#fff', whiteSpace:'nowrap' }}>
+            <div style={{ fontSize:10, fontWeight:700, letterSpacing:'0.05em', textAlign:'center', color:'var(--text)', whiteSpace:'nowrap' }}>
               Project Finance · Production · Post · Team Management
             </div>
           </div>

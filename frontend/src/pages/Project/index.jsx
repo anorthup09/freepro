@@ -171,7 +171,7 @@ function ShareDropdown({ projectId, showShotList, crews = [] }) {
       {open && (
         <div className="share-menu">
           <div className="share-menu-item" onClick={() => { setOpen(false); navigate(`/projects/${projectId}/emails`); }}
-            style={{ border:'1px solid rgba(255,255,255,0.5)', borderRadius:5, margin:'6px 8px 2px', padding:'6px 10px', color:'#fff' }}>
+            style={{ border:'1px solid rgba(255,255,255,0.5)', borderRadius:5, margin:'6px 8px 2px', padding:'6px 10px', color:'var(--text)' }}>
             ✉ Send Call Sheet Emails
           </div>
           <div style={{ borderTop:'1px solid var(--border)', margin:'4px 0', padding:'6px 14px 3px', fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em' }}>Copy Link</div>
@@ -199,9 +199,9 @@ function ShareDropdown({ projectId, showShotList, crews = [] }) {
               const url = `${FRONTEND_BASE}/share/${share.token}?tab=shot-list&pdf=1`;
               window.open(url, '_blank');
               setOpen(false);
-            }} style={{ border:'1px solid rgba(255,255,255,0.5)', borderRadius:5, margin:'4px 8px', padding:'6px 10px', color:'#fff' }}>Shot List PDF</div>
+            }} style={{ border:'1px solid rgba(255,255,255,0.5)', borderRadius:5, margin:'4px 8px', padding:'6px 10px', color:'var(--text)' }}>Shot List PDF</div>
           )}
-          <div className="share-menu-item" onClick={() => { setOpen(false); navigate(`/projects/${projectId}/talent-callsheets`); }} style={{ border:'1px solid rgba(255,255,255,0.5)', borderRadius:5, margin:'4px 8px', padding:'6px 10px', color:'#fff' }}>Talent</div>
+          <div className="share-menu-item" onClick={() => { setOpen(false); navigate(`/projects/${projectId}/talent-callsheets`); }} style={{ border:'1px solid rgba(255,255,255,0.5)', borderRadius:5, margin:'4px 8px', padding:'6px 10px', color:'var(--text)' }}>Talent</div>
         </div>
       )}
       {toast && <div className="share-toast">{toast}</div>}
@@ -388,7 +388,7 @@ export default function Project({ idOverride }) {
       }}>
         <div>
           <div style={{ fontSize:10, color:'rgba(255,255,255,0.65)', textTransform:'uppercase', letterSpacing:'0.12em', fontWeight:700, marginBottom:2 }}>{project.code}</div>
-          <div style={{ fontFamily:"'Syne', sans-serif", fontWeight:800, fontSize:16, letterSpacing:'-0.3px', color:'#fff', lineHeight:1 }}>{project.title}</div>
+          <div style={{ fontFamily:"'Syne', sans-serif", fontWeight:800, fontSize:16, letterSpacing:'-0.3px', color:'var(--text)', lineHeight:1 }}>{project.title}</div>
           {tab === 'shot-list' && (
             <div style={{ marginTop:5, fontSize:12, fontWeight:700, color:'rgba(255,255,255,0.5)', letterSpacing:'.08em', fontVariantNumeric:'tabular-nums' }}>
               <span style={{ fontSize:10, textTransform:'uppercase', letterSpacing:'.14em', marginRight:5, color:'rgba(255,255,255,0.3)' }}>Current Time</span>
@@ -450,7 +450,7 @@ export default function Project({ idOverride }) {
           {!isAgency && !isCrew && <button
             className={`tab tab-questions${tab === 'questions' ? ' on' : ''}`}
             onClick={() => setTab('questions')}
-            style={{ border:'1px solid var(--orange)', borderRadius:6, color:'#fff', flexShrink:0, display:'flex', alignItems:'center', gap:5 }}
+            style={{ border:'1px solid var(--orange)', borderRadius:6, color:'var(--text)', flexShrink:0, display:'flex', alignItems:'center', gap:5 }}
           >
             {hasUnanswered && tab !== 'questions' && <span style={{ fontSize:11, color:'var(--orange)' }}>!</span>}
             Questions
