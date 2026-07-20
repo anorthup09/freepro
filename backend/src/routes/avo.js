@@ -269,6 +269,7 @@ router.patch('/edits/:id', ...staff, async (req, res, next) => {
         cost_estimate = ${d.costEstimate !== undefined ? (d.costEstimate === '' || d.costEstimate == null ? null : Number(d.costEstimate) || 0) : sql`cost_estimate`},
         extra = ${d.extra !== undefined && typeof d.extra === 'object' ? sql`COALESCE(extra, '{}'::jsonb) || ${sql.json(d.extra)}` : sql`extra`},
         tracker_sort = ${d.trackerSort !== undefined ? (Number(d.trackerSort) || 0) : sql`tracker_sort`},
+        tracker_color = ${d.trackerColor !== undefined ? (d.trackerColor || null) : sql`tracker_color`},
         status = ${d.status !== undefined && editStatuses.includes(d.status) ? d.status : sql`status`},
         review_link = ${d.reviewLink !== undefined ? (d.reviewLink || null) : sql`review_link`},
         start_date = ${d.startDate !== undefined ? (d.startDate || null) : sql`start_date`},
@@ -768,7 +769,7 @@ router.get('/projects/:id', ...staff, async (req, res, next) => {
     const edits = await sql`
       SELECT e.*, COALESCE((SELECT ${sql.unsafe(PREF)} FROM crew_members cm WHERE cm.id = e.lead_editor_id), e.lead_editor_name) as lead_editor
       FROM edits e
-      WHERE e.project_code = ${page.code} OR e.project_code LIKE ${page.code + '-%'}
+      WHERE (e.project_code = ${page.code} OR e.project_code LIKE ${page.code + '-%'}) AND e.archived IS NOT TRUE
       ORDER BY e.tracker_sort NULLS LAST, e.end_date NULLS LAST, e.created_at`;
     const assets = await sql`SELECT id, page_id, filename, mime, size, edit_ids, uploaded_by, created_at FROM avo_assets WHERE page_id = ${page.id} ORDER BY created_at DESC`;
     const tables = await sql`SELECT * FROM avo_custom_tables WHERE page_id = ${page.id} ORDER BY sort, created_at`;

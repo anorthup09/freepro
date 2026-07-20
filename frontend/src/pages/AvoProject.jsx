@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../App.jsx';
@@ -217,7 +218,7 @@ function SmartTable({ rows, colDefs, config, onConfig, saveExtra, leading, trail
               <tr key={r.id}
                 onDragOver={dragRow != null ? e => { e.preventDefault(); setOverRow(ri); } : undefined}
                 onDrop={dragRow != null ? () => { dropRow(ri); setDragRow(null); setOverRow(null); } : undefined}
-                style={{ borderTop: overRow === ri && dragRow != null && dragRow !== ri ? `2px solid ${AVO}` : '1px solid rgba(255,255,255,0.04)', opacity: r.__dim ? 0.5 : dragRow === ri ? 0.4 : 1 }}>
+                style={{ borderTop: overRow === ri && dragRow != null && dragRow !== ri ? `2px solid ${AVO}` : '1px solid rgba(255,255,255,0.04)', opacity: r.__dim ? 0.5 : dragRow === ri ? 0.4 : 1, background: r.tracker_color ? `${r.tracker_color}22` : undefined }}>
                 {onReorder && (
                   <td style={{ ...td, textAlign:'center', width:26 }}>
                     <span draggable={!filterActive} title={filterActive ? 'Clear filters to reorder rows' : 'Drag to reorder row'}
@@ -272,6 +273,40 @@ function SmartTable({ rows, colDefs, config, onConfig, saveExtra, leading, trail
         {footerRight?.node}
       </div>
     </div>
+  );
+}
+
+// 10 row color-coding options for the tracker (hover the pencil to pick)
+const ROW_COLORS = ['#e05252', '#E8500A', '#e6c229', '#5ABF80', '#35c4c8', '#4a9eff', '#6366f1', '#a78bfa', '#d66a9b', '#8a8f98'];
+
+// Pencil that opens the edit on click, and reveals a 10-swatch color palette on
+// hover to color-code the row. Palette is portaled so the scroll wrap can't clip it.
+function RowColorPencil({ edit, onOpen, onPick }) {
+  const [pos, setPos] = useState(null);
+  const btnRef = useRef(null);
+  const hideTimer = useRef(null);
+  const show = () => {
+    clearTimeout(hideTimer.current);
+    const r = btnRef.current?.getBoundingClientRect();
+    if (r) setPos({ top: r.bottom + 4, left: r.left });
+  };
+  const hideSoon = () => { hideTimer.current = setTimeout(() => setPos(null), 160); };
+  const cur = edit.tracker_color || null;
+  return (
+    <span style={{ position:'relative', display:'inline-block' }} onMouseEnter={show} onMouseLeave={hideSoon}>
+      <button ref={btnRef} className="vt-edit" title="Open this edit · hover to color-code the row" onClick={onOpen}
+        style={{ background: cur ? `${cur}22` : 'none', border:`1px solid ${cur || 'var(--border)'}`, color: cur || 'var(--muted)', borderRadius:5, padding:'2px 6px', fontSize:11, cursor:'pointer' }}>✎</button>
+      {pos && createPortal(
+        <div onMouseEnter={show} onMouseLeave={hideSoon}
+          style={{ position:'fixed', top:pos.top, left:pos.left, zIndex:400, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding:8, boxShadow:'0 8px 24px rgba(0,0,0,0.55)', display:'grid', gridTemplateColumns:'repeat(5, 18px)', gap:6 }}>
+          {ROW_COLORS.map(c => (
+            <button key={c} title={c} onClick={() => { onPick(c); setPos(null); }}
+              style={{ width:18, height:18, borderRadius:'50%', background:c, cursor:'pointer', padding:0, border: cur === c ? '2px solid #fff' : '1px solid rgba(255,255,255,0.25)' }} />
+          ))}
+          <button onClick={() => { onPick(null); setPos(null); }} title="Clear color"
+            style={{ gridColumn:'span 5', marginTop:2, background:'none', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:6, fontSize:9, fontWeight:800, padding:'3px 0', cursor:'pointer' }}>Clear</button>
+        </div>, document.body)}
+    </span>
   );
 }
 
@@ -347,8 +382,7 @@ function VideoTracker({ edits, setEdits, config, onConfig, code }) {
         onReorder={reorder} footerRight={{ addRow: () => setAddForm({ ...BLANK_DELIVERABLE_FORM }), label: '+ Add Deliverable' }}
         emptyText="No edits with this project code yet — add them from the pipeline and they'll appear here automatically."
         leading={e => (
-          <button className="vt-edit" title="Open this edit" onClick={() => nav(`/avo/${e.id}`)}
-            style={{ background:'none', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:5, padding:'2px 6px', fontSize:11, cursor:'pointer' }}>✎</button>
+          <RowColorPencil edit={e} onOpen={() => nav(`/avo/${e.id}`)} onPick={c => saveEdit(e.id, { trackerColor: c })} />
         )} />
       <div style={{ padding:'8px 2px', fontSize:10, color:'var(--muted)' }}>
         Feeds live from the editing pipeline. Title, due date, editor, review link, and status come from each edit; Type, Notes, Video Assets, and any custom columns are editable here.
