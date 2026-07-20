@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { api } from '../../api.js';
 import { maybeMailNotice } from '../../utils/mailNotice.js';
 import { displayName } from '../../utils/displayName.js';
+import { positionLabels } from '../../utils/positionLabel.js';
 
 function fmtTime(str) {
   if (!str) return '';
@@ -624,14 +625,7 @@ export default function Crew({ project, onProjectUpdate }) {
         const contractors = assignments.filter(a => a.is_contractor);
         // Number positions that appear more than once: On-Site Editor 1, 2, …
         // (a single one of a position stays unnumbered).
-        const byPos = {};
-        assignments.forEach(a => { const pid = a.position?.id || a.position_id; (byPos[pid] ||= []).push(a); });
-        const slotLabel = {};
-        Object.values(byPos).forEach(list => {
-          if (list.length < 2) return;
-          [...list].sort((x, y) => (Number(x.slot_number) || 0) - (Number(y.slot_number) || 0))
-            .forEach((a, i) => { slotLabel[a.id] = i + 1; });
-        });
+        const slotLabel = positionLabels(assignments);
         const laborTotal = contractors.reduce((s, a) => s + (Number(a.day_rate) || 0) * (Number(a.labor_days) || 0), 0);
         const gearTotal = contractors.reduce((s, a) => s + (Number(a.gear_cost) || 0) * (Number(a.gear_days) || 0), 0);
         const fmt$ = n => '$' + Number(n).toLocaleString('en-US', { maximumFractionDigits: 2 });

@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../api.js';
 import { displayName } from '../utils/displayName.js';
+import { positionLabels, positionName } from '../utils/positionLabel.js';
 import ShineBorder from '../components/ShineBorder.jsx';
 import Clapboard from '../components/Clapboard.jsx';
 
@@ -353,11 +354,12 @@ function HotelRoster({ hotelBlocks, crewAssignments }) {
   });
 
   const crew = (crewAssignments || []).filter(a => a.crewMember);
+  const posLabels = positionLabels(crewAssignments);
 
   const allRows = [
     ...crew.map(a => {
       const bookings = bookingMap[a.crewMember.id] || [];
-      return { key: a.id, name: displayName(a.crewMember), sub: a.position.name, bookings };
+      return { key: a.id, name: displayName(a.crewMember), sub: positionName(a, posLabels), bookings };
     }),
     ...unlinkedGuests.map((b, i) => ({
       key: `unlinked-${i}`, name: b.guest.guest_name, sub: hotelBlocks.length > 1 ? b.hotel.name : null,
@@ -569,7 +571,7 @@ function ProducerView({ data, hideGear, onOpenShotList }) {
       {crewAssignments?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Crew</div>
-          <ShareTable cols={['Name','Position','Start','End','Phone','Email','Dietary']} colClasses={['','','nowrap','nowrap','nowrap','','']} rows={crewAssignments.filter(a => a.crewMember).map(a => [displayName(a.crewMember)||'TBD', a.position.name, fmtAD(a.start_date), fmtAD(a.end_date), (a.crewMember?.phone ? <Tel v={a.crewMember.phone} /> : '—'), (a.crewMember?.email ? <Mail v={a.crewMember.email} /> : '—'), <DietaryCell key={a.id} value={a.crewMember?.dietaryRestrictions} />])} />
+          <ShareTable cols={['Name','Position','Start','End','Phone','Email','Dietary']} colClasses={['','','nowrap','nowrap','nowrap','','']} rows={(() => { const L = positionLabels(crewAssignments); return crewAssignments.filter(a => a.crewMember).map(a => [displayName(a.crewMember)||'TBD', positionName(a, L), fmtAD(a.start_date), fmtAD(a.end_date), (a.crewMember?.phone ? <Tel v={a.crewMember.phone} /> : '—'), (a.crewMember?.email ? <Mail v={a.crewMember.email} /> : '—'), <DietaryCell key={a.id} value={a.crewMember?.dietaryRestrictions} />]); })()} />
         </section>
       )}
 
@@ -808,7 +810,7 @@ function CrewView({ data, shareToken, hideGear, onOpenShotList }) {
       {crewAssignments?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Crew</div>
-          <ShareTable cols={['Name','Position','Start','End','Phone','Email','Dietary']} colClasses={['','','nowrap','nowrap','nowrap','','']} rows={crewAssignments.filter(a => a.crewMember).map(a => [shortName(displayName(a.crewMember))||'TBD', a.position.name, fmtAD(a.start_date), fmtAD(a.end_date), (a.crewMember?.phone ? <Tel v={a.crewMember.phone} /> : '—'), (a.crewMember?.email ? <Mail v={a.crewMember.email} /> : '—'), <DietaryCell key={a.id} value={a.crewMember?.dietaryRestrictions} />])} />
+          <ShareTable cols={['Name','Position','Start','End','Phone','Email','Dietary']} colClasses={['','','nowrap','nowrap','nowrap','','']} rows={(() => { const L = positionLabels(crewAssignments); return crewAssignments.filter(a => a.crewMember).map(a => [shortName(displayName(a.crewMember))||'TBD', positionName(a, L), fmtAD(a.start_date), fmtAD(a.end_date), (a.crewMember?.phone ? <Tel v={a.crewMember.phone} /> : '—'), (a.crewMember?.email ? <Mail v={a.crewMember.email} /> : '—'), <DietaryCell key={a.id} value={a.crewMember?.dietaryRestrictions} />]); })()} />
         </section>
       )}
 
@@ -1612,7 +1614,7 @@ function ClientView({ data, onOpenShotList }) {
       {crewAssignments?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Crew</div>
-          <ShareTable cols={['Name','Position','Phone','Email']} colClasses={['','','nowrap','']} rows={crewAssignments.filter(a => a.crewMember).map(a => [shortName(displayName(a.crewMember))||'TBD', a.position.name, (a.crewMember?.phone ? <Tel v={a.crewMember.phone} /> : '—'), (a.crewMember?.email ? <Mail v={a.crewMember.email} /> : '—')])} />
+          <ShareTable cols={['Name','Position','Phone','Email']} colClasses={['','','nowrap','']} rows={(() => { const L = positionLabels(crewAssignments); return crewAssignments.filter(a => a.crewMember).map(a => [shortName(displayName(a.crewMember))||'TBD', positionName(a, L), (a.crewMember?.phone ? <Tel v={a.crewMember.phone} /> : '—'), (a.crewMember?.email ? <Mail v={a.crewMember.email} /> : '—')]); })()} />
         </section>
       )}
       {(() => {
@@ -1795,14 +1797,14 @@ function TalentView({ data }) {
                       {c.email && <div style={{ fontSize:11, color:'var(--muted)', overflowWrap:'anywhere' }}><Mail v={c.email} /></div>}
                     </div>
                   ))}
-                  {(productionCrew || []).filter(a => a.crewMember).map(a => (
+                  {(() => { const L = positionLabels(productionCrew); return (productionCrew || []).filter(a => a.crewMember).map(a => (
                     <div key={a.id} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 14px', flex:'1 1 0', minWidth:0 }}>
-                      <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:2 }}>{a.position.name}</div>
+                      <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:2 }}>{positionName(a, L)}</div>
                       <div style={{ fontWeight:600, fontSize:13 }}>{a.crewMember ? shortName(displayName(a.crewMember)) || 'TBD' : 'TBD'}</div>
                       {a.crewMember?.phone && <div style={{ fontSize:12, color:'var(--tan)', marginTop:3 }}><Tel v={a.crewMember.phone} /></div>}
                       {a.crewMember?.email && <div style={{ fontSize:11, color:'var(--muted)', overflowWrap:'anywhere' }}><Mail v={a.crewMember.email} /></div>}
                     </div>
-                  ))}
+                  )); })()}
                 </div>
               </section>
             )}
@@ -2264,7 +2266,7 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, talentC
         <div style={{ marginTop:8 }}>
           <ShareTable
             cols={['Position','Name','Call','Wrap']}
-            rows={day.crewCalls.filter(c => c.crewAssignment.crewMember).map(c => [c.crewAssignment.position.name, displayName(c.crewAssignment.crewMember)||'TBD', c.call_time ? fmtTime(c.call_time) : '—', c.wrap_time ? fmtTime(c.wrap_time) : '—'])}
+            rows={(() => { const L = positionLabels(crewAssignments); return day.crewCalls.filter(c => c.crewAssignment.crewMember).map(c => [positionName(c.crewAssignment, L), displayName(c.crewAssignment.crewMember)||'TBD', c.call_time ? fmtTime(c.call_time) : '—', c.wrap_time ? fmtTime(c.wrap_time) : '—']); })()}
           />
         </div>
       )}
