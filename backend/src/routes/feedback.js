@@ -19,6 +19,7 @@ router.patch('/:id', requireAuth, async (req, res, next) => {
   try {
     const [i] = await sql`UPDATE feedback_items SET
         text = ${req.body.text !== undefined ? String(req.body.text) : sql`text`},
+        attachment = ${req.body.attachment !== undefined ? (req.body.attachment || null) : sql`attachment`},
         done = ${req.body.done !== undefined ? req.body.done === true : sql`done`}
       WHERE id = ${req.params.id} RETURNING *`;
     if (!i) return res.status(404).json({ error: 'Not found' });
@@ -29,8 +30,9 @@ router.patch('/:id', requireAuth, async (req, res, next) => {
 router.post('/:id/replies', requireAuth, async (req, res, next) => {
   try {
     const text = String(req.body.text || '').trim();
-    if (!text) return res.status(400).json({ error: 'Text required' });
-    const reply = { text, by: req.user.name || req.user.email, at: new Date().toISOString() };
+    const attachment = req.body.attachment || null;
+    if (!text && !attachment) return res.status(400).json({ error: 'Add a note or a photo' });
+    const reply = { text, by: req.user.name || req.user.email, at: new Date().toISOString(), attachment };
     const [i] = await sql`
       UPDATE feedback_items SET replies = COALESCE(replies, '[]'::jsonb) || ${sql.json(reply)}
       WHERE id = ${req.params.id} RETURNING *`;
@@ -43,7 +45,6 @@ router.post('/:id/replies', requireAuth, async (req, res, next) => {
 router.patch('/:id/replies/:idx', requireAuth, async (req, res, next) => {
   try {
     const text = String(req.body.text || '').trim();
-    if (!text) return res.status(400).json({ error: 'Text required' });
     const [item] = await sql`SELECT replies FROM feedback_items WHERE id = ${req.params.id}`;
     if (!item) return res.status(404).json({ error: 'Not found' });
     const replies = Array.isArray(item.replies) ? item.replies : JSON.parse(item.replies || '[]');
@@ -53,7 +54,9 @@ router.patch('/:id/replies/:idx', requireAuth, async (req, res, next) => {
     if (replies[idx].by !== me && req.user.role !== 'ADMIN') {
       return res.status(403).json({ error: 'Only the author can edit this answer' });
     }
-    replies[idx] = { ...replies[idx], text, edited_at: new Date().toISOString() };
+    const attachment = req.body.attachment !== undefined ? (req.body.attachment || null) : (replies[idx].attachment || null);
+    if (!text && !attachment) return res.status(400).json({ error: 'Add a note or a photo' });
+    replies[idx] = { ...replies[idx], text, attachment, edited_at: new Date().toISOString() };
     const [i] = await sql`UPDATE feedback_items SET replies = ${sql.json(replies)} WHERE id = ${req.params.id} RETURNING *`;
     res.json(i);
   } catch (e) { next(e); }

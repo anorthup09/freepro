@@ -235,21 +235,37 @@ export function FeedbackBoard({ variant = 'banner' }) {
   const [viewer, setViewer] = useState(null);           // full-size attachment being viewed
   const [replyFor, setReplyFor] = useState(null);       // feedback item id with the reply box open
   const [replyText, setReplyText] = useState('');
-  const [editReply, setEditReply] = useState(null);     // { itemId, idx, text } while editing an answer
+  const [replyAttachment, setReplyAttachment] = useState(null); // photo queued for the answer being written
+  const [editReply, setEditReply] = useState(null);     // { itemId, idx, text, attachment } while editing an answer
+  const [editItem, setEditItem] = useState(null);       // { id, text, attachment } while editing a question
+  function readImage(file, cb) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => cb(ev.target.result);
+    reader.readAsDataURL(file);
+  }
   async function saveReplyEdit() {
-    if (!editReply?.text.trim()) return;
+    if (!editReply || (!editReply.text.trim() && !editReply.attachment)) return;
     try {
-      const u = await api.editFeedbackReply(editReply.itemId, editReply.idx, editReply.text.trim());
+      const u = await api.editFeedbackReply(editReply.itemId, editReply.idx, editReply.text.trim(), editReply.attachment ?? null);
       setItems(xs => xs.map(x => x.id === editReply.itemId ? u : x));
       setEditReply(null);
     } catch (e) { alert(e.message); }
   }
-  async function sendReply(id) {
-    if (!replyText.trim()) return;
+  async function saveItemEdit() {
+    if (!editItem || (!editItem.text.trim() && !editItem.attachment)) return;
     try {
-      const u = await api.replyFeedback(id, replyText.trim());
+      const u = await api.updateFeedback(editItem.id, { text: editItem.text.trim(), attachment: editItem.attachment ?? null });
+      setItems(xs => xs.map(x => x.id === editItem.id ? u : x));
+      setEditItem(null);
+    } catch (e) { alert(e.message); }
+  }
+  async function sendReply(id) {
+    if (!replyText.trim() && !replyAttachment) return;
+    try {
+      const u = await api.replyFeedback(id, replyText.trim(), replyAttachment);
       setItems(xs => xs.map(x => x.id === id ? u : x));
-      setReplyFor(null); setReplyText('');
+      setReplyFor(null); setReplyText(''); setReplyAttachment(null);
     } catch (e) { alert(e.message); }
   }
   const load = () => api.feedbackList().then(setItems).catch(() => {});
@@ -263,12 +279,7 @@ export function FeedbackBoard({ variant = 'banner' }) {
     try { const i = await api.addFeedback(text.trim(), attachment); setItems(xs => [i, ...xs]); setText(''); setAttachment(null); }
     catch (e) { alert(e.message); }
   }
-  function pickAttachment(file) {
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => setAttachment(ev.target.result);
-    reader.readAsDataURL(file);
-  }
+  function pickAttachment(file) { readImage(file, setAttachment); }
   const openCount = items.filter(i => !i.done).length;
   return (
     <>
@@ -340,32 +351,72 @@ export function FeedbackBoard({ variant = 'banner' }) {
                       catch (er) { alert(er.message); }
                     }} />
                   <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontSize:13, fontWeight:600, color: i.done ? '#5ABF80' : 'var(--text)', overflowWrap:'anywhere' }}>{i.text}</div>
+                    {editItem?.id === i.id ? (
+                      <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                        <div style={{ display:'flex', gap:6, alignItems:'center', flexWrap:'wrap' }}>
+                          <input value={editItem.text} autoFocus onChange={e => setEditItem(v => ({ ...v, text: e.target.value }))}
+                            onKeyDown={e => e.key === 'Enter' && saveItemEdit()} style={{ flex:1, minWidth:140, fontSize:13 }} />
+                          <label className="btn btn-ghost btn-sm" title="Add or change the photo" style={{ whiteSpace:'nowrap', cursor:'pointer', margin:0 }}>
+                            {editItem.attachment ? '✓ Photo' : '+ Photo'}
+                            <input type="file" accept="image/*" style={{ display:'none' }}
+                              onChange={e => { readImage(e.target.files[0], v => setEditItem(x => ({ ...x, attachment: v }))); e.target.value = ''; }} />
+                          </label>
+                          <button onClick={saveItemEdit}
+                            style={{ background:'#e05252', border:'none', color:'#fff', borderRadius:8, padding:'5px 12px', fontSize:11, fontWeight:800, cursor:'pointer' }}>Save</button>
+                          <button className="btn btn-ghost btn-sm" onClick={() => setEditItem(null)}>✕</button>
+                        </div>
+                        {editItem.attachment && (
+                          <img src={editItem.attachment} alt="photo" title="Click to remove photo" onClick={() => setEditItem(x => ({ ...x, attachment: null }))}
+                            style={{ height:40, width:56, objectFit:'cover', borderRadius:5, border:'1px solid var(--border)', cursor:'pointer' }} />
+                        )}
+                      </div>
+                    ) : (
+                      <div style={{ fontSize:13, fontWeight:600, color: i.done ? '#5ABF80' : 'var(--text)', overflowWrap:'anywhere' }}>{i.text}</div>
+                    )}
                     <div style={{ fontSize:10, color:'var(--muted)' }}>
                       {i.created_by || 'someone'} · {new Date(i.created_at).toLocaleDateString('en-US', { month:'numeric', day:'numeric' })}
-                      <button onClick={() => { setReplyFor(r => r === i.id ? null : i.id); setReplyText(''); }}
+                      <button onClick={() => { setReplyFor(r => r === i.id ? null : i.id); setReplyText(''); setReplyAttachment(null); }}
                         style={{ background:'none', border:'none', color:'var(--tan)', fontSize:10, fontWeight:800, cursor:'pointer', marginLeft:8, padding:0 }}>
                         {replyFor === i.id ? 'Cancel' : 'Reply'}
+                      </button>
+                      <button title="Edit this question / add a photo" onClick={() => setEditItem(editItem?.id === i.id ? null : { id: i.id, text: i.text, attachment: i.attachment || null })}
+                        style={{ background:'none', border:'none', color:'var(--tan)', fontSize:10, fontWeight:800, cursor:'pointer', marginLeft:8, padding:0 }}>
+                        {editItem?.id === i.id ? 'Cancel Edit' : '✎ Edit'}
                       </button>
                     </div>
                     {(Array.isArray(i.replies) ? i.replies : []).map((r, ri) => (
                       <div key={ri} style={{ marginTop:6, marginLeft:2, paddingLeft:10, borderLeft:'2px solid rgba(224,82,82,0.4)' }}>
                         {editReply && editReply.itemId === i.id && editReply.idx === ri ? (
-                          <div style={{ display:'flex', gap:6 }}>
-                            <input value={editReply.text} autoFocus
-                              onChange={e => setEditReply(er => ({ ...er, text: e.target.value }))}
-                              onKeyDown={e => e.key === 'Enter' && saveReplyEdit()}
-                              style={{ flex:1, fontSize:12 }} />
-                            <button onClick={saveReplyEdit} disabled={!editReply.text.trim()}
-                              style={{ background:'#e05252', border:'none', color:'#fff', borderRadius:8, padding:'5px 12px', fontSize:11, fontWeight:800, cursor:'pointer', opacity: editReply.text.trim() ? 1 : 0.5 }}>Save</button>
-                            <button className="btn btn-ghost btn-sm" onClick={() => setEditReply(null)}>✕</button>
+                          <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                            <div style={{ display:'flex', gap:6, alignItems:'center', flexWrap:'wrap' }}>
+                              <input value={editReply.text} autoFocus
+                                onChange={e => setEditReply(er => ({ ...er, text: e.target.value }))}
+                                onKeyDown={e => e.key === 'Enter' && saveReplyEdit()}
+                                style={{ flex:1, minWidth:120, fontSize:12 }} />
+                              <label className="btn btn-ghost btn-sm" title="Add or change the photo" style={{ whiteSpace:'nowrap', cursor:'pointer', margin:0 }}>
+                                {editReply.attachment ? '✓ Photo' : '+ Photo'}
+                                <input type="file" accept="image/*" style={{ display:'none' }}
+                                  onChange={e => { readImage(e.target.files[0], v => setEditReply(er => ({ ...er, attachment: v }))); e.target.value = ''; }} />
+                              </label>
+                              <button onClick={saveReplyEdit} disabled={!editReply.text.trim() && !editReply.attachment}
+                                style={{ background:'#e05252', border:'none', color:'#fff', borderRadius:8, padding:'5px 12px', fontSize:11, fontWeight:800, cursor:'pointer', opacity: (editReply.text.trim() || editReply.attachment) ? 1 : 0.5 }}>Save</button>
+                              <button className="btn btn-ghost btn-sm" onClick={() => setEditReply(null)}>✕</button>
+                            </div>
+                            {editReply.attachment && (
+                              <img src={editReply.attachment} alt="answer photo" title="Click to remove photo" onClick={() => setEditReply(er => ({ ...er, attachment: null }))}
+                                style={{ height:36, width:52, objectFit:'cover', borderRadius:5, border:'1px solid var(--border)', cursor:'pointer' }} />
+                            )}
                           </div>
                         ) : (
                           <>
-                            <div style={{ fontSize:12, overflowWrap:'anywhere' }}>{r.text}</div>
+                            {r.text && <div style={{ fontSize:12, overflowWrap:'anywhere' }}>{r.text}</div>}
+                            {r.attachment && (
+                              <img src={r.attachment} alt="answer photo" title="Click to view full size" onClick={() => setViewer(r.attachment)}
+                                style={{ marginTop:4, height:40, width:56, objectFit:'cover', borderRadius:5, border:'1px solid var(--border)', cursor:'pointer' }} />
+                            )}
                             <div style={{ fontSize:9.5, color:'var(--muted)' }}>
                               {r.by} · {new Date(r.at).toLocaleDateString('en-US', { month:'numeric', day:'numeric' })}{r.edited_at ? ' · edited' : ''}
-                              <button title="Edit this answer" onClick={() => setEditReply({ itemId: i.id, idx: ri, text: r.text })}
+                              <button title="Edit this answer" onClick={() => setEditReply({ itemId: i.id, idx: ri, text: r.text, attachment: r.attachment || null })}
                                 style={{ background:'none', border:'none', color:'var(--tan)', fontSize:10, fontWeight:800, cursor:'pointer', marginLeft:8, padding:0 }}>✎ Edit</button>
                             </div>
                           </>
@@ -373,15 +424,26 @@ export function FeedbackBoard({ variant = 'banner' }) {
                       </div>
                     ))}
                     {replyFor === i.id && (
-                      <div style={{ display:'flex', gap:6, marginTop:8 }}>
-                        <input value={replyText} autoFocus placeholder="Write an answer…"
-                          onChange={e => setReplyText(e.target.value)}
-                          onKeyDown={e => e.key === 'Enter' && sendReply(i.id)}
-                          style={{ flex:1, fontSize:12 }} />
-                        <button onClick={() => sendReply(i.id)} disabled={!replyText.trim()}
-                          style={{ background:'#e05252', border:'none', color:'#fff', borderRadius:8, padding:'5px 12px', fontSize:11, fontWeight:800, cursor:'pointer', opacity: replyText.trim() ? 1 : 0.5 }}>
-                          Answer
-                        </button>
+                      <div style={{ display:'flex', flexDirection:'column', gap:6, marginTop:8 }}>
+                        <div style={{ display:'flex', gap:6, alignItems:'center', flexWrap:'wrap' }}>
+                          <input value={replyText} autoFocus placeholder="Write an answer…"
+                            onChange={e => setReplyText(e.target.value)}
+                            onKeyDown={e => e.key === 'Enter' && sendReply(i.id)}
+                            style={{ flex:1, minWidth:120, fontSize:12 }} />
+                          <label className="btn btn-ghost btn-sm" title="Attach a photo to your answer" style={{ whiteSpace:'nowrap', cursor:'pointer', margin:0 }}>
+                            {replyAttachment ? '✓ Photo' : '+ Photo'}
+                            <input type="file" accept="image/*" style={{ display:'none' }}
+                              onChange={e => { readImage(e.target.files[0], setReplyAttachment); e.target.value = ''; }} />
+                          </label>
+                          <button onClick={() => sendReply(i.id)} disabled={!replyText.trim() && !replyAttachment}
+                            style={{ background:'#e05252', border:'none', color:'#fff', borderRadius:8, padding:'5px 12px', fontSize:11, fontWeight:800, cursor:'pointer', opacity: (replyText.trim() || replyAttachment) ? 1 : 0.5 }}>
+                            Answer
+                          </button>
+                        </div>
+                        {replyAttachment && (
+                          <img src={replyAttachment} alt="answer photo" title="Click to remove photo" onClick={() => setReplyAttachment(null)}
+                            style={{ height:36, width:52, objectFit:'cover', borderRadius:5, border:'1px solid var(--border)', cursor:'pointer' }} />
+                        )}
                       </div>
                     )}
                   </div>
