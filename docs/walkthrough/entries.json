@@ -349,5 +349,29 @@
       "Click View on any row to preview the full email, or Delete on a draft to stop it from going out."
     ],
     "screenshot": "email-outbox.png"
+  },
+  {
+    "title": "Color-code rows on the Video Tracker",
+    "page": "AvocadoPost — Post-Production",
+    "what": "Every row on a project's Video Tracker can be given a color for quick visual grouping. Hover the pencil at the start of a row and a palette of 10 colors appears; pick one and the whole row tints to that color. It's per-deliverable and sticks, so you can flag priorities, group related videos, or mark status at a glance. Clicking the pencil still opens the edit as before.",
+    "where": "AvocadoPost → a project page → Project Video Tracker tab",
+    "how": [
+      "Open a project in AvocadoPost and go to the Project Video Tracker tab.",
+      "Hover the pencil (✎) at the left of any row to reveal the 10-color palette.",
+      "Click a color to tint the row, or Clear to remove it."
+    ],
+    "screenshot": "tracker-color-coding.png"
+  },
+  {
+    "title": "Multiple of the same position, auto-numbered",
+    "page": "FreePro — Production",
+    "what": "You can now add more than one of the same crew position to a project — a second On-Site Editor, a third Camera Operator, and so on. When a position appears more than once, the crew grid numbers them automatically (On-Site Editor 1, On-Site Editor 2…), and those numbers carry through to the call sheets and share views so everyone can tell the roles apart. A position that appears only once stays unnumbered.",
+    "where": "FreePro → Logistics → Crew → + Add Position",
+    "how": [
+      "On the Crew tab, click + Add Position and pick a position that's already on the project.",
+      "Add it — the grid labels the duplicates 1, 2, 3… in order.",
+      "The numbering shows on the crew roster, call sheets, and share links automatically."
+    ],
+    "screenshot": "crew-multi-position.png"
   }
 ]
