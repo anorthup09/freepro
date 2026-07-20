@@ -10,6 +10,7 @@ export default function Login() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [err, setErr] = useState('');
   const [notice, setNotice] = useState('');
   const [loading, setLoading] = useState(false);
@@ -24,6 +25,11 @@ export default function Login() {
         const r = await api.forgotPassword(email);
         setNotice(r.message || 'If that email has an account, a reset link is on its way.');
       } else if (mode === 'register') {
+        if (password !== confirmPassword) {
+          setErr("Passwords don't match — please re-enter them.");
+          setLoading(false);
+          return;
+        }
         const { token, user } = await api.register(name, email, password);
         localStorage.setItem('fp_token', token);
         setUser(user);
@@ -121,6 +127,16 @@ export default function Login() {
                 <input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={8} />
               </div>
             )}
+            {mode === 'register' && (
+              <div className="field">
+                <label>Confirm Password</label>
+                <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required minLength={8}
+                  style={confirmPassword && confirmPassword !== password ? { borderColor:'#e05252' } : undefined} />
+                {confirmPassword && confirmPassword !== password && (
+                  <span style={{ fontSize:10, color:'#e05252', marginTop:3 }}>Passwords don't match</span>
+                )}
+              </div>
+            )}
             {mode === 'forgot' && (
               <div style={{ fontSize:11, color:'var(--muted)', lineHeight:1.5 }}>
                 Enter your account email and we'll send a link to reset your password.
@@ -141,7 +157,7 @@ export default function Login() {
           </div>
         )}
         <div style={{ textAlign:'center', marginTop: mode === 'login' ? 6 : 14 }}>
-          <button type="button" onClick={() => { setMode(m => m === 'login' ? 'register' : 'login'); setErr(''); setNotice(''); }}
+          <button type="button" onClick={() => { setMode(m => m === 'login' ? 'register' : 'login'); setErr(''); setNotice(''); setConfirmPassword(''); }}
             style={{ background:'none', border:'none', color:'var(--muted)', fontSize:12, cursor:'pointer', textDecoration:'underline' }}>
             {mode === 'login' ? "Don't have an account? Register" : mode === 'forgot' ? '← Back to sign in' : 'Already have an account? Sign in'}
           </button>
