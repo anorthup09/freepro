@@ -209,8 +209,35 @@ const FIELD_LOGS = {
   assetRef: 'Asset Ref', musicRef: 'Music Ref', category: 'Category', drive: 'Drive', costEstimate: 'Cost Estimate', status: 'Status',
   reviewLink: 'Current Review Link', startDate: 'Start Date', endDate: 'End Date',
   version: 'Version', approved: 'Approved', projectCode: 'Project Code',
-  trackerType: 'Type', style: 'Style', notes: 'Notes', videoAssets: 'Video Assets',
+  trackerType: 'Type', style: 'Style', notes: 'Notes', videoAssets: 'Video Assets', creative: 'Creative',
 };
+
+// Milestones an editor owns, in pipeline order — mirrors the frontend EDITOR_TASKS.
+const EDITOR_MS = ['icr_v1_due', 'client_v1_due', 'client_v2_due', 'client_v3_due', 'color_audio_send', 'final_comp'];
+const parseJson = (v, fb) => v == null ? fb : (typeof v === 'string' ? (() => { try { return JSON.parse(v); } catch { return fb; } })() : v);
+// Who's on the hook right now per the timeline: the assignee of the next editor
+// milestone still ahead (else the last one), falling back to the lead editor.
+function currentEditorId(e) {
+  const ms = parseJson(e.milestones, {});
+  const asg = parseJson(e.milestone_assignees, {});
+  const dated = EDITOR_MS.filter(k => ms[k]).map(k => ({ k, date: String(ms[k]).slice(0, 10) })).sort((a, b) => a.date.localeCompare(b.date));
+  if (!dated.length) return e.lead_editor_id || null;
+  const today = require('../lib/dates').bizToday();
+  const chosen = dated.find(d => d.date >= today) || dated[dated.length - 1];
+  return asg[chosen.k] || e.lead_editor_id || null;
+}
+// Attach a resolved `current_editor` name to each edit (one roster lookup).
+async function attachCurrentEditor(edits) {
+  const picked = edits.map(e => [e, currentEditorId(e)]);
+  const ids = [...new Set(picked.map(([, id]) => id).filter(Boolean))];
+  const names = {};
+  if (ids.length) {
+    const rows = await sql`SELECT id, ${sql.unsafe(PREF)} AS n FROM crew_members cm WHERE id = ANY(${sql.array(ids)})`;
+    for (const r of rows) names[r.id] = r.n;
+  }
+  for (const [e, id] of picked) e.current_editor = (id && names[id]) || e.lead_editor || null;
+  return edits;
+}
 
 // ── Update (logs every change, ClickUp-style) ──
 router.patch('/edits/:id', ...staff, async (req, res, next) => {
@@ -280,6 +307,7 @@ router.patch('/edits/:id', ...staff, async (req, res, next) => {
         style = ${d.style !== undefined ? (d.style || null) : sql`style`},
         notes = ${d.notes !== undefined ? (d.notes || null) : sql`notes`},
         video_assets = ${d.videoAssets !== undefined ? (d.videoAssets || null) : sql`video_assets`},
+        creative = ${d.creative !== undefined ? (d.creative || null) : sql`creative`},
         milestones = ${milestones !== undefined ? sql.json(milestones) : sql`milestones`},
         milestone_skips = ${Array.isArray(d.milestoneSkips) ? sql.json(d.milestoneSkips) : sql`milestone_skips`},
         milestone_assignees = ${msAssignees !== undefined ? sql.json(msAssignees) : sql`milestone_assignees`},
@@ -295,6 +323,7 @@ router.patch('/edits/:id', ...staff, async (req, res, next) => {
       endDate: before.end_date ? String(before.end_date).slice(0, 10) : null,
       version: before.version, approved: before.approved, projectCode: before.project_code,
       trackerType: before.tracker_type, style: before.style, notes: before.notes, videoAssets: before.video_assets,
+      creative: before.creative,
     };
     for (const [k, label] of Object.entries(FIELD_LOGS)) {
       if (d[k] === undefined) continue;
@@ -352,6 +381,8 @@ router.patch('/edits/:id', ...staff, async (req, res, next) => {
     if ((d.leadEditorId !== undefined || d.startDate !== undefined || d.endDate !== undefined) && full.lead_editor_id && full.start_date) {
       sendEditHold(e.id);
     }
+    full.lead_editor = full.lead_editor_name_resolved || full.lead_editor_name;
+    await attachCurrentEditor([full]);
     res.json(full);
   } catch (e) { next(e); }
 });
@@ -553,30 +584,59 @@ router.post('/edits/:id/comments', ...staff, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-// ── RFR: notify the PM the current version is ready for review ──
+// RFR notifies both the Project Manager and the Creative. Shared by the staff
+// route and the client/crew share route.
+async function rfrNotify(e, who, toOverride) {
+  let creativeEmail = null;
+  if (e.creative) {
+    const [c] = await sql`SELECT email FROM crew_members WHERE email IS NOT NULL AND email <> ''
+      AND (name = ${e.creative} OR NULLIF(TRIM(CONCAT(preferred_first_name, ' ', preferred_last_name)), '') = ${e.creative}) LIMIT 1`;
+    creativeEmail = c?.email || null;
+  }
+  const recipients = [...new Set([toOverride || e.pm_email, creativeEmail].filter(Boolean))];
+  const now = new Date();
+  for (const to of recipients) {
+    sendMail({ identity: 'post',
+      to,
+      subject: `Ready For Review — ${e.title} V${e.version || 1}`,
+      text: `V${e.version || 1} of "${e.title}"${e.project_code ? ` (${e.project_code})` : ''} is ready for review from ${who}.\n\n${e.review_link ? `Review link: ${e.review_link}` : 'No review link set yet.'}\n\nOnce reviewed, hit Sent in AvocadoPost to log it went out.\n\nPostmarked ${fmtPostmark(now)}`,
+      html: noticeHtml({ tag: 'AvocadoPost', note: 'Ready for review',
+        title: `${e.title} — V${e.version || 1}`, subtitle: e.project_code || '',
+        intro: `V${e.version || 1} is ready for review from ${who}.`,
+        rows: [['Video', e.title], ['Version', `V${e.version || 1}`], ['From', who],
+               ['Lead Editor', e.lead_editor_name_resolved || e.lead_editor_name || ''],
+               ...(e.creative ? [['Creative', e.creative]] : [])],
+        copyLink: e.review_link ? { label: 'Review link — quick copy', url: e.review_link } : undefined,
+        button: e.review_link ? { label: 'Open review', url: e.review_link } : undefined,
+        postmark: now }),
+    }).catch(err => console.error('RFR email failed:', err.message));
+  }
+  await logAct(e.id, 'rfr', who, `V${e.version} RFR${recipients.length ? ` — notified ${recipients.join(', ')}` : ''}`);
+}
+async function sentNotify(e, who) {
+  if (e.lead_editor_email) {
+    const now = new Date();
+    if (!mailReady()) console.log(`Sent email skipped (SMTP not configured) → ${e.lead_editor_email}`);
+    else sendMail({ identity: 'post',
+      to: e.lead_editor_email,
+      subject: `Sent for review — ${e.title} V${e.version || 1}`,
+      text: `V${e.version || 1} of "${e.title}"${e.project_code ? ` (${e.project_code})` : ''} was sent by ${who} for internal creative or client review.\n\nPostmarked ${fmtPostmark(now)}`,
+      html: noticeHtml({ tag: 'AvocadoPost', note: 'Sent for review', color: '#4a7fb5',
+        title: `${e.title} — V${e.version || 1}`, subtitle: e.project_code || '',
+        intro: `V${e.version || 1} was sent by ${who} for internal creative or client review.`,
+        rows: [['Video', e.title], ['Version', `V${e.version || 1}`], ['Sent by', who]],
+        postmark: now }),
+    }).catch(err => console.error('Sent email failed:', err.message));
+  }
+  await logAct(e.id, 'sent', who, `V${e.version} sent for client review`);
+}
+
+// ── RFR: notify the PM + Creative the current version is ready for review ──
 router.post('/edits/:id/rfr', ...staff, async (req, res, next) => {
   try {
     const [e] = await FULL_EDIT(req.params.id);
     if (!e) return res.status(404).json({ error: 'Edit not found' });
-    const who = req.user?.name || req.user?.email || 'someone';
-    const to = req.body.to || e.pm_email;
-    if (to) {
-      const now = new Date();
-      sendMail({ identity: 'post',
-        to,
-        subject: `Ready For Review — ${e.title} V${e.version || 1}`,
-        text: `V${e.version || 1} of "${e.title}"${e.project_code ? ` (${e.project_code})` : ''} is ready for review from ${who}.\n\n${e.review_link ? `Review link: ${e.review_link}` : 'No review link set yet.'}\n\nOnce reviewed, hit Sent in AvocadoPost to log it went out.\n\nPostmarked ${fmtPostmark(now)}`,
-        html: noticeHtml({ tag: 'AvocadoPost', note: 'Ready for review',
-          title: `${e.title} — V${e.version || 1}`, subtitle: e.project_code || '',
-          intro: `V${e.version || 1} is ready for review from ${who}.`,
-          rows: [['Video', e.title], ['Version', `V${e.version || 1}`], ['From', who],
-                 ['Lead Editor', e.lead_editor_name_resolved || e.lead_editor_name || '']],
-          copyLink: e.review_link ? { label: 'Review link — quick copy', url: e.review_link } : undefined,
-          button: e.review_link ? { label: 'Open review', url: e.review_link } : undefined,
-          postmark: now }),
-      }).catch(err => console.error('RFR email failed:', err.message));
-    }
-    await logAct(e.id, 'rfr', req.user?.email || 'someone', `V${e.version} RFR${to ? ` — notified ${to}` : ''}`);
+    await rfrNotify(e, req.user?.name || req.user?.email || 'someone', req.body.to);
     const activity = await sql`SELECT * FROM edit_activity WHERE edit_id = ${e.id} ORDER BY created_at`;
     res.json(activity);
   } catch (e) { next(e); }
@@ -587,25 +647,30 @@ router.post('/edits/:id/sent', ...staff, async (req, res, next) => {
   try {
     const [e] = await FULL_EDIT(req.params.id);
     if (!e) return res.status(404).json({ error: 'Edit not found' });
-    // Let the lead editor know their cut went out (no-op until SMTP is configured)
-    const who = req.user?.name || req.user?.email || 'someone';
-    if (e.lead_editor_email) {
-      const now = new Date();
-      if (!mailReady()) console.log(`Sent email skipped (SMTP not configured) → ${e.lead_editor_email}`);
-      else sendMail({ identity: 'post',
-        to: e.lead_editor_email,
-        subject: `Sent for review — ${e.title} V${e.version || 1}`,
-        text: `V${e.version || 1} of "${e.title}"${e.project_code ? ` (${e.project_code})` : ''} was sent by ${who} for internal creative or client review.\n\nPostmarked ${fmtPostmark(now)}`,
-        html: noticeHtml({ tag: 'AvocadoPost', note: 'Sent for review', color: '#4a7fb5',
-          title: `${e.title} — V${e.version || 1}`, subtitle: e.project_code || '',
-          intro: `V${e.version || 1} was sent by ${who} for internal creative or client review.`,
-          rows: [['Video', e.title], ['Version', `V${e.version || 1}`], ['Sent by', who]],
-          postmark: now }),
-      }).catch(err => console.error('Sent email failed:', err.message));
-    }
-    await logAct(e.id, 'sent', req.user?.email || 'someone', `V${e.version} sent for client review`);
+    await sentNotify(e, req.user?.name || req.user?.email || 'someone');
     const activity = await sql`SELECT * FROM edit_activity WHERE edit_id = ${e.id} ORDER BY created_at`;
     res.json(activity);
+  } catch (e) { next(e); }
+});
+
+// ── Duplicate an edit (quick-dupe a tracker row) ──
+router.post('/edits/:id/duplicate', ...staff, async (req, res, next) => {
+  try {
+    const [o] = await sql`SELECT * FROM edits WHERE id = ${req.params.id}`;
+    if (!o) return res.status(404).json({ error: 'Edit not found' });
+    const [n] = await sql`
+      INSERT INTO edits (project_id, project_code, title, description, category, tracker_type, tracker_color, tracker_sort,
+        aspect_ratio, resolution, drive, asset_ref, music_ref, video_assets, notes, status, version,
+        lead_editor_id, pm_id, creative, milestones, milestone_skips, milestone_assignees, extra)
+      SELECT project_id, project_code, title || ' (copy)', description, category, tracker_type, tracker_color, tracker_sort,
+        aspect_ratio, resolution, drive, asset_ref, music_ref, video_assets, notes, status, version,
+        lead_editor_id, pm_id, creative, milestones, milestone_skips, milestone_assignees, extra
+      FROM edits WHERE id = ${req.params.id} RETURNING *`;
+    await logAct(n.id, 'log', req.user?.email || 'someone', `duplicated from "${o.title}"`);
+    const [row] = await sql`SELECT e.*, COALESCE((SELECT ${sql.unsafe(PREF)} FROM crew_members cm WHERE cm.id = e.lead_editor_id), e.lead_editor_name) as lead_editor FROM edits e WHERE e.id = ${n.id}`;
+    await attachCurrentEditor([row]);
+    syncSourcingTask(n);
+    res.status(201).json(row);
   } catch (e) { next(e); }
 });
 
@@ -771,6 +836,7 @@ router.get('/projects/:id', ...staff, async (req, res, next) => {
       FROM edits e
       WHERE (e.project_code = ${page.code} OR e.project_code LIKE ${page.code + '-%'}) AND e.archived IS NOT TRUE
       ORDER BY e.tracker_sort NULLS LAST, e.end_date NULLS LAST, e.created_at`;
+    await attachCurrentEditor(edits);
     const assets = await sql`SELECT id, page_id, filename, mime, size, edit_ids, uploaded_by, created_at FROM avo_assets WHERE page_id = ${page.id} ORDER BY created_at DESC`;
     const tables = await sql`SELECT * FROM avo_custom_tables WHERE page_id = ${page.id} ORDER BY sort, created_at`;
     const tRows = tables.length ? await sql`SELECT * FROM avo_custom_rows WHERE table_id IN ${sql(tables.map(t => t.id))} ORDER BY sort, created_at` : [];
@@ -1047,7 +1113,11 @@ const CLIENT_EDIT_COLS = ['id', 'title', 'description', 'category', 'tracker_typ
 function clientEdit(e) {
   const o = {};
   for (const k of CLIENT_EDIT_COLS) o[k] = e[k];
-  o.lead_editor = e.lead_editor_name_resolved || e.lead_editor_name || null;
+  o.lead_editor = e.lead_editor_name_resolved || e.lead_editor_name || e.lead_editor || null;
+  o.current_editor = e.current_editor || o.lead_editor;
+  // Custom-column values + UI flags round-trip; contract tiles never leave the router.
+  if (e.extra && typeof e.extra === 'object')
+    o.extra = Object.fromEntries(Object.entries(e.extra).filter(([k]) => !String(k).startsWith('contract_')));
   return o;
 }
 // Resolve an edit that belongs to this page's code family (guards cross-page writes).
@@ -1084,13 +1154,15 @@ shareRouter.get('/', async (req, res, next) => {
     const title = pr?.title || page.title;
     const edits = await sql`
       SELECT e.id, e.title, e.description, e.category, e.tracker_type, e.tracker_color, e.tracker_sort,
-             e.status, e.version, e.approved, e.review_link, e.start_date, e.end_date,
+             e.status, e.version, e.approved, e.review_link, e.start_date, e.end_date, e.lead_editor_id, e.extra,
              e.aspect_ratio, e.resolution, e.drive, e.asset_ref, e.music_ref, e.video_assets, e.notes,
              e.milestones, e.milestone_skips, e.milestone_assignees,
              COALESCE((SELECT ${sql.unsafe(PREF)} FROM crew_members cm WHERE cm.id = e.lead_editor_id), e.lead_editor_name) as lead_editor
       FROM edits e
       WHERE (e.project_code = ${page.code} OR e.project_code LIKE ${page.code + '-%'}) AND e.archived IS NOT TRUE
       ORDER BY e.tracker_sort NULLS LAST, e.end_date NULLS LAST, e.created_at`;
+    await attachCurrentEditor(edits);
+    for (const e of edits) { delete e.lead_editor_id; if (e.extra && typeof e.extra === 'object') e.extra = Object.fromEntries(Object.entries(e.extra).filter(([k]) => !String(k).startsWith('contract_'))); }
     const lowerThirds = await sql`SELECT * FROM avo_lower_thirds WHERE page_id = ${page.id} ORDER BY sort, created_at`;
     const todos = await sql`SELECT * FROM avo_todos WHERE page_id = ${page.id} ORDER BY sort, created_at`;
     const music = await sql`SELECT * FROM avo_music WHERE page_id = ${page.id} ORDER BY sort, created_at`;
@@ -1198,7 +1270,74 @@ shareRouter.patch('/edits/:eid', async (req, res, next) => {
     const [full] = await FULL_EDIT(e.id);
     await syncToDeliverable(full);
     syncSourcingTask(full);
+    full.lead_editor = full.lead_editor_name_resolved || full.lead_editor_name;
+    await attachCurrentEditor([full]);
     res.json(clientEdit(full));
+  } catch (e) { next(e); }
+});
+
+// ── Edit detail + activity (for the edit-card modal on the shared link) ──
+shareRouter.get('/edits/:eid', async (req, res, next) => {
+  try {
+    const before = await editInPage(req.params.eid, req.sharePage);
+    if (!before) return res.status(404).json({ error: 'Edit not found' });
+    const [full] = await FULL_EDIT(req.params.eid);
+    full.lead_editor = full.lead_editor_name_resolved || full.lead_editor_name;
+    await attachCurrentEditor([full]);
+    const activity = await sql`SELECT id, edit_id, kind, author, body, created_at FROM edit_activity WHERE edit_id = ${req.params.eid} ORDER BY created_at`;
+    res.json({ ...clientEdit(full), activity });
+  } catch (e) { next(e); }
+});
+
+// ── RFR / Sent / Comment / Duplicate from the shared link ──
+shareRouter.post('/edits/:eid/rfr', async (req, res, next) => {
+  try {
+    const before = await editInPage(req.params.eid, req.sharePage);
+    if (!before) return res.status(404).json({ error: 'Edit not found' });
+    const [full] = await FULL_EDIT(req.params.eid);
+    await rfrNotify(full, SHARE_ACTOR);
+    const activity = await sql`SELECT id, edit_id, kind, author, body, created_at FROM edit_activity WHERE edit_id = ${req.params.eid} ORDER BY created_at`;
+    res.json(activity);
+  } catch (e) { next(e); }
+});
+shareRouter.post('/edits/:eid/sent', async (req, res, next) => {
+  try {
+    const before = await editInPage(req.params.eid, req.sharePage);
+    if (!before) return res.status(404).json({ error: 'Edit not found' });
+    const [full] = await FULL_EDIT(req.params.eid);
+    await sentNotify(full, SHARE_ACTOR);
+    const activity = await sql`SELECT id, edit_id, kind, author, body, created_at FROM edit_activity WHERE edit_id = ${req.params.eid} ORDER BY created_at`;
+    res.json(activity);
+  } catch (e) { next(e); }
+});
+shareRouter.post('/edits/:eid/comments', async (req, res, next) => {
+  try {
+    const before = await editInPage(req.params.eid, req.sharePage);
+    if (!before) return res.status(404).json({ error: 'Edit not found' });
+    const body = (req.body.body || '').trim();
+    if (!body) return res.status(400).json({ error: 'Empty comment' });
+    await logAct(req.params.eid, 'comment', SHARE_ACTOR, body);
+    const activity = await sql`SELECT id, edit_id, kind, author, body, created_at FROM edit_activity WHERE edit_id = ${req.params.eid} ORDER BY created_at`;
+    res.status(201).json(activity);
+  } catch (e) { next(e); }
+});
+shareRouter.post('/edits/:eid/duplicate', async (req, res, next) => {
+  try {
+    const o = await editInPage(req.params.eid, req.sharePage);
+    if (!o) return res.status(404).json({ error: 'Edit not found' });
+    const [n] = await sql`
+      INSERT INTO edits (project_id, project_code, title, description, category, tracker_type, tracker_color, tracker_sort,
+        aspect_ratio, resolution, drive, asset_ref, music_ref, video_assets, notes, status, version,
+        lead_editor_id, pm_id, creative, milestones, milestone_skips, milestone_assignees, extra)
+      SELECT project_id, project_code, title || ' (copy)', description, category, tracker_type, tracker_color, tracker_sort,
+        aspect_ratio, resolution, drive, asset_ref, music_ref, video_assets, notes, status, version,
+        lead_editor_id, pm_id, creative, milestones, milestone_skips, milestone_assignees, extra
+      FROM edits WHERE id = ${o.id} RETURNING *`;
+    await logAct(n.id, 'log', SHARE_ACTOR, `duplicated from "${o.title}"`);
+    const [full] = await FULL_EDIT(n.id);
+    full.lead_editor = full.lead_editor_name_resolved || full.lead_editor_name;
+    await attachCurrentEditor([full]);
+    res.status(201).json(clientEdit(full));
   } catch (e) { next(e); }
 });
 

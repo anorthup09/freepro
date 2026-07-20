@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../App.jsx';
-import { AvoHeader, AVO, AVO_STATUSES, EditorSelect } from './Avo.jsx';
+import { AvoHeader, AVO, AVO_STATUSES, EditorSelect, VersionInput, stepV } from './Avo.jsx';
 import { CATEGORIES } from './AvoEdit.jsx';
 import { MILESTONES } from '../components/GanttChart.jsx';
 import { AvoForm, BLANK_DELIVERABLE_FORM } from './Project/Deliverables.jsx';
@@ -345,6 +345,12 @@ function VideoTracker({ edits, setEdits, config, onConfig, code, readOnly, onOpe
     setEdits(real);
     real.forEach((e, i) => A.updateAvoEdit(e.id, { trackerSort: i }).catch(() => {}));
   }
+  async function dupeRow(e) {
+    try {
+      const copy = await A.duplicateAvoEdit(e.id);
+      setEdits(es => { const i = es.findIndex(x => x.id === e.id); const next = [...es]; next.splice(i < 0 ? es.length : i + 1, 0, copy); return next; });
+    } catch (err) { alert(err.message); }
+  }
   const statusOf = k => AVO_STATUSES.find(([key]) => key === k);
   // Category options: the standard list + any custom categories already used on
   // this project's edits, so a category typed once is reusable from the dropdown.
@@ -386,11 +392,24 @@ function VideoTracker({ edits, setEdits, config, onConfig, code, readOnly, onOpe
     } },
     { key:'title', label:'Video Title', minWidth:150, render: e =>
       <span onClick={() => onOpenEdit ? onOpenEdit(e) : nav(`/avo/${e.id}`)} style={{ fontSize:12, fontWeight:700, cursor:'pointer', padding:'5px 6px', display:'inline-block' }}>{e.title}</span> },
-    { key:'description', label:'Description', minWidth:170, render: e => <Cell value={e.description} placeholder="Description…" readOnly={readOnly} onSave={v => saveEdit(e.id, { description: v })} /> },
-    { key:'notes', label:'Notes', minWidth:170, render: e => <Cell value={e.notes} placeholder="Notes…" readOnly={readOnly} onSave={v => saveEdit(e.id, { notes: v })} /> },
+    { key:'description', label:'Description', minWidth:190, render: e => {
+      const exp = e.extra?.descExpanded;
+      return (
+        <div style={{ display:'flex', gap:4, alignItems:'flex-start' }}>
+          {exp
+            ? <textarea value={e.description || ''} placeholder="Description…" rows={3} disabled={readOnly}
+                onChange={ev => setEdits(es => es.map(x => x.id === e.id ? { ...x, description: ev.target.value } : x))}
+                onBlur={ev => saveEdit(e.id, { description: ev.target.value })}
+                style={{ flex:1, fontSize:12, lineHeight:1.4, resize:'vertical', whiteSpace:'pre-wrap', minWidth:0 }} />
+            : <div style={{ flex:1, minWidth:0 }}><Cell value={e.description} placeholder="Description…" readOnly={readOnly} onSave={v => saveEdit(e.id, { description: v })} /></div>}
+          <button title={exp ? 'Collapse description' : 'Expand & wrap description'} onClick={() => saveEdit(e.id, { extra: { descExpanded: !exp } })}
+            style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:12, lineHeight:1, padding:'3px 2px', flexShrink:0 }}>{exp ? '▴' : '⤢'}</button>
+        </div>
+      );
+    } },
     { key:'end_date', label:'Due Date', render: e => <span style={{ whiteSpace:'nowrap', fontSize:12 }}>{fmtD(e.end_date)}</span> },
     { key:'video_assets', label:'Video Assets', minWidth:160, render: e => <Cell value={e.video_assets} placeholder="iPhone videos, music…" readOnly={readOnly} onSave={v => saveEdit(e.id, { videoAssets: v })} /> },
-    { key:'lead_editor', label:'Editor', render: e => <span style={{ fontSize:12, whiteSpace:'nowrap' }}>{e.lead_editor || '—'}</span> },
+    { key:'lead_editor', label:'Editor', render: e => <span style={{ fontSize:12, whiteSpace:'nowrap' }}>{e.current_editor || e.lead_editor || '—'}</span> },
     { key:'review_link', label:'Review Link', render: e => e.review_link
       ? <a href={e.review_link} target="_blank" rel="noreferrer" style={{ color:'#4a9eff', fontSize:11 }}>▶ {e.review_link.replace(/^https?:\/\/(www\.)?/, '').slice(0, 22)}</a>
       : <span style={{ color:'var(--muted)', fontSize:11 }}>—</span> },
@@ -416,8 +435,12 @@ function VideoTracker({ edits, setEdits, config, onConfig, code, readOnly, onOpe
         saveExtra={(id, k, v) => saveEdit(id, { extra: { [k]: v } })}
         onReorder={reorder} footerRight={{ addRow: () => setAddForm({ ...BLANK_DELIVERABLE_FORM }), label: '+ Add Deliverable' }}
         emptyText="No edits with this project code yet — add them from the pipeline and they'll appear here automatically."
-        leading={readOnly ? undefined : e => (
-          <RowColorPencil edit={e} onOpen={() => nav(`/avo/${e.id}`)} onPick={c => saveEdit(e.id, { trackerColor: c })} />
+        leading={e => (
+          <span style={{ display:'inline-flex', gap:3, alignItems:'center' }}>
+            <RowColorPencil edit={e} onOpen={() => onOpenEdit ? onOpenEdit(e) : nav(`/avo/${e.id}`)} onPick={c => saveEdit(e.id, { trackerColor: c })} />
+            <button title="Duplicate this row" onClick={() => dupeRow(e)}
+              style={{ background:'none', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:5, padding:'2px 6px', fontSize:11, cursor:'pointer' }}>⧉</button>
+          </span>
         )} />
       <div style={{ padding:'8px 2px', fontSize:10, color:'var(--muted)' }}>
         Feeds live from the editing pipeline. Title, due date, editor, review link, and status come from each edit; Type, Notes, Video Assets, and any custom columns are editable here.
@@ -1205,9 +1228,19 @@ function AvoShareModal({ page, url, onEnable, onDisable, onClose }) {
 
 // Editable detail of one edit for the client/crew view (no Contract Editor
 // card, no financials). Saves through the caller's api adapter so it works on
-// both the internal preview and the public share link.
-function EditModal({ edit, statusOf, onSave, onClose }) {
+// both the internal preview and the public share link. Mirrors the producer
+// edit card: header row of Category/Type/Status, version stepper, RFR/Sent,
+// a collapsible timeline, and the activity log on the right.
+function EditModal({ edit, statusOf, onSave, onClose, A = api }) {
   const [e, setE] = useState(edit);
+  const [activity, setActivity] = useState([]);
+  const [tlOpen, setTlOpen] = useState(false);
+  const [comment, setComment] = useState('');
+  const [busy, setBusy] = useState(false);
+  // Pull the full detail + activity when the card opens.
+  useEffect(() => {
+    A.avoEdit(edit.id).then(full => { setE(prev => ({ ...prev, ...full })); setActivity(full.activity || []); }).catch(() => {});
+  }, [edit.id]);
   const parseMs = v => typeof v === 'string' ? JSON.parse(v || '{}') : (v || {});
   const ms = parseMs(e.milestones);
   const skips = Array.isArray(e.milestone_skips) ? e.milestone_skips : (typeof e.milestone_skips === 'string' ? JSON.parse(e.milestone_skips || '[]') : []);
@@ -1215,102 +1248,166 @@ function EditModal({ edit, statusOf, onSave, onClose }) {
     try { const full = await onSave(e.id, patch); if (full) setE(prev => ({ ...prev, ...full })); }
     catch (err) { alert(err.message); }
   };
+  const act = async fn => { setBusy(true); try { setActivity(await fn()); } catch (err) { alert(err.message); } setBusy(false); };
+  const addComment = async () => {
+    if (!comment.trim()) return;
+    try { setActivity(await A.avoComment(e.id, comment.trim())); setComment(''); } catch (err) { alert(err.message); }
+  };
   const cc = catColor(e.category);
   const iso = d => d ? String(d).slice(0, 10) : '';
   const usedCats = [...new Set([...CATEGORIES, e.category].filter(Boolean))];
-  const labelCss = { width:118, color:'var(--muted)', flexShrink:0, fontSize:12 };
+  const labelCss = { width:110, color:'var(--muted)', flexShrink:0, fontSize:12 };
   const inp = { fontSize:12, flex:1 };
+  const hdr = { fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4, fontWeight:700 };
   const TEXT_ROWS = [
     ['aspect_ratio', 'aspectRatio', 'Aspect Ratio'], ['resolution', 'resolution', 'Resolution'],
     ['drive', 'drive', 'Drive'], ['asset_ref', 'assetRef', 'Asset Ref'], ['music_ref', 'musicRef', 'Music Ref'],
   ];
   const tlRows = MILESTONES.filter(([k]) => !skips.includes(k));
+  const setTL = MILESTONES.filter(([k]) => ms[k] && !skips.includes(k)).length;
+  const fmtWhen = d => { try { return new Date(d).toLocaleDateString('en-US', { month:'short', day:'numeric' }) + ', ' + new Date(d).toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' }); } catch { return ''; } };
+  const actBtn = (label, color, fn) => (
+    <button disabled={busy} onClick={() => act(fn)}
+      style={{ background:`${color}1f`, border:`1px solid ${color}`, color, borderRadius:20, padding:'5px 12px', fontSize:10.5, fontWeight:800, cursor:'pointer', whiteSpace:'nowrap' }}>{label}</button>
+  );
   return (
     <div onClick={ev => ev.target === ev.currentTarget && onClose()}
       style={{ position:'fixed', inset:0, zIndex:200, background:'rgba(0,0,0,0.75)', display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'40px 16px', overflowY:'auto' }}>
-      <div style={{ width:'100%', maxWidth:620, background:'var(--bg2)', border:'1px solid var(--border)', borderTop:`3px solid ${AVO}`, borderRadius:12, padding:'18px 22px' }}>
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:10 }}>
-          <input value={e.title || ''} onChange={ev => setE(p => ({ ...p, title: ev.target.value }))}
-            onBlur={ev => e.title !== ev.target.value || ev.target.value === '' ? save({ title: ev.target.value }) : null}
-            style={{ fontSize:18, fontWeight:800, background:'transparent', border:'none', borderBottom:'1px solid transparent', flex:1, color:'var(--text)' }}
-            onFocus={ev => ev.target.style.borderBottom = `1px solid ${AVO}`}
-            onMouseLeave={ev => document.activeElement !== ev.target && (ev.target.style.borderBottom = '1px solid transparent')} />
-          <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
-        </div>
-        <div style={{ display:'flex', gap:8, flexWrap:'wrap', alignItems:'center', margin:'12px 0 14px' }}>
-          <select value={e.category || ''} onChange={ev => save({ category: ev.target.value })}
-            style={{ fontSize:11, fontWeight:700, padding:'4px 8px', borderRadius:12, background: cc ? `${cc}22` : 'var(--bg)', border:`1px solid ${cc ? cc + '55' : 'var(--border)'}`, color: cc || 'var(--muted)' }}>
-            <option value="">— category —</option>
-            {usedCats.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-          <input value={e.tracker_type || ''} placeholder="Type" onChange={ev => setE(p => ({ ...p, tracker_type: ev.target.value }))}
-            onBlur={ev => save({ trackerType: ev.target.value })}
-            style={{ fontSize:11, fontWeight:700, padding:'4px 8px', borderRadius:12, width:110, background:'var(--bg)', border:'1px solid var(--border)', color:'var(--text)' }} />
-          <select value={e.status || 'COMING_SOON'} onChange={ev => save({ status: ev.target.value })}
-            style={{ fontSize:11, fontWeight:700, padding:'4px 8px', borderRadius:12, background:'var(--bg)', border:'1px solid var(--border)', color:'var(--text)' }}>
-            {AVO_STATUSES.map(([k, label]) => <option key={k} value={k}>{label}</option>)}
-          </select>
-          <label style={{ display:'inline-flex', alignItems:'center', gap:5, fontSize:11, fontWeight:700, color: e.approved ? '#3f9d68' : 'var(--muted)' }}>
-            <input type="checkbox" checked={!!e.approved} onChange={ev => save({ approved: ev.target.checked })} style={{ width:'auto', accentColor:'#3f9d68' }} />
-            Approved ✓
-          </label>
-          <span style={{ display:'inline-flex', alignItems:'center', gap:4, fontSize:11, color:'var(--muted)' }}>
-            V<input type="number" step="0.1" min="0.1" value={e.version || 1} onChange={ev => setE(p => ({ ...p, version: ev.target.value }))}
-              onBlur={ev => save({ version: ev.target.value })} style={{ width:52, fontSize:11 }} />
-          </span>
-        </div>
-        <div style={{ marginBottom:12 }}>
-          <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:3 }}>Description</div>
-          <textarea value={e.description || ''} placeholder="Add a description…" rows={2}
-            onChange={ev => setE(p => ({ ...p, description: ev.target.value }))} onBlur={ev => save({ description: ev.target.value })}
-            style={{ width:'100%', fontSize:12.5, lineHeight:1.5, resize:'vertical' }} />
-        </div>
-        <div style={{ borderTop:'1px solid var(--border)', paddingTop:8 }}>
-          <div style={{ display:'flex', gap:10, alignItems:'center', padding:'4px 0' }}>
-            <span style={labelCss}>Editor</span><span style={{ fontSize:12 }}>{e.lead_editor || '—'}</span>
-          </div>
-          {TEXT_ROWS.map(([df, pk, label]) => (
-            <div key={df} style={{ display:'flex', gap:10, alignItems:'center', padding:'4px 0' }}>
-              <span style={labelCss}>{label}</span>
-              <input value={e[df] || ''} onChange={ev => setE(p => ({ ...p, [df]: ev.target.value }))}
-                onBlur={ev => save({ [pk]: ev.target.value })} style={inp} />
+      <div style={{ width:'100%', maxWidth:1040, background:'var(--bg2)', border:'1px solid var(--border)', borderTop:`3px solid ${AVO}`, borderRadius:12, padding:'18px 22px', display:'flex', gap:20, flexWrap:'wrap' }}>
+        {/* ── Left: details ── */}
+        <div style={{ flex:'1 1 420px', minWidth:0 }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:10, marginBottom:14 }}>
+            <input value={e.title || ''} onChange={ev => setE(p => ({ ...p, title: ev.target.value }))}
+              onBlur={ev => (e.title !== ev.target.value || ev.target.value === '') ? save({ title: ev.target.value }) : null}
+              style={{ fontSize:18, fontWeight:800, background:'transparent', border:'none', borderBottom:`1px solid transparent`, flex:1, minWidth:0, color:'var(--text)' }}
+              onFocus={ev => ev.target.style.borderBottom = `1px solid ${AVO}`}
+              onBlurCapture={ev => ev.target.style.borderBottom = '1px solid transparent'} />
+            <div style={{ display:'flex', gap:6, alignItems:'center', flexShrink:0 }}>
+              {actBtn('RFR', '#e6c229', () => A.avoRfr(e.id))}
+              {actBtn('Sent to Client', '#4a9eff', () => A.avoSent(e.id))}
+              <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
             </div>
-          ))}
-          <div style={{ display:'flex', gap:10, alignItems:'center', padding:'4px 0' }}>
-            <span style={labelCss}>Start</span>
-            <input type="date" value={iso(e.start_date)} onChange={ev => save({ startDate: ev.target.value })} style={inp} />
           </div>
-          <div style={{ display:'flex', gap:10, alignItems:'center', padding:'4px 0' }}>
-            <span style={labelCss}>Due</span>
-            <input type="date" value={iso(e.end_date)} onChange={ev => save({ endDate: ev.target.value })} style={inp} />
-          </div>
-          <div style={{ display:'flex', gap:10, alignItems:'center', padding:'4px 0' }}>
-            <span style={labelCss}>Review Link</span>
-            <input value={e.review_link || ''} placeholder="https://…" onChange={ev => setE(p => ({ ...p, review_link: ev.target.value }))}
-              onBlur={ev => save({ reviewLink: ev.target.value })} style={inp} />
-          </div>
-        </div>
-        {e.review_link && (
-          <a href={e.review_link} target="_blank" rel="noreferrer"
-            style={{ display:'inline-block', marginTop:12, background:'rgba(74,158,255,0.12)', border:'1px solid #4a9eff', color:'#4a9eff', borderRadius:8, padding:'7px 16px', fontSize:12, fontWeight:800, textDecoration:'none' }}>
-            ▶ Open review link
-          </a>
-        )}
-        <div style={{ marginTop:14 }}>
-          <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:3 }}>Notes</div>
-          <textarea value={e.notes || ''} placeholder="Notes…" rows={2}
-            onChange={ev => setE(p => ({ ...p, notes: ev.target.value }))} onBlur={ev => save({ notes: ev.target.value })}
-            style={{ width:'100%', fontSize:12.5, lineHeight:1.5, resize:'vertical' }} />
-        </div>
-        <div style={{ marginTop:16 }}>
-          <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:6 }}>Timeline</div>
-          {tlRows.map(([k, label]) => (
-            <div key={k} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:10, fontSize:12, padding:'4px 0', borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
-              <span>{label}</span>
-              <input type="date" value={iso(ms[k])} onChange={ev => save({ milestones: { [k]: ev.target.value } })}
-                style={{ fontSize:12, width:160 }} />
+          {/* Category / Type / Status — one labeled row */}
+          <div style={{ display:'flex', gap:10, flexWrap:'wrap', marginBottom:14 }}>
+            <div style={{ flex:'1 1 130px' }}>
+              <div style={hdr}>Category</div>
+              <select value={e.category || ''} onChange={ev => save({ category: ev.target.value })}
+                style={{ width:'100%', fontSize:11, fontWeight:700, padding:'5px 8px', borderRadius:8, background: cc ? `${cc}22` : 'var(--bg)', border:`1px solid ${cc ? cc + '55' : 'var(--border)'}`, color: cc || 'var(--text)' }}>
+                <option value="">—</option>
+                {usedCats.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
             </div>
-          ))}
+            <div style={{ flex:'1 1 110px' }}>
+              <div style={hdr}>Type</div>
+              <input value={e.tracker_type || ''} placeholder="Type" onChange={ev => setE(p => ({ ...p, tracker_type: ev.target.value }))}
+                onBlur={ev => save({ trackerType: ev.target.value })}
+                style={{ width:'100%', fontSize:11, fontWeight:700, padding:'5px 8px', borderRadius:8, background:'var(--bg)', border:'1px solid var(--border)', color:'var(--text)' }} />
+            </div>
+            <div style={{ flex:'1 1 130px' }}>
+              <div style={hdr}>Status</div>
+              <select value={e.status || 'COMING_SOON'} onChange={ev => save({ status: ev.target.value })}
+                style={{ width:'100%', fontSize:11, fontWeight:700, padding:'5px 8px', borderRadius:8, background:'var(--bg)', border:'1px solid var(--border)', color:'var(--text)' }}>
+                {AVO_STATUSES.map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+              </select>
+            </div>
+          </div>
+          {/* Version stepper + Approved pill */}
+          <div style={{ display:'flex', gap:20, flexWrap:'wrap', marginBottom:14 }}>
+            <div>
+              <div style={hdr}>Version</div>
+              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                <button className="btn btn-ghost btn-sm" title="Version down 0.1" onClick={() => save({ version: stepV(e.version, -1) })}>−.1</button>
+                <span style={{ fontSize:15, fontWeight:800, color:AVO }}><VersionInput value={e.version} onSave={n => save({ version: n })} style={{ width:44 }} /></span>
+                <button className="btn btn-ghost btn-sm" title="Version up 0.1" onClick={() => save({ version: stepV(e.version, 1) })}>+.1</button>
+              </div>
+            </div>
+            <div>
+              <div style={hdr}>Approved</div>
+              <button onClick={() => save({ approved: !e.approved })}
+                style={{ background: e.approved ? 'rgba(90,191,128,0.15)' : 'transparent', border:`1px solid ${e.approved ? '#5ABF80' : 'var(--border)'}`,
+                  color: e.approved ? '#5ABF80' : 'var(--muted)', borderRadius:20, padding:'5px 16px', fontSize:11, fontWeight:800, cursor:'pointer' }}>
+                {e.approved ? '✓ Approved' : 'Not Approved'}
+              </button>
+            </div>
+          </div>
+          <div style={{ marginBottom:12 }}>
+            <div style={hdr}>Description</div>
+            <textarea value={e.description || ''} placeholder="Add a description…" rows={2}
+              onChange={ev => setE(p => ({ ...p, description: ev.target.value }))} onBlur={ev => save({ description: ev.target.value })}
+              style={{ width:'100%', fontSize:12.5, lineHeight:1.5, resize:'vertical' }} />
+          </div>
+          <div style={{ borderTop:'1px solid var(--border)', paddingTop:8 }}>
+            <div style={{ display:'flex', gap:10, alignItems:'center', padding:'4px 0' }}>
+              <span style={labelCss}>Editor</span><span style={{ fontSize:12 }}>{e.current_editor || e.lead_editor || '—'}</span>
+            </div>
+            {TEXT_ROWS.map(([df, pk, label]) => (
+              <div key={df} style={{ display:'flex', gap:10, alignItems:'center', padding:'4px 0' }}>
+                <span style={labelCss}>{label}</span>
+                <input value={e[df] || ''} onChange={ev => setE(p => ({ ...p, [df]: ev.target.value }))}
+                  onBlur={ev => save({ [pk]: ev.target.value })} style={inp} />
+              </div>
+            ))}
+            <div style={{ display:'flex', gap:10, alignItems:'center', padding:'4px 0' }}>
+              <span style={labelCss}>Start</span>
+              <input type="date" value={iso(e.start_date)} onChange={ev => save({ startDate: ev.target.value })} style={inp} />
+            </div>
+            <div style={{ display:'flex', gap:10, alignItems:'center', padding:'4px 0' }}>
+              <span style={labelCss}>Due</span>
+              <input type="date" value={iso(e.end_date)} onChange={ev => save({ endDate: ev.target.value })} style={inp} />
+            </div>
+            <div style={{ display:'flex', gap:10, alignItems:'center', padding:'4px 0' }}>
+              <span style={labelCss}>Review Link</span>
+              <input value={e.review_link || ''} placeholder="https://…" onChange={ev => setE(p => ({ ...p, review_link: ev.target.value }))}
+                onBlur={ev => save({ reviewLink: ev.target.value })} style={inp} />
+            </div>
+          </div>
+          {e.review_link && (
+            <a href={e.review_link} target="_blank" rel="noreferrer"
+              style={{ display:'inline-block', marginTop:12, background:'rgba(74,158,255,0.12)', border:'1px solid #4a9eff', color:'#4a9eff', borderRadius:8, padding:'7px 16px', fontSize:12, fontWeight:800, textDecoration:'none' }}>
+              ▶ Open review link
+            </a>
+          )}
+          {/* Timeline — collapsed unless expanded */}
+          <div style={{ marginTop:16 }}>
+            <button onClick={() => setTlOpen(o => !o)}
+              style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', padding:0, display:'flex', alignItems:'center', gap:6 }}>
+              {tlOpen ? '▾' : '▸'} Timeline{setTL ? ` (${setTL})` : ''}
+            </button>
+            {tlOpen && (
+              <div style={{ marginTop:8 }}>
+                {tlRows.map(([k, label]) => (
+                  <div key={k} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:10, fontSize:12, padding:'4px 0', borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
+                    <span>{label}</span>
+                    <input type="date" value={iso(ms[k])} onChange={ev => save({ milestones: { [k]: ev.target.value } })} style={{ fontSize:12, width:160 }} />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+        {/* ── Right: activity ── */}
+        <div style={{ flex:'1 1 300px', minWidth:0, display:'flex', flexDirection:'column', background:'var(--bg)', border:'1px solid var(--border)', borderRadius:10, maxHeight:'72vh' }}>
+          <div style={{ padding:'12px 16px', borderBottom:'1px solid var(--border)', fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.06em' }}>Activity</div>
+          <div style={{ flex:1, overflowY:'auto', padding:'12px 16px', display:'flex', flexDirection:'column', gap:10 }}>
+            {activity.map(a => (
+              <div key={a.id} style={{ fontSize:11.5, lineHeight:1.45 }}>
+                <div style={{ display:'flex', justifyContent:'space-between', gap:8 }}>
+                  <span style={{ color: a.kind === 'comment' ? 'var(--text)' : 'var(--muted)', fontWeight: a.kind === 'comment' ? 700 : 400 }}>
+                    {a.kind === 'comment' ? '💬 ' : '• '}{a.author || 'someone'}{a.kind === 'comment' ? '' : ` ${a.body}`}
+                  </span>
+                  <span style={{ color:'var(--muted)', whiteSpace:'nowrap', fontSize:10 }}>{fmtWhen(a.created_at)}</span>
+                </div>
+                {a.kind === 'comment' && <div style={{ marginTop:2, whiteSpace:'pre-wrap' }}>{a.body}</div>}
+              </div>
+            ))}
+            {activity.length === 0 && <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>No activity yet.</div>}
+          </div>
+          <div style={{ borderTop:'1px solid var(--border)', padding:10, display:'flex', gap:8 }}>
+            <input value={comment} placeholder="Add a comment…" onChange={ev => setComment(ev.target.value)}
+              onKeyDown={ev => { if (ev.key === 'Enter') addComment(); }} style={{ flex:1, fontSize:12 }} />
+            <button className="btn btn-primary btn-sm" onClick={addComment} disabled={!comment.trim()}>Post</button>
+          </div>
         </div>
       </div>
     </div>
@@ -1338,7 +1435,8 @@ export default function AvoProject({ idOverride, embedded, shareData, clientView
   const [tab, setTab] = useState('tracker');
   const [err, setErr] = useState('');
   const [previewClient, setPreviewClient] = useState(false); // admin/producer "View as Client" toggle
-  const [shareModal, setShareModal] = useState(false);       // share link + password modal
+  const [pwDraft, setPwDraft] = useState('');                // inline "Public PW" field
+  const [copied, setCopied] = useState(false);
   const [editView, setEditView] = useState(null);            // edit opened in client view
   const isStaff = ['ADMIN', 'PRODUCER'].includes(user?.role);
   // Client/Crew view is fully editable but strips internal bits (Delete Page,
@@ -1406,16 +1504,23 @@ export default function AvoProject({ idOverride, embedded, shareData, clientView
     if (!confirm(`Delete the project page for ${page.code} (and its grids)?`)) return;
     try { await api.deleteAvoProject(id); nav('/avo'); } catch (e) { alert(e.message); }
   }
+  // Saving the "Public PW" field enables sharing (mints the link if needed) and
+  // sets/clears the password. Empty = open link.
   async function enableShare(password) {
     try { const r = await api.avoShareEnable(id, password); setPage(p => ({ ...p, share_token: r.token, share_password: r.password })); }
     catch (e) { alert(e.message); }
   }
   async function disableShare() {
     if (!confirm('Turn off the shareable link? The current link will stop working.')) return;
-    try { await api.avoShareDisable(id); setPage(p => ({ ...p, share_token: null, share_password: null })); }
+    try { await api.avoShareDisable(id); setPage(p => ({ ...p, share_token: null, share_password: null })); setPwDraft(''); }
     catch (e) { alert(e.message); }
   }
   const shareUrl = page?.share_token ? `${window.location.origin}/avo-share/${page.share_token}` : '';
+  useEffect(() => { setPwDraft(page?.share_password || ''); }, [page?.share_token, page?.share_password]);
+  function copyShareLink() {
+    if (!shareUrl) return;
+    navigator.clipboard?.writeText(shareUrl).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1600); }).catch(() => {});
+  }
   const statusOf = k => AVO_STATUSES.find(([key]) => key === k);
 
   const todoCell = (r, c, save, ro) => c === 'category'
@@ -1463,13 +1568,24 @@ export default function AvoProject({ idOverride, embedded, shareData, clientView
                 </div>
               ) : <div />}
               {!clientView && (
-                <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:6 }}>
+                <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:8 }}>
                   <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text, #e05252)' }} onClick={removePage}>Delete Page</button>
                   {isStaff && !shareData && (
-                    <button className="btn btn-ghost btn-sm" onClick={() => setShareModal(true)}
-                      style={{ color: page.share_token ? AVO : 'var(--muted)', border:`1px solid ${page.share_token ? AVO : 'var(--border)'}`, whiteSpace:'nowrap' }}>
-                      🔗 {page.share_token ? 'Shared — Manage' : 'Share'}
-                    </button>
+                    <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap', justifyContent:'flex-end',
+                      border:`1px solid ${page.share_token ? AVO + '88' : 'var(--border)'}`, borderRadius:10, padding:'6px 10px' }}>
+                      <span style={{ fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.04em', whiteSpace:'nowrap', color: page.share_token ? AVO : 'var(--muted)' }}>Public PW</span>
+                      <input value={pwDraft} placeholder="No password set" onChange={e => setPwDraft(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') enableShare(pwDraft.trim()); }}
+                        style={{ fontSize:12, width:150, padding:'4px 8px' }} />
+                      <button className="btn btn-primary btn-sm" onClick={() => enableShare(pwDraft.trim())}>Save</button>
+                      {page.share_token && (
+                        <>
+                          <span style={{ color:'var(--border2, #333)' }}>|</span>
+                          <button className="btn btn-ghost btn-sm" onClick={copyShareLink} style={{ whiteSpace:'nowrap' }}>{copied ? '✓ Copied' : '🔗 Copy Link'}</button>
+                          <button className="btn btn-ghost btn-sm" title="Turn off sharing" onClick={disableShare} style={{ color:'var(--red-text, #e05252)' }}>Off</button>
+                        </>
+                      )}
+                    </div>
                   )}
                 </div>
               )}
@@ -1554,13 +1670,7 @@ export default function AvoProject({ idOverride, embedded, shareData, clientView
           </>
         )}
       </div>
-      {shareModal && page && (
-        <AvoShareModal page={page} url={shareUrl}
-          onEnable={async pw => { await enableShare(pw); }}
-          onDisable={async () => { await disableShare(); setShareModal(false); }}
-          onClose={() => setShareModal(false)} />
-      )}
-      {editView && <EditModal edit={editView} statusOf={statusOf} onSave={saveEdit} onClose={() => setEditView(null)} />}
+      {editView && <EditModal edit={editView} statusOf={statusOf} onSave={saveEdit} onClose={() => setEditView(null)} A={A} />}
     </div>
   );
 }

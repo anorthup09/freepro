@@ -1325,6 +1325,8 @@ async function migrate() {
   await sql`ALTER TABLE edits ADD COLUMN IF NOT EXISTS tracker_color TEXT`;
   await sql`ALTER TABLE edits ADD COLUMN IF NOT EXISTS milestone_skips JSONB DEFAULT '[]'::jsonb`;
   await sql`ALTER TABLE edits ADD COLUMN IF NOT EXISTS sourcing_task_id TEXT`;
+  // Creative producer on an edit (name); RFR notifies the PM and the Creative
+  await sql`ALTER TABLE edits ADD COLUMN IF NOT EXISTS creative TEXT`;
 
   // User-defined tables on Avo project pages (fully custom columns)
   await sql`

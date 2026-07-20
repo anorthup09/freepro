@@ -18,6 +18,10 @@ export const CATEGORIES = ['Brand Video', 'Event Recap', 'Opener', 'Sizzle', 'In
 // and fed to the Crew Calendar
 export const EDITOR_TASKS = ['icr_v1_due', 'client_v1_due', 'client_v2_due', 'client_v3_due', 'color_audio_send', 'final_comp'];
 
+// Creative producers offered on the edit card; RFR also notifies the chosen one.
+const CREATIVES = ['Alex Northup', 'Allison Boon', 'Ariel Lynch', 'Anabelle Porio', 'Ben Lamb',
+  'Brandon Emery', 'Derik Smith', 'Joey Goldman', 'Mike Walsh', 'Nate Woodard'];
+
 // ── Timeline date math (business-day aware) ──
 const addDaysStr = (dstr, n, skipWknd) => {
   const dt = new Date(dstr + 'T12:00:00');
@@ -800,6 +804,18 @@ export default function AvoEdit() {
                   <div style={{ flex:1, minWidth:150 }}>
                     <span style={lbl}>Project Manager</span>
                     <EditorSelect value={e.pm_id} unbridledOnly onChange={v => { patch({ pm_id: v }); save({ pmId: v }); }} placeholder="— No PM —" />
+                  </div>
+                  <div style={{ flex:1, minWidth:150 }}>
+                    <span style={lbl}>Creative</span>
+                    <select value={e.creative || ''} onChange={ev => {
+                      if (ev.target.value === '__add__') { const c = prompt('Creative name:'); if (c && c.trim()) { patch({ creative: c.trim() }); save({ creative: c.trim() }); } return; }
+                      patch({ creative: ev.target.value }); save({ creative: ev.target.value });
+                    }}>
+                      <option value="">— No Creative —</option>
+                      {e.creative && !CREATIVES.includes(e.creative) && <option value={e.creative}>{e.creative}</option>}
+                      {CREATIVES.map(c => <option key={c} value={c}>{c}</option>)}
+                      <option value="__add__">＋ Add New…</option>
+                    </select>
                   </div>
                 </div>
                 <div>
