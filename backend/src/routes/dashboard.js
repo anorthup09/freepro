@@ -245,23 +245,93 @@ async function greetingContext(user) {
   return ctx;
 }
 
-function fallbackGreeting(ctx) {
+// A big rotating pool so the fallback greeting doesn't repeat weekly. Weekday
+// nods live in per-day buckets; everything else is a general pool. We pick by
+// (days-since-epoch + a per-user offset) so each person gets a stable line for
+// the day that marches through the whole set over time. Enabling the AI path
+// (ANTHROPIC_API_KEY) gives genuinely unlimited, never-repeating greetings.
+const GREETING_WEEKDAY = {
+  Monday: [
+    f => `Hey ${f}, Mondays are Monday-ing. The coffee knows what it signed up for.`,
+    f => `Hey ${f}, Monday again — the week's cold open with no budget for reshoots.`,
+    f => `Hey ${f}, Monday: press record on the week and pray for good audio.`,
+    f => `Hey ${f}, new week, same three tabs of "final_FINAL_v7."`,
+  ],
+  Tuesday: [
+    f => `Hey ${f}, Tuesday: Monday's sequel nobody asked for.`,
+    f => `Hey ${f}, Taco Tuesday is a lifestyle, not a suggestion.`,
+    f => `Hey ${f}, Tuesday — quietly the most productive day. Don't tell anyone.`,
+  ],
+  Wednesday: [
+    f => `Hey ${f}, halfway there. The camel has been notified.`,
+    f => `Hey ${f}, hump day — coast on the downslope, you earned it.`,
+    f => `Hey ${f}, Wednesday: close enough to smell Friday, far enough to cry about it.`,
+  ],
+  Thursday: [
+    f => `Hey ${f}, Thursday is just Friday wearing a lanyard.`,
+    f => `Hey ${f}, Thursday — Friday's opening act. Warm up the crowd.`,
+    f => `Hey ${f}, almost-Friday energy. Do not peak early.`,
+  ],
+  Friday: [
+    f => `Hey ${f}, it's Friday — the render bar can smell the weekend.`,
+    f => `Hey ${f}, Friday: export, back up, and flee. In that order.`,
+    f => `Hey ${f}, it's Friday. "Ship it" is basically a personality now.`,
+  ],
+  Saturday: [
+    f => `Hey ${f}, working on a Saturday? Legend. Or concerning. Maybe both.`,
+    f => `Hey ${f}, Saturday login detected. Touch some grass after this, yeah?`,
+  ],
+  Sunday: [
+    f => `Hey ${f}, logging in on a Sunday? We're telling HR. (We are HR.)`,
+    f => `Hey ${f}, Sunday scaries hitting early? Close the laptop, hero.`,
+  ],
+};
+const GREETING_POOL = [
+  f => `Hey ${f}, go be great today. Or adequate. We'll take adequate.`,
+  f => `Hey ${f}, remember: the logo can, in fact, be bigger.`,
+  f => `Hey ${f}, somewhere a client is typing "can we see a few more options."`,
+  f => `Hey ${f}, hydrate like the render depends on it. It does not, but still.`,
+  f => `Hey ${f}, today's forecast: 100% chance of "let's circle back."`,
+  f => `Hey ${f}, back up your project file before it backs up its bags and leaves.`,
+  f => `Hey ${f}, coffee first. Decisions that ruin your afternoon, second.`,
+  f => `Hey ${f}, "make it pop" has entered the chat. Godspeed.`,
+  f => `Hey ${f}, the timeline is a suggestion and the deadline is a threat.`,
+  f => `Hey ${f}, may your exports be fast and your feedback be actionable.`,
+  f => `Hey ${f}, plot twist: the notes say "love it, just one small thing."`,
+  f => `Hey ${f}, be the person who labels their layers. Be a legend.`,
+  f => `Hey ${f}, someone, somewhere, is asking for the raw files. Stay strong.`,
+  f => `Hey ${f}, today you will say "let me just do a quick pass." It will not be quick.`,
+  f => `Hey ${f}, the good news: it's not broken. The bad news: it's "creative."`,
+  f => `Hey ${f}, drink water, save often, trust no autosave.`,
+  f => `Hey ${f}, your future self is begging you to name that file properly.`,
+  f => `Hey ${f}, if it renders on the first try, be suspicious.`,
+  f => `Hey ${f}, "we'll fix it in post" — ah yes, you, right now.`,
+  f => `Hey ${f}, the client loved it. Kidding. But maybe. We'll see.`,
+  f => `Hey ${f}, another day of turning "vibes" into a deliverable.`,
+  f => `Hey ${f}, keep the takes rolling and the snacks stocked.`,
+  f => `Hey ${f}, gentle reminder that "final" is a state of mind.`,
+  f => `Hey ${f}, may your call times be humane and your craft services generous.`,
+  f => `Hey ${f}, today's boss battle: the feedback doc. You've got this.`,
+  f => `Hey ${f}, proxy files are self-care. Edit accordingly.`,
+  f => `Hey ${f}, the muse is in. She's just running on set time.`,
+  f => `Hey ${f}, remember to render a version before the "one tiny change."`,
+  f => `Hey ${f}, deep breath. It's just pixels. Very expensive, opinionated pixels.`,
+  f => `Hey ${f}, greatness is 10% talent and 90% not losing the project file.`,
+  f => `Hey ${f}, the timeline scrubbed clean, the coffee's hot — go make magic.`,
+  f => `Hey ${f}, whatever today throws at you, at least it's not a corrupted cache. Probably.`,
+];
+function fallbackGreeting(ctx, key = '') {
   if (ctx.trip) return ctx.trip.startsToday
     ? `Hey ${ctx.first}, have fun in ${ctx.trip.city || 'the field'} — go make something great 🎬`
     : `Hey ${ctx.first}, ${ctx.trip.city || 'a shoot'} is calling — pack the good snacks`;
   if (ctx.pto) return ctx.pto.startsIn <= 1
     ? `Hey ${ctx.first}, PTO starts basically now. Don't let the door hit ya 🏝️`
     : `Hey ${ctx.first}, PTO in ${ctx.pto.startsIn} days — you can make it`;
-  const byDay = {
-    Monday: `Hey ${ctx.first}, Mondays are Monday-ing. The coffee knows what it signed up for.`,
-    Tuesday: `Hey ${ctx.first}, Tuesday: Monday's sequel nobody asked for.`,
-    Wednesday: `Hey ${ctx.first}, halfway there. The camel has been notified.`,
-    Thursday: `Hey ${ctx.first}, Thursday is just Friday wearing a lanyard.`,
-    Friday: `Hey ${ctx.first}, it's Friday — the render bar can smell the weekend.`,
-    Saturday: `Hey ${ctx.first}, working on a Saturday? Legend. Or concerning. Maybe both.`,
-    Sunday: `Hey ${ctx.first}, logging in on a Sunday? We're telling HR. (We are HR.)`,
-  };
-  return byDay[ctx.weekday] || `Hey ${ctx.first}, go be great today. Or adequate. We'll take adequate.`;
+  // Merge the weekday bucket with the general pool, then rotate by day + user.
+  const options = [...(GREETING_WEEKDAY[ctx.weekday] || []), ...GREETING_POOL];
+  const epochDay = Math.floor(new Date(ctx.date + 'T12:00:00').getTime() / 86400000);
+  let h = 0; for (const c of String(key)) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return options[((epochDay + h) % options.length + options.length) % options.length](ctx.first);
 }
 
 async function aiGreeting(ctx) {
@@ -327,7 +397,7 @@ router.get('/greeting', requireAuth, async (req, res, next) => {
     // broken — regenerate instead of serving it all day
     if (hit && !/\bin\s+[—–-]\s|\bin undefined\b/.test(hit.text)) return res.json({ text: hit.text });
     const ctx = await greetingContext(req.user);
-    const text = (await aiGreeting(ctx)) || fallbackGreeting(ctx);
+    const text = (await aiGreeting(ctx)) || fallbackGreeting(ctx, key);
     await sql`INSERT INTO daily_greetings (user_key, day, text) VALUES (${key}, ${today}, ${text})
       ON CONFLICT (user_key, day) DO UPDATE SET text = ${text}`;
     res.json({ text });
