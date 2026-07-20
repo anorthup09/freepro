@@ -473,6 +473,21 @@ export default function Crew({ project, onProjectUpdate }) {
     return (nums.length ? Math.max(...nums) : 0) + 1;
   }
 
+  // Create a custom position from the Add Position form (or reuse a matching one)
+  async function addCustomPosition() {
+    const name = prompt('New position name (e.g. On-Site Editor, Drone Op):');
+    if (!name || !name.trim()) return;
+    const clean = name.trim();
+    const existing = positions.find(p => p.name.toLowerCase() === clean.toLowerCase());
+    if (existing) { setSlotForm(f => ({ ...f, positionId: existing.id, slotNumber: nextSlot(existing.id) })); return; }
+    try {
+      const maxSort = positions.reduce((m, p) => Math.max(m, Number(p.sort_order) || 0), 0);
+      const p = await api.createPosition(clean, maxSort + 1);
+      setPositions(ps => [...ps, p].sort((a, b) => (Number(a.sort_order) || 0) - (Number(b.sort_order) || 0)));
+      setSlotForm(f => ({ ...f, positionId: p.id, slotNumber: 1 }));
+    } catch (err) { alert(err.message); }
+  }
+
   // ── Named crews (units): Recap Crew, Interview Crew, … ──
   const crewById = Object.fromEntries(crews.map(c => [c.id, c]));
   const crewColor = c => c.color || CREW_UNIT_COLORS[crews.findIndex(x => x.id === c.id) % CREW_UNIT_COLORS.length];
@@ -1014,10 +1029,12 @@ export default function Crew({ project, onProjectUpdate }) {
                   <label>Position</label>
                   <select value={slotForm.positionId} onChange={e => {
                     const pid = e.target.value;
+                    if (pid === '__custom__') { addCustomPosition(); return; }
                     setSlotForm(f=>({ ...f, positionId: pid, slotNumber: nextSlot(pid) }));
                   }} required>
                     <option value="">Select position…</option>
                     {positions.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                    <option value="__custom__">+ Add custom position…</option>
                   </select>
                 </div>
                 <div className="field span2">

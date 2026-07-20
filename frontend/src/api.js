@@ -245,6 +245,7 @@ export const api = {
 
   // Positions
   getPositions: () => req('GET', '/crew/positions'),
+  createPosition: (name, sortOrder) => req('POST', '/crew/positions', { name, ...(sortOrder != null ? { sortOrder } : {}) }),
 
   // Crew assignments
   getProjectCrew: (projectId) => req('GET', `/projects/${projectId}/crew`),

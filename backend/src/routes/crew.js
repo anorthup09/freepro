@@ -11,7 +11,7 @@ router.get('/positions', requireAuth, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.post('/positions', requireAuth, requireRole('ADMIN'), async (req, res, next) => {
+router.post('/positions', requireAuth, requireRole('ADMIN', 'PRODUCER'), async (req, res, next) => {
   try {
     const { name, sortOrder = 0 } = z.object({ name: z.string().min(1), sortOrder: z.number().optional() }).parse(req.body);
     const [p] = await sql`INSERT INTO positions (id, name, sort_order) VALUES (gen_random_uuid()::text, ${name}, ${sortOrder}) RETURNING *`;
