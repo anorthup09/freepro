@@ -9,6 +9,18 @@
   --red-bg: #1F0E0E; --red-border: #3A1A1A; --red-text: #E08080;
   --purple-bg: #16141F; --purple-border: #2A2440; --purple-text: #9A8AE0;
 }
+/* Light view — toggled from the Sign-out bar; variable-driven so surfaces flip. */
+:root[data-theme="light"] {
+  --bg: #FBFAF7; --bg2: #FFFFFF; --bg3: #F1EFE9; --bg4: #E7E4DB;
+  --border: #E2DED4; --border2: #CFC9BB;
+  --text: #1A1815; --muted: #6B6656; --tan: #8A8270;
+  --orange: #E8500A; --orange2: #C6420A;
+  --green-bg: #E7F3EB; --green-border: #BFE0C9; --green-text: #2E7D4F;
+  --amber-bg: #FBF1DD; --amber-border: #E6D2A0; --amber-text: #8A5E10;
+  --red-bg: #FBEAEA; --red-border: #E6B8B8; --red-text: #B23B3B;
+  --purple-bg: #F0EDFB; --purple-border: #CFC4EC; --purple-text: #5B46B0;
+}
+:root[data-theme="light"] body { background: var(--bg); }
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); font-size: 13px; line-height: 1.5; min-height: 100vh; }
 

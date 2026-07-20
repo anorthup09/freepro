@@ -156,12 +156,30 @@ function DailyTestingNotice({ user }) {
   );
 }
 
+// Light/Dark view toggle — persists the choice and stamps data-theme on <html>.
+export function applyTheme(t) {
+  document.documentElement.setAttribute('data-theme', t === 'light' ? 'light' : 'dark');
+}
+function ThemeToggle() {
+  const [theme, setTheme] = useState(() => localStorage.getItem('fp_theme') || 'dark');
+  const flip = () => {
+    const next = theme === 'light' ? 'dark' : 'light';
+    setTheme(next); localStorage.setItem('fp_theme', next); applyTheme(next);
+  };
+  return (
+    <button className="btn btn-ghost btn-sm" onClick={flip} title={`Switch to ${theme === 'light' ? 'dark' : 'light'} view`}>
+      {theme === 'light' ? '🌙 Dark view' : '☀️ Light view'}
+    </button>
+  );
+}
+
 // Centered Sign out at the bottom of every signed-in page (public shares excluded)
 function SignOutFooter({ user, setUser }) {
   const loc = useLocation();
   if (!user || loc.pathname.startsWith('/share') || loc.pathname.startsWith('/gantt') || loc.pathname.startsWith('/avo-share') || loc.pathname === '/login') return null;
   return (
-    <div className="no-print signout-footer" style={{ display:'flex', justifyContent:'center', padding:'26px 16px 34px', background:'var(--bg)' }}>
+    <div className="no-print signout-footer" style={{ display:'flex', justifyContent:'center', gap:10, padding:'26px 16px 34px', background:'var(--bg)' }}>
+      <ThemeToggle />
       <button className="btn btn-ghost btn-sm" onClick={() => { localStorage.removeItem('fp_token'); setUser(null); }}>
         Sign out
       </button>
@@ -181,6 +199,7 @@ export default function App() {
   };
   const user = realUser && realUser.role === 'ADMIN' && preview ? { ...realUser, role: preview, previewing: true } : realUser;
 
+  useEffect(() => { applyTheme(localStorage.getItem('fp_theme') || 'dark'); }, []);
   useEffect(() => {
     const t = localStorage.getItem('fp_token');
     if (!t) { setUser(null); return; }
