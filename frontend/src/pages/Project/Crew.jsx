@@ -463,9 +463,13 @@ export default function Crew({ project, onProjectUpdate }) {
     }
   }
 
-  // Count existing slots per position so we can suggest next slot number
+  // Next free slot number for a position: max existing slot + 1 (assignments
+  // carry snake_case slot_number / position_id straight from the API row).
   function nextSlot(positionId) {
-    return assignments.filter(a => a.positionId === positionId).length + 1;
+    const nums = assignments
+      .filter(a => (a.position?.id || a.position_id) === positionId)
+      .map(a => Number(a.slot_number) || 0);
+    return (nums.length ? Math.max(...nums) : 0) + 1;
   }
 
   // ── Named crews (units): Recap Crew, Interview Crew, … ──
@@ -618,14 +622,23 @@ export default function Crew({ project, onProjectUpdate }) {
       {assignments.length > 0 && (() => {
         const staff = assignments.filter(a => !a.is_contractor);
         const contractors = assignments.filter(a => a.is_contractor);
+        // Number positions that appear more than once: On-Site Editor 1, 2, …
+        // (a single one of a position stays unnumbered).
+        const byPos = {};
+        assignments.forEach(a => { const pid = a.position?.id || a.position_id; (byPos[pid] ||= []).push(a); });
+        const slotLabel = {};
+        Object.values(byPos).forEach(list => {
+          if (list.length < 2) return;
+          [...list].sort((x, y) => (Number(x.slot_number) || 0) - (Number(y.slot_number) || 0))
+            .forEach((a, i) => { slotLabel[a.id] = i + 1; });
+        });
         const laborTotal = contractors.reduce((s, a) => s + (Number(a.day_rate) || 0) * (Number(a.labor_days) || 0), 0);
         const gearTotal = contractors.reduce((s, a) => s + (Number(a.gear_cost) || 0) * (Number(a.gear_days) || 0), 0);
         const fmt$ = n => '$' + Number(n).toLocaleString('en-US', { maximumFractionDigits: 2 });
         const renderRow = a => (
                 <tr key={a.id}>
                   <td>
-                    <div className="pos-name">{a.position.name}</div>
-                    {a.slotNumber > 1 && <div className="pos-slot">Slot {a.slotNumber}</div>}
+                    <div className="pos-name">{a.position.name}{slotLabel[a.id] ? ` ${slotLabel[a.id]}` : ''}</div>
                   </td>
                   <td>
                     {a.crewMember ? (
@@ -1120,11 +1133,14 @@ export default function Crew({ project, onProjectUpdate }) {
                     </div>
                   </>
                 )}
-                {slotForm.positionId && nextSlot(slotForm.positionId) > 1 && (
-                  <div className="field span2" style={{ background:'var(--amber-bg)', border:'1px solid var(--amber-border)', borderRadius:6, padding:'8px 10px', color:'var(--amber-text)', fontSize:11 }}>
-                    This adds slot {nextSlot(slotForm.positionId)} for this position (e.g. Audio {nextSlot(slotForm.positionId)})
-                  </div>
-                )}
+                {slotForm.positionId && nextSlot(slotForm.positionId) > 1 && (() => {
+                  const posName = positions.find(p => p.id === slotForm.positionId)?.name || 'this position';
+                  return (
+                    <div className="field span2" style={{ background:'var(--amber-bg)', border:'1px solid var(--amber-border)', borderRadius:6, padding:'8px 10px', color:'var(--amber-text)', fontSize:11 }}>
+                      Adding another {posName} — it'll show as <strong>{posName} {nextSlot(slotForm.positionId)}</strong> in the crew list.
+                    </div>
+                  );
+                })()}
               </div>
               <div className="btn-row"><button className="btn btn-primary">Add to Project</button><button type="button" className="btn btn-ghost" onClick={() => setShowAddSlot(false)}>Cancel</button></div>
             </form>
