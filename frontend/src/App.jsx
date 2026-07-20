@@ -168,7 +168,7 @@ function ThemeToggle() {
   };
   return (
     <button className="btn btn-ghost btn-sm" onClick={flip} title={`Switch to ${theme === 'light' ? 'dark' : 'light'} view`}>
-      {theme === 'light' ? '🌙 Dark view' : '☀️ Light view'}
+      {theme === 'light' ? 'Dark view' : 'Light view'}
     </button>
   );
 }
