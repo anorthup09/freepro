@@ -12,7 +12,7 @@ export const AVO_STATUSES = [
   ['CLOSED', 'Closed Tasks', '#8a8f98'],
 ];
 
-export function AvoHeader() {
+export function AvoHeader({ right }) {
   const { user, setUser } = useAuth();
   return (
     <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 26px', flexWrap:'wrap', gap:10 }}>
@@ -23,6 +23,7 @@ export function AvoHeader() {
         <Link to="/avo" style={{ fontSize:12, color:AVO, fontWeight:700, letterSpacing:'0.04em', textDecoration:'none' }}>🥑 AvocadoPost</Link>
       </div>
       <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+        {right}
         <span style={{ fontSize:11, color:'var(--muted)' }}>{user?.name}</span>
         <HomeButton />
       </div>

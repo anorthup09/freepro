@@ -142,6 +142,16 @@ export const api = {
   avoProjectByCode: (code) => req('GET', `/avo/projects/by-code/${encodeURIComponent(code)}`),
   updateAvoProject: (id, data) => req('PATCH', `/avo/projects/${id}`, data),
   deleteAvoProject: (id) => req('DELETE', `/avo/projects/${id}`),
+  avoShareEnable: (id, password) => req('POST', `/avo/projects/${id}/share`, password !== undefined ? { password } : {}),
+  avoShareDisable: (id) => req('DELETE', `/avo/projects/${id}/share`),
+  avoShareView: async (token, pw) => {
+    const url = pw ? `${BACKEND}/api/avo-share/${token}?pw=${encodeURIComponent(pw)}` : `${BACKEND}/api/avo-share/${token}`;
+    const t = localStorage.getItem('fp_token');
+    const r = await fetch(url, t ? { headers: { Authorization: `Bearer ${t}` } } : undefined);
+    const data = await r.json();
+    if (!r.ok) return { _status: r.status, ...data };
+    return data;
+  },
   addAvoGridRow: (pageId, kind, data = {}) => req('POST', `/avo/projects/${pageId}/${kind}`, data),
   createAvoTable: (pageId, name) => req('POST', `/avo/projects/${pageId}/tables`, { name }),
   updateAvoTable: (tid, data) => req('PATCH', `/avo/tables/${tid}`, data),

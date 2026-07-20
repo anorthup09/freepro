@@ -802,6 +802,28 @@ router.delete('/projects/:id', ...staff, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// ── Client/Crew shareable view: enable a public token + optional password ──
+router.post('/projects/:id/share', ...staff, requireRole('ADMIN', 'PRODUCER'), async (req, res, next) => {
+  try {
+    // password omitted => leave unchanged; '' or null => clear; string => set
+    const pw = req.body.password !== undefined ? (String(req.body.password || '').trim() || null) : undefined;
+    const [row] = await sql`
+      UPDATE avo_project_pages SET
+        share_token = COALESCE(share_token, gen_random_uuid()::text),
+        share_password = ${pw !== undefined ? pw : sql`share_password`}
+      WHERE id = ${req.params.id}
+      RETURNING share_token, share_password`;
+    if (!row) return res.status(404).json({ error: 'Project page not found' });
+    res.json({ token: row.share_token, password: row.share_password || null });
+  } catch (e) { next(e); }
+});
+router.delete('/projects/:id/share', ...staff, requireRole('ADMIN', 'PRODUCER'), async (req, res, next) => {
+  try {
+    await sql`UPDATE avo_project_pages SET share_token = NULL, share_password = NULL WHERE id = ${req.params.id}`;
+    res.json({ ok: true });
+  } catch (e) { next(e); }
+});
+
 // ── Custom tables on a project page ──
 router.post('/projects/:id/tables', ...staff, async (req, res, next) => {
   try {
@@ -1004,6 +1026,47 @@ publicRouter.get('/gantt-share/:token', async (req, res, next) => {
         FROM edits e WHERE e.project_code = ${share.ref} ORDER BY e.start_date NULLS LAST`;
     }
     res.json({ kind: share.kind, ref: share.ref, edits });
+  } catch (e) { next(e); }
+});
+
+// Public Client/Crew view of a project page (read-only, optional password).
+// Logged-in app users bypass the password, same as the FreePro share views.
+const jwtLib = require('jsonwebtoken');
+publicRouter.get('/avo-share/:token', async (req, res, next) => {
+  try {
+    const [page] = await sql`SELECT * FROM avo_project_pages WHERE share_token = ${req.params.token}`;
+    if (!page) return res.status(404).json({ error: 'Share not found' });
+    if (page.share_password) {
+      let authed = false;
+      const h = req.headers.authorization;
+      if (h && h.startsWith('Bearer ')) {
+        try { const u = jwtLib.verify(h.slice(7), process.env.JWT_SECRET); authed = u && u.role !== 'PENDING'; } catch { /* fall through to pw */ }
+      }
+      if (!authed && (req.query.pw || '') !== page.share_password) {
+        return res.status(401).json({ passwordRequired: true });
+      }
+    }
+    // Read-only, client-safe edits — no contract/financial fields
+    const edits = await sql`
+      SELECT e.id, e.title, e.description, e.category, e.tracker_type, e.tracker_color, e.tracker_sort,
+             e.status, e.version, e.approved, e.review_link, e.start_date, e.end_date,
+             e.aspect_ratio, e.resolution, e.drive, e.asset_ref, e.music_ref, e.video_assets, e.notes,
+             e.milestones, e.milestone_skips, e.milestone_assignees,
+             COALESCE((SELECT ${sql.unsafe(PREF)} FROM crew_members cm WHERE cm.id = e.lead_editor_id), e.lead_editor_name) as lead_editor
+      FROM edits e
+      WHERE (e.project_code = ${page.code} OR e.project_code LIKE ${page.code + '-%'}) AND e.archived IS NOT TRUE
+      ORDER BY e.tracker_sort NULLS LAST, e.end_date NULLS LAST, e.created_at`;
+    const lowerThirds = await sql`SELECT * FROM avo_lower_thirds WHERE page_id = ${page.id} ORDER BY sort, created_at`;
+    const todos = await sql`SELECT * FROM avo_todos WHERE page_id = ${page.id} ORDER BY sort, created_at`;
+    const music = await sql`SELECT * FROM avo_music WHERE page_id = ${page.id} ORDER BY sort, created_at`;
+    const tables = await sql`SELECT * FROM avo_custom_tables WHERE page_id = ${page.id} ORDER BY sort, created_at`;
+    const tRows = tables.length ? await sql`SELECT * FROM avo_custom_rows WHERE table_id IN ${sql(tables.map(t => t.id))} ORDER BY sort, created_at` : [];
+    const customTables = tables.map(t => ({ ...t, rows: tRows.filter(r => r.table_id === t.id) }));
+    const assets = await sql`SELECT id, page_id, filename, mime, size, edit_ids, uploaded_by, created_at FROM avo_assets WHERE page_id = ${page.id} ORDER BY created_at DESC`;
+    res.json({
+      id: page.id, code: page.code, title: page.title, grid_config: page.grid_config,
+      lowerThirds, todos, music, edits, customTables, assets,
+    });
   } catch (e) { next(e); }
 });
 module.exports.publicRouter = publicRouter;

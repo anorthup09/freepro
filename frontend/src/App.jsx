@@ -61,7 +61,7 @@ import Pipeline from './pages/Pipeline.jsx';
 import Avo from './pages/Avo.jsx';
 import AvoEdit from './pages/AvoEdit.jsx';
 import AvoGantt from './pages/AvoGantt.jsx';
-import AvoProject from './pages/AvoProject.jsx';
+import AvoProject, { AvoShareView } from './pages/AvoProject.jsx';
 import GanttShare from './pages/GanttShare.jsx';
 import Team from './pages/Team.jsx';
 import CallSheetEmails from './pages/Project/CallSheetEmails.jsx';
@@ -129,7 +129,7 @@ function DailyTestingNotice({ user }) {
       setShow(true);
     }
   }, [user]);
-  if (!show || !user || loc.pathname.startsWith('/share') || loc.pathname.startsWith('/gantt') || loc.pathname === '/login') return null;
+  if (!show || !user || loc.pathname.startsWith('/share') || loc.pathname.startsWith('/gantt') || loc.pathname.startsWith('/avo-share') || loc.pathname === '/login') return null;
   return (
     <div onClick={e => e.target === e.currentTarget && setShow(false)}
       style={{ position:'fixed', inset:0, zIndex:230, background:'rgba(0,0,0,0.75)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
@@ -159,7 +159,7 @@ function DailyTestingNotice({ user }) {
 // Centered Sign out at the bottom of every signed-in page (public shares excluded)
 function SignOutFooter({ user, setUser }) {
   const loc = useLocation();
-  if (!user || loc.pathname.startsWith('/share') || loc.pathname.startsWith('/gantt') || loc.pathname === '/login') return null;
+  if (!user || loc.pathname.startsWith('/share') || loc.pathname.startsWith('/gantt') || loc.pathname.startsWith('/avo-share') || loc.pathname === '/login') return null;
   return (
     <div className="no-print signout-footer" style={{ display:'flex', justifyContent:'center', padding:'26px 16px 34px', background:'var(--bg)' }}>
       <button className="btn btn-ghost btn-sm" onClick={() => { localStorage.removeItem('fp_token'); setUser(null); }}>
@@ -241,6 +241,7 @@ export default function App() {
         <Route path="/avo" element={user ? (user.role === 'FINANCE' ? <Navigate to="/" /> : <Avo />) : <Navigate to="/login" />} />
         <Route path="/avo/gantt" element={user ? (user.role === 'FINANCE' ? <Navigate to="/" /> : <AvoGantt />) : <Navigate to="/login" />} />
         <Route path="/avo/project/:id" element={user ? (user.role === 'FINANCE' ? <Navigate to="/" /> : <AvoProject />) : <Navigate to="/login" />} />
+        <Route path="/avo-share/:token" element={<AvoShareView />} />
         <Route path="/avo/:id" element={user ? (user.role === 'FINANCE' ? <Navigate to="/" /> : <AvoEdit />) : <Navigate to="/login" />} />
         <Route path="/gantt/:token" element={<GanttShare />} />
         <Route path="/reset-password/:token" element={<ResetPassword />} />

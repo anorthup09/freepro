@@ -5,6 +5,7 @@ import { api } from '../api.js';
 import { useAuth } from '../App.jsx';
 import { AvoHeader, AVO, AVO_STATUSES, EditorSelect } from './Avo.jsx';
 import { CATEGORIES } from './AvoEdit.jsx';
+import { MILESTONES } from '../components/GanttChart.jsx';
 import { AvoForm, BLANK_DELIVERABLE_FORM } from './Project/Deliverables.jsx';
 import ContractSendModal from '../components/ContractSendModal.jsx';
 
@@ -16,10 +17,11 @@ const TYPE_COLORS = ['#5ABF80', '#d66a9b', '#e6c229', '#e8955a', '#f08080', '#4a
 const typeColor = t => { let h = 0; for (const c of t || '') h = (h * 31 + c.charCodeAt(0)) & 0xffffffff; return TYPE_COLORS[Math.abs(h) % TYPE_COLORS.length]; };
 const fmtD = d => d ? new Date(String(d).slice(0, 10) + 'T12:00:00').toLocaleDateString('en-US', { month:'numeric', day:'numeric', year:'2-digit' }) : '—';
 
-// Inline-editable text cell: saves on blur
-function Cell({ value, onSave, placeholder, style }) {
+// Inline-editable text cell: saves on blur. Read-only renders static text.
+function Cell({ value, onSave, placeholder, style, readOnly }) {
   const [v, setV] = useState(value || '');
   useEffect(() => setV(value || ''), [value]);
+  if (readOnly) return <span style={{ ...cellInput, ...style, display:'inline-block', border:'1px solid transparent', background:'transparent', cursor:'default', whiteSpace:'pre-wrap', minHeight:0 }}>{value || ''}</span>;
   return (
     <input value={v} placeholder={placeholder} onChange={e => setV(e.target.value)}
       onBlur={() => { if (v !== (value || '')) onSave(v); }}
@@ -36,7 +38,8 @@ const pillBtn = () => ({ background:'var(--bg)', border:'1px solid rgba(255,255,
  * config: { cols:[{key,label}], merges:{ "<rowId>|<colKey>": {rs,cs} } } (per tab, stored on the page).
  * saveExtra(rowId, key, value) persists custom-cell values (row.extra).
  */
-function SmartTable({ rows, colDefs, config, onConfig, saveExtra, leading, trailing, emptyText, footerRight, minWidth, onReorder }) {
+function SmartTable({ rows, colDefs, config, onConfig, saveExtra, leading, trailing, emptyText, footerRight, minWidth, onReorder, readOnly }) {
+  if (readOnly) onReorder = null; // no drag-reorder in the read-only client view
   const [mergeMode, setMergeMode] = useState(false);
   const [selA, setSelA] = useState(null);   // {ri, ci}
   const [selB, setSelB] = useState(null);
@@ -166,7 +169,7 @@ function SmartTable({ rows, colDefs, config, onConfig, saveExtra, leading, trail
               {onReorder && <th style={{ ...th, width:26 }}></th>}
               {leading && <th style={{ ...th, width:34 }}></th>}
               {allCols.map(c => (
-                <th key={c.key} draggable title="Drag to reorder column"
+                <th key={c.key} draggable={!readOnly} title={readOnly ? undefined : 'Drag to reorder column'}
                   onDragStart={() => setDragCol(c.key)}
                   onDragOver={e => { e.preventDefault(); setOverCol(c.key); }}
                   onDragLeave={() => setOverCol(o => o === c.key ? null : o)}
@@ -194,7 +197,7 @@ function SmartTable({ rows, colDefs, config, onConfig, saveExtra, leading, trail
                       </div>
                     </div>
                   )}
-                  {c.custom && (
+                  {c.custom && !readOnly && (
                     <span style={{ marginLeft:5, whiteSpace:'nowrap' }}>
                       <button title="Rename column" onClick={() => renameColumn(c)} style={{ background:'none', border:'none', color:'var(--muted)', fontSize:9, cursor:'pointer', padding:'0 2px' }}>✎</button>
                       <button title="Remove column" onClick={() => removeColumn(c)} style={{ background:'none', border:'none', color:'var(--muted)', fontSize:9, cursor:'pointer', padding:'0 2px' }}>✕</button>
@@ -234,7 +237,7 @@ function SmartTable({ rows, colDefs, config, onConfig, saveExtra, leading, trail
                   const span = anchorAt[`${ri},${ci}`];
                   const sel = mergeMode && inRect(ri, ci);
                   const content = c.custom
-                    ? <Cell value={r.extra?.[c.key]} placeholder="…" onSave={v => saveExtra(r.id, c.key, v)} />
+                    ? <Cell value={r.extra?.[c.key]} placeholder="…" readOnly={readOnly} onSave={v => saveExtra(r.id, c.key, v)} />
                     : c.render(r);
                   return (
                     <td key={c.key} rowSpan={span?.rs} colSpan={span?.cs} onClick={() => cellClick(ri, ci)}
@@ -251,6 +254,7 @@ function SmartTable({ rows, colDefs, config, onConfig, saveExtra, leading, trail
           </tbody>
         </table>
       </div>
+      {!readOnly && (
       <div style={{ padding:'8px 14px', borderTop:'1px solid var(--border)', display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
         {footerRight?.addRow && <button onClick={footerRight.addRow} style={pillBtn()}>{footerRight.label || '+ Add Row'}</button>}
         <button onClick={addColumn} style={pillBtn('#a78bfa')}>+ Add Column</button>
@@ -273,6 +277,7 @@ function SmartTable({ rows, colDefs, config, onConfig, saveExtra, leading, trail
         <div style={{ flex:1 }} />
         {footerRight?.node}
       </div>
+      )}
     </div>
   );
 }
@@ -316,7 +321,7 @@ function RowColorPencil({ edit, onOpen, onPick }) {
 }
 
 // ── Video Tracker: rows are the pipeline edits carrying this project code ──
-function VideoTracker({ edits, setEdits, config, onConfig, code }) {
+function VideoTracker({ edits, setEdits, config, onConfig, code, readOnly, onOpenEdit }) {
   const nav = useNavigate();
   async function saveEdit(id, data) {
     try { const full = await api.updateAvoEdit(id, data); setEdits(es => es.map(x => x.id === id ? { ...x, ...full } : x)); }
@@ -348,6 +353,9 @@ function VideoTracker({ edits, setEdits, config, onConfig, code }) {
   const colDefs = [
     { key:'category', label:'Category', minWidth:130, render: e => {
       const cc = catColor(e.category);
+      if (readOnly) return e.category
+        ? <span style={{ fontSize:11, fontWeight:700, padding:'3px 10px', borderRadius:12, background: cc ? `${cc}22` : 'transparent', border:`1px solid ${cc ? cc + '55' : 'var(--border)'}`, color: cc || 'var(--muted)', whiteSpace:'nowrap' }}>{e.category}</span>
+        : <span style={{ color:'var(--muted)', fontSize:11 }}>—</span>;
       return (
         <select value={e.category || ''} onChange={ev => {
           if (ev.target.value === '__add__') { const c = prompt('New category name:'); if (c && c.trim()) saveEdit(e.id, { category: c.trim() }); return; }
@@ -363,6 +371,9 @@ function VideoTracker({ edits, setEdits, config, onConfig, code }) {
     { key:'tracker_type', label:'Type', minWidth:120, render: e => {
       const TRACKER_TYPES = [['Pre-Event', '#4a9eff'], ['On-Site', '#e6c229'], ['Post-Event', '#9DC183'], ['Standard Edit', '#a78bfa']];
       const tc = (TRACKER_TYPES.find(([t]) => t === e.tracker_type) || [null, null])[1];
+      if (readOnly) return e.tracker_type
+        ? <span style={{ fontSize:11, fontWeight:700, padding:'3px 10px', borderRadius:12, background: tc ? `${tc}22` : 'transparent', border:`1px solid ${tc ? tc + '55' : 'var(--border)'}`, color: tc || 'var(--muted)', whiteSpace:'nowrap' }}>{e.tracker_type}</span>
+        : <span style={{ color:'var(--muted)', fontSize:11 }}>—</span>;
       return (
         <select value={e.tracker_type || ''} onChange={ev => saveEdit(e.id, { trackerType: ev.target.value })}
           style={{ fontSize:11, fontWeight:700, padding:'4px 8px', borderRadius:12, width:'100%',
@@ -374,11 +385,11 @@ function VideoTracker({ edits, setEdits, config, onConfig, code }) {
       );
     } },
     { key:'title', label:'Video Title', minWidth:150, render: e =>
-      <span onClick={() => nav(`/avo/${e.id}`)} style={{ fontSize:12, fontWeight:700, cursor:'pointer', padding:'5px 6px', display:'inline-block' }}>{e.title}</span> },
-    { key:'description', label:'Description', minWidth:170, render: e => <Cell value={e.description} placeholder="Description…" onSave={v => saveEdit(e.id, { description: v })} /> },
-    { key:'notes', label:'Notes', minWidth:170, render: e => <Cell value={e.notes} placeholder="Notes…" onSave={v => saveEdit(e.id, { notes: v })} /> },
+      <span onClick={() => readOnly ? (onOpenEdit && onOpenEdit(e)) : nav(`/avo/${e.id}`)} style={{ fontSize:12, fontWeight:700, cursor: (readOnly && !onOpenEdit) ? 'default' : 'pointer', padding:'5px 6px', display:'inline-block' }}>{e.title}</span> },
+    { key:'description', label:'Description', minWidth:170, render: e => <Cell value={e.description} placeholder="Description…" readOnly={readOnly} onSave={v => saveEdit(e.id, { description: v })} /> },
+    { key:'notes', label:'Notes', minWidth:170, render: e => <Cell value={e.notes} placeholder="Notes…" readOnly={readOnly} onSave={v => saveEdit(e.id, { notes: v })} /> },
     { key:'end_date', label:'Due Date', render: e => <span style={{ whiteSpace:'nowrap', fontSize:12 }}>{fmtD(e.end_date)}</span> },
-    { key:'video_assets', label:'Video Assets', minWidth:160, render: e => <Cell value={e.video_assets} placeholder="iPhone videos, music…" onSave={v => saveEdit(e.id, { videoAssets: v })} /> },
+    { key:'video_assets', label:'Video Assets', minWidth:160, render: e => <Cell value={e.video_assets} placeholder="iPhone videos, music…" readOnly={readOnly} onSave={v => saveEdit(e.id, { videoAssets: v })} /> },
     { key:'lead_editor', label:'Editor', render: e => <span style={{ fontSize:12, whiteSpace:'nowrap' }}>{e.lead_editor || '—'}</span> },
     { key:'review_link', label:'Review Link', render: e => e.review_link
       ? <a href={e.review_link} target="_blank" rel="noreferrer" style={{ color:'#4a9eff', fontSize:11 }}>▶ {e.review_link.replace(/^https?:\/\/(www\.)?/, '').slice(0, 22)}</a>
@@ -401,11 +412,11 @@ function VideoTracker({ edits, setEdits, config, onConfig, code }) {
   }
   return (
     <>
-      <SmartTable rows={grouped} colDefs={colDefs} config={config} onConfig={onConfig} minWidth={1050}
+      <SmartTable rows={grouped} colDefs={colDefs} config={config} onConfig={onConfig} minWidth={1050} readOnly={readOnly}
         saveExtra={(id, k, v) => saveEdit(id, { extra: { [k]: v } })}
         onReorder={reorder} footerRight={{ addRow: () => setAddForm({ ...BLANK_DELIVERABLE_FORM }), label: '+ Add Deliverable' }}
         emptyText="No edits with this project code yet — add them from the pipeline and they'll appear here automatically."
-        leading={e => (
+        leading={readOnly ? undefined : e => (
           <RowColorPencil edit={e} onOpen={() => nav(`/avo/${e.id}`)} onPick={c => saveEdit(e.id, { trackerColor: c })} />
         )} />
       <div style={{ padding:'8px 2px', fontSize:10, color:'var(--muted)' }}>
@@ -634,7 +645,7 @@ function ContractorTracker({ pageId }) {
 }
 
 // ── Generic editable grid (to-dos, lower thirds) ──
-function Grid({ kind, columns, rows, setRows, pageId, doneKey, renderCell, config, onConfig }) {
+function Grid({ kind, columns, rows, setRows, pageId, doneKey, renderCell, config, onConfig, readOnly }) {
   async function addRow() {
     try { const r = await api.addAvoGridRow(pageId, kind); setRows(rs => [...rs, r]); }
     catch (e) { alert(e.message); }
@@ -649,7 +660,7 @@ function Grid({ kind, columns, rows, setRows, pageId, doneKey, renderCell, confi
   }
   const colDefs = columns.map(([c, label, placeholder]) => ({
     key: c, label,
-    render: r => renderCell?.(r, c, v => saveCell(r.id, c, v)) || <Cell value={r[c]} placeholder={placeholder} onSave={v => saveCell(r.id, c, v)} />,
+    render: r => renderCell?.(r, c, v => saveCell(r.id, c, v), readOnly) || <Cell value={r[c]} placeholder={placeholder} readOnly={readOnly} onSave={v => saveCell(r.id, c, v)} />,
   }));
   const shown = doneKey ? rows.map(r => r[doneKey] ? { ...r, __dim: true } : r) : rows;
   function reorder(next) {
@@ -657,14 +668,14 @@ function Grid({ kind, columns, rows, setRows, pageId, doneKey, renderCell, confi
     next.forEach((r, i) => api.updateAvoGridRow(kind, r.id, { sort: i }).catch(() => {}));
   }
   return (
-    <SmartTable rows={shown} colDefs={colDefs} config={config} onConfig={onConfig}
+    <SmartTable rows={shown} colDefs={colDefs} config={config} onConfig={onConfig} readOnly={readOnly}
       saveExtra={(id, k, v) => api.updateAvoGridRow(kind, id, { extra: { [k]: v } }).then(r => setRows(rs => rs.map(x => x.id === id ? r : x))).catch(e => alert(e.message))}
       footerRight={{ addRow }} onReorder={reorder}
       leading={doneKey ? r => (
-        <input type="checkbox" checked={r[doneKey] || false} style={{ width:'auto', accentColor:AVO }}
+        <input type="checkbox" checked={r[doneKey] || false} disabled={readOnly} style={{ width:'auto', accentColor:AVO }}
           onChange={e => saveCell(r.id, doneKey, e.target.checked)} />
       ) : undefined}
-      trailing={r => (
+      trailing={readOnly ? undefined : r => (
         <button title="Delete row" onClick={() => removeRow(r.id)}
           style={{ background:'none', border:'none', color:'var(--muted)', fontSize:12, cursor:'pointer' }}>✕</button>
       )} />
@@ -737,7 +748,7 @@ function MusicShareModal({ groups, code, title, onClose }) {
   );
 }
 
-function MusicGrid({ rows, setRows, pageId, code, title, config, onConfig, edits = [], setEdits }) {
+function MusicGrid({ rows, setRows, pageId, code, title, config, onConfig, edits = [], setEdits, readOnly }) {
   const [share, setShare] = useState(false);
   const [dragId, setDragId] = useState(null);
   const [overId, setOverId] = useState(null);
@@ -873,18 +884,20 @@ function MusicGrid({ rows, setRows, pageId, code, title, config, onConfig, edits
               <th style={{ ...th, position:'relative' }}>Link{filterWidget('url', 'Link')}</th>
               <th style={{ ...th, position:'relative' }}>Note{filterWidget('note', 'Note')}</th>
               {customCols.map(c => (
-                <th key={c.key} draggable title="Drag to reorder column"
+                <th key={c.key} draggable={!readOnly} title={readOnly ? undefined : 'Drag to reorder column'}
                   onDragStart={() => setDragColKey(c.key)}
                   onDragOver={e => e.preventDefault()}
                   onDrop={() => { dropColOn(c.key); setDragColKey(null); }}
                   onDragEnd={() => setDragColKey(null)}
-                  style={{ ...th, cursor:'grab', position:'relative', opacity: dragColKey === c.key ? 0.5 : 1 }}>
+                  style={{ ...th, cursor: readOnly ? 'default' : 'grab', position:'relative', opacity: dragColKey === c.key ? 0.5 : 1 }}>
                   {c.label}
                   {filterWidget(c.key, c.label)}
-                  <span style={{ marginLeft:5, whiteSpace:'nowrap' }}>
-                    <button title="Rename column" onClick={() => renameColumn(c)} style={{ background:'none', border:'none', color:'var(--muted)', fontSize:9, cursor:'pointer', padding:'0 2px' }}>✎</button>
-                    <button title="Remove column" onClick={() => removeColumn(c)} style={{ background:'none', border:'none', color:'var(--muted)', fontSize:9, cursor:'pointer', padding:'0 2px' }}>✕</button>
-                  </span>
+                  {!readOnly && (
+                    <span style={{ marginLeft:5, whiteSpace:'nowrap' }}>
+                      <button title="Rename column" onClick={() => renameColumn(c)} style={{ background:'none', border:'none', color:'var(--muted)', fontSize:9, cursor:'pointer', padding:'0 2px' }}>✎</button>
+                      <button title="Remove column" onClick={() => removeColumn(c)} style={{ background:'none', border:'none', color:'var(--muted)', fontSize:9, cursor:'pointer', padding:'0 2px' }}>✕</button>
+                    </span>
+                  )}
                 </th>
               ))}
               <th style={{ ...th, width:34 }}></th>
@@ -906,20 +919,21 @@ function MusicGrid({ rows, setRows, pageId, code, title, config, onConfig, edits
                   <td rowSpan={rowsForVideo.length} style={{ ...td, minWidth:170, borderRight:'1px solid rgba(255,255,255,0.05)', verticalAlign:'top', paddingTop:8 }}>
                     <div style={{ display:'flex', alignItems:'center', gap:4 }}>
                       <div style={{ flex:1 }}>
-                        <Cell value={r ? r.category : video} placeholder="Video title…" onSave={v => r ? saveCell(r.id, 'category', v) : addRow(v)}
+                        <Cell value={r ? r.category : video} placeholder="Video title…" readOnly={readOnly} onSave={v => r ? saveCell(r.id, 'category', v) : addRow(v)}
                           style={video ? { background:`${typeColor(video)}22`, border:`1px solid ${typeColor(video)}55`, color:typeColor(video), fontWeight:700, textAlign:'center', borderRadius:12 } : {}} />
                       </div>
-                      <button title="Add a song option for this video" onClick={() => addRow(video)}
-                        style={{ background:'none', border:`1px solid ${typeColor(video)}77`, color:typeColor(video), borderRadius:'50%', width:20, height:20, lineHeight:'16px', fontSize:14, fontWeight:800, cursor:'pointer', flexShrink:0, padding:0 }}>+</button>
+                      {!readOnly && <button title="Add a song option for this video" onClick={() => addRow(video)}
+                        style={{ background:'none', border:`1px solid ${typeColor(video)}77`, color:typeColor(video), borderRadius:'50%', width:20, height:20, lineHeight:'16px', fontSize:14, fontWeight:800, cursor:'pointer', flexShrink:0, padding:0 }}>+</button>}
                     </div>
                     {grp.length > 1 && <div style={{ fontSize:9, color:'var(--muted)', textAlign:'center', marginTop:3 }}>{grp.length} options</div>}
                   </td>
                 )}
                 <td style={{ ...td, width:60, textAlign:'center' }}>
-                  {r && (mref === null
-                    ? <span title="No matching video in the Project Video Tracker" style={{ color:'var(--muted)', fontSize:10 }}>—</span>
-                    : mref && r.url && mref === r.url
-                      ? <span title="This song fills the video's Music Ref" style={{ color:AVO, fontSize:14 }}>✓</span>
+                  {r && (mref !== null && mref && r.url && mref === r.url
+                    ? <span title="This song fills the video's Music Ref" style={{ color:AVO, fontSize:14 }}>✓</span>
+                    : readOnly ? null
+                    : mref === null
+                      ? <span title="No matching video in the Project Video Tracker" style={{ color:'var(--muted)', fontSize:10 }}>—</span>
                       : <button title="Set this song as the video's Music Ref" onClick={() => selectSong(video, r.url)} disabled={!r.url}
                           style={{ background:'rgba(90,191,128,0.12)', border:`1px solid ${AVO}`, color:AVO, borderRadius:10, padding:'2px 9px', fontSize:9, fontWeight:800, cursor: r.url ? 'pointer' : 'default', opacity: r.url ? 1 : 0.4 }}>Select</button>)}
                 </td>
@@ -927,23 +941,25 @@ function MusicGrid({ rows, setRows, pageId, code, title, config, onConfig, edits
                 <>
                 <td style={{ ...td, minWidth:260 }}>
                   <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                    <Cell value={r.url} placeholder="https://…" onSave={v => saveCell(r.id, 'url', v)} style={{ color:'#4a9eff' }} />
+                    <Cell value={r.url} placeholder="https://…" readOnly={readOnly} onSave={v => saveCell(r.id, 'url', v)} style={{ color:'#4a9eff' }} />
                     {r.url && <a href={r.url} target="_blank" rel="noreferrer" style={{ color:'#4a9eff', fontSize:11, textDecoration:'none', flexShrink:0 }}>▶</a>}
                   </div>
                 </td>
-                <td style={{ ...td, minWidth:130 }}><Cell value={r.note} placeholder="instrumental version…" onSave={v => saveCell(r.id, 'note', v)} /></td>
+                <td style={{ ...td, minWidth:130 }}><Cell value={r.note} placeholder="instrumental version…" readOnly={readOnly} onSave={v => saveCell(r.id, 'note', v)} /></td>
                 {customCols.map(c => (
                   <td key={c.key} style={{ ...td, minWidth:110 }}>
-                    <Cell value={r.extra?.[c.key]} placeholder="…" onSave={v => saveExtra(r.id, c.key, v)} />
+                    <Cell value={r.extra?.[c.key]} placeholder="…" readOnly={readOnly} onSave={v => saveExtra(r.id, c.key, v)} />
                   </td>
                 ))}
                 <td style={{ ...td, textAlign:'center', whiteSpace:'nowrap' }}>
-                  <span draggable title="Drag to reorder row"
-                    onDragStart={() => setDragId(r.id)}
-                    onDragEnd={() => { setDragId(null); setOverId(null); }}
-                    style={{ cursor:'grab', color:'var(--muted)', fontSize:11, userSelect:'none', padding:'2px 3px' }}>⠿</span>
-                  <button title="Delete row" onClick={() => removeRow(r.id)}
-                    style={{ background:'none', border:'none', color:'var(--muted)', fontSize:12, cursor:'pointer' }}>✕</button>
+                  {!readOnly && <>
+                    <span draggable title="Drag to reorder row"
+                      onDragStart={() => setDragId(r.id)}
+                      onDragEnd={() => { setDragId(null); setOverId(null); }}
+                      style={{ cursor:'grab', color:'var(--muted)', fontSize:11, userSelect:'none', padding:'2px 3px' }}>⠿</span>
+                    <button title="Delete row" onClick={() => removeRow(r.id)}
+                      style={{ background:'none', border:'none', color:'var(--muted)', fontSize:12, cursor:'pointer' }}>✕</button>
+                  </>}
                 </td>
                 </>
                 ) : (
@@ -956,8 +972,8 @@ function MusicGrid({ rows, setRows, pageId, code, title, config, onConfig, edits
         </table>
       </div>
       <div style={{ padding:'8px 14px', borderTop:'1px solid var(--border)', display:'flex', gap:8, flexWrap:'wrap', alignItems:'center' }}>
-        <button onClick={() => addRow()} style={pillBtn(AVO)}>+ Add Row</button>
-        <button onClick={addColumn} style={pillBtn('#a78bfa')}>+ Add Column</button>
+        {!readOnly && <button onClick={() => addRow()} style={pillBtn(AVO)}>+ Add Row</button>}
+        {!readOnly && <button onClick={addColumn} style={pillBtn('#a78bfa')}>+ Add Column</button>}
         {filterActive && <button onClick={() => { setFilters({}); setOpenFilter(null); }} style={pillBtn()}>✕ Clear Filters</button>}
         <div style={{ flex:1 }} />
         <button onClick={() => setShare(true)} disabled={!shareGroups.length}
@@ -971,7 +987,7 @@ function MusicGrid({ rows, setRows, pageId, code, title, config, onConfig, edits
 }
 
 // ── User-defined table: every column is custom, full SmartTable feature set ──
-function CustomTable({ table, onChange, onDelete }) {
+function CustomTable({ table, onChange, onDelete, readOnly }) {
   const rows = table.rows || [];
   const setRows = fn => onChange({ ...table, rows: typeof fn === 'function' ? fn(rows) : fn });
   async function addRow() {
@@ -994,27 +1010,29 @@ function CustomTable({ table, onChange, onDelete }) {
   }
   return (
     <>
-      <SmartTable rows={rows} colDefs={[]} config={table.config || {}} onConfig={saveConfig}
+      <SmartTable rows={rows} colDefs={[]} config={table.config || {}} onConfig={saveConfig} readOnly={readOnly}
         saveExtra={(id, k, v) => api.updateAvoTableRow(id, { extra: { [k]: v } })
           .then(r => setRows(rows.map(x => x.id === id ? r : x))).catch(e => alert(e.message))}
         footerRight={{ addRow }} onReorder={reorder}
         emptyText="Empty table — add rows and columns to build it out."
-        trailing={r => (
+        trailing={readOnly ? undefined : r => (
           <button title="Delete row" onClick={async () => {
             try { await api.deleteAvoTableRow(r.id); setRows(rows.filter(x => x.id !== r.id)); }
             catch (e) { alert(e.message); }
           }} style={{ background:'none', border:'none', color:'var(--muted)', fontSize:12, cursor:'pointer' }}>✕</button>
         )} />
-      <div style={{ display:'flex', gap:10, padding:'8px 2px' }}>
-        <button onClick={rename} style={{ background:'none', border:'none', color:'var(--muted)', fontSize:10, cursor:'pointer', padding:0 }}>✎ Rename Table</button>
-        <button onClick={onDelete} style={{ background:'none', border:'none', color:'var(--red-text, #e05252)', fontSize:10, cursor:'pointer', padding:0 }}>✕ Delete Table</button>
-      </div>
+      {!readOnly && (
+        <div style={{ display:'flex', gap:10, padding:'8px 2px' }}>
+          <button onClick={rename} style={{ background:'none', border:'none', color:'var(--muted)', fontSize:10, cursor:'pointer', padding:0 }}>✎ Rename Table</button>
+          <button onClick={onDelete} style={{ background:'none', border:'none', color:'var(--red-text, #e05252)', fontSize:10, cursor:'pointer', padding:0 }}>✕ Delete Table</button>
+        </div>
+      )}
     </>
   );
 }
 
 // ── Creative assets: drop photos / motion gfx on the page, tag them to a video ──
-function CreativeAssets({ pageId, assets, setAssets, edits }) {
+function CreativeAssets({ pageId, assets, setAssets, edits, readOnly }) {
   const fileRef = React.useRef(null);
   const [busy, setBusy] = useState(0);          // uploads in flight
   const [dragging, setDragging] = useState(false);
@@ -1039,6 +1057,7 @@ function CreativeAssets({ pageId, assets, setAssets, edits }) {
     ev.preventDefault();
     dragDepth.current = 0;
     setDragging(false);
+    if (readOnly) return;
     Array.from(ev.dataTransfer?.files || []).forEach(uploadOne);
   }
   const tagsOf = a => Array.isArray(a.edit_ids) ? a.edit_ids : [];
@@ -1084,15 +1103,17 @@ function CreativeAssets({ pageId, assets, setAssets, edits }) {
       <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap', marginBottom:10 }}>
         <div style={{ fontSize:12, fontWeight:800 }}>Creative Assets{assets.length ? ` (${assets.length})` : ''}</div>
         <div style={{ flex:1 }} />
-        <label style={{ fontSize:10, color:'var(--muted)', fontWeight:700 }}>Tag new uploads to:</label>
-        <select value={tagTo} onChange={e => setTagTo(e.target.value)}
-          style={{ fontSize:11, padding:'4px 8px', borderRadius:8, background:'var(--bg)', border:'1px solid var(--border)', color:'var(--text)', maxWidth:220 }}>
-          <option value="">— no video —</option>
-          {edits.map(e => <option key={e.id} value={e.id}>{e.title}</option>)}
-        </select>
-        <button className="btn btn-ghost btn-sm" disabled={busy > 0} onClick={() => fileRef.current?.click()}>{busy > 0 ? 'Uploading…' : '+ Upload Asset'}</button>
-        <input ref={fileRef} type="file" multiple style={{ display:'none' }}
-          onChange={ev => { Array.from(ev.target.files || []).forEach(uploadOne); ev.target.value = ''; }} />
+        {!readOnly && <>
+          <label style={{ fontSize:10, color:'var(--muted)', fontWeight:700 }}>Tag new uploads to:</label>
+          <select value={tagTo} onChange={e => setTagTo(e.target.value)}
+            style={{ fontSize:11, padding:'4px 8px', borderRadius:8, background:'var(--bg)', border:'1px solid var(--border)', color:'var(--text)', maxWidth:220 }}>
+            <option value="">— no video —</option>
+            {edits.map(e => <option key={e.id} value={e.id}>{e.title}</option>)}
+          </select>
+          <button className="btn btn-ghost btn-sm" disabled={busy > 0} onClick={() => fileRef.current?.click()}>{busy > 0 ? 'Uploading…' : '+ Upload Asset'}</button>
+          <input ref={fileRef} type="file" multiple style={{ display:'none' }}
+            onChange={ev => { Array.from(ev.target.files || []).forEach(uploadOne); ev.target.value = ''; }} />
+        </>}
       </div>
       {assets.length === 0 && (
         <div style={{ fontSize:12, color:'var(--muted)', fontStyle:'italic', padding:'30px 0', textAlign:'center' }}>
@@ -1110,11 +1131,11 @@ function CreativeAssets({ pageId, assets, setAssets, edits }) {
             {tagsOf(a).map(eid => (
               <span key={eid} style={{ display:'inline-flex', alignItems:'center', gap:4, background:`${AVO}22`, border:`1px solid ${AVO}`, color:AVO, borderRadius:12, padding:'2px 8px', fontSize:10, fontWeight:700, whiteSpace:'nowrap' }}>
                 {titleOf(eid) || '(video removed)'}
-                <span title="Untag this video" onClick={() => saveTags(a, tagsOf(a).filter(x => x !== eid))}
-                  style={{ cursor:'pointer', fontWeight:800, opacity:0.8 }}>✕</span>
+                {!readOnly && <span title="Untag this video" onClick={() => saveTags(a, tagsOf(a).filter(x => x !== eid))}
+                  style={{ cursor:'pointer', fontWeight:800, opacity:0.8 }}>✕</span>}
               </span>
             ))}
-            {edits.some(e => !tagsOf(a).includes(e.id)) && (
+            {!readOnly && edits.some(e => !tagsOf(a).includes(e.id)) && (
               <select value="" onChange={e => e.target.value && saveTags(a, [...tagsOf(a), e.target.value])}
                 title="Tag this asset to a video — a note lands in that video's activity"
                 style={{ fontSize:10, padding:'3px 6px', borderRadius:12, maxWidth:120,
@@ -1125,7 +1146,7 @@ function CreativeAssets({ pageId, assets, setAssets, edits }) {
             )}
           </div>
           <button className="btn btn-ghost btn-sm" onClick={() => download(a)}>⬇</button>
-          <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text, #e05252)' }} onClick={() => remove(a)}>✕</button>
+          {!readOnly && <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text, #e05252)' }} onClick={() => remove(a)}>✕</button>}
         </div>
       ))}
       {assets.length > 0 && <div style={{ fontSize:10, color:'var(--muted)', padding:'8px 0 0', textAlign:'center' }}>Tip: drag & drop files anywhere on this panel to upload. Tagging an asset to a video logs it in that video's activity.</div>}
@@ -1133,28 +1154,146 @@ function CreativeAssets({ pageId, assets, setAssets, edits }) {
   );
 }
 
+// Share the page as a read-only Client/Crew link, with an optional password.
+function AvoShareModal({ page, url, onEnable, onDisable, onClose }) {
+  const shared = !!page.share_token;
+  const [pw, setPw] = useState(page.share_password || '');
+  const [copied, setCopied] = useState(false);
+  const copy = () => { navigator.clipboard?.writeText(url).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1800); }).catch(() => {}); };
+  return (
+    <div onClick={e => e.target === e.currentTarget && onClose()}
+      style={{ position:'fixed', inset:0, zIndex:200, background:'rgba(0,0,0,0.75)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+      <div style={{ width:'100%', maxWidth:520, background:'var(--bg2)', border:'1px solid var(--border)', borderTop:`3px solid ${AVO}`, borderRadius:12, padding:'18px 22px' }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
+          <div style={{ fontSize:15, fontWeight:800 }}>Share — Client / Crew View</div>
+          <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
+        </div>
+        <div style={{ fontSize:11, color:'var(--muted)', lineHeight:1.5, marginBottom:14 }}>
+          A read-only view of this project — the video tracker, creative assets, music, lower thirds, and to-dos. Editor contract details and page controls are hidden. Add a password to gate it, or leave it open.
+        </div>
+        {shared ? (
+          <>
+            <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Shareable link</label>
+            <div style={{ display:'flex', gap:8, margin:'4px 0 14px' }}>
+              <input readOnly value={url} onFocus={e => e.target.select()} style={{ flex:1, fontSize:12 }} />
+              <button className="btn btn-primary btn-sm" onClick={copy}>{copied ? '✓ Copied' : 'Copy'}</button>
+            </div>
+            <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Password (optional)</label>
+            <div style={{ display:'flex', gap:8, margin:'4px 0 4px' }}>
+              <input value={pw} placeholder="No password" onChange={e => setPw(e.target.value)} style={{ flex:1, fontSize:12 }} />
+              <button className="btn btn-ghost btn-sm" onClick={() => onEnable(pw.trim())}>Save</button>
+            </div>
+            <div style={{ fontSize:10, color:'var(--muted)', marginBottom:16 }}>{page.share_password ? 'Viewers must enter this password.' : 'Anyone with the link can view.'}</div>
+            <div style={{ display:'flex', justifyContent:'space-between' }}>
+              <button onClick={onDisable} style={{ background:'none', border:'1px solid var(--red-text, #e05252)', color:'var(--red-text, #e05252)', borderRadius:8, padding:'6px 14px', fontSize:11, fontWeight:800, cursor:'pointer' }}>Turn off sharing</button>
+              <button className="btn btn-ghost btn-sm" onClick={onClose}>Done</button>
+            </div>
+          </>
+        ) : (
+          <>
+            <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Password (optional)</label>
+            <input value={pw} placeholder="Leave blank for no password" onChange={e => setPw(e.target.value)} style={{ width:'100%', fontSize:12, margin:'4px 0 14px' }} />
+            <button className="btn btn-primary" onClick={() => onEnable(pw.trim())}>Create shareable link</button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Read-only detail of one edit for the client view (no Contract Editor card).
+function ReadOnlyEditModal({ edit, statusOf, onClose }) {
+  const e = edit;
+  const ms = typeof e.milestones === 'string' ? JSON.parse(e.milestones || '{}') : (e.milestones || {});
+  const skips = Array.isArray(e.milestone_skips) ? e.milestone_skips : (typeof e.milestone_skips === 'string' ? JSON.parse(e.milestone_skips || '[]') : []);
+  const fmtLong = d => d ? new Date(String(d).slice(0, 10) + 'T12:00:00').toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }) : '—';
+  const st = statusOf(e.status);
+  const cc = catColor(e.category);
+  const pill = (label, color) => <span style={{ fontSize:10, fontWeight:800, padding:'3px 10px', borderRadius:12, background:`${color}22`, border:`1px solid ${color}55`, color, whiteSpace:'nowrap' }}>{label}</span>;
+  const row = (label, val) => <div style={{ display:'flex', gap:10, fontSize:12, padding:'4px 0' }}><span style={{ width:120, color:'var(--muted)', flexShrink:0 }}>{label}</span><span>{val || '—'}</span></div>;
+  const tlRows = MILESTONES.filter(([k]) => ms[k] && !skips.includes(k));
+  return (
+    <div onClick={ev => ev.target === ev.currentTarget && onClose()}
+      style={{ position:'fixed', inset:0, zIndex:200, background:'rgba(0,0,0,0.75)', display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'40px 16px', overflowY:'auto' }}>
+      <div style={{ width:'100%', maxWidth:620, background:'var(--bg2)', border:'1px solid var(--border)', borderTop:`3px solid ${AVO}`, borderRadius:12, padding:'18px 22px' }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:10 }}>
+          <div style={{ fontSize:18, fontWeight:800 }}>{e.title}</div>
+          <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
+        </div>
+        <div style={{ display:'flex', gap:8, flexWrap:'wrap', margin:'10px 0 14px' }}>
+          {e.category && pill(e.category, cc || 'var(--muted)')}
+          {e.tracker_type && pill(e.tracker_type, '#8a8f98')}
+          {st && pill(st[1], st[2])}
+          {e.approved && pill('Approved ✓', '#3f9d68')}
+          <span style={{ fontSize:11, color:'var(--muted)', alignSelf:'center' }}>V{e.version || 1}</span>
+        </div>
+        {e.description && <div style={{ marginBottom:12 }}>
+          <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:3 }}>Description</div>
+          <div style={{ fontSize:12.5, lineHeight:1.5, whiteSpace:'pre-wrap' }}>{e.description}</div>
+        </div>}
+        <div style={{ borderTop:'1px solid var(--border)', paddingTop:8 }}>
+          {row('Editor', e.lead_editor)}
+          {row('Aspect Ratio', e.aspect_ratio)}
+          {row('Resolution', e.resolution)}
+          {row('Drive', e.drive)}
+          {row('Asset Ref', e.asset_ref)}
+          {row('Music Ref', e.music_ref)}
+          {row('Start', fmtLong(e.start_date))}
+          {row('Due', fmtLong(e.end_date))}
+        </div>
+        {e.review_link && (
+          <a href={e.review_link} target="_blank" rel="noreferrer"
+            style={{ display:'inline-block', marginTop:12, background:'rgba(74,158,255,0.12)', border:'1px solid #4a9eff', color:'#4a9eff', borderRadius:8, padding:'7px 16px', fontSize:12, fontWeight:800, textDecoration:'none' }}>
+            ▶ Open review link
+          </a>
+        )}
+        {tlRows.length > 0 && (
+          <div style={{ marginTop:16 }}>
+            <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:6 }}>Timeline</div>
+            {tlRows.map(([k, label]) => (
+              <div key={k} style={{ display:'flex', justifyContent:'space-between', fontSize:12, padding:'4px 0', borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
+                <span>{label}</span><span style={{ color:AVO, fontWeight:600 }}>{fmtLong(ms[k])}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 const TABS = [['tracker', 'Project Video Tracker'], ['assets', 'Creative Assets'], ['todos', 'To-Do List'], ['music', 'Music Options'], ['lower-thirds', 'Lower Thirds']];
 
-export default function AvoProject({ idOverride, embedded }) {
+export default function AvoProject({ idOverride, embedded, shareData, clientView: clientViewProp }) {
   const { id: idParam } = useParams();
-  const id = idOverride || idParam;
+  const id = idOverride || (shareData ? shareData.id : idParam);
   const nav = useNavigate();
-  const [page, setPage] = useState(null);
-  const [edits, setEdits] = useState([]);
-  const [lowerThirds, setLowerThirds] = useState([]);
-  const [todos, setTodos] = useState([]);
-  const [music, setMusic] = useState([]);
-  const [tables, setTables] = useState([]);
-  const [assets, setAssets] = useState([]);
-  const [talent, setTalent] = useState([]);
+  const { user } = useAuth();
+  const [page, setPage] = useState(shareData || null);
+  const [edits, setEdits] = useState(shareData?.edits || []);
+  const [lowerThirds, setLowerThirds] = useState(shareData?.lowerThirds || []);
+  const [todos, setTodos] = useState(shareData?.todos || []);
+  const [music, setMusic] = useState(shareData?.music || []);
+  const [tables, setTables] = useState(shareData?.customTables || []);
+  const [assets, setAssets] = useState(shareData?.assets || []);
+  const [talent, setTalent] = useState(shareData?.talent || []);
   const [tab, setTab] = useState('tracker');
   const [err, setErr] = useState('');
+  const [previewClient, setPreviewClient] = useState(false); // admin/producer "View as Client" toggle
+  const [shareModal, setShareModal] = useState(false);       // share link + password modal
+  const [editView, setEditView] = useState(null);            // read-only edit opened in client view
+  const isStaff = ['ADMIN', 'PRODUCER'].includes(user?.role);
+  // Client/Crew view is read-only and strips internal bits (Delete Page, Contract
+  // Editor card, editing). Driven by the public share OR the internal toggle.
+  const clientView = !!clientViewProp || previewClient;
+  const readOnly = clientView;
 
   useEffect(() => {
+    if (shareData) return; // public share view is pre-loaded, no authed fetch
     api.avoProject(id)
       .then(p => { setPage(p); setEdits(p.edits || []); setLowerThirds(p.lowerThirds || []); setTodos(p.todos || []); setMusic(p.music || []); setTables(p.customTables || []); setAssets(p.assets || []); setTalent(p.talent || []); })
       .catch(e => setErr(e.message));
-  }, [id]);
+  }, [id, shareData]);
 
   // Lower Thirds auto-fill from the project's Talent grid. Talent already present
   // in the grid (matched by name) drop out of the picker.
@@ -1203,17 +1342,41 @@ export default function AvoProject({ idOverride, embedded }) {
     if (!confirm(`Delete the project page for ${page.code} (and its grids)?`)) return;
     try { await api.deleteAvoProject(id); nav('/avo'); } catch (e) { alert(e.message); }
   }
+  async function enableShare(password) {
+    try { const r = await api.avoShareEnable(id, password); setPage(p => ({ ...p, share_token: r.token, share_password: r.password })); }
+    catch (e) { alert(e.message); }
+  }
+  async function disableShare() {
+    if (!confirm('Turn off the shareable link? The current link will stop working.')) return;
+    try { await api.avoShareDisable(id); setPage(p => ({ ...p, share_token: null, share_password: null })); }
+    catch (e) { alert(e.message); }
+  }
+  const shareUrl = page?.share_token ? `${window.location.origin}/avo-share/${page.share_token}` : '';
+  const statusOf = k => AVO_STATUSES.find(([key]) => key === k);
 
-  const todoCell = (r, c, save) => c === 'category'
-    ? <Cell value={r.category} placeholder="Category…" onSave={save}
+  const todoCell = (r, c, save, ro) => c === 'category'
+    ? <Cell value={r.category} placeholder="Category…" onSave={save} readOnly={ro}
         style={r.category ? { background:`${typeColor(r.category)}22`, border:`1px solid ${typeColor(r.category)}55`, color:typeColor(r.category), fontWeight:700, textAlign:'center', borderRadius:12 } : {}} />
     : c === 'text'
-      ? <Cell value={r.text} placeholder="Status / who's on it…" onSave={save} style={{ fontStyle: r.text ? 'italic' : 'normal', color: r.text ? '#a78bfa' : undefined }} />
+      ? <Cell value={r.text} placeholder="Status / who's on it…" onSave={save} readOnly={ro} style={{ fontStyle: r.text ? 'italic' : 'normal', color: r.text ? '#a78bfa' : undefined }} />
       : null;
 
   return (
     <div style={{ minHeight:'100vh', background:'var(--bg)' }}>
-      {!embedded && <AvoHeader />}
+      {!embedded && <AvoHeader right={isStaff && !shareData ? (
+        <div style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
+          <span style={{ fontSize:9, color:'var(--muted)', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em' }}>View as</span>
+          <div style={{ display:'inline-flex', border:`1px solid ${AVO}55`, borderRadius:14, overflow:'hidden' }}>
+            {[['prod', 'Producer'], ['client', 'Client']].map(([k, label]) => (
+              <button key={k} onClick={() => setPreviewClient(k === 'client')}
+                style={{ background: (k === 'client') === previewClient ? `${AVO}2e` : 'transparent', border:'none',
+                  color: (k === 'client') === previewClient ? AVO : 'var(--muted)', padding:'4px 12px', fontSize:11, fontWeight:800, cursor:'pointer' }}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null} />}
       <div style={{ maxWidth:1250, margin:'0 auto', padding:'6px 16px 80px' }}>
         {!embedded && <div style={{ marginBottom:14 }}>
           <button className="btn btn-ghost btn-sm" onClick={() => nav('/avo')}>‹ Pipeline</button>
@@ -1227,13 +1390,25 @@ export default function AvoProject({ idOverride, embedded }) {
               {!embedded ? (
                 <div>
                   <div className="page-title">{page.code}</div>
-                  <input value={page.title || ''} placeholder="Add a project title…"
-                    onChange={e => setPage(p => ({ ...p, title: e.target.value }))}
-                    onBlur={e => api.updateAvoProject(id, { title: e.target.value }).catch(er => alert(er.message))}
-                    style={{ ...cellInput, marginTop:4, maxWidth:340, color:'var(--muted)' }} />
+                  {readOnly
+                    ? <div style={{ marginTop:4, fontSize:13, color:'var(--muted)' }}>{page.title || ''}</div>
+                    : <input value={page.title || ''} placeholder="Add a project title…"
+                        onChange={e => setPage(p => ({ ...p, title: e.target.value }))}
+                        onBlur={e => api.updateAvoProject(id, { title: e.target.value }).catch(er => alert(er.message))}
+                        style={{ ...cellInput, marginTop:4, maxWidth:340, color:'var(--muted)' }} />}
                 </div>
               ) : <div />}
-              <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text, #e05252)' }} onClick={removePage}>Delete Page</button>
+              {!clientView && (
+                <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:6 }}>
+                  <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text, #e05252)' }} onClick={removePage}>Delete Page</button>
+                  {isStaff && !shareData && (
+                    <button className="btn btn-ghost btn-sm" onClick={() => setShareModal(true)}
+                      style={{ color: page.share_token ? AVO : 'var(--muted)', border:`1px solid ${page.share_token ? AVO : 'var(--border)'}`, whiteSpace:'nowrap' }}>
+                      🔗 {page.share_token ? 'Shared — Manage' : 'Share'}
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
 
             <div style={{ display:'flex', gap:6, flexWrap:'nowrap', overflowX:'auto', marginBottom:16, paddingBottom:4,
@@ -1257,29 +1432,32 @@ export default function AvoProject({ idOverride, embedded }) {
                   {t.name}
                 </button>
               ))}
-              <button onClick={addTable} title="Add a custom table as a new tab"
-                style={{ background:'var(--bg)', border:'1px solid rgba(255,255,255,0.55)', color:'#e8e8e8', borderRadius:16, padding:'5px 14px', fontSize:11, fontWeight:800, cursor:'pointer', whiteSpace:'nowrap', flexShrink:0 }}>
-                + Add Custom Table
-              </button>
+              {!readOnly && (
+                <button onClick={addTable} title="Add a custom table as a new tab"
+                  style={{ background:'var(--bg)', border:'1px solid rgba(255,255,255,0.55)', color:'#e8e8e8', borderRadius:16, padding:'5px 14px', fontSize:11, fontWeight:800, cursor:'pointer', whiteSpace:'nowrap', flexShrink:0 }}>
+                  + Add Custom Table
+                </button>
+              )}
             </div>
 
             {tab === 'tracker' && <>
-              <VideoTracker edits={edits} setEdits={setEdits} code={page.code} config={cfgFor('tracker')} onConfig={saveCfg('tracker')} />
-              <ContractorTracker pageId={id} />
+              <VideoTracker edits={edits} setEdits={setEdits} code={page.code} config={cfgFor('tracker')} onConfig={saveCfg('tracker')}
+                readOnly={readOnly} onOpenEdit={clientView ? (e => setEditView(e)) : null} />
+              {!clientView && <ContractorTracker pageId={id} />}
             </>}
-            {tab === 'assets' && <CreativeAssets pageId={id} assets={assets} setAssets={setAssets} edits={edits} />}
+            {tab === 'assets' && <CreativeAssets pageId={id} assets={assets} setAssets={setAssets} edits={edits} readOnly={readOnly} />}
             {tab === 'todos' && (
-              <Grid kind="todos" pageId={id} doneKey="done" rows={todos} setRows={setTodos} renderCell={todoCell}
+              <Grid kind="todos" pageId={id} doneKey="done" rows={todos} setRows={setTodos} renderCell={todoCell} readOnly={readOnly}
                 config={cfgFor('todos')} onConfig={saveCfg('todos')}
                 columns={[['category', 'Category', 'Takeaways…'], ['video', 'Video', 'Which video'], ['needs', 'Needs', 'Script, music, shot list…'], ['text', 'To Do', 'Status / who’s on it…']]} />
             )}
             {tab === 'music' && (
-              <MusicGrid pageId={id} rows={music} setRows={setMusic} code={page.code} title={page.title}
+              <MusicGrid pageId={id} rows={music} setRows={setMusic} code={page.code} title={page.title} readOnly={readOnly}
                 edits={edits} setEdits={setEdits}
                 config={cfgFor('music')} onConfig={next => saveCfg('music')({ ...cfgFor('music'), ...next })} />
             )}
             {tables.map(t => tab === 'table:' + t.id && (
-              <CustomTable key={t.id} table={t}
+              <CustomTable key={t.id} table={t} readOnly={readOnly}
                 onChange={next => setTables(ts => ts.map(x => x.id === t.id ? next : x))}
                 onDelete={() => deleteTable(t)} />
             ))}
@@ -1288,7 +1466,7 @@ export default function AvoProject({ idOverride, embedded }) {
               const avail = talent.filter(t => (t.name || '').trim() && !used.has(t.name.trim().toLowerCase()));
               return (
                 <>
-                  {talent.length > 0 && (
+                  {!readOnly && talent.length > 0 && (
                     <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10, flexWrap:'wrap' }}>
                       <span style={{ fontSize:11, color:'var(--muted)', fontWeight:700 }}>Auto-fill from Talent</span>
                       <select value="" disabled={!avail.length}
@@ -1305,7 +1483,7 @@ export default function AvoProject({ idOverride, embedded }) {
                       )}
                     </div>
                   )}
-                  <Grid kind="lower-thirds" pageId={id} rows={lowerThirds} setRows={setLowerThirds}
+                  <Grid kind="lower-thirds" pageId={id} rows={lowerThirds} setRows={setLowerThirds} readOnly={readOnly}
                     config={cfgFor('lower-thirds')} onConfig={saveCfg('lower-thirds')}
                     columns={[['name', 'Name', 'Full name'], ['title', 'Title', 'On-screen title / role'], ['notes', 'Notes', '']]} />
                 </>
@@ -1314,6 +1492,61 @@ export default function AvoProject({ idOverride, embedded }) {
           </>
         )}
       </div>
+      {shareModal && page && (
+        <AvoShareModal page={page} url={shareUrl}
+          onEnable={async pw => { await enableShare(pw); }}
+          onDisable={async () => { await disableShare(); setShareModal(false); }}
+          onClose={() => setShareModal(false)} />
+      )}
+      {editView && <ReadOnlyEditModal edit={editView} statusOf={statusOf} onClose={() => setEditView(null)} />}
     </div>
   );
+}
+
+// Public, read-only Client/Crew view of a project page (optional password).
+export function AvoShareView() {
+  const { token } = useParams();
+  const [data, setData] = useState(null);
+  const [pwNeeded, setPwNeeded] = useState(false);
+  const [pw, setPw] = useState('');
+  const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
+  async function load(pwTry) {
+    setBusy(true);
+    try {
+      const r = await api.avoShareView(token, pwTry);
+      if (r._status === 401 && r.passwordRequired) { setPwNeeded(true); if (pwTry) setErr('Incorrect password — try again.'); }
+      else if (r._status) { setErr(r.error || 'This link is unavailable.'); }
+      else { setData(r); setPwNeeded(false); setErr(''); }
+    } catch (e) { setErr(e.message); }
+    setBusy(false);
+  }
+  useEffect(() => { load(); }, [token]);
+
+  const shell = inner => (
+    <div style={{ minHeight:'100vh', background:'var(--bg)' }}>
+      <div style={{ display:'flex', alignItems:'center', gap:14, padding:'18px 26px', borderBottom:'1px solid var(--border)' }}>
+        <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height:20, filter:'brightness(0) invert(1)', opacity:0.95 }} />
+        <span style={{ fontSize:12, color:AVO, fontWeight:700, letterSpacing:'0.04em' }}>🥑 AvocadoPost</span>
+        {data && <span style={{ fontSize:11, color:'var(--muted)' }}>· {data.code}{data.title ? ` — ${data.title}` : ''}</span>}
+      </div>
+      {inner}
+    </div>
+  );
+
+  if (data) return shell(<AvoProject shareData={data} clientView embedded />);
+  if (pwNeeded) return shell(
+    <div style={{ maxWidth:360, margin:'80px auto', textAlign:'center' }}>
+      <div style={{ fontSize:14, fontWeight:800, marginBottom:8 }}>This view is password-protected</div>
+      <div style={{ fontSize:11, color:'var(--muted)', marginBottom:14 }}>Enter the password shared with you to continue.</div>
+      <form onSubmit={e => { e.preventDefault(); load(pw); }}>
+        <input type="password" autoFocus value={pw} onChange={e => setPw(e.target.value)} placeholder="Password"
+          style={{ width:'100%', fontSize:13, marginBottom:10 }} />
+        {err && <div style={{ fontSize:11, color:'#e05252', marginBottom:10 }}>{err}</div>}
+        <button className="btn btn-primary" disabled={busy || !pw.trim()} style={{ width:'100%' }}>{busy ? 'Checking…' : 'View'}</button>
+      </form>
+    </div>
+  );
+  if (err) return shell(<div className="empty" style={{ margin:'60px 16px' }}>{err}</div>);
+  return shell(<div className="empty" style={{ margin:'60px 16px' }}>Loading…</div>);
 }

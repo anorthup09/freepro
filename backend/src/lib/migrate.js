@@ -1313,6 +1313,9 @@ async function migrate() {
 
   // Custom grid columns + cell merges on Avo project pages
   await sql`ALTER TABLE avo_project_pages ADD COLUMN IF NOT EXISTS grid_config JSONB DEFAULT '{}'::jsonb`;
+  // Client/Crew shareable view: a public token + optional password
+  await sql`ALTER TABLE avo_project_pages ADD COLUMN IF NOT EXISTS share_token TEXT`;
+  await sql`ALTER TABLE avo_project_pages ADD COLUMN IF NOT EXISTS share_password TEXT`;
   await sql`ALTER TABLE avo_lower_thirds ADD COLUMN IF NOT EXISTS extra JSONB DEFAULT '{}'::jsonb`;
   await sql`ALTER TABLE avo_todos ADD COLUMN IF NOT EXISTS extra JSONB DEFAULT '{}'::jsonb`;
   await sql`ALTER TABLE avo_music ADD COLUMN IF NOT EXISTS extra JSONB DEFAULT '{}'::jsonb`;
