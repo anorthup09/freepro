@@ -375,6 +375,7 @@ function VideoTracker({ edits, setEdits, config, onConfig, code }) {
     } },
     { key:'title', label:'Video Title', minWidth:150, render: e =>
       <span onClick={() => nav(`/avo/${e.id}`)} style={{ fontSize:12, fontWeight:700, cursor:'pointer', padding:'5px 6px', display:'inline-block' }}>{e.title}</span> },
+    { key:'description', label:'Description', minWidth:170, render: e => <Cell value={e.description} placeholder="Description…" onSave={v => saveEdit(e.id, { description: v })} /> },
     { key:'notes', label:'Notes', minWidth:170, render: e => <Cell value={e.notes} placeholder="Notes…" onSave={v => saveEdit(e.id, { notes: v })} /> },
     { key:'end_date', label:'Due Date', render: e => <span style={{ whiteSpace:'nowrap', fontSize:12 }}>{fmtD(e.end_date)}</span> },
     { key:'video_assets', label:'Video Assets', minWidth:160, render: e => <Cell value={e.video_assets} placeholder="iPhone videos, music…" onSave={v => saveEdit(e.id, { videoAssets: v })} /> },
