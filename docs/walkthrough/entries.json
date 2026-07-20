@@ -337,5 +337,17 @@
       "Nothing to configure — tiles light up and clear automatically as the day moves."
     ],
     "screenshot": "live-pulse.png"
+  },
+  {
+    "title": "Email Outbox — see and delete automation emails",
+    "page": "Emails & Automations",
+    "what": "The admin Automations dashboard now has an Outbox tab that records every email the automations produce. Once Outlook is connected each one is logged as Sent or Failed (with the error if it bounced); while email is still off, the same emails are captured as Drafts so you can see exactly what's queued to go out. Filter by All, Drafts, Sent, or Failed (each with a live count), click any row to preview the real rendered email, and delete drafts you don't want sent. Sent and failed history is kept — only drafts can be deleted.",
+    "where": "The Hub → ⚙ Admin → Automations → Outbox tab (admin only)",
+    "how": [
+      "On the Hub, open ⚙ Admin at the bottom, then click Automations.",
+      "Switch to the Outbox tab and use the All / Drafts / Sent / Failed chips to filter.",
+      "Click View on any row to preview the full email, or Delete on a draft to stop it from going out."
+    ],
+    "screenshot": "email-outbox.png"
   }
 ]
