@@ -1110,6 +1110,8 @@ async function migrate() {
     )`;
   // Custom (user-added) milestones on an edit's post timeline
   await sql`ALTER TABLE edits ADD COLUMN IF NOT EXISTS custom_milestones JSONB DEFAULT '[]'::jsonb`;
+  // Archived edits are hidden from the pipeline & Gantt but never deleted
+  await sql`ALTER TABLE edits ADD COLUMN IF NOT EXISTS archived BOOLEAN DEFAULT FALSE`;
   // Gear request departments: items picked from the asset inventory
   await sql`ALTER TABLE gear_items ADD COLUMN IF NOT EXISTS qty INTEGER DEFAULT 1`;
   await sql`ALTER TABLE gear_items ADD COLUMN IF NOT EXISTS contractor_name TEXT`;

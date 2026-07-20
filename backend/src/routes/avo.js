@@ -26,6 +26,7 @@ const FULL_EDIT = editId => sql`
     (SELECT COALESCE(NULLIF(TRIM(CONCAT(cm.preferred_first_name, ' ', cm.preferred_last_name)), ''), cm.name) FROM crew_members cm WHERE cm.id = e.pm_id) as pm_name,
     (SELECT cm.email FROM crew_members cm WHERE cm.id = e.pm_id) as pm_email,
     (SELECT cm.email FROM crew_members cm WHERE cm.id = e.lead_editor_id) as lead_editor_email,
+    (SELECT cm.company FROM crew_members cm WHERE cm.id = e.lead_editor_id) as lead_editor_company,
     p.title as project_title
   FROM edits e LEFT JOIN projects p ON p.id = e.project_id
   WHERE e.id = ${editId}`;
@@ -65,7 +66,7 @@ async function syncSourcingTask(e) {
 // Backfill on boot: evaluate every open edit once (idempotent)
 async function backfillSourcingTasks() {
   try {
-    const edits = await sql`SELECT * FROM edits WHERE status != 'CLOSED'`;
+    const edits = await sql`SELECT * FROM edits WHERE status != 'CLOSED' AND archived IS NOT TRUE`;
     for (const e of edits) await syncSourcingTask(e);
   } catch (err) { console.error('sourcing backfill failed:', err.message); }
 }
@@ -171,15 +172,25 @@ router.get('/edits/:id', ...staff, async (req, res, next) => {
     if (!e) return res.status(404).json({ error: 'Edit not found' });
     const activity = await sql`SELECT * FROM edit_activity WHERE edit_id = ${req.params.id} ORDER BY created_at`;
     const files = await sql`SELECT id, filename, mime, size, uploaded_by, created_at FROM edit_files WHERE edit_id = ${req.params.id} ORDER BY created_at`;
-    // Flag PTO/OOO requests for the lead editor that overlap the edit window
-    let ptoConflicts = [];
-    if (e.lead_editor_id) {
-      ptoConflicts = await sql`
-        SELECT id, title, pto_type, start_date, end_date, status FROM pto_requests
-        WHERE member_id = ${e.lead_editor_id}
-        ORDER BY start_date`;
+    // PTO/OOO availability for the lead editor AND every per-milestone assignee,
+    // keyed by member id, so each timeline flag reflects whoever is on that task.
+    const msA = typeof e.milestone_assignees === 'string' ? JSON.parse(e.milestone_assignees || '{}') : (e.milestone_assignees || {});
+    const memberIds = [...new Set([e.lead_editor_id, ...Object.values(msA)].filter(Boolean))];
+    const ptoByMember = {};
+    if (memberIds.length) {
+      const rows = await sql`
+        SELECT pr.member_id, pr.id, pr.title, pr.pto_type, pr.start_date, pr.end_date, pr.status,
+               ${sql.unsafe(PREF)} AS member_name
+        FROM pto_requests pr JOIN crew_members cm ON cm.id = pr.member_id
+        WHERE pr.member_id = ANY(${sql.array(memberIds)})
+        ORDER BY pr.start_date`;
+      for (const r of rows) {
+        (ptoByMember[r.member_id] ||= { name: r.member_name, conflicts: [] }).conflicts.push(
+          { id: r.id, title: r.title, pto_type: r.pto_type, start_date: r.start_date, end_date: r.end_date, status: r.status });
+      }
     }
-    res.json({ ...e, activity, files, pto_conflicts: ptoConflicts });
+    const ptoConflicts = ptoByMember[e.lead_editor_id]?.conflicts || [];
+    res.json({ ...e, activity, files, pto_conflicts: ptoConflicts, pto_by_member: ptoByMember });
   } catch (e) { next(e); }
 });
 
@@ -271,6 +282,7 @@ router.patch('/edits/:id', ...staff, async (req, res, next) => {
         milestones = ${milestones !== undefined ? sql.json(milestones) : sql`milestones`},
         milestone_skips = ${Array.isArray(d.milestoneSkips) ? sql.json(d.milestoneSkips) : sql`milestone_skips`},
         milestone_assignees = ${msAssignees !== undefined ? sql.json(msAssignees) : sql`milestone_assignees`},
+        archived = ${d.archived !== undefined ? (d.archived === true) : sql`archived`},
         updated_at = NOW()
       WHERE id = ${req.params.id} RETURNING *`;
     const who = req.user?.email || 'someone';
@@ -329,6 +341,9 @@ router.patch('/edits/:id', ...staff, async (req, res, next) => {
     if (d.pmId !== undefined && d.pmId !== before.pm_id) {
       const m = await memberName(d.pmId);
       await logAct(e.id, 'log', who, m ? `set PM to ${m.n}` : 'cleared PM');
+    }
+    if (d.archived !== undefined && (d.archived === true) !== !!before.archived) {
+      await logAct(e.id, 'log', who, d.archived ? 'archived this edit (removed from the pipeline)' : 'restored this edit to the pipeline');
     }
     const [full] = await FULL_EDIT(e.id);
     await syncToDeliverable(full);

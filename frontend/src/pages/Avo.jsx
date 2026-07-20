@@ -248,6 +248,7 @@ export default function Avo() {
   const [edits, setEdits] = useState(null);
   const [showNew, setShowNew] = useState(false);
   const [closedOpen, setClosedOpen] = useState(false);
+  const [archivedOpen, setArchivedOpen] = useState(false);
   const [codeQ, setCodeQ] = useState('');
   const load = () => api.avoEdits().then(setEdits).catch(e => alert(e.message));
   useEffect(() => { load(); }, []);
@@ -269,7 +270,7 @@ export default function Avo() {
         <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'space-between', gap:10, flexWrap:'wrap', marginBottom:18 }}>
           <div>
             <div className="page-title">Editing Pipeline</div>
-            <div className="page-sub">{(edits || []).filter(e => e.status !== 'CLOSED').length} active edit{(edits || []).filter(e => e.status !== 'CLOSED').length !== 1 ? 's' : ''}</div>
+            <div className="page-sub">{(edits || []).filter(e => e.status !== 'CLOSED' && !e.archived).length} active edit{(edits || []).filter(e => e.status !== 'CLOSED' && !e.archived).length !== 1 ? 's' : ''}</div>
           </div>
           <div className="avo-actions" style={{ display:'flex', gap:8, flexWrap:'wrap', alignItems:'center' }}>
             <input value={codeQ} onChange={ev => setCodeQ(ev.target.value)} placeholder="Filter by Project Code…"
@@ -289,7 +290,7 @@ export default function Avo() {
 
         {edits && AVO_STATUSES.map(([key, label, color]) => {
           const cq = codeQ.trim().toLowerCase();
-          const group = edits.filter(e => e.status === key && (!cq || (e.project_code || '').toLowerCase().includes(cq)));
+          const group = edits.filter(e => e.status === key && !e.archived && (!cq || (e.project_code || '').toLowerCase().includes(cq)));
           // Hide the Focus status entirely when nothing is assigned to it
           if (key === 'FOCUS' && group.length === 0) return null;
           const collapsed = key === 'CLOSED' && !closedOpen;
@@ -373,6 +374,48 @@ export default function Avo() {
             </div>
           );
         })}
+
+        {edits && edits.some(e => e.archived) && (() => {
+          const cq = codeQ.trim().toLowerCase();
+          const arch = edits.filter(e => e.archived && (!cq || (e.project_code || '').toLowerCase().includes(cq)));
+          return (
+            <div style={{ marginBottom:20 }}>
+              <div onClick={() => setArchivedOpen(o => !o)} style={{ display:'inline-flex', alignItems:'center', gap:8, marginBottom:8, cursor:'pointer' }}>
+                <span style={{ background:'#8a8f9822', border:'1px solid #8a8f98', color:'#8a8f98', borderRadius:14, padding:'3px 12px', fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.06em' }}>
+                  {archivedOpen ? '▾ ' : '▸ '}Archived
+                </span>
+                <span style={{ fontSize:11, color:'var(--muted)' }}>{arch.length}</span>
+              </div>
+              {archivedOpen && arch.length > 0 && (
+                <div className="budget-tbl-wrap" style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10 }}>
+                  <table style={{ width:'100%', borderCollapse:'collapse', minWidth:640 }}>
+                    <thead>
+                      <tr><th style={th}>Video Title</th><th style={th}>Lead Editor</th><th style={th}>Due</th><th style={th}></th></tr>
+                    </thead>
+                    <tbody>
+                      {arch.map(e => (
+                        <tr key={e.id} onClick={() => nav(`/avo/${e.id}`)} style={{ borderTop:'1px solid rgba(255,255,255,0.04)', cursor:'pointer', opacity:0.75 }}>
+                          <td style={{ ...td, fontWeight:700 }}>
+                            {e.title}
+                            {e.project_code && <div style={{ fontSize:9, color:'var(--muted)', fontWeight:400 }}>{e.project_code}{e.project_title ? ` · ${e.project_title}` : ''}</div>}
+                          </td>
+                          <td style={td}>{e.lead_editor || '—'}</td>
+                          <td style={{ ...td, whiteSpace:'nowrap' }}>{fmtD(e.end_date)}</td>
+                          <td style={{ ...td, textAlign:'right' }} onClick={ev => ev.stopPropagation()}>
+                            <button title="Restore this edit to the pipeline" onClick={ev => act(ev, e.id, () => api.updateAvoEdit(e.id, { archived: false }))}
+                              style={{ background:'rgba(157,193,131,0.15)', border:`1px solid ${AVO}`, color:AVO, borderRadius:12, padding:'3px 12px', fontSize:9, fontWeight:800, cursor:'pointer', whiteSpace:'nowrap' }}>
+                              ⤺ Restore
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </div>
       {showNew && <NewEditModal onClose={() => setShowNew(false)} onCreated={e => { setShowNew(false); nav(`/avo/${e.id}`); }} />}
     </div>

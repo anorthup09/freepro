@@ -442,6 +442,22 @@ export default function AvoEdit() {
   const patch = fields => setE(v => ({ ...v, ...fields }));
   const save = data => api.updateAvoEdit(id, data).then(full => setE(v => ({ ...v, ...full }))).catch(err => alert(err.message));
 
+  // Contract Editor tile is only relevant when the lead editor is a contractor
+  // (same rule as FreePro: company doesn't read "unbridled"). Keep it visible if
+  // contract data was already entered, so nothing gets orphaned.
+  const leadIsContractor = !!e.lead_editor_id && !/unbridled/i.test(e.lead_editor_company || '');
+  const editorContract = (e.extra || {}).contract_editor || {};
+  const hasEditorContract = !!(editorContract.name || editorContract.email || editorContract.rate || editorContract.total || editorContract.services || editorContract.misc);
+  const showContractTile = leadIsContractor || hasEditorContract;
+  const ptoByMember = e.pto_by_member || {};
+
+  async function archiveEdit() {
+    const next = !e.archived;
+    if (next && !confirm('Archive this edit? It leaves the pipeline but is not deleted — restore it any time from the Archived section.')) return;
+    await save({ archived: next });
+    if (next) nav(projectPageId ? `/avo/project/${projectPageId}` : '/avo');
+  }
+
   async function post() {
     if (!comment.trim() || busy) return;
     setBusy(true);
@@ -641,11 +657,17 @@ export default function AvoEdit() {
                             {label}
                           </span>
                           {(() => {
-                            const hits = (!skipped && val) ? (e.pto_conflicts || []).filter(c => String(c.start_date).slice(0,10) <= val && String(c.end_date).slice(0,10) >= val) : [];
+                            // Flag reflects whoever's on this task: the per-milestone
+                            // assignee if set, otherwise the lead editor.
+                            const effId = (e.milestone_assignees?.[k]) || e.lead_editor_id;
+                            const entry = effId ? ptoByMember[effId] : null;
+                            const conflicts = entry?.conflicts || (effId && effId === e.lead_editor_id ? (e.pto_conflicts || []) : []);
+                            const effName = entry?.name || (effId === e.lead_editor_id ? (e.lead_editor_name_resolved || e.lead_editor_name) : null) || 'This editor';
+                            const hits = (!skipped && val) ? conflicts.filter(c => String(c.start_date).slice(0,10) <= val && String(c.end_date).slice(0,10) >= val) : [];
                             if (!hits.length) return <span className="tl-ms-flag" style={{ width:16, flexShrink:0 }} />;
                             return (
                               <span className="tl-ms-flag" style={{ position:'relative', flexShrink:0 }}>
-                                <button type="button" title="The lead editor has PTO / OOO on this date — click for details"
+                                <button type="button" title={`${effName} has PTO / OOO on this date — click for details`}
                                   onClick={() => setPtoFlagOpen(o => o === k ? null : k)}
                                   style={{ background:'rgba(224,49,49,0.15)', border:'1px solid #E03131', color:'#E03131',
                                     borderRadius:'50%', width:16, height:16, lineHeight:'13px', fontSize:10, fontWeight:900, cursor:'pointer', padding:0, display:'block' }}>!</button>
@@ -653,7 +675,7 @@ export default function AvoEdit() {
                                   <span style={{ position:'absolute', top:20, left:0, zIndex:50, display:'block', background:'var(--bg2)', border:'1px solid #E03131',
                                     borderRadius:8, padding:'10px 14px', minWidth:250, boxShadow:'0 6px 20px rgba(0,0,0,0.4)', whiteSpace:'normal', textAlign:'left' }}>
                                     <span style={{ display:'block', fontSize:11, fontWeight:800, color:'#E03131', marginBottom:6 }}>
-                                      ⚠ {e.lead_editor_name_resolved || e.lead_editor_name || 'The lead editor'} is unavailable on this date
+                                      ⚠ {effName} is unavailable on this date
                                     </span>
                                     {hits.map(c => (
                                       <span key={c.id} style={{ display:'block', fontSize:11.5, color:'var(--text)', padding:'4px 0', borderTop:'1px solid var(--border)' }}>
@@ -676,7 +698,8 @@ export default function AvoEdit() {
                                 placeholder={e.lead_editor_name_resolved || e.lead_editor_name || 'Lead Editor'}
                                 onChange={v => {
                                   patch({ milestone_assignees: { ...(e.milestone_assignees || {}), [k]: v || undefined } });
-                                  save({ milestoneAssignees: { [k]: v } });
+                                  // reload so the availability flag reflects the newly-picked editor
+                                  save({ milestoneAssignees: { [k]: v } }).then(load);
                                 }} />
                             )}
                           </span>
@@ -770,7 +793,7 @@ export default function AvoEdit() {
                   {field('Project Code', 'project_code', 'projectCode')}
                   <div style={{ flex:1, minWidth:150 }}>
                     <span style={lbl}>Lead Editor</span>
-                    <EditorSelect value={e.lead_editor_id} onChange={v => { patch({ lead_editor_id: v }); save({ leadEditorId: v }); }} />
+                    <EditorSelect value={e.lead_editor_id} onChange={v => { patch({ lead_editor_id: v }); save({ leadEditorId: v }).then(load); }} />
                   </div>
                   <div style={{ flex:1, minWidth:150 }}>
                     <span style={lbl}>Project Manager</span>
@@ -829,6 +852,11 @@ export default function AvoEdit() {
                   <button disabled={busy} onClick={() => action(() => api.avoSent(id))}
                     style={{ background:'rgba(74,158,255,0.12)', border:'1px solid #4a9eff', color:'#4a9eff', borderRadius:20, padding:'6px 16px', fontSize:11, fontWeight:800, cursor:'pointer' }}>
                     Sent to Client
+                  </button>
+                  <button disabled={busy} onClick={archiveEdit}
+                    title={e.archived ? 'Restore this edit to the pipeline' : 'Archive this edit — removes it from the pipeline without deleting it'}
+                    style={{ marginLeft:'auto', background:'#141414', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:20, padding:'6px 16px', fontSize:11, fontWeight:800, cursor:'pointer' }}>
+                    {e.archived ? '⤺ Unarchive' : '⧉ Archive'}
                   </button>
                 </div>
               </div>}
@@ -903,7 +931,8 @@ export default function AvoEdit() {
             </div>
           </div>
 
-          {/* ── Contract Editor tile (Color & Audio live on the Project Video Tracker) ── */}
+          {/* ── Contract Editor tile — only when the lead editor is a contractor ── */}
+          {showContractTile && (
           <ContractTile role="editor" data={(e.extra || {}).contract_editor} busy={busy}
             onSave={d => save({ extra: { contract_editor: d } })}
             onHold={() => holdCost('editor')}
@@ -911,6 +940,7 @@ export default function AvoEdit() {
               try { setSendCtr(await api.avoEditContract(id)); }
               catch (err) { alert(err.message); }
             }} />
+          )}
           {sendCtr && (
             <ContractSendModal projectId={sendCtr.projectId} contract={sendCtr.contract} total={sendCtr.total}
               onClose={() => setSendCtr(null)} onSent={to => alert(`Contract sent to ${to}.`)} />

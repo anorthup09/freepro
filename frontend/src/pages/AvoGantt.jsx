@@ -11,7 +11,7 @@ export default function AvoGantt() {
   const [shareUrl, setShareUrl] = useState('');
   const [copied, setCopied] = useState(false);
 
-  useEffect(() => { api.avoEdits().then(setEdits).catch(e => alert(e.message)); }, []);
+  useEffect(() => { api.avoEdits().then(rows => setEdits(rows.filter(e => !e.archived))).catch(e => alert(e.message)); }, []);
   useEffect(() => { setShareUrl(''); setCopied(false); }, [mode, projectCode, editId]);
 
   const codes = useMemo(() => {
