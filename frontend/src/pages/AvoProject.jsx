@@ -1122,14 +1122,32 @@ export default function AvoProject({ idOverride, embedded }) {
   const [music, setMusic] = useState([]);
   const [tables, setTables] = useState([]);
   const [assets, setAssets] = useState([]);
+  const [talent, setTalent] = useState([]);
   const [tab, setTab] = useState('tracker');
   const [err, setErr] = useState('');
 
   useEffect(() => {
     api.avoProject(id)
-      .then(p => { setPage(p); setEdits(p.edits || []); setLowerThirds(p.lowerThirds || []); setTodos(p.todos || []); setMusic(p.music || []); setTables(p.customTables || []); setAssets(p.assets || []); })
+      .then(p => { setPage(p); setEdits(p.edits || []); setLowerThirds(p.lowerThirds || []); setTodos(p.todos || []); setMusic(p.music || []); setTables(p.customTables || []); setAssets(p.assets || []); setTalent(p.talent || []); })
       .catch(e => setErr(e.message));
   }, [id]);
+
+  // Lower Thirds auto-fill from the project's Talent grid. Talent already present
+  // in the grid (matched by name) drop out of the picker.
+  async function addLowerThirdFromTalent(t) {
+    try {
+      const r = await api.addAvoGridRow(id, 'lower-thirds', { name: t.name || '', title: t.role || '', sort: lowerThirds.length });
+      setLowerThirds(rs => [...rs, r]);
+    } catch (e) { alert(e.message); }
+  }
+  async function addAllTalent(list) {
+    try {
+      let sort = lowerThirds.length;
+      const added = [];
+      for (const t of list) added.push(await api.addAvoGridRow(id, 'lower-thirds', { name: t.name || '', title: t.role || '', sort: sort++ }));
+      setLowerThirds(rs => [...rs, ...added]);
+    } catch (e) { alert(e.message); }
+  }
 
   async function addTable() {
     const name = prompt('Name for the new table:');
@@ -1241,11 +1259,34 @@ export default function AvoProject({ idOverride, embedded }) {
                 onChange={next => setTables(ts => ts.map(x => x.id === t.id ? next : x))}
                 onDelete={() => deleteTable(t)} />
             ))}
-            {tab === 'lower-thirds' && (
-              <Grid kind="lower-thirds" pageId={id} rows={lowerThirds} setRows={setLowerThirds}
-                config={cfgFor('lower-thirds')} onConfig={saveCfg('lower-thirds')}
-                columns={[['name', 'Name', 'Full name'], ['title', 'Title', 'On-screen title / role'], ['notes', 'Notes', '']]} />
-            )}
+            {tab === 'lower-thirds' && (() => {
+              const used = new Set(lowerThirds.map(r => (r.name || '').trim().toLowerCase()).filter(Boolean));
+              const avail = talent.filter(t => (t.name || '').trim() && !used.has(t.name.trim().toLowerCase()));
+              return (
+                <>
+                  {talent.length > 0 && (
+                    <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10, flexWrap:'wrap' }}>
+                      <span style={{ fontSize:11, color:'var(--muted)', fontWeight:700 }}>Auto-fill from Talent</span>
+                      <select value="" disabled={!avail.length}
+                        onChange={e => { const t = avail.find(x => x.name === e.target.value); if (t) addLowerThirdFromTalent(t); e.target.value = ''; }}
+                        style={{ fontSize:12, padding:'5px 10px', borderRadius:8, maxWidth:280, opacity: avail.length ? 1 : 0.5 }}>
+                        <option value="">{avail.length ? '+ Add a talent…' : 'All talent added'}</option>
+                        {avail.map(t => <option key={t.name} value={t.name}>{t.name}{t.role ? ` — ${t.role}` : ''}</option>)}
+                      </select>
+                      {avail.length > 0 && (
+                        <button onClick={() => addAllTalent(avail)}
+                          style={{ background:`${AVO}26`, border:`1px solid ${AVO}`, color:AVO, borderRadius:14, padding:'4px 12px', fontSize:11, fontWeight:800, cursor:'pointer' }}>
+                          + Add all {avail.length}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  <Grid kind="lower-thirds" pageId={id} rows={lowerThirds} setRows={setLowerThirds}
+                    config={cfgFor('lower-thirds')} onConfig={saveCfg('lower-thirds')}
+                    columns={[['name', 'Name', 'Full name'], ['title', 'Title', 'On-screen title / role'], ['notes', 'Notes', '']]} />
+                </>
+              );
+            })()}
           </>
         )}
       </div>

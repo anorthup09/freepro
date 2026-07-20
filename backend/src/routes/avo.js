@@ -775,7 +775,13 @@ router.get('/projects/:id', ...staff, async (req, res, next) => {
     const tables = await sql`SELECT * FROM avo_custom_tables WHERE page_id = ${page.id} ORDER BY sort, created_at`;
     const tRows = tables.length ? await sql`SELECT * FROM avo_custom_rows WHERE table_id IN ${sql(tables.map(t => t.id))} ORDER BY sort, created_at` : [];
     const customTables = tables.map(t => ({ ...t, rows: tRows.filter(r => r.table_id === t.id) }));
-    res.json({ ...page, lowerThirds, todos, music, edits, customTables, assets });
+    // Talent from the linked FreePro project(s) — feeds the Lower Thirds auto-fill
+    const talent = await sql`
+      SELECT kt.name, kt.role FROM key_talent kt
+      JOIN projects p ON p.id = kt.project_id
+      WHERE p.code = ${page.code} OR p.code LIKE ${page.code + '-%'}
+      ORDER BY kt.name`;
+    res.json({ ...page, lowerThirds, todos, music, edits, customTables, assets, talent });
   } catch (e) { next(e); }
 });
 router.patch('/projects/:id', ...staff, async (req, res, next) => {
@@ -855,7 +861,13 @@ router.post('/projects/:id/:kind', ...staff, async (req, res, next) => {
   try {
     const g = GRID_TABLES[req.params.kind];
     if (!g) return res.status(404).json({ error: 'Unknown grid' });
-    const [row] = await sql`INSERT INTO ${sql.unsafe(g.table)} (page_id) VALUES (${req.params.id}) RETURNING *`;
+    // Optional initial column values (e.g. auto-filling a lower third from talent)
+    const data = { page_id: req.params.id };
+    for (const c of g.cols) {
+      if (req.body[c] === undefined) continue;
+      data[c] = c === 'done' ? req.body[c] === true : c === 'sort' ? (Number(req.body[c]) || 0) : String(req.body[c]);
+    }
+    const [row] = await sql`INSERT INTO ${sql.unsafe(g.table)} ${sql(data, ...Object.keys(data))} RETURNING *`;
     res.status(201).json(row);
   } catch (e) { next(e); }
 });
