@@ -9,6 +9,7 @@ import HomeButton from '../components/HomeButton.jsx';
 export default function ResourceLibrary({ kind, title, sub, accent, placeholderTitle, placeholderCat }) {
   const nav = useNavigate();
   const { user } = useAuth();
+  const canEdit = user?.role !== 'CREW'; // crew have read-only access to the libraries
   const [rows, setRows] = useState(null);
   const [form, setForm] = useState(null);   // { title, url, category, note } | null
   const [busy, setBusy] = useState(false);
@@ -74,7 +75,7 @@ export default function ResourceLibrary({ kind, title, sub, accent, placeholderT
             <div className="page-title">{title}</div>
             <div className="page-sub">{sub}</div>
           </div>
-          <button className="btn btn-primary btn-sm" onClick={() => setForm({ title:'', url:'', category:'', note:'' })}>+ Add Resource</button>
+          {canEdit && <button className="btn btn-primary btn-sm" onClick={() => setForm({ title:'', url:'', category:'', note:'' })}>+ Add Resource</button>}
         </div>
         <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search by name, tag, or link…"
           style={{ width:'100%', margin:'12px 0 4px', fontSize:12, padding:'9px 12px', borderRadius:8, background:'var(--bg2)', border:'1px solid var(--border)', color:'var(--text)' }} />
@@ -91,10 +92,12 @@ export default function ResourceLibrary({ kind, title, sub, accent, placeholderT
               </button>
             );
           })}
+          {canEdit && (
           <button onClick={() => newTag()} title="Add a new tag"
             style={{ background:'transparent', border:'1px dashed var(--border)', color:'var(--muted)', borderRadius:12, padding:'3px 11px', fontSize:10.5, fontWeight:700, cursor:'pointer' }}>
             + Add tag
           </button>
+          )}
         </div>
 
         {!rows && <div className="empty">Loading…</div>}
@@ -116,7 +119,7 @@ export default function ResourceLibrary({ kind, title, sub, accent, placeholderT
                     </div>
                   </div>
                   {r.added_by && <span style={{ fontSize:10, color:'var(--muted)', whiteSpace:'nowrap', flexShrink:0 }}>{r.added_by}</span>}
-                  <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text, #e05252)', flexShrink:0 }} onClick={() => remove(r)}>✕</button>
+                  {canEdit && <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text, #e05252)', flexShrink:0 }} onClick={() => remove(r)}>✕</button>}
                 </div>
               ))}
             </div>

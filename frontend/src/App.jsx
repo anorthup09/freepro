@@ -212,7 +212,7 @@ export default function App() {
         <Route path="/" element={user ? <Hub /> : <Navigate to="/login" />} />
         <Route path="/projects" element={user ? (user.role === 'FINANCE' ? <Navigate to="/" /> : <Projects />) : <Navigate to="/login" />} />
         <Route path="/gear/:pid" element={user ? (user.role === 'FINANCE' ? <Navigate to="/" /> : <GearDashboard />) : <Navigate to="/login" />} />
-        <Route path="/crew-calendar" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/crew-views" /> : user.role === 'FINANCE' ? <Navigate to="/" /> : <CrewCalendar />) : <Navigate to="/login" />} />
+        <Route path="/crew-calendar" element={user ? (user.role === 'AGENCY' ? <Navigate to="/crew-views" /> : user.role === 'FINANCE' ? <Navigate to="/" /> : <CrewCalendar />) : <Navigate to="/login" />} />
         <Route path="/finance" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/crew-views" /> : <Finance />) : <Navigate to="/login" />} />
         <Route path="/pipeline" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/crew-views" /> : <Pipeline />) : <Navigate to="/login" />} />
         <Route path="/finance/overview" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/crew-views" /> : <FinanceOverview />) : <Navigate to="/login" />} />
@@ -222,7 +222,7 @@ export default function App() {
         <Route path="/projects/:id" element={user ? (user.role === 'FINANCE' ? <Navigate to="/" /> : <Project />) : <Navigate to="/login" />} />
         <Route path="/projects/:id/talent-callsheets" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/crew-views" /> : <TalentCallSheets />) : <Navigate to="/login" />} />
         <Route path="/projects/:id/emails" element={user ? <CallSheetEmails /> : <Navigate to="/login" />} />
-        <Route path="/reports" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/" /> : <Reports />) : <Navigate to="/login" />} />
+        <Route path="/reports" element={user ? (user.role === 'AGENCY' ? <Navigate to="/" /> : <Reports />) : <Navigate to="/login" />} />
         <Route path="/reports/foodie" element={user ? <FoodieRecs /> : <Navigate to="/login" />} />
         <Route path="/reports/gear" element={user ? <GearReport /> : <Navigate to="/login" />} />
         <Route path="/reports/vendor-contracts" element={user ? <VendorContractReport /> : <Navigate to="/login" />} />

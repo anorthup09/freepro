@@ -75,9 +75,13 @@ const gradientAccent = (i, n) => {
   return `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
 };
 
+// Crew only see non-financial resources (no VCCs, invoices, or finance rollups).
+const CREW_SAFE = new Set(['/reports/foodie', '/reports/music-resources', '/reports/video-references', '/reports/drives', '/reports/gear']);
+
 export default function Reports() {
   const nav = useNavigate();
   const { user, setUser } = useAuth();
+  const baseReports = user?.role === 'CREW' ? REPORTS.filter(r => CREW_SAFE.has(r.to)) : REPORTS;
   return (
     <div style={{ minHeight:'100vh', background:'var(--bg)' }}>
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 26px', flexWrap:'wrap', gap:10 }}>
@@ -96,7 +100,7 @@ export default function Reports() {
         <div className="page-title">Reports &amp; Resources</div>
         <div className="page-sub">Cross-project rollups, recurring reports, and team resource libraries</div>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(280px, 1fr))', gap:16, marginTop:8 }}>
-          {[...REPORTS, ...(user?.role === 'ADMIN' ? [{
+          {[...baseReports, ...(user?.role === 'ADMIN' ? [{
             title: 'Ways of Being',
             desc: 'Every shoutout for a teammate going above and beyond — collected two per week from the MediaMoment prompts.',
             accent: '#f7b52d', to: '/reports/ways-of-being',

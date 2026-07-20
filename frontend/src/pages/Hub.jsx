@@ -1175,6 +1175,23 @@ export default function Hub() {
                 )}
               </div>
             )}
+            {user?.role === 'CREW' && (
+              <div className="hub-controls" style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:12, flexWrap:'wrap', marginBottom:20 }}>
+                {/* Calendar · Reports — crew only reach FreePro & Avo, so no View toggle */}
+                <div style={{ display:'inline-flex', border:'1px solid var(--border)', borderRadius:20, overflow:'hidden' }}>
+                  <button onClick={() => nav('/crew-calendar')}
+                    style={{ background:'transparent', border:'none', borderRight:'1px solid var(--border)',
+                      color:'#5ABF80', fontSize:12, fontWeight:800, padding:'9px 20px', cursor:'pointer', letterSpacing:'0.03em', borderRadius:'20px 0 0 20px' }}>
+                    Calendar
+                  </button>
+                  <button onClick={() => nav('/reports')}
+                    style={{ background:'transparent', border:'none',
+                      color:'#e6c229', fontSize:12, fontWeight:800, padding:'9px 20px', cursor:'pointer', letterSpacing:'0.03em', borderRadius:'0 20px 20px 0' }}>
+                    Reports
+                  </button>
+                </div>
+              </div>
+            )}
             {!isCrew && !isFinance && mode === 'projects' && <HubProjects />}
             {(isCrew || isFinance || mode === 'ops') && (
             <div className="hub-tiles" style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(260px, 1fr))', gap:16 }}>

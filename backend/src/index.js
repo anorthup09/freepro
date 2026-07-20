@@ -82,7 +82,15 @@ app.use('/api', (req, res, next) => {
     const crewAllowed = (p, m) => p.startsWith('/auth') || p === '/crew-views' || p.startsWith('/share')
       || p.startsWith('/avo') || p.startsWith('/team') || p.startsWith('/foodie') || p.startsWith('/gantt-share') || p.startsWith('/dashboard') || p.startsWith('/feedback')
       || (p.startsWith('/project-tasks') && m === 'PATCH')
-      || (p.startsWith('/crew') && m === 'GET');
+      || (p.startsWith('/crew') && m === 'GET')
+      // Crew Calendar + crew-safe Reports (read-only): shoot calendar, resource
+      // libraries, hard-drive roster, gear report. No finance surfaces.
+      || (m === 'GET' && (
+           p === '/projects/crew-calendar'
+        || /^\/projects\/[^/]+\/gear-items$/.test(p)
+        || p.startsWith('/resources')
+        || p.startsWith('/gear-assets')
+        || p.startsWith('/gear-requests')));
     if (u.role === 'CREW' && !crewAllowed(req.path, req.method)) {
       return res.status(403).json({ error: 'Crew accounts can only access Crew Views, AvocadoPost, and Team Management' });
     }
