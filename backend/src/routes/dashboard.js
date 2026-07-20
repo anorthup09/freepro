@@ -448,10 +448,15 @@ const FUN_PROMPTS = [
   "What's the best prank you've ever pulled (or had pulled on you)?",
 ];
 
+// Week key = the Monday that starts this date's week (business-tz date in).
+// The week runs Monday→Sunday for everyone, so the weekly MediaMoment /
+// Ways of Being prompt resets every Monday — not on each person's first login.
 const isoWeek = d => {
   const dt = new Date(d + 'T12:00:00');
-  const jan = new Date(dt.getFullYear(), 0, 1);
-  return `${dt.getFullYear()}-W${String(Math.ceil((((dt - jan) / 86400000) + jan.getDay() + 1) / 7)).padStart(2, '0')}`;
+  const back = (dt.getDay() + 6) % 7;   // days since Monday (Mon=0 … Sun=6)
+  dt.setDate(dt.getDate() - back);      // rewind to this week's Monday
+  const y = dt.getFullYear(), m = String(dt.getMonth() + 1).padStart(2, '0'), da = String(dt.getDate()).padStart(2, '0');
+  return `${y}-${m}-${da}`;
 };
 const hashStr = s => { let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h; };
 
