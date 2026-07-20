@@ -373,5 +373,29 @@
       "The numbering shows on the crew roster, call sheets, and share links automatically."
     ],
     "screenshot": "crew-multi-position.png"
+  },
+  {
+    "title": "Duplicate a row on the Project Video Tracker",
+    "page": "AvocadoPost — Post-Production",
+    "what": "Every row on the Project Video Tracker now has a duplicate button next to its edit pencil. Click it to instantly create a copy of that deliverable — same type, category, specs, timeline, and assignments — as a new row right below, so you can spin up near-identical edits without re-entering everything.",
+    "where": "AvocadoPost → open a project → Project Video Tracker → the ⧉ button beside each row’s pencil",
+    "how": [
+      "Open a project page and go to the Project Video Tracker tab.",
+      "Find the row you want to copy and click the ⧉ duplicate button next to its pencil.",
+      "A copy titled “… (copy)” appears directly below — rename or tweak it as needed."
+    ],
+    "screenshot": "tracker-duplicate.png"
+  },
+  {
+    "title": "Creative on an edit — RFR notifies the PM and the Creative",
+    "page": "AvocadoPost — Post-Production",
+    "what": "Each edit now has a Creative field beside Project Manager, chosen from the creative team (with an Add New option). When someone clicks RFR (Ready For Review), the notification goes to both the Project Manager and the Creative, so the right people are looped in on every review.",
+    "where": "AvocadoPost → open an edit → Details → Creative (next to Project Manager)",
+    "how": [
+      "Open an edit from the pipeline or the Project Video Tracker.",
+      "In Details, use the Creative dropdown next to Project Manager to pick the creative (or choose + Add New).",
+      "When you click RFR, both the Project Manager and the Creative are notified."
+    ],
+    "screenshot": "creative-field.png"
   }
 ]
