@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const sql = require('./db');
 
 // Configured via Railway env vars:
 //   SMTP_HOST, SMTP_PORT (587 default), SMTP_USER, SMTP_PASS
@@ -52,15 +53,45 @@ function getTransporter() {
   return transporter;
 }
 
-async function sendMail({ to, cc, subject, text, html, icalEvent, identity, fromAddr }) {
+// Log an email to the outbox. Never throws — mail bookkeeping must not break a
+// send. Returns the new row id (or null if logging failed).
+async function recordOutbox({ automationKey, identity, from, to, cc, subject, html, text, status, error, sentAt }) {
+  try {
+    const [row] = await sql`
+      INSERT INTO mail_outbox (automation_key, identity, from_addr, to_addrs, cc_addrs, subject, body_html, body_text, status, error, sent_at)
+      VALUES (${automationKey || null}, ${identity || null}, ${from || null}, ${to || null}, ${cc || null},
+              ${subject || null}, ${html || null}, ${text || null}, ${status}, ${error || null}, ${sentAt || null})
+      RETURNING id`;
+    return row?.id || null;
+  } catch (e) {
+    console.error('Outbox log failed:', e.message);
+    return null;
+  }
+}
+
+async function sendMail({ to, cc, subject, text, html, icalEvent, identity, fromAddr, automationKey }) {
+  const name = IDENTITIES[identity] ? IDENTITIES[identity].name : 'Unbridled Media';
+  const from = fromAddr ? `${name} <${fromAddr}>` : fromFor(identity);
+  const base = { automationKey, identity, from, to: Array.isArray(to) ? to.join(', ') : to,
+    cc: Array.isArray(cc) ? cc.join(', ') : cc, subject, html, text };
+
+  // Outlook not connected yet — capture what would have gone out as a draft,
+  // then signal 501 so callers behave exactly as before.
   if (!isConfigured()) {
+    await recordOutbox({ ...base, status: 'draft', sentAt: null });
     const err = new Error('Email is not configured. Set SMTP_HOST, SMTP_USER, and SMTP_PASS environment variables.');
     err.status = 501;
     throw err;
   }
-  const name = IDENTITIES[identity] ? IDENTITIES[identity].name : 'Unbridled Media';
-  const from = fromAddr ? `${name} <${fromAddr}>` : fromFor(identity);
-  return getTransporter().sendMail({ from, to, cc, subject, text, html, ...(icalEvent ? { icalEvent } : {}) });
+
+  try {
+    const info = await getTransporter().sendMail({ from, to, cc, subject, text, html, ...(icalEvent ? { icalEvent } : {}) });
+    await recordOutbox({ ...base, status: 'sent', sentAt: new Date() });
+    return info;
+  } catch (e) {
+    await recordOutbox({ ...base, status: 'failed', error: e.message });
+    throw e;
+  }
 }
 
 module.exports = { sendMail, isConfigured, fromFor, addrFor };

@@ -1410,6 +1410,26 @@ async function migrate() {
       cc_addrs TEXT,
       updated_at TIMESTAMPTZ DEFAULT NOW()
     )`;
+  // Outbox — a record of every email the automations generate. Sent live when
+  // Outlook is connected (status sent/failed); captured as a draft while it's
+  // off. Drafts are the only rows the dashboard lets you delete.
+  await sql`
+    CREATE TABLE IF NOT EXISTS mail_outbox (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      automation_key TEXT,
+      identity TEXT,
+      from_addr TEXT,
+      to_addrs TEXT,
+      cc_addrs TEXT,
+      subject TEXT,
+      body_html TEXT,
+      body_text TEXT,
+      status TEXT NOT NULL DEFAULT 'draft',
+      error TEXT,
+      sent_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`;
+  await sql`CREATE INDEX IF NOT EXISTS mail_outbox_status_idx ON mail_outbox (status, created_at DESC)`;
   await sql`ALTER TABLE budget_sections ADD COLUMN IF NOT EXISTS estimate_ref TEXT`;
 
   // Client roster — canonical client names, selected from budgets

@@ -23,6 +23,50 @@ router.patch('/automations/:key', ...admin, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// Outbox — a record of every email the automations generate. While Outlook
+// isn't connected, entries land as drafts; once it is, they're sent live and
+// logged as sent/failed. Only drafts can be deleted.
+router.get('/outbox', ...admin, async (req, res, next) => {
+  try {
+    const status = req.query.status;
+    const valid = ['draft', 'sent', 'failed'];
+    const rows = status && valid.includes(status)
+      ? await sql`
+          SELECT id, automation_key, identity, from_addr, to_addrs, cc_addrs, subject, status, error, sent_at, created_at
+          FROM mail_outbox WHERE status = ${status} ORDER BY created_at DESC LIMIT 500`
+      : await sql`
+          SELECT id, automation_key, identity, from_addr, to_addrs, cc_addrs, subject, status, error, sent_at, created_at
+          FROM mail_outbox ORDER BY created_at DESC LIMIT 500`;
+    const [counts] = await sql`
+      SELECT
+        COUNT(*) FILTER (WHERE status = 'draft')  AS draft,
+        COUNT(*) FILTER (WHERE status = 'sent')   AS sent,
+        COUNT(*) FILTER (WHERE status = 'failed') AS failed
+      FROM mail_outbox`;
+    res.json({ entries: rows, counts });
+  } catch (e) { next(e); }
+});
+
+// Full entry incl. rendered body — for the preview pane
+router.get('/outbox/:id', ...admin, async (req, res, next) => {
+  try {
+    const [row] = await sql`SELECT * FROM mail_outbox WHERE id = ${req.params.id}`;
+    if (!row) return res.status(404).json({ error: 'Not found' });
+    res.json(row);
+  } catch (e) { next(e); }
+});
+
+// Delete a draft (only). Sent/failed history is kept.
+router.delete('/outbox/:id', ...admin, async (req, res, next) => {
+  try {
+    const [row] = await sql`SELECT status FROM mail_outbox WHERE id = ${req.params.id}`;
+    if (!row) return res.status(404).json({ error: 'Not found' });
+    if (row.status !== 'draft') return res.status(400).json({ error: 'Only drafts can be deleted' });
+    await sql`DELETE FROM mail_outbox WHERE id = ${req.params.id}`;
+    res.json({ ok: true });
+  } catch (e) { next(e); }
+});
+
 // What the email looks like — sample render per automation
 router.get('/automations/:key/preview', ...admin, async (req, res, next) => {
   try {

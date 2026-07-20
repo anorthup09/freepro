@@ -563,10 +563,13 @@ Questions? Reply to whoever sent you this.`;
 // it goes to, and a preview of what the email looks like.
 function Automations() {
   const [open, setOpen] = useState(false);
+  const [tab, setTab] = useState('automations'); // 'automations' | 'outbox'
   const [data, setData] = useState(null);          // { configured, automations }
   const [edits, setEdits] = useState({});           // key -> { from, to, cc }
   const [savedKey, setSavedKey] = useState(null);
-  const [preview, setPreview] = useState(null);     // { title, kind, subject, html/text }
+  const [preview, setPreview] = useState(null);     // { title, kind, subject, html/text, sample }
+  const [outbox, setOutbox] = useState(null);       // { entries, counts }
+  const [obFilter, setObFilter] = useState(null);   // null | 'draft' | 'sent' | 'failed'
 
   async function toggle() {
     if (!open) {
@@ -574,6 +577,31 @@ function Automations() {
     }
     setOpen(s => !s);
   }
+
+  async function loadOutbox(status) {
+    setObFilter(status);
+    try { setOutbox(await api.mailOutbox(status)); } catch (e) { alert(e.message); }
+  }
+  async function goOutbox() {
+    setTab('outbox');
+    if (!outbox) loadOutbox(null);
+  }
+  async function showOutboxEntry(id) {
+    try {
+      const r = await api.mailOutboxEntry(id);
+      setPreview({ title: r.subject || '(no subject)', subject: r.subject || '', sample: false,
+        kind: r.body_html ? 'html' : 'text', html: r.body_html, text: r.body_text || '' });
+    } catch (e) { alert(e.message); }
+  }
+  async function deleteDraft(id) {
+    if (!window.confirm('Delete this draft? It will not be sent when Outlook connects.')) return;
+    try { await api.deleteMailDraft(id); loadOutbox(obFilter); } catch (e) { alert(e.message); }
+  }
+
+  const OB_BADGE = { draft: { bg:'rgba(232,176,75,0.16)', fg:'#e8b04b', label:'Draft' },
+    sent: { bg:'rgba(90,191,128,0.16)', fg:'#5ABF80', label:'Sent' },
+    failed: { bg:'rgba(224,82,82,0.16)', fg:'#e05252', label:'Failed' } };
+  const fmtDate = s => s ? new Date(s).toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' }) : '';
 
   const val = (a, field) => (edits[a.key] && edits[a.key][field] !== undefined) ? edits[a.key][field] : (a[field] || '');
   const setVal = (key, field, v) => setEdits(es => ({ ...es, [key]: { ...es[key], [field]: v } }));
@@ -603,16 +631,26 @@ function Automations() {
         <div onClick={e => e.stopPropagation()}
           style={{ width:'100%', maxWidth:860, maxHeight:'85vh', display:'flex', flexDirection:'column', background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, overflow:'hidden' }}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 18px', borderBottom:'1px solid var(--border)' }}>
-            <div style={{ fontSize:14, fontWeight:800 }}>Automations</div>
+            <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+              {[['automations','Automations'],['outbox','Outbox']].map(([k, label]) => (
+                <button key={k} onClick={() => k === 'outbox' ? goOutbox() : setTab('automations')}
+                  style={{ background: tab === k ? 'var(--bg)' : 'none', border:'1px solid', borderColor: tab === k ? 'var(--border)' : 'transparent',
+                    borderRadius:8, padding:'4px 12px', fontSize:13, fontWeight:800, cursor:'pointer',
+                    color: tab === k ? 'var(--text)' : 'var(--muted)' }}>
+                  {label}
+                </button>
+              ))}
+            </div>
             <div style={{ display:'flex', alignItems:'center', gap:10 }}>
               {data && !data.configured && (
                 <span style={{ fontSize:10, fontWeight:700, color:'#e8b04b', border:'1px solid rgba(232,176,75,0.5)', borderRadius:10, padding:'2px 9px' }}>
-                  ✉ Outlook not connected yet — these go live once SMTP is set
+                  ✉ Outlook not connected yet — {tab === 'outbox' ? 'these are held as drafts' : 'these go live once SMTP is set'}
                 </span>
               )}
               <button className="btn btn-ghost btn-sm" onClick={() => setOpen(false)}>✕</button>
             </div>
           </div>
+          {tab === 'automations' && (
           <div style={{ overflowY:'auto', padding:'6px 18px 16px' }}>
             {(data?.automations || []).map(a => (
               <div key={a.key} style={{ borderBottom:'1px solid var(--border)', padding:'12px 0', display:'grid', gridTemplateColumns:'190px 1fr auto', gap:12, alignItems:'start' }}>
@@ -653,6 +691,60 @@ function Automations() {
               </div>
             ))}
           </div>
+          )}
+          {tab === 'outbox' && (
+          <div style={{ display:'flex', flexDirection:'column', minHeight:0, flex:1 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:6, padding:'10px 18px 8px', borderBottom:'1px solid var(--border)' }}>
+              {[[null,'All'],['draft','Drafts'],['sent','Sent'],['failed','Failed']].map(([k, label]) => {
+                const n = k && outbox?.counts ? Number(outbox.counts[k] || 0) : null;
+                return (
+                  <button key={label} onClick={() => loadOutbox(k)}
+                    style={{ background: obFilter === k ? 'var(--bg)' : 'none', border:'1px solid', borderColor: obFilter === k ? 'var(--border)' : 'transparent',
+                      borderRadius:8, padding:'3px 11px', fontSize:11, fontWeight:700, cursor:'pointer', color: obFilter === k ? 'var(--text)' : 'var(--muted)' }}>
+                    {label}{n !== null ? ` (${n})` : ''}
+                  </button>
+                );
+              })}
+            </div>
+            <div style={{ overflowY:'auto', padding:'4px 18px 16px' }}>
+              {!outbox && <div style={{ fontSize:11, color:'var(--muted)', padding:'16px 0' }}>Loading…</div>}
+              {outbox && outbox.entries.length === 0 && (
+                <div style={{ fontSize:12, color:'var(--muted)', fontStyle:'italic', padding:'20px 0' }}>
+                  {obFilter === 'draft' ? 'No drafts — nothing is waiting to go out.'
+                    : obFilter ? `No ${obFilter} emails yet.`
+                    : 'No emails yet. Automations will show up here as they fire.'}
+                </div>
+              )}
+              {outbox && outbox.entries.map(e => {
+                const b = OB_BADGE[e.status] || OB_BADGE.draft;
+                return (
+                  <div key={e.id} style={{ borderBottom:'1px solid var(--border)', padding:'10px 0', display:'grid', gridTemplateColumns:'auto 1fr auto', gap:12, alignItems:'center' }}>
+                    <span style={{ fontSize:9, fontWeight:800, textTransform:'uppercase', letterSpacing:'.04em', background:b.bg, color:b.fg, borderRadius:10, padding:'3px 9px', whiteSpace:'nowrap' }}>{b.label}</span>
+                    <div style={{ minWidth:0, cursor:'pointer' }} onClick={() => showOutboxEntry(e.id)}>
+                      <div style={{ fontSize:12, fontWeight:700, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{e.subject || '(no subject)'}</div>
+                      <div style={{ fontSize:10, color:'var(--muted)', marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                        {e.to_addrs || '—'}{e.cc_addrs ? ` · cc ${e.cc_addrs}` : ''} · {fmtDate(e.sent_at || e.created_at)}
+                        {e.status === 'failed' && e.error ? ` · ${e.error}` : ''}
+                      </div>
+                    </div>
+                    <div style={{ display:'flex', gap:6 }}>
+                      <button onClick={() => showOutboxEntry(e.id)}
+                        style={{ background:'none', border:'1px solid var(--border)', borderRadius:6, color:'var(--muted)', fontSize:10, fontWeight:700, padding:'4px 12px', cursor:'pointer' }}>
+                        View
+                      </button>
+                      {e.status === 'draft' && (
+                        <button onClick={() => deleteDraft(e.id)}
+                          style={{ background:'rgba(224,82,82,0.12)', border:'1px solid rgba(224,82,82,0.5)', borderRadius:6, color:'#e05252', fontSize:10, fontWeight:800, padding:'4px 12px', cursor:'pointer' }}>
+                          Delete
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          )}
         </div>
         </div>
       )}
@@ -662,7 +754,7 @@ function Automations() {
           <div style={{ width:'100%', maxWidth:680, maxHeight:'88vh', display:'flex', flexDirection:'column', background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, overflow:'hidden' }}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 16px', borderBottom:'1px solid var(--border)' }}>
               <div style={{ minWidth:0 }}>
-                <div style={{ fontSize:12, fontWeight:800 }}>{preview.title} — sample</div>
+                <div style={{ fontSize:12, fontWeight:800 }}>{preview.title}{preview.sample === false ? '' : ' — sample'}</div>
                 <div style={{ fontSize:10, color:'var(--muted)', marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>Subject: {preview.subject}</div>
               </div>
               <button className="btn btn-ghost btn-sm" onClick={() => setPreview(null)}>✕</button>
