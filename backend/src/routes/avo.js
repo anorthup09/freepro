@@ -1029,10 +1029,36 @@ publicRouter.get('/gantt-share/:token', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-// Public Client/Crew view of a project page (read-only, optional password).
+// ── Client/Crew shareable view (editable, optional password) ────────────────
+// A public, token-scoped surface over one project page. Clients and crew can
+// edit every grid and edit card here, but the Contract Editor card, contractor
+// tracker, and all financial fields never enter or leave this router. Every
+// write is scoped to the token's page, so a token can only touch its own data.
 // Logged-in app users bypass the password, same as the FreePro share views.
 const jwtLib = require('jsonwebtoken');
-publicRouter.get('/avo-share/:token', async (req, res, next) => {
+const shareRouter = require('express').Router({ mergeParams: true });
+const SHARE_ACTOR = 'Client/Crew (shared link)';
+
+// Fields safe to expose on (and accept from) the shared link — never financial.
+const CLIENT_EDIT_COLS = ['id', 'title', 'description', 'category', 'tracker_type', 'tracker_color',
+  'tracker_sort', 'status', 'version', 'approved', 'review_link', 'start_date', 'end_date',
+  'aspect_ratio', 'resolution', 'drive', 'asset_ref', 'music_ref', 'video_assets', 'notes',
+  'milestones', 'milestone_skips', 'milestone_assignees'];
+function clientEdit(e) {
+  const o = {};
+  for (const k of CLIENT_EDIT_COLS) o[k] = e[k];
+  o.lead_editor = e.lead_editor_name_resolved || e.lead_editor_name || null;
+  return o;
+}
+// Resolve an edit that belongs to this page's code family (guards cross-page writes).
+async function editInPage(editId, page) {
+  const [e] = await sql`SELECT * FROM edits WHERE id = ${editId}
+    AND (project_code = ${page.code} OR project_code LIKE ${page.code + '-%'})`;
+  return e || null;
+}
+
+// Resolve the token + optional password on every share request.
+shareRouter.use(async (req, res, next) => {
   try {
     const [page] = await sql`SELECT * FROM avo_project_pages WHERE share_token = ${req.params.token}`;
     if (!page) return res.status(404).json({ error: 'Share not found' });
@@ -1042,11 +1068,20 @@ publicRouter.get('/avo-share/:token', async (req, res, next) => {
       if (h && h.startsWith('Bearer ')) {
         try { const u = jwtLib.verify(h.slice(7), process.env.JWT_SECRET); authed = u && u.role !== 'PENDING'; } catch { /* fall through to pw */ }
       }
-      if (!authed && (req.query.pw || '') !== page.share_password) {
-        return res.status(401).json({ passwordRequired: true });
-      }
+      const pw = req.query.pw || req.get('x-share-pw') || '';
+      if (!authed && pw !== page.share_password) return res.status(401).json({ passwordRequired: true });
     }
-    // Read-only, client-safe edits — no contract/financial fields
+    req.sharePage = page;
+    next();
+  } catch (e) { next(e); }
+});
+
+// ── Read: the whole page, client-safe (no contract/financial fields) ──
+shareRouter.get('/', async (req, res, next) => {
+  try {
+    let page = req.sharePage;
+    const [pr] = await sql`SELECT title FROM projects WHERE code = ${page.code} AND parent_project_id IS NULL LIMIT 1`;
+    const title = pr?.title || page.title;
     const edits = await sql`
       SELECT e.id, e.title, e.description, e.category, e.tracker_type, e.tracker_color, e.tracker_sort,
              e.status, e.version, e.approved, e.review_link, e.start_date, e.end_date,
@@ -1063,10 +1098,256 @@ publicRouter.get('/avo-share/:token', async (req, res, next) => {
     const tRows = tables.length ? await sql`SELECT * FROM avo_custom_rows WHERE table_id IN ${sql(tables.map(t => t.id))} ORDER BY sort, created_at` : [];
     const customTables = tables.map(t => ({ ...t, rows: tRows.filter(r => r.table_id === t.id) }));
     const assets = await sql`SELECT id, page_id, filename, mime, size, edit_ids, uploaded_by, created_at FROM avo_assets WHERE page_id = ${page.id} ORDER BY created_at DESC`;
+    const talent = await sql`
+      SELECT kt.name, kt.role FROM key_talent kt JOIN projects p ON p.id = kt.project_id
+      WHERE p.code = ${page.code} OR p.code LIKE ${page.code + '-%'} ORDER BY kt.name`;
     res.json({
-      id: page.id, code: page.code, title: page.title, grid_config: page.grid_config,
-      lowerThirds, todos, music, edits, customTables, assets,
+      id: page.id, code: page.code, title, grid_config: page.grid_config,
+      lowerThirds, todos, music, edits, customTables, assets, talent,
     });
   } catch (e) { next(e); }
 });
+
+// ── Page grid/column config (video-tracker columns, merges) ──
+shareRouter.patch('/page', async (req, res, next) => {
+  try {
+    if (req.body.gridConfig === undefined || typeof req.body.gridConfig !== 'object')
+      return res.status(400).json({ error: 'gridConfig required' });
+    const [row] = await sql`UPDATE avo_project_pages SET grid_config = ${sql.json(req.body.gridConfig || {})}
+      WHERE id = ${req.sharePage.id} RETURNING *`;
+    res.json(row);
+  } catch (e) { next(e); }
+});
+
+// ── Video tracker: create an edit (linked to this page's project) ──
+shareRouter.post('/edits', async (req, res, next) => {
+  try {
+    const page = req.sharePage, d = req.body;
+    if (!d.title) return res.status(400).json({ error: 'Title is required' });
+    const [proj] = await sql`SELECT id FROM projects WHERE code = ${page.code} AND parent_project_id IS NULL LIMIT 1`;
+    const [e] = await sql`
+      INSERT INTO edits (project_id, project_code, title, description, category, status, tracker_type, tracker_sort)
+      VALUES (${proj?.id || null}, ${page.code}, ${d.title}, ${d.description || null}, ${d.category || null},
+        ${editStatuses.includes(d.status) ? d.status : 'COMING_SOON'}, ${d.trackerType || null},
+        ${d.trackerSort != null ? Number(d.trackerSort) || 0 : 0})
+      RETURNING *`;
+    if (proj?.id) {
+      const [del] = await sql`
+        INSERT INTO deliverables (id, project_id, title, description, category)
+        VALUES (gen_random_uuid()::text, ${proj.id}, ${d.title}, ${d.description || null}, ${d.trackerType || 'POST_SHOOT'})
+        RETURNING id`;
+      await sql`UPDATE edits SET deliverable_id = ${del.id} WHERE id = ${e.id}`;
+    }
+    await logAct(e.id, 'log', SHARE_ACTOR, 'created this edit from the shared view');
+    const [full] = await FULL_EDIT(e.id);
+    syncSourcingTask(full);
+    res.status(201).json(clientEdit(full));
+  } catch (e) { next(e); }
+});
+
+// ── Video tracker / edit card: update client-safe fields only ──
+shareRouter.patch('/edits/:eid', async (req, res, next) => {
+  try {
+    const page = req.sharePage, d = req.body;
+    const before = await editInPage(req.params.eid, page);
+    if (!before) return res.status(404).json({ error: 'Edit not found' });
+    let milestones;
+    if (d.milestones !== undefined && typeof d.milestones === 'object') {
+      let prev = typeof before.milestones === 'string' ? JSON.parse(before.milestones || '{}') : (before.milestones || {});
+      prev = Object.fromEntries(Object.keys(MILESTONE_LABELS).filter(k => prev[k]).map(k => [k, prev[k]]));
+      milestones = { ...prev };
+      for (const k of Object.keys(MILESTONE_LABELS)) {
+        if (d.milestones[k] === undefined) continue;
+        if (d.milestones[k]) milestones[k] = String(d.milestones[k]).slice(0, 10); else delete milestones[k];
+      }
+    }
+    if (d.approved === true && before.status !== 'CLOSED' && d.status === undefined) d.status = 'CLOSED';
+    // Custom-column values live in extra — allow them, but never contract tiles
+    let extra;
+    if (d.extra !== undefined && typeof d.extra === 'object') {
+      extra = {};
+      for (const [k, v] of Object.entries(d.extra)) if (!String(k).startsWith('contract_')) extra[k] = v;
+    }
+    const [e] = await sql`
+      UPDATE edits SET
+        title = ${d.title !== undefined ? d.title : sql`title`},
+        description = ${d.description !== undefined ? (d.description || null) : sql`description`},
+        aspect_ratio = ${d.aspectRatio !== undefined ? (d.aspectRatio || null) : sql`aspect_ratio`},
+        resolution = ${d.resolution !== undefined ? (d.resolution || null) : sql`resolution`},
+        asset_ref = ${d.assetRef !== undefined ? (d.assetRef || null) : sql`asset_ref`},
+        music_ref = ${d.musicRef !== undefined ? (d.musicRef || null) : sql`music_ref`},
+        drive = ${d.drive !== undefined ? (d.drive || null) : sql`drive`},
+        category = ${d.category !== undefined ? (d.category || null) : sql`category`},
+        review_link = ${d.reviewLink !== undefined ? (d.reviewLink || null) : sql`review_link`},
+        start_date = ${d.startDate !== undefined ? (d.startDate || null) : sql`start_date`},
+        end_date = ${d.endDate !== undefined ? (d.endDate || null) : sql`end_date`},
+        status = ${d.status !== undefined && editStatuses.includes(d.status) ? d.status : sql`status`},
+        version = ${d.version !== undefined ? Math.max(0.1, Math.round((Number(d.version) || 1) * 10) / 10) : sql`version`},
+        approved = ${d.approved !== undefined ? (d.approved === true) : sql`approved`},
+        tracker_type = ${d.trackerType !== undefined ? (d.trackerType || null) : sql`tracker_type`},
+        tracker_color = ${d.trackerColor !== undefined ? (d.trackerColor || null) : sql`tracker_color`},
+        tracker_sort = ${d.trackerSort !== undefined ? (Number(d.trackerSort) || 0) : sql`tracker_sort`},
+        notes = ${d.notes !== undefined ? (d.notes || null) : sql`notes`},
+        video_assets = ${d.videoAssets !== undefined ? (d.videoAssets || null) : sql`video_assets`},
+        extra = ${extra !== undefined ? sql`COALESCE(extra, '{}'::jsonb) || ${sql.json(extra)}` : sql`extra`},
+        milestones = ${milestones !== undefined ? sql.json(milestones) : sql`milestones`},
+        milestone_skips = ${Array.isArray(d.milestoneSkips) ? sql.json(d.milestoneSkips) : sql`milestone_skips`},
+        updated_at = NOW()
+      WHERE id = ${before.id} RETURNING *`;
+    await logAct(e.id, 'log', SHARE_ACTOR, 'updated this edit from the shared view');
+    const [full] = await FULL_EDIT(e.id);
+    await syncToDeliverable(full);
+    syncSourcingTask(full);
+    res.json(clientEdit(full));
+  } catch (e) { next(e); }
+});
+
+// ── Grids (lower-thirds / todos / music) ──
+shareRouter.post('/grid/:kind', async (req, res, next) => {
+  try {
+    const g = GRID_TABLES[req.params.kind];
+    if (!g) return res.status(404).json({ error: 'Unknown grid' });
+    const data = { page_id: req.sharePage.id };
+    for (const c of g.cols) {
+      if (req.body[c] === undefined) continue;
+      data[c] = c === 'done' ? req.body[c] === true : c === 'sort' ? (Number(req.body[c]) || 0) : String(req.body[c]);
+    }
+    const [row] = await sql`INSERT INTO ${sql.unsafe(g.table)} ${sql(data, ...Object.keys(data))} RETURNING *`;
+    res.status(201).json(row);
+  } catch (e) { next(e); }
+});
+shareRouter.patch('/grid/:kind/:rowId', async (req, res, next) => {
+  try {
+    const g = GRID_TABLES[req.params.kind];
+    if (!g) return res.status(404).json({ error: 'Unknown grid' });
+    const [own] = await sql`SELECT id FROM ${sql.unsafe(g.table)} WHERE id = ${req.params.rowId} AND page_id = ${req.sharePage.id}`;
+    if (!own) return res.status(404).json({ error: 'Row not found' });
+    const data = {};
+    for (const c of g.cols) {
+      if (req.body[c] === undefined) continue;
+      data[c] = c === 'done' ? req.body[c] === true : c === 'sort' ? (Number(req.body[c]) || 0) : String(req.body[c]);
+    }
+    const keys = Object.keys(data);
+    const hasExtra = req.body.extra && typeof req.body.extra === 'object';
+    if (!keys.length && !hasExtra) return res.status(400).json({ error: 'Nothing to update' });
+    let row;
+    if (keys.length) [row] = await sql`UPDATE ${sql.unsafe(g.table)} SET ${sql(data, ...keys)} WHERE id = ${req.params.rowId} RETURNING *`;
+    if (hasExtra) [row] = await sql`UPDATE ${sql.unsafe(g.table)} SET extra = COALESCE(extra, '{}'::jsonb) || ${sql.json(req.body.extra)} WHERE id = ${req.params.rowId} RETURNING *`;
+    res.json(row);
+  } catch (e) { next(e); }
+});
+shareRouter.delete('/grid/:kind/:rowId', async (req, res, next) => {
+  try {
+    const g = GRID_TABLES[req.params.kind];
+    if (!g) return res.status(404).json({ error: 'Unknown grid' });
+    await sql`DELETE FROM ${sql.unsafe(g.table)} WHERE id = ${req.params.rowId} AND page_id = ${req.sharePage.id}`;
+    res.status(204).end();
+  } catch (e) { next(e); }
+});
+
+// ── Custom tables + rows ──
+shareRouter.post('/tables', async (req, res, next) => {
+  try {
+    const name = String(req.body.name || '').trim();
+    if (!name) return res.status(400).json({ error: 'Table name required' });
+    const config = { cols: [{ key: 'c' + Date.now().toString(36), label: 'Column 1' }], merges: {} };
+    const [t] = await sql`INSERT INTO avo_custom_tables (page_id, name, config) VALUES (${req.sharePage.id}, ${name}, ${sql.json(config)}) RETURNING *`;
+    res.status(201).json({ ...t, rows: [] });
+  } catch (e) { next(e); }
+});
+shareRouter.patch('/tables/:tid', async (req, res, next) => {
+  try {
+    const [own] = await sql`SELECT id FROM avo_custom_tables WHERE id = ${req.params.tid} AND page_id = ${req.sharePage.id}`;
+    if (!own) return res.status(404).json({ error: 'Table not found' });
+    const [t] = await sql`UPDATE avo_custom_tables SET
+        name = ${req.body.name !== undefined && String(req.body.name).trim() ? String(req.body.name).trim() : sql`name`},
+        config = ${req.body.config !== undefined && typeof req.body.config === 'object' ? sql.json(req.body.config || {}) : sql`config`}
+      WHERE id = ${req.params.tid} RETURNING *`;
+    res.json(t);
+  } catch (e) { next(e); }
+});
+shareRouter.delete('/tables/:tid', async (req, res, next) => {
+  try {
+    await sql`DELETE FROM avo_custom_tables WHERE id = ${req.params.tid} AND page_id = ${req.sharePage.id}`;
+    res.status(204).end();
+  } catch (e) { next(e); }
+});
+shareRouter.post('/tables/:tid/rows', async (req, res, next) => {
+  try {
+    const [own] = await sql`SELECT id FROM avo_custom_tables WHERE id = ${req.params.tid} AND page_id = ${req.sharePage.id}`;
+    if (!own) return res.status(404).json({ error: 'Table not found' });
+    const [r] = await sql`INSERT INTO avo_custom_rows (table_id) VALUES (${req.params.tid}) RETURNING *`;
+    res.status(201).json(r);
+  } catch (e) { next(e); }
+});
+// A custom row belongs to the page only through its table.
+async function tableRowInPage(rowId, page) {
+  const [r] = await sql`SELECT r.* FROM avo_custom_rows r JOIN avo_custom_tables t ON t.id = r.table_id
+    WHERE r.id = ${rowId} AND t.page_id = ${page.id}`;
+  return r || null;
+}
+shareRouter.patch('/table-rows/:rid', async (req, res, next) => {
+  try {
+    if (!await tableRowInPage(req.params.rid, req.sharePage)) return res.status(404).json({ error: 'Row not found' });
+    const [r] = await sql`UPDATE avo_custom_rows SET
+        extra = ${req.body.extra !== undefined && typeof req.body.extra === 'object' ? sql`COALESCE(extra, '{}'::jsonb) || ${sql.json(req.body.extra)}` : sql`extra`},
+        sort = ${req.body.sort !== undefined ? (Number(req.body.sort) || 0) : sql`sort`}
+      WHERE id = ${req.params.rid} RETURNING *`;
+    res.json(r);
+  } catch (e) { next(e); }
+});
+shareRouter.delete('/table-rows/:rid', async (req, res, next) => {
+  try {
+    if (!await tableRowInPage(req.params.rid, req.sharePage)) return res.status(404).json({ error: 'Row not found' });
+    await sql`DELETE FROM avo_custom_rows WHERE id = ${req.params.rid}`;
+    res.status(204).end();
+  } catch (e) { next(e); }
+});
+
+// ── Creative assets ──
+shareRouter.post('/assets', async (req, res, next) => {
+  try {
+    const { filename, mime, fileBase64 } = req.body;
+    const editIds = cleanEditIds(req.body.editIds ?? req.body.editId);
+    const buf = Buffer.from(String(fileBase64 || ''), 'base64');
+    if (!buf.length || !filename) return res.status(400).json({ error: 'No file received' });
+    if (buf.length > 20 * 1024 * 1024) return res.status(400).json({ error: 'File too large (20MB max)' });
+    const [a] = await sql`
+      INSERT INTO avo_assets (page_id, filename, mime, size, data, edit_ids, uploaded_by)
+      VALUES (${req.sharePage.id}, ${filename}, ${mime || 'application/octet-stream'}, ${buf.length}, ${buf}, ${sql.json(editIds)}, ${SHARE_ACTOR})
+      RETURNING id, page_id, filename, mime, size, edit_ids, uploaded_by, created_at`;
+    for (const eid of editIds) await logAct(eid, 'log', SHARE_ACTOR, `uploaded creative asset ${filename}`);
+    res.status(201).json(a);
+  } catch (e) { next(e); }
+});
+shareRouter.patch('/assets/:aid', async (req, res, next) => {
+  try {
+    const [before] = await sql`SELECT edit_ids FROM avo_assets WHERE id = ${req.params.aid} AND page_id = ${req.sharePage.id}`;
+    if (!before) return res.status(404).json({ error: 'Asset not found' });
+    const editIds = cleanEditIds(req.body.editIds ?? req.body.editId);
+    const [a] = await sql`UPDATE avo_assets SET edit_ids = ${sql.json(editIds)} WHERE id = ${req.params.aid}
+      RETURNING id, page_id, filename, mime, size, edit_ids, uploaded_by, created_at`;
+    const prev = new Set(cleanEditIds(before.edit_ids));
+    for (const eid of editIds.filter(x => !prev.has(x))) await logAct(eid, 'log', SHARE_ACTOR, `tagged creative asset ${a.filename} to this video`);
+    res.json(a);
+  } catch (e) { next(e); }
+});
+shareRouter.get('/assets/:aid/file', async (req, res, next) => {
+  try {
+    const [f] = await sql`SELECT filename, mime, data FROM avo_assets WHERE id = ${req.params.aid} AND page_id = ${req.sharePage.id}`;
+    if (!f) return res.status(404).json({ error: 'Asset not found' });
+    res.setHeader('Content-Type', f.mime || 'application/octet-stream');
+    res.setHeader('Content-Disposition', `attachment; filename="${f.filename.replace(/"/g, '')}"`);
+    res.send(f.data);
+  } catch (e) { next(e); }
+});
+shareRouter.delete('/assets/:aid', async (req, res, next) => {
+  try {
+    const [f] = await sql`DELETE FROM avo_assets WHERE id = ${req.params.aid} AND page_id = ${req.sharePage.id} RETURNING edit_ids, filename`;
+    for (const eid of cleanEditIds(f?.edit_ids)) await logAct(eid, 'log', SHARE_ACTOR, `deleted creative asset ${f.filename}`);
+    res.status(204).end();
+  } catch (e) { next(e); }
+});
+
+publicRouter.use('/avo-share/:token', shareRouter);
 module.exports.publicRouter = publicRouter;

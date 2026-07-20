@@ -152,6 +152,31 @@ export const api = {
     if (!r.ok) return { _status: r.status, ...data };
     return data;
   },
+  // Edit adapter for the public share view: the same method names AvoProject
+  // uses, routed to the token-scoped, page-locked share endpoints (with pw).
+  avoShareApi: (token, pw) => {
+    const base = `/avo-share/${token}`;
+    const q = pw ? `?pw=${encodeURIComponent(pw)}` : '';
+    const R = (method, path, body) => req(method, `${base}${path}${q}`, body);
+    return {
+      updateAvoProject: (id, data) => R('PATCH', '/page', { gridConfig: data.gridConfig }),
+      updateAvoEdit: (id, data) => R('PATCH', `/edits/${id}`, data),
+      createAvoEdit: (data) => R('POST', '/edits', data),
+      addAvoGridRow: (pageId, kind, data = {}) => R('POST', `/grid/${kind}`, data),
+      updateAvoGridRow: (kind, rowId, data) => R('PATCH', `/grid/${kind}/${rowId}`, data),
+      deleteAvoGridRow: (kind, rowId) => R('DELETE', `/grid/${kind}/${rowId}`),
+      createAvoTable: (pageId, name) => R('POST', '/tables', { name }),
+      updateAvoTable: (tid, data) => R('PATCH', `/tables/${tid}`, data),
+      deleteAvoTable: (tid) => R('DELETE', `/tables/${tid}`),
+      addAvoTableRow: (tid) => R('POST', `/tables/${tid}/rows`, {}),
+      updateAvoTableRow: (rid, data) => R('PATCH', `/table-rows/${rid}`, data),
+      deleteAvoTableRow: (rid) => R('DELETE', `/table-rows/${rid}`),
+      uploadAvoAsset: (pageId, data) => R('POST', '/assets', data),
+      updateAvoAsset: (aid, data) => R('PATCH', `/assets/${aid}`, data),
+      deleteAvoAsset: (aid) => R('DELETE', `/assets/${aid}`),
+      assetFileUrl: (aid) => `${BACKEND}/api${base}/assets/${aid}/file${q}`,
+    };
+  },
   addAvoGridRow: (pageId, kind, data = {}) => req('POST', `/avo/projects/${pageId}/${kind}`, data),
   createAvoTable: (pageId, name) => req('POST', `/avo/projects/${pageId}/tables`, { name }),
   updateAvoTable: (tid, data) => req('PATCH', `/avo/tables/${tid}`, data),

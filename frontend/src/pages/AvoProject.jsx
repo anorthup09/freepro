@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api.js';
@@ -321,10 +321,10 @@ function RowColorPencil({ edit, onOpen, onPick }) {
 }
 
 // ── Video Tracker: rows are the pipeline edits carrying this project code ──
-function VideoTracker({ edits, setEdits, config, onConfig, code, readOnly, onOpenEdit }) {
+function VideoTracker({ edits, setEdits, config, onConfig, code, readOnly, onOpenEdit, A = api }) {
   const nav = useNavigate();
   async function saveEdit(id, data) {
-    try { const full = await api.updateAvoEdit(id, data); setEdits(es => es.map(x => x.id === id ? { ...x, ...full } : x)); }
+    try { const full = await A.updateAvoEdit(id, data); setEdits(es => es.map(x => x.id === id ? { ...x, ...full } : x)); }
     catch (e) { alert(e.message); }
   }
   const [addForm, setAddForm] = useState(null);   // BLANK form when the pop-out is open
@@ -334,7 +334,7 @@ function VideoTracker({ edits, setEdits, config, onConfig, code, readOnly, onOpe
     if (savingAdd) return;
     setSavingAdd(true);
     try {
-      const e = await api.createAvoEdit({ ...addForm, projectCode: code });
+      const e = await A.createAvoEdit({ ...addForm, projectCode: code });
       setEdits(es => [...es, e]);
       setAddForm(null);
     } catch (err) { alert(err.message); }
@@ -343,7 +343,7 @@ function VideoTracker({ edits, setEdits, config, onConfig, code, readOnly, onOpe
   function reorder(next) {
     const real = next.filter(r => !r.__header);
     setEdits(real);
-    real.forEach((e, i) => api.updateAvoEdit(e.id, { trackerSort: i }).catch(() => {}));
+    real.forEach((e, i) => A.updateAvoEdit(e.id, { trackerSort: i }).catch(() => {}));
   }
   const statusOf = k => AVO_STATUSES.find(([key]) => key === k);
   // Category options: the standard list + any custom categories already used on
@@ -385,7 +385,7 @@ function VideoTracker({ edits, setEdits, config, onConfig, code, readOnly, onOpe
       );
     } },
     { key:'title', label:'Video Title', minWidth:150, render: e =>
-      <span onClick={() => readOnly ? (onOpenEdit && onOpenEdit(e)) : nav(`/avo/${e.id}`)} style={{ fontSize:12, fontWeight:700, cursor: (readOnly && !onOpenEdit) ? 'default' : 'pointer', padding:'5px 6px', display:'inline-block' }}>{e.title}</span> },
+      <span onClick={() => onOpenEdit ? onOpenEdit(e) : nav(`/avo/${e.id}`)} style={{ fontSize:12, fontWeight:700, cursor:'pointer', padding:'5px 6px', display:'inline-block' }}>{e.title}</span> },
     { key:'description', label:'Description', minWidth:170, render: e => <Cell value={e.description} placeholder="Description…" readOnly={readOnly} onSave={v => saveEdit(e.id, { description: v })} /> },
     { key:'notes', label:'Notes', minWidth:170, render: e => <Cell value={e.notes} placeholder="Notes…" readOnly={readOnly} onSave={v => saveEdit(e.id, { notes: v })} /> },
     { key:'end_date', label:'Due Date', render: e => <span style={{ whiteSpace:'nowrap', fontSize:12 }}>{fmtD(e.end_date)}</span> },
@@ -645,17 +645,17 @@ function ContractorTracker({ pageId }) {
 }
 
 // ── Generic editable grid (to-dos, lower thirds) ──
-function Grid({ kind, columns, rows, setRows, pageId, doneKey, renderCell, config, onConfig, readOnly }) {
+function Grid({ kind, columns, rows, setRows, pageId, doneKey, renderCell, config, onConfig, readOnly, A = api }) {
   async function addRow() {
-    try { const r = await api.addAvoGridRow(pageId, kind); setRows(rs => [...rs, r]); }
+    try { const r = await A.addAvoGridRow(pageId, kind); setRows(rs => [...rs, r]); }
     catch (e) { alert(e.message); }
   }
   async function saveCell(rowId, col, val) {
-    try { const r = await api.updateAvoGridRow(kind, rowId, { [col]: val }); setRows(rs => rs.map(x => x.id === rowId ? r : x)); }
+    try { const r = await A.updateAvoGridRow(kind, rowId, { [col]: val }); setRows(rs => rs.map(x => x.id === rowId ? r : x)); }
     catch (e) { alert(e.message); }
   }
   async function removeRow(rowId) {
-    try { await api.deleteAvoGridRow(kind, rowId); setRows(rs => rs.filter(x => x.id !== rowId)); }
+    try { await A.deleteAvoGridRow(kind, rowId); setRows(rs => rs.filter(x => x.id !== rowId)); }
     catch (e) { alert(e.message); }
   }
   const colDefs = columns.map(([c, label, placeholder]) => ({
@@ -665,11 +665,11 @@ function Grid({ kind, columns, rows, setRows, pageId, doneKey, renderCell, confi
   const shown = doneKey ? rows.map(r => r[doneKey] ? { ...r, __dim: true } : r) : rows;
   function reorder(next) {
     setRows(next.map(({ __dim, ...r }) => r));
-    next.forEach((r, i) => api.updateAvoGridRow(kind, r.id, { sort: i }).catch(() => {}));
+    next.forEach((r, i) => A.updateAvoGridRow(kind, r.id, { sort: i }).catch(() => {}));
   }
   return (
     <SmartTable rows={shown} colDefs={colDefs} config={config} onConfig={onConfig} readOnly={readOnly}
-      saveExtra={(id, k, v) => api.updateAvoGridRow(kind, id, { extra: { [k]: v } }).then(r => setRows(rs => rs.map(x => x.id === id ? r : x))).catch(e => alert(e.message))}
+      saveExtra={(id, k, v) => A.updateAvoGridRow(kind, id, { extra: { [k]: v } }).then(r => setRows(rs => rs.map(x => x.id === id ? r : x))).catch(e => alert(e.message))}
       footerRight={{ addRow }} onReorder={reorder}
       leading={doneKey ? r => (
         <input type="checkbox" checked={r[doneKey] || false} disabled={readOnly} style={{ width:'auto', accentColor:AVO }}
@@ -748,7 +748,7 @@ function MusicShareModal({ groups, code, title, onClose }) {
   );
 }
 
-function MusicGrid({ rows, setRows, pageId, code, title, config, onConfig, edits = [], setEdits, readOnly }) {
+function MusicGrid({ rows, setRows, pageId, code, title, config, onConfig, edits = [], setEdits, readOnly, A = api }) {
   const [share, setShare] = useState(false);
   const [dragId, setDragId] = useState(null);
   const [overId, setOverId] = useState(null);
@@ -772,7 +772,7 @@ function MusicGrid({ rows, setRows, pageId, code, title, config, onConfig, edits
     const [moved] = next.splice(from, 1);
     next.splice(next.findIndex(r => r.id === targetId), 0, moved);
     setRows(next);
-    next.forEach((r, i) => api.updateAvoGridRow('music', r.id, { sort: i }).catch(() => {}));
+    next.forEach((r, i) => A.updateAvoGridRow('music', r.id, { sort: i }).catch(() => {}));
   }
   function dropColOn(targetKey) {
     if (!dragColKey || dragColKey === targetKey) return;
@@ -782,8 +782,8 @@ function MusicGrid({ rows, setRows, pageId, code, title, config, onConfig, edits
   }
   async function addRow(category) {
     try {
-      let r = await api.addAvoGridRow(pageId, 'music');
-      if (category) r = await api.updateAvoGridRow('music', r.id, { category });
+      let r = await A.addAvoGridRow(pageId, 'music');
+      if (category) r = await A.updateAvoGridRow('music', r.id, { category });
       setRows(rs => [...rs, r]);
     }
     catch (e) { alert(e.message); }
@@ -793,20 +793,20 @@ function MusicGrid({ rows, setRows, pageId, code, title, config, onConfig, edits
     const ed = edits.find(e => (e.title || '').trim().toLowerCase() === (videoTitle || '').trim().toLowerCase());
     if (!ed) { alert('No matching video in the Project Video Tracker for this title.'); return; }
     try {
-      const full = await api.updateAvoEdit(ed.id, { musicRef: url });
+      const full = await A.updateAvoEdit(ed.id, { musicRef: url });
       setEdits && setEdits(es => es.map(x => x.id === ed.id ? { ...x, ...full } : x));
     } catch (e) { alert(e.message); }
   }
   async function saveCell(rowId, col, val) {
-    try { const r = await api.updateAvoGridRow('music', rowId, { [col]: val }); setRows(rs => rs.map(x => x.id === rowId ? r : x)); }
+    try { const r = await A.updateAvoGridRow('music', rowId, { [col]: val }); setRows(rs => rs.map(x => x.id === rowId ? r : x)); }
     catch (e) { alert(e.message); }
   }
   async function saveExtra(rowId, key, val) {
-    try { const r = await api.updateAvoGridRow('music', rowId, { extra: { [key]: val } }); setRows(rs => rs.map(x => x.id === rowId ? r : x)); }
+    try { const r = await A.updateAvoGridRow('music', rowId, { extra: { [key]: val } }); setRows(rs => rs.map(x => x.id === rowId ? r : x)); }
     catch (e) { alert(e.message); }
   }
   async function removeRow(rowId) {
-    try { await api.deleteAvoGridRow('music', rowId); setRows(rs => rs.filter(x => x.id !== rowId)); }
+    try { await A.deleteAvoGridRow('music', rowId); setRows(rs => rs.filter(x => x.id !== rowId)); }
     catch (e) { alert(e.message); }
   }
   function addColumn() {
@@ -987,37 +987,37 @@ function MusicGrid({ rows, setRows, pageId, code, title, config, onConfig, edits
 }
 
 // ── User-defined table: every column is custom, full SmartTable feature set ──
-function CustomTable({ table, onChange, onDelete, readOnly }) {
+function CustomTable({ table, onChange, onDelete, readOnly, A = api }) {
   const rows = table.rows || [];
   const setRows = fn => onChange({ ...table, rows: typeof fn === 'function' ? fn(rows) : fn });
   async function addRow() {
-    try { const r = await api.addAvoTableRow(table.id); setRows([...rows, r]); }
+    try { const r = await A.addAvoTableRow(table.id); setRows([...rows, r]); }
     catch (e) { alert(e.message); }
   }
   function reorder(next) {
     setRows(next);
-    next.forEach((r, i) => api.updateAvoTableRow(r.id, { sort: i }).catch(() => {}));
+    next.forEach((r, i) => A.updateAvoTableRow(r.id, { sort: i }).catch(() => {}));
   }
   function saveConfig(next) {
     onChange({ ...table, config: next });
-    api.updateAvoTable(table.id, { config: next }).catch(e => alert(e.message));
+    A.updateAvoTable(table.id, { config: next }).catch(e => alert(e.message));
   }
   async function rename() {
     const name = prompt('Rename table:', table.name);
     if (!name || !name.trim()) return;
     onChange({ ...table, name: name.trim() });
-    api.updateAvoTable(table.id, { name: name.trim() }).catch(e => alert(e.message));
+    A.updateAvoTable(table.id, { name: name.trim() }).catch(e => alert(e.message));
   }
   return (
     <>
       <SmartTable rows={rows} colDefs={[]} config={table.config || {}} onConfig={saveConfig} readOnly={readOnly}
-        saveExtra={(id, k, v) => api.updateAvoTableRow(id, { extra: { [k]: v } })
+        saveExtra={(id, k, v) => A.updateAvoTableRow(id, { extra: { [k]: v } })
           .then(r => setRows(rows.map(x => x.id === id ? r : x))).catch(e => alert(e.message))}
         footerRight={{ addRow }} onReorder={reorder}
         emptyText="Empty table — add rows and columns to build it out."
         trailing={readOnly ? undefined : r => (
           <button title="Delete row" onClick={async () => {
-            try { await api.deleteAvoTableRow(r.id); setRows(rows.filter(x => x.id !== r.id)); }
+            try { await A.deleteAvoTableRow(r.id); setRows(rows.filter(x => x.id !== r.id)); }
             catch (e) { alert(e.message); }
           }} style={{ background:'none', border:'none', color:'var(--muted)', fontSize:12, cursor:'pointer' }}>✕</button>
         )} />
@@ -1032,7 +1032,7 @@ function CustomTable({ table, onChange, onDelete, readOnly }) {
 }
 
 // ── Creative assets: drop photos / motion gfx on the page, tag them to a video ──
-function CreativeAssets({ pageId, assets, setAssets, edits, readOnly }) {
+function CreativeAssets({ pageId, assets, setAssets, edits, readOnly, A = api }) {
   const fileRef = React.useRef(null);
   const [busy, setBusy] = useState(0);          // uploads in flight
   const [dragging, setDragging] = useState(false);
@@ -1046,7 +1046,7 @@ function CreativeAssets({ pageId, assets, setAssets, edits, readOnly }) {
     reader.onload = async () => {
       setBusy(n => n + 1);
       try {
-        const a = await api.uploadAvoAsset(pageId, { filename: file.name, mime: file.type, fileBase64: String(reader.result).split(',')[1], editIds: tagTo ? [tagTo] : [] });
+        const a = await A.uploadAvoAsset(pageId, { filename: file.name, mime: file.type, fileBase64: String(reader.result).split(',')[1], editIds: tagTo ? [tagTo] : [] });
         setAssets(as => [a, ...as]);
       } catch (e) { alert(e.message); }
       setBusy(n => n - 1);
@@ -1063,18 +1063,20 @@ function CreativeAssets({ pageId, assets, setAssets, edits, readOnly }) {
   const tagsOf = a => Array.isArray(a.edit_ids) ? a.edit_ids : [];
   async function saveTags(a, editIds) {
     try {
-      const next = await api.updateAvoAsset(a.id, { editIds });
+      const next = await A.updateAvoAsset(a.id, { editIds });
       setAssets(as => as.map(x => x.id === a.id ? next : x));
     } catch (e) { alert(e.message); }
   }
   async function remove(a) {
     if (!confirm(`Delete ${a.filename}?`)) return;
-    try { await api.deleteAvoAsset(a.id); setAssets(as => as.filter(x => x.id !== a.id)); }
+    try { await A.deleteAvoAsset(a.id); setAssets(as => as.filter(x => x.id !== a.id)); }
     catch (e) { alert(e.message); }
   }
   async function download(a) {
     try {
-      const r = await fetch(`/api/avo/assets/${a.id}/file`, { headers: { Authorization: `Bearer ${localStorage.getItem('fp_token')}` } });
+      const t = localStorage.getItem('fp_token');
+      const url = A.assetFileUrl ? A.assetFileUrl(a.id) : `/api/avo/assets/${a.id}/file`;
+      const r = await fetch(url, t ? { headers: { Authorization: `Bearer ${t}` } } : undefined);
       if (!r.ok) throw new Error('Download failed');
       const blob = await r.blob();
       const el = document.createElement('a');
@@ -1169,7 +1171,7 @@ function AvoShareModal({ page, url, onEnable, onDisable, onClose }) {
           <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
         </div>
         <div style={{ fontSize:11, color:'var(--muted)', lineHeight:1.5, marginBottom:14 }}>
-          A read-only view of this project — the video tracker, creative assets, music, lower thirds, and to-dos. Editor contract details and page controls are hidden. Add a password to gate it, or leave it open.
+          An editable view of this project — clients and crew can update the video tracker, edit cards, creative assets, music, lower thirds, and to-dos. Editor contract details, financials, and page controls stay hidden. Add a password to gate it, or leave it open.
         </div>
         {shared ? (
           <>
@@ -1201,45 +1203,92 @@ function AvoShareModal({ page, url, onEnable, onDisable, onClose }) {
   );
 }
 
-// Read-only detail of one edit for the client view (no Contract Editor card).
-function ReadOnlyEditModal({ edit, statusOf, onClose }) {
-  const e = edit;
-  const ms = typeof e.milestones === 'string' ? JSON.parse(e.milestones || '{}') : (e.milestones || {});
+// Editable detail of one edit for the client/crew view (no Contract Editor
+// card, no financials). Saves through the caller's api adapter so it works on
+// both the internal preview and the public share link.
+function EditModal({ edit, statusOf, onSave, onClose }) {
+  const [e, setE] = useState(edit);
+  const parseMs = v => typeof v === 'string' ? JSON.parse(v || '{}') : (v || {});
+  const ms = parseMs(e.milestones);
   const skips = Array.isArray(e.milestone_skips) ? e.milestone_skips : (typeof e.milestone_skips === 'string' ? JSON.parse(e.milestone_skips || '[]') : []);
-  const fmtLong = d => d ? new Date(String(d).slice(0, 10) + 'T12:00:00').toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }) : '—';
-  const st = statusOf(e.status);
+  const save = async patch => {
+    try { const full = await onSave(e.id, patch); if (full) setE(prev => ({ ...prev, ...full })); }
+    catch (err) { alert(err.message); }
+  };
   const cc = catColor(e.category);
-  const pill = (label, color) => <span style={{ fontSize:10, fontWeight:800, padding:'3px 10px', borderRadius:12, background:`${color}22`, border:`1px solid ${color}55`, color, whiteSpace:'nowrap' }}>{label}</span>;
-  const row = (label, val) => <div style={{ display:'flex', gap:10, fontSize:12, padding:'4px 0' }}><span style={{ width:120, color:'var(--muted)', flexShrink:0 }}>{label}</span><span>{val || '—'}</span></div>;
-  const tlRows = MILESTONES.filter(([k]) => ms[k] && !skips.includes(k));
+  const iso = d => d ? String(d).slice(0, 10) : '';
+  const usedCats = [...new Set([...CATEGORIES, e.category].filter(Boolean))];
+  const labelCss = { width:118, color:'var(--muted)', flexShrink:0, fontSize:12 };
+  const inp = { fontSize:12, flex:1 };
+  const TEXT_ROWS = [
+    ['aspect_ratio', 'aspectRatio', 'Aspect Ratio'], ['resolution', 'resolution', 'Resolution'],
+    ['drive', 'drive', 'Drive'], ['asset_ref', 'assetRef', 'Asset Ref'], ['music_ref', 'musicRef', 'Music Ref'],
+  ];
+  const tlRows = MILESTONES.filter(([k]) => !skips.includes(k));
   return (
     <div onClick={ev => ev.target === ev.currentTarget && onClose()}
       style={{ position:'fixed', inset:0, zIndex:200, background:'rgba(0,0,0,0.75)', display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'40px 16px', overflowY:'auto' }}>
       <div style={{ width:'100%', maxWidth:620, background:'var(--bg2)', border:'1px solid var(--border)', borderTop:`3px solid ${AVO}`, borderRadius:12, padding:'18px 22px' }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:10 }}>
-          <div style={{ fontSize:18, fontWeight:800 }}>{e.title}</div>
+          <input value={e.title || ''} onChange={ev => setE(p => ({ ...p, title: ev.target.value }))}
+            onBlur={ev => e.title !== ev.target.value || ev.target.value === '' ? save({ title: ev.target.value }) : null}
+            style={{ fontSize:18, fontWeight:800, background:'transparent', border:'none', borderBottom:'1px solid transparent', flex:1, color:'var(--text)' }}
+            onFocus={ev => ev.target.style.borderBottom = `1px solid ${AVO}`}
+            onMouseLeave={ev => document.activeElement !== ev.target && (ev.target.style.borderBottom = '1px solid transparent')} />
           <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
         </div>
-        <div style={{ display:'flex', gap:8, flexWrap:'wrap', margin:'10px 0 14px' }}>
-          {e.category && pill(e.category, cc || 'var(--muted)')}
-          {e.tracker_type && pill(e.tracker_type, '#8a8f98')}
-          {st && pill(st[1], st[2])}
-          {e.approved && pill('Approved ✓', '#3f9d68')}
-          <span style={{ fontSize:11, color:'var(--muted)', alignSelf:'center' }}>V{e.version || 1}</span>
+        <div style={{ display:'flex', gap:8, flexWrap:'wrap', alignItems:'center', margin:'12px 0 14px' }}>
+          <select value={e.category || ''} onChange={ev => save({ category: ev.target.value })}
+            style={{ fontSize:11, fontWeight:700, padding:'4px 8px', borderRadius:12, background: cc ? `${cc}22` : 'var(--bg)', border:`1px solid ${cc ? cc + '55' : 'var(--border)'}`, color: cc || 'var(--muted)' }}>
+            <option value="">— category —</option>
+            {usedCats.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <input value={e.tracker_type || ''} placeholder="Type" onChange={ev => setE(p => ({ ...p, tracker_type: ev.target.value }))}
+            onBlur={ev => save({ trackerType: ev.target.value })}
+            style={{ fontSize:11, fontWeight:700, padding:'4px 8px', borderRadius:12, width:110, background:'var(--bg)', border:'1px solid var(--border)', color:'var(--text)' }} />
+          <select value={e.status || 'COMING_SOON'} onChange={ev => save({ status: ev.target.value })}
+            style={{ fontSize:11, fontWeight:700, padding:'4px 8px', borderRadius:12, background:'var(--bg)', border:'1px solid var(--border)', color:'var(--text)' }}>
+            {AVO_STATUSES.map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+          </select>
+          <label style={{ display:'inline-flex', alignItems:'center', gap:5, fontSize:11, fontWeight:700, color: e.approved ? '#3f9d68' : 'var(--muted)' }}>
+            <input type="checkbox" checked={!!e.approved} onChange={ev => save({ approved: ev.target.checked })} style={{ width:'auto', accentColor:'#3f9d68' }} />
+            Approved ✓
+          </label>
+          <span style={{ display:'inline-flex', alignItems:'center', gap:4, fontSize:11, color:'var(--muted)' }}>
+            V<input type="number" step="0.1" min="0.1" value={e.version || 1} onChange={ev => setE(p => ({ ...p, version: ev.target.value }))}
+              onBlur={ev => save({ version: ev.target.value })} style={{ width:52, fontSize:11 }} />
+          </span>
         </div>
-        {e.description && <div style={{ marginBottom:12 }}>
+        <div style={{ marginBottom:12 }}>
           <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:3 }}>Description</div>
-          <div style={{ fontSize:12.5, lineHeight:1.5, whiteSpace:'pre-wrap' }}>{e.description}</div>
-        </div>}
+          <textarea value={e.description || ''} placeholder="Add a description…" rows={2}
+            onChange={ev => setE(p => ({ ...p, description: ev.target.value }))} onBlur={ev => save({ description: ev.target.value })}
+            style={{ width:'100%', fontSize:12.5, lineHeight:1.5, resize:'vertical' }} />
+        </div>
         <div style={{ borderTop:'1px solid var(--border)', paddingTop:8 }}>
-          {row('Editor', e.lead_editor)}
-          {row('Aspect Ratio', e.aspect_ratio)}
-          {row('Resolution', e.resolution)}
-          {row('Drive', e.drive)}
-          {row('Asset Ref', e.asset_ref)}
-          {row('Music Ref', e.music_ref)}
-          {row('Start', fmtLong(e.start_date))}
-          {row('Due', fmtLong(e.end_date))}
+          <div style={{ display:'flex', gap:10, alignItems:'center', padding:'4px 0' }}>
+            <span style={labelCss}>Editor</span><span style={{ fontSize:12 }}>{e.lead_editor || '—'}</span>
+          </div>
+          {TEXT_ROWS.map(([df, pk, label]) => (
+            <div key={df} style={{ display:'flex', gap:10, alignItems:'center', padding:'4px 0' }}>
+              <span style={labelCss}>{label}</span>
+              <input value={e[df] || ''} onChange={ev => setE(p => ({ ...p, [df]: ev.target.value }))}
+                onBlur={ev => save({ [pk]: ev.target.value })} style={inp} />
+            </div>
+          ))}
+          <div style={{ display:'flex', gap:10, alignItems:'center', padding:'4px 0' }}>
+            <span style={labelCss}>Start</span>
+            <input type="date" value={iso(e.start_date)} onChange={ev => save({ startDate: ev.target.value })} style={inp} />
+          </div>
+          <div style={{ display:'flex', gap:10, alignItems:'center', padding:'4px 0' }}>
+            <span style={labelCss}>Due</span>
+            <input type="date" value={iso(e.end_date)} onChange={ev => save({ endDate: ev.target.value })} style={inp} />
+          </div>
+          <div style={{ display:'flex', gap:10, alignItems:'center', padding:'4px 0' }}>
+            <span style={labelCss}>Review Link</span>
+            <input value={e.review_link || ''} placeholder="https://…" onChange={ev => setE(p => ({ ...p, review_link: ev.target.value }))}
+              onBlur={ev => save({ reviewLink: ev.target.value })} style={inp} />
+          </div>
         </div>
         {e.review_link && (
           <a href={e.review_link} target="_blank" rel="noreferrer"
@@ -1247,16 +1296,22 @@ function ReadOnlyEditModal({ edit, statusOf, onClose }) {
             ▶ Open review link
           </a>
         )}
-        {tlRows.length > 0 && (
-          <div style={{ marginTop:16 }}>
-            <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:6 }}>Timeline</div>
-            {tlRows.map(([k, label]) => (
-              <div key={k} style={{ display:'flex', justifyContent:'space-between', fontSize:12, padding:'4px 0', borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
-                <span>{label}</span><span style={{ color:AVO, fontWeight:600 }}>{fmtLong(ms[k])}</span>
-              </div>
-            ))}
-          </div>
-        )}
+        <div style={{ marginTop:14 }}>
+          <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:3 }}>Notes</div>
+          <textarea value={e.notes || ''} placeholder="Notes…" rows={2}
+            onChange={ev => setE(p => ({ ...p, notes: ev.target.value }))} onBlur={ev => save({ notes: ev.target.value })}
+            style={{ width:'100%', fontSize:12.5, lineHeight:1.5, resize:'vertical' }} />
+        </div>
+        <div style={{ marginTop:16 }}>
+          <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:6 }}>Timeline</div>
+          {tlRows.map(([k, label]) => (
+            <div key={k} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:10, fontSize:12, padding:'4px 0', borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
+              <span>{label}</span>
+              <input type="date" value={iso(ms[k])} onChange={ev => save({ milestones: { [k]: ev.target.value } })}
+                style={{ fontSize:12, width:160 }} />
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -1264,11 +1319,14 @@ function ReadOnlyEditModal({ edit, statusOf, onClose }) {
 
 const TABS = [['tracker', 'Project Video Tracker'], ['assets', 'Creative Assets'], ['todos', 'To-Do List'], ['music', 'Music Options'], ['lower-thirds', 'Lower Thirds']];
 
-export default function AvoProject({ idOverride, embedded, shareData, clientView: clientViewProp }) {
+export default function AvoProject({ idOverride, embedded, shareData, clientView: clientViewProp, apiOverride }) {
   const { id: idParam } = useParams();
   const id = idOverride || (shareData ? shareData.id : idParam);
   const nav = useNavigate();
   const { user } = useAuth();
+  // On the public share link, writes route through the token-scoped adapter.
+  // Staff previewing "as client" keep their authenticated api.
+  const A = apiOverride || api;
   const [page, setPage] = useState(shareData || null);
   const [edits, setEdits] = useState(shareData?.edits || []);
   const [lowerThirds, setLowerThirds] = useState(shareData?.lowerThirds || []);
@@ -1281,12 +1339,12 @@ export default function AvoProject({ idOverride, embedded, shareData, clientView
   const [err, setErr] = useState('');
   const [previewClient, setPreviewClient] = useState(false); // admin/producer "View as Client" toggle
   const [shareModal, setShareModal] = useState(false);       // share link + password modal
-  const [editView, setEditView] = useState(null);            // read-only edit opened in client view
+  const [editView, setEditView] = useState(null);            // edit opened in client view
   const isStaff = ['ADMIN', 'PRODUCER'].includes(user?.role);
-  // Client/Crew view is read-only and strips internal bits (Delete Page, Contract
-  // Editor card, editing). Driven by the public share OR the internal toggle.
+  // Client/Crew view is fully editable but strips internal bits (Delete Page,
+  // Share, Contract Editor card, contractor tracker). Driven by the public
+  // share link OR the staff "View as Client" toggle.
   const clientView = !!clientViewProp || previewClient;
-  const readOnly = clientView;
 
   useEffect(() => {
     if (shareData) return; // public share view is pre-loaded, no authed fetch
@@ -1299,7 +1357,7 @@ export default function AvoProject({ idOverride, embedded, shareData, clientView
   // in the grid (matched by name) drop out of the picker.
   async function addLowerThirdFromTalent(t) {
     try {
-      const r = await api.addAvoGridRow(id, 'lower-thirds', { name: t.name || '', title: t.role || '', sort: lowerThirds.length });
+      const r = await A.addAvoGridRow(id, 'lower-thirds', { name: t.name || '', title: t.role || '', sort: lowerThirds.length });
       setLowerThirds(rs => [...rs, r]);
     } catch (e) { alert(e.message); }
   }
@@ -1307,7 +1365,7 @@ export default function AvoProject({ idOverride, embedded, shareData, clientView
     try {
       let sort = lowerThirds.length;
       const added = [];
-      for (const t of list) added.push(await api.addAvoGridRow(id, 'lower-thirds', { name: t.name || '', title: t.role || '', sort: sort++ }));
+      for (const t of list) added.push(await A.addAvoGridRow(id, 'lower-thirds', { name: t.name || '', title: t.role || '', sort: sort++ }));
       setLowerThirds(rs => [...rs, ...added]);
     } catch (e) { alert(e.message); }
   }
@@ -1316,7 +1374,7 @@ export default function AvoProject({ idOverride, embedded, shareData, clientView
     const name = prompt('Name for the new table:');
     if (!name || !name.trim()) return;
     try {
-      const t = await api.createAvoTable(id, name.trim());
+      const t = await A.createAvoTable(id, name.trim());
       setTables(ts => [...ts, t]);
       setTab('table:' + t.id);
     } catch (e) { alert(e.message); }
@@ -1324,10 +1382,16 @@ export default function AvoProject({ idOverride, embedded, shareData, clientView
   async function deleteTable(t) {
     if (!confirm(`Delete the "${t.name}" table and all its rows?`)) return;
     try {
-      await api.deleteAvoTable(t.id);
+      await A.deleteAvoTable(t.id);
       setTables(ts => ts.filter(x => x.id !== t.id));
       setTab('tracker');
     } catch (e) { alert(e.message); }
+  }
+  // Save from the editable edit modal → refresh the tracker row + the open modal.
+  async function saveEdit(eid, patch) {
+    const full = await A.updateAvoEdit(eid, patch);
+    setEdits(es => es.map(x => x.id === eid ? { ...x, ...full } : x));
+    return full;
   }
 
   const gridConfig = page?.grid_config || {};
@@ -1335,7 +1399,7 @@ export default function AvoProject({ idOverride, embedded, shareData, clientView
   const saveCfg = k => next => {
     const gc = { ...gridConfig, [k]: next };
     setPage(p => ({ ...p, grid_config: gc }));
-    api.updateAvoProject(id, { gridConfig: gc }).catch(e => alert(e.message));
+    A.updateAvoProject(id, { gridConfig: gc }).catch(e => alert(e.message));
   };
 
   async function removePage() {
@@ -1390,7 +1454,7 @@ export default function AvoProject({ idOverride, embedded, shareData, clientView
               {!embedded ? (
                 <div>
                   <div className="page-title">{page.code}</div>
-                  {readOnly
+                  {clientView
                     ? <div style={{ marginTop:4, fontSize:13, color:'var(--muted)' }}>{page.title || ''}</div>
                     : <input value={page.title || ''} placeholder="Add a project title…"
                         onChange={e => setPage(p => ({ ...p, title: e.target.value }))}
@@ -1432,32 +1496,30 @@ export default function AvoProject({ idOverride, embedded, shareData, clientView
                   {t.name}
                 </button>
               ))}
-              {!readOnly && (
-                <button onClick={addTable} title="Add a custom table as a new tab"
-                  style={{ background:'var(--bg)', border:'1px solid rgba(255,255,255,0.55)', color:'#e8e8e8', borderRadius:16, padding:'5px 14px', fontSize:11, fontWeight:800, cursor:'pointer', whiteSpace:'nowrap', flexShrink:0 }}>
-                  + Add Custom Table
-                </button>
-              )}
+              <button onClick={addTable} title="Add a custom table as a new tab"
+                style={{ background:'var(--bg)', border:'1px solid rgba(255,255,255,0.55)', color:'#e8e8e8', borderRadius:16, padding:'5px 14px', fontSize:11, fontWeight:800, cursor:'pointer', whiteSpace:'nowrap', flexShrink:0 }}>
+                + Add Custom Table
+              </button>
             </div>
 
             {tab === 'tracker' && <>
               <VideoTracker edits={edits} setEdits={setEdits} code={page.code} config={cfgFor('tracker')} onConfig={saveCfg('tracker')}
-                readOnly={readOnly} onOpenEdit={clientView ? (e => setEditView(e)) : null} />
+                A={A} onOpenEdit={clientView ? (e => setEditView(e)) : null} />
               {!clientView && <ContractorTracker pageId={id} />}
             </>}
-            {tab === 'assets' && <CreativeAssets pageId={id} assets={assets} setAssets={setAssets} edits={edits} readOnly={readOnly} />}
+            {tab === 'assets' && <CreativeAssets pageId={id} assets={assets} setAssets={setAssets} edits={edits} A={A} />}
             {tab === 'todos' && (
-              <Grid kind="todos" pageId={id} doneKey="done" rows={todos} setRows={setTodos} renderCell={todoCell} readOnly={readOnly}
+              <Grid kind="todos" pageId={id} doneKey="done" rows={todos} setRows={setTodos} renderCell={todoCell} A={A}
                 config={cfgFor('todos')} onConfig={saveCfg('todos')}
                 columns={[['category', 'Category', 'Takeaways…'], ['video', 'Video', 'Which video'], ['needs', 'Needs', 'Script, music, shot list…'], ['text', 'To Do', 'Status / who’s on it…']]} />
             )}
             {tab === 'music' && (
-              <MusicGrid pageId={id} rows={music} setRows={setMusic} code={page.code} title={page.title} readOnly={readOnly}
+              <MusicGrid pageId={id} rows={music} setRows={setMusic} code={page.code} title={page.title} A={A}
                 edits={edits} setEdits={setEdits}
                 config={cfgFor('music')} onConfig={next => saveCfg('music')({ ...cfgFor('music'), ...next })} />
             )}
             {tables.map(t => tab === 'table:' + t.id && (
-              <CustomTable key={t.id} table={t} readOnly={readOnly}
+              <CustomTable key={t.id} table={t} A={A}
                 onChange={next => setTables(ts => ts.map(x => x.id === t.id ? next : x))}
                 onDelete={() => deleteTable(t)} />
             ))}
@@ -1466,7 +1528,7 @@ export default function AvoProject({ idOverride, embedded, shareData, clientView
               const avail = talent.filter(t => (t.name || '').trim() && !used.has(t.name.trim().toLowerCase()));
               return (
                 <>
-                  {!readOnly && talent.length > 0 && (
+                  {talent.length > 0 && (
                     <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10, flexWrap:'wrap' }}>
                       <span style={{ fontSize:11, color:'var(--muted)', fontWeight:700 }}>Auto-fill from Talent</span>
                       <select value="" disabled={!avail.length}
@@ -1483,7 +1545,7 @@ export default function AvoProject({ idOverride, embedded, shareData, clientView
                       )}
                     </div>
                   )}
-                  <Grid kind="lower-thirds" pageId={id} rows={lowerThirds} setRows={setLowerThirds} readOnly={readOnly}
+                  <Grid kind="lower-thirds" pageId={id} rows={lowerThirds} setRows={setLowerThirds} A={A}
                     config={cfgFor('lower-thirds')} onConfig={saveCfg('lower-thirds')}
                     columns={[['name', 'Name', 'Full name'], ['title', 'Title', 'On-screen title / role'], ['notes', 'Notes', '']]} />
                 </>
@@ -1498,17 +1560,18 @@ export default function AvoProject({ idOverride, embedded, shareData, clientView
           onDisable={async () => { await disableShare(); setShareModal(false); }}
           onClose={() => setShareModal(false)} />
       )}
-      {editView && <ReadOnlyEditModal edit={editView} statusOf={statusOf} onClose={() => setEditView(null)} />}
+      {editView && <EditModal edit={editView} statusOf={statusOf} onSave={saveEdit} onClose={() => setEditView(null)} />}
     </div>
   );
 }
 
-// Public, read-only Client/Crew view of a project page (optional password).
+// Public, editable Client/Crew view of a project page (optional password).
 export function AvoShareView() {
   const { token } = useParams();
   const [data, setData] = useState(null);
   const [pwNeeded, setPwNeeded] = useState(false);
   const [pw, setPw] = useState('');
+  const [usedPw, setUsedPw] = useState('');   // the password that unlocked this view
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   async function load(pwTry) {
@@ -1517,11 +1580,12 @@ export function AvoShareView() {
       const r = await api.avoShareView(token, pwTry);
       if (r._status === 401 && r.passwordRequired) { setPwNeeded(true); if (pwTry) setErr('Incorrect password — try again.'); }
       else if (r._status) { setErr(r.error || 'This link is unavailable.'); }
-      else { setData(r); setPwNeeded(false); setErr(''); }
+      else { setData(r); setUsedPw(pwTry || ''); setPwNeeded(false); setErr(''); }
     } catch (e) { setErr(e.message); }
     setBusy(false);
   }
   useEffect(() => { load(); }, [token]);
+  const shareApi = useMemo(() => api.avoShareApi(token, usedPw), [token, usedPw]);
 
   const shell = inner => (
     <div style={{ minHeight:'100vh', background:'var(--bg)' }}>
@@ -1534,7 +1598,7 @@ export function AvoShareView() {
     </div>
   );
 
-  if (data) return shell(<AvoProject shareData={data} clientView embedded />);
+  if (data) return shell(<AvoProject shareData={data} clientView embedded apiOverride={shareApi} />);
   if (pwNeeded) return shell(
     <div style={{ maxWidth:360, margin:'80px auto', textAlign:'center' }}>
       <div style={{ fontSize:14, fontWeight:800, marginBottom:8 }}>This view is password-protected</div>
