@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { api } from '../../api.js';
 import { maybeMailNotice } from '../../utils/mailNotice.js';
 import { displayName } from '../../utils/displayName.js';
@@ -681,17 +682,18 @@ export default function Crew({ project, onProjectUpdate }) {
                       : <span style={{ color:'var(--muted)', fontSize:11 }}>—</span>}
                   </td>
                   {crews.length > 0 && (
-                    <td style={{ position:'relative', whiteSpace:'nowrap' }}>
-                      <span onClick={() => setCrewPickerFor(p2 => p2 === a.id ? null : a.id)} style={{ cursor:'pointer', display:'inline-flex', gap:4, alignItems:'center' }}
+                    <td style={{ position:'relative', minWidth:150, maxWidth:250 }}>
+                      <span onClick={ev => { const r = ev.currentTarget.getBoundingClientRect(); setCrewPickerFor(p2 => p2?.id === a.id ? null : { id: a.id, top: r.bottom + 4, left: r.left }); }}
+                        style={{ cursor:'pointer', display:'flex', flexWrap:'wrap', gap:4, rowGap:4, alignItems:'center' }}
                         title="Which crews this person is on — none = floats across all crews">
                         {(a.crew_ids || []).length
                           ? (a.crew_ids || []).map(id => crewById[id] && (
-                              <span key={id} style={{ fontSize:9, fontWeight:800, color:crewColor(crewById[id]), border:`1px solid ${crewColor(crewById[id])}`, borderRadius:10, padding:'1px 7px' }}>{crewById[id].name}</span>
+                              <span key={id} style={{ fontSize:9, fontWeight:800, color:crewColor(crewById[id]), border:`1px solid ${crewColor(crewById[id])}`, borderRadius:10, padding:'1px 7px', whiteSpace:'nowrap' }}>{crewById[id].name}</span>
                             ))
                           : <span style={{ fontSize:9, fontWeight:700, color:'var(--muted)', border:'1px dashed var(--border)', borderRadius:10, padding:'1px 7px' }}>All crews</span>}
                       </span>
-                      {crewPickerFor === a.id && (
-                        <div style={{ position:'absolute', zIndex:60, top:'100%', left:0, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'6px 8px', boxShadow:'0 8px 20px rgba(0,0,0,0.5)', minWidth:150 }}>
+                      {crewPickerFor?.id === a.id && createPortal(
+                        <div style={{ position:'fixed', zIndex:300, top:crewPickerFor.top, left:crewPickerFor.left, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'6px 8px', boxShadow:'0 8px 20px rgba(0,0,0,0.5)', minWidth:150 }}>
                           {crews.map(c => (
                             <label key={c.id} style={{ display:'flex', alignItems:'center', gap:7, padding:'4px 2px', fontSize:12, cursor:'pointer' }}>
                               <input type="checkbox" checked={(a.crew_ids || []).includes(c.id)} onChange={() => toggleAssignmentCrew(a, c.id)} style={{ width:'auto', margin:0, accentColor:crewColor(c) }} />
@@ -700,8 +702,7 @@ export default function Crew({ project, onProjectUpdate }) {
                           ))}
                           <div style={{ fontSize:9, color:'var(--muted)', marginTop:4 }}>None checked = on every crew</div>
                           <button onClick={() => setCrewPickerFor(null)} style={{ background:'none', border:'none', color:'var(--orange)', fontSize:10, fontWeight:800, cursor:'pointer', padding:'4px 0 0' }}>Done</button>
-                        </div>
-                      )}
+                        </div>, document.body)}
                     </td>
                   )}
                   <td><span style={{ fontSize:11, color:'var(--orange)' }}>{fmtDate(a.start_date)}</span></td>
@@ -732,8 +733,8 @@ export default function Crew({ project, onProjectUpdate }) {
           </tr>
         );
         return (
-        <div className="pos-table-wrap" style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden' }}>
-          <table className="pos-table" style={{ width:'100%' }}>
+        <div className="pos-table-wrap" style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflowX:'auto' }}>
+          <table className="pos-table" style={{ width:'100%', minWidth:1000 }}>
             <thead>
               <tr>
                 <th>Position</th>

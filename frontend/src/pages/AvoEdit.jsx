@@ -657,9 +657,11 @@ export default function AvoEdit() {
                             {label}
                           </span>
                           {(() => {
-                            // Flag reflects whoever's on this task: the per-milestone
-                            // assignee if set, otherwise the lead editor.
-                            const effId = (e.milestone_assignees?.[k]) || e.lead_editor_id;
+                            // Availability only applies to editor tasks, and reflects
+                            // whoever's on that task — the per-milestone assignee if set,
+                            // else the lead editor. Client-feedback / completion / delivery
+                            // rows have no editor, so they never flag.
+                            const effId = EDITOR_TASKS.includes(k) ? ((e.milestone_assignees?.[k]) || e.lead_editor_id) : null;
                             const entry = effId ? ptoByMember[effId] : null;
                             const conflicts = entry?.conflicts || (effId && effId === e.lead_editor_id ? (e.pto_conflicts || []) : []);
                             const effName = entry?.name || (effId === e.lead_editor_id ? (e.lead_editor_name_resolved || e.lead_editor_name) : null) || 'This editor';
