@@ -26,6 +26,16 @@ const MS_LABEL = Object.fromEntries(MILESTONES);
 
 export const RUNNER_COLORS = ['#9DC183', '#4a9eff', '#e6c229', '#e8955a', '#a78bfa', '#f08080', '#40A0A0', '#d66a9b', '#5ABF80', '#E8500A', '#8ecae6', '#f4a261', '#c77dff'];
 
+// Identifying colors for timeline holds: a bubble ending in a feedback is red,
+// one ending in a "…Due" (version drop) is green. Completion holds (Color &
+// Audio Complete, Final Comp, etc.) keep their runner color.
+function runnerColor(label, fallback) {
+  const l = (label || '').toLowerCase().trim();
+  if (l.endsWith('feedback')) return '#e05252';
+  if (l.endsWith('due')) return '#5ABF80';
+  return fallback;
+}
+
 // Consecutive filled milestones chained into start→end runner segments
 export function milestoneRunners(edit) {
   const ms = edit?.milestones || {};
@@ -33,7 +43,7 @@ export function milestoneRunners(edit) {
   const segs = [];
   for (let i = 1; i < filled.length; i++) {
     const [fk, fl] = filled[i - 1], [tk, tl] = filled[i];
-    segs.push({ from: ms[fk], to: ms[tk], label: tl, title: `${fl} → ${tl}`, color: RUNNER_COLORS[(i - 1) % RUNNER_COLORS.length] });
+    segs.push({ from: ms[fk], to: ms[tk], label: tl, title: `${fl} → ${tl}`, color: runnerColor(tl, RUNNER_COLORS[(i - 1) % RUNNER_COLORS.length]) });
   }
   return segs;
 }
@@ -183,7 +193,11 @@ export default function GanttChart({ edits }) {
                   const lane = 0;   // split-day segments butt cleanly — one shared plane
                   // Segments run center-of-day to center-of-day, so back-to-back
                   // runners split the shared day at the milestone instead of overlapping
-                  const narrow = (rt - rf) <= 3;   // short runner: show an info icon instead of clipped text
+                  // Show the label when the bubble is physically wide enough for it
+                  // at the current zoom, else fall back to a tappable info icon.
+                  const pxPerDay = (Math.round(700 * zoom) - LABEL_W) / span;
+                  const segPx = Math.max(0.9, rt - rf) * pxPerDay;
+                  const narrow = segPx < (r.label.length * 4.7 + 12);
                   const infoKey = `${e.id}-${i}`;
                   return (
                     <div key={i} title={`${r.title}: ${fmt(r.from)} → ${fmt(r.to)}`}
