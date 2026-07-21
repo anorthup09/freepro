@@ -39,7 +39,7 @@ const pillBtn = () => ({ background:'var(--bg)', border:'1px solid rgba(255,255,
  * config: { cols:[{key,label}], merges:{ "<rowId>|<colKey>": {rs,cs} } } (per tab, stored on the page).
  * saveExtra(rowId, key, value) persists custom-cell values (row.extra).
  */
-function SmartTable({ rows, colDefs, config, onConfig, saveExtra, leading, trailing, emptyText, footerRight, minWidth, onReorder, readOnly }) {
+function SmartTable({ rows, colDefs, config, onConfig, saveExtra, leading, trailing, emptyText, footerRight, minWidth, onReorder, readOnly, corner }) {
   if (readOnly) onReorder = null; // no drag-reorder in the read-only client view
   const [mergeMode, setMergeMode] = useState(false);
   const [selA, setSelA] = useState(null);   // {ri, ci}
@@ -168,7 +168,7 @@ function SmartTable({ rows, colDefs, config, onConfig, saveExtra, leading, trail
           <thead>
             <tr>
               {onReorder && <th style={{ ...th, width:26 }}></th>}
-              {leading && <th style={{ ...th, width:34 }}></th>}
+              {leading && <th style={{ ...th, width:34, textAlign:'center' }}>{corner || null}</th>}
               {allCols.map(c => (
                 <th key={c.key} draggable={!readOnly} title={readOnly ? undefined : 'Drag to reorder column'}
                   onDragStart={() => setDragCol(c.key)}
@@ -331,6 +331,7 @@ function VideoTracker({ edits, setEdits, config, onConfig, code, readOnly, onOpe
   const [addForm, setAddForm] = useState(null);   // BLANK form when the pop-out is open
   const [savingAdd, setSavingAdd] = useState(false);
   const [colsOpen, setColsOpen] = useState(false); // column show/hide menu
+  const [colsAnchor, setColsAnchor] = useState({ x: 0, y: 0 });
   async function submitAdd(ev) {
     ev.preventDefault();
     if (savingAdd) return;
@@ -459,35 +460,34 @@ function VideoTracker({ edits, setEdits, config, onConfig, code, readOnly, onOpe
     if (grouped.length) grouped.push({ id: 'hdr-other', __header: 'No Type Yet', __color: 'var(--muted)' });
     grouped.push(...untyped);
   }
+  const columnsWheel = readOnly ? null : (
+    <button title="Add or remove columns"
+      onClick={e => { const r = e.currentTarget.getBoundingClientRect(); setColsAnchor({ x: r.left, y: r.bottom }); setColsOpen(o => !o); }}
+      style={{ background:'none', border:'none', color: colsOpen ? AVO : 'var(--muted)', cursor:'pointer', fontSize:14, lineHeight:1, padding:2 }}>⚙</button>
+  );
   return (
     <>
-      {!readOnly && (
-        <div style={{ position:'relative', marginBottom:8, display:'flex' }}>
-          <button onClick={() => setColsOpen(o => !o)} title="Add or remove columns"
-            style={{ background:'var(--bg2)', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:8, padding:'5px 12px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
-            ⚙ Columns
-          </button>
-          {colsOpen && (
-            <div style={{ position:'absolute', top:'100%', left:0, marginTop:4, zIndex:60, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding:6, minWidth:210, maxHeight:360, overflowY:'auto', boxShadow:'0 10px 28px rgba(0,0,0,0.55)' }}>
-              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'2px 6px 6px' }}>
-                <span style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', fontWeight:700 }}>Show columns</span>
-                <button onClick={() => setColsOpen(false)} style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:12, lineHeight:1 }}>✕</button>
-              </div>
-              {ALL_COLS.map(c => {
-                const visible = CORE_KEYS.has(c.key) ? !hiddenCols.has(c.key) : shownCols.has(c.key);
-                return (
-                  <label key={c.key} style={{ display:'flex', alignItems:'center', gap:8, fontSize:12, padding:'4px 6px', borderRadius:6, cursor:'pointer' }}>
-                    <input type="checkbox" checked={visible} onChange={() => toggleCol(c)} style={{ width:'auto', accentColor:AVO }} />
-                    {c.label}
-                  </label>
-                );
-              })}
-              <div style={{ fontSize:9.5, color:'var(--muted)', padding:'6px 6px 2px', lineHeight:1.4 }}>Tip: drag a column header to reorder. Use + Add Column below for a custom field.</div>
+      {colsOpen && !readOnly && createPortal(
+        <>
+          <div onClick={() => setColsOpen(false)} style={{ position:'fixed', inset:0, zIndex:130 }} />
+          <div style={{ position:'fixed', top:colsAnchor.y + 4, left:colsAnchor.x, zIndex:131, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding:6, minWidth:210, maxHeight:360, overflowY:'auto', boxShadow:'0 10px 28px rgba(0,0,0,0.55)' }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'2px 6px 6px' }}>
+              <span style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', fontWeight:700 }}>Show columns</span>
+              <button onClick={() => setColsOpen(false)} style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:12, lineHeight:1 }}>✕</button>
             </div>
-          )}
-        </div>
-      )}
-      <SmartTable rows={grouped} colDefs={colDefs} config={config} onConfig={onConfig} minWidth={1050} readOnly={readOnly}
+            {ALL_COLS.map(c => {
+              const visible = CORE_KEYS.has(c.key) ? !hiddenCols.has(c.key) : shownCols.has(c.key);
+              return (
+                <label key={c.key} style={{ display:'flex', alignItems:'center', gap:8, fontSize:12, padding:'4px 6px', borderRadius:6, cursor:'pointer' }}>
+                  <input type="checkbox" checked={visible} onChange={() => toggleCol(c)} style={{ width:'auto', accentColor:AVO }} />
+                  {c.label}
+                </label>
+              );
+            })}
+            <div style={{ fontSize:9.5, color:'var(--muted)', padding:'6px 6px 2px', lineHeight:1.4 }}>Tip: drag a column header to reorder. Use + Add Column below for a custom field.</div>
+          </div>
+        </>, document.body)}
+      <SmartTable rows={grouped} colDefs={colDefs} config={config} onConfig={onConfig} minWidth={1050} readOnly={readOnly} corner={columnsWheel}
         saveExtra={(id, k, v) => saveEdit(id, { extra: { [k]: v } })}
         onReorder={reorder} footerRight={{ addRow: () => setAddForm({ ...BLANK_DELIVERABLE_FORM }), label: '+ Add Deliverable' }}
         emptyText="No edits with this project code yet — add them from the pipeline and they'll appear here automatically."
