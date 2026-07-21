@@ -872,9 +872,56 @@ function MusicGrid({ rows, setRows, pageId, code, title, config, onConfig, edits
   const [dragColKey, setDragColKey] = useState(null);
   const [openFilter, setOpenFilter] = useState(null);
   const [filters, setFilters] = useState({});
+  const [liveWidths, setLiveWidths] = useState({});   // in-progress widths while dragging
+  const resizeRef = useRef(null);
   const customCols = config?.cols || [];
   const filterActive = ['category', 'url', 'note', ...customCols.map(c => c.key)].some(k => (filters[k] || '').trim());
   const filterKeys = ['category', 'url', 'note', ...customCols.map(c => c.key)];
+  // Column-level expand (wrap all cells) + per-cell collapse overrides + widths.
+  // Parent's onConfig merges into the saved music config, so pass just the delta.
+  const expandedCols = new Set(config?.expandedCols || []);
+  const collapsedCells = new Set(config?.collapsedCells || []);
+  const widths = config?.widths || {};
+  const colWidth = k => liveWidths[k] ?? widths[k] ?? undefined;
+  const toggleColExpand = key => { const s = new Set(expandedCols); s.has(key) ? s.delete(key) : s.add(key); onConfig({ expandedCols: [...s] }); };
+  const toggleCellCollapse = wid => { const s = new Set(collapsedCells); s.has(wid) ? s.delete(wid) : s.add(wid); onConfig({ collapsedCells: [...s] }); };
+  const cellExpanded = (colKey, rowId) => expandedCols.has(colKey) && !collapsedCells.has(`${rowId}|${colKey}`);
+  useEffect(() => {
+    function move(e) {
+      if (!resizeRef.current) return;
+      const { key, startX, startW } = resizeRef.current;
+      setLiveWidths(lw => ({ ...lw, [key]: Math.max(60, startW + (e.clientX - startX)) }));
+    }
+    function up() {
+      const r = resizeRef.current; if (!r) return; resizeRef.current = null;
+      setLiveWidths(lw => {
+        if (lw[r.key] != null) onConfig({ widths: { ...widths, [r.key]: Math.round(lw[r.key]) } });
+        const { [r.key]: _drop, ...rest } = lw; return rest;
+      });
+    }
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+    return () => { window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up); };
+  }, [config]);
+  // Small reusable header controls: expand-all toggle (for wrappable text cols)
+  // + a drag handle on the right edge to resize the column.
+  const colExpandBtn = (key) => !readOnly && (
+    <button title={expandedCols.has(key) ? 'Collapse all cells in this column' : 'Expand all cells in this column'} draggable={false}
+      onClick={e => { e.stopPropagation(); toggleColExpand(key); }}
+      style={{ background:'none', border:'none', cursor:'pointer', padding:'0 3px', fontSize:10, color: expandedCols.has(key) ? AVO : 'var(--muted)' }}>{expandedCols.has(key) ? '▤' : '⤢'}</button>
+  );
+  const colResizeHandle = (key) => !readOnly && (
+    <span title="Drag to resize column" draggable={false}
+      onMouseDown={e => { e.preventDefault(); e.stopPropagation(); const thEl = e.currentTarget.closest('th'); resizeRef.current = { key, startX: e.clientX, startW: thEl ? thEl.getBoundingClientRect().width : 120 }; }}
+      onClick={e => e.stopPropagation()}
+      style={{ position:'absolute', top:0, right:0, width:7, height:'100%', cursor:'col-resize', userSelect:'none' }} />
+  );
+  // Per-cell collapse toggle shown in a cell's corner while its column is expanded.
+  const cellCollapseBtn = (colKey, rowId) => !readOnly && expandedCols.has(colKey) && (
+    <button title={cellExpanded(colKey, rowId) ? 'Collapse this cell' : 'Expand this cell'}
+      onClick={ev => { ev.stopPropagation(); toggleCellCollapse(`${rowId}|${colKey}`); }}
+      style={{ position:'absolute', top:2, right:2, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:4, color:'var(--muted)', cursor:'pointer', fontSize:9, lineHeight:1, padding:'1px 3px', opacity:0.85 }}>{cellExpanded(colKey, rowId) ? '▴' : '⤢'}</button>
+  );
   const musicVal = (r, k) => customCols.some(c => c.key === k) ? (r.extra?.[k] ??  '') : (r[k] ?? '');
   const shownRows = filterActive
     ? rows.filter(r => filterKeys.every(k => {
@@ -996,18 +1043,19 @@ function MusicGrid({ rows, setRows, pageId, code, title, config, onConfig, edits
         <table style={{ width:'100%', borderCollapse:'collapse' }}>
           <thead>
             <tr>
-              <th style={{ ...th, position:'relative' }}>Video Title{filterWidget('category', 'Video Title')}</th>
+              <th style={{ ...th, position:'relative', width:colWidth('category'), maxWidth:colWidth('category') }}>Video Title{filterWidget('category', 'Video Title')}{colResizeHandle('category')}</th>
               <th style={{ ...th, width:60, textAlign:'center' }}>Select</th>
-              <th style={{ ...th, position:'relative' }}>Link{filterWidget('url', 'Link')}</th>
-              <th style={{ ...th, position:'relative' }}>Note{filterWidget('note', 'Note')}</th>
+              <th style={{ ...th, position:'relative', width:colWidth('url'), maxWidth:colWidth('url') }}>Link{colExpandBtn('url')}{filterWidget('url', 'Link')}{colResizeHandle('url')}</th>
+              <th style={{ ...th, position:'relative', width:colWidth('note'), maxWidth:colWidth('note') }}>Note{colExpandBtn('note')}{filterWidget('note', 'Note')}{colResizeHandle('note')}</th>
               {customCols.map(c => (
                 <th key={c.key} draggable={!readOnly} title={readOnly ? undefined : 'Drag to reorder column'}
                   onDragStart={() => setDragColKey(c.key)}
                   onDragOver={e => e.preventDefault()}
                   onDrop={() => { dropColOn(c.key); setDragColKey(null); }}
                   onDragEnd={() => setDragColKey(null)}
-                  style={{ ...th, cursor: readOnly ? 'default' : 'grab', position:'relative', opacity: dragColKey === c.key ? 0.5 : 1 }}>
+                  style={{ ...th, cursor: readOnly ? 'default' : 'grab', position:'relative', width:colWidth(c.key), maxWidth:colWidth(c.key), opacity: dragColKey === c.key ? 0.5 : 1 }}>
                   {c.label}
+                  {colExpandBtn(c.key)}
                   {filterWidget(c.key, c.label)}
                   {!readOnly && (
                     <span style={{ marginLeft:5, whiteSpace:'nowrap' }}>
@@ -1015,6 +1063,7 @@ function MusicGrid({ rows, setRows, pageId, code, title, config, onConfig, edits
                       <button title="Remove column" onClick={() => removeColumn(c)} style={{ background:'none', border:'none', color:'var(--muted)', fontSize:9, cursor:'pointer', padding:'0 2px' }}>✕</button>
                     </span>
                   )}
+                  {colResizeHandle(c.key)}
                 </th>
               ))}
               <th style={{ ...th, width:34 }}></th>
@@ -1033,7 +1082,7 @@ function MusicGrid({ rows, setRows, pageId, code, title, config, onConfig, edits
                 onDrop={r && dragId ? () => { dropRowOn(r.id); setDragId(null); setOverId(null); } : undefined}
                 style={{ borderTop: r && overId === r.id && dragId && dragId !== r.id ? `2px solid ${AVO}` : j === 0 ? '1px solid rgba(255,255,255,0.08)' : 'none', opacity: r && dragId === r.id ? 0.4 : 1 }}>
                 {j === 0 && (
-                  <td rowSpan={rowsForVideo.length} style={{ ...td, minWidth:170, borderRight:'1px solid rgba(255,255,255,0.05)', verticalAlign:'top', paddingTop:8 }}>
+                  <td rowSpan={rowsForVideo.length} style={{ ...td, minWidth:170, width:colWidth('category'), maxWidth:colWidth('category'), borderRight:'1px solid rgba(255,255,255,0.05)', verticalAlign:'top', paddingTop:8 }}>
                     <div style={{ display:'flex', alignItems:'center', gap:4 }}>
                       <div style={{ flex:1 }}>
                         <Cell value={r ? r.category : video} placeholder="Video title…" readOnly={readOnly} onSave={v => r ? saveCell(r.id, 'category', v) : addRow(v)}
@@ -1056,16 +1105,21 @@ function MusicGrid({ rows, setRows, pageId, code, title, config, onConfig, edits
                 </td>
                 {r ? (
                 <>
-                <td style={{ ...td, minWidth:260 }}>
+                <td style={{ ...td, minWidth:260, width:colWidth('url'), maxWidth:colWidth('url'), position:'relative' }}>
                   <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                    <Cell value={r.url} placeholder="https://…" readOnly={readOnly} onSave={v => saveCell(r.id, 'url', v)} style={{ color:'#4a9eff' }} />
+                    <Cell value={r.url} placeholder="https://…" readOnly={readOnly} multiline={cellExpanded('url', r.id)} onSave={v => saveCell(r.id, 'url', v)} style={{ color:'#4a9eff' }} />
                     {r.url && <a href={r.url} target="_blank" rel="noreferrer" style={{ color:'#4a9eff', fontSize:11, textDecoration:'none', flexShrink:0 }}>▶</a>}
                   </div>
+                  {cellCollapseBtn('url', r.id)}
                 </td>
-                <td style={{ ...td, minWidth:130 }}><Cell value={r.note} placeholder="instrumental version…" readOnly={readOnly} onSave={v => saveCell(r.id, 'note', v)} /></td>
+                <td style={{ ...td, minWidth:130, width:colWidth('note'), maxWidth:colWidth('note'), position:'relative' }}>
+                  <Cell value={r.note} placeholder="instrumental version…" readOnly={readOnly} multiline={cellExpanded('note', r.id)} onSave={v => saveCell(r.id, 'note', v)} />
+                  {cellCollapseBtn('note', r.id)}
+                </td>
                 {customCols.map(c => (
-                  <td key={c.key} style={{ ...td, minWidth:110 }}>
-                    <Cell value={r.extra?.[c.key]} placeholder="…" readOnly={readOnly} onSave={v => saveExtra(r.id, c.key, v)} />
+                  <td key={c.key} style={{ ...td, minWidth:110, width:colWidth(c.key), maxWidth:colWidth(c.key), position:'relative' }}>
+                    <Cell value={r.extra?.[c.key]} placeholder="…" readOnly={readOnly} multiline={cellExpanded(c.key, r.id)} onSave={v => saveExtra(r.id, c.key, v)} />
+                    {cellCollapseBtn(c.key, r.id)}
                   </td>
                 ))}
                 <td style={{ ...td, textAlign:'center', whiteSpace:'nowrap' }}>
