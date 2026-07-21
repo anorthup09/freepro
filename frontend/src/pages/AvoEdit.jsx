@@ -429,6 +429,7 @@ export default function AvoEdit() {
   const [busy, setBusy] = useState(false);
   const [sendCtr, setSendCtr] = useState(null);   // { contract, projectId, total } for the send pop-out
   const [newMs, setNewMs] = useState(null);       // { label, date } for the add-milestone form
+  const [rfrOpen, setRfrOpen] = useState(false);  // RFR notes prompt open
   const setCustoms = customs => setE(v => ({ ...v, custom_milestones: customs }));
   const fileRef = useRef(null);
   const feedRef = useRef(null);
@@ -475,7 +476,6 @@ export default function AvoEdit() {
     try { const activity = await api.deleteAvoComment(id, a.id); setE(v => ({ ...v, activity })); }
     catch (err) { alert(err.message); }
   }
-  const [rfrOpen, setRfrOpen] = useState(false);
 
   async function action(fn) {
     setBusy(true);
