@@ -1537,40 +1537,56 @@ function EditModal({ edit, statusOf, onSave, onClose, A = api, customCols = [] }
 const DELIV_STATUS = k => DELIVERABLE_STATUSES.find(([key]) => key === k);
 const fmtMsDate = d => d ? new Date(String(d).slice(0, 10) + 'T12:00:00').toLocaleDateString('en-US', { month:'short', day:'numeric' }) : '';
 
-// High-level, at-a-glance panel above the detailed tabs: one row per
-// deliverable with Name · Status (editable dropdown; RFR/Sent auto-set) ·
-// Current Editor (timeline-derived) · Next Steps (next upcoming milestone).
-function DeliverableOverview({ edits, onSave, onOpenEdit, readOnly }) {
-  const [open, setOpen] = useState(true);
+// The Post-Production Overview tab: a high-level, at-a-glance list — one row
+// per deliverable with Name · Status (editable dropdown; RFR/Sent auto-set) ·
+// Current Editor (timeline-derived) · Next Steps (next upcoming milestone) ·
+// per-row RFR + Sent to Client actions (same flow as the edit card).
+function DeliverableOverview({ edits, onSave, onOpenEdit, onStatus, readOnly, A = api }) {
   const list = edits || [];
-  if (!list.length) return null;
+  const [rfrFor, setRfrFor] = useState(null);   // edit whose RFR notes modal is open
+  const [busyId, setBusyId] = useState(null);   // edit mid-action
   const colHead = { padding:'8px 14px', fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', textAlign:'left', fontWeight:800, borderBottom:'1px solid var(--border)', whiteSpace:'nowrap' };
   const cell = { padding:'9px 14px', fontSize:12, borderBottom:'1px solid rgba(255,255,255,0.05)', verticalAlign:'middle' };
+  const sendClient = async e => {
+    setBusyId(e.id);
+    try { await A.avoSent(e.id); onStatus?.(e.id, 'SENT'); }
+    catch (err) { alert(err.message); }
+    setBusyId(null);
+  };
+  const confirmRfr = async notes => {
+    const e = rfrFor; setRfrFor(null); if (!e) return;
+    setBusyId(e.id);
+    try { await A.avoRfr(e.id, notes); onStatus?.(e.id, 'RFR'); }
+    catch (err) { alert(err.message); }
+    setBusyId(null);
+  };
   return (
-    <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, marginBottom:16, overflow:'hidden' }}>
-      <div onClick={() => setOpen(o => !o)}
-        style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 16px', cursor:'pointer', userSelect:'none' }}>
-        <div style={{ display:'flex', alignItems:'baseline', gap:9 }}>
-          <span style={{ fontSize:14, fontWeight:800, color:'var(--text)' }}>Deliverable Overview</span>
-          <span style={{ fontSize:11, color:'var(--muted)' }}>· {list.length} deliverable{list.length === 1 ? '' : 's'}</span>
-        </div>
-        <span style={{ fontSize:11, color:'var(--muted)' }}>{open ? '▾' : '▸'}</span>
+    <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, overflow:'hidden' }}>
+      <div style={{ display:'flex', alignItems:'baseline', gap:9, padding:'12px 16px' }}>
+        <span style={{ fontSize:14, fontWeight:800, color:'var(--text)' }}>Post-Production Overview</span>
+        <span style={{ fontSize:11, color:'var(--muted)' }}>· {list.length} deliverable{list.length === 1 ? '' : 's'}</span>
       </div>
-      {open && (
+      {list.length === 0 ? (
+        <div style={{ padding:'14px 16px', borderTop:'1px solid var(--border)', fontSize:12, color:'var(--muted)', fontStyle:'italic' }}>
+          No deliverables yet — add them in the Project Video Tracker.
+        </div>
+      ) : (
         <div style={{ overflowX:'auto', borderTop:'1px solid var(--border)' }}>
-          <table style={{ width:'100%', borderCollapse:'collapse', minWidth:660 }}>
+          <table style={{ width:'100%', borderCollapse:'collapse', minWidth:760 }}>
             <thead>
               <tr>
                 <th style={colHead}>Name of Edit</th>
                 <th style={colHead}>Status</th>
                 <th style={colHead}>Current Editor</th>
                 <th style={colHead}>Next Steps</th>
+                <th style={{ ...colHead, textAlign:'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {list.map(e => {
                 const cur = DELIV_STATUS(e.workflow_status) || DELIV_STATUS('IN_PROGRESS');
                 const nm = nextMilestone(e);
+                const busy = busyId === e.id;
                 return (
                   <tr key={e.id}>
                     <td style={{ ...cell, fontWeight:700 }}>
@@ -1590,6 +1606,14 @@ function DeliverableOverview({ edits, onSave, onOpenEdit, readOnly }) {
                         ? <span><span style={{ fontWeight:700 }}>{nm.label}</span> <span style={{ color:'var(--muted)' }}>— {fmtMsDate(nm.date)}</span></span>
                         : <span style={{ color:'var(--muted)' }}>—</span>}
                     </td>
+                    <td style={{ ...cell, textAlign:'right', whiteSpace:'nowrap' }}>
+                      <div style={{ display:'inline-flex', gap:6 }}>
+                        <button disabled={busy} onClick={() => setRfrFor(e)}
+                          style={{ background:'#e6c2291f', border:'1px solid #e6c229', color:'#e6c229', borderRadius:20, padding:'5px 12px', fontSize:10.5, fontWeight:800, cursor: busy ? 'default' : 'pointer', whiteSpace:'nowrap', opacity: busy ? 0.5 : 1 }}>RFR</button>
+                        <button disabled={busy} onClick={() => sendClient(e)}
+                          style={{ background:'#4a9eff1f', border:'1px solid #4a9eff', color:'#4a9eff', borderRadius:20, padding:'5px 12px', fontSize:10.5, fontWeight:800, cursor: busy ? 'default' : 'pointer', whiteSpace:'nowrap', opacity: busy ? 0.5 : 1 }}>Sent to Client</button>
+                      </div>
+                    </td>
                   </tr>
                 );
               })}
@@ -1597,11 +1621,12 @@ function DeliverableOverview({ edits, onSave, onOpenEdit, readOnly }) {
           </table>
         </div>
       )}
+      {rfrFor && <RfrModal title={rfrFor.title} onClose={() => setRfrFor(null)} onConfirm={confirmRfr} />}
     </div>
   );
 }
 
-const TABS = [['tracker', 'Project Video Tracker'], ['assets', 'Creative Assets'], ['todos', 'To-Do List'], ['music', 'Music Options'], ['lower-thirds', 'Lower Thirds']];
+const TABS = [['overview', 'Post-Production Overview'], ['tracker', 'Project Video Tracker'], ['assets', 'Creative Assets'], ['todos', 'To-Do List'], ['music', 'Music Options'], ['lower-thirds', 'Lower Thirds']];
 
 export default function AvoProject({ idOverride, embedded, shareData, clientView: clientViewProp, apiOverride }) {
   const { id: idParam } = useParams();
@@ -1619,7 +1644,7 @@ export default function AvoProject({ idOverride, embedded, shareData, clientView
   const [tables, setTables] = useState(shareData?.customTables || []);
   const [assets, setAssets] = useState(shareData?.assets || []);
   const [talent, setTalent] = useState(shareData?.talent || []);
-  const [tab, setTab] = useState('tracker');
+  const [tab, setTab] = useState('overview');
   const [err, setErr] = useState('');
   const [previewClient, setPreviewClient] = useState(false); // admin/producer "View as Client" toggle
   const [pwDraft, setPwDraft] = useState('');                // inline "Public PW" field
@@ -1778,9 +1803,6 @@ export default function AvoProject({ idOverride, embedded, shareData, clientView
               )}
             </div>
 
-            <DeliverableOverview edits={edits} onSave={saveEdit} readOnly={false}
-              onOpenEdit={clientView ? (e => setEditView(e)) : (e => nav(`/avo/${e.id}`))} />
-
             <div style={{ display:'flex', gap:6, flexWrap:'nowrap', overflowX:'auto', marginBottom:16, paddingBottom:4,
               WebkitMaskImage:'linear-gradient(to right, transparent 0, #000 16px, #000 calc(100% - 16px), transparent 100%)',
               maskImage:'linear-gradient(to right, transparent 0, #000 16px, #000 calc(100% - 16px), transparent 100%)' }}>
@@ -1808,6 +1830,11 @@ export default function AvoProject({ idOverride, embedded, shareData, clientView
               </button>
             </div>
 
+            {tab === 'overview' && (
+              <DeliverableOverview edits={edits} onSave={saveEdit} readOnly={false} A={A}
+                onStatus={(eid, ws) => setEdits(es => es.map(x => x.id === eid ? { ...x, workflow_status: ws } : x))}
+                onOpenEdit={clientView ? (e => setEditView(e)) : (e => nav(`/avo/${e.id}`))} />
+            )}
             {tab === 'tracker' && <>
               <VideoTracker edits={edits} setEdits={setEdits} code={page.code} config={cfgFor('tracker')} onConfig={saveCfg('tracker')}
                 A={A} onOpenEdit={clientView ? (e => setEditView(e)) : null} />
