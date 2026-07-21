@@ -597,7 +597,8 @@ router.delete('/edits/:id/comments/:aid', ...staff, async (req, res, next) => {
 
 // RFR notifies both the Project Manager and the Creative. Shared by the staff
 // route and the client/crew share route.
-async function rfrNotify(e, who, toOverride) {
+async function rfrNotify(e, who, toOverride, notes) {
+  notes = String(notes || '').trim();
   let creativeEmail = null;
   if (e.creative) {
     const [c] = await sql`SELECT email FROM crew_members WHERE email IS NOT NULL AND email <> ''
@@ -610,19 +611,20 @@ async function rfrNotify(e, who, toOverride) {
     sendMail({ identity: 'post',
       to,
       subject: `Ready For Review — ${e.title} V${e.version || 1}`,
-      text: `V${e.version || 1} of "${e.title}"${e.project_code ? ` (${e.project_code})` : ''} is ready for review from ${who}.\n\n${e.review_link ? `Review link: ${e.review_link}` : 'No review link set yet.'}\n\nOnce reviewed, hit Sent in AvocadoPost to log it went out.\n\nPostmarked ${fmtPostmark(now)}`,
+      text: `V${e.version || 1} of "${e.title}"${e.project_code ? ` (${e.project_code})` : ''} is ready for review from ${who}.\n\n${notes ? `Editor's notes for the director:\n${notes}\n\n` : ''}${e.review_link ? `Review link: ${e.review_link}` : 'No review link set yet.'}\n\nOnce reviewed, hit Sent in AvocadoPost to log it went out.\n\nPostmarked ${fmtPostmark(now)}`,
       html: noticeHtml({ tag: 'AvocadoPost', note: 'Ready for review',
         title: `${e.title} — V${e.version || 1}`, subtitle: e.project_code || '',
         intro: `V${e.version || 1} is ready for review from ${who}.`,
         rows: [['Video', e.title], ['Version', `V${e.version || 1}`], ['From', who],
                ['Lead Editor', e.lead_editor_name_resolved || e.lead_editor_name || ''],
                ...(e.creative ? [['Creative', e.creative]] : [])],
+        blocks: notes ? [["Editor's notes for the director", notes]] : undefined,
         copyLink: e.review_link ? { label: 'Review link — quick copy', url: e.review_link } : undefined,
         button: e.review_link ? { label: 'Open review', url: e.review_link } : undefined,
         postmark: now }),
     }).catch(err => console.error('RFR email failed:', err.message));
   }
-  await logAct(e.id, 'rfr', who, `V${e.version} RFR${recipients.length ? ` — notified ${recipients.join(', ')}` : ''}`);
+  await logAct(e.id, 'rfr', who, `V${e.version} RFR${recipients.length ? ` — notified ${recipients.join(', ')}` : ''}${notes ? ` · ${notes}` : ''}`);
 }
 async function sentNotify(e, who) {
   if (e.lead_editor_email) {
@@ -647,7 +649,7 @@ router.post('/edits/:id/rfr', ...staff, async (req, res, next) => {
   try {
     const [e] = await FULL_EDIT(req.params.id);
     if (!e) return res.status(404).json({ error: 'Edit not found' });
-    await rfrNotify(e, req.user?.name || req.user?.email || 'someone', req.body.to);
+    await rfrNotify(e, req.user?.name || req.user?.email || 'someone', req.body.to, req.body.notes);
     const activity = await sql`SELECT * FROM edit_activity WHERE edit_id = ${e.id} ORDER BY created_at`;
     res.json(activity);
   } catch (e) { next(e); }
@@ -1317,7 +1319,7 @@ shareRouter.post('/edits/:eid/rfr', async (req, res, next) => {
     const before = await editInPage(req.params.eid, req.sharePage);
     if (!before) return res.status(404).json({ error: 'Edit not found' });
     const [full] = await FULL_EDIT(req.params.eid);
-    await rfrNotify(full, SHARE_ACTOR);
+    await rfrNotify(full, SHARE_ACTOR, null, req.body.notes);
     const activity = await sql`SELECT id, edit_id, kind, author, body, created_at FROM edit_activity WHERE edit_id = ${req.params.eid} ORDER BY created_at`;
     res.json(activity);
   } catch (e) { next(e); }

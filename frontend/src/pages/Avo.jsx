@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../App.jsx';
 import { api } from '../api.js';
 import HomeButton from '../components/HomeButton.jsx';
+import RfrModal from '../components/RfrModal.jsx';
 
 export const AVO = '#9DC183';
 export const AVO_STATUSES = [
@@ -251,6 +252,7 @@ export default function Avo() {
   const [closedOpen, setClosedOpen] = useState(false);
   const [archivedOpen, setArchivedOpen] = useState(false);
   const [codeQ, setCodeQ] = useState('');
+  const [rfrFor, setRfrFor] = useState(null);   // edit awaiting RFR notes + confirm
   const load = () => api.avoEdits().then(setEdits).catch(e => alert(e.message));
   useEffect(() => { load(); }, []);
 
@@ -334,7 +336,7 @@ export default function Avo() {
                             </span>
                           </td>
                           <td style={{ ...td, padding:'7px 3px' }}>
-                            <button title="Ready For Review — email the PM" onClick={ev => act(ev, e.id, () => api.avoRfr(e.id))}
+                            <button title="Ready For Review — add notes for the director, then confirm" onClick={ev => { ev.stopPropagation(); setRfrFor(e); }}
                               style={{ background:'rgba(230,194,41,0.12)', border:'1px solid #e6c229', color:'#e6c229', borderRadius:10, padding:'2px 9px', fontSize:9, fontWeight:800, cursor:'pointer' }}>
                               RFR
                             </button>
@@ -419,6 +421,8 @@ export default function Avo() {
         })()}
       </div>
       {showNew && <NewEditModal onClose={() => setShowNew(false)} onCreated={e => { setShowNew(false); nav(`/avo/${e.id}`); }} />}
+      {rfrFor && <RfrModal title={rfrFor.title} onClose={() => setRfrFor(null)}
+        onConfirm={async notes => { await api.avoRfr(rfrFor.id, notes); setRfrFor(null); load(); }} />}
     </div>
   );
 }

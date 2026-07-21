@@ -8,6 +8,7 @@ import { CATEGORIES } from './AvoEdit.jsx';
 import { MILESTONES } from '../components/GanttChart.jsx';
 import { AvoForm, BLANK_DELIVERABLE_FORM } from './Project/Deliverables.jsx';
 import ContractSendModal from '../components/ContractSendModal.jsx';
+import RfrModal from '../components/RfrModal.jsx';
 
 const th = { padding:'7px 10px', fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', textAlign:'left', whiteSpace:'nowrap' };
 const td = { padding:'4px 6px', verticalAlign:'middle' };
@@ -1240,6 +1241,7 @@ function EditModal({ edit, statusOf, onSave, onClose, A = api }) {
   const [tlOpen, setTlOpen] = useState(false);
   const [comment, setComment] = useState('');
   const [busy, setBusy] = useState(false);
+  const [rfrOpen, setRfrOpen] = useState(false);
   // Pull the full detail + activity when the card opens.
   useEffect(() => {
     A.avoEdit(edit.id).then(full => { setE(prev => ({ ...prev, ...full })); setActivity(full.activity || []); }).catch(() => {});
@@ -1290,11 +1292,14 @@ function EditModal({ edit, statusOf, onSave, onClose, A = api }) {
               onFocus={ev => ev.target.style.borderBottom = `1px solid ${AVO}`}
               onBlurCapture={ev => ev.target.style.borderBottom = '1px solid transparent'} />
             <div style={{ display:'flex', gap:6, alignItems:'center', flexShrink:0 }}>
-              {actBtn('RFR', '#e6c229', () => A.avoRfr(e.id))}
+              <button disabled={busy} onClick={() => setRfrOpen(true)}
+                style={{ background:'#e6c2291f', border:'1px solid #e6c229', color:'#e6c229', borderRadius:20, padding:'5px 12px', fontSize:10.5, fontWeight:800, cursor:'pointer', whiteSpace:'nowrap' }}>RFR</button>
               {actBtn('Sent to Client', '#4a9eff', () => A.avoSent(e.id))}
               <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
             </div>
           </div>
+          {rfrOpen && <RfrModal title={e.title} onClose={() => setRfrOpen(false)}
+            onConfirm={async notes => { setRfrOpen(false); await act(() => A.avoRfr(e.id, notes)); }} />}
           {/* Category / Type / Status — one labeled row */}
           <div style={{ display:'flex', gap:10, flexWrap:'wrap', marginBottom:14 }}>
             <div style={{ flex:'1 1 130px' }}>

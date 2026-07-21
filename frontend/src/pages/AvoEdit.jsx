@@ -5,6 +5,7 @@ import { maybeMailNotice } from '../utils/mailNotice.js';
 import { AvoHeader, EditorSelect, AVO, AVO_STATUSES, fmtV, stepV, VersionInput } from './Avo.jsx';
 import { MILESTONES, milestoneText, milestoneRunners } from '../components/GanttChart.jsx';
 import ContractSendModal from '../components/ContractSendModal.jsx';
+import RfrModal from '../components/RfrModal.jsx';
 
 const lbl = { fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4, display:'block' };
 const KIND_STYLE = {
@@ -474,6 +475,7 @@ export default function AvoEdit() {
     try { const activity = await api.deleteAvoComment(id, a.id); setE(v => ({ ...v, activity })); }
     catch (err) { alert(err.message); }
   }
+  const [rfrOpen, setRfrOpen] = useState(false);
 
   async function action(fn) {
     setBusy(true);
@@ -869,7 +871,7 @@ export default function AvoEdit() {
                   </div>
                 </div>
                 <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
-                  <button disabled={busy} onClick={() => action(() => api.avoRfr(id))}
+                  <button disabled={busy} onClick={() => setRfrOpen(true)}
                     style={{ background:'rgba(230,194,41,0.12)', border:'1px solid #e6c229', color:'#e6c229', borderRadius:20, padding:'6px 16px', fontSize:11, fontWeight:800, cursor:'pointer' }}>
                     RFR — Ready For Review
                   </button>
@@ -973,6 +975,8 @@ export default function AvoEdit() {
             <ContractSendModal projectId={sendCtr.projectId} contract={sendCtr.contract} total={sendCtr.total}
               onClose={() => setSendCtr(null)} onSent={to => alert(`Contract sent to ${to}.`)} />
           )}
+          {rfrOpen && <RfrModal title={e.title} onClose={() => setRfrOpen(false)}
+            onConfirm={async notes => { setRfrOpen(false); await action(() => api.avoRfr(id, notes)); }} />}
           </div>
         </div>
       </div>
