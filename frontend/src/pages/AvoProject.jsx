@@ -19,10 +19,15 @@ const typeColor = t => { let h = 0; for (const c of t || '') h = (h * 31 + c.cha
 const fmtD = d => d ? new Date(String(d).slice(0, 10) + 'T12:00:00').toLocaleDateString('en-US', { month:'numeric', day:'numeric', year:'2-digit' }) : '—';
 
 // Inline-editable text cell: saves on blur. Read-only renders static text.
-function Cell({ value, onSave, placeholder, style, readOnly }) {
+function Cell({ value, onSave, placeholder, style, readOnly, multiline }) {
   const [v, setV] = useState(value || '');
   useEffect(() => setV(value || ''), [value]);
   if (readOnly) return <span style={{ ...cellInput, ...style, display:'inline-block', border:'1px solid transparent', background:'transparent', cursor:'default', whiteSpace:'pre-wrap', minHeight:0 }}>{value || ''}</span>;
+  if (multiline) return (
+    <textarea value={v} placeholder={placeholder} onChange={e => setV(e.target.value)}
+      onBlur={() => { if (v !== (value || '')) onSave(v); }} rows={3}
+      style={{ ...cellInput, ...style, minHeight:58, resize:'vertical', whiteSpace:'pre-wrap', lineHeight:1.4 }} />
+  );
   return (
     <input value={v} placeholder={placeholder} onChange={e => setV(e.target.value)}
       onBlur={() => { if (v !== (value || '')) onSave(v); }}
@@ -50,6 +55,7 @@ function SmartTable({ rows, colDefs, config, onConfig, saveExtra, leading, trail
   const [overCol, setOverCol] = useState(null);
   const [openFilter, setOpenFilter] = useState(null); // column key with the filter dropdown open
   const [filters, setFilters] = useState({});
+  const [wrapSet, setWrapSet] = useState(() => new Set()); // custom cells expanded to wrap
 
   const customCols = config?.cols || [];
   const merges = config?.merges || {};
@@ -237,8 +243,15 @@ function SmartTable({ rows, colDefs, config, onConfig, saveExtra, leading, trail
                   if (covered.has(`${ri},${ci}`)) return null;
                   const span = anchorAt[`${ri},${ci}`];
                   const sel = mergeMode && inRect(ri, ci);
+                  const wid = `${r.id}|${c.key}`;
+                  const wrapped = wrapSet.has(wid);
                   const content = c.custom
-                    ? <Cell value={r.extra?.[c.key]} placeholder="…" readOnly={readOnly} onSave={v => saveExtra(r.id, c.key, v)} />
+                    ? <div style={{ display:'flex', gap:4, alignItems:'flex-start' }}>
+                        <div style={{ flex:1, minWidth:0 }}><Cell value={r.extra?.[c.key]} placeholder="…" readOnly={readOnly} multiline={wrapped} onSave={v => saveExtra(r.id, c.key, v)} /></div>
+                        {!readOnly && <button title={wrapped ? 'Consolidate' : 'Expand & wrap'}
+                          onClick={ev => { ev.stopPropagation(); setWrapSet(s => { const n = new Set(s); n.has(wid) ? n.delete(wid) : n.add(wid); return n; }); }}
+                          style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:12, lineHeight:1, padding:'3px 2px', flexShrink:0 }}>{wrapped ? '▴' : '⤢'}</button>}
+                      </div>
                     : c.render(r);
                   return (
                     <td key={c.key} rowSpan={span?.rs} colSpan={span?.cs} onClick={() => cellClick(ri, ci)}
@@ -1287,7 +1300,7 @@ function AvoShareModal({ page, url, onEnable, onDisable, onClose }) {
 // both the internal preview and the public share link. Mirrors the producer
 // edit card: header row of Category/Type/Status, version stepper, RFR/Sent,
 // a collapsible timeline, and the activity log on the right.
-function EditModal({ edit, statusOf, onSave, onClose, A = api }) {
+function EditModal({ edit, statusOf, onSave, onClose, A = api, customCols = [] }) {
   const [e, setE] = useState(edit);
   const [activity, setActivity] = useState([]);
   const [tlOpen, setTlOpen] = useState(false);
@@ -1431,6 +1444,20 @@ function EditModal({ edit, statusOf, onSave, onClose, A = api }) {
               style={{ display:'inline-block', marginTop:12, background:'rgba(74,158,255,0.12)', border:'1px solid #4a9eff', color:'#4a9eff', borderRadius:8, padding:'7px 16px', fontSize:12, fontWeight:800, textDecoration:'none' }}>
               ▶ Open review link
             </a>
+          )}
+          {customCols.length > 0 && (
+            <div style={{ marginTop:14 }}>
+              <div style={hdr}>Tracker Fields</div>
+              {customCols.map(col => (
+                <div key={col.key} style={{ display:'flex', gap:10, alignItems:'flex-start', padding:'4px 0' }}>
+                  <span style={labelCss}>{col.label}</span>
+                  <textarea value={e.extra?.[col.key] || ''} rows={1} placeholder={`${col.label}…`}
+                    onChange={ev => setE(p => ({ ...p, extra: { ...(p.extra || {}), [col.key]: ev.target.value } }))}
+                    onBlur={ev => save({ extra: { [col.key]: ev.target.value } })}
+                    style={{ ...inp, resize:'vertical', minHeight:30, lineHeight:1.4 }} />
+                </div>
+              ))}
+            </div>
           )}
           {/* Timeline — collapsed unless expanded */}
           <div style={{ marginTop:16 }}>
@@ -1738,7 +1765,7 @@ export default function AvoProject({ idOverride, embedded, shareData, clientView
           </>
         )}
       </div>
-      {editView && <EditModal edit={editView} statusOf={statusOf} onSave={saveEdit} onClose={() => setEditView(null)} A={A} />}
+      {editView && <EditModal edit={editView} statusOf={statusOf} onSave={saveEdit} onClose={() => setEditView(null)} A={A} customCols={cfgFor('tracker').cols || []} />}
     </div>
   );
 }

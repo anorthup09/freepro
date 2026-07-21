@@ -870,6 +870,23 @@ export default function AvoEdit() {
                     {e.review_link && <a className="btn btn-ghost btn-sm" href={e.review_link} target="_blank" rel="noreferrer" style={{ textDecoration:'none' }}>▶ Open</a>}
                   </div>
                 </div>
+                {(e.custom_columns || []).length > 0 && (
+                  <div>
+                    <span style={lbl}>Project Tracker Fields</span>
+                    <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
+                      {(e.custom_columns || []).map(col => (
+                        <div key={col.key} style={{ flex:'1 1 200px', minWidth:180 }}>
+                          <span style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', display:'block', marginBottom:4 }}>{col.label}</span>
+                          <textarea value={e.extra?.[col.key] || ''} rows={1}
+                            placeholder={`${col.label}…`}
+                            onChange={ev => patch({ extra: { ...(e.extra || {}), [col.key]: ev.target.value } })}
+                            onBlur={ev => save({ extra: { [col.key]: ev.target.value } })}
+                            style={{ width:'100%', fontSize:13, resize:'vertical', minHeight:34, lineHeight:1.4, whiteSpace:'pre-wrap' }} />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
                   <button disabled={busy} onClick={() => setRfrOpen(true)}
                     style={{ background:'rgba(230,194,41,0.12)', border:'1px solid #e6c229', color:'#e6c229', borderRadius:20, padding:'6px 16px', fontSize:11, fontWeight:800, cursor:'pointer' }}>

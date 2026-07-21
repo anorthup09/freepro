@@ -190,7 +190,10 @@ router.get('/edits/:id', ...staff, async (req, res, next) => {
       }
     }
     const ptoConflicts = ptoByMember[e.lead_editor_id]?.conflicts || [];
-    res.json({ ...e, activity, files, pto_conflicts: ptoConflicts, pto_by_member: ptoByMember });
+    // Custom Video Tracker columns for this edit's project page, so the edit
+    // card can surface the same fields (values live on e.extra by column key).
+    const customColumns = await trackerCustomColumns(e.project_code);
+    res.json({ ...e, activity, files, pto_conflicts: ptoConflicts, pto_by_member: ptoByMember, custom_columns: customColumns });
   } catch (e) { next(e); }
 });
 
@@ -211,6 +214,16 @@ const FIELD_LOGS = {
   version: 'Version', approved: 'Approved', projectCode: 'Project Code',
   trackerType: 'Type', style: 'Style', notes: 'Notes', videoAssets: 'Video Assets', creative: 'Creative', frameRate: 'Frame Rate',
 };
+
+// Custom Video Tracker columns defined on an edit's project page ([{key,label}]).
+async function trackerCustomColumns(projectCode) {
+  if (!projectCode) return [];
+  const base = String(projectCode).replace(/-\d+$/, '');
+  const [page] = await sql`SELECT grid_config FROM avo_project_pages
+    WHERE code = ${projectCode} OR code = ${base} ORDER BY (code = ${projectCode}) DESC LIMIT 1`;
+  const cols = page?.grid_config?.tracker?.cols;
+  return Array.isArray(cols) ? cols.map(c => ({ key: c.key, label: c.label })) : [];
+}
 
 // Milestones an editor owns, in pipeline order — mirrors the frontend EDITOR_TASKS.
 const EDITOR_MS = ['icr_v1_due', 'client_v1_due', 'client_v2_due', 'client_v3_due', 'color_audio_send', 'final_comp'];
