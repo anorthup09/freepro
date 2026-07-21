@@ -676,7 +676,9 @@ export default function AvoEdit() {
                             const entry = effId ? ptoByMember[effId] : null;
                             const conflicts = entry?.conflicts || (effId && effId === e.lead_editor_id ? (e.pto_conflicts || []) : []);
                             const effName = entry?.name || (effId === e.lead_editor_id ? (e.lead_editor_name_resolved || e.lead_editor_name) : null) || 'This editor';
-                            const hits = (!skipped && val) ? conflicts.filter(c => String(c.start_date).slice(0,10) <= val && String(c.end_date).slice(0,10) >= val) : [];
+                            // "STL/DEN Only" just means in-office (still available to
+                            // edit), so it never blocks a milestone — no alert for it.
+                            const hits = (!skipped && val) ? conflicts.filter(c => c.pto_type !== 'STL/DEN Only' && String(c.start_date).slice(0,10) <= val && String(c.end_date).slice(0,10) >= val) : [];
                             if (!hits.length) return <span className="tl-ms-flag" style={{ width:16, flexShrink:0 }} />;
                             return (
                               <span className="tl-ms-flag" style={{ position:'relative', flexShrink:0 }}>
