@@ -413,6 +413,9 @@ function VideoTracker({ edits, setEdits, config, onConfig, code, readOnly, onOpe
     { key:'review_link', label:'Review Link', render: e => e.review_link
       ? <a href={e.review_link} target="_blank" rel="noreferrer" style={{ color:'#4a9eff', fontSize:11 }}>▶ {e.review_link.replace(/^https?:\/\/(www\.)?/, '').slice(0, 22)}</a>
       : <span style={{ color:'var(--muted)', fontSize:11 }}>—</span> },
+    { key:'latest_comment', label:'Latest Comment', minWidth:150, render: e => e.latest_comment
+      ? <span style={{ fontSize:11 }} title={e.latest_comment}>{e.latest_comment.slice(0, 40)}{e.latest_comment.length > 40 ? '…' : ''}</span>
+      : <span style={{ color:'var(--muted)', fontSize:11 }}>—</span> },
     { key:'status', label:'Status', render: e => {
       const st = statusOf(e.status);
       return st ? <span style={{ background:`${st[2]}22`, border:`1px solid ${st[2]}`, color:st[2], borderRadius:12, padding:'2px 10px', fontSize:9, fontWeight:800, whiteSpace:'nowrap' }}>{st[1]}</span> : null;

@@ -121,7 +121,7 @@ router.get('/edits', ...staff, async (req, res, next) => {
       LEFT JOIN projects p ON p.id = e.project_id
       LEFT JOIN LATERAL (
         SELECT body, author, created_at FROM edit_activity
-        WHERE edit_id = e.id AND kind = 'comment' ORDER BY created_at DESC LIMIT 1
+        WHERE edit_id = e.id AND kind IN ('rfr', 'sent') ORDER BY created_at DESC LIMIT 1
       ) la ON TRUE
       ORDER BY e.end_date NULLS LAST, e.created_at`;
     res.json(rows);
@@ -833,8 +833,13 @@ router.get('/projects/:id', ...staff, async (req, res, next) => {
     const music = await sql`SELECT * FROM avo_music WHERE page_id = ${page.id} ORDER BY sort, created_at`;
     // Video tracker: every pipeline edit carrying this project code (or one of its shoot codes)
     const edits = await sql`
-      SELECT e.*, COALESCE((SELECT ${sql.unsafe(PREF)} FROM crew_members cm WHERE cm.id = e.lead_editor_id), e.lead_editor_name) as lead_editor
+      SELECT e.*, COALESCE((SELECT ${sql.unsafe(PREF)} FROM crew_members cm WHERE cm.id = e.lead_editor_id), e.lead_editor_name) as lead_editor,
+        la.body as latest_comment, la.created_at as latest_comment_at
       FROM edits e
+      LEFT JOIN LATERAL (
+        SELECT body, created_at FROM edit_activity
+        WHERE edit_id = e.id AND kind IN ('rfr', 'sent') ORDER BY created_at DESC LIMIT 1
+      ) la ON TRUE
       WHERE (e.project_code = ${page.code} OR e.project_code LIKE ${page.code + '-%'}) AND e.archived IS NOT TRUE
       ORDER BY e.tracker_sort NULLS LAST, e.end_date NULLS LAST, e.created_at`;
     await attachCurrentEditor(edits);
@@ -1158,8 +1163,13 @@ shareRouter.get('/', async (req, res, next) => {
              e.status, e.version, e.approved, e.review_link, e.start_date, e.end_date, e.lead_editor_id, e.extra,
              e.aspect_ratio, e.resolution, e.frame_rate, e.drive, e.asset_ref, e.music_ref, e.video_assets, e.notes,
              e.milestones, e.milestone_skips, e.milestone_assignees,
+             la.body as latest_comment, la.created_at as latest_comment_at,
              COALESCE((SELECT ${sql.unsafe(PREF)} FROM crew_members cm WHERE cm.id = e.lead_editor_id), e.lead_editor_name) as lead_editor
       FROM edits e
+      LEFT JOIN LATERAL (
+        SELECT body, created_at FROM edit_activity
+        WHERE edit_id = e.id AND kind IN ('rfr', 'sent') ORDER BY created_at DESC LIMIT 1
+      ) la ON TRUE
       WHERE (e.project_code = ${page.code} OR e.project_code LIKE ${page.code + '-%'}) AND e.archived IS NOT TRUE
       ORDER BY e.tracker_sort NULLS LAST, e.end_date NULLS LAST, e.created_at`;
     await attachCurrentEditor(edits);
