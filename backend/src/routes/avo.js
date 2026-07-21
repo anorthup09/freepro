@@ -209,7 +209,7 @@ const FIELD_LOGS = {
   assetRef: 'Asset Ref', musicRef: 'Music Ref', category: 'Category', drive: 'Drive', costEstimate: 'Cost Estimate', status: 'Status',
   reviewLink: 'Current Review Link', startDate: 'Start Date', endDate: 'End Date',
   version: 'Version', approved: 'Approved', projectCode: 'Project Code',
-  trackerType: 'Type', style: 'Style', notes: 'Notes', videoAssets: 'Video Assets', creative: 'Creative',
+  trackerType: 'Type', style: 'Style', notes: 'Notes', videoAssets: 'Video Assets', creative: 'Creative', frameRate: 'Frame Rate',
 };
 
 // Milestones an editor owns, in pipeline order — mirrors the frontend EDITOR_TASKS.
@@ -289,6 +289,7 @@ router.patch('/edits/:id', ...staff, async (req, res, next) => {
         pm_id = ${d.pmId !== undefined ? (d.pmId || null) : sql`pm_id`},
         aspect_ratio = ${d.aspectRatio !== undefined ? (d.aspectRatio || null) : sql`aspect_ratio`},
         resolution = ${d.resolution !== undefined ? (d.resolution || null) : sql`resolution`},
+        frame_rate = ${d.frameRate !== undefined ? (d.frameRate || null) : sql`frame_rate`},
         asset_ref = ${d.assetRef !== undefined ? (d.assetRef || null) : sql`asset_ref`},
         music_ref = ${d.musicRef !== undefined ? (d.musicRef || null) : sql`music_ref`},
         category = ${d.category !== undefined ? (d.category || null) : sql`category`},
@@ -323,7 +324,7 @@ router.patch('/edits/:id', ...staff, async (req, res, next) => {
       endDate: before.end_date ? String(before.end_date).slice(0, 10) : null,
       version: before.version, approved: before.approved, projectCode: before.project_code,
       trackerType: before.tracker_type, style: before.style, notes: before.notes, videoAssets: before.video_assets,
-      creative: before.creative,
+      creative: before.creative, frameRate: before.frame_rate,
     };
     for (const [k, label] of Object.entries(FIELD_LOGS)) {
       if (d[k] === undefined) continue;
@@ -1108,7 +1109,7 @@ const SHARE_ACTOR = 'Client/Crew (shared link)';
 // Fields safe to expose on (and accept from) the shared link — never financial.
 const CLIENT_EDIT_COLS = ['id', 'title', 'description', 'category', 'tracker_type', 'tracker_color',
   'tracker_sort', 'status', 'version', 'approved', 'review_link', 'start_date', 'end_date',
-  'aspect_ratio', 'resolution', 'drive', 'asset_ref', 'music_ref', 'video_assets', 'notes',
+  'aspect_ratio', 'resolution', 'frame_rate', 'drive', 'asset_ref', 'music_ref', 'video_assets', 'notes',
   'milestones', 'milestone_skips', 'milestone_assignees'];
 function clientEdit(e) {
   const o = {};
@@ -1155,7 +1156,7 @@ shareRouter.get('/', async (req, res, next) => {
     const edits = await sql`
       SELECT e.id, e.title, e.description, e.category, e.tracker_type, e.tracker_color, e.tracker_sort,
              e.status, e.version, e.approved, e.review_link, e.start_date, e.end_date, e.lead_editor_id, e.extra,
-             e.aspect_ratio, e.resolution, e.drive, e.asset_ref, e.music_ref, e.video_assets, e.notes,
+             e.aspect_ratio, e.resolution, e.frame_rate, e.drive, e.asset_ref, e.music_ref, e.video_assets, e.notes,
              e.milestones, e.milestone_skips, e.milestone_assignees,
              COALESCE((SELECT ${sql.unsafe(PREF)} FROM crew_members cm WHERE cm.id = e.lead_editor_id), e.lead_editor_name) as lead_editor
       FROM edits e
@@ -1246,6 +1247,7 @@ shareRouter.patch('/edits/:eid', async (req, res, next) => {
         description = ${d.description !== undefined ? (d.description || null) : sql`description`},
         aspect_ratio = ${d.aspectRatio !== undefined ? (d.aspectRatio || null) : sql`aspect_ratio`},
         resolution = ${d.resolution !== undefined ? (d.resolution || null) : sql`resolution`},
+        frame_rate = ${d.frameRate !== undefined ? (d.frameRate || null) : sql`frame_rate`},
         asset_ref = ${d.assetRef !== undefined ? (d.assetRef || null) : sql`asset_ref`},
         music_ref = ${d.musicRef !== undefined ? (d.musicRef || null) : sql`music_ref`},
         drive = ${d.drive !== undefined ? (d.drive || null) : sql`drive`},

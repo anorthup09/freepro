@@ -827,6 +827,7 @@ export default function AvoEdit() {
                 <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
                   {field('Aspect Ratio', 'aspect_ratio', 'aspectRatio')}
                   {field('Resolution', 'resolution', 'resolution')}
+                  {field('Frame Rate', 'frame_rate', 'frameRate')}
                 </div>
                 <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
                   <div style={{ flex:1, minWidth:150 }}>

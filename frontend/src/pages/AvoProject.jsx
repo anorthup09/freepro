@@ -1260,7 +1260,7 @@ function EditModal({ edit, statusOf, onSave, onClose, A = api }) {
   const inp = { fontSize:12, flex:1 };
   const hdr = { fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4, fontWeight:700 };
   const TEXT_ROWS = [
-    ['aspect_ratio', 'aspectRatio', 'Aspect Ratio'], ['resolution', 'resolution', 'Resolution'],
+    ['aspect_ratio', 'aspectRatio', 'Aspect Ratio'], ['resolution', 'resolution', 'Resolution'], ['frame_rate', 'frameRate', 'Frame Rate'],
     ['drive', 'drive', 'Drive'], ['asset_ref', 'assetRef', 'Asset Ref'], ['music_ref', 'musicRef', 'Music Ref'],
   ];
   const tlRows = MILESTONES.filter(([k]) => !skips.includes(k));
