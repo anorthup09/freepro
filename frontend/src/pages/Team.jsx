@@ -56,7 +56,12 @@ export default function Team() {
   const [saving, setSaving] = useState(false);
   const [closedOpen, setClosedOpen] = useState(false);
   const [myView, setMyView] = useState(false);   // pipeline: only my requests (assignee or supervisor)
-  const [view, setView] = useState('form'); // 'form' | 'pipeline'
+  // Open on the OOO Pipeline when linked with ?view=pipeline (e.g. from the
+  // Crew Calendar PTO/OOO blocks); otherwise default to the request form.
+  const [view, setView] = useState(() => {
+    const v = new URLSearchParams(window.location.search).get('view');
+    return ['roster', 'form', 'pipeline'].includes(v) ? v : 'form';
+  });
   const { user } = useAuth();
 
   const displayOf = m => [m.preferred_first_name, m.preferred_last_name].filter(Boolean).join(' ').trim() || m.name;
