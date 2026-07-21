@@ -595,6 +595,16 @@ router.get('/wob/all', requireAuth, requireRole('ADMIN'), async (req, res, next)
   } catch (e) { next(e); }
 });
 
+// Every MediaMoment (fun fact) submission — Admin report + delete
+router.get('/funfact/all', requireAuth, requireRole('ADMIN'), async (req, res, next) => {
+  try {
+    res.json(await sql`SELECT id, member_name, member_email, prompt, answer, week, created_at FROM fun_facts ORDER BY created_at DESC`);
+  } catch (e) { next(e); }
+});
+router.delete('/funfact/:id', requireAuth, requireRole('ADMIN'), async (req, res, next) => {
+  try { await sql`DELETE FROM fun_facts WHERE id = ${req.params.id}`; res.status(204).end(); } catch (e) { next(e); }
+});
+
 router.post('/funfact', requireAuth, async (req, res, next) => {
   try {
     const answer = String(req.body.answer || '').trim();
