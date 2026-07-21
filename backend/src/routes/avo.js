@@ -585,6 +585,16 @@ router.post('/edits/:id/comments', ...staff, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// Delete a single comment from an edit's activity (comments only — the log /
+// RFR / Sent audit trail is preserved). Returns the refreshed activity list.
+router.delete('/edits/:id/comments/:aid', ...staff, async (req, res, next) => {
+  try {
+    await sql`DELETE FROM edit_activity WHERE id = ${req.params.aid} AND edit_id = ${req.params.id} AND kind = 'comment'`;
+    const activity = await sql`SELECT * FROM edit_activity WHERE edit_id = ${req.params.id} ORDER BY created_at`;
+    res.json(activity);
+  } catch (e) { next(e); }
+});
+
 // RFR notifies both the Project Manager and the Creative. Shared by the staff
 // route and the client/crew share route.
 async function rfrNotify(e, who, toOverride) {

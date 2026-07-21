@@ -469,6 +469,11 @@ export default function AvoEdit() {
     catch (err) { alert(err.message); }
     setBusy(false);
   }
+  async function delComment(a) {
+    if (!confirm('Delete this comment?')) return;
+    try { const activity = await api.deleteAvoComment(id, a.id); setE(v => ({ ...v, activity })); }
+    catch (err) { alert(err.message); }
+  }
 
   async function action(fn) {
     setBusy(true);
@@ -929,7 +934,11 @@ export default function AvoEdit() {
                     <span style={{ fontSize:10, fontWeight:700, color: a.kind === 'rfr' ? '#e6c229' : a.kind === 'sent' ? '#4a9eff' : AVO }}>
                       {a.kind === 'rfr' ? '⚑ ' : a.kind === 'sent' ? '➤ ' : ''}{a.author}
                     </span>
-                    <span style={{ fontSize:9, color:'var(--muted)', whiteSpace:'nowrap' }}>{fmtDT(a.created_at)}</span>
+                    <span style={{ display:'flex', alignItems:'center', gap:8 }}>
+                      <span style={{ fontSize:9, color:'var(--muted)', whiteSpace:'nowrap' }}>{fmtDT(a.created_at)}</span>
+                      {a.kind === 'comment' && <button title="Delete this comment" onClick={() => delComment(a)}
+                        style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11, padding:0, lineHeight:1 }}>✕</button>}
+                    </span>
                   </div>
                   <div style={{ fontSize:12, whiteSpace:'pre-wrap' }}>{a.body}</div>
                 </div>

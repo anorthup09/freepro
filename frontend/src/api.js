@@ -102,6 +102,7 @@ export const api = {
   vccReport: () => req('GET', '/finance/vcc-report'),
   deleteAvoEdit: (id) => req('DELETE', `/avo/edits/${id}`),
   avoComment: (id, body) => req('POST', `/avo/edits/${id}/comments`, { body }),
+  deleteAvoComment: (id, aid) => req('DELETE', `/avo/edits/${id}/comments/${aid}`),
   avoRfr: (id) => req('POST', `/avo/edits/${id}/rfr`, {}),
   avoSent: (id) => req('POST', `/avo/edits/${id}/sent`, {}),
   avoUploadFile: (id, data) => req('POST', `/avo/edits/${id}/files`, data),

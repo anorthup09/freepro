@@ -1256,6 +1256,10 @@ function EditModal({ edit, statusOf, onSave, onClose, A = api }) {
     if (!comment.trim()) return;
     try { setActivity(await A.avoComment(e.id, comment.trim())); setComment(''); } catch (err) { alert(err.message); }
   };
+  const delComment = async a => {
+    if (!confirm('Delete this comment?')) return;
+    try { setActivity(await A.deleteAvoComment(e.id, a.id)); } catch (err) { alert(err.message); }
+  };
   const cc = catColor(e.category);
   const iso = d => d ? String(d).slice(0, 10) : '';
   const usedCats = [...new Set([...CATEGORIES, e.category].filter(Boolean))];
@@ -1399,7 +1403,11 @@ function EditModal({ edit, statusOf, onSave, onClose, A = api }) {
                   <span style={{ color: a.kind === 'comment' ? 'var(--text)' : 'var(--muted)', fontWeight: a.kind === 'comment' ? 700 : 400 }}>
                     {a.kind === 'comment' ? '💬 ' : '• '}{a.author || 'someone'}{a.kind === 'comment' ? '' : ` ${a.body}`}
                   </span>
-                  <span style={{ color:'var(--muted)', whiteSpace:'nowrap', fontSize:10 }}>{fmtWhen(a.created_at)}</span>
+                  <span style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
+                    <span style={{ color:'var(--muted)', whiteSpace:'nowrap', fontSize:10 }}>{fmtWhen(a.created_at)}</span>
+                    {a.kind === 'comment' && A.deleteAvoComment && <button title="Delete this comment" onClick={() => delComment(a)}
+                      style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11, padding:0, lineHeight:1 }}>✕</button>}
+                  </span>
                 </div>
                 {a.kind === 'comment' && <div style={{ marginTop:2, whiteSpace:'pre-wrap' }}>{a.body}</div>}
               </div>
