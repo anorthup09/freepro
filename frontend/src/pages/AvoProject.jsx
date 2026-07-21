@@ -22,7 +22,7 @@ const fmtD = d => d ? new Date(String(d).slice(0, 10) + 'T12:00:00').toLocaleDat
 function Cell({ value, onSave, placeholder, style, readOnly, multiline }) {
   const [v, setV] = useState(value || '');
   useEffect(() => setV(value || ''), [value]);
-  if (readOnly) return <span style={{ ...cellInput, ...style, display:'inline-block', border:'1px solid transparent', background:'transparent', cursor:'default', whiteSpace:'pre-wrap', minHeight:0 }}>{value || ''}</span>;
+  if (readOnly) return <span style={{ ...cellInput, ...style, display:'inline-block', border:'1px solid transparent', background:'transparent', cursor:'default', minHeight:0, ...(multiline ? { whiteSpace:'pre-wrap' } : { whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth:'100%' }) }}>{value || ''}</span>;
   if (multiline) return (
     <textarea value={v} placeholder={placeholder} onChange={e => setV(e.target.value)}
       onBlur={() => { if (v !== (value || '')) onSave(v); }} rows={3}
@@ -55,10 +55,37 @@ function SmartTable({ rows, colDefs, config, onConfig, saveExtra, leading, trail
   const [overCol, setOverCol] = useState(null);
   const [openFilter, setOpenFilter] = useState(null); // column key with the filter dropdown open
   const [filters, setFilters] = useState({});
-  const [wrapSet, setWrapSet] = useState(() => new Set()); // custom cells expanded to wrap
+  const [liveWidths, setLiveWidths] = useState({});   // in-progress column widths while dragging
+  const resizeRef = useRef(null);
 
   const customCols = config?.cols || [];
   const merges = config?.merges || {};
+  // Column-level expand (wrap all cells) + per-cell collapse overrides + widths.
+  const expandedCols = new Set(config?.expandedCols || []);
+  const collapsedCells = new Set(config?.collapsedCells || []);
+  const widths = config?.widths || {};
+  const patchConfig = obj => onConfig({ ...config, ...obj });
+  const colWidth = c => liveWidths[c.key] ?? widths[c.key] ?? c.minWidth ?? undefined;
+  const isExpandable = c => c.custom || c.expandable;
+  const toggleColExpand = key => { const s = new Set(expandedCols); s.has(key) ? s.delete(key) : s.add(key); patchConfig({ expandedCols: [...s] }); };
+  const toggleCellCollapse = wid => { const s = new Set(collapsedCells); s.has(wid) ? s.delete(wid) : s.add(wid); patchConfig({ collapsedCells: [...s] }); };
+  useEffect(() => {
+    function move(e) {
+      if (!resizeRef.current) return;
+      const { key, startX, startW } = resizeRef.current;
+      setLiveWidths(lw => ({ ...lw, [key]: Math.max(60, startW + (e.clientX - startX)) }));
+    }
+    function up() {
+      const r = resizeRef.current; if (!r) return; resizeRef.current = null;
+      setLiveWidths(lw => {
+        if (lw[r.key] != null) patchConfig({ widths: { ...widths, [r.key]: Math.round(lw[r.key]) } });
+        const { [r.key]: _drop, ...rest } = lw; return rest;
+      });
+    }
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+    return () => { window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up); };
+  }, [config]);
   const baseCols = [
     ...colDefs.map(c => ({ ...c, custom: false })),
     ...customCols.map(c => ({ key: c.key, label: c.label, custom: true })),
@@ -175,19 +202,28 @@ function SmartTable({ rows, colDefs, config, onConfig, saveExtra, leading, trail
             <tr>
               {onReorder && <th style={{ ...th, width:26 }}></th>}
               {leading && <th style={{ ...th, width:34, textAlign:'center' }}>{corner || null}</th>}
-              {allCols.map(c => (
+              {allCols.map(c => { const w = colWidth(c); return (
                 <th key={c.key} draggable={!readOnly} title={readOnly ? undefined : 'Drag to reorder column'}
                   onDragStart={() => setDragCol(c.key)}
                   onDragOver={e => { e.preventDefault(); setOverCol(c.key); }}
                   onDragLeave={() => setOverCol(o => o === c.key ? null : o)}
                   onDrop={() => { dropCol(c.key); setDragCol(null); setOverCol(null); }}
                   onDragEnd={() => { setDragCol(null); setOverCol(null); }}
-                  style={{ ...th, cursor:'grab', position:'relative', background: overCol === c.key && dragCol && dragCol !== c.key ? `${AVO}20` : undefined, opacity: dragCol === c.key ? 0.5 : 1 }}>
+                  style={{ ...th, cursor:'grab', position:'relative', width:w, maxWidth:w, background: overCol === c.key && dragCol && dragCol !== c.key ? `${AVO}20` : undefined, opacity: dragCol === c.key ? 0.5 : 1 }}>
                   {c.label}
+                  {isExpandable(c) && !readOnly && (
+                    <button title={expandedCols.has(c.key) ? 'Collapse all cells in this column' : 'Expand all cells in this column'} draggable={false}
+                      onClick={e => { e.stopPropagation(); toggleColExpand(c.key); }}
+                      style={{ background:'none', border:'none', cursor:'pointer', padding:'0 3px', fontSize:10, color: expandedCols.has(c.key) ? AVO : 'var(--muted)' }}>{expandedCols.has(c.key) ? '▤' : '⤢'}</button>
+                  )}
                   <button title="Filter by this column" draggable={false}
                     onClick={e => { e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); setOpenFilter(o => o?.key === c.key ? null : { key: c.key, x: r.left, y: r.bottom }); }}
                     style={{ background:'none', border:'none', cursor:'pointer', padding:'0 3px', fontSize:9,
                       color: (filters[c.key] || '').trim() ? AVO : 'var(--muted)', opacity: (filters[c.key] || '').trim() ? 1 : 0.7 }}>⧩</button>
+                  {!readOnly && <span title="Drag to resize column" draggable={false}
+                    onMouseDown={e => { e.preventDefault(); e.stopPropagation(); const thEl = e.currentTarget.closest('th'); resizeRef.current = { key: c.key, startX: e.clientX, startW: thEl ? thEl.getBoundingClientRect().width : 120 }; }}
+                    onClick={e => e.stopPropagation()}
+                    style={{ position:'absolute', top:0, right:0, width:7, height:'100%', cursor:'col-resize', userSelect:'none' }} />}
                   {openFilter?.key === c.key && (
                     <div onClick={e => e.stopPropagation()}
                       style={{ position:'fixed', top:openFilter.y + 4, left:Math.min(openFilter.x, window.innerWidth - 180), zIndex:130, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:7, padding:8, boxShadow:'0 8px 20px rgba(0,0,0,0.5)', minWidth:150 }}>
@@ -211,7 +247,7 @@ function SmartTable({ rows, colDefs, config, onConfig, saveExtra, leading, trail
                     </span>
                   )}
                 </th>
-              ))}
+              ); })}
               {trailing && <th style={{ ...th, width:34 }}></th>}
             </tr>
           </thead>
@@ -244,21 +280,23 @@ function SmartTable({ rows, colDefs, config, onConfig, saveExtra, leading, trail
                   const span = anchorAt[`${ri},${ci}`];
                   const sel = mergeMode && inRect(ri, ci);
                   const wid = `${r.id}|${c.key}`;
-                  const wrapped = wrapSet.has(wid);
+                  const w = colWidth(c);
+                  const colExp = expandedCols.has(c.key);
+                  const eff = colExp && !collapsedCells.has(wid);   // this cell wrapped?
                   const content = c.custom
-                    ? <div style={{ display:'flex', gap:4, alignItems:'flex-start' }}>
-                        <div style={{ flex:1, minWidth:0 }}><Cell value={r.extra?.[c.key]} placeholder="…" readOnly={readOnly} multiline={wrapped} onSave={v => saveExtra(r.id, c.key, v)} /></div>
-                        {!readOnly && <button title={wrapped ? 'Consolidate' : 'Expand & wrap'}
-                          onClick={ev => { ev.stopPropagation(); setWrapSet(s => { const n = new Set(s); n.has(wid) ? n.delete(wid) : n.add(wid); return n; }); }}
-                          style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:12, lineHeight:1, padding:'3px 2px', flexShrink:0 }}>{wrapped ? '▴' : '⤢'}</button>}
-                      </div>
-                    : c.render(r);
+                    ? <Cell value={r.extra?.[c.key]} placeholder="…" readOnly={readOnly} multiline={eff} onSave={v => saveExtra(r.id, c.key, v)} />
+                    : c.render(r, eff);
                   return (
                     <td key={c.key} rowSpan={span?.rs} colSpan={span?.cs} onClick={() => cellClick(ri, ci)}
-                      style={{ ...td, minWidth: c.minWidth,
+                      style={{ ...td, minWidth: w || c.minWidth, width: w, maxWidth: w, position:'relative',
                         ...(span ? { border:'1px solid rgba(255,255,255,0.09)', verticalAlign:'middle' } : {}),
                         ...(mergeMode ? { cursor:'pointer', background: sel ? `${AVO}30` : span ? 'rgba(255,255,255,0.03)' : undefined } : {}) }}>
                       <div style={mergeMode ? { pointerEvents:'none' } : undefined}>{content}</div>
+                      {colExp && isExpandable(c) && !readOnly && !mergeMode && (
+                        <button title={eff ? 'Collapse this cell' : 'Expand this cell'}
+                          onClick={ev => { ev.stopPropagation(); toggleCellCollapse(wid); }}
+                          style={{ position:'absolute', top:2, right:2, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:4, color:'var(--muted)', cursor:'pointer', fontSize:9, lineHeight:1, padding:'1px 3px', opacity:0.85 }}>{eff ? '▴' : '⤢'}</button>
+                      )}
                     </td>
                   );
                 })}
@@ -408,23 +446,10 @@ function VideoTracker({ edits, setEdits, config, onConfig, code, readOnly, onOpe
     } },
     { key:'title', label:'Video Title', minWidth:150, render: e =>
       <span onClick={() => onOpenEdit ? onOpenEdit(e) : nav(`/avo/${e.id}`)} style={{ fontSize:12, fontWeight:700, cursor:'pointer', padding:'5px 6px', display:'inline-block' }}>{e.title}</span> },
-    { key:'description', label:'Description', minWidth:190, render: e => {
-      const exp = e.extra?.descExpanded;
-      return (
-        <div style={{ display:'flex', gap:4, alignItems:'flex-start' }}>
-          {exp
-            ? <textarea value={e.description || ''} placeholder="Description…" rows={3} disabled={readOnly}
-                onChange={ev => setEdits(es => es.map(x => x.id === e.id ? { ...x, description: ev.target.value } : x))}
-                onBlur={ev => saveEdit(e.id, { description: ev.target.value })}
-                style={{ flex:1, fontSize:12, lineHeight:1.4, resize:'vertical', whiteSpace:'pre-wrap', minWidth:0 }} />
-            : <div style={{ flex:1, minWidth:0 }}><Cell value={e.description} placeholder="Description…" readOnly={readOnly} onSave={v => saveEdit(e.id, { description: v })} /></div>}
-          <button title={exp ? 'Collapse description' : 'Expand & wrap description'} onClick={() => saveEdit(e.id, { extra: { descExpanded: !exp } })}
-            style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:12, lineHeight:1, padding:'3px 2px', flexShrink:0 }}>{exp ? '▴' : '⤢'}</button>
-        </div>
-      );
-    } },
+    { key:'description', label:'Description', minWidth:190, expandable:true, render: (e, expanded) =>
+      <Cell value={e.description} placeholder="Description…" readOnly={readOnly} multiline={expanded} onSave={v => saveEdit(e.id, { description: v })} /> },
     { key:'end_date', label:'Due Date', render: e => <span style={{ whiteSpace:'nowrap', fontSize:12 }}>{fmtD(e.end_date)}</span> },
-    { key:'video_assets', label:'Video Assets', minWidth:160, render: e => <Cell value={e.video_assets} placeholder="iPhone videos, music…" readOnly={readOnly} onSave={v => saveEdit(e.id, { videoAssets: v })} /> },
+    { key:'video_assets', label:'Video Assets', minWidth:160, expandable:true, render: (e, expanded) => <Cell value={e.video_assets} placeholder="iPhone videos, music…" readOnly={readOnly} multiline={expanded} onSave={v => saveEdit(e.id, { videoAssets: v })} /> },
     { key:'lead_editor', label:'Editor', render: e => <span style={{ fontSize:12, whiteSpace:'nowrap' }}>{e.current_editor || e.lead_editor || '—'}</span> },
     { key:'review_link', label:'Review Link', render: e => e.review_link
       ? <a href={e.review_link} target="_blank" rel="noreferrer" style={{ color:'#4a9eff', fontSize:11 }}>▶ {e.review_link.replace(/^https?:\/\/(www\.)?/, '').slice(0, 22)}</a>
@@ -751,8 +776,8 @@ function Grid({ kind, columns, rows, setRows, pageId, doneKey, renderCell, confi
     catch (e) { alert(e.message); }
   }
   const colDefs = columns.map(([c, label, placeholder]) => ({
-    key: c, label,
-    render: r => renderCell?.(r, c, v => saveCell(r.id, c, v), readOnly) || <Cell value={r[c]} placeholder={placeholder} readOnly={readOnly} onSave={v => saveCell(r.id, c, v)} />,
+    key: c, label, expandable: true,
+    render: (r, expanded) => renderCell?.(r, c, v => saveCell(r.id, c, v), readOnly, expanded) || <Cell value={r[c]} placeholder={placeholder} readOnly={readOnly} multiline={expanded} onSave={v => saveCell(r.id, c, v)} />,
   }));
   const shown = doneKey ? rows.map(r => r[doneKey] ? { ...r, __dim: true } : r) : rows;
   function reorder(next) {
@@ -1618,11 +1643,11 @@ export default function AvoProject({ idOverride, embedded, shareData, clientView
   }
   const statusOf = k => AVO_STATUSES.find(([key]) => key === k);
 
-  const todoCell = (r, c, save, ro) => c === 'category'
+  const todoCell = (r, c, save, ro, expanded) => c === 'category'
     ? <Cell value={r.category} placeholder="Category…" onSave={save} readOnly={ro}
         style={r.category ? { background:`${typeColor(r.category)}22`, border:`1px solid ${typeColor(r.category)}55`, color:typeColor(r.category), fontWeight:700, textAlign:'center', borderRadius:12 } : {}} />
     : c === 'text'
-      ? <Cell value={r.text} placeholder="Status / who's on it…" onSave={save} readOnly={ro} style={{ fontStyle: r.text ? 'italic' : 'normal', color: r.text ? '#a78bfa' : undefined }} />
+      ? <Cell value={r.text} placeholder="Status / who's on it…" onSave={save} readOnly={ro} multiline={expanded} style={{ fontStyle: r.text ? 'italic' : 'normal', color: r.text ? '#a78bfa' : undefined }} />
       : null;
 
   return (
