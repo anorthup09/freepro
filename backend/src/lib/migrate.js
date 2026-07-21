@@ -1329,6 +1329,10 @@ async function migrate() {
   await sql`ALTER TABLE edits ADD COLUMN IF NOT EXISTS creative TEXT`;
   // Manual frame-rate spec on an edit (e.g. "23.976", "24", "29.97")
   await sql`ALTER TABLE edits ADD COLUMN IF NOT EXISTS frame_rate TEXT`;
+  // High-level deliverable workflow status for the Deliverable Overview
+  // (In Progress / RFR / Sent to Client / Address Feedback / …). Distinct from
+  // the pipeline lane in `status`. Auto-set to RFR/SENT by those actions.
+  await sql`ALTER TABLE edits ADD COLUMN IF NOT EXISTS workflow_status TEXT`;
 
   // User-defined tables on Avo project pages (fully custom columns)
   await sql`

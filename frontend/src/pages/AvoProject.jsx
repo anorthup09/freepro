@@ -3,9 +3,9 @@ import { createPortal } from 'react-dom';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../App.jsx';
-import { AvoHeader, AVO, AVO_STATUSES, EditorSelect, VersionInput, stepV } from './Avo.jsx';
+import { AvoHeader, AVO, AVO_STATUSES, DELIVERABLE_STATUSES, EditorSelect, VersionInput, stepV } from './Avo.jsx';
 import { CATEGORIES } from './AvoEdit.jsx';
-import { MILESTONES } from '../components/GanttChart.jsx';
+import { MILESTONES, nextMilestone } from '../components/GanttChart.jsx';
 import { AvoForm, BLANK_DELIVERABLE_FORM } from './Project/Deliverables.jsx';
 import ContractSendModal from '../components/ContractSendModal.jsx';
 import RfrModal from '../components/RfrModal.jsx';
@@ -1534,6 +1534,73 @@ function EditModal({ edit, statusOf, onSave, onClose, A = api, customCols = [] }
   );
 }
 
+const DELIV_STATUS = k => DELIVERABLE_STATUSES.find(([key]) => key === k);
+const fmtMsDate = d => d ? new Date(String(d).slice(0, 10) + 'T12:00:00').toLocaleDateString('en-US', { month:'short', day:'numeric' }) : '';
+
+// High-level, at-a-glance panel above the detailed tabs: one row per
+// deliverable with Name · Status (editable dropdown; RFR/Sent auto-set) ·
+// Current Editor (timeline-derived) · Next Steps (next upcoming milestone).
+function DeliverableOverview({ edits, onSave, onOpenEdit, readOnly }) {
+  const [open, setOpen] = useState(true);
+  const list = edits || [];
+  if (!list.length) return null;
+  const colHead = { padding:'8px 14px', fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', textAlign:'left', fontWeight:800, borderBottom:'1px solid var(--border)', whiteSpace:'nowrap' };
+  const cell = { padding:'9px 14px', fontSize:12, borderBottom:'1px solid rgba(255,255,255,0.05)', verticalAlign:'middle' };
+  return (
+    <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, marginBottom:16, overflow:'hidden' }}>
+      <div onClick={() => setOpen(o => !o)}
+        style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 16px', cursor:'pointer', userSelect:'none' }}>
+        <div style={{ display:'flex', alignItems:'baseline', gap:9 }}>
+          <span style={{ fontSize:14, fontWeight:800, color:'var(--text)' }}>Deliverable Overview</span>
+          <span style={{ fontSize:11, color:'var(--muted)' }}>· {list.length} deliverable{list.length === 1 ? '' : 's'}</span>
+        </div>
+        <span style={{ fontSize:11, color:'var(--muted)' }}>{open ? '▾' : '▸'}</span>
+      </div>
+      {open && (
+        <div style={{ overflowX:'auto', borderTop:'1px solid var(--border)' }}>
+          <table style={{ width:'100%', borderCollapse:'collapse', minWidth:660 }}>
+            <thead>
+              <tr>
+                <th style={colHead}>Name of Edit</th>
+                <th style={colHead}>Status</th>
+                <th style={colHead}>Current Editor</th>
+                <th style={colHead}>Next Steps</th>
+              </tr>
+            </thead>
+            <tbody>
+              {list.map(e => {
+                const cur = DELIV_STATUS(e.workflow_status) || DELIV_STATUS('IN_PROGRESS');
+                const nm = nextMilestone(e);
+                return (
+                  <tr key={e.id}>
+                    <td style={{ ...cell, fontWeight:700 }}>
+                      <span onClick={() => onOpenEdit?.(e)} style={{ cursor: onOpenEdit ? 'pointer' : 'default' }}>{e.title || 'Untitled'}</span>
+                    </td>
+                    <td style={cell}>
+                      <select value={e.workflow_status || 'IN_PROGRESS'} disabled={readOnly}
+                        onChange={ev => onSave(e.id, { workflowStatus: ev.target.value })}
+                        style={{ fontSize:11, fontWeight:800, padding:'4px 10px', borderRadius:12, cursor: readOnly ? 'default' : 'pointer', appearance:'none',
+                          background: cur ? `${cur[2]}22` : 'transparent', border:`1px solid ${cur ? cur[2] : 'var(--border)'}`, color: cur ? cur[2] : 'var(--muted)' }}>
+                        {DELIVERABLE_STATUSES.map(([k, label]) => <option key={k} value={k} style={{ color:'var(--text)', background:'var(--bg2)' }}>{label}</option>)}
+                      </select>
+                    </td>
+                    <td style={{ ...cell, whiteSpace:'nowrap' }}>{e.current_editor || e.lead_editor || '—'}</td>
+                    <td style={cell}>
+                      {nm
+                        ? <span><span style={{ fontWeight:700 }}>{nm.label}</span> <span style={{ color:'var(--muted)' }}>— {fmtMsDate(nm.date)}</span></span>
+                        : <span style={{ color:'var(--muted)' }}>—</span>}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 const TABS = [['tracker', 'Project Video Tracker'], ['assets', 'Creative Assets'], ['todos', 'To-Do List'], ['music', 'Music Options'], ['lower-thirds', 'Lower Thirds']];
 
 export default function AvoProject({ idOverride, embedded, shareData, clientView: clientViewProp, apiOverride }) {
@@ -1710,6 +1777,9 @@ export default function AvoProject({ idOverride, embedded, shareData, clientView
                 </div>
               )}
             </div>
+
+            <DeliverableOverview edits={edits} onSave={saveEdit} readOnly={false}
+              onOpenEdit={clientView ? (e => setEditView(e)) : (e => nav(`/avo/${e.id}`))} />
 
             <div style={{ display:'flex', gap:6, flexWrap:'nowrap', overflowX:'auto', marginBottom:16, paddingBottom:4,
               WebkitMaskImage:'linear-gradient(to right, transparent 0, #000 16px, #000 calc(100% - 16px), transparent 100%)',

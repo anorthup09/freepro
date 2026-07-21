@@ -213,6 +213,7 @@ const FIELD_LOGS = {
   reviewLink: 'Current Review Link', startDate: 'Start Date', endDate: 'End Date',
   version: 'Version', approved: 'Approved', projectCode: 'Project Code',
   trackerType: 'Type', style: 'Style', notes: 'Notes', videoAssets: 'Video Assets', creative: 'Creative', frameRate: 'Frame Rate',
+  workflowStatus: 'Deliverable Status',
 };
 
 // Custom Video Tracker columns defined on an edit's project page ([{key,label}]).
@@ -322,6 +323,7 @@ router.patch('/edits/:id', ...staff, async (req, res, next) => {
         notes = ${d.notes !== undefined ? (d.notes || null) : sql`notes`},
         video_assets = ${d.videoAssets !== undefined ? (d.videoAssets || null) : sql`video_assets`},
         creative = ${d.creative !== undefined ? (d.creative || null) : sql`creative`},
+        workflow_status = ${d.workflowStatus !== undefined ? (d.workflowStatus || null) : sql`workflow_status`},
         milestones = ${milestones !== undefined ? sql.json(milestones) : sql`milestones`},
         milestone_skips = ${Array.isArray(d.milestoneSkips) ? sql.json(d.milestoneSkips) : sql`milestone_skips`},
         milestone_assignees = ${msAssignees !== undefined ? sql.json(msAssignees) : sql`milestone_assignees`},
@@ -337,7 +339,7 @@ router.patch('/edits/:id', ...staff, async (req, res, next) => {
       endDate: before.end_date ? String(before.end_date).slice(0, 10) : null,
       version: before.version, approved: before.approved, projectCode: before.project_code,
       trackerType: before.tracker_type, style: before.style, notes: before.notes, videoAssets: before.video_assets,
-      creative: before.creative, frameRate: before.frame_rate,
+      creative: before.creative, frameRate: before.frame_rate, workflowStatus: before.workflow_status,
     };
     for (const [k, label] of Object.entries(FIELD_LOGS)) {
       if (d[k] === undefined) continue;
@@ -638,6 +640,8 @@ async function rfrNotify(e, who, toOverride, notes) {
     }).catch(err => console.error('RFR email failed:', err.message));
   }
   await logAct(e.id, 'rfr', who, `V${e.version} RFR${recipients.length ? ` — notified ${recipients.join(', ')}` : ''}${notes ? ` · ${notes}` : ''}`);
+  // Ready-for-review auto-populates the deliverable status.
+  await sql`UPDATE edits SET workflow_status = 'RFR', updated_at = NOW() WHERE id = ${e.id}`;
 }
 async function sentNotify(e, who) {
   if (e.lead_editor_email) {
@@ -655,6 +659,8 @@ async function sentNotify(e, who) {
     }).catch(err => console.error('Sent email failed:', err.message));
   }
   await logAct(e.id, 'sent', who, `V${e.version} sent for client review`);
+  // Sending to the client auto-populates the deliverable status.
+  await sql`UPDATE edits SET workflow_status = 'SENT', updated_at = NOW() WHERE id = ${e.id}`;
 }
 
 // ── RFR: notify the PM + Creative the current version is ready for review ──
@@ -1140,7 +1146,7 @@ const SHARE_ACTOR = 'Client/Crew (shared link)';
 const CLIENT_EDIT_COLS = ['id', 'title', 'description', 'category', 'tracker_type', 'tracker_color',
   'tracker_sort', 'status', 'version', 'approved', 'review_link', 'start_date', 'end_date',
   'aspect_ratio', 'resolution', 'frame_rate', 'drive', 'asset_ref', 'music_ref', 'video_assets', 'notes',
-  'milestones', 'milestone_skips', 'milestone_assignees'];
+  'creative', 'workflow_status', 'custom_milestones', 'milestones', 'milestone_skips', 'milestone_assignees'];
 function clientEdit(e) {
   const o = {};
   for (const k of CLIENT_EDIT_COLS) o[k] = e[k];
@@ -1298,6 +1304,7 @@ shareRouter.patch('/edits/:eid', async (req, res, next) => {
         tracker_sort = ${d.trackerSort !== undefined ? (Number(d.trackerSort) || 0) : sql`tracker_sort`},
         notes = ${d.notes !== undefined ? (d.notes || null) : sql`notes`},
         video_assets = ${d.videoAssets !== undefined ? (d.videoAssets || null) : sql`video_assets`},
+        workflow_status = ${d.workflowStatus !== undefined ? (d.workflowStatus || null) : sql`workflow_status`},
         extra = ${extra !== undefined ? sql`COALESCE(extra, '{}'::jsonb) || ${sql.json(extra)}` : sql`extra`},
         milestones = ${milestones !== undefined ? sql.json(milestones) : sql`milestones`},
         milestone_skips = ${Array.isArray(d.milestoneSkips) ? sql.json(d.milestoneSkips) : sql`milestone_skips`},

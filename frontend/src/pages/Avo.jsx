@@ -13,6 +13,19 @@ export const AVO_STATUSES = [
   ['CLOSED', 'Closed Tasks', '#8a8f98'],
 ];
 
+// High-level deliverable workflow states for the Deliverable Overview. RFR and
+// SENT are auto-populated by the Ready-For-Review / Sent-to-Client actions.
+export const DELIVERABLE_STATUSES = [
+  ['IN_PROGRESS', 'In Progress', '#a78bfa'],
+  ['RFR', 'RFR', '#e6c229'],
+  ['SENT', 'Sent to Client', '#4a9eff'],
+  ['FEEDBACK', 'Address Feedback', '#e05252'],
+  ['LEGAL', 'Pending Legal/Compliance', '#e8955a'],
+  ['COLOR_AUDIO', 'Send to Color and Audio', '#40A0A0'],
+  ['FINAL_COMP', 'Ready for Final Comp', '#5ABF80'],
+  ['APPROVED', 'Approved', '#2ea043'],
+];
+
 export function AvoHeader({ right }) {
   const { user, setUser } = useAuth();
   return (

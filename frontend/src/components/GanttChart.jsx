@@ -50,6 +50,21 @@ export function milestoneRunners(edit) {
 
 const day = d => new Date(String(d).slice(0, 10) + 'T12:00:00');
 const MS_DAY = 86400000;
+
+// The next milestone coming up for an edit: the earliest filled milestone
+// (standard or custom) dated today-or-later. Falls back to the most recent
+// past one if nothing is ahead. Returns { label, date } or null.
+export function nextMilestone(edit) {
+  const ms = edit?.milestones || {};
+  const all = [];
+  for (const [k, label] of MILESTONES) if (ms[k]) all.push({ label, date: String(ms[k]).slice(0, 10) });
+  const customs = Array.isArray(edit?.custom_milestones) ? edit.custom_milestones : [];
+  for (const cm of customs) if (cm?.date && cm?.label) all.push({ label: cm.label, date: String(cm.date).slice(0, 10) });
+  if (!all.length) return null;
+  all.sort((a, b) => a.date.localeCompare(b.date));
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  return all.find(m => day(m.date) >= today) || all[all.length - 1];
+}
 const fmt = d => day(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
 const fmtLong = d => day(d).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
