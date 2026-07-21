@@ -71,7 +71,7 @@ function SmartTable({ rows, colDefs, config, onConfig, saveExtra, leading, trail
     if (!dragCol || dragCol === toKey) return;
     const keys = allCols.map(c => c.key).filter(k => k !== dragCol);
     keys.splice(keys.indexOf(toKey), 0, dragCol);
-    onConfig({ cols: customCols, merges, order: keys });
+    onConfig({ ...config, cols: customCols, merges, order: keys });
   }
   function dropRow(toIdx) {
     if (dragRow == null || dragRow === toIdx || !onReorder) return;
@@ -330,6 +330,7 @@ function VideoTracker({ edits, setEdits, config, onConfig, code, readOnly, onOpe
   }
   const [addForm, setAddForm] = useState(null);   // BLANK form when the pop-out is open
   const [savingAdd, setSavingAdd] = useState(false);
+  const [colsOpen, setColsOpen] = useState(false); // column show/hide menu
   async function submitAdd(ev) {
     ev.preventDefault();
     if (savingAdd) return;
@@ -357,7 +358,7 @@ function VideoTracker({ edits, setEdits, config, onConfig, code, readOnly, onOpe
   // this project's edits, so a category typed once is reusable from the dropdown.
   const usedCategories = [...new Set(edits.map(e => e.category).filter(Boolean))];
   const categoryOptions = [...new Set([...CATEGORIES, ...usedCategories])];
-  const colDefs = [
+  const ALL_COLS = [
     { key:'category', label:'Category', minWidth:130, render: e => {
       const cc = catColor(e.category);
       if (readOnly) return e.category
@@ -421,7 +422,32 @@ function VideoTracker({ edits, setEdits, config, onConfig, code, readOnly, onOpe
       const st = statusOf(e.status);
       return st ? <span style={{ background:`${st[2]}22`, border:`1px solid ${st[2]}`, color:st[2], borderRadius:12, padding:'2px 10px', fontSize:9, fontWeight:800, whiteSpace:'nowrap' }}>{st[1]}</span> : null;
     } },
+    // Optional field columns — off by default, toggled from the Columns menu.
+    { key:'aspect_ratio', label:'Aspect Ratio', render: e => <Cell value={e.aspect_ratio} placeholder="16:9…" readOnly={readOnly} onSave={v => saveEdit(e.id, { aspectRatio: v })} /> },
+    { key:'resolution', label:'Resolution', render: e => <Cell value={e.resolution} placeholder="1080p…" readOnly={readOnly} onSave={v => saveEdit(e.id, { resolution: v })} /> },
+    { key:'frame_rate', label:'Frame Rate', render: e => <Cell value={e.frame_rate} placeholder="23.976…" readOnly={readOnly} onSave={v => saveEdit(e.id, { frameRate: v })} /> },
+    { key:'drive', label:'Drive', render: e => <Cell value={e.drive} placeholder="Drive…" readOnly={readOnly} onSave={v => saveEdit(e.id, { drive: v })} /> },
+    { key:'asset_ref', label:'Asset Ref', render: e => <Cell value={e.asset_ref} placeholder="Asset ref…" readOnly={readOnly} onSave={v => saveEdit(e.id, { assetRef: v })} /> },
+    { key:'music_ref', label:'Music Ref', render: e => <Cell value={e.music_ref} placeholder="Music ref…" readOnly={readOnly} onSave={v => saveEdit(e.id, { musicRef: v })} /> },
+    { key:'creative', label:'Creative', render: e => <span style={{ fontSize:12, whiteSpace:'nowrap' }}>{e.creative || '—'}</span> },
+    { key:'start_date', label:'Start Date', render: e => <span style={{ whiteSpace:'nowrap', fontSize:12 }}>{fmtD(e.start_date)}</span> },
+    { key:'version', label:'V#', render: e => <span style={{ fontSize:12, whiteSpace:'nowrap' }}>V{(Number(e.version) || 1).toFixed(1)}</span> },
+    { key:'approved', label:'Approved', render: e => e.approved
+      ? <span style={{ color:'#5ABF80', fontSize:11, fontWeight:800 }}>✓</span>
+      : <span style={{ color:'var(--muted)', fontSize:11 }}>—</span> },
   ];
+  // Core columns show by default; optional ones show when toggled on. The user's
+  // choices (and column order) persist in the page's tracker grid_config.
+  const CORE_KEYS = new Set(['category', 'tracker_type', 'title', 'description', 'end_date', 'video_assets', 'lead_editor', 'review_link', 'latest_comment', 'status']);
+  const hiddenCols = new Set(config?.hidden || []);
+  const shownCols = new Set(config?.shown || []);
+  const colDefs = ALL_COLS.filter(c => CORE_KEYS.has(c.key) ? !hiddenCols.has(c.key) : shownCols.has(c.key));
+  function toggleCol(c) {
+    const h = new Set(config?.hidden || []); const s = new Set(config?.shown || []);
+    if (CORE_KEYS.has(c.key)) { h.has(c.key) ? h.delete(c.key) : h.add(c.key); }
+    else { s.has(c.key) ? s.delete(c.key) : s.add(c.key); }
+    onConfig({ ...config, hidden: [...h], shown: [...s] });
+  }
   const GROUPS = [['Pre-Event', '#4a9eff'], ['On-Site', '#e6c229'], ['Post-Event', '#9DC183'], ['Standard Edit', '#a78bfa']];
   const grouped = [];
   for (const [g, color] of GROUPS) {
@@ -435,6 +461,32 @@ function VideoTracker({ edits, setEdits, config, onConfig, code, readOnly, onOpe
   }
   return (
     <>
+      {!readOnly && (
+        <div style={{ position:'relative', marginBottom:8, display:'flex' }}>
+          <button onClick={() => setColsOpen(o => !o)} title="Add or remove columns"
+            style={{ background:'var(--bg2)', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:8, padding:'5px 12px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
+            ⚙ Columns
+          </button>
+          {colsOpen && (
+            <div style={{ position:'absolute', top:'100%', left:0, marginTop:4, zIndex:60, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding:6, minWidth:210, maxHeight:360, overflowY:'auto', boxShadow:'0 10px 28px rgba(0,0,0,0.55)' }}>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'2px 6px 6px' }}>
+                <span style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', fontWeight:700 }}>Show columns</span>
+                <button onClick={() => setColsOpen(false)} style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:12, lineHeight:1 }}>✕</button>
+              </div>
+              {ALL_COLS.map(c => {
+                const visible = CORE_KEYS.has(c.key) ? !hiddenCols.has(c.key) : shownCols.has(c.key);
+                return (
+                  <label key={c.key} style={{ display:'flex', alignItems:'center', gap:8, fontSize:12, padding:'4px 6px', borderRadius:6, cursor:'pointer' }}>
+                    <input type="checkbox" checked={visible} onChange={() => toggleCol(c)} style={{ width:'auto', accentColor:AVO }} />
+                    {c.label}
+                  </label>
+                );
+              })}
+              <div style={{ fontSize:9.5, color:'var(--muted)', padding:'6px 6px 2px', lineHeight:1.4 }}>Tip: drag a column header to reorder. Use + Add Column below for a custom field.</div>
+            </div>
+          )}
+        </div>
+      )}
       <SmartTable rows={grouped} colDefs={colDefs} config={config} onConfig={onConfig} minWidth={1050} readOnly={readOnly}
         saveExtra={(id, k, v) => saveEdit(id, { extra: { [k]: v } })}
         onReorder={reorder} footerRight={{ addRow: () => setAddForm({ ...BLANK_DELIVERABLE_FORM }), label: '+ Add Deliverable' }}
