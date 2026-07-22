@@ -1219,12 +1219,20 @@ function FileFolder({ title, subtitle, accent = AVO, files, onUpload, onDownload
   const [open, setOpen] = useState(defaultOpen);
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef(null);
-  const drop = ev => { ev.preventDefault(); setDragging(false); if (readOnly) return; Array.from(ev.dataTransfer?.files || []).forEach(onUpload); };
+  const dragDepth = useRef(0);   // dragenter/leave bubble on children — count to stay stable
+  const onlyFiles = ev => Array.from(ev.dataTransfer?.types || []).includes('Files');
+  const enter = ev => { if (readOnly || !onlyFiles(ev)) return; ev.preventDefault(); dragDepth.current += 1; setDragging(true); setOpen(true); };
+  const over = ev => { if (readOnly || !onlyFiles(ev)) return; ev.preventDefault(); ev.dataTransfer.dropEffect = 'copy'; };
+  const leave = ev => { if (readOnly) return; ev.preventDefault(); dragDepth.current = Math.max(0, dragDepth.current - 1); if (dragDepth.current === 0) setDragging(false); };
+  const drop = ev => { ev.preventDefault(); dragDepth.current = 0; setDragging(false); if (readOnly) return; Array.from(ev.dataTransfer?.files || []).forEach(onUpload); };
   return (
-    <div onDragOver={ev => { if (readOnly) return; ev.preventDefault(); if (!dragging) setDragging(true); }}
-      onDragLeave={ev => { ev.preventDefault(); setDragging(false); }}
-      onDrop={drop}
-      style={{ background:'var(--bg2)', border:`1px solid ${dragging ? accent : 'var(--border)'}`, borderLeft:`3px solid ${accent}`, borderRadius:10, marginBottom:8, overflow:'hidden' }}>
+    <div onDragEnter={enter} onDragOver={over} onDragLeave={leave} onDrop={drop}
+      style={{ position:'relative', background:'var(--bg2)', border:`1px solid ${dragging ? accent : 'var(--border)'}`, borderLeft:`3px solid ${accent}`, borderRadius:10, marginBottom:8, overflow:'hidden', boxShadow: dragging ? `0 0 0 2px ${accent}55 inset` : 'none' }}>
+      {dragging && (
+        <div style={{ position:'absolute', inset:0, zIndex:5, background:`${accent}18`, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
+          <span style={{ fontSize:12, fontWeight:800, color:accent, background:'var(--bg2)', border:`1px dashed ${accent}`, borderRadius:8, padding:'6px 14px' }}>Drop to upload to “{title}”</span>
+        </div>
+      )}
       <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', cursor:'pointer' }} onClick={() => setOpen(o => !o)}>
         <span style={{ fontSize:11, color:'var(--muted)', width:10 }}>{open ? '▾' : '▸'}</span>
         <span style={{ fontSize:14 }}>📁</span>
