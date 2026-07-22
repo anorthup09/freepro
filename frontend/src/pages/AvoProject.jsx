@@ -1922,7 +1922,7 @@ export default function AvoProject({ idOverride, embedded, shareData, clientView
                 </button>
               ))}
               <button onClick={addTable} title="Add a custom table as a new tab"
-                style={{ background:'var(--bg)', border:'1px solid rgba(255,255,255,0.55)', color:'#e8e8e8', borderRadius:16, padding:'5px 14px', fontSize:11, fontWeight:800, cursor:'pointer', whiteSpace:'nowrap', flexShrink:0 }}>
+                style={{ background:'var(--bg)', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:16, padding:'5px 14px', fontSize:11, fontWeight:800, cursor:'pointer', whiteSpace:'nowrap', flexShrink:0 }}>
                 + Add Custom Table
               </button>
             </div>
