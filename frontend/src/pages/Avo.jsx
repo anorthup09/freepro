@@ -353,6 +353,7 @@ export default function Avo() {
                               {e.title}
                               {e.focus && <span title="Flagged as Focus" style={{ background:`${FOCUS_COLOR}22`, border:`1px solid ${FOCUS_COLOR}`, color:FOCUS_COLOR, borderRadius:10, padding:'1px 7px', fontSize:8, fontWeight:800 }}>FOCUS</span>}
                               {(() => { const ls = DELIV_STATUS(e.workflow_status); return ls ? <span style={{ background:`${ls[2]}22`, border:`1px solid ${ls[2]}`, color:ls[2], borderRadius:10, padding:'1px 7px', fontSize:8, fontWeight:800, whiteSpace:'nowrap' }}>{ls[1]}</span> : null; })()}
+                              {e.file_count > 0 && <span title={`${e.file_count} file${e.file_count === 1 ? '' : 's'} attached`} style={{ color:'var(--muted)', fontSize:9, fontWeight:700, whiteSpace:'nowrap' }}>📎 {e.file_count}</span>}
                             </span>
                             {e.project_code && <div style={{ fontSize:9, color:'var(--muted)', fontWeight:400 }}>{e.project_code}{e.project_title ? ` · ${e.project_title}` : ''}</div>}
                           </td>

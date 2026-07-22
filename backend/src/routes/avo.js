@@ -124,6 +124,7 @@ router.get('/edits', ...staff, async (req, res, next) => {
       SELECT e.*,
         COALESCE((SELECT ${sql.unsafe(PREF)} FROM crew_members cm WHERE cm.id = e.lead_editor_id), e.lead_editor_name) as lead_editor,
         (SELECT ${sql.unsafe(PREF)} FROM crew_members cm WHERE cm.id = e.pm_id) as pm_name,
+        (SELECT COUNT(*)::int FROM edit_files ef WHERE ef.edit_id = e.id) as file_count,
         p.title as project_title,
         la.body as latest_comment, la.author as latest_comment_author, la.created_at as latest_comment_at
       FROM edits e
@@ -946,6 +947,7 @@ router.get('/projects/:id', ...staff, async (req, res, next) => {
     // Video tracker: every pipeline edit carrying this project code (or one of its shoot codes)
     const edits = await sql`
       SELECT e.*, COALESCE((SELECT ${sql.unsafe(PREF)} FROM crew_members cm WHERE cm.id = e.lead_editor_id), e.lead_editor_name) as lead_editor,
+        (SELECT COUNT(*)::int FROM edit_files ef WHERE ef.edit_id = e.id) as file_count,
         la.body as latest_comment, la.created_at as latest_comment_at
       FROM edits e
       LEFT JOIN LATERAL (
@@ -1282,6 +1284,7 @@ shareRouter.get('/', async (req, res, next) => {
              e.aspect_ratio, e.resolution, e.frame_rate, e.drive, e.asset_ref, e.music_ref, e.video_assets, e.notes,
              e.milestones, e.milestone_skips, e.milestone_assignees,
              la.body as latest_comment, la.created_at as latest_comment_at,
+             (SELECT COUNT(*)::int FROM edit_files ef WHERE ef.edit_id = e.id) as file_count,
              COALESCE((SELECT ${sql.unsafe(PREF)} FROM crew_members cm WHERE cm.id = e.lead_editor_id), e.lead_editor_name) as lead_editor
       FROM edits e
       LEFT JOIN LATERAL (

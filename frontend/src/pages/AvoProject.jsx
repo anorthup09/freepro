@@ -445,7 +445,10 @@ function VideoTracker({ edits, setEdits, config, onConfig, code, readOnly, onOpe
       );
     } },
     { key:'title', label:'Video Title', minWidth:150, render: e =>
-      <span onClick={() => onOpenEdit ? onOpenEdit(e) : nav(`/avo/${e.id}`)} style={{ fontSize:12, fontWeight:700, cursor:'pointer', padding:'5px 6px', display:'inline-block' }}>{e.title}</span> },
+      <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
+        <span onClick={() => onOpenEdit ? onOpenEdit(e) : nav(`/avo/${e.id}`)} style={{ fontSize:12, fontWeight:700, cursor:'pointer', padding:'5px 6px' }}>{e.title}</span>
+        {e.file_count > 0 && <span title={`${e.file_count} file${e.file_count === 1 ? '' : 's'} in this edit's folder`} style={{ color:'var(--muted)', fontSize:9, fontWeight:700, whiteSpace:'nowrap' }}>📎 {e.file_count}</span>}
+      </span> },
     { key:'description', label:'Description', minWidth:190, expandable:true, render: (e, expanded) =>
       <Cell value={e.description} placeholder="Description…" readOnly={readOnly} multiline={expanded} onSave={v => saveEdit(e.id, { description: v })} /> },
     { key:'end_date', label:'Due Date', render: e => <span style={{ whiteSpace:'nowrap', fontSize:12 }}>{fmtD(e.end_date)}</span> },
