@@ -447,6 +447,21 @@ export default function AvoEdit() {
   }, [e?.project_code]);
   useEffect(() => { if (feedRef.current) feedRef.current.scrollTop = feedRef.current.scrollHeight; }, [e?.activity?.length]);
   useEffect(() => { api.getCrew().then(setRoster).catch(() => setRoster([])); }, []);
+  // Seed the Contract Editor card's Name/Email from the contractor lead editor's
+  // crew record — only while both are still blank, so it never overwrites typed data.
+  useEffect(() => {
+    if (!e) return;
+    const isContractor = !!e.lead_editor_id && !/unbridled/i.test(e.lead_editor_company || '');
+    if (!isContractor) return;
+    const ec = (e.extra || {}).contract_editor || {};
+    if (ec.name || ec.email) return;
+    const nm = e.lead_editor_name_resolved || e.lead_editor_name || e.lead_editor || '';
+    const em = e.lead_editor_email || '';
+    if (!nm && !em) return;
+    api.updateAvoEdit(id, { extra: { contract_editor: { ...ec, name: nm || undefined, email: em || undefined } } })
+      .then(full => setE(v => (v ? { ...v, ...full } : v))).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [e?.lead_editor_id, e?.lead_editor_email, e?.lead_editor_company]);
 
   if (!e) return <div style={{ minHeight:'100vh', background:'var(--bg)' }}><AvoHeader /><div className="empty">Loading…</div></div>;
 

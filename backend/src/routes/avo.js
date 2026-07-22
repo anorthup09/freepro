@@ -173,10 +173,10 @@ router.post('/edits', ...staff, async (req, res, next) => {
     const lane0 = laneFromWorkflow(ws0);
     const [e] = await sql`
       INSERT INTO edits (project_id, project_code, title, description, lead_editor_id, pm_id,
-        aspect_ratio, resolution, asset_ref, music_ref, category, status, workflow_status, focus, approved, review_link, start_date, end_date, tracker_type, cost_estimate)
+        aspect_ratio, resolution, frame_rate, asset_ref, music_ref, category, drive, creative, status, workflow_status, focus, approved, review_link, start_date, end_date, tracker_type, cost_estimate)
       VALUES (${projectId}, ${d.projectCode || null}, ${d.title}, ${d.description || null}, ${d.leadEditorId || null}, ${d.pmId || null},
-        ${d.aspectRatio || null}, ${d.resolution || null}, ${d.assetRef || null}, ${d.musicRef || null},
-        ${d.category || null}, ${lane0}, ${ws0}, ${d.focus === true}, ${ws0 === 'APPROVED'}, ${d.reviewLink || null},
+        ${d.aspectRatio || null}, ${d.resolution || null}, ${d.frameRate || null}, ${d.assetRef || null}, ${d.musicRef || null},
+        ${d.category || null}, ${d.drive || null}, ${d.creative || null}, ${lane0}, ${ws0}, ${d.focus === true}, ${ws0 === 'APPROVED'}, ${d.reviewLink || null},
         ${d.startDate || null}, ${d.endDate || null}, ${d.trackerType || null}, ${d.costEstimate ? Number(d.costEstimate) || null : null})
       RETURNING *`;
     const who = req.user?.email || 'someone';

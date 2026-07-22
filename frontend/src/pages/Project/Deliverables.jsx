@@ -12,7 +12,7 @@ const TYPE_GROUPS = [['Pre-Event', '#4a9eff'], ['On-Site', '#e6c229'], ['Post-Ev
 const LEGACY_TYPE = { PRE_PRODUCED:'Pre-Event', ON_SITE:'On-Site', POST_SHOOT:'Post-Event' };
 const typeOf = item => item.tracker_type || LEGACY_TYPE[item.category] || item.category || null;
 const AVO_CATEGORIES = ['Brand Video', 'Event Recap', 'Opener', 'Sizzle', 'Interstitial', 'Documentary', 'Teaser', 'Social Cutdown', 'Photo Slideshow', 'Other'];
-export const BLANK_DELIVERABLE_FORM = { title:'', description:'', workflowStatus:'', trackerType:'', category:'', leadEditorId:'', pmId:'', aspectRatio:'', resolution:'', assetRef:'', musicRef:'', startDate:'', endDate:'', reviewLink:'', costEstimate:'' };
+export const BLANK_DELIVERABLE_FORM = { title:'', description:'', workflowStatus:'', trackerType:'', category:'', leadEditorId:'', pmId:'', creative:'', aspectRatio:'', resolution:'', frameRate:'', assetRef:'', musicRef:'', drive:'', startDate:'', endDate:'', reviewLink:'', costEstimate:'' };
 
 // Same fields as the AvocadoPost edit form — one form for add and edit
 export function AvoForm({ title, form, setForm, onSubmit, onCancel, saving, editId }) {
@@ -87,8 +87,11 @@ export function AvoForm({ title, form, setForm, onSubmit, onCancel, saving, edit
               </div>
             )}
             <div className="field"><label>Project Manager</label><EditorSelect value={form.pmId} placeholder="— No PM —" unbridledOnly onChange={v => setForm(f=>({...f,pmId:v}))} /></div>
+            <div className="field span2"><label>Creative</label>{inp('creative', 'Creative name')}</div>
             <div className="field"><label>Aspect Ratio</label>{inp('aspectRatio', '16:9')}</div>
             <div className="field"><label>Resolution</label>{inp('resolution', '1920×1080')}</div>
+            <div className="field"><label>Frame Rate</label>{inp('frameRate', '23.976')}</div>
+            <div className="field"><label>Drive</label>{inp('drive', 'Drive…')}</div>
             <div className="field"><label>Asset Ref</label>{inp('assetRef', 'Asset #801_')}</div>
             <div className="field"><label>Music Ref</label>{inp('musicRef', 'C3 Recap Music')}</div>
             <div className="field"><label>Start Date</label>{inp('startDate', '', 'date')}</div>
