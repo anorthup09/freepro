@@ -51,7 +51,7 @@ export function AvoHeader({ right }) {
         <Link to="/" style={{ display:'flex', alignItems:'center' }} title="Back to the Unbridled Media hub">
           <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height:20, filter:'brightness(0) invert(1)', opacity:0.95 }} />
         </Link>
-        <Link to="/avo" style={{ fontSize:12, color:AVO, fontWeight:700, letterSpacing:'0.04em', textDecoration:'none' }}>🥑 AvocadoPost</Link>
+        <Link to="/avo" style={{ fontSize:12, color:AVO, fontWeight:700, letterSpacing:'0.04em', textDecoration:'none' }}>Post-Production Platform</Link>
       </div>
       <div style={{ display:'flex', alignItems:'center', gap:12 }}>
         {right}

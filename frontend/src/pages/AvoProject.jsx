@@ -1633,11 +1633,39 @@ const fmtMsDate = d => d ? new Date(String(d).slice(0, 10) + 'T12:00:00').toLoca
 // per deliverable with Name · Status (editable dropdown; RFR/Sent auto-set) ·
 // Current Editor (timeline-derived) · Next Steps (next upcoming milestone) ·
 // per-row RFR + Sent to Client actions (same flow as the edit card).
-function DeliverableOverview({ edits, onSave, onOpenEdit, onStatus, readOnly, A = api }) {
+function DeliverableOverview({ edits, onSave, onOpenEdit, onStatus, readOnly, A = api, config, onConfig }) {
   const list = edits || [];
   const [rfrFor, setRfrFor] = useState(null);   // edit whose RFR notes modal is open
   const [busyId, setBusyId] = useState(null);   // edit mid-action
-  const colHead = { padding:'8px 14px', fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', textAlign:'left', fontWeight:800, borderBottom:'1px solid var(--border)', whiteSpace:'nowrap' };
+  // Resizable columns (same grip + persist flow as the SmartTable grids)
+  const [liveWidths, setLiveWidths] = useState({});
+  const resizeRef = useRef(null);
+  const widths = config?.widths || {};
+  const colWidth = k => liveWidths[k] ?? widths[k] ?? undefined;
+  const canResize = !!onConfig;
+  useEffect(() => {
+    function move(ev) {
+      if (!resizeRef.current) return;
+      const { key, startX, startW } = resizeRef.current;
+      setLiveWidths(lw => ({ ...lw, [key]: Math.max(60, startW + (ev.clientX - startX)) }));
+    }
+    function up() {
+      const r = resizeRef.current; if (!r) return; resizeRef.current = null;
+      setLiveWidths(lw => {
+        if (lw[r.key] != null && onConfig) onConfig({ ...config, widths: { ...widths, [r.key]: Math.round(lw[r.key]) } });
+        const { [r.key]: _drop, ...rest } = lw; return rest;
+      });
+    }
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+    return () => { window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up); };
+  }, [config]);
+  const grip = key => canResize && (
+    <span className="tbl-col-grip" title="Drag to adjust column width" draggable={false}
+      onMouseDown={ev => { ev.preventDefault(); ev.stopPropagation(); const thEl = ev.currentTarget.closest('th'); resizeRef.current = { key, startX: ev.clientX, startW: thEl ? thEl.getBoundingClientRect().width : 120 }; }}
+      onClick={ev => ev.stopPropagation()} />
+  );
+  const colHead = { padding:'8px 14px', fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', textAlign:'left', fontWeight:800, borderBottom:'1px solid var(--border)', whiteSpace:'nowrap', position:'relative' };
   const cell = { padding:'9px 14px', fontSize:12, borderBottom:'1px solid rgba(255,255,255,0.05)', verticalAlign:'middle' };
   const sendClient = async e => {
     setBusyId(e.id);
@@ -1667,10 +1695,10 @@ function DeliverableOverview({ edits, onSave, onOpenEdit, onStatus, readOnly, A 
           <table style={{ width:'100%', borderCollapse:'collapse', minWidth:760 }}>
             <thead>
               <tr>
-                <th style={colHead}>Name of Edit</th>
-                <th style={colHead}>Status</th>
-                <th style={colHead}>Current Editor</th>
-                <th style={colHead}>Next Steps</th>
+                <th style={{ ...colHead, width:colWidth('name'), maxWidth:colWidth('name') }}>Name of Edit{grip('name')}</th>
+                <th style={{ ...colHead, width:colWidth('status'), maxWidth:colWidth('status') }}>Status{grip('status')}</th>
+                <th style={{ ...colHead, width:colWidth('editor'), maxWidth:colWidth('editor') }}>Current Editor{grip('editor')}</th>
+                <th style={{ ...colHead, width:colWidth('next'), maxWidth:colWidth('next') }}>Next Steps{grip('next')}</th>
                 <th style={{ ...colHead, textAlign:'right' }}>Actions</th>
               </tr>
             </thead>
@@ -1700,7 +1728,16 @@ function DeliverableOverview({ edits, onSave, onOpenEdit, onStatus, readOnly, A 
                         : <span style={{ color:'var(--muted)' }}>—</span>}
                     </td>
                     <td style={{ ...cell, textAlign:'right', whiteSpace:'nowrap' }}>
-                      <div style={{ display:'inline-flex', gap:6 }}>
+                      <div style={{ display:'inline-flex', gap:6, alignItems:'center' }}>
+                        {/* Version stepper — same control as the edit card */}
+                        <div style={{ display:'flex', alignItems:'center', gap:6, marginRight:6 }} title="Version">
+                          <button className="btn btn-ghost btn-sm" disabled={readOnly} title="Version down 0.1"
+                            onClick={() => onSave(e.id, { version: stepV(e.version, -1) })}>−.1</button>
+                          <span style={{ fontSize:14, fontWeight:800, color:AVO }}>
+                            <VersionInput value={e.version} onSave={n => onSave(e.id, { version: n })} style={{ width:44 }} /></span>
+                          <button className="btn btn-ghost btn-sm" disabled={readOnly} title="Version up 0.1"
+                            onClick={() => onSave(e.id, { version: stepV(e.version, 1) })}>+.1</button>
+                        </div>
                         <button disabled={busy} onClick={() => setRfrFor(e)}
                           style={{ background:'#e6c2291f', border:'1px solid #e6c229', color:'#e6c229', borderRadius:20, padding:'5px 12px', fontSize:10.5, fontWeight:800, cursor: busy ? 'default' : 'pointer', whiteSpace:'nowrap', opacity: busy ? 0.5 : 1 }}>RFR</button>
                         <button disabled={busy} onClick={() => sendClient(e)}
@@ -1927,6 +1964,7 @@ export default function AvoProject({ idOverride, embedded, shareData, clientView
 
             {tab === 'overview' && (
               <DeliverableOverview edits={edits} onSave={saveEdit} readOnly={false} A={A}
+                config={cfgFor('overview')} onConfig={saveCfg('overview')}
                 onStatus={(eid, ws) => setEdits(es => es.map(x => x.id === eid ? { ...x, workflow_status: ws } : x))}
                 onOpenEdit={clientView ? (e => setEditView(e)) : (e => nav(`/avo/${e.id}`))} />
             )}
