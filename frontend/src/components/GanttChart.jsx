@@ -136,6 +136,40 @@ export default function GanttChart({ edits }) {
   const today = new Date();
   const todayIdx = min ? Math.round((new Date(today.getFullYear(), today.getMonth(), today.getDate(), 12) - min) / MS_DAY) : -1;
   const LABEL_W = 190;
+  const pxPerDay = (Math.round(700 * zoom) - LABEL_W) / span;
+  const todayLine = (opacity = 0.5) => todayIdx >= 0 && todayIdx <= span && (
+    <div style={{ position: 'absolute', left: `${(todayIdx / span) * 100}%`, top: 0, bottom: 0, width: 1, background: 'var(--orange)', opacity }} />
+  );
+  // Render a set of {from,to,label[,color,title]} holds as positioned blocks.
+  const renderBlocks = (segs, keyPrefix, top, h, forceColor) => segs.map((r, i) => {
+    const rf = Math.round((day(r.from) - min) / MS_DAY);
+    const rt = Math.round((day(r.to) - min) / MS_DAY);
+    const wDays = Math.max(0.9, rt - rf);
+    const color = forceColor || r.color || runnerColor(r.label, RUNNER_COLORS[i % RUNNER_COLORS.length]);
+    const narrow = wDays * pxPerDay < (r.label.length * 4.7 + 12);
+    const infoKey = `${keyPrefix}-${i}`;
+    const title = `${r.title || r.label}: ${fmt(r.from)} → ${fmt(r.to)}`;
+    return (
+      <div key={i} title={title}
+        style={{
+          position: 'absolute', top, height: h, zIndex: 2,
+          left: `${((rf + 0.5) / span) * 100}%`,
+          width: `calc(${(wDays / span) * 100}% - 2px)`,
+          background: `${color}30`, border: `1px solid ${color}`, borderRadius: 6,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '0 5px', overflow: 'hidden',
+          fontSize: 8, fontWeight: 800, color, whiteSpace: 'nowrap',
+          cursor: narrow ? 'pointer' : 'default',
+        }}
+        onClick={narrow ? ev => {
+          ev.stopPropagation();
+          const rect = ev.currentTarget.getBoundingClientRect();
+          setInfo(info?.key === infoKey ? null : { key: infoKey, text: title, x: rect.left + rect.width / 2, y: rect.top, color });
+        } : undefined}>
+        {narrow ? 'ⓘ' : r.label}
+      </div>
+    );
+  });
 
   return (
     <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 10 }}>
@@ -165,19 +199,22 @@ export default function GanttChart({ edits }) {
           const from = s ? Math.round((s - min) / MS_DAY) : 0;
           const len = s ? Math.max(1, Math.round((en - s) / MS_DAY) + 1) : 0;
           const c = STATUS_COLORS[e.status] || '#9DC183';
+          const ownerRows = Array.isArray(e.owner_holds) ? e.owner_holds : [];
           const runners = milestoneRunners(e);
-          const ms = runners.length ? [] : MILESTONES.filter(([k]) => e.milestones?.[k]);
-          const rowH = 42 + (runners.length ? 38 : 0);
+          // With per-owner rows the holds move to sub-rows below; otherwise the
+          // runners render inline on the edit's own row (single-owner edits).
+          const inlineRunners = ownerRows.length ? [] : runners;
+          const ms = (ownerRows.length || runners.length) ? [] : MILESTONES.filter(([k]) => e.milestones?.[k]);
+          const mainH = 42 + (inlineRunners.length ? 38 : 0);
           return (
-            <div key={e.id} style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.04)', minHeight: rowH }}>
+            <React.Fragment key={e.id}>
+            <div style={{ display: 'flex', alignItems: 'center', borderBottom: ownerRows.length ? '1px solid rgba(255,255,255,0.03)' : '1px solid rgba(255,255,255,0.04)', minHeight: mainH }}>
               <div style={{ width: LABEL_W, flexShrink: 0, padding: '8px 12px', borderRight: '1px solid var(--border)' }}>
                 <div style={{ fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.title}</div>
                 <div style={{ fontSize: 9, color: 'var(--muted)' }}>{e.lead_editor || 'Unassigned'} · V{e.version}{e.approved ? ' · ✓ Approved' : ''}</div>
               </div>
-              <div style={{ flex: 1, position: 'relative', height: rowH }}>
-                {todayIdx >= 0 && todayIdx <= span && (
-                  <div style={{ position: 'absolute', left: `${(todayIdx / span) * 100}%`, top: 0, bottom: 0, width: 1, background: 'var(--orange)', opacity: 0.5 }} />
-                )}
+              <div style={{ flex: 1, position: 'relative', height: mainH }}>
+                {todayLine()}
                 {s && (
                   <div title={`${e.title}: ${fmt(e.start_date)} – ${fmt(e.end_date || e.start_date)} (${STATUS_LABELS[e.status] || e.status})`}
                     style={{
@@ -202,41 +239,26 @@ export default function GanttChart({ edits }) {
                       }} />
                   );
                 })}
-                {runners.map((r, i) => {
-                  const rf = Math.round((day(r.from) - min) / MS_DAY);
-                  const rt = Math.round((day(r.to) - min) / MS_DAY);
-                  const lane = 0;   // split-day segments butt cleanly — one shared plane
-                  // Segments run center-of-day to center-of-day, so back-to-back
-                  // runners split the shared day at the milestone instead of overlapping
-                  // Show the label when the bubble is physically wide enough for it
-                  // at the current zoom, else fall back to a tappable info icon.
-                  const pxPerDay = (Math.round(700 * zoom) - LABEL_W) / span;
-                  const segPx = Math.max(0.9, rt - rf) * pxPerDay;
-                  const narrow = segPx < (r.label.length * 4.7 + 12);
-                  const infoKey = `${e.id}-${i}`;
-                  return (
-                    <div key={i} title={`${r.title}: ${fmt(r.from)} → ${fmt(r.to)}`}
-                      style={{
-                        position: 'absolute', top: 38 + lane * 18, height: 15, zIndex: 2,
-                        left: `${((rf + 0.5) / span) * 100}%`,
-                        width: `calc(${(Math.max(0.9, rt - rf) / span) * 100}% - 2px)`,
-                        background: `${r.color}30`, border: `1px solid ${r.color}`, borderRadius: 6,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        padding: '0 5px', overflow: 'hidden',
-                        fontSize: 8, fontWeight: 800, color: r.color, whiteSpace: 'nowrap',
-                        cursor: narrow ? 'pointer' : 'default',
-                      }}
-                      onClick={narrow ? ev => {
-                        ev.stopPropagation();
-                        const rect = ev.currentTarget.getBoundingClientRect();
-                        setInfo(info?.key === infoKey ? null : { key: infoKey, text: `${r.title}: ${fmt(r.from)} → ${fmt(r.to)}`, x: rect.left + rect.width / 2, y: rect.top, color: r.color });
-                      } : undefined}>
-                      {narrow ? 'ⓘ' : r.label}
-                    </div>
-                  );
-                })}
+                {renderBlocks(inlineRunners, `${e.id}-r`, 38, 15)}
               </div>
             </div>
+            {/* One sub-row per owner: only the holds that person covers. */}
+            {ownerRows.map((o, oi) => {
+              const oColor = RUNNER_COLORS[oi % RUNNER_COLORS.length];
+              return (
+                <div key={oi} style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.04)', minHeight: 30, background: 'rgba(255,255,255,0.015)' }}>
+                  <div title={o.owner}
+                    style={{ width: LABEL_W, flexShrink: 0, padding: '4px 12px 4px 28px', borderRight: '1px solid var(--border)', fontSize: 10.5, fontWeight: 700, color: oColor, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    ↳ {o.owner}
+                  </div>
+                  <div style={{ flex: 1, position: 'relative', height: 30 }}>
+                    {todayLine(0.4)}
+                    {renderBlocks(o.segments, `${e.id}-o${oi}`, 8, 15, oColor)}
+                  </div>
+                </div>
+              );
+            })}
+            </React.Fragment>
           );
         })}
         {info && (

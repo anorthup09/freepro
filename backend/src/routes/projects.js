@@ -177,14 +177,19 @@ router.get('/crew-calendar', requireAuth, async (req, res, next) => {
     const MS_ORDER = ['scripting_start', 'scripting_end', 'icr_v1_due', 'icr_feedback', 'client_v1_due', 'client_v1_feedback', 'client_v2_due', 'client_v2_feedback', 'client_v3_due', 'client_v3_feedback', 'color_audio_send', 'color_audio_complete', 'final_comp', 'final_delivery'];
     const msEdits = await sql`
       SELECT e.id, e.title, e.milestones, e.milestone_assignees, e.lead_editor_id,
+             e.color_assignee, e.audio_assignee,
              COALESCE(e.project_code, 'EDIT') as project_code
       FROM edits e
-      WHERE e.status != 'CLOSED' AND e.milestones IS NOT NULL AND (e.lead_editor_id IS NOT NULL OR e.milestone_assignees != '{}'::jsonb)`;
+      WHERE e.status != 'CLOSED' AND e.milestones IS NOT NULL
+        AND (e.lead_editor_id IS NOT NULL OR e.milestone_assignees != '{}'::jsonb
+             OR e.color_assignee LIKE 'crew:%' OR e.audio_assignee LIKE 'crew:%')`;
     const parseJ = v => typeof v === 'string' ? JSON.parse(v || '{}') : (v || {});
+    const crewFromCA = v => (typeof v === 'string' && v.startsWith('crew:')) ? v.slice(5) : null;
     const memberIds = new Set();
     for (const e of msEdits) {
       if (e.lead_editor_id) memberIds.add(e.lead_editor_id);
       for (const v of Object.values(parseJ(e.milestone_assignees))) if (v) memberIds.add(v);
+      for (const c of [crewFromCA(e.color_assignee), crewFromCA(e.audio_assignee)]) if (c) memberIds.add(c);
     }
     const memberRows = memberIds.size ? await sql`
       SELECT id, COALESCE(NULLIF(TRIM(CONCAT(preferred_first_name, ' ', preferred_last_name)), ''), name) as n
@@ -209,6 +214,27 @@ router.get('/crew-calendar', requireAuth, async (req, res, next) => {
           member_name: memberName[who], position_name: label,
           project_id: e.id, project_title: e.title, project_code: e.project_code, project_status: 'EDIT',
         });
+      }
+      // Internal Color / Audio owners covering the "Color & Audio Complete"
+      // milestone get their own hold, spanning from Send to Color & Audio (or the
+      // closest earlier filled milestone) to the completion date. Contractors are
+      // external, so only crew:<id> owners feed the Crew Calendar.
+      const caEnd = ms['color_audio_complete'];
+      if (caEnd) {
+        let caStart = caEnd;
+        for (const pk of MS_ORDER) {
+          if (pk === 'color_audio_complete') break;
+          if (ms[pk] && ms[pk] <= caEnd && (caStart === caEnd || ms[pk] > caStart)) caStart = ms[pk];
+        }
+        for (const [field, label] of [['color_assignee', 'Color'], ['audio_assignee', 'Audio']]) {
+          const cid = crewFromCA(e[field]);
+          if (!cid || !memberName[cid]) continue;
+          milestoneRows.push({
+            id: `${e.id}-${field}`, kind: 'edit', start_date: caStart, end_date: caEnd,
+            member_name: memberName[cid], position_name: label,
+            project_id: e.id, project_title: e.title, project_code: e.project_code, project_status: 'EDIT',
+          });
+        }
       }
     }
     // PTO / OOO requests block out the calendar too

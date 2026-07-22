@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../App.jsx';
 import { api } from '../api.js';
 import HomeButton from '../components/HomeButton.jsx';
-import RfrModal from '../components/RfrModal.jsx';
 
 export const AVO = '#9DC183';
 
@@ -282,7 +281,6 @@ export default function Avo() {
   const [closedOpen, setClosedOpen] = useState(false);
   const [archivedOpen, setArchivedOpen] = useState(false);
   const [codeQ, setCodeQ] = useState('');
-  const [rfrFor, setRfrFor] = useState(null);   // edit awaiting RFR notes + confirm
   const load = () => api.avoEdits().then(setEdits).catch(e => alert(e.message));
   useEffect(() => { load(); }, []);
 
@@ -346,11 +344,10 @@ export default function Avo() {
               {!collapsed && group.length === 0 && <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic', padding:'2px 4px 6px' }}>Nothing here.</div>}
               {!collapsed && group.length > 0 && (
                 <div className="budget-tbl-wrap" style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10 }}>
-                  <table style={{ width:'100%', borderCollapse:'collapse', minWidth:960 }}>
+                  <table style={{ width:'100%', borderCollapse:'collapse', minWidth:820 }}>
                     <thead>
                       <tr>
                         <th style={th}>Video Title</th><th style={th}>Status</th><th style={th}>Current Editor</th>
-                        <th style={{ ...th, textAlign:'center' }}>V#</th><th style={th} colSpan={2}></th>
                         <th style={th}>Current Review Link</th><th style={th}>Latest Comment</th>
                         <th style={th}>Start</th><th style={th}>Due</th><th style={{ ...th, textAlign:'center' }}>Approved</th>
                       </tr>
@@ -372,27 +369,6 @@ export default function Avo() {
                               : <span style={{ color:'var(--muted)', fontSize:9, fontWeight:700 }}>Upcoming</span>; })()}
                           </td>
                           <td style={td}>{e.current_editor || e.lead_editor || '—'}</td>
-                          <td style={{ ...td, textAlign:'center', whiteSpace:'nowrap' }} onClick={ev => ev.stopPropagation()}>
-                            <span style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
-                              <button title="Version down 0.1" onClick={ev => act(ev, e.id, () => api.updateAvoEdit(e.id, { version: stepV(e.version, -1) }))}
-                                style={{ background:'none', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:5, padding:'0 5px', fontSize:10, cursor:'pointer', lineHeight:'16px' }}>−</button>
-                              <VersionInput value={e.version} onSave={n => act({ stopPropagation(){} }, e.id, () => api.updateAvoEdit(e.id, { version: n }))} />
-                              <button title="Version up 0.1" onClick={ev => act(ev, e.id, () => api.updateAvoEdit(e.id, { version: stepV(e.version, 1) }))}
-                                style={{ background:'none', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:5, padding:'0 5px', fontSize:10, cursor:'pointer', lineHeight:'16px' }}>+</button>
-                            </span>
-                          </td>
-                          <td style={{ ...td, padding:'7px 3px' }}>
-                            <button title="Ready For Review — add notes for the director, then confirm" onClick={ev => { ev.stopPropagation(); setRfrFor(e); }}
-                              style={{ background:'rgba(230,194,41,0.12)', border:'1px solid #e6c229', color:'#e6c229', borderRadius:10, padding:'2px 9px', fontSize:9, fontWeight:800, cursor:'pointer' }}>
-                              RFR
-                            </button>
-                          </td>
-                          <td style={{ ...td, padding:'7px 3px' }}>
-                            <button title="Log this version as sent for client review" onClick={ev => act(ev, e.id, () => api.avoSent(e.id))}
-                              style={{ background:'rgba(74,158,255,0.12)', border:'1px solid #4a9eff', color:'#4a9eff', borderRadius:10, padding:'2px 9px', fontSize:9, fontWeight:800, cursor:'pointer' }}>
-                              Sent
-                            </button>
-                          </td>
                           <td style={td}>
                             {e.review_link
                               ? <a href={e.review_link} target="_blank" rel="noreferrer" onClick={ev => ev.stopPropagation()} style={{ color:'#4a9eff', fontSize:11 }}>▶ {e.review_link.replace(/^https?:\/\/(www\.)?/, '').slice(0, 28)}</a>
@@ -467,8 +443,6 @@ export default function Avo() {
         })()}
       </div>
       {showNew && <NewEditModal onClose={() => setShowNew(false)} onCreated={e => { setShowNew(false); nav(`/avo/${e.id}`); }} />}
-      {rfrFor && <RfrModal title={rfrFor.title} onClose={() => setRfrFor(null)}
-        onConfirm={async notes => { await api.avoRfr(rfrFor.id, notes); setRfrFor(null); load(); }} />}
     </div>
   );
 }

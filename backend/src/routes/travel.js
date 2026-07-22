@@ -86,13 +86,24 @@ router.post('/:id/travel/flights', requireAuth, requireRole('ADMIN','PRODUCER'),
 router.patch('/:id/travel/flights/:fid', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
     const d = req.body;
+    // Each column: an explicitly-provided key overwrites (empty string clears);
+    // an omitted key is left untouched. Lets the full Edit Flight form round-trip.
     const [f] = await sql`
       UPDATE flights SET
-        passenger_name = COALESCE(${d.passengerName??null}, passenger_name),
-        airline = COALESCE(${d.airline??null}, airline),
-        confirmation = COALESCE(${d.confirmation??null}, confirmation),
-        cost = ${d.cost != null ? d.cost : sql`cost`},
-        crew_member_id = ${d.crewMemberId !== undefined ? (d.crewMemberId||null) : sql`crew_member_id`}
+        passenger_name = ${d.passengerName !== undefined ? (d.passengerName || null) : sql`passenger_name`},
+        airline = ${d.airline !== undefined ? (d.airline || null) : sql`airline`},
+        flight_number = ${d.flightNumber !== undefined ? (d.flightNumber || null) : sql`flight_number`},
+        origin = ${d.origin !== undefined ? (d.origin || null) : sql`origin`},
+        destination = ${d.destination !== undefined ? (d.destination || null) : sql`destination`},
+        depart_time = ${d.departTime !== undefined ? (d.departTime || null) : sql`depart_time`},
+        arrive_time = ${d.arriveTime !== undefined ? (d.arriveTime || null) : sql`arrive_time`},
+        depart_display = ${d.departDisplay !== undefined ? (d.departDisplay || null) : sql`depart_display`},
+        arrive_display = ${d.arriveDisplay !== undefined ? (d.arriveDisplay || null) : sql`arrive_display`},
+        is_return = ${d.isReturn !== undefined ? !!d.isReturn : sql`is_return`},
+        status = ${d.status !== undefined ? (d.status || null) : sql`status`},
+        confirmation = ${d.confirmation !== undefined ? (d.confirmation || null) : sql`confirmation`},
+        cost = ${d.cost !== undefined ? (d.cost === '' ? null : d.cost) : sql`cost`},
+        crew_member_id = ${d.crewMemberId !== undefined ? (d.crewMemberId || null) : sql`crew_member_id`}
       WHERE id = ${req.params.fid}
       RETURNING *, (SELECT COALESCE(NULLIF(TRIM(CONCAT(preferred_first_name, ' ', preferred_last_name)), ''), name) FROM crew_members WHERE id = crew_member_id) as crew_name`;
     res.json(f);

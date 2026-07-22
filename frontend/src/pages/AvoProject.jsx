@@ -1742,6 +1742,12 @@ function DeliverableOverview({ edits, onSave, onOpenEdit, onStatus, readOnly, A 
                           style={{ background:'#e6c2291f', border:'1px solid #e6c229', color:'#e6c229', borderRadius:20, padding:'5px 12px', fontSize:10.5, fontWeight:800, cursor: busy ? 'default' : 'pointer', whiteSpace:'nowrap', opacity: busy ? 0.5 : 1 }}>RFR</button>
                         <button disabled={busy} onClick={() => sendClient(e)}
                           style={{ background:'#4a9eff1f', border:'1px solid #4a9eff', color:'#4a9eff', borderRadius:20, padding:'5px 12px', fontSize:10.5, fontWeight:800, cursor: busy ? 'default' : 'pointer', whiteSpace:'nowrap', opacity: busy ? 0.5 : 1 }}>Sent to Client</button>
+                        <button disabled={readOnly} title={e.approved ? 'Click to remove approval' : 'Mark this edit approved'}
+                          onClick={() => onSave(e.id, { approved: !e.approved })}
+                          style={e.approved
+                            ? { background:AVO, border:`1px solid ${AVO}`, color:'#0b0b0b', borderRadius:20, padding:'5px 12px', fontSize:10.5, fontWeight:800, cursor: readOnly ? 'default' : 'pointer', whiteSpace:'nowrap' }
+                            : { background:'transparent', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:20, padding:'5px 12px', fontSize:10.5, fontWeight:800, cursor: readOnly ? 'default' : 'pointer', whiteSpace:'nowrap' }}>
+                          {e.approved ? '✓ Approved' : 'Approve'}</button>
                       </div>
                     </td>
                   </tr>

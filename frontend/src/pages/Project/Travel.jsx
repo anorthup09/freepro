@@ -196,7 +196,7 @@ export default function Travel({ project }) {
 
   // Edit modals
   const [editFlight, setEditFlight] = useState(null); // flight object being edited
-  const [editFlightForm, setEditFlightForm] = useState({ crewMemberId:'', confirmation:'', cost:'' });
+  const [editFlightForm, setEditFlightForm] = useState({ crewMemberId:'', passengerName:'', airline:'', flightNumber:'', origin:'', destination:'', departTime:'', arriveTime:'', confirmation:'', cost:'', isReturn:false });
   const [editGuest, setEditGuest] = useState(null); // { guest, hotelId }
   const [editGuestForm, setEditGuestForm] = useState({ confirmation:'', cost:'', checkIn:'', checkOut:'' });
   const [editCar, setEditCar] = useState(null); // car object being edited
@@ -482,15 +482,31 @@ export default function Travel({ project }) {
   // ── Edit handlers ─────────────────────────────────────────────────────────
   function openEditFlight(f) {
     setEditFlight(f);
-    setEditFlightForm({ crewMemberId: f.crew_member_id || '', confirmation: f.confirmation || '', cost: f.cost || '' });
+    const toLocal = v => v ? String(v).slice(0, 16) : '';
+    setEditFlightForm({
+      crewMemberId: f.crew_member_id || '', passengerName: f.passenger_name || '',
+      airline: f.airline || '', flightNumber: f.flight_number || '',
+      origin: f.origin || '', destination: f.destination || '',
+      departTime: toLocal(f.depart_time), arriveTime: toLocal(f.arrive_time),
+      confirmation: f.confirmation || '', cost: f.cost ?? '', isReturn: !!f.is_return,
+    });
   }
   async function saveEditFlight(e) {
     e.preventDefault();
     try {
+      const ef = editFlightForm;
       const updated = await api.updateFlight(project.id, editFlight.id, {
-        crewMemberId: editFlightForm.crewMemberId || null,
-        confirmation: editFlightForm.confirmation || null,
-        cost: editFlightForm.cost || null,
+        crewMemberId: ef.crewMemberId || null,
+        passengerName: ef.passengerName || null,
+        airline: ef.airline || null,
+        flightNumber: ef.flightNumber || null,
+        origin: ef.origin || null,
+        destination: ef.destination || null,
+        departTime: ef.departTime || null,
+        arriveTime: ef.arriveTime || null,
+        confirmation: ef.confirmation || null,
+        cost: ef.cost === '' ? null : ef.cost,
+        isReturn: ef.isReturn,
       });
       setFlights(prev => prev.map(f => f.id === editFlight.id ? { ...f, ...updated } : f));
       setEditFlight(null);
@@ -1042,12 +1058,25 @@ export default function Travel({ project }) {
               <div className="form-grid" style={{ marginBottom:12 }}>
                 <div className="field span2">
                   <label>Crew Member</label>
-                  <select value={editFlightForm.crewMemberId} onChange={e => setEditFlightForm(f=>({...f, crewMemberId: e.target.value}))}>
+                  <select value={editFlightForm.crewMemberId} onChange={e => {
+                    const id = e.target.value || '';
+                    setEditFlightForm(f=>({ ...f, crewMemberId: id, passengerName: displayName(memberById(id)) || f.passengerName }));
+                  }}>
                     {crewOptions}
                   </select>
                 </div>
                 <div className="field"><label>Confirmation #</label><input value={editFlightForm.confirmation} onChange={e => setEditFlightForm(f=>({...f,confirmation:e.target.value}))} placeholder="APMKP8" /></div>
                 <div className="field"><label>Cost ($)</label><input type="number" step="0.01" min="0" value={editFlightForm.cost} onChange={e => setEditFlightForm(f=>({...f,cost:e.target.value}))} placeholder="0.00" /></div>
+                <div className="field"><label>Airline</label><input value={editFlightForm.airline} onChange={e => setEditFlightForm(f=>({...f,airline:e.target.value}))} placeholder="United" /></div>
+                <div className="field"><label>Flight #</label><input value={editFlightForm.flightNumber} onChange={e => setEditFlightForm(f=>({...f,flightNumber:e.target.value}))} placeholder="UA1234" /></div>
+                <div className="field"><label>Origin</label><input value={editFlightForm.origin} onChange={e => setEditFlightForm(f=>({...f,origin:e.target.value}))} placeholder="STL" /></div>
+                <div className="field"><label>Destination</label><input value={editFlightForm.destination} onChange={e => setEditFlightForm(f=>({...f,destination:e.target.value}))} placeholder="MCI" /></div>
+                <div className="field"><label>Depart</label><input type="datetime-local" value={editFlightForm.departTime} onChange={e => setEditFlightForm(f=>({...f,departTime:e.target.value}))} /></div>
+                <div className="field"><label>Arrive</label><input type="datetime-local" value={editFlightForm.arriveTime} onChange={e => setEditFlightForm(f=>({...f,arriveTime:e.target.value}))} /></div>
+                <div className="field span2" style={{ flexDirection:'row', alignItems:'center', gap:10 }}>
+                  <input type="checkbox" id="editIsReturn" checked={editFlightForm.isReturn} onChange={e => setEditFlightForm(f=>({...f,isReturn:e.target.checked}))} style={{ width:'auto' }} />
+                  <label htmlFor="editIsReturn" style={{ textTransform:'none', letterSpacing:0, fontSize:12, color:'var(--text)' }}>Return flight</label>
+                </div>
               </div>
               <div className="btn-row">
                 <button className="btn btn-primary">Save</button>

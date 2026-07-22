@@ -149,6 +149,7 @@ router.get('/edits', ...staff, async (req, res, next) => {
       ) la ON TRUE
       ORDER BY e.end_date NULLS LAST, e.created_at`;
     await attachCurrentEditor(rows);
+    await attachOwnerHolds(rows);
     res.json(rows);
   } catch (e) { next(e); }
 });
@@ -301,6 +302,72 @@ async function attachCurrentEditor(edits) {
     for (const r of rows) names[r.id] = r.n;
   }
   for (const [e, id] of picked) e.current_editor = (id && names[id]) || e.lead_editor || null;
+  return edits;
+}
+
+// Pipeline order used to walk back to the closest earlier filled milestone.
+const MS_ORDER_ALL = ['scripting_start', 'scripting_end', 'icr_v1_due', 'icr_feedback',
+  'client_v1_due', 'client_v1_feedback', 'client_v2_due', 'client_v2_feedback',
+  'client_v3_due', 'client_v3_feedback', 'color_audio_send', 'color_audio_complete',
+  'final_comp', 'final_delivery'];
+
+// Attach `owner_holds` to each edit for the Gantt: one entry per person, listing
+// only the timeline holds they cover. Editor tasks go to the per-milestone
+// assignee (else the lead editor); the Color & Audio Complete hold goes to the
+// tagged color/audio owner (internal crew or contractor).
+async function attachOwnerHolds(edits) {
+  const splitCA = v => (typeof v === 'string' && v.includes(':')) ? v.split(':') : null;
+  const crewIds = new Set(), ctrIds = new Set();
+  for (const e of edits) {
+    if (e.lead_editor_id) crewIds.add(e.lead_editor_id);
+    for (const v of Object.values(parseJson(e.milestone_assignees, {}))) if (v) crewIds.add(v);
+    for (const f of ['color_assignee', 'audio_assignee']) {
+      const p = splitCA(e[f]); if (!p) continue;
+      if (p[0] === 'crew') crewIds.add(p[1]); else if (p[0] === 'ctr') ctrIds.add(p[1]);
+    }
+  }
+  const names = {}, ctrNames = {};
+  if (crewIds.size) {
+    const rows = await sql`SELECT id, ${sql.unsafe(PREF)} AS n FROM crew_members cm WHERE id = ANY(${sql.array([...crewIds])})`;
+    for (const r of rows) names[r.id] = r.n;
+  }
+  if (ctrIds.size) {
+    const rows = await sql`SELECT id, name FROM avo_contractors WHERE id = ANY(${sql.array([...ctrIds])})`;
+    for (const r of rows) ctrNames[r.id] = r.name;
+  }
+  const caName = v => { const p = splitCA(v); if (!p) return null; return p[0] === 'crew' ? names[p[1]] : p[0] === 'ctr' ? ctrNames[p[1]] : null; };
+  for (const e of edits) {
+    const ms = parseJson(e.milestones, {});
+    const asg = parseJson(e.milestone_assignees, {});
+    const leadName = e.lead_editor || (e.lead_editor_id && names[e.lead_editor_id]) || null;
+    const runnerStart = k => {
+      let start = ms[k];
+      for (const pk of MS_ORDER_ALL) { if (pk === k) break; if (ms[pk] && ms[pk] <= ms[k] && (start === ms[k] || ms[pk] > start)) start = ms[pk]; }
+      return start;
+    };
+    const byOwner = new Map();
+    const addSeg = (owner, from, to, label) => {
+      if (!owner || !from || !to) return;
+      if (!byOwner.has(owner)) byOwner.set(owner, []);
+      byOwner.get(owner).push({ from: String(from).slice(0, 10), to: String(to).slice(0, 10), label });
+    };
+    for (const k of EDITOR_MS) {
+      if (!ms[k]) continue;
+      addSeg((asg[k] && names[asg[k]]) || leadName, runnerStart(k), ms[k], MILESTONE_LABELS[k]);
+    }
+    if (ms['color_audio_complete']) {
+      const start = runnerStart('color_audio_complete');
+      const colorOwner = caName(e.color_assignee), audioOwner = caName(e.audio_assignee);
+      if (colorOwner && colorOwner === audioOwner) addSeg(colorOwner, start, ms['color_audio_complete'], 'Color & Audio Complete');
+      else if (colorOwner || audioOwner) {
+        if (colorOwner) addSeg(colorOwner, start, ms['color_audio_complete'], 'Color Complete');
+        if (audioOwner) addSeg(audioOwner, start, ms['color_audio_complete'], 'Audio Complete');
+      } else addSeg(leadName, start, ms['color_audio_complete'], 'Color & Audio Complete');
+    }
+    e.owner_holds = [...byOwner.entries()]
+      .map(([owner, segments]) => ({ owner, segments: segments.sort((a, b) => a.from.localeCompare(b.from)) }))
+      .sort((a, b) => a.segments[0].from.localeCompare(b.segments[0].from));
+  }
   return edits;
 }
 
@@ -1232,14 +1299,19 @@ publicRouter.get('/gantt-share/:token', async (req, res, next) => {
     if (share.kind === 'edit') {
       edits = await sql`
         SELECT e.id, e.title, e.project_code, e.status, e.version, e.start_date, e.end_date, e.approved, e.milestones,
+          e.milestone_assignees, e.color_assignee, e.audio_assignee, e.lead_editor_id,
           COALESCE((SELECT ${sql.unsafe(PREF)} FROM crew_members cm WHERE cm.id = e.lead_editor_id), e.lead_editor_name) as lead_editor
         FROM edits e WHERE e.id = ${share.ref}`;
     } else {
       edits = await sql`
         SELECT e.id, e.title, e.project_code, e.status, e.version, e.start_date, e.end_date, e.approved, e.milestones,
+          e.milestone_assignees, e.color_assignee, e.audio_assignee, e.lead_editor_id,
           COALESCE((SELECT ${sql.unsafe(PREF)} FROM crew_members cm WHERE cm.id = e.lead_editor_id), e.lead_editor_name) as lead_editor
         FROM edits e WHERE e.project_code = ${share.ref} ORDER BY e.start_date NULLS LAST`;
     }
+    await attachOwnerHolds(edits);
+    // Strip the raw assignee ids from the public payload — owner_holds carries the names.
+    for (const e of edits) { delete e.milestone_assignees; delete e.color_assignee; delete e.audio_assignee; delete e.lead_editor_id; }
     res.json({ kind: share.kind, ref: share.ref, edits });
   } catch (e) { next(e); }
 });
