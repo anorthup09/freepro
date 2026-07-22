@@ -6,6 +6,16 @@ import HomeButton from '../components/HomeButton.jsx';
 import RfrModal from '../components/RfrModal.jsx';
 
 export const AVO = '#9DC183';
+
+// Shared paperclip icon (inherits the surrounding text color via currentColor)
+export const ClipIcon = ({ size = 11, style }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
+    style={{ verticalAlign:'-1px', flexShrink:0, ...style }} aria-hidden="true">
+    <path d="M21.44 11.05l-9.19 9.19a5 5 0 0 1-7.07-7.07l8.49-8.49a3 3 0 0 1 4.24 4.24l-8.49 8.49a1 1 0 0 1-1.41-1.41l7.78-7.78" />
+  </svg>
+);
+
 // Tier 1 — the coarse open/closed "lane". Auto-derived from the lifecycle
 // (workflow_status): none → Upcoming, in-flight → Active, Approved → Closed.
 // "Focus" is a separate manual flag (edits.focus), not a lane value.
@@ -353,7 +363,7 @@ export default function Avo() {
                               {e.title}
                               {e.focus && <span title="Flagged as Focus" style={{ background:`${FOCUS_COLOR}22`, border:`1px solid ${FOCUS_COLOR}`, color:FOCUS_COLOR, borderRadius:10, padding:'1px 7px', fontSize:8, fontWeight:800 }}>FOCUS</span>}
                               {(() => { const ls = DELIV_STATUS(e.workflow_status); return ls ? <span style={{ background:`${ls[2]}22`, border:`1px solid ${ls[2]}`, color:ls[2], borderRadius:10, padding:'1px 7px', fontSize:8, fontWeight:800, whiteSpace:'nowrap' }}>{ls[1]}</span> : null; })()}
-                              {e.file_count > 0 && <span title={`${e.file_count} file${e.file_count === 1 ? '' : 's'} attached`} style={{ color:'var(--muted)', fontSize:9, fontWeight:700, whiteSpace:'nowrap' }}>📎 {e.file_count}</span>}
+                              {e.file_count > 0 && <span title={`${e.file_count} file${e.file_count === 1 ? '' : 's'} attached`} style={{ display:'inline-flex', alignItems:'center', gap:2, color:'var(--muted)', fontSize:9, fontWeight:700, whiteSpace:'nowrap' }}><ClipIcon size={10} /> {e.file_count}</span>}
                             </span>
                             {e.project_code && <div style={{ fontSize:9, color:'var(--muted)', fontWeight:400 }}>{e.project_code}{e.project_title ? ` · ${e.project_title}` : ''}</div>}
                           </td>

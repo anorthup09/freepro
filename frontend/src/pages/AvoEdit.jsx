@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api.js';
 import { maybeMailNotice } from '../utils/mailNotice.js';
-import { AvoHeader, EditorSelect, AVO, AVO_STATUSES, fmtV, stepV, VersionInput } from './Avo.jsx';
+import { AvoHeader, EditorSelect, AVO, AVO_STATUSES, ClipIcon, fmtV, stepV, VersionInput } from './Avo.jsx';
 import { MILESTONES, milestoneText, milestoneRunners } from '../components/GanttChart.jsx';
 import ContractSendModal from '../components/ContractSendModal.jsx';
 import RfrModal from '../components/RfrModal.jsx';
@@ -1006,7 +1006,7 @@ export default function AvoEdit() {
                     const blob = await r.blob();
                     const a = document.createElement('a');
                     a.href = URL.createObjectURL(blob); a.download = f.filename; a.click(); URL.revokeObjectURL(a.href);
-                  }} style={{ color:'#4a9eff', fontSize:12, flex:1 }}>📎 {f.filename}</a>
+                  }} style={{ color:'#4a9eff', fontSize:12, flex:1 }}><ClipIcon /> {f.filename}</a>
                   <span style={{ fontSize:10, color:'var(--muted)' }}>{(f.size / 1024 / 1024).toFixed(1)}MB · {f.uploaded_by}</span>
                   <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }}
                     onClick={async () => { if (confirm(`Delete ${f.filename}?`)) { await api.avoDeleteFile(f.id); load(); } }}>✕</button>
@@ -1056,7 +1056,7 @@ export default function AvoEdit() {
                             const r = await fetch(`/api/avo/files/${f.id}`, { headers: { Authorization: `Bearer ${localStorage.getItem('fp_token')}` } });
                             const blob = await r.blob(); const el = document.createElement('a');
                             el.href = URL.createObjectURL(blob); el.download = f.filename; el.click(); URL.revokeObjectURL(el.href);
-                          }} style={{ color:'#4a9eff', fontSize:11, textDecoration:'none', background:'rgba(74,158,255,0.08)', border:'1px solid rgba(74,158,255,0.3)', borderRadius:6, padding:'3px 8px' }}>📎 {f.filename}</a>
+                          }} style={{ color:'#4a9eff', fontSize:11, textDecoration:'none', background:'rgba(74,158,255,0.08)', border:'1px solid rgba(74,158,255,0.3)', borderRadius:6, padding:'3px 8px' }}><ClipIcon /> {f.filename}</a>
                         );
                       })}
                     </div>
@@ -1077,14 +1077,14 @@ export default function AvoEdit() {
                 <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:8 }}>
                   {pending.map((f, i) => (
                     <span key={i} style={{ display:'inline-flex', alignItems:'center', gap:6, background:'rgba(74,158,255,0.1)', border:'1px solid rgba(74,158,255,0.35)', borderRadius:14, padding:'3px 10px', fontSize:10.5, color:'#4a9eff' }}>
-                      📎 {f.filename}
+                      <ClipIcon /> {f.filename}
                       <span title="Remove" onClick={() => setPending(p => p.filter((_, j) => j !== i))} style={{ cursor:'pointer', fontWeight:800, opacity:0.8 }}>✕</span>
                     </span>
                   ))}
                 </div>
               )}
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:8 }}>
-                <button className="btn btn-ghost btn-sm" title="Attach files" onClick={() => fileRef.current?.click()}>📎 Attach</button>
+                <button className="btn btn-ghost btn-sm" title="Attach files" onClick={() => fileRef.current?.click()}><ClipIcon /> Attach</button>
                 <input ref={fileRef} type="file" multiple style={{ display:'none' }} onChange={ev => { stageFiles(ev.target.files); ev.target.value = ''; }} />
                 <button disabled={(!comment.trim() && pending.length === 0) || busy} onClick={post}
                   style={{ background: (comment.trim() || pending.length) ? AVO : 'var(--border)', color:'#0b0b0b', border:'none', borderRadius:8, padding:'7px 18px', fontSize:12, fontWeight:800, cursor: (comment.trim() || pending.length) ? 'pointer' : 'default' }}>
