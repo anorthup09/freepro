@@ -95,8 +95,9 @@ app.use('/api', (req, res, next) => {
       return res.status(403).json({ error: 'Crew accounts can only access Crew Views, AvocadoPost, and Team Management' });
     }
     // AGENCY = crew access + read-only project logistics + editable gear & deliverables
+    // + the Solutions Project Hub feed (read-only, no finance figures).
     if (u.role === 'AGENCY' && !(crewAllowed(req.path, req.method)
-      || (req.method === 'GET' && (req.path.startsWith('/projects') || req.path.startsWith('/gear-requests')))
+      || (req.method === 'GET' && (req.path.startsWith('/projects') || req.path.startsWith('/gear-requests') || req.path.startsWith('/solutions')))
       || /^\/projects\/[^/]+\/(gear|gear-items|online-rentals|deliverables)(\/|$)/.test(req.path)
       || req.path.startsWith('/gear-requests'))) {
       return res.status(403).json({ error: 'Agency accounts have view access to project logistics and edit access to gear and deliverables' });

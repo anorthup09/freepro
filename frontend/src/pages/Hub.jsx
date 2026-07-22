@@ -573,7 +573,7 @@ Questions? Reply to whoever sent you this.`;
                   <td style={{ color:'var(--muted)' }}>{u.email}</td>
                   <td>
                     <select value={u.role} onChange={e => changeRole(u.id, e.target.value)} style={{ width:'auto' }}>
-                      {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                      {ROLES.map(r => <option key={r} value={r}>{roleLabel(r)}</option>)}
                     </select>
                   </td>
                   <td style={{ whiteSpace:'nowrap' }}>
@@ -840,6 +840,54 @@ function Automations() {
 
 // Edge fade so tiles blur out at the sides of a scroll row
 const SCROLL_FADE = 'linear-gradient(to right, transparent 0, #000 16px, #000 calc(100% - 16px), transparent 100%)';
+
+// The AGENCY role is presented to users as "Solutions" everywhere it's shown.
+const roleLabel = r => r === 'AGENCY' ? 'Solutions' : r;
+
+// Solutions role landing: a Project Hub scroll limited to projects whose budget
+// is tagged "Unbridled Solutions". Tiles open the project page (no finance).
+function SolutionsHub() {
+  const nav = useNavigate();
+  const [projects, setProjects] = useState(null);
+  const [q, setQ] = useState('');
+  useEffect(() => { api.solutionsProjects().then(setProjects).catch(e => alert(e.message)); }, []);
+  const recent = recentProjectTimes();
+  const list = [...(projects || [])].sort((a, b) =>
+    (recent[b.id] || 0) - (recent[a.id] || 0) || (a.code || '').localeCompare(b.code || ''));
+  const s = q.trim().toLowerCase();
+  const shown = s ? list.filter(p => (p.code || '').toLowerCase().includes(s) || (p.title || '').toLowerCase().includes(s) || (p.client || '').toLowerCase().includes(s)) : list;
+  return (
+    <div style={{ border:'1px solid var(--border)', borderRadius:12, marginBottom:22, overflow:'hidden' }}>
+      <div style={{ padding:'16px 18px', minWidth:0 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:12 }}>
+          <div style={{ fontSize:13, fontWeight:800, whiteSpace:'nowrap' }}>Project Hub</div>
+          <span style={{ fontSize:9, fontWeight:800, color:'#a78bfa', border:'1px solid #a78bfa55', borderRadius:10, padding:'2px 8px', whiteSpace:'nowrap' }}>Solutions</span>
+          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search code, title, client…" style={{ flex:1, minWidth:0 }} />
+        </div>
+        {!projects && <div className="empty">Loading…</div>}
+        {projects && shown.length === 0 && <div className="empty">No Solutions projects yet.</div>}
+        {shown.length > 0 && (
+          <div className="hub-scroll" style={{ display:'flex', gap:10, overflowX:'auto', paddingBottom:8, WebkitMaskImage:SCROLL_FADE, maskImage:SCROLL_FADE }}>
+            {shown.map(p => (
+              <div key={p.id} onClick={() => nav(`/projects/${p.id}`)}
+                style={{ flex:'0 0 auto', width:180, background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid rgba(167,139,250,0.5)', borderRadius:10, padding:'11px 13px', cursor:'pointer', transition:'transform .15s ease' }}
+                onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-3px)'}
+                onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
+                <div style={{ fontSize:10, fontWeight:800, color:'var(--muted)', letterSpacing:'0.04em' }}>{p.code}</div>
+                <div style={{ fontSize:12.5, fontWeight:800, margin:'3px 0 2px' }}>{p.title}</div>
+                <div style={{ fontSize:10.5, color:'var(--muted)' }}>{p.client}</div>
+                <div style={{ display:'flex', gap:5, marginTop:8, flexWrap:'wrap' }}>
+                  <span style={{ fontSize:9, fontWeight:800, color: STATUS_COLORS[p.budget_status] || '#5ABF80', border: `1px solid ${STATUS_COLORS[p.budget_status] || '#5ABF80'}55`, borderRadius:10, padding:'2px 8px' }}>{p.budget_status || 'No budget'}</span>
+                  {(p.shoots || []).length > 0 && <span style={{ fontSize:9, fontWeight:800, color:'var(--orange)', border:'1px solid rgba(232,80,10,0.4)', borderRadius:10, padding:'2px 8px' }}>{p.shoots.length} shoot{p.shoots.length !== 1 ? 's' : ''}</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 // Project View mode: every project as a tile, sorted by code
 function HubProjects() {
@@ -1157,7 +1205,7 @@ export default function Hub() {
               onChange={e => setPreview(e.target.value)}
               style={{ width:'auto', fontSize:11, padding:'5px 8px', borderRadius:8, background:'var(--bg2)', color: preview ? '#a78bfa' : 'var(--muted)', border:`1px solid ${preview ? '#a78bfa' : 'var(--border)'}` }}>
               <option value="">View as…</option>
-              {['PRODUCER', 'FINANCE', 'CREW', 'AGENCY', 'CLIENT'].map(r => <option key={r} value={r}>View as {r}</option>)}
+              {['PRODUCER', 'FINANCE', 'CREW', 'AGENCY', 'CLIENT'].map(r => <option key={r} value={r}>View as {roleLabel(r)}</option>)}
             </select>
           )}
           {user?.role === 'ADMIN' && (
@@ -1254,8 +1302,9 @@ export default function Hub() {
                 </div>
               </div>
             )}
-            {!isCrew && !isFinance && mode === 'projects' && <HubProjects />}
-            {(isCrew || isFinance || mode === 'ops') && (
+            {isAgency && <SolutionsHub />}
+            {!isAgency && !isCrew && !isFinance && mode === 'projects' && <HubProjects />}
+            {!isAgency && (isCrew || isFinance || mode === 'ops') && (
             <div className="hub-tiles" style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(260px, 1fr))', gap:16 }}>
               {tiles.map(t => {
                 const clickable = !!t.to;

@@ -309,6 +309,7 @@ export const api = {
 
   // ProFi — project finance
   financeProjects: () => req('GET', '/finance/projects'),
+  solutionsProjects: () => req('GET', '/solutions/projects'),
   financeBundle: (pid) => req('GET', `/finance/${pid}`),
   createBudget: (pid) => req('POST', `/finance/${pid}/budget`),
   driveRoster: () => req('GET', '/gear-assets/drives'),

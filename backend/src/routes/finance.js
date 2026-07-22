@@ -179,6 +179,29 @@ router.get('/finance/projects', ...finance, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// Project Hub feed for the Solutions (AGENCY) role: only projects whose main
+// budget is tagged "Unbridled Solutions". Returns lightweight tiles (no dollar
+// figures) — the Solutions role never sees finance data.
+const solutionsView = [requireAuth, requireRole('ADMIN', 'PRODUCER', 'FINANCE', 'AGENCY')];
+router.get('/solutions/projects', ...solutionsView, async (req, res, next) => {
+  try {
+    const projects = await sql`
+      SELECT p.id, p.code, p.title, p.client, p.status, b.id as budget_id, b.status as budget_status
+      FROM projects p
+      JOIN budgets b ON b.project_id = p.id AND COALESCE(b.kind, 'main') = 'main'
+      WHERE p.status != 'ARCHIVED' AND p.parent_project_id IS NULL AND b.unbridled_solutions = TRUE
+      ORDER BY p.code`;
+    const bids = projects.map(p => p.budget_id).filter(Boolean);
+    const shoots = bids.length
+      ? await sql`SELECT budget_id, shoot_code FROM budget_sections WHERE kind = 'shoot' AND budget_id = ANY(${sql.array(bids)})`
+      : [];
+    res.json(projects.map(p => ({
+      id: p.id, code: p.code, title: p.title, client: p.client, status: p.status, budget_status: p.budget_status,
+      shoots: shoots.filter(s => s.budget_id === p.budget_id).map(s => ({ code: s.shoot_code })),
+    })));
+  } catch (e) { next(e); }
+});
+
 function lineSubtotal(l, sectionLines) {
   if (l.percent != null) {
     const base = sectionLines.filter(x => x.percent == null && !x.is_travel).reduce((s, x) => s + Number(x.qty || 0) * Number(x.unit_cost || 0), 0);
