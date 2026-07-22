@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../App.jsx';
 import { api } from '../api.js';
 import { VccTab } from './FinanceProject.jsx';
@@ -13,7 +13,7 @@ const fmtMonth = m => {
 
 function Header({ user, setUser, backTo, backLabel }) {
   return (
-    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 26px', flexWrap:'wrap', gap:10 }}>
+    <div className="no-print" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 26px', flexWrap:'wrap', gap:10 }}>
       <div style={{ display:'flex', alignItems:'baseline', gap:14 }}>
         <Link to="/" style={{ display:'flex', alignItems:'center' }} title="Back to the Unbridled Media hub">
           <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height:20, filter:'brightness(0) invert(1)', opacity:0.95 }} />
@@ -39,6 +39,16 @@ export function VccProjectPage() {
   const load = () => api.financeBundle(pid).then(setData).catch(e => setErr(e.message));
   useEffect(() => { load(); }, [pid]);
   const set = (updater) => setData(d => ({ ...d, ...(typeof updater === 'function' ? updater(d) : updater) }));
+
+  // Opened as a PDF (?pdf=1) — auto-trigger the print dialog with a clean title.
+  const isPdf = new URLSearchParams(useLocation().search).get('pdf') === '1';
+  useEffect(() => {
+    if (!isPdf || !data) return;
+    const prev = document.title;
+    document.title = `${data.project?.code || ''} — VCC`.trim();
+    const t = setTimeout(() => window.print(), 600);
+    return () => { clearTimeout(t); document.title = prev; };
+  }, [isPdf, data]);
 
   return (
     <div style={{ minHeight:'100vh', background:'var(--bg)' }}>

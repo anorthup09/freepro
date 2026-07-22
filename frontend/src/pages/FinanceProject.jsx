@@ -1322,7 +1322,7 @@ export function VccTab({ pid, budget, sections, lines, vcc, categories, set, vcc
       <VccTools pid={pid} set={set} vcc={vcc} />
 
       {/* add entry */}
-      <form onSubmit={addEntry} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding:'10px 14px', marginBottom:14, display:'flex', gap:8, flexWrap:'wrap', alignItems:'center' }}>
+      <form onSubmit={addEntry} className="no-print" style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding:'10px 14px', marginBottom:14, display:'flex', gap:8, flexWrap:'wrap', alignItems:'center' }}>
         <input type="date" value={form.entryDate} style={{ width:130, fontSize:11 }} onChange={e => setForm(f => ({ ...f, entryDate: e.target.value }))} />
         <input placeholder="Vendor" value={form.vendor} style={{ width:120, fontSize:11 }} onChange={e => setForm(f => ({ ...f, vendor: e.target.value }))} />
         <input placeholder="Description" value={form.description} style={{ flex:1, minWidth:160, fontSize:11 }} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
@@ -1524,7 +1524,7 @@ function VccTools({ pid, set, vcc }) {
   }
 
   return (
-    <div style={{ display:'flex', gap:10, alignItems:'center', flexWrap:'wrap', marginBottom:12 }}>
+    <div className="no-print" style={{ display:'flex', gap:10, alignItems:'center', flexWrap:'wrap', marginBottom:12 }}>
       <button className="btn btn-ghost btn-sm" disabled={!!busy} onClick={() => fileRef.current?.click()}>{busy === 'odc' ? 'Importing…' : '⬆ Import ODC Report'}</button>
       <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" style={{ display:'none' }} onChange={onFile} />
       {reviewCount > 0 && (
@@ -1532,6 +1532,11 @@ function VccTools({ pid, set, vcc }) {
       )}
       {msg && <span style={{ fontSize:11, color:'var(--muted)' }}>{msg}</span>}
       <div style={{ flex:1 }} />
+      <button title="Open a print-ready VCC and save it as a PDF"
+        onClick={() => window.open(`/reports/vcc/${pid}?pdf=1`, '_blank')}
+        style={{ background:'rgba(230,194,41,0.12)', border:'1px solid #e6c229', color:'#e6c229', borderRadius:20, padding:'4px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
+        📄 PDF
+      </button>
       <VendorInvoicesButton pid={pid} />
     </div>
   );
