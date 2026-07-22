@@ -20,8 +20,8 @@ export const ClipIcon = ({ size = 11, style }) => (
 // (workflow_status): none → Upcoming, in-flight → Active, Approved → Closed.
 // "Focus" is a separate manual flag (edits.focus), not a lane value.
 export const AVO_STATUSES = [
-  ['COMING_SOON', 'Upcoming', '#e6c229'],
   ['ASSIGNED', 'Active', '#4a9eff'],
+  ['COMING_SOON', 'Upcoming', '#e6c229'],
   ['CLOSED', 'Closed', '#8a8f98'],
 ];
 export const FOCUS_COLOR = '#e05252';
@@ -349,7 +349,7 @@ export default function Avo() {
                   <table style={{ width:'100%', borderCollapse:'collapse', minWidth:960 }}>
                     <thead>
                       <tr>
-                        <th style={th}>Video Title</th><th style={th}>Lead Editor</th>
+                        <th style={th}>Video Title</th><th style={th}>Status</th><th style={th}>Current Editor</th>
                         <th style={{ ...th, textAlign:'center' }}>V#</th><th style={th} colSpan={2}></th>
                         <th style={th}>Current Review Link</th><th style={th}>Latest Comment</th>
                         <th style={th}>Start</th><th style={th}>Due</th><th style={{ ...th, textAlign:'center' }}>Approved</th>
@@ -362,12 +362,16 @@ export default function Avo() {
                             <span style={{ display:'inline-flex', alignItems:'center', gap:7, flexWrap:'wrap' }}>
                               {e.title}
                               {e.focus && <span title="Flagged as Focus" style={{ background:`${FOCUS_COLOR}22`, border:`1px solid ${FOCUS_COLOR}`, color:FOCUS_COLOR, borderRadius:10, padding:'1px 7px', fontSize:8, fontWeight:800 }}>FOCUS</span>}
-                              {(() => { const ls = DELIV_STATUS(e.workflow_status); return ls ? <span style={{ background:`${ls[2]}22`, border:`1px solid ${ls[2]}`, color:ls[2], borderRadius:10, padding:'1px 7px', fontSize:8, fontWeight:800, whiteSpace:'nowrap' }}>{ls[1]}</span> : null; })()}
                               {e.file_count > 0 && <span title={`${e.file_count} file${e.file_count === 1 ? '' : 's'} attached`} style={{ display:'inline-flex', alignItems:'center', gap:2, color:'var(--muted)', fontSize:9, fontWeight:700, whiteSpace:'nowrap' }}><ClipIcon size={10} /> {e.file_count}</span>}
                             </span>
                             {e.project_code && <div style={{ fontSize:9, color:'var(--muted)', fontWeight:400 }}>{e.project_code}{e.project_title ? ` · ${e.project_title}` : ''}</div>}
                           </td>
-                          <td style={td}>{e.lead_editor || '—'}</td>
+                          <td style={{ ...td, whiteSpace:'nowrap' }}>
+                            {(() => { const ls = DELIV_STATUS(e.workflow_status); return ls
+                              ? <span style={{ background:`${ls[2]}22`, border:`1px solid ${ls[2]}`, color:ls[2], borderRadius:12, padding:'2px 10px', fontSize:9, fontWeight:800, whiteSpace:'nowrap' }}>{ls[1]}</span>
+                              : <span style={{ color:'var(--muted)', fontSize:9, fontWeight:700 }}>Upcoming</span>; })()}
+                          </td>
+                          <td style={td}>{e.current_editor || e.lead_editor || '—'}</td>
                           <td style={{ ...td, textAlign:'center', whiteSpace:'nowrap' }} onClick={ev => ev.stopPropagation()}>
                             <span style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
                               <button title="Version down 0.1" onClick={ev => act(ev, e.id, () => api.updateAvoEdit(e.id, { version: stepV(e.version, -1) }))}

@@ -220,10 +220,9 @@ function SmartTable({ rows, colDefs, config, onConfig, saveExtra, leading, trail
                     onClick={e => { e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); setOpenFilter(o => o?.key === c.key ? null : { key: c.key, x: r.left, y: r.bottom }); }}
                     style={{ background:'none', border:'none', cursor:'pointer', padding:'0 3px', fontSize:9,
                       color: (filters[c.key] || '').trim() ? AVO : 'var(--muted)', opacity: (filters[c.key] || '').trim() ? 1 : 0.7 }}>⧩</button>
-                  {!readOnly && <span title="Drag to resize column" draggable={false}
+                  {!readOnly && <span className="tbl-col-grip" title="Drag to adjust column width" draggable={false}
                     onMouseDown={e => { e.preventDefault(); e.stopPropagation(); const thEl = e.currentTarget.closest('th'); resizeRef.current = { key: c.key, startX: e.clientX, startW: thEl ? thEl.getBoundingClientRect().width : 120 }; }}
-                    onClick={e => e.stopPropagation()}
-                    style={{ position:'absolute', top:0, right:0, width:7, height:'100%', cursor:'col-resize', userSelect:'none' }} />}
+                    onClick={e => e.stopPropagation()} />}
                   {openFilter?.key === c.key && (
                     <div onClick={e => e.stopPropagation()}
                       style={{ position:'fixed', top:openFilter.y + 4, left:Math.min(openFilter.x, window.innerWidth - 180), zIndex:130, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:7, padding:8, boxShadow:'0 8px 20px rgba(0,0,0,0.5)', minWidth:150 }}>
@@ -921,10 +920,9 @@ function MusicGrid({ rows, setRows, pageId, code, title, config, onConfig, edits
       style={{ background:'none', border:'none', cursor:'pointer', padding:'0 3px', fontSize:10, color: expandedCols.has(key) ? AVO : 'var(--muted)' }}>{expandedCols.has(key) ? '▤' : '⤢'}</button>
   );
   const colResizeHandle = (key) => !readOnly && (
-    <span title="Drag to resize column" draggable={false}
+    <span className="tbl-col-grip" title="Drag to adjust column width" draggable={false}
       onMouseDown={e => { e.preventDefault(); e.stopPropagation(); const thEl = e.currentTarget.closest('th'); resizeRef.current = { key, startX: e.clientX, startW: thEl ? thEl.getBoundingClientRect().width : 120 }; }}
-      onClick={e => e.stopPropagation()}
-      style={{ position:'absolute', top:0, right:0, width:7, height:'100%', cursor:'col-resize', userSelect:'none' }} />
+      onClick={e => e.stopPropagation()} />
   );
   // Per-cell collapse toggle shown in a cell's corner while its column is expanded.
   const cellCollapseBtn = (colKey, rowId) => !readOnly && expandedCols.has(colKey) && (

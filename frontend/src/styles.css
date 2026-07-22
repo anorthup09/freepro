@@ -576,6 +576,11 @@ textarea { resize: vertical; min-height: 70px; }
 
 /* ProFi budget on mobile: tables scroll sideways instead of crushing columns */
 .budget-tbl-wrap { overflow-x: auto; }
+/* Column-resize grip in grid headers: a visible divider between columns that
+   brightens on hover so it's clear where to drag to change a column's width. */
+.tbl-col-grip { position: absolute; top: 0; right: -1px; width: 10px; height: 100%; cursor: col-resize; user-select: none; z-index: 2; }
+.tbl-col-grip::after { content: ''; position: absolute; right: 0; top: 12%; height: 76%; width: 2px; background: var(--border); transition: background .12s ease, width .12s ease; }
+.tbl-col-grip:hover::after { background: #9DC183; width: 3px; }
 @media (max-width: 700px) {
   .budget-tbl-wrap table { min-width: 620px; }
   .fp-actions { width: 100%; align-items: stretch !important; }
@@ -732,6 +737,7 @@ textarea { resize: vertical; min-height: 70px; }
   /* two tidy lines: label + skip on top; date, assignee, gap below */
   .tl-ms-row { display: grid !important; grid-template-columns: minmax(0, 1fr) auto auto; gap: 7px 10px !important; padding: 10px 0 !important; align-items: center; }
   .tl-ms-label { grid-column: 1; grid-row: 1; }
+  .tl-ms-flags { grid-column: 2; grid-row: 1; justify-self: end; }
   .tl-ms-flag { grid-column: 2; grid-row: 1; justify-self: end; }
   .tl-ms-skip { grid-column: 3; grid-row: 1; justify-self: end; }
   .tl-ms-date { grid-column: 1; grid-row: 2; justify-self: start; max-width: 160px !important; min-width: 0 !important; }

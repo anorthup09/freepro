@@ -188,7 +188,7 @@ function groupActivity(activity) {
   return out;
 }
 
-function CollapsedLogs({ logs, renderLog }) {
+function CollapsedLogs({ logs, renderLog, authorName = a => a }) {
   const [open, setOpen] = useState(false);
   const authors = [...new Set(logs.map(a => a.author).filter(Boolean))];
   if (open) return (
@@ -203,7 +203,7 @@ function CollapsedLogs({ logs, renderLog }) {
   return (
     <button onClick={() => setOpen(true)} title="Click to expand"
       style={{ background:'none', border:'none', color:'var(--muted)', fontSize:10, cursor:'pointer', textAlign:'left', padding:0, display:'flex', justifyContent:'space-between', gap:10, width:'100%' }}>
-      <span style={{ fontWeight:700 }}>▸ {logs.length} changes{authors.length === 1 ? ` by ${authors[0]}` : ''}</span>
+      <span style={{ fontWeight:700 }}>▸ {logs.length} changes{authors.length === 1 ? ` by ${authorName(authors[0])}` : ''}</span>
       <span style={{ whiteSpace:'nowrap' }}>{fmtDT(logs[logs.length - 1].created_at)}</span>
     </button>
   );
@@ -423,6 +423,7 @@ export default function AvoEdit() {
   const [shareTimeline, setShareTimeline] = useState(false);
   const [showCal, setShowCal] = useState(false);
   const [ptoFlagOpen, setPtoFlagOpen] = useState(null);   // milestone key with the PTO-conflict pop-out open
+  const [shootFlagOpen, setShootFlagOpen] = useState(null);   // milestone key with the shoot-overlap pop-out open
   const [projectPageId, setProjectPageId] = useState(null);   // Avo project page for this edit's code
   const [roster, setRoster] = useState([]);   // Unbridled crew for the Color/Audio owner dropdowns
   // Auto-fill knobs (defaults: business days, 2-day client reviews)
@@ -460,6 +461,25 @@ export default function AvoEdit() {
   const hasEditorContract = !!(editorContract.name || editorContract.email || editorContract.rate || editorContract.total || editorContract.services || editorContract.misc);
   const showContractTile = leadIsContractor || hasEditorContract;
   const ptoByMember = e.pto_by_member || {};
+  // Activity authors are stored as emails — show the person's preferred name
+  // instead. The backend resolves each row to author_name (crew_members →
+  // users → raw email); fold those in first, then the roster as a fallback.
+  const nameByEmail = {};
+  for (const cm of roster) {
+    const nm = [cm.preferred_first_name, cm.preferred_last_name].filter(Boolean).join(' ').trim() || cm.name;
+    if (cm.email) nameByEmail[cm.email.toLowerCase()] = nm;
+  }
+  for (const a of (e.activity || [])) {
+    if (a.author && a.author_name) nameByEmail[String(a.author).toLowerCase()] = a.author_name;
+  }
+  const authorName = a => (a && nameByEmail[String(a).toLowerCase()]) || a || '';
+  // Shoot dates from the production schedule, keyed by YYYY-MM-DD, so any editing
+  // milestone landing on a shoot day can be flagged on the timeline.
+  const shootByDate = {};
+  for (const sd of (e.shoot_dates || [])) {
+    if (sd.date) (shootByDate[String(sd.date).slice(0, 10)] ||= []).push(sd);
+  }
+  const shootHits = val => (val && shootByDate[String(val).slice(0, 10)]) || [];
 
   async function archiveEdit() {
     const next = !e.archived;
@@ -743,6 +763,7 @@ export default function AvoEdit() {
                           <span className="tl-ms-label" style={{ ...lbl, marginBottom:0, flex:1, textDecoration: skipped ? 'line-through' : 'none' }}>
                             {label}
                           </span>
+                          <span className="tl-ms-flags" style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
                           {(() => {
                             // Availability only applies to editor tasks, and reflects
                             // whoever's on that task — the per-milestone assignee if set,
@@ -782,6 +803,39 @@ export default function AvoEdit() {
                               </span>
                             );
                           })()}
+                          {(() => {
+                            // Flag when this editing date lands on a production
+                            // shoot day — the crew (and often the editor) is on set,
+                            // so editing work scheduled here likely collides.
+                            const hits = (!skipped && val) ? shootHits(val) : [];
+                            if (!hits.length) return <span className="tl-ms-shoot" style={{ width:16, flexShrink:0 }} />;
+                            const lbl2 = hits.map(h => h.day_number ? `Day ${h.day_number}` : (h.day_type || 'Shoot')).join(', ');
+                            return (
+                              <span className="tl-ms-shoot" style={{ position:'relative', flexShrink:0 }}>
+                                <button type="button" title={`This date overlaps a production shoot day (${lbl2}) — click for details`}
+                                  onClick={() => setShootFlagOpen(o => o === k ? null : k)}
+                                  style={{ background:'rgba(232,135,60,0.15)', border:'1px solid #E8873C', color:'#E8873C',
+                                    borderRadius:'50%', width:16, height:16, lineHeight:'13px', fontSize:9, fontWeight:900, cursor:'pointer', padding:0, display:'block' }}>▮</button>
+                                {shootFlagOpen === k && (
+                                  <span style={{ position:'absolute', top:20, left:0, zIndex:50, display:'block', background:'var(--bg2)', border:'1px solid #E8873C',
+                                    borderRadius:8, padding:'10px 14px', minWidth:250, boxShadow:'0 6px 20px rgba(0,0,0,0.4)', whiteSpace:'normal', textAlign:'left' }}>
+                                    <span style={{ display:'block', fontSize:11, fontWeight:800, color:'#E8873C', marginBottom:6 }}>
+                                      ⚠ This editing date overlaps a shoot day
+                                    </span>
+                                    {hits.map(h => (
+                                      <span key={h.date + (h.day_number || '')} style={{ display:'block', fontSize:11.5, color:'var(--text)', padding:'4px 0', borderTop:'1px solid var(--border)' }}>
+                                        <b>{h.day_number ? `Shoot Day ${h.day_number}` : 'Shoot Day'}</b>{h.day_type && h.day_type !== 'SHOOT' ? ` · ${h.day_type}` : ''}<br />
+                                        <span style={{ color:'var(--muted)' }}>{String(h.date).slice(0, 10)} — on the production schedule</span>
+                                      </span>
+                                    ))}
+                                    <span style={{ display:'block', fontSize:10.5, color:'var(--muted)', marginTop:6 }}>Editing scheduled here may collide with the shoot.</span>
+                                    <button type="button" className="btn btn-ghost btn-sm" style={{ marginTop:8, fontSize:10 }} onClick={() => setShootFlagOpen(null)}>Close</button>
+                                  </span>
+                                )}
+                              </span>
+                            );
+                          })()}
+                          </span>
                           <span className="tl-ms-assignee" title="Who's responsible for this task — shows on the Crew Calendar"
                             style={{ display:'inline-block', width:140, flexShrink:0 }}>
                             {EDITOR_TASKS.includes(k) && (
@@ -1021,22 +1075,22 @@ export default function AvoEdit() {
             <div style={{ padding:'14px 18px', borderBottom:'1px solid var(--border)', fontSize:12, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.06em' }}>Activity</div>
             <div ref={feedRef} style={{ flex:1, overflowY:'auto', padding:'12px 18px', display:'flex', flexDirection:'column', gap:8 }}>
               {groupActivity(e.activity || []).map(item => item.group ? (
-                <CollapsedLogs key={item.key} logs={item.logs} renderLog={a => (
+                <CollapsedLogs key={item.key} logs={item.logs} authorName={authorName} renderLog={a => (
                   <div key={a.id} style={{ fontSize:10, color:'var(--muted)', display:'flex', justifyContent:'space-between', gap:10 }}>
-                    <span>• {a.author && a.author !== 'system' ? `${a.author} ` : ''}{a.body}</span>
+                    <span>• {a.author && a.author !== 'system' ? `${authorName(a.author)} ` : ''}{a.body}</span>
                     <span style={{ whiteSpace:'nowrap' }}>{fmtDT(a.created_at)}</span>
                   </div>
                 )} />
               ) : item.kind === 'log' ? (() => { const a = item; return (
                 <div key={a.id} style={{ fontSize:10, color:'var(--muted)', display:'flex', justifyContent:'space-between', gap:10 }}>
-                  <span>• {a.author && a.author !== 'system' ? `${a.author} ` : ''}{a.body}</span>
+                  <span>• {a.author && a.author !== 'system' ? `${authorName(a.author)} ` : ''}{a.body}</span>
                   <span style={{ whiteSpace:'nowrap' }}>{fmtDT(a.created_at)}</span>
                 </div>
               ); })() : (() => { const a = item; return (
                 <div key={a.id} style={{ ...KIND_STYLE[a.kind] || KIND_STYLE.comment, borderRadius:10, padding:'8px 12px' }}>
                   <div style={{ display:'flex', justifyContent:'space-between', gap:10, marginBottom:3 }}>
                     <span style={{ fontSize:10, fontWeight:700, color: a.kind === 'rfr' ? '#e6c229' : a.kind === 'sent' ? '#4a9eff' : AVO }}>
-                      {a.kind === 'rfr' ? '⚑ ' : a.kind === 'sent' ? '➤ ' : ''}{a.author}
+                      {a.kind === 'rfr' ? '⚑ ' : a.kind === 'sent' ? '➤ ' : ''}{authorName(a.author)}
                     </span>
                     <span style={{ display:'flex', alignItems:'center', gap:8 }}>
                       <span style={{ fontSize:9, color:'var(--muted)', whiteSpace:'nowrap' }}>{fmtDT(a.created_at)}</span>

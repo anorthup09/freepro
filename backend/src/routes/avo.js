@@ -13,6 +13,20 @@ const laneFromWorkflow = ws => ws === 'APPROVED' ? 'CLOSED' : ws ? 'ASSIGNED' : 
 
 const PREF = "COALESCE(NULLIF(TRIM(CONCAT(cm.preferred_first_name, ' ', cm.preferred_last_name)), ''), cm.name)";
 
+// Activity/log rows store the author as an email. Resolve it to the person's
+// preferred name — first via crew_members (preferred first+last), then the
+// users table (display name), falling back to the raw email. Expects the
+// edit_activity row to be aliased `a`.
+const AUTHOR_NAME = `COALESCE(
+  (SELECT COALESCE(NULLIF(TRIM(CONCAT(cm.preferred_first_name, ' ', cm.preferred_last_name)), ''), cm.name)
+     FROM crew_members cm WHERE LOWER(cm.email) = LOWER(a.author) LIMIT 1),
+  (SELECT u.name FROM users u WHERE LOWER(u.email) = LOWER(a.author) LIMIT 1),
+  a.author)`;
+// Reusable activity fetch that decorates each row with a resolved author_name.
+const editActivity = (editId) => sql`
+  SELECT a.*, ${sql.unsafe(AUTHOR_NAME)} AS author_name
+  FROM edit_activity a WHERE a.edit_id = ${editId} ORDER BY a.created_at`;
+
 async function logAct(editId, kind, author, body) {
   await sql`INSERT INTO edit_activity (edit_id, kind, author, body) VALUES (${editId}, ${kind}, ${author || null}, ${body})`;
 }
@@ -134,6 +148,7 @@ router.get('/edits', ...staff, async (req, res, next) => {
         WHERE edit_id = e.id AND kind IN ('rfr', 'sent') ORDER BY created_at DESC LIMIT 1
       ) la ON TRUE
       ORDER BY e.end_date NULLS LAST, e.created_at`;
+    await attachCurrentEditor(rows);
     res.json(rows);
   } catch (e) { next(e); }
 });
@@ -187,7 +202,7 @@ router.get('/edits/:id', ...staff, async (req, res, next) => {
   try {
     const [e] = await FULL_EDIT(req.params.id);
     if (!e) return res.status(404).json({ error: 'Edit not found' });
-    const activity = await sql`SELECT * FROM edit_activity WHERE edit_id = ${req.params.id} ORDER BY created_at`;
+    const activity = await editActivity(req.params.id);
     const files = await sql`SELECT id, filename, mime, size, uploaded_by, created_at FROM edit_files WHERE edit_id = ${req.params.id} ORDER BY created_at`;
     // PTO/OOO availability for the lead editor AND every per-milestone assignee,
     // keyed by member id, so each timeline flag reflects whoever is on that task.
@@ -221,7 +236,15 @@ router.get('/edits/:id', ...staff, async (req, res, next) => {
       const [pg] = await sql`SELECT id FROM avo_project_pages WHERE code = ${e.project_code} OR code = ${base} ORDER BY (code = ${e.project_code}) DESC LIMIT 1`;
       if (pg) colorAudioContractors = await sql`SELECT id, role, name, email FROM avo_contractors WHERE page_id = ${pg.id} AND role IN ('color','audio') ORDER BY role, name`;
     }
-    res.json({ ...e, activity, files, pto_conflicts: ptoConflicts, pto_by_member: ptoByMember, custom_columns: customColumns, color_audio_contractors: colorAudioContractors });
+    // Shoot dates from the linked production schedule, so the timeline can flag
+    // any editing milestone that lands on a day the crew is out shooting.
+    let shootDates = [];
+    if (e.project_id) {
+      shootDates = await sql`
+        SELECT (date AT TIME ZONE 'UTC')::date::text AS date, day_number, day_type
+        FROM shoot_days WHERE project_id = ${e.project_id} ORDER BY date`;
+    }
+    res.json({ ...e, activity, files, pto_conflicts: ptoConflicts, pto_by_member: ptoByMember, custom_columns: customColumns, color_audio_contractors: colorAudioContractors, shoot_dates: shootDates });
   } catch (e) { next(e); }
 });
 
@@ -649,7 +672,7 @@ router.post('/edits/:id/comments', ...staff, async (req, res, next) => {
         }
       }
     }
-    const activity = await sql`SELECT * FROM edit_activity WHERE edit_id = ${req.params.id} ORDER BY created_at`;
+    const activity = await editActivity(req.params.id);
     const files = await sql`SELECT id, filename, mime, size, uploaded_by, created_at FROM edit_files WHERE edit_id = ${req.params.id} ORDER BY created_at`;
     res.status(201).json({ activity, files });
   } catch (e) { next(e); }
@@ -660,7 +683,7 @@ router.post('/edits/:id/comments', ...staff, async (req, res, next) => {
 router.delete('/edits/:id/comments/:aid', ...staff, async (req, res, next) => {
   try {
     await sql`DELETE FROM edit_activity WHERE id = ${req.params.aid} AND edit_id = ${req.params.id} AND kind = 'comment'`;
-    const activity = await sql`SELECT * FROM edit_activity WHERE edit_id = ${req.params.id} ORDER BY created_at`;
+    const activity = await editActivity(req.params.id);
     res.json(activity);
   } catch (e) { next(e); }
 });
@@ -724,7 +747,7 @@ router.post('/edits/:id/rfr', ...staff, async (req, res, next) => {
     const [e] = await FULL_EDIT(req.params.id);
     if (!e) return res.status(404).json({ error: 'Edit not found' });
     await rfrNotify(e, req.user?.name || req.user?.email || 'someone', req.body.to, req.body.notes);
-    const activity = await sql`SELECT * FROM edit_activity WHERE edit_id = ${e.id} ORDER BY created_at`;
+    const activity = await editActivity(e.id);
     res.json(activity);
   } catch (e) { next(e); }
 });
@@ -735,7 +758,7 @@ router.post('/edits/:id/sent', ...staff, async (req, res, next) => {
     const [e] = await FULL_EDIT(req.params.id);
     if (!e) return res.status(404).json({ error: 'Edit not found' });
     await sentNotify(e, req.user?.name || req.user?.email || 'someone');
-    const activity = await sql`SELECT * FROM edit_activity WHERE edit_id = ${e.id} ORDER BY created_at`;
+    const activity = await editActivity(e.id);
     res.json(activity);
   } catch (e) { next(e); }
 });
