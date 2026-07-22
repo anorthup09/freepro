@@ -1232,6 +1232,19 @@ async function migrate() {
   await sql`ALTER TABLE avo_assets ADD COLUMN IF NOT EXISTS edit_ids JSONB DEFAULT '[]'::jsonb`;
   await sql`UPDATE avo_assets SET edit_ids = jsonb_build_array(edit_id)
     WHERE edit_id IS NOT NULL AND (edit_ids IS NULL OR edit_ids = '[]'::jsonb)`;
+  // Files tab: user-created folders for organizing general (non-edit) files,
+  // and the folder each general asset lives in (null = Ungrouped).
+  await sql`
+    CREATE TABLE IF NOT EXISTS avo_folders (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      page_id TEXT NOT NULL REFERENCES avo_project_pages(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      sort INT DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`;
+  await sql`ALTER TABLE avo_assets ADD COLUMN IF NOT EXISTS folder_id TEXT`;
+  // Files posted with a comment in an edit's activity feed (mirror of edit_files).
+  await sql`ALTER TABLE edit_activity ADD COLUMN IF NOT EXISTS file_ids JSONB DEFAULT '[]'::jsonb`;
   // Video-tracker columns on edits (Type / Style / Notes / Video Assets)
   await sql`ALTER TABLE edits ADD COLUMN IF NOT EXISTS tracker_type TEXT`;
   await sql`ALTER TABLE edits ADD COLUMN IF NOT EXISTS style TEXT`;

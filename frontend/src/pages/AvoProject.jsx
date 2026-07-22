@@ -1210,126 +1210,139 @@ function CustomTable({ table, onChange, onDelete, readOnly, A = api }) {
 }
 
 // ── Creative assets: drop photos / motion gfx on the page, tag them to a video ──
-function CreativeAssets({ pageId, assets, setAssets, edits, readOnly, A = api }) {
-  const fileRef = React.useRef(null);
-  const [busy, setBusy] = useState(0);          // uploads in flight
-  const [dragging, setDragging] = useState(false);
-  const dragDepth = React.useRef(0);
-  const [tagTo, setTagTo] = useState('');       // pre-tag new uploads to this video
+const fileSize = n => n > 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round((n || 0) / 1024)) + ' KB';
+const fileIcon = m => (m || '').startsWith('image/') ? '🖼' : (m || '').startsWith('video/') ? '🎞' : (m || '').startsWith('audio/') ? '🎵' : '📄';
 
-  function uploadOne(file) {
-    if (!file) return;
+// A collapsible folder card with drag-and-drop upload and a file list. Used for
+// both custom general-file folders and the per-edit folders on the Files tab.
+function FileFolder({ title, subtitle, accent = AVO, files, onUpload, onDownload, onDelete, onRename, onRemoveFolder, readOnly, defaultOpen = false }) {
+  const [open, setOpen] = useState(defaultOpen);
+  const [dragging, setDragging] = useState(false);
+  const inputRef = useRef(null);
+  const drop = ev => { ev.preventDefault(); setDragging(false); if (readOnly) return; Array.from(ev.dataTransfer?.files || []).forEach(onUpload); };
+  return (
+    <div onDragOver={ev => { if (readOnly) return; ev.preventDefault(); if (!dragging) setDragging(true); }}
+      onDragLeave={ev => { ev.preventDefault(); setDragging(false); }}
+      onDrop={drop}
+      style={{ background:'var(--bg2)', border:`1px solid ${dragging ? accent : 'var(--border)'}`, borderLeft:`3px solid ${accent}`, borderRadius:10, marginBottom:8, overflow:'hidden' }}>
+      <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', cursor:'pointer' }} onClick={() => setOpen(o => !o)}>
+        <span style={{ fontSize:11, color:'var(--muted)', width:10 }}>{open ? '▾' : '▸'}</span>
+        <span style={{ fontSize:14 }}>📁</span>
+        <div style={{ flex:1, minWidth:0 }}>
+          <div style={{ fontSize:12.5, fontWeight:800, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{title}</div>
+          {subtitle && <div style={{ fontSize:9.5, color:'var(--muted)' }}>{subtitle}</div>}
+        </div>
+        <span style={{ fontSize:10, color:'var(--muted)', whiteSpace:'nowrap' }}>{files.length} file{files.length === 1 ? '' : 's'}</span>
+        {!readOnly && (
+          <span style={{ display:'inline-flex', gap:4 }} onClick={ev => ev.stopPropagation()}>
+            <button className="btn btn-ghost btn-sm" title="Upload into this folder" onClick={() => inputRef.current?.click()}>＋</button>
+            {onRename && <button className="btn btn-ghost btn-sm" title="Rename folder" onClick={onRename}>✎</button>}
+            {onRemoveFolder && <button className="btn btn-ghost btn-sm" title="Delete folder" style={{ color:'var(--red-text, #e05252)' }} onClick={onRemoveFolder}>✕</button>}
+            <input ref={inputRef} type="file" multiple style={{ display:'none' }} onChange={ev => { Array.from(ev.target.files || []).forEach(onUpload); ev.target.value = ''; }} />
+          </span>
+        )}
+      </div>
+      {open && (
+        <div style={{ padding:'2px 14px 12px 34px', borderTop:'1px solid rgba(255,255,255,0.05)' }}>
+          {files.length === 0 && <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic', padding:'8px 0' }}>{readOnly ? 'No files.' : 'Empty — drop files here or use ＋.'}</div>}
+          {files.map(f => (
+            <div key={f.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'7px 0', borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
+              <span style={{ fontSize:15 }}>{fileIcon(f.mime)}</span>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div onClick={() => onDownload(f)} style={{ fontSize:12, fontWeight:600, color:'#4a9eff', cursor:'pointer', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{f.filename}</div>
+                <div style={{ fontSize:9.5, color:'var(--muted)' }}>{fileSize(f.size)} · {f.uploaded_by || 'unknown'} · {new Date(f.created_at).toLocaleDateString()}</div>
+              </div>
+              <button className="btn btn-ghost btn-sm" title="Download" onClick={() => onDownload(f)}>⬇</button>
+              {!readOnly && <button className="btn btn-ghost btn-sm" title="Delete" style={{ color:'var(--red-text, #e05252)' }} onClick={() => onDelete(f)}>✕</button>}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// The Files tab: general custom folders (top) + one auto folder per edit (below,
+// mirroring each edit's Uploads section on its edit card).
+function FilesTab({ pageId, assets, setAssets, folders, setFolders, edits, editFiles, setEditFiles, readOnly, A = api }) {
+  const readFile = (file, cb) => {
     if (file.size > 20 * 1024 * 1024) return alert(`${file.name}: file too large (20MB max)`);
     const reader = new FileReader();
-    reader.onload = async () => {
-      setBusy(n => n + 1);
-      try {
-        const a = await A.uploadAvoAsset(pageId, { filename: file.name, mime: file.type, fileBase64: String(reader.result).split(',')[1], editIds: tagTo ? [tagTo] : [] });
-        setAssets(as => [a, ...as]);
-      } catch (e) { alert(e.message); }
-      setBusy(n => n - 1);
-    };
+    reader.onload = () => cb({ filename: file.name, mime: file.type, fileBase64: String(reader.result).split(',')[1] });
     reader.readAsDataURL(file);
-  }
-  function onDrop(ev) {
-    ev.preventDefault();
-    dragDepth.current = 0;
-    setDragging(false);
-    if (readOnly) return;
-    Array.from(ev.dataTransfer?.files || []).forEach(uploadOne);
-  }
-  const tagsOf = a => Array.isArray(a.edit_ids) ? a.edit_ids : [];
-  async function saveTags(a, editIds) {
-    try {
-      const next = await A.updateAvoAsset(a.id, { editIds });
-      setAssets(as => as.map(x => x.id === a.id ? next : x));
-    } catch (e) { alert(e.message); }
-  }
-  async function remove(a) {
-    if (!confirm(`Delete ${a.filename}?`)) return;
-    try { await A.deleteAvoAsset(a.id); setAssets(as => as.filter(x => x.id !== a.id)); }
-    catch (e) { alert(e.message); }
-  }
-  async function download(a) {
+  };
+  const dlAuth = async (url, name) => {
     try {
       const t = localStorage.getItem('fp_token');
-      const url = A.assetFileUrl ? A.assetFileUrl(a.id) : `/api/avo/assets/${a.id}/file`;
       const r = await fetch(url, t ? { headers: { Authorization: `Bearer ${t}` } } : undefined);
       if (!r.ok) throw new Error('Download failed');
-      const blob = await r.blob();
-      const el = document.createElement('a');
-      el.href = URL.createObjectURL(blob);
-      el.download = a.filename;
-      el.click();
-      URL.revokeObjectURL(el.href);
+      const blob = await r.blob(); const el = document.createElement('a');
+      el.href = URL.createObjectURL(blob); el.download = name; el.click(); URL.revokeObjectURL(el.href);
     } catch (e) { alert(e.message); }
+  };
+  // General files (avo_assets) grouped by folder
+  const uploadAsset = (folderId) => (file) => readFile(file, async d => {
+    try { const a = await A.uploadAvoAsset(pageId, { ...d, editIds: [], folderId }); setAssets(as => [a, ...as]); } catch (e) { alert(e.message); }
+  });
+  const delAsset = async f => { if (!confirm(`Delete ${f.filename}?`)) return; try { await A.deleteAvoAsset(f.id); setAssets(as => as.filter(x => x.id !== f.id)); } catch (e) { alert(e.message); } };
+  const dlAsset = f => dlAuth(A.assetFileUrl ? A.assetFileUrl(f.id) : `/api/avo/assets/${f.id}/file`, f.filename);
+  // Per-edit files (edit_files) — mirror the edit card Uploads
+  const uploadEditFile = (editId) => (file) => readFile(file, async d => {
+    try { const f = await A.avoUploadFile(editId, d); setEditFiles(fs => [...fs, { ...f, edit_id: editId }]); } catch (e) { alert(e.message); }
+  });
+  const delEditFile = async f => { if (!confirm(`Delete ${f.filename}?`)) return; try { await A.avoDeleteFile(f.id); setEditFiles(fs => fs.filter(x => x.id !== f.id)); } catch (e) { alert(e.message); } };
+  const dlEditFile = f => dlAuth(`/api/avo/files/${f.id}`, f.filename);
+
+  async function newFolder() {
+    const name = prompt('New folder name:'); if (!name || !name.trim()) return;
+    try { const f = await A.avoCreateFolder(pageId, name.trim()); setFolders(fs => [...fs, f]); } catch (e) { alert(e.message); }
   }
-  const fmtSize = n => n > 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB';
-  const iconFor = m => (m || '').startsWith('image/') ? '🖼' : (m || '').startsWith('video/') ? '🎞' : (m || '').startsWith('audio/') ? '🎵' : '📄';
-  const titleOf = eid => edits.find(e => e.id === eid)?.title;
+  const renameFolder = f => async () => { const name = prompt('Rename folder:', f.name); if (!name || !name.trim()) return; try { const u = await A.avoRenameFolder(f.id, name.trim()); setFolders(fs => fs.map(x => x.id === f.id ? u : x)); } catch (e) { alert(e.message); } };
+  const removeFolder = f => async () => { if (!confirm(`Delete folder "${f.name}"? Its files move to Ungrouped.`)) return; try { await A.avoDeleteFolder(f.id); setFolders(fs => fs.filter(x => x.id !== f.id)); setAssets(as => as.map(a => a.folder_id === f.id ? { ...a, folder_id: null } : a)); } catch (e) { alert(e.message); } };
+
+  const inFolder = fid => assets.filter(a => (a.folder_id || null) === fid);
+  const ungrouped = inFolder(null);
+  const secHdr = { fontSize:12, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.06em', color:AVO };
 
   return (
-    <div
-      onDragEnter={e => { e.preventDefault(); dragDepth.current += 1; setDragging(true); }}
-      onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; }}
-      onDragLeave={e => { e.preventDefault(); dragDepth.current -= 1; if (dragDepth.current <= 0) { dragDepth.current = 0; setDragging(false); } }}
-      onDrop={onDrop}
-      style={{ position:'relative', border: dragging ? `1px dashed ${AVO}` : '1px solid var(--border)', borderRadius:10, background:'var(--bg2)', padding:'12px 16px 16px', minHeight:220 }}>
-      {dragging && (
-        <div style={{ position:'absolute', inset:0, zIndex:5, background:`${AVO}14`, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none', borderRadius:10 }}>
-          <div style={{ fontSize:13, fontWeight:800, color:AVO, background:'var(--bg2)', border:`1px dashed ${AVO}`, borderRadius:10, padding:'12px 22px' }}>Drop to upload creative assets…</div>
+    <div style={{ display:'flex', flexDirection:'column', gap:24 }}>
+      {/* ── General files: custom folders ── */}
+      <div>
+        <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10 }}>
+          <div style={secHdr}>General Files</div>
+          <span style={{ fontSize:10, color:'var(--muted)' }}>Custom folders for anything not tied to a single edit</span>
+          <div style={{ flex:1 }} />
+          {!readOnly && <button className="btn btn-ghost btn-sm" onClick={newFolder}>＋ New Folder</button>}
         </div>
-      )}
-      <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap', marginBottom:10 }}>
-        <div style={{ fontSize:12, fontWeight:800 }}>Creative Assets{assets.length ? ` (${assets.length})` : ''}</div>
-        <div style={{ flex:1 }} />
-        {!readOnly && <>
-          <label style={{ fontSize:10, color:'var(--muted)', fontWeight:700 }}>Tag new uploads to:</label>
-          <select value={tagTo} onChange={e => setTagTo(e.target.value)}
-            style={{ fontSize:11, padding:'4px 8px', borderRadius:8, background:'var(--bg)', border:'1px solid var(--border)', color:'var(--text)', maxWidth:220 }}>
-            <option value="">— no video —</option>
-            {edits.map(e => <option key={e.id} value={e.id}>{e.title}</option>)}
-          </select>
-          <button className="btn btn-ghost btn-sm" disabled={busy > 0} onClick={() => fileRef.current?.click()}>{busy > 0 ? 'Uploading…' : '+ Upload Asset'}</button>
-          <input ref={fileRef} type="file" multiple style={{ display:'none' }}
-            onChange={ev => { Array.from(ev.target.files || []).forEach(uploadOne); ev.target.value = ''; }} />
-        </>}
+        {folders.length === 0 && ungrouped.length === 0 && (
+          <div style={{ fontSize:12, color:'var(--muted)', fontStyle:'italic', padding:'16px 0', textAlign:'center', border:'1px dashed var(--border)', borderRadius:10 }}>
+            No general files yet{readOnly ? '.' : ' — create a folder to start organizing shared files.'}
+          </div>
+        )}
+        {folders.map(f => (
+          <FileFolder key={f.id} title={f.name} accent="#a78bfa" files={inFolder(f.id)}
+            onUpload={uploadAsset(f.id)} onDownload={dlAsset} onDelete={delAsset}
+            onRename={renameFolder(f)} onRemoveFolder={removeFolder(f)} readOnly={readOnly} />
+        ))}
+        {ungrouped.length > 0 && (
+          <FileFolder title="Ungrouped" subtitle="Files not in a folder" accent="#8a8f98" files={ungrouped}
+            onUpload={uploadAsset(null)} onDownload={dlAsset} onDelete={delAsset} readOnly={readOnly} />
+        )}
       </div>
-      {assets.length === 0 && (
-        <div style={{ fontSize:12, color:'var(--muted)', fontStyle:'italic', padding:'30px 0', textAlign:'center' }}>
-          No creative assets yet — drag photos, motion graphics, or any files anywhere onto this panel (or use + Upload Asset).
+
+      {/* ── Per-edit folders (auto, one per edit) — mirror each edit's Uploads ── */}
+      <div>
+        <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10 }}>
+          <div style={secHdr}>Edit Files</div>
+          <span style={{ fontSize:10, color:'var(--muted)' }}>One folder per edit — mirrors the Uploads on each edit card</span>
         </div>
-      )}
-      {assets.map(a => (
-        <div key={a.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 0', borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
-          <span style={{ fontSize:16 }}>{iconFor(a.mime)}</span>
-          <div style={{ flex:1, minWidth:0 }}>
-            <div onClick={() => download(a)} style={{ fontSize:12, fontWeight:700, color:'#4a9eff', cursor:'pointer', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{a.filename}</div>
-            <div style={{ fontSize:10, color:'var(--muted)' }}>{fmtSize(a.size)} · {a.uploaded_by || 'unknown'} · {new Date(a.created_at).toLocaleDateString()}</div>
-          </div>
-          <div style={{ display:'flex', alignItems:'center', gap:5, flexWrap:'wrap', justifyContent:'flex-end', maxWidth:340 }}>
-            {tagsOf(a).map(eid => (
-              <span key={eid} style={{ display:'inline-flex', alignItems:'center', gap:4, background:`${AVO}22`, border:`1px solid ${AVO}`, color:AVO, borderRadius:12, padding:'2px 8px', fontSize:10, fontWeight:700, whiteSpace:'nowrap' }}>
-                {titleOf(eid) || '(video removed)'}
-                {!readOnly && <span title="Untag this video" onClick={() => saveTags(a, tagsOf(a).filter(x => x !== eid))}
-                  style={{ cursor:'pointer', fontWeight:800, opacity:0.8 }}>✕</span>}
-              </span>
-            ))}
-            {!readOnly && edits.some(e => !tagsOf(a).includes(e.id)) && (
-              <select value="" onChange={e => e.target.value && saveTags(a, [...tagsOf(a), e.target.value])}
-                title="Tag this asset to a video — a note lands in that video's activity"
-                style={{ fontSize:10, padding:'3px 6px', borderRadius:12, maxWidth:120,
-                  background:'var(--bg)', border:'1px solid var(--border)', color:'var(--muted)', fontWeight:700 }}>
-                <option value="">{tagsOf(a).length ? '+ tag…' : '+ tag video…'}</option>
-                {edits.filter(e => !tagsOf(a).includes(e.id)).map(e => <option key={e.id} value={e.id}>{e.title}</option>)}
-              </select>
-            )}
-          </div>
-          <button className="btn btn-ghost btn-sm" onClick={() => download(a)}>⬇</button>
-          {!readOnly && <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text, #e05252)' }} onClick={() => remove(a)}>✕</button>}
-        </div>
-      ))}
-      {assets.length > 0 && <div style={{ fontSize:10, color:'var(--muted)', padding:'8px 0 0', textAlign:'center' }}>Tip: drag & drop files anywhere on this panel to upload. Tagging an asset to a video logs it in that video's activity.</div>}
+        {edits.length === 0 && <div style={{ fontSize:12, color:'var(--muted)', fontStyle:'italic' }}>No edits on this project yet.</div>}
+        {edits.map(e => (
+          <FileFolder key={e.id} title={e.title || 'Untitled'} subtitle={e.tracker_type || ''} accent={AVO}
+            files={editFiles.filter(f => f.edit_id === e.id)}
+            onUpload={uploadEditFile(e.id)} onDownload={dlEditFile} onDelete={delEditFile} readOnly={readOnly} />
+        ))}
+      </div>
     </div>
   );
 }
@@ -1407,7 +1420,7 @@ function EditModal({ edit, statusOf, onSave, onClose, A = api, customCols = [] }
   const act = async fn => { setBusy(true); try { setActivity(await fn()); } catch (err) { alert(err.message); } setBusy(false); };
   const addComment = async () => {
     if (!comment.trim()) return;
-    try { setActivity(await A.avoComment(e.id, comment.trim())); setComment(''); } catch (err) { alert(err.message); }
+    try { const r = await A.avoComment(e.id, comment.trim()); setActivity(Array.isArray(r) ? r : r.activity); setComment(''); } catch (err) { alert(err.message); }
   };
   const delComment = async a => {
     if (!confirm('Delete this comment?')) return;
@@ -1697,7 +1710,7 @@ function DeliverableOverview({ edits, onSave, onOpenEdit, onStatus, readOnly, A 
   );
 }
 
-const TABS = [['overview', 'Post-Production Overview'], ['tracker', 'Project Video Tracker'], ['assets', 'Creative Assets'], ['todos', 'To-Do List'], ['music', 'Music Options'], ['lower-thirds', 'Lower Thirds']];
+const TABS = [['overview', 'Post-Production Overview'], ['tracker', 'Project Video Tracker'], ['assets', 'Files'], ['todos', 'To-Do List'], ['music', 'Music Options'], ['lower-thirds', 'Lower Thirds']];
 
 export default function AvoProject({ idOverride, embedded, shareData, clientView: clientViewProp, apiOverride }) {
   const { id: idParam } = useParams();
@@ -1714,6 +1727,8 @@ export default function AvoProject({ idOverride, embedded, shareData, clientView
   const [music, setMusic] = useState(shareData?.music || []);
   const [tables, setTables] = useState(shareData?.customTables || []);
   const [assets, setAssets] = useState(shareData?.assets || []);
+  const [folders, setFolders] = useState(shareData?.folders || []);
+  const [editFiles, setEditFiles] = useState(shareData?.editFiles || []);
   const [talent, setTalent] = useState(shareData?.talent || []);
   const [tab, setTab] = useState('overview');
   const [err, setErr] = useState('');
@@ -1730,7 +1745,7 @@ export default function AvoProject({ idOverride, embedded, shareData, clientView
   useEffect(() => {
     if (shareData) return; // public share view is pre-loaded, no authed fetch
     api.avoProject(id)
-      .then(p => { setPage(p); setEdits(p.edits || []); setLowerThirds(p.lowerThirds || []); setTodos(p.todos || []); setMusic(p.music || []); setTables(p.customTables || []); setAssets(p.assets || []); setTalent(p.talent || []); })
+      .then(p => { setPage(p); setEdits(p.edits || []); setLowerThirds(p.lowerThirds || []); setTodos(p.todos || []); setMusic(p.music || []); setTables(p.customTables || []); setAssets(p.assets || []); setFolders(p.folders || []); setEditFiles(p.editFiles || []); setTalent(p.talent || []); })
       .catch(e => setErr(e.message));
   }, [id, shareData]);
 
@@ -1911,7 +1926,8 @@ export default function AvoProject({ idOverride, embedded, shareData, clientView
                 A={A} onOpenEdit={clientView ? (e => setEditView(e)) : null} />
               {!clientView && <ContractorTracker pageId={id} />}
             </>}
-            {tab === 'assets' && <CreativeAssets pageId={id} assets={assets} setAssets={setAssets} edits={edits} A={A} />}
+            {tab === 'assets' && <FilesTab pageId={id} assets={assets} setAssets={setAssets} folders={folders} setFolders={setFolders}
+              edits={edits} editFiles={editFiles} setEditFiles={setEditFiles} readOnly={clientView} A={A} />}
             {tab === 'todos' && (
               <Grid kind="todos" pageId={id} doneKey="done" rows={todos} setRows={setTodos} renderCell={todoCell} A={A}
                 config={cfgFor('todos')} onConfig={saveCfg('todos')}

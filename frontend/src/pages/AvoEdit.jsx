@@ -431,6 +431,8 @@ export default function AvoEdit() {
   const [sendCtr, setSendCtr] = useState(null);   // { contract, projectId, total } for the send pop-out
   const [newMs, setNewMs] = useState(null);       // { label, date } for the add-milestone form
   const [rfrOpen, setRfrOpen] = useState(false);  // RFR notes prompt open
+  const [pending, setPending] = useState([]);     // files staged on the comment composer
+  const [dragging, setDragging] = useState(false);
   const setCustoms = customs => setE(v => ({ ...v, custom_milestones: customs }));
   const fileRef = useRef(null);
   const feedRef = useRef(null);
@@ -466,11 +468,24 @@ export default function AvoEdit() {
     if (next) nav(projectPageId ? `/avo/project/${projectPageId}` : '/avo');
   }
 
+  // Stage dropped/selected files onto the comment composer (uploaded on Post)
+  function stageFiles(fileList) {
+    for (const file of Array.from(fileList || [])) {
+      if (file.size > 20 * 1024 * 1024) { alert(`${file.name}: file too large (20MB max)`); continue; }
+      const reader = new FileReader();
+      reader.onload = () => setPending(p => [...p, { filename: file.name, mime: file.type, fileBase64: String(reader.result).split(',')[1], _size: file.size }]);
+      reader.readAsDataURL(file);
+    }
+  }
   async function post() {
-    if (!comment.trim() || busy) return;
+    if ((!comment.trim() && pending.length === 0) || busy) return;
     setBusy(true);
-    try { const activity = await api.avoComment(id, comment); setE(v => ({ ...v, activity })); setComment(''); }
-    catch (err) { alert(err.message); }
+    try {
+      const r = await api.avoComment(id, comment, pending);
+      const activity = Array.isArray(r) ? r : r.activity;
+      setE(v => ({ ...v, activity, files: (r && r.files) ? r.files : v.files }));
+      setComment(''); setPending([]);
+    } catch (err) { alert(err.message); }
     setBusy(false);
   }
   async function delComment(a) {
@@ -980,10 +995,9 @@ export default function AvoEdit() {
             <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, padding:'16px 20px', marginTop:16 }}>
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
                 <div style={{ fontSize:12, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.06em', color:AVO }}>Uploads</div>
-                <button className="btn btn-ghost btn-sm" onClick={() => fileRef.current?.click()}>+ Upload File</button>
-                <input ref={fileRef} type="file" style={{ display:'none' }} onChange={upload} />
+                <span style={{ fontSize:9, color:'var(--muted)' }}>Attach files in the activity feed →</span>
               </div>
-              {(e.files || []).length === 0 && <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>Drop creative briefs, music, logos, photos, clips here (20MB max each).</div>}
+              {(e.files || []).length === 0 && <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>No files yet — attach creative briefs, music, logos, photos, or clips from the activity feed (20MB max each). Everything posted there mirrors here.</div>}
               {(e.files || []).map(f => (
                 <div key={f.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'7px 0', borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
                   <a href={`/api/avo/files/${f.id}`} onClick={async ev => {
@@ -1030,20 +1044,51 @@ export default function AvoEdit() {
                         style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11, padding:0, lineHeight:1 }}>✕</button>}
                     </span>
                   </div>
-                  <div style={{ fontSize:12, whiteSpace:'pre-wrap' }}>{a.body}</div>
+                  {a.body && <div style={{ fontSize:12, whiteSpace:'pre-wrap' }}>{a.body}</div>}
+                  {(a.file_ids || []).length > 0 && (
+                    <div style={{ display:'flex', flexDirection:'column', gap:4, marginTop: a.body ? 6 : 0 }}>
+                      {(a.file_ids || []).map(fid => {
+                        const f = (e.files || []).find(x => x.id === fid);
+                        if (!f) return null;
+                        return (
+                          <a key={fid} href={`/api/avo/files/${f.id}`} onClick={async ev => {
+                            ev.preventDefault();
+                            const r = await fetch(`/api/avo/files/${f.id}`, { headers: { Authorization: `Bearer ${localStorage.getItem('fp_token')}` } });
+                            const blob = await r.blob(); const el = document.createElement('a');
+                            el.href = URL.createObjectURL(blob); el.download = f.filename; el.click(); URL.revokeObjectURL(el.href);
+                          }} style={{ color:'#4a9eff', fontSize:11, textDecoration:'none', background:'rgba(74,158,255,0.08)', border:'1px solid rgba(74,158,255,0.3)', borderRadius:6, padding:'3px 8px' }}>📎 {f.filename}</a>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               ); })())}
               {(e.activity || []).length === 0 && <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>No activity yet.</div>}
             </div>
-            <div style={{ padding:'12px 14px', borderTop:'1px solid var(--border)' }}>
-              <textarea value={comment} placeholder="Write a comment… @Name to email someone"
-                style={{ minHeight:52, marginBottom:8 }}
+            <div style={{ padding:'12px 14px', borderTop:'1px solid var(--border)' }}
+              onDragOver={ev => { ev.preventDefault(); if (!dragging) setDragging(true); }}
+              onDragLeave={ev => { ev.preventDefault(); setDragging(false); }}
+              onDrop={ev => { ev.preventDefault(); setDragging(false); stageFiles(ev.dataTransfer?.files); }}>
+              <textarea value={comment} placeholder="Write a comment… @Name to email someone · drop files or attach to post them"
+                style={{ minHeight:52, marginBottom:8, outline: dragging ? `2px dashed ${AVO}` : 'none' }}
                 onChange={ev => setComment(ev.target.value)}
                 onKeyDown={ev => { if (ev.key === 'Enter' && (ev.metaKey || ev.ctrlKey)) post(); }} />
-              <div style={{ display:'flex', justifyContent:'flex-end' }}>
-                <button disabled={!comment.trim() || busy} onClick={post}
-                  style={{ background: comment.trim() ? AVO : 'var(--border)', color:'#0b0b0b', border:'none', borderRadius:8, padding:'7px 18px', fontSize:12, fontWeight:800, cursor: comment.trim() ? 'pointer' : 'default' }}>
-                  Comment
+              {pending.length > 0 && (
+                <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:8 }}>
+                  {pending.map((f, i) => (
+                    <span key={i} style={{ display:'inline-flex', alignItems:'center', gap:6, background:'rgba(74,158,255,0.1)', border:'1px solid rgba(74,158,255,0.35)', borderRadius:14, padding:'3px 10px', fontSize:10.5, color:'#4a9eff' }}>
+                      📎 {f.filename}
+                      <span title="Remove" onClick={() => setPending(p => p.filter((_, j) => j !== i))} style={{ cursor:'pointer', fontWeight:800, opacity:0.8 }}>✕</span>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:8 }}>
+                <button className="btn btn-ghost btn-sm" title="Attach files" onClick={() => fileRef.current?.click()}>📎 Attach</button>
+                <input ref={fileRef} type="file" multiple style={{ display:'none' }} onChange={ev => { stageFiles(ev.target.files); ev.target.value = ''; }} />
+                <button disabled={(!comment.trim() && pending.length === 0) || busy} onClick={post}
+                  style={{ background: (comment.trim() || pending.length) ? AVO : 'var(--border)', color:'#0b0b0b', border:'none', borderRadius:8, padding:'7px 18px', fontSize:12, fontWeight:800, cursor: (comment.trim() || pending.length) ? 'pointer' : 'default' }}>
+                  {pending.length ? `Post (${pending.length})` : 'Comment'}
                 </button>
               </div>
             </div>

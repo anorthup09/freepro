@@ -602,13 +602,26 @@ router.post('/contractors/:id/hold-cost', ...staff, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-// ── Comments (with @mention emails) ──
+// ── Comments (with @mention emails + optional file attachments) ──
 router.post('/edits/:id/comments', ...staff, async (req, res, next) => {
   try {
     const body = (req.body.body || '').trim();
-    if (!body) return res.status(400).json({ error: 'Empty comment' });
+    const incoming = Array.isArray(req.body.files) ? req.body.files : [];
+    if (!body && !incoming.length) return res.status(400).json({ error: 'Empty comment' });
     const who = req.user?.email || 'someone';
-    await logAct(req.params.id, 'comment', who, body);
+    // Attached files become edit_files (so they mirror in Uploads + the Files tab)
+    // and are linked to this comment via file_ids.
+    const fileIds = [];
+    for (const f of incoming) {
+      const buf = Buffer.from(String(f.fileBase64 || ''), 'base64');
+      if (!buf.length || !f.filename) continue;
+      if (buf.length > 20 * 1024 * 1024) return res.status(400).json({ error: `${f.filename}: file too large (20MB max)` });
+      const [row] = await sql`INSERT INTO edit_files (edit_id, filename, mime, size, data, uploaded_by)
+        VALUES (${req.params.id}, ${f.filename}, ${f.mime || 'application/octet-stream'}, ${buf.length}, ${buf}, ${who}) RETURNING id`;
+      fileIds.push(row.id);
+    }
+    await sql`INSERT INTO edit_activity (edit_id, kind, author, body, file_ids)
+      VALUES (${req.params.id}, 'comment', ${who}, ${body}, ${sql.json(fileIds)})`;
     // @mentions: match roster names appearing after an @ and email them
     const [e] = await FULL_EDIT(req.params.id);
     if (body.includes('@')) {
@@ -636,7 +649,8 @@ router.post('/edits/:id/comments', ...staff, async (req, res, next) => {
       }
     }
     const activity = await sql`SELECT * FROM edit_activity WHERE edit_id = ${req.params.id} ORDER BY created_at`;
-    res.status(201).json(activity);
+    const files = await sql`SELECT id, filename, mime, size, uploaded_by, created_at FROM edit_files WHERE edit_id = ${req.params.id} ORDER BY created_at`;
+    res.status(201).json({ activity, files });
   } catch (e) { next(e); }
 });
 
@@ -789,10 +803,11 @@ router.post('/projects/:id/assets', ...staff, async (req, res, next) => {
     if (!buf.length || !filename) return res.status(400).json({ error: 'No file received' });
     if (buf.length > 20 * 1024 * 1024) return res.status(400).json({ error: 'File too large (20MB max)' });
     const who = req.user?.email || 'someone';
+    const folderId = req.body.folderId || null;
     const [a] = await sql`
-      INSERT INTO avo_assets (page_id, filename, mime, size, data, edit_ids, uploaded_by)
-      VALUES (${req.params.id}, ${filename}, ${mime || 'application/octet-stream'}, ${buf.length}, ${buf}, ${sql.json(editIds)}, ${who})
-      RETURNING id, page_id, filename, mime, size, edit_ids, uploaded_by, created_at`;
+      INSERT INTO avo_assets (page_id, filename, mime, size, data, edit_ids, folder_id, uploaded_by)
+      VALUES (${req.params.id}, ${filename}, ${mime || 'application/octet-stream'}, ${buf.length}, ${buf}, ${sql.json(editIds)}, ${folderId}, ${who})
+      RETURNING id, page_id, filename, mime, size, edit_ids, folder_id, uploaded_by, created_at`;
     for (const eid of editIds) await logAct(eid, 'log', who, `uploaded creative asset ${filename}`);
     res.status(201).json(a);
   } catch (e) { next(e); }
@@ -825,6 +840,32 @@ router.delete('/assets/:aid', ...staff, async (req, res, next) => {
   try {
     const [f] = await sql`DELETE FROM avo_assets WHERE id = ${req.params.aid} RETURNING edit_ids, filename`;
     for (const eid of cleanEditIds(f?.edit_ids)) await logAct(eid, 'log', req.user?.email || 'someone', `deleted creative asset ${f.filename}`);
+    res.status(204).end();
+  } catch (e) { next(e); }
+});
+
+// ── Files tab: custom folders for general (non-edit) files ──
+router.post('/projects/:id/folders', ...staff, async (req, res, next) => {
+  try {
+    const name = String(req.body.name || '').trim();
+    if (!name) return res.status(400).json({ error: 'Folder name required' });
+    const [f] = await sql`INSERT INTO avo_folders (page_id, name) VALUES (${req.params.id}, ${name}) RETURNING *`;
+    res.status(201).json(f);
+  } catch (e) { next(e); }
+});
+router.patch('/folders/:fid', ...staff, async (req, res, next) => {
+  try {
+    const name = String(req.body.name || '').trim();
+    if (!name) return res.status(400).json({ error: 'Folder name required' });
+    const [f] = await sql`UPDATE avo_folders SET name = ${name} WHERE id = ${req.params.fid} RETURNING *`;
+    res.json(f);
+  } catch (e) { next(e); }
+});
+router.delete('/folders/:fid', ...staff, async (req, res, next) => {
+  try {
+    // Keep the files — just move them to Ungrouped so nothing is lost.
+    await sql`UPDATE avo_assets SET folder_id = NULL WHERE folder_id = ${req.params.fid}`;
+    await sql`DELETE FROM avo_folders WHERE id = ${req.params.fid}`;
     res.status(204).end();
   } catch (e) { next(e); }
 });
@@ -914,7 +955,13 @@ router.get('/projects/:id', ...staff, async (req, res, next) => {
       WHERE (e.project_code = ${page.code} OR e.project_code LIKE ${page.code + '-%'}) AND e.archived IS NOT TRUE
       ORDER BY e.tracker_sort NULLS LAST, e.end_date NULLS LAST, e.created_at`;
     await attachCurrentEditor(edits);
-    const assets = await sql`SELECT id, page_id, filename, mime, size, edit_ids, uploaded_by, created_at FROM avo_assets WHERE page_id = ${page.id} ORDER BY created_at DESC`;
+    const assets = await sql`SELECT id, page_id, filename, mime, size, edit_ids, folder_id, uploaded_by, created_at FROM avo_assets WHERE page_id = ${page.id} ORDER BY created_at DESC`;
+    const folders = await sql`SELECT * FROM avo_folders WHERE page_id = ${page.id} ORDER BY sort, created_at`;
+    // Per-edit uploaded files (metadata only) — the Files tab mirrors each edit's Uploads.
+    const editIds = edits.map(e => e.id);
+    const editFiles = editIds.length
+      ? await sql`SELECT id, edit_id, filename, mime, size, uploaded_by, created_at FROM edit_files WHERE edit_id = ANY(${sql.array(editIds)}) ORDER BY created_at`
+      : [];
     const tables = await sql`SELECT * FROM avo_custom_tables WHERE page_id = ${page.id} ORDER BY sort, created_at`;
     const tRows = tables.length ? await sql`SELECT * FROM avo_custom_rows WHERE table_id IN ${sql(tables.map(t => t.id))} ORDER BY sort, created_at` : [];
     const customTables = tables.map(t => ({ ...t, rows: tRows.filter(r => r.table_id === t.id) }));
@@ -924,7 +971,7 @@ router.get('/projects/:id', ...staff, async (req, res, next) => {
       JOIN projects p ON p.id = kt.project_id
       WHERE p.code = ${page.code} OR p.code LIKE ${page.code + '-%'}
       ORDER BY kt.name`;
-    res.json({ ...page, lowerThirds, todos, music, edits, customTables, assets, talent });
+    res.json({ ...page, lowerThirds, todos, music, edits, customTables, assets, folders, editFiles, talent });
   } catch (e) { next(e); }
 });
 router.patch('/projects/:id', ...staff, async (req, res, next) => {
@@ -1251,13 +1298,18 @@ shareRouter.get('/', async (req, res, next) => {
     const tables = await sql`SELECT * FROM avo_custom_tables WHERE page_id = ${page.id} ORDER BY sort, created_at`;
     const tRows = tables.length ? await sql`SELECT * FROM avo_custom_rows WHERE table_id IN ${sql(tables.map(t => t.id))} ORDER BY sort, created_at` : [];
     const customTables = tables.map(t => ({ ...t, rows: tRows.filter(r => r.table_id === t.id) }));
-    const assets = await sql`SELECT id, page_id, filename, mime, size, edit_ids, uploaded_by, created_at FROM avo_assets WHERE page_id = ${page.id} ORDER BY created_at DESC`;
+    const assets = await sql`SELECT id, page_id, filename, mime, size, edit_ids, folder_id, uploaded_by, created_at FROM avo_assets WHERE page_id = ${page.id} ORDER BY created_at DESC`;
+    const foldersList = await sql`SELECT * FROM avo_folders WHERE page_id = ${page.id} ORDER BY sort, created_at`;
+    const shareEditIds = edits.map(e => e.id);
+    const editFilesList = shareEditIds.length
+      ? await sql`SELECT id, edit_id, filename, mime, size, uploaded_by, created_at FROM edit_files WHERE edit_id = ANY(${sql.array(shareEditIds)}) ORDER BY created_at`
+      : [];
     const talent = await sql`
       SELECT kt.name, kt.role FROM key_talent kt JOIN projects p ON p.id = kt.project_id
       WHERE p.code = ${page.code} OR p.code LIKE ${page.code + '-%'} ORDER BY kt.name`;
     res.json({
       id: page.id, code: page.code, title, grid_config: page.grid_config,
-      lowerThirds, todos, music, edits, customTables, assets, talent,
+      lowerThirds, todos, music, edits, customTables, assets, folders: foldersList, editFiles: editFilesList, talent,
     });
   } catch (e) { next(e); }
 });
