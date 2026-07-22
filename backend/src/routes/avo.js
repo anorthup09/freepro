@@ -175,7 +175,10 @@ router.get('/edits/:id', ...staff, async (req, res, next) => {
     // PTO/OOO availability for the lead editor AND every per-milestone assignee,
     // keyed by member id, so each timeline flag reflects whoever is on that task.
     const msA = typeof e.milestone_assignees === 'string' ? JSON.parse(e.milestone_assignees || '{}') : (e.milestone_assignees || {});
-    const memberIds = [...new Set([e.lead_editor_id, ...Object.values(msA)].filter(Boolean))];
+    // Color/Audio owners tagged as Unbridled crew (crew:<id>) also need availability.
+    const caCrew = [e.color_assignee, e.audio_assignee]
+      .filter(v => typeof v === 'string' && v.startsWith('crew:')).map(v => v.slice(5));
+    const memberIds = [...new Set([e.lead_editor_id, ...Object.values(msA), ...caCrew].filter(Boolean))];
     const ptoByMember = {};
     if (memberIds.length) {
       const rows = await sql`
@@ -193,7 +196,15 @@ router.get('/edits/:id', ...staff, async (req, res, next) => {
     // Custom Video Tracker columns for this edit's project page, so the edit
     // card can surface the same fields (values live on e.extra by column key).
     const customColumns = await trackerCustomColumns(e.project_code);
-    res.json({ ...e, activity, files, pto_conflicts: ptoConflicts, pto_by_member: ptoByMember, custom_columns: customColumns });
+    // Color & Audio contractors on this edit's project page — first choices for
+    // the Color/Audio owner dropdowns on the "Color & Audio Complete" milestone.
+    let colorAudioContractors = [];
+    if (e.project_code) {
+      const base = String(e.project_code).replace(/-\d+$/, '');
+      const [pg] = await sql`SELECT id FROM avo_project_pages WHERE code = ${e.project_code} OR code = ${base} ORDER BY (code = ${e.project_code}) DESC LIMIT 1`;
+      if (pg) colorAudioContractors = await sql`SELECT id, role, name, email FROM avo_contractors WHERE page_id = ${pg.id} AND role IN ('color','audio') ORDER BY role, name`;
+    }
+    res.json({ ...e, activity, files, pto_conflicts: ptoConflicts, pto_by_member: ptoByMember, custom_columns: customColumns, color_audio_contractors: colorAudioContractors });
   } catch (e) { next(e); }
 });
 
@@ -324,6 +335,8 @@ router.patch('/edits/:id', ...staff, async (req, res, next) => {
         video_assets = ${d.videoAssets !== undefined ? (d.videoAssets || null) : sql`video_assets`},
         creative = ${d.creative !== undefined ? (d.creative || null) : sql`creative`},
         workflow_status = ${d.workflowStatus !== undefined ? (d.workflowStatus || null) : sql`workflow_status`},
+        color_assignee = ${d.colorAssignee !== undefined ? (d.colorAssignee || null) : sql`color_assignee`},
+        audio_assignee = ${d.audioAssignee !== undefined ? (d.audioAssignee || null) : sql`audio_assignee`},
         milestones = ${milestones !== undefined ? sql.json(milestones) : sql`milestones`},
         milestone_skips = ${Array.isArray(d.milestoneSkips) ? sql.json(d.milestoneSkips) : sql`milestone_skips`},
         milestone_assignees = ${msAssignees !== undefined ? sql.json(msAssignees) : sql`milestone_assignees`},
@@ -1146,7 +1159,7 @@ const SHARE_ACTOR = 'Client/Crew (shared link)';
 const CLIENT_EDIT_COLS = ['id', 'title', 'description', 'category', 'tracker_type', 'tracker_color',
   'tracker_sort', 'status', 'version', 'approved', 'review_link', 'start_date', 'end_date',
   'aspect_ratio', 'resolution', 'frame_rate', 'drive', 'asset_ref', 'music_ref', 'video_assets', 'notes',
-  'creative', 'workflow_status', 'custom_milestones', 'milestones', 'milestone_skips', 'milestone_assignees'];
+  'creative', 'workflow_status', 'color_assignee', 'audio_assignee', 'custom_milestones', 'milestones', 'milestone_skips', 'milestone_assignees'];
 function clientEdit(e) {
   const o = {};
   for (const k of CLIENT_EDIT_COLS) o[k] = e[k];

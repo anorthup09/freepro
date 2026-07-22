@@ -1333,6 +1333,11 @@ async function migrate() {
   // (In Progress / RFR / Sent to Client / Address Feedback / …). Distinct from
   // the pipeline lane in `status`. Auto-set to RFR/SENT by those actions.
   await sql`ALTER TABLE edits ADD COLUMN IF NOT EXISTS workflow_status TEXT`;
+  // Color / Audio owners for the "Color & Audio Complete" milestone. Values are
+  // encoded "ctr:<contractorId>" (a Color & Audio contractor) or "crew:<memberId>"
+  // (an Unbridled Media team member, whose availability comes from the crew calendar).
+  await sql`ALTER TABLE edits ADD COLUMN IF NOT EXISTS color_assignee TEXT`;
+  await sql`ALTER TABLE edits ADD COLUMN IF NOT EXISTS audio_assignee TEXT`;
 
   // User-defined tables on Avo project pages (fully custom columns)
   await sql`

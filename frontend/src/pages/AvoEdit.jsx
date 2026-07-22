@@ -424,6 +424,7 @@ export default function AvoEdit() {
   const [showCal, setShowCal] = useState(false);
   const [ptoFlagOpen, setPtoFlagOpen] = useState(null);   // milestone key with the PTO-conflict pop-out open
   const [projectPageId, setProjectPageId] = useState(null);   // Avo project page for this edit's code
+  const [roster, setRoster] = useState([]);   // Unbridled crew for the Color/Audio owner dropdowns
   // Auto-fill knobs (defaults: business days, 2-day client reviews)
   const [tlOpts, setTlOpts] = useState({ skipWknd: true, editDaysAfterScript: 5, editDaysAfterFeedback: 3, reviewDays: 2 });
   const [busy, setBusy] = useState(false);
@@ -442,6 +443,7 @@ export default function AvoEdit() {
     api.avoProjectByCode(code).then(pg => setProjectPageId(pg.id)).catch(() => setProjectPageId(null));
   }, [e?.project_code]);
   useEffect(() => { if (feedRef.current) feedRef.current.scrollTop = feedRef.current.scrollHeight; }, [e?.activity?.length]);
+  useEffect(() => { api.getCrew().then(setRoster).catch(() => setRoster([])); }, []);
 
   if (!e) return <div style={{ minHeight:'100vh', background:'var(--bg)' }}><AvoHeader /><div className="empty">Loading…</div></div>;
 
@@ -608,6 +610,64 @@ export default function AvoEdit() {
                 const saveMs = (fn) => fn.then(setCustoms).catch(err => alert(err.message));
                 const optIn = { width:44, fontSize:11, padding:'4px 6px', textAlign:'center' };
                 const optLbl = { fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.05em' };
+                // ── Color / Audio owner pickers for the "Color & Audio Complete" milestone ──
+                // Options list the project's Color & Audio contractors first, then the
+                // Unbridled Media crew. Crew picks flag PTO/OOO from the crew calendar.
+                const caDisplay = m => [m.preferred_first_name, m.preferred_last_name].filter(Boolean).join(' ').trim() || m.name;
+                const caContractors = e.color_audio_contractors || [];
+                const caCrewSorted = [...roster].sort((a, b) => caDisplay(a).localeCompare(caDisplay(b)));
+                const caDate = ms['color_audio_complete'];
+                const caFlag = (val, flagKey) => {
+                  if (!val || !val.startsWith('crew:') || !caDate) return null;
+                  const entry = ptoByMember[val.slice(5)];
+                  const hits = (entry?.conflicts || []).filter(c => c.pto_type !== 'STL/DEN Only' && String(c.start_date).slice(0,10) <= caDate && String(c.end_date).slice(0,10) >= caDate);
+                  if (!hits.length) return null;
+                  const nm = entry?.name || 'This person';
+                  return (
+                    <span style={{ position:'relative', flexShrink:0 }}>
+                      <button type="button" title={`${nm} has PTO / OOO on the Color & Audio Complete date — click for details`}
+                        onClick={() => setPtoFlagOpen(o => o === flagKey ? null : flagKey)}
+                        style={{ background:'rgba(224,49,49,0.15)', border:'1px solid #E03131', color:'#E03131', borderRadius:'50%', width:16, height:16, lineHeight:'13px', fontSize:10, fontWeight:900, cursor:'pointer', padding:0 }}>!</button>
+                      {ptoFlagOpen === flagKey && (
+                        <span style={{ position:'absolute', top:20, left:0, zIndex:50, background:'var(--bg2)', border:'1px solid #E03131', borderRadius:8, padding:'10px 14px', minWidth:250, boxShadow:'0 6px 20px rgba(0,0,0,0.4)', textAlign:'left' }}>
+                          <span style={{ display:'block', fontSize:11, fontWeight:800, color:'#E03131', marginBottom:6 }}>⚠ {nm} is unavailable on this date</span>
+                          {hits.map(c => (
+                            <span key={c.id} style={{ display:'block', fontSize:11.5, padding:'4px 0', borderTop:'1px solid var(--border)' }}>
+                              <b>{c.pto_type || 'PTO'}</b>{c.title ? ` — ${c.title}` : ''}<br />
+                              <span style={{ color:'var(--muted)' }}>{String(c.start_date).slice(0,10)} → {String(c.end_date).slice(0,10)} · {c.status === 'APPROVED' ? 'Approved' : c.status === 'REVIEW' ? 'Pending approval' : c.status}</span>
+                            </span>
+                          ))}
+                          <button type="button" className="btn btn-ghost btn-sm" style={{ marginTop:8, fontSize:10 }} onClick={() => setPtoFlagOpen(null)}>Close</button>
+                        </span>
+                      )}
+                    </span>
+                  );
+                };
+                const caPicker = (kind) => {   // 'color' | 'audio'
+                  const val = (kind === 'color' ? e.color_assignee : e.audio_assignee) || '';
+                  const field = kind === 'color' ? 'colorAssignee' : 'audioAssignee';
+                  const accent = kind === 'color' ? '#d66a9b' : '#40A0A0';
+                  const ctrSorted = [...caContractors].sort((a, b) => (b.role === kind) - (a.role === kind));
+                  return (
+                    <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                      <span style={{ fontSize:9, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.05em', color:accent, width:40 }}>{kind}</span>
+                      <select value={val}
+                        onChange={ev => { const v = ev.target.value; patch(kind === 'color' ? { color_assignee: v } : { audio_assignee: v }); save({ [field]: v }).then(load); }}
+                        style={{ fontSize:11, padding:'4px 8px', minWidth:170, maxWidth:230 }}>
+                        <option value="">— Unassigned —</option>
+                        {ctrSorted.length > 0 && (
+                          <optgroup label="Color &amp; Audio Contractors">
+                            {ctrSorted.map(c => <option key={c.id} value={`ctr:${c.id}`}>{(c.name || '(unnamed)')} · {c.role}</option>)}
+                          </optgroup>
+                        )}
+                        <optgroup label="Unbridled Media Team">
+                          {caCrewSorted.map(m => <option key={m.id} value={`crew:${m.id}`}>{caDisplay(m)}</option>)}
+                        </optgroup>
+                      </select>
+                      {caFlag(val, `ca_${kind}`)}
+                    </div>
+                  );
+                };
                 return (
                 <div style={{ background:'var(--bg)', border:'1px solid var(--border)', borderRadius:8, padding:'12px 14px', marginTop:10 }}>
                   {/* auto-fill controls */}
@@ -663,7 +723,8 @@ export default function AvoEdit() {
                       if (val && prevDate) gap = daysBetween(prevDate, val, tlOpts.skipWknd);
                       if (val) prevDate = val;
                       return (
-                        <div key={k} className="tl-ms-row" style={{ display:'flex', alignItems:'center', gap:12, padding:'6px 0', borderBottom:'1px solid rgba(255,255,255,0.04)', opacity: skipped ? 0.45 : 1 }}>
+                        <React.Fragment key={k}>
+                        <div className="tl-ms-row" style={{ display:'flex', alignItems:'center', gap:12, padding:'6px 0', borderBottom:'1px solid rgba(255,255,255,0.04)', opacity: skipped ? 0.45 : 1 }}>
                           <span className="tl-ms-label" style={{ ...lbl, marginBottom:0, flex:1, textDecoration: skipped ? 'line-through' : 'none' }}>
                             {label}
                           </span>
@@ -736,6 +797,14 @@ export default function AvoEdit() {
                             {gap != null ? `${gap} Day${gap === 1 ? '' : 's'}` : ''}
                           </span>
                         </div>
+                        {k === 'color_audio_complete' && !skipped && (
+                          <div className="tl-ms-row" style={{ display:'flex', alignItems:'center', gap:16, padding:'6px 0 8px 18px', borderBottom:'1px solid rgba(255,255,255,0.04)', flexWrap:'wrap' }}>
+                            <span style={{ fontSize:9, color:'var(--muted)', fontStyle:'italic', flexShrink:0 }}>Tag owners</span>
+                            {caPicker('color')}
+                            {caPicker('audio')}
+                          </div>
+                        )}
+                        </React.Fragment>
                       );
                     })}
                   </div>
