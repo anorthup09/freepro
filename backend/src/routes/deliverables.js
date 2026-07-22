@@ -10,7 +10,12 @@ async function mirrorToAvo(item, actor) {
     const [editor] = item.editor_name
       ? await sql`SELECT id FROM crew_members WHERE LOWER(TRIM(CONCAT(preferred_first_name, ' ', preferred_last_name))) = LOWER(${item.editor_name}) OR LOWER(name) = LOWER(${item.editor_name}) LIMIT 1`
       : [null];
-    const statusMap = { WAITING_ON_ASSETS: 'COMING_SOON', IN_PROGRESS: 'ASSIGNED', ROUGH_CUT: 'ASSIGNED', IN_REVIEW: 'FOCUS', APPROVED: 'CLOSED', DELIVERED: 'CLOSED' };
+    // Map the FreePro deliverable enum back onto the edit lifecycle, then derive
+    // the coarse lane + approved flag from it (same two-tier rule as AvocadoPost).
+    const laneFromWorkflow = ws => ws === 'APPROVED' ? 'CLOSED' : ws ? 'ASSIGNED' : 'COMING_SOON';
+    const wfFromDeliv = { WAITING_ON_ASSETS: null, IN_PROGRESS: 'IN_PROGRESS', ROUGH_CUT: 'COLOR_AUDIO', IN_REVIEW: 'RFR', APPROVED: 'APPROVED', DELIVERED: 'APPROVED' };
+    const ws = item.status in wfFromDeliv ? wfFromDeliv[item.status] : 'IN_PROGRESS';
+    const lane = laneFromWorkflow(ws);
     if (existing) {
       await sql`
         UPDATE edits SET
@@ -18,8 +23,8 @@ async function mirrorToAvo(item, actor) {
           lead_editor_id = ${editor ? editor.id : null}, lead_editor_name = ${item.editor_name || null},
           aspect_ratio = ${item.aspect_ratio || null}, resolution = ${item.resolution || null},
           asset_ref = ${item.asset_ref || null}, music_ref = ${item.music_ref || null},
-          status = ${statusMap[item.status] || 'ASSIGNED'},
-          approved = ${item.status === 'APPROVED'},
+          status = ${lane}, workflow_status = ${ws},
+          approved = ${ws === 'APPROVED'},
           end_date = ${item.due_date || null},
           updated_at = NOW()
         WHERE id = ${existing.id}`;
@@ -27,10 +32,10 @@ async function mirrorToAvo(item, actor) {
     } else {
       const [e] = await sql`
         INSERT INTO edits (project_id, project_code, deliverable_id, title, description, lead_editor_id, lead_editor_name,
-          aspect_ratio, resolution, asset_ref, music_ref, status, end_date, category)
+          aspect_ratio, resolution, asset_ref, music_ref, status, workflow_status, end_date, category)
         VALUES (${item.project_id}, ${proj ? proj.code : null}, ${item.id}, ${item.title}, ${item.description || null},
           ${editor ? editor.id : null}, ${item.editor_name || null}, ${item.aspect_ratio || null}, ${item.resolution || null},
-          ${item.asset_ref || null}, ${item.music_ref || null}, ${statusMap[item.status] || 'COMING_SOON'}, ${item.due_date || null}, ${item.category || null})
+          ${item.asset_ref || null}, ${item.music_ref || null}, ${lane}, ${ws}, ${item.due_date || null}, ${item.category || null})
         RETURNING id`;
       await sql`INSERT INTO edit_activity (edit_id, kind, author, body) VALUES (${e.id}, 'log', ${actor || 'FreePro'}, 'created from a FreePro deliverable')`;
     }
@@ -40,7 +45,7 @@ async function mirrorToAvo(item, actor) {
 router.get('/:id/deliverables', requireAuth, async (req, res, next) => {
   try {
     res.json(await sql`
-      SELECT d.*, e.id as edit_id, e.tracker_type, e.pm_id, e.lead_editor_id, e.start_date, e.review_link, e.category as avo_category, e.status as avo_status, e.cost_estimate
+      SELECT d.*, e.id as edit_id, e.tracker_type, e.pm_id, e.lead_editor_id, e.start_date, e.review_link, e.category as avo_category, e.status as avo_status, e.workflow_status as avo_workflow_status, e.focus as avo_focus, e.cost_estimate
       FROM deliverables d
       LEFT JOIN edits e ON e.deliverable_id = d.id
       WHERE d.project_id = ${req.params.id} ORDER BY d.created_at`);

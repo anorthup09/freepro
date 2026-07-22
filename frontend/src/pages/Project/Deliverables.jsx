@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../../api.js';
 import { displayName } from '../../utils/displayName.js';
-import { EditorSelect, AVO_STATUSES } from '../Avo.jsx';
+import { EditorSelect, DELIVERABLE_STATUSES } from '../Avo.jsx';
 
 const STATUSES = ['WAITING_ON_ASSETS','IN_PROGRESS','ROUGH_CUT','IN_REVIEW','APPROVED','DELIVERED'];
 const STATUS_LABEL = { WAITING_ON_ASSETS:'Waiting on Assets', IN_PROGRESS:'In Progress', ROUGH_CUT:'Rough Cut', IN_REVIEW:'In Review', APPROVED:'Approved', DELIVERED:'Delivered' };
@@ -12,7 +12,7 @@ const TYPE_GROUPS = [['Pre-Event', '#4a9eff'], ['On-Site', '#e6c229'], ['Post-Ev
 const LEGACY_TYPE = { PRE_PRODUCED:'Pre-Event', ON_SITE:'On-Site', POST_SHOOT:'Post-Event' };
 const typeOf = item => item.tracker_type || LEGACY_TYPE[item.category] || item.category || null;
 const AVO_CATEGORIES = ['Brand Video', 'Event Recap', 'Opener', 'Sizzle', 'Interstitial', 'Documentary', 'Teaser', 'Social Cutdown', 'Photo Slideshow', 'Other'];
-export const BLANK_DELIVERABLE_FORM = { title:'', description:'', status:'COMING_SOON', trackerType:'', category:'', leadEditorId:'', pmId:'', aspectRatio:'', resolution:'', assetRef:'', musicRef:'', startDate:'', endDate:'', reviewLink:'', costEstimate:'' };
+export const BLANK_DELIVERABLE_FORM = { title:'', description:'', workflowStatus:'', trackerType:'', category:'', leadEditorId:'', pmId:'', aspectRatio:'', resolution:'', assetRef:'', musicRef:'', startDate:'', endDate:'', reviewLink:'', costEstimate:'' };
 
 // Same fields as the AvocadoPost edit form — one form for add and edit
 export function AvoForm({ title, form, setForm, onSubmit, onCancel, saving, editId }) {
@@ -45,8 +45,9 @@ export function AvoForm({ title, form, setForm, onSubmit, onCancel, saving, edit
             <div className="field span2"><label>Video Title</label><input value={form.title} required onChange={e => setForm(f=>({...f,title:e.target.value}))} /></div>
             <div className="field span2"><label>Description</label>{inp('description', 'Plays Day 4 GS · 2 min')}</div>
             <div className="field span2"><label>Status</label>
-              <select value={form.status || 'COMING_SOON'} onChange={e => setForm(f=>({...f,status:e.target.value}))}>
-                {AVO_STATUSES.map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+              <select value={form.workflowStatus || ''} onChange={e => setForm(f=>({...f,workflowStatus:e.target.value}))}>
+                <option value="">Upcoming (not started)</option>
+                {DELIVERABLE_STATUSES.map(([k, label]) => <option key={k} value={k}>{label}</option>)}
               </select>
             </div>
             <div className="field"><label>Type</label>
@@ -215,7 +216,7 @@ export default function Deliverables({ project }) {
     setEditItemId(item);
     setEditForm({
       title: item.title || '', description: item.description || '',
-      status: item.avo_status || 'COMING_SOON',
+      workflowStatus: item.avo_workflow_status || '',
       trackerType: item.tracker_type || LEGACY_TYPE[item.category] || '',
       category: item.avo_category || '',
       leadEditorId: item.lead_editor_id || '', pmId: item.pm_id || '',

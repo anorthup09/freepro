@@ -7,6 +7,9 @@ const { noticeHtml, fmtPostmark } = require('../lib/emailTemplates');
 
 const staff = [requireAuth];
 const editStatuses = ['COMING_SOON', 'ASSIGNED', 'FOCUS', 'CLOSED'];
+// Two-tier edit status: the lifecycle (workflow_status) is the source of truth;
+// the coarse open/closed lane is derived from it so they can never disagree.
+const laneFromWorkflow = ws => ws === 'APPROVED' ? 'CLOSED' : ws ? 'ASSIGNED' : 'COMING_SOON';
 
 const PREF = "COALESCE(NULLIF(TRIM(CONCAT(cm.preferred_first_name, ' ', cm.preferred_last_name)), ''), cm.name)";
 
@@ -74,8 +77,14 @@ setTimeout(backfillSourcingTasks, 5000);
 
 async function syncToDeliverable(e) {
   if (!e.deliverable_id) return;
-  const statusMap = { COMING_SOON: 'WAITING_ON_ASSETS', ASSIGNED: 'IN_PROGRESS', FOCUS: 'IN_REVIEW', CLOSED: 'DELIVERED' };
-  const status = e.approved ? 'APPROVED' : (statusMap[e.status] || 'IN_PROGRESS');
+  // Map the edit lifecycle onto the (coarser) FreePro deliverable enum.
+  const wfMap = {
+    IN_PROGRESS: 'IN_PROGRESS', FEEDBACK: 'IN_PROGRESS',
+    RFR: 'IN_REVIEW', SENT: 'IN_REVIEW', LEGAL: 'IN_REVIEW',
+    COLOR_AUDIO: 'ROUGH_CUT', FINAL_COMP: 'ROUGH_CUT',
+    APPROVED: 'APPROVED',
+  };
+  const status = e.workflow_status ? (wfMap[e.workflow_status] || 'IN_PROGRESS') : 'WAITING_ON_ASSETS';
   const editor = e.lead_editor_name_resolved || e.lead_editor_name || null;
   await sql`
     UPDATE deliverables SET
@@ -138,12 +147,19 @@ router.post('/edits', ...staff, async (req, res, next) => {
       const [p] = await sql`SELECT id FROM projects WHERE code = ${d.projectCode.trim()}`;
       if (p) projectId = p.id;
     }
+    // New edits start Upcoming (no lifecycle) unless one is supplied; legacy
+    // callers may still send a coarse lane, which we map onto the lifecycle.
+    const ws0 = d.workflowStatus ? d.workflowStatus
+      : d.status === 'CLOSED' ? 'APPROVED'
+      : (d.status === 'ASSIGNED' || d.status === 'FOCUS') ? 'IN_PROGRESS'
+      : null;
+    const lane0 = laneFromWorkflow(ws0);
     const [e] = await sql`
       INSERT INTO edits (project_id, project_code, title, description, lead_editor_id, pm_id,
-        aspect_ratio, resolution, asset_ref, music_ref, category, status, review_link, start_date, end_date, tracker_type, cost_estimate)
+        aspect_ratio, resolution, asset_ref, music_ref, category, status, workflow_status, focus, approved, review_link, start_date, end_date, tracker_type, cost_estimate)
       VALUES (${projectId}, ${d.projectCode || null}, ${d.title}, ${d.description || null}, ${d.leadEditorId || null}, ${d.pmId || null},
         ${d.aspectRatio || null}, ${d.resolution || null}, ${d.assetRef || null}, ${d.musicRef || null},
-        ${d.category || null}, ${editStatuses.includes(d.status) ? d.status : 'COMING_SOON'}, ${d.reviewLink || null},
+        ${d.category || null}, ${lane0}, ${ws0}, ${d.focus === true}, ${ws0 === 'APPROVED'}, ${d.reviewLink || null},
         ${d.startDate || null}, ${d.endDate || null}, ${d.trackerType || null}, ${d.costEstimate ? Number(d.costEstimate) || null : null})
       RETURNING *`;
     const who = req.user?.email || 'someone';
@@ -281,8 +297,18 @@ router.patch('/edits/:id', ...staff, async (req, res, next) => {
         else delete milestones[k];
       }
     }
-    // Approving a video moves it to Closed Tasks
-    if (d.approved === true && before.status !== 'CLOSED' && d.status === undefined) d.status = 'CLOSED';
+    // Resolve the authoritative lifecycle status, then derive the lane + approved
+    // flag from it. Priority: explicit workflowStatus > approve toggle > a legacy
+    // coarse-lane write > unchanged.
+    let ws;
+    if (d.workflowStatus !== undefined) ws = d.workflowStatus || null;
+    else if (d.approved === true) ws = 'APPROVED';
+    else if (d.approved === false && before.workflow_status === 'APPROVED') ws = 'IN_PROGRESS';
+    else if (d.status !== undefined && editStatuses.includes(d.status)) {
+      ws = d.status === 'CLOSED' ? 'APPROVED' : d.status === 'COMING_SOON' ? null : (before.workflow_status || 'IN_PROGRESS');
+    } else ws = before.workflow_status;
+    const derivedLane = laneFromWorkflow(ws);
+    const derivedApproved = ws === 'APPROVED';
     // Per-task assignee overrides (empty value = back to the lead editor)
     let msAssignees;
     if (d.milestoneAssignees !== undefined && typeof d.milestoneAssignees === 'object') {
@@ -323,18 +349,19 @@ router.patch('/edits/:id', ...staff, async (req, res, next) => {
         extra = ${d.extra !== undefined && typeof d.extra === 'object' ? sql`COALESCE(extra, '{}'::jsonb) || ${sql.json(d.extra)}` : sql`extra`},
         tracker_sort = ${d.trackerSort !== undefined ? (Number(d.trackerSort) || 0) : sql`tracker_sort`},
         tracker_color = ${d.trackerColor !== undefined ? (d.trackerColor || null) : sql`tracker_color`},
-        status = ${d.status !== undefined && editStatuses.includes(d.status) ? d.status : sql`status`},
+        status = ${derivedLane},
+        focus = ${d.focus !== undefined ? (d.focus === true) : sql`focus`},
         review_link = ${d.reviewLink !== undefined ? (d.reviewLink || null) : sql`review_link`},
         start_date = ${d.startDate !== undefined ? (d.startDate || null) : sql`start_date`},
         end_date = ${d.endDate !== undefined ? (d.endDate || null) : sql`end_date`},
         version = ${d.version !== undefined ? Math.max(0.1, Math.round((Number(d.version) || 1) * 10) / 10) : sql`version`},
-        approved = ${d.approved !== undefined ? (d.approved === true) : sql`approved`},
+        approved = ${derivedApproved},
         tracker_type = ${d.trackerType !== undefined ? (d.trackerType || null) : sql`tracker_type`},
         style = ${d.style !== undefined ? (d.style || null) : sql`style`},
         notes = ${d.notes !== undefined ? (d.notes || null) : sql`notes`},
         video_assets = ${d.videoAssets !== undefined ? (d.videoAssets || null) : sql`video_assets`},
         creative = ${d.creative !== undefined ? (d.creative || null) : sql`creative`},
-        workflow_status = ${d.workflowStatus !== undefined ? (d.workflowStatus || null) : sql`workflow_status`},
+        workflow_status = ${ws},
         color_assignee = ${d.colorAssignee !== undefined ? (d.colorAssignee || null) : sql`color_assignee`},
         audio_assignee = ${d.audioAssignee !== undefined ? (d.audioAssignee || null) : sql`audio_assignee`},
         milestones = ${milestones !== undefined ? sql.json(milestones) : sql`milestones`},

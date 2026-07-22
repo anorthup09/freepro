@@ -4,7 +4,7 @@ import { useAuth } from '../App.jsx';
 import { api } from '../api.js';
 import { displayName } from '../utils/displayName.js';
 import { STATUS_COLORS } from './Hub.jsx';
-import { AVO_STATUSES } from './Avo.jsx';
+import { DELIV_STATUS, FOCUS_COLOR } from './Avo.jsx';
 
 const card = { background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, padding:'16px 18px' };
 const secHdr = { fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.07em', marginBottom:10 };
@@ -292,7 +292,6 @@ export default function ProjectOverview({ pid, onOpenFinance }) {
     catch (e) { alert(e.message); }
   }
 
-  const avoStatus = k => AVO_STATUSES.find(([key]) => key === k);
 
   return (
     <div className="pv-overview" style={{ maxWidth:1250, margin:'0 auto', padding:'8px 16px 60px', display:'grid', gridTemplateColumns:'1fr 320px', gridTemplateRows:'auto 1fr', gap:16, alignItems:'start' }}>
@@ -335,14 +334,15 @@ export default function ProjectOverview({ pid, onOpenFinance }) {
           <div style={secHdr}>Post-Production at a Glance</div>
           {edits.length === 0 && <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>No edits on this project code yet.</div>}
           {edits.map(e => {
-            const st = avoStatus(e.status);
+            const st = DELIV_STATUS(e.workflow_status);   // lifecycle; null → Upcoming
             return (
               <div key={e.id} onClick={() => nav(`/avo/${e.id}`)}
                 style={{ display:'flex', alignItems:'center', gap:10, padding:'7px 4px', borderBottom:'1px solid rgba(255,255,255,0.04)', cursor:'pointer' }}>
                 <span style={{ fontSize:11, fontWeight:700, flex:1 }}>{e.title} <span style={{ color:'var(--muted)', fontWeight:400 }}>· v{Number(e.version) || 1}</span></span>
                 <span style={{ fontSize:10, color:'var(--muted)', whiteSpace:'nowrap' }}>{e.lead_editor || ''}</span>
                 {e.end_date && <span style={{ fontSize:10, color:'var(--muted)', whiteSpace:'nowrap' }}>due {fmtD(e.end_date)}</span>}
-                {st && <StatusPill status={st[1]} color={st[2]} />}
+                {e.focus && <StatusPill status="Focus" color={FOCUS_COLOR} />}
+                <StatusPill status={st ? st[1] : 'Upcoming'} color={st ? st[2] : '#8a8f98'} />
               </div>
             );
           })}

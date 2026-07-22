@@ -65,7 +65,7 @@ router.get('/project-overview/:pid', ...staff, async (req, res, next) => {
          )
       ORDER BY start_date NULLS LAST, code`;
     const edits = await sql`
-      SELECT e.id, e.title, e.status, e.version, e.end_date,
+      SELECT e.id, e.title, e.status, e.workflow_status, e.focus, e.version, e.end_date,
              COALESCE((SELECT ${sql.unsafe(PREF)} FROM crew_members cm WHERE cm.id = e.lead_editor_id), e.lead_editor_name) as lead_editor
       FROM edits e
       WHERE e.project_code = ${project.code} OR e.project_code LIKE ${project.code + '-%'}

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../App.jsx';
-import { AvoHeader, AVO, AVO_STATUSES, DELIVERABLE_STATUSES, EditorSelect, VersionInput, stepV } from './Avo.jsx';
+import { AvoHeader, AVO, AVO_STATUSES, DELIVERABLE_STATUSES, DELIV_STATUS, FOCUS_COLOR, EditorSelect, VersionInput, stepV } from './Avo.jsx';
 import { CATEGORIES } from './AvoEdit.jsx';
 import { MILESTONES, nextMilestone } from '../components/GanttChart.jsx';
 import { AvoForm, BLANK_DELIVERABLE_FORM } from './Project/Deliverables.jsx';
@@ -458,8 +458,15 @@ function VideoTracker({ edits, setEdits, config, onConfig, code, readOnly, onOpe
       ? <span style={{ fontSize:11 }} title={e.latest_comment}>{e.latest_comment.slice(0, 40)}{e.latest_comment.length > 40 ? '…' : ''}</span>
       : <span style={{ color:'var(--muted)', fontSize:11 }}>—</span> },
     { key:'status', label:'Status', render: e => {
-      const st = statusOf(e.status);
-      return st ? <span style={{ background:`${st[2]}22`, border:`1px solid ${st[2]}`, color:st[2], borderRadius:12, padding:'2px 10px', fontSize:9, fontWeight:800, whiteSpace:'nowrap' }}>{st[1]}</span> : null;
+      const st = DELIV_STATUS(e.workflow_status);
+      return (
+        <span style={{ display:'inline-flex', alignItems:'center', gap:5, flexWrap:'wrap' }}>
+          {e.focus && <span title="Focus" style={{ background:`${FOCUS_COLOR}22`, border:`1px solid ${FOCUS_COLOR}`, color:FOCUS_COLOR, borderRadius:12, padding:'2px 7px', fontSize:8, fontWeight:800 }}>FOCUS</span>}
+          {st
+            ? <span style={{ background:`${st[2]}22`, border:`1px solid ${st[2]}`, color:st[2], borderRadius:12, padding:'2px 10px', fontSize:9, fontWeight:800, whiteSpace:'nowrap' }}>{st[1]}</span>
+            : <span style={{ color:'var(--muted)', fontSize:9, fontWeight:700 }}>Upcoming</span>}
+        </span>
+      );
     } },
     // Optional field columns — off by default, toggled from the Columns menu.
     { key:'aspect_ratio', label:'Aspect Ratio', render: e => <Cell value={e.aspect_ratio} placeholder="16:9…" readOnly={readOnly} onSave={v => saveEdit(e.id, { aspectRatio: v })} /> },
@@ -1462,10 +1469,20 @@ function EditModal({ edit, statusOf, onSave, onClose, A = api, customCols = [] }
             </div>
             <div style={{ flex:'1 1 130px' }}>
               <div style={hdr}>Status</div>
-              <select value={e.status || 'COMING_SOON'} onChange={ev => save({ status: ev.target.value })}
+              <select value={e.workflow_status || ''} onChange={ev => save({ workflowStatus: ev.target.value })}
                 style={{ width:'100%', fontSize:11, fontWeight:700, padding:'5px 8px', borderRadius:8, background:'var(--bg)', border:'1px solid var(--border)', color:'var(--text)' }}>
-                {AVO_STATUSES.map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+                <option value="">Upcoming (not started)</option>
+                {DELIVERABLE_STATUSES.map(([k, label]) => <option key={k} value={k}>{label}</option>)}
               </select>
+            </div>
+            <div style={{ flex:'0 0 auto' }}>
+              <div style={hdr}>Focus</div>
+              <button type="button" onClick={() => save({ focus: !e.focus })}
+                title={e.focus ? 'Remove the Focus flag' : 'Flag this edit as Focus (needs attention now)'}
+                style={{ fontSize:11, fontWeight:800, padding:'6px 12px', borderRadius:8, cursor:'pointer',
+                  background: e.focus ? `${FOCUS_COLOR}22` : 'var(--bg)', border:`1px solid ${e.focus ? FOCUS_COLOR : 'var(--border)'}`, color: e.focus ? FOCUS_COLOR : 'var(--muted)' }}>
+                {e.focus ? '★ Focus' : '☆ Focus'}
+              </button>
             </div>
           </div>
           {/* Version stepper + Approved pill */}
@@ -1588,7 +1605,6 @@ function EditModal({ edit, statusOf, onSave, onClose, A = api, customCols = [] }
   );
 }
 
-const DELIV_STATUS = k => DELIVERABLE_STATUSES.find(([key]) => key === k);
 const fmtMsDate = d => d ? new Date(String(d).slice(0, 10) + 'T12:00:00').toLocaleDateString('en-US', { month:'short', day:'numeric' }) : '';
 
 // The Post-Production Overview tab: a high-level, at-a-glance list — one row
@@ -1638,7 +1654,7 @@ function DeliverableOverview({ edits, onSave, onOpenEdit, onStatus, readOnly, A 
             </thead>
             <tbody>
               {list.map(e => {
-                const cur = DELIV_STATUS(e.workflow_status) || DELIV_STATUS('IN_PROGRESS');
+                const cur = DELIV_STATUS(e.workflow_status);   // null → Upcoming
                 const nm = nextMilestone(e);
                 const busy = busyId === e.id;
                 return (
@@ -1647,10 +1663,11 @@ function DeliverableOverview({ edits, onSave, onOpenEdit, onStatus, readOnly, A 
                       <span onClick={() => onOpenEdit?.(e)} style={{ cursor: onOpenEdit ? 'pointer' : 'default' }}>{e.title || 'Untitled'}</span>
                     </td>
                     <td style={cell}>
-                      <select value={e.workflow_status || 'IN_PROGRESS'} disabled={readOnly}
+                      <select value={e.workflow_status || ''} disabled={readOnly}
                         onChange={ev => onSave(e.id, { workflowStatus: ev.target.value })}
                         style={{ fontSize:11, fontWeight:800, padding:'4px 10px', borderRadius:12, cursor: readOnly ? 'default' : 'pointer', appearance:'none',
                           background: cur ? `${cur[2]}22` : 'transparent', border:`1px solid ${cur ? cur[2] : 'var(--border)'}`, color: cur ? cur[2] : 'var(--muted)' }}>
+                        <option value="" style={{ color:'var(--text)', background:'var(--bg2)' }}>Upcoming</option>
                         {DELIVERABLE_STATUSES.map(([k, label]) => <option key={k} value={k} style={{ color:'var(--text)', background:'var(--bg2)' }}>{label}</option>)}
                       </select>
                     </td>

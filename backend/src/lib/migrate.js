@@ -1338,6 +1338,26 @@ async function migrate() {
   // (an Unbridled Media team member, whose availability comes from the crew calendar).
   await sql`ALTER TABLE edits ADD COLUMN IF NOT EXISTS color_assignee TEXT`;
   await sql`ALTER TABLE edits ADD COLUMN IF NOT EXISTS audio_assignee TEXT`;
+  // Two-tier edit status. `workflow_status` (lifecycle) is now the source of
+  // truth; the coarse open/closed lane in `status` is derived from it, and
+  // `focus` is a manual priority flag (formerly the FOCUS lane value).
+  await sql`ALTER TABLE edits ADD COLUMN IF NOT EXISTS focus BOOLEAN DEFAULT FALSE`;
+  // One-time backfill: lift the old FOCUS lane onto the focus flag, seed a
+  // lifecycle from the legacy lane/approval, then re-derive the coarse lane.
+  await sql`UPDATE edits SET focus = TRUE WHERE status = 'FOCUS' AND focus IS DISTINCT FROM TRUE`;
+  await sql`UPDATE edits SET workflow_status = CASE
+      WHEN approved = TRUE OR status = 'CLOSED' THEN 'APPROVED'
+      WHEN status IN ('FOCUS', 'ASSIGNED') THEN 'IN_PROGRESS'
+      ELSE workflow_status END
+    WHERE workflow_status IS NULL`;
+  await sql`UPDATE edits SET status = CASE
+      WHEN workflow_status = 'APPROVED' THEN 'CLOSED'
+      WHEN workflow_status IS NOT NULL THEN 'ASSIGNED'
+      ELSE 'COMING_SOON' END
+    WHERE status IS DISTINCT FROM (CASE
+      WHEN workflow_status = 'APPROVED' THEN 'CLOSED'
+      WHEN workflow_status IS NOT NULL THEN 'ASSIGNED'
+      ELSE 'COMING_SOON' END)`;
 
   // User-defined tables on Avo project pages (fully custom columns)
   await sql`

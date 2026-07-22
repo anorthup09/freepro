@@ -6,15 +6,19 @@ import HomeButton from '../components/HomeButton.jsx';
 import RfrModal from '../components/RfrModal.jsx';
 
 export const AVO = '#9DC183';
+// Tier 1 — the coarse open/closed "lane". Auto-derived from the lifecycle
+// (workflow_status): none → Upcoming, in-flight → Active, Approved → Closed.
+// "Focus" is a separate manual flag (edits.focus), not a lane value.
 export const AVO_STATUSES = [
-  ['FOCUS', 'Focus', '#e05252'],
-  ['ASSIGNED', 'Assigned Current Edits', '#4a9eff'],
-  ['COMING_SOON', 'Coming Soon', '#e6c229'],
-  ['CLOSED', 'Closed Tasks', '#8a8f98'],
+  ['COMING_SOON', 'Upcoming', '#e6c229'],
+  ['ASSIGNED', 'Active', '#4a9eff'],
+  ['CLOSED', 'Closed', '#8a8f98'],
 ];
+export const FOCUS_COLOR = '#e05252';
 
-// High-level deliverable workflow states for the Deliverable Overview. RFR and
-// SENT are auto-populated by the Ready-For-Review / Sent-to-Client actions.
+// Tier 2 — the per-edit lifecycle, the single source of truth for an edit's
+// status. Feeds the Project Overview, Video Tracker, and FreePro deliverables.
+// RFR / Sent auto-populate from the Ready-For-Review / Sent-to-Client actions.
 export const DELIVERABLE_STATUSES = [
   ['IN_PROGRESS', 'In Progress', '#a78bfa'],
   ['RFR', 'RFR', '#e6c229'],
@@ -25,6 +29,9 @@ export const DELIVERABLE_STATUSES = [
   ['FINAL_COMP', 'Ready for Final Comp', '#5ABF80'],
   ['APPROVED', 'Approved', '#2ea043'],
 ];
+export const DELIV_STATUS = k => DELIVERABLE_STATUSES.find(([key]) => key === k);
+// The coarse lane an edit falls into, derived from its lifecycle status.
+export const laneFromWorkflow = ws => ws === 'APPROVED' ? 'CLOSED' : ws ? 'ASSIGNED' : 'COMING_SOON';
 
 export function AvoHeader({ right }) {
   const { user, setUser } = useAuth();
@@ -304,10 +311,17 @@ export default function Avo() {
 
         {!edits && <div className="empty">Loading…</div>}
 
-        {edits && AVO_STATUSES.map(([key, label, color]) => {
+        {edits && [['FOCUS', 'Focus', FOCUS_COLOR], ...AVO_STATUSES].map(([key, label, color]) => {
           const cq = codeQ.trim().toLowerCase();
-          const group = edits.filter(e => e.status === key && !e.archived && (!cq || (e.project_code || '').toLowerCase().includes(cq)));
-          // Hide the Focus status entirely when nothing is assigned to it
+          const group = edits.filter(e => {
+            if (e.archived || (cq && !(e.project_code || '').toLowerCase().includes(cq))) return false;
+            // Focus is a manual flag that pulls the edit into its own lane (while
+            // still open); the three coarse lanes derive from the lifecycle.
+            if (key === 'FOCUS') return e.focus && e.status !== 'CLOSED';
+            if (key === 'CLOSED') return e.status === 'CLOSED';
+            return e.status === key && !e.focus;
+          });
+          // Hide the Focus lane entirely when nothing is flagged
           if (key === 'FOCUS' && group.length === 0) return null;
           const collapsed = key === 'CLOSED' && !closedOpen;
           return (
@@ -335,7 +349,11 @@ export default function Avo() {
                       {group.map(e => (
                         <tr key={e.id} onClick={() => nav(`/avo/${e.id}`)} style={{ borderTop:'1px solid rgba(255,255,255,0.04)', cursor:'pointer' }}>
                           <td style={{ ...td, fontWeight:700 }}>
-                            {e.title}
+                            <span style={{ display:'inline-flex', alignItems:'center', gap:7, flexWrap:'wrap' }}>
+                              {e.title}
+                              {e.focus && <span title="Flagged as Focus" style={{ background:`${FOCUS_COLOR}22`, border:`1px solid ${FOCUS_COLOR}`, color:FOCUS_COLOR, borderRadius:10, padding:'1px 7px', fontSize:8, fontWeight:800 }}>FOCUS</span>}
+                              {(() => { const ls = DELIV_STATUS(e.workflow_status); return ls ? <span style={{ background:`${ls[2]}22`, border:`1px solid ${ls[2]}`, color:ls[2], borderRadius:10, padding:'1px 7px', fontSize:8, fontWeight:800, whiteSpace:'nowrap' }}>{ls[1]}</span> : null; })()}
+                            </span>
                             {e.project_code && <div style={{ fontSize:9, color:'var(--muted)', fontWeight:400 }}>{e.project_code}{e.project_title ? ` · ${e.project_title}` : ''}</div>}
                           </td>
                           <td style={td}>{e.lead_editor || '—'}</td>
