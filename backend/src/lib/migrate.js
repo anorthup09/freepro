@@ -385,6 +385,10 @@ async function migrate() {
   await sql`ALTER TABLE flights ADD COLUMN IF NOT EXISTS status TEXT`;
   await sql`ALTER TABLE flights ADD COLUMN IF NOT EXISTS depart_display TEXT`;
   await sql`ALTER TABLE flights ADD COLUMN IF NOT EXISTS arrive_display TEXT`;
+  // Airport UTC offset for each end (e.g. "-05:00"), captured at lookup so
+  // depart_time/arrive_time can be stored as true UTC and edited in airport-local.
+  await sql`ALTER TABLE flights ADD COLUMN IF NOT EXISTS depart_tz TEXT`;
+  await sql`ALTER TABLE flights ADD COLUMN IF NOT EXISTS arrive_tz TEXT`;
   await sql`ALTER TABLE flights ADD COLUMN IF NOT EXISTS status_checked_at TIMESTAMPTZ`;
 
   await sql`

@@ -34,6 +34,34 @@ const flightDayKey = f => {
   const d = flightDay(f);
   return d ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` : 'tbd';
 };
+// Extract a UTC offset like "-05:00" from an AeroDataBox local time ("… -05:00").
+const tzOffsetOf = s => { const m = String(s || '').match(/([+-]\d{2}):?(\d{2})$/); return m ? `${m[1]}:${m[2]}` : null; };
+// Naive wall clock ("YYYY-MM-DDTHH:mm") + airport offset → true UTC ISO. Without
+// a tz, fall back to the browser's local interpretation (legacy manual entries).
+function wallToUtc(wall, tz) {
+  if (!wall) return null;
+  const base = wall.length === 16 ? `${wall}:00` : wall;   // seconds for Safari
+  const d = new Date(tz ? `${base}${tz}` : base);
+  return isNaN(d.getTime()) ? null : d.toISOString();
+}
+// True UTC instant + airport offset → airport-local wall clock (for the editor).
+function utcToWall(utc, tz) {
+  if (!utc) return '';
+  const d = new Date(utc);
+  if (isNaN(d.getTime())) return '';
+  const m = tz && String(tz).match(/([+-])(\d{2}):?(\d{2})/);
+  if (!m) return String(utc).slice(0, 16);   // no tz: show the stored wall as-is
+  const offMin = (m[1] === '-' ? -1 : 1) * (Number(m[2]) * 60 + Number(m[3]));
+  return new Date(d.getTime() + offMin * 60000).toISOString().slice(0, 16);
+}
+// "Aug 8, 2:15 PM" from a naive wall clock — tz-safe, no Date parsing.
+const MON3 = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+function wallDisplay(wall) {
+  const m = String(wall || '').match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+  if (!m) return null;
+  const h = Number(m[4]); const ampm = h >= 12 ? 'PM' : 'AM'; const h12 = ((h + 11) % 12) + 1;
+  return `${MON3[Number(m[2]) - 1]} ${Number(m[3])}, ${h12}:${m[5]} ${ampm}`;
+}
 function fmtCost(n) {
   if (!n) return null;
   return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 });
@@ -218,11 +246,11 @@ export default function Travel({ project }) {
   const [flightLookupError, setFlightLookupError] = useState('');
   const [flightLegs, setFlightLegs] = useState(null); // all legs the number flies that day
   const [selectedLegIdx, setSelectedLegIdx] = useState(-1);
-  const [flightForm, setFlightForm] = useState({ crewMemberId:null, passengerName:'', flightNumber:'', airline:'', origin:'', destination:'', departTime:'', arriveTime:'', departDisplay:'', arriveDisplay:'', confirmation:'', isReturn:false, cost:'', status:'' });
+  const [flightForm, setFlightForm] = useState({ crewMemberId:null, passengerName:'', flightNumber:'', airline:'', origin:'', destination:'', departTime:'', arriveTime:'', departTz:'', arriveTz:'', departDisplay:'', arriveDisplay:'', confirmation:'', isReturn:false, cost:'', status:'' });
 
   // Edit modals
   const [editFlight, setEditFlight] = useState(null); // flight object being edited
-  const [editFlightForm, setEditFlightForm] = useState({ crewMemberId:'', passengerName:'', airline:'', flightNumber:'', origin:'', destination:'', departTime:'', arriveTime:'', confirmation:'', cost:'', isReturn:false });
+  const [editFlightForm, setEditFlightForm] = useState({ crewMemberId:'', passengerName:'', airline:'', flightNumber:'', origin:'', destination:'', departTime:'', arriveTime:'', departTz:'', arriveTz:'', confirmation:'', cost:'', isReturn:false });
   const [editGuest, setEditGuest] = useState(null); // { guest, hotelId }
   const [editGuestForm, setEditGuestForm] = useState({ confirmation:'', cost:'', checkIn:'', checkOut:'' });
   const [editCar, setEditCar] = useState(null); // car object being edited
@@ -371,6 +399,8 @@ export default function Travel({ project }) {
       destination: leg.destination || f.destination,
       departTime: localWall(leg.departTimeLocal) || safeIso(leg.departTime)?.slice(0,16) || f.departTime,
       arriveTime: localWall(leg.arriveTimeLocal) || safeIso(leg.arriveTime)?.slice(0,16) || f.arriveTime,
+      departTz: tzOffsetOf(leg.departTimeLocal) || f.departTz || '',
+      arriveTz: tzOffsetOf(leg.arriveTimeLocal) || f.arriveTz || '',
       departDisplay: leg.departDisplay || '',
       arriveDisplay: leg.arriveDisplay || '',
       status: leg.status || '',
@@ -397,18 +427,22 @@ export default function Travel({ project }) {
       const f = await api.createFlight(project.id, {
         ...flightForm,
         passengerName: flightForm.passengerName || 'Unknown',
-        departTime: safeIso(flightForm.departTime)
+        // Store true UTC using the airport offset from the lookup; fall back to
+        // browser-local only when no tz is known (manual entry).
+        departTime: wallToUtc(flightForm.departTime, flightForm.departTz)
           || (flightLookupDate ? safeIso(flightLookupDate + 'T12:00:00') : null),
-        arriveTime: safeIso(flightForm.arriveTime),
+        arriveTime: wallToUtc(flightForm.arriveTime, flightForm.arriveTz),
         crewMemberId: flightForm.crewMemberId || null,
-        departDisplay: flightForm.departDisplay || null,
-        arriveDisplay: flightForm.arriveDisplay || null,
+        departDisplay: flightForm.departDisplay || wallDisplay(flightForm.departTime) || null,
+        arriveDisplay: flightForm.arriveDisplay || wallDisplay(flightForm.arriveTime) || null,
+        departTz: flightForm.departTz || null,
+        arriveTz: flightForm.arriveTz || null,
         cost: flightForm.cost || null,
       });
       setFlights(prev => [...prev, f]);
       setShowFlight(false);
       setFlightLookupQuery(''); setFlightLookupDate(''); setFlightLookupError(''); setFlightLegs(null); setSelectedLegIdx(-1);
-      setFlightForm({ crewMemberId:null, passengerName:'', flightNumber:'', airline:'', origin:'', destination:'', departTime:'', arriveTime:'', departDisplay:'', arriveDisplay:'', confirmation:'', isReturn:false, cost:'', status:'' });
+      setFlightForm({ crewMemberId:null, passengerName:'', flightNumber:'', airline:'', origin:'', destination:'', departTime:'', arriveTime:'', departTz:'', arriveTz:'', departDisplay:'', arriveDisplay:'', confirmation:'', isReturn:false, cost:'', status:'' });
     } catch(err) { alert(err.message); }
   }
 
@@ -426,6 +460,7 @@ export default function Travel({ project }) {
         origin: s.origin || '', destination: s.destination || '',
         departTime: s.depart_time || null, arriveTime: s.arrive_time || null,
         departDisplay: s.depart_display || null, arriveDisplay: s.arrive_display || null,
+        departTz: s.depart_tz || null, arriveTz: s.arrive_tz || null,
         isReturn: s.is_return || false, status: s.status || '',
         confirmation: dupFlight.confirmation || '',
         cost: dupFlight.cost || null,
@@ -508,12 +543,14 @@ export default function Travel({ project }) {
   // ── Edit handlers ─────────────────────────────────────────────────────────
   function openEditFlight(f) {
     setEditFlight(f);
-    const toLocal = v => v ? String(v).slice(0, 16) : '';
+    // Show the airport-local wall clock (via the stored offset) so editing is
+    // in the flight's own timezone; legacy rows without an offset show as stored.
     setEditFlightForm({
       crewMemberId: f.crew_member_id || '', passengerName: f.passenger_name || '',
       airline: f.airline || '', flightNumber: f.flight_number || '',
       origin: f.origin || '', destination: f.destination || '',
-      departTime: toLocal(f.depart_time), arriveTime: toLocal(f.arrive_time),
+      departTime: utcToWall(f.depart_time, f.depart_tz), arriveTime: utcToWall(f.arrive_time, f.arrive_tz),
+      departTz: f.depart_tz || '', arriveTz: f.arrive_tz || '',
       confirmation: f.confirmation || '', cost: f.cost ?? '', isReturn: !!f.is_return,
     });
   }
@@ -521,19 +558,27 @@ export default function Travel({ project }) {
     e.preventDefault();
     try {
       const ef = editFlightForm;
-      const updated = await api.updateFlight(project.id, editFlight.id, {
+      const payload = {
         crewMemberId: ef.crewMemberId || null,
         passengerName: ef.passengerName || null,
         airline: ef.airline || null,
         flightNumber: ef.flightNumber || null,
         origin: ef.origin || null,
         destination: ef.destination || null,
-        departTime: ef.departTime || null,
-        arriveTime: ef.arriveTime || null,
+        // Recompute true UTC from the airport-local wall + stored offset.
+        departTime: wallToUtc(ef.departTime, ef.departTz),
+        arriveTime: wallToUtc(ef.arriveTime, ef.arriveTz),
+        departTz: ef.departTz || null,
+        arriveTz: ef.arriveTz || null,
         confirmation: ef.confirmation || null,
         cost: ef.cost === '' ? null : ef.cost,
         isReturn: ef.isReturn,
-      });
+      };
+      // Only regenerate the display strings when we know the wall is airport-local
+      // (tz present) — otherwise leave the original display untouched.
+      if (ef.departTz) payload.departDisplay = wallDisplay(ef.departTime);
+      if (ef.arriveTz) payload.arriveDisplay = wallDisplay(ef.arriveTime);
+      const updated = await api.updateFlight(project.id, editFlight.id, payload);
       setFlights(prev => prev.map(f => f.id === editFlight.id ? { ...f, ...updated } : f));
       setEditFlight(null);
     } catch(err) { alert(err.message); }

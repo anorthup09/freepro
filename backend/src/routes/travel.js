@@ -76,8 +76,8 @@ router.post('/:id/travel/flights', requireAuth, requireRole('ADMIN','PRODUCER'),
   try {
     const d = req.body;
     const [f] = await sql`
-      INSERT INTO flights (id, project_id, crew_member_id, passenger_name, origin, destination, depart_time, arrive_time, airline, confirmation, is_return, cost, flight_number, status, depart_display, arrive_display)
-      VALUES (gen_random_uuid()::text, ${req.params.id}, ${d.crewMemberId||null}, ${d.passengerName}, ${d.origin}, ${d.destination}, ${d.departTime||null}, ${d.arriveTime||null}, ${d.airline||null}, ${d.confirmation||null}, ${d.isReturn||false}, ${d.cost||null}, ${d.flightNumber||null}, ${d.status||null}, ${d.departDisplay||null}, ${d.arriveDisplay||null})
+      INSERT INTO flights (id, project_id, crew_member_id, passenger_name, origin, destination, depart_time, arrive_time, airline, confirmation, is_return, cost, flight_number, status, depart_display, arrive_display, depart_tz, arrive_tz)
+      VALUES (gen_random_uuid()::text, ${req.params.id}, ${d.crewMemberId||null}, ${d.passengerName}, ${d.origin}, ${d.destination}, ${d.departTime||null}, ${d.arriveTime||null}, ${d.airline||null}, ${d.confirmation||null}, ${d.isReturn||false}, ${d.cost||null}, ${d.flightNumber||null}, ${d.status||null}, ${d.departDisplay||null}, ${d.arriveDisplay||null}, ${d.departTz||null}, ${d.arriveTz||null})
       RETURNING *`;
     res.status(201).json(f);
   } catch(e){next(e);}
@@ -97,6 +97,8 @@ router.patch('/:id/travel/flights/:fid', requireAuth, requireRole('ADMIN','PRODU
         destination = ${d.destination !== undefined ? (d.destination || null) : sql`destination`},
         depart_time = ${d.departTime !== undefined ? (d.departTime || null) : sql`depart_time`},
         arrive_time = ${d.arriveTime !== undefined ? (d.arriveTime || null) : sql`arrive_time`},
+        depart_tz = ${d.departTz !== undefined ? (d.departTz || null) : sql`depart_tz`},
+        arrive_tz = ${d.arriveTz !== undefined ? (d.arriveTz || null) : sql`arrive_tz`},
         depart_display = ${d.departDisplay !== undefined ? (d.departDisplay || null) : sql`depart_display`},
         arrive_display = ${d.arriveDisplay !== undefined ? (d.arriveDisplay || null) : sql`arrive_display`},
         is_return = ${d.isReturn !== undefined ? !!d.isReturn : sql`is_return`},
