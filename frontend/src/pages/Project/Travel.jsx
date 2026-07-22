@@ -8,6 +8,32 @@ function fmt(dt) {
 function fmtDT(dt) {
   return new Date(dt).toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' });
 }
+const MONTHS = { jan:0, feb:1, mar:2, apr:3, may:4, jun:5, jul:6, aug:7, sep:8, oct:9, nov:10, dec:11 };
+// The flight's true local departure day, matched to what the row shows so the
+// day header can never drift from its flights. depart_time is stored UTC-shifted
+// (a wall-clock string run through the adder's browser tz), so its raw date can
+// land on the wrong calendar day; depart_display keeps the real airport-local
+// date. Prefer depart_display ("Aug 8, 2:15 PM"), else the local date of
+// depart_time (matching fmtDT). Returns a Date at local noon, or null.
+function flightDay(f) {
+  const disp = f && f.depart_display;
+  if (disp) {
+    const m = String(disp).match(/([A-Za-z]{3})[a-z]*\s+(\d{1,2})/);
+    if (m && MONTHS[m[1].toLowerCase()] !== undefined) {
+      const year = f.depart_time ? new Date(f.depart_time).getFullYear() : new Date().getFullYear();
+      return new Date(year, MONTHS[m[1].toLowerCase()], parseInt(m[2], 10), 12, 0, 0);
+    }
+  }
+  if (f && f.depart_time) {
+    const d = new Date(f.depart_time);
+    if (!isNaN(d.getTime())) return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12, 0, 0);
+  }
+  return null;
+}
+const flightDayKey = f => {
+  const d = flightDay(f);
+  return d ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` : 'tbd';
+};
 function fmtCost(n) {
   if (!n) return null;
   return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 });
@@ -682,14 +708,19 @@ export default function Travel({ project }) {
         <button className="btn btn-ghost btn-sm" onClick={() => setShowFlight(true)}>+ Add Flight</button>
       </div>
       {(() => { let lastDay = null; return [...flights]
-        .sort((a, b) => String(a.depart_time || '9999').localeCompare(String(b.depart_time || '9999')))
+        .sort((a, b) => {
+          const ka = flightDayKey(a), kb = flightDayKey(b);
+          if (ka !== kb) return ka.localeCompare(kb);
+          return String(a.depart_time || '9999').localeCompare(String(b.depart_time || '9999'));
+        })
         .map(f => {
         const hoursUntil = f.depart_time ? (new Date(f.depart_time) - Date.now()) / 3600000 : Infinity;
         const showLive = hoursUntil <= 24;
-        const day = f.depart_time ? String(f.depart_time).slice(0, 10) : 'tbd';
+        const day = flightDayKey(f);
+        const dayDate = flightDay(f);
         const header = day !== lastDay ? (lastDay = day) && (
           <div style={{ fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)', margin:'12px 0 4px' }}>
-            {day === 'tbd' ? 'Date TBD' : new Date(day + 'T12:00:00').toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' })}
+            {dayDate ? dayDate.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' }) : 'Date TBD'}
           </div>
         ) : null;
         return (
