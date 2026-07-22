@@ -1007,6 +1007,10 @@ export default function AvoEdit() {
                     <input value={e.review_link || ''} style={{ flex:1, minWidth:200 }}
                       onChange={ev => patch({ review_link: ev.target.value })}
                       onBlur={ev => save({ reviewLink: ev.target.value })} />
+                    {e.review_link && <button type="button" className="btn btn-ghost btn-sm"
+                      title="Copy the review link to your clipboard"
+                      onClick={async () => { try { await navigator.clipboard.writeText(e.review_link); setCopied('review'); setTimeout(() => setCopied(''), 2000); } catch { /* clipboard blocked */ } }}>
+                      {copied === 'review' ? '✓ Copied' : '⧉ Copy Link'}</button>}
                     {e.review_link && <a className="btn btn-ghost btn-sm" href={e.review_link} target="_blank" rel="noreferrer" style={{ textDecoration:'none' }}>▶ Open</a>}
                   </div>
                 </div>
