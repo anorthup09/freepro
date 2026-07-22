@@ -664,11 +664,11 @@ export default function AvoEdit() {
                   const accent = kind === 'color' ? '#d66a9b' : '#40A0A0';
                   const ctrSorted = [...caContractors].sort((a, b) => (b.role === kind) - (a.role === kind));
                   return (
-                    <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                      <span style={{ fontSize:9, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.05em', color:accent, width:40 }}>{kind}</span>
+                    <div style={{ display:'flex', alignItems:'center', gap:6, flex:'1 1 210px', minWidth:0 }}>
+                      <span style={{ fontSize:9, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.05em', color:accent, width:40, flexShrink:0 }}>{kind}</span>
                       <select value={val}
                         onChange={ev => { const v = ev.target.value; patch(kind === 'color' ? { color_assignee: v } : { audio_assignee: v }); save({ [field]: v }).then(load); }}
-                        style={{ fontSize:11, padding:'4px 8px', minWidth:170, maxWidth:230 }}>
+                        style={{ fontSize:11, padding:'4px 8px', flex:1, minWidth:0, maxWidth:260 }}>
                         <option value="">— Unassigned —</option>
                         {ctrSorted.length > 0 && (
                           <optgroup label="Color &amp; Audio Contractors">
@@ -813,8 +813,8 @@ export default function AvoEdit() {
                           </span>
                         </div>
                         {k === 'color_audio_complete' && !skipped && (
-                          <div className="tl-ms-row" style={{ display:'flex', alignItems:'center', gap:16, padding:'6px 0 8px 18px', borderBottom:'1px solid rgba(255,255,255,0.04)', flexWrap:'wrap' }}>
-                            <span style={{ fontSize:9, color:'var(--muted)', fontStyle:'italic', flexShrink:0 }}>Tag owners</span>
+                          <div style={{ display:'flex', alignItems:'center', gap:'8px 16px', padding:'6px 0 8px 18px', borderBottom:'1px solid rgba(255,255,255,0.04)', flexWrap:'wrap' }}>
+                            <span style={{ fontSize:9, color:'var(--muted)', fontStyle:'italic', flexShrink:0, width:'100%' }}>Tag owners</span>
                             {caPicker('color')}
                             {caPicker('audio')}
                           </div>
