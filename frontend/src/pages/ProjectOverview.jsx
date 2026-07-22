@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../App.jsx';
 import { api } from '../api.js';
 import { displayName } from '../utils/displayName.js';
 import { STATUS_COLORS } from './Hub.jsx';
@@ -261,6 +262,8 @@ function TaskRow({ t, members, onSave, onDelete }) {
 
 export default function ProjectOverview({ pid, onOpenFinance }) {
   const nav = useNavigate();
+  const { user } = useAuth();
+  const isSolutions = user?.role === 'AGENCY';   // Solutions never sees finance
   const [data, setData] = useState(null);
   const [members, setMembers] = useState([]);
   const [err, setErr] = useState('');
@@ -293,7 +296,8 @@ export default function ProjectOverview({ pid, onOpenFinance }) {
 
   return (
     <div className="pv-overview" style={{ maxWidth:1250, margin:'0 auto', padding:'8px 16px 60px', display:'grid', gridTemplateColumns:'1fr 320px', gridTemplateRows:'auto 1fr', gap:16, alignItems:'start' }}>
-      {/* ── Budget tile: status left, running total right ── */}
+      {/* ── Budget tile: status left, running total right (hidden for Solutions) ── */}
+      {!isSolutions && (
       <div className="pv-head" title="Open the finance page"
         onClick={() => onOpenFinance ? onOpenFinance() : nav(`/finance/${pid}`)}
         style={{ gridColumn:1, ...card, display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap', cursor:'pointer' }}>
@@ -309,6 +313,7 @@ export default function ProjectOverview({ pid, onOpenFinance }) {
           </span>
         )}
       </div>
+      )}
 
       {/* ── Left: cover page ── */}
       <div className="pv-left" style={{ gridColumn:1, display:'flex', flexDirection:'column', gap:16 }}>

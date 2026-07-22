@@ -2,7 +2,9 @@ const router = require('express').Router();
 const sql = require('../lib/db');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { bizToday } = require('../lib/dates');
-const staff = [requireAuth, requireRole('ADMIN', 'PRODUCER')];
+// Solutions (AGENCY) shares this cover page too — read + collaborate on notes,
+// tasks, and creative docs. Finance figures are stripped for them below.
+const staff = [requireAuth, requireRole('ADMIN', 'PRODUCER', 'AGENCY')];
 
 const PREF = "COALESCE(NULLIF(TRIM(CONCAT(cm.preferred_first_name, ' ', cm.preferred_last_name)), ''), cm.name)";
 
@@ -77,7 +79,13 @@ router.get('/project-overview/:pid', ...staff, async (req, res, next) => {
     const docs = await sql`
       SELECT id, kind, filename, mime, size, uploaded_by, created_at
       FROM project_docs WHERE project_id = ${project.id} ORDER BY kind, created_at DESC`;
-    res.json({ project, budgetStatus: budget?.status || null, budgetAmount, budgetFee, closeMonth: budget?.close_month || null, shoots, edits, callNotes, tasks, docs });
+    // Solutions role never sees finance figures — strip the budget from the payload.
+    const isSolutions = req.user?.role === 'AGENCY';
+    res.json({ project,
+      budgetStatus: isSolutions ? null : (budget?.status || null),
+      budgetAmount: isSolutions ? null : budgetAmount,
+      budgetFee: isSolutions ? null : budgetFee,
+      closeMonth: budget?.close_month || null, shoots, edits, callNotes, tasks, docs });
   } catch (e) { next(e); }
 });
 

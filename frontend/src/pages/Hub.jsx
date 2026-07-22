@@ -869,7 +869,7 @@ function SolutionsHub() {
         {shown.length > 0 && (
           <div className="hub-scroll" style={{ display:'flex', gap:10, overflowX:'auto', paddingBottom:8, WebkitMaskImage:SCROLL_FADE, maskImage:SCROLL_FADE }}>
             {shown.map(p => (
-              <div key={p.id} onClick={() => nav(`/projects/${p.id}`)}
+              <div key={p.id} onClick={() => nav(`/project-view/${p.id}`)}
                 style={{ flex:'0 0 auto', width:180, background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid rgba(167,139,250,0.5)', borderRadius:10, padding:'11px 13px', cursor:'pointer', transition:'transform .15s ease' }}
                 onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-3px)'}
                 onMouseLeave={e => e.currentTarget.style.transform = 'none'}>

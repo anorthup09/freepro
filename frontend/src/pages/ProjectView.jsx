@@ -131,8 +131,10 @@ function MobileTabDock({ tabs, tab, setTab }) {
 }
 
 function PVHeader({ showBack }) {
-  const { user, setUser } = useAuth();
+  const { user } = useAuth();
   const nav = useNavigate();
+  // Solutions doesn't have the full Project View grid — send them back to their hub.
+  const backTo = user?.role === 'AGENCY' ? '/' : '/project-view';
   return (
     <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 26px', flexWrap:'wrap', gap:10 }}>
       <div style={{ display:'flex', alignItems:'center', gap:14 }}>
@@ -141,7 +143,7 @@ function PVHeader({ showBack }) {
         </Link>
       </div>
       <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-        {showBack && <button className="btn btn-ghost btn-sm" onClick={() => nav('/project-view')}>‹ Projects</button>}
+        {showBack && <button className="btn btn-ghost btn-sm" onClick={() => nav(backTo)}>‹ Projects</button>}
         <HomeButton />
       </div>
     </div>
@@ -244,13 +246,16 @@ export function ProjectViewDetail() {
   const { pid } = useParams();
   useEffect(() => { markRecentProject(pid); }, [pid]);
   const nav = useNavigate();
+  const { user } = useAuth();
+  const isSolutions = user?.role === 'AGENCY';
   const [project, setProject] = useState(null);
   const [tab, setTab] = useState('overview');
   const [shootId, setShootId] = useState('');   // FreePro project id for Pre-Production
   const [avoPageId, setAvoPageId] = useState('');
 
   useEffect(() => {
-    api.financeProjects().then(list => {
+    // Solutions gets a finance-free project feed; everyone else the full one.
+    (isSolutions ? api.solutionsProjects() : api.financeProjects()).then(list => {
       const p = list.find(x => x.id === pid);
       setProject(p || false);
       const prod = (p?.shoots || []);
@@ -270,10 +275,13 @@ export function ProjectViewDetail() {
   const shoots = (project?.shoots || []).filter(s => s.freeproProjectId);
   // Pre-Production only exists when the budget has a Production (shoot) section.
   const hasProduction = (project?.shoots || []).length > 0;
-  const tabs = TABS.filter(([k]) => k !== 'pre' || hasProduction);
+  // Solutions never sees the Finance tab.
+  const tabs = TABS.filter(([k]) => (k !== 'pre' || hasProduction) && !(k === 'finance' && isSolutions));
 
-  // If the user was on Pre and it disappears, fall back to Finance
-  useEffect(() => { if (tab === 'pre' && project && !hasProduction) setTab('finance'); }, [tab, project, hasProduction]);
+  // If the user was on Pre and it disappears, fall back somewhere valid
+  useEffect(() => { if (tab === 'pre' && project && !hasProduction) setTab(isSolutions ? 'overview' : 'finance'); }, [tab, project, hasProduction, isSolutions]);
+  // Guard against a Solutions user landing on Finance via a stale tab
+  useEffect(() => { if (isSolutions && tab === 'finance') setTab('overview'); }, [isSolutions, tab]);
 
   return (
     <div className="pvd-page" style={{ minHeight:'100vh', background:'var(--bg)' }}>

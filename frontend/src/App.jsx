@@ -257,7 +257,7 @@ export default function App() {
         <Route path="/reports/media-moments" element={user ? (user.role === 'ADMIN' ? <MediaMoments /> : <Navigate to="/reports" />) : <Navigate to="/login" />} />
         <Route path="/project-view" element={user ? (['CREW','AGENCY','FINANCE'].includes(user.role) ? <Navigate to="/" /> : <ProjectView />) : <Navigate to="/login" />} />
         <Route path="/project-view/client/:client" element={user ? (['CREW','AGENCY','FINANCE'].includes(user.role) ? <Navigate to="/" /> : <ClientHub />) : <Navigate to="/login" />} />
-        <Route path="/project-view/:pid" element={user ? (['CREW','AGENCY','FINANCE'].includes(user.role) ? <Navigate to="/" /> : <ProjectViewDetail />) : <Navigate to="/login" />} />
+        <Route path="/project-view/:pid" element={user ? (['CREW','FINANCE'].includes(user.role) ? <Navigate to="/" /> : <ProjectViewDetail />) : <Navigate to="/login" />} />
         <Route path="/team" element={user ? <Team /> : <Navigate to="/login" />} />
         <Route path="/avo" element={user ? (user.role === 'FINANCE' ? <Navigate to="/" /> : <Avo />) : <Navigate to="/login" />} />
         <Route path="/avo/gantt" element={user ? (user.role === 'FINANCE' ? <Navigate to="/" /> : <AvoGantt />) : <Navigate to="/login" />} />
