@@ -52,27 +52,44 @@ async function overpassHospitals(lat, lon) {
   return [];
 }
 
-// Returns { name, address } of the nearest hospital (ER preferred), or null.
+// Businesses that carry a "hospital"-ish tag but are NOT ER hospitals — we skip
+// these so the call sheet points at a real emergency department.
+const NOT_ER = /cryo|cryogenic|cryotherap|clinic|urgent care|immediate care|walk-?in|veterinar|animal|pet |dental|dentist|orthodont|chiropract|physical therapy|\brehab|rehabilitation|surg(ery|ical) cent|outpatient|ambulatory|imaging|radiolog|\blabs?\b|laborator|pharmac|hospice|behavioral|psychiatr|mental health|\beye\b|vision|optical|wellness|med ?spa|fertility|ivf|plastic surg|dermatolog|urology|cardiolog|orthopedic|cancer cent|oncolog|dialysis|blood|plasma|birth(ing)? cent|nursing home|assisted living/i;
+// Names that read like a real hospital / medical center with an ER.
+const IS_MAJOR = /hospital|medical cent|med(ical)? cntr|regional|memorial|health (system|center|cent)|university|\bmercy\b|\bsaint\b|\bst\.? |presbyterian|methodist|baptist|kaiser/i;
+
+// Returns { name, address } of the nearest major hospital with an ER, or null.
 async function nearestHospital(address) {
   const pt = await geocode(address);
   if (!pt) return null;
-  // Google Places — fast + clean address string.
+  // Google Places — bias to actual emergency rooms, then filter out non-ER
+  // medical businesses (cryogenics offices, clinics, urgent care, etc.).
   if (KEY()) {
     try {
-      const r = await fetch(`https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${pt.lat},${pt.lon}&rankby=distance&type=hospital&key=${KEY()}`, { signal: AbortSignal.timeout(8000) });
-      const p = (await r.json())?.results?.[0];
-      if (p?.name) return { name: p.name, address: p.vicinity || '' };
+      const places = async keyword => {
+        const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${pt.lat},${pt.lon}&rankby=distance&type=hospital${keyword ? `&keyword=${encodeURIComponent(keyword)}` : ''}&key=${KEY()}`;
+        const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
+        return (await r.json())?.results || [];
+      };
+      const ok = p => p?.name && (p.types || []).includes('hospital')
+        && (p.business_status ? p.business_status === 'OPERATIONAL' : true) && !NOT_ER.test(p.name);
+      // 1) nearest ER-branded hospital · 2) nearest "major" hospital · 3) nearest hospital
+      const byEr = (await places('emergency room')).filter(ok);
+      const byPlain = (await places()).filter(ok);
+      const pick = byEr[0] || byPlain.find(p => IS_MAJOR.test(p.name)) || byPlain[0] || byEr[0];
+      if (pick?.name) return { name: pick.name, address: pick.vicinity || '' };
     } catch { /* fall through to OSM */ }
   }
-  // OpenStreetMap — nearest hospital, preferring one with emergency=yes.
+  // OpenStreetMap — nearest hospital with an ER, skipping non-ER businesses.
   const els = await overpassHospitals(pt.lat, pt.lon);
   const scored = els.map(e => {
     const la = e.lat ?? e.center?.lat, lo = e.lon ?? e.center?.lon;
-    if (la == null || !e.tags?.name) return null;
+    if (la == null || !e.tags?.name || NOT_ER.test(e.tags.name)) return null;
     return { dist: haversine(pt.lat, pt.lon, la, lo), tags: e.tags };
   }).filter(Boolean).sort((a, b) => a.dist - b.dist);
   if (!scored.length) return null;
-  const best = scored.find(h => h.tags.emergency === 'yes') || scored[0];
+  // Prefer a tagged ER, else a name that reads like a major hospital, else nearest.
+  const best = scored.find(h => h.tags.emergency === 'yes') || scored.find(h => IS_MAJOR.test(h.tags.name)) || scored[0];
   const t = best.tags;
   const street = t['addr:housenumber'] && t['addr:street'] ? `${t['addr:housenumber']} ${t['addr:street']}` : t['addr:street'];
   const addr = [street, t['addr:city'], t['addr:state'], t['addr:postcode']].filter(Boolean).join(', ');
