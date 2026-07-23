@@ -118,7 +118,7 @@ async function migrate() {
       id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
       project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
       name TEXT NOT NULL,
-      role TEXT NOT NULL,
+      role TEXT,
       notes TEXT
     )
   `;
@@ -702,6 +702,9 @@ async function migrate() {
   // Flights can be entered before times are known (lookup unavailable, etc.)
   await sql`ALTER TABLE flights ALTER COLUMN depart_time DROP NOT NULL`;
   await sql`ALTER TABLE flights ALTER COLUMN arrive_time DROP NOT NULL`;
+
+  // Talent are added without a role/title in the add form; role is optional
+  await sql`ALTER TABLE key_talent ALTER COLUMN role DROP NOT NULL`;
 
   // No-access role for fresh signups until an admin promotes them
   try { await sql`ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'PENDING'`; } catch (e) { /* older PG without IF NOT EXISTS */ }
