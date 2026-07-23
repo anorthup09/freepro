@@ -397,5 +397,117 @@
       "When you click RFR, both the Project Manager and the Creative are notified."
     ],
     "screenshot": "creative-field.png"
+  },
+  {
+    "title": "Light view — switch the whole platform to a light theme",
+    "page": "Platform & Admin",
+    "what": "A Light view / Dark view toggle sits at the bottom of every signed-in page. Click it to flip the entire platform between the default dark theme and a bright, print-friendly light theme. Your choice is remembered on this device and applied everywhere — the Hub, projects, ProFi, AvocadoPost, and reports.",
+    "where": "Any signed-in page → bottom center → Light view / Dark view button",
+    "how": [
+      "Scroll to the bottom of any page while signed in.",
+      "Click 'Light view' to switch to the light theme (the button then reads 'Dark view').",
+      "Click it again to switch back; the platform remembers your preference on this device."
+    ],
+    "screenshot": "light-view.png"
+  },
+  {
+    "title": "Post-Production Overview — version stepper & Approve",
+    "page": "AvocadoPost — Post-Production",
+    "what": "The Post-Production Overview table now lets you drive each deliverable's version and sign-off right from the row. A -1 / V x.x / +1 stepper bumps the version number as new cuts go out, and an Approve button marks the edit approved (it flips to a green '✓ Approved'). RFR and Sent to Client stay one click away, so the whole review loop lives on one screen.",
+    "where": "AvocadoPost → open a project page → Post-Production Overview",
+    "how": [
+      "Open a project in AvocadoPost; the Post-Production Overview is the first tab.",
+      "Use -1 / +1 next to the version number to step an edit's version up or down.",
+      "Click Approve when a cut is signed off — it turns into '✓ Approved'.",
+      "RFR and Sent to Client buttons sit in the same row for the rest of the review loop."
+    ],
+    "screenshot": "post-prod-overview-approve.png"
+  },
+  {
+    "title": "Project Video Tracker — fully customizable columns & cells",
+    "page": "AvocadoPost — Post-Production",
+    "what": "The Project Video Tracker is now a spreadsheet you control. Add your own columns (+ Add Column) for anything the team tracks, and show, hide, or remove columns from the ⚙ menu. Resize a column by dragging its edge, sort or filter from the icons in each header, and drag rows by the handle to reorder. Merge Cells joins adjacent cells so one value can span a group, and every cell — Type, Category, Notes, Video Assets, and any custom column — is editable inline. Title, due date, editor, review link, and status still feed live from each edit, so the grid stays in sync while the extra columns are yours to shape.",
+    "where": "AvocadoPost → open a project page → Project Video Tracker",
+    "how": [
+      "Open a project in AvocadoPost and go to the Project Video Tracker tab.",
+      "Click + Add Column to create a custom column; use the ⚙ menu to show, hide, or remove columns.",
+      "Drag a column's edge to resize it; use the sort/filter icons in a header to reorder or narrow rows.",
+      "Drag the handle at the left of a row to move it; select cells and click Merge Cells to span a value.",
+      "Click any cell to edit it inline — custom columns and Type/Notes/Video Assets save as you go."
+    ],
+    "screenshot": "tracker-column-customization.png"
+  },
+  {
+    "title": "Add Deliverable — full field parity with the edit card",
+    "page": "FreePro — Production",
+    "what": "The Add Deliverable form now carries every field the AvocadoPost edit card has — Video Title, Description, Status, Type, Category, Lead Editor, Project Manager, Creative, Aspect Ratio, Resolution, Frame Rate, Drive, Asset Ref, Music Ref, Start/Due dates, and Review Link. Whatever you set when creating a deliverable flows straight into the editing pipeline (and edits made there flow back), so nothing has to be re-entered later.",
+    "where": "FreePro → open a project → Deliverable tab → + Add Deliverable",
+    "how": [
+      "Open a project in FreePro and go to the Deliverable tab.",
+      "Click + Add Deliverable to open the form.",
+      "Fill any of the fields — including Creative, Frame Rate, and Drive — then save.",
+      "The new deliverable appears in the AvocadoPost pipeline with everything you entered."
+    ],
+    "screenshot": "add-deliverable-parity.png"
+  },
+  {
+    "title": "Dark Day — a new Key Date type",
+    "page": "FreePro — Production",
+    "what": "Key Dates now include a 'Dark Day' option alongside Shoot Day and the other day types, so travel days, prep days, or rest days between shoots can be labeled clearly on the project timeline.",
+    "where": "FreePro → open a project → Overview → Key Dates",
+    "how": [
+      "Open a project in FreePro; Key Dates are on the Overview tab.",
+      "Click the day-type pill next to a date.",
+      "Choose 'Dark Day' from the list."
+    ],
+    "screenshot": "dark-day-key-date.png"
+  },
+  {
+    "title": "Copy Link on the review link — one click to share",
+    "page": "AvocadoPost — Post-Production",
+    "what": "When an edit has a Current Review Link, a Copy Link button now sits right beside Open. Copy Link puts the review URL on your clipboard (and confirms with '✓ Copied') so you can paste it into an email or message without opening it first; Open still launches the link in a new tab.",
+    "where": "AvocadoPost → open an edit → Current Review Link",
+    "how": [
+      "Open an edit in AvocadoPost and find the Current Review Link field.",
+      "Click ⧉ Copy Link to copy the URL — it briefly shows '✓ Copied'.",
+      "Or click ▶ Open to launch the link in a new tab."
+    ],
+    "screenshot": "edit-copy-link.png"
+  },
+  {
+    "title": "VCC PDF — a finance-ready cover summary",
+    "page": "ProFi — Project Finance",
+    "what": "The VCC now exports a clean PDF from the button beside Vendor Invoices. It opens with a cover Summary Page — Profit Summary and Client Deposits up top, a full-width Reconciliation Calculator below, and per-shoot reconciliation tiles — then the full cost detail follows. It's built for sending straight to finance or a client.",
+    "where": "ProFi → Reports → VCC → open a project → PDF (left of Vendor Invoices)",
+    "how": [
+      "Open a project's VCC (Reports → VCC → pick a project).",
+      "Click the PDF button, just left of Vendor Invoices.",
+      "Save or print the generated document — the Summary Page comes first, detail after."
+    ],
+    "screenshot": "vcc-pdf-summary.png"
+  },
+  {
+    "title": "Reconciliation Calculator — variance at a glance",
+    "page": "ProFi — Project Finance",
+    "what": "A Reconciliation Calculator on the VCC ties posted and unposted costs together. Enter the Current ODC Amount (posted charges from accounting); it adds your Current Unposted holds for a Reconciled Total, compares that to Total Direct Costs, and shows the Variance. When the variance hits $0 the field glows green, so you know the VCC is fully reconciled at a glance.",
+    "where": "ProFi → Reports → VCC → open a project → Reconciliation Calculator",
+    "how": [
+      "Open a project's VCC.",
+      "Type the Current ODC Amount from your accounting/ODC report.",
+      "Watch the Reconciled Total and Variance update; a $0 variance glows green when everything ties out."
+    ],
+    "screenshot": "reconciliation-calculator.png"
+  },
+  {
+    "title": "Total by Category on the VCC",
+    "page": "ProFi — Project Finance",
+    "what": "The old 'Breakage by Category' box is now 'Total by Category', moved up to where the shoot total used to sit, with any per-shoot totals lined up to its right. It sums every direct cost by budget category so you can see where the money is going without scrolling the full ledger.",
+    "where": "ProFi → Reports → VCC → open a project → Total by Category",
+    "how": [
+      "Open a project's VCC.",
+      "Read the Total by Category box for a per-category roll-up of all direct costs.",
+      "Per-shoot totals sit to its right when the project has multiple shoots."
+    ],
+    "screenshot": "total-by-category.png"
   }
 ]
