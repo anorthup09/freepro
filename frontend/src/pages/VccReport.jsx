@@ -2,9 +2,59 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../App.jsx';
 import { api } from '../api.js';
-import { VccTab } from './FinanceProject.jsx';
+import { VccTab, totals } from './FinanceProject.jsx';
 
 const fmt$ = n => '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const num = v => Number(v) || 0;
+
+// Read-only Profit Summary + Client Deposits — the top-of-page finance summary,
+// included on the VCC report so it carries onto the PDF.
+function VccFinanceSummary({ data }) {
+  const budget = data.budget || {};
+  const t = totals(data.sections || [], data.lines || [], budget.mgmt_fee_rate != null ? Number(budget.mgmt_fee_rate) : 0.15);
+  const payments = t.total;
+  const billable = (data.vcc || []).reduce((s, e) => s + num(e.amount), 0);
+  const gp = payments - billable;
+  const revenue = t.total - num(budget.total_cap_co);
+  const deposits = num(budget.deposit) + num(budget.additional_deposit) + (Array.isArray(budget.extra_deposits) ? budget.extra_deposits : []).reduce((a, x) => a + num(x.amount), 0);
+  const finalInvoice = Math.max(t.total - deposits, 0);
+  const kpi = (label, val, color) => (
+    <div style={{ minWidth: 90 }}>
+      <div style={{ fontSize: 9, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700 }}>{label}</div>
+      <div style={{ fontSize: 18, fontWeight: 800, color: color || 'var(--text)' }}>{val}</div>
+    </div>
+  );
+  const row = (label, val, color) => (
+    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '4px 0', fontSize: 12 }}>
+      <span style={{ color: 'var(--muted)' }}>{label}</span>
+      <span style={{ fontWeight: 700, color: color || 'var(--text)' }}>{val}</span>
+    </div>
+  );
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14, marginBottom: 16 }}>
+      <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 16px' }}>
+        <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#5ABF80', marginBottom: 10 }}>Profit Summary</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+          {kpi('Payments', fmt$(payments))}
+          {kpi('Billable', fmt$(billable), '#e6c229')}
+          {kpi('Gross Profit', fmt$(gp), gp >= 0 ? '#5ABF80' : '#e05252')}
+          {kpi('Profitability', revenue ? (gp / revenue * 100).toFixed(1) + '%' : '—', gp >= 0 ? '#5ABF80' : '#e05252')}
+        </div>
+        <div style={{ display: 'flex', gap: 16, marginTop: 12, flexWrap: 'wrap', fontSize: 10, color: 'var(--muted)' }}>
+          <span>Total Cap Co {fmt$(budget.total_cap_co)}</span>
+          {budget.original_fee_estimate != null && budget.original_fee_estimate !== '' && <span>Original Fee Est. {fmt$(budget.original_fee_estimate)}</span>}
+          <span>Media Revenue {fmt$(revenue)}</span>
+        </div>
+      </div>
+      <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 16px' }}>
+        <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#5ABF80', marginBottom: 10 }}>Client Deposits</div>
+        {row('Deposit', fmt$(deposits))}
+        {row('Final Invoice', fmt$(finalInvoice))}
+        {row('Total Budget', fmt$(t.total), '#5ABF80')}
+      </div>
+    </div>
+  );
+}
 const fmtMonth = m => {
   if (!m) return 'No close month';
   const [y, mo] = m.split('-');
@@ -69,6 +119,7 @@ export function VccProjectPage() {
                 </span>
               )}
             </div>
+            <VccFinanceSummary data={data} />
             <VccTab pid={pid} budget={data.budget || {}} sections={data.sections || []} lines={data.lines || []} vcc={data.vcc || []} categories={data.categories || []} set={set} vccOnly />
           </>
         )}

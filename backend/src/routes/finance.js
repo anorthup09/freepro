@@ -1072,10 +1072,12 @@ router.post('/finance/sections/:sid/pull-travel-actuals', ...finance, async (req
       GROUP BY category`;
     const byCat = Object.fromEntries(entries.map(e => [e.category, Number(e.total)]));
     const stamp = new Date().toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' });
+    // Per Diem is intentionally excluded: it's paid at a flat rate, so the
+    // budgeted amount stands and any unused per diem is breakage — not an actual
+    // to reconcile back onto the budget.
     const MAP = [
       ['5900 Airfare (B)', /airfare/i],
       ['5180 Hotel Payments (B)', /hotel/i],
-      ['5410 Per Diem (B)', /per diem/i],
       ['5255 Staff Travel Expenses (B)', /transportation|t&e/i],
     ];
     const updated = [];

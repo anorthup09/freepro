@@ -182,7 +182,7 @@ export default function FinanceProject({ pidOverride }) {
   );
 }
 
-function totals(sections, lines, mgmtRate) {
+export function totals(sections, lines, mgmtRate) {
   let nonTravel = 0, travel = 0, photo = 0;
   const photoIds = new Set(sections.filter(s => s.kind === 'photo').map(s => s.id));
   const bySection = {};
