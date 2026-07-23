@@ -1423,13 +1423,61 @@ export function VccTab({ pid, budget, sections, lines, vcc, categories, set, vcc
         </table>
       </div>
 
-      {/* travel by shoot */}
+      {/* Total by Category + Reconciliation Calculator (left) · shoot totals (right) */}
       {(() => {
         const shoots = sections.filter(x => x.kind === 'shoot');
-        if (!shoots.length) return null;
         const TRAVEL_CATS = ['5900 Airfare (B)', '5180 Hotel Payments (B)', '5410 Per Diem (B)', '5255 Staff Travel Expenses (B)'];
+        // Reconciliation: ODC (posted, from accounting) + everything not yet
+        // marked Posted should equal the Total Direct Costs when balanced.
+        const unposted = vcc.filter(e => e.status !== 'POSTED').reduce((s2, e) => s2 + num(e.amount), 0);
+        const odc = num(budget.odc_amount);
+        const reconciled = odc + unposted;
+        const variance = billable - reconciled;
+        const balanced = Math.abs(variance) < 0.005;
+        const card = { background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding:'12px 16px' };
+        const green = { fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'#5ABF80', marginBottom:8 };
+        const rrow = (label, valEl, opts = {}) => (
+          <div style={{ display:'flex', justifyContent:'space-between', gap:12, fontSize:11.5, padding:'3px 0' }}>
+            <span style={{ color:'var(--muted)' }}>{label}</span>
+            <span style={{ fontWeight: opts.bold ? 800 : 600, color: opts.color || 'var(--text)' }}>{valEl}</span>
+          </div>
+        );
         return (
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(240px, 1fr))', gap:12, marginBottom:16 }}>
+          <div style={{ display:'flex', gap:14, alignItems:'flex-start', flexWrap:'wrap', marginBottom:16 }}>
+            {/* LEFT: Total by Category + Reconciliation Calculator */}
+            <div style={{ flex:'1 1 340px', minWidth:300, display:'flex', flexDirection:'column', gap:14 }}>
+              <div style={card}>
+                <div style={green}>Total by Category</div>
+                {Object.entries(catTotals).sort((a, b) => b[1] - a[1]).map(([cat, total]) => (
+                  <div key={cat} style={{ display:'flex', justifyContent:'space-between', fontSize:11, padding:'2px 0' }}>
+                    <span style={{ color:'var(--muted)' }}>{cat}</span><span style={{ fontWeight:600 }}>{fmt$(total)}</span>
+                  </div>
+                ))}
+                {vcc.length === 0 && <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>Nothing to total yet.</div>}
+              </div>
+              <div style={card}>
+                <div style={green}>Reconciliation Calculator</div>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:12, fontSize:11.5, padding:'3px 0' }}>
+                  <span style={{ color:'var(--muted)' }}>Current ODC Amount</span>
+                  <MoneyInput value={budget.odc_amount ?? ''} width={110}
+                    onCommit={v => { patchBudget({ odc_amount: v }); saveBudget({ odcAmount: v }); }} />
+                </div>
+                {rrow('Current Unposted', fmt$(unposted))}
+                {rrow('Reconciled Total', fmt$(reconciled), { bold:true })}
+                <div style={{ borderTop:'1px solid var(--border)', margin:'8px 0' }} />
+                {rrow('Total Direct Costs', fmt$(billable), { bold:true, color:'#e6c229' })}
+                <div style={{ display:'flex', justifyContent:'space-between', gap:12, fontSize:12, padding:'6px 10px', borderRadius:8, marginTop:4,
+                  background: balanced ? 'rgba(90,191,128,0.14)' : 'transparent',
+                  border: balanced ? '1px solid #5ABF80' : '1px solid transparent',
+                  boxShadow: balanced ? '0 0 10px rgba(90,191,128,0.6)' : 'none' }}>
+                  <span style={{ color: balanced ? '#5ABF80' : 'var(--muted)', fontWeight: balanced ? 800 : 600 }}>Variance</span>
+                  <span style={{ fontWeight:800, color: balanced ? '#5ABF80' : (variance > 0 ? '#e05252' : '#e6c229') }}>{fmt$(variance)}</span>
+                </div>
+              </div>
+            </div>
+            {/* RIGHT: shoot totals */}
+            {shoots.length > 0 && (
+            <div style={{ flex:'2 1 380px', minWidth:260, display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(240px, 1fr))', gap:12, alignContent:'start' }}>
             {shoots.map(sec => {
               const trips = [sec.trip, sec.shoot_code].filter(Boolean);
               const mine = vcc.filter(e => trips.includes(e.trip));
@@ -1469,20 +1517,11 @@ export function VccTab({ pid, budget, sections, lines, vcc, categories, set, vcc
                 </div>
               );
             })}
+            </div>
+            )}
           </div>
         );
       })()}
-
-      {/* breakage by category */}
-      <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding:'12px 16px', maxWidth:480 }}>
-        <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'#5ABF80', marginBottom:8 }}>Breakage — by Category</div>
-        {Object.entries(catTotals).sort((a, b) => b[1] - a[1]).map(([cat, total]) => (
-          <div key={cat} style={{ display:'flex', justifyContent:'space-between', fontSize:11, padding:'2px 0' }}>
-            <span style={{ color:'var(--muted)' }}>{cat}</span><span style={{ fontWeight:600 }}>{fmt$(total)}</span>
-          </div>
-        ))}
-        {vcc.length === 0 && <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>Nothing to break down yet.</div>}
-      </div>
     </div>
   );
 }

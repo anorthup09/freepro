@@ -1612,6 +1612,8 @@ async function migrate() {
   // Client deposits beyond the first live in a JSONB list; fold the old
   // single "Additional" deposit into it once
   await sql`ALTER TABLE budgets ADD COLUMN IF NOT EXISTS extra_deposits JSONB DEFAULT '[]'::jsonb`;
+  // VCC reconciliation: the current ODC (posted) amount from accounting.
+  await sql`ALTER TABLE budgets ADD COLUMN IF NOT EXISTS odc_amount NUMERIC(12,2)`;
   try {
     await sql`
       UPDATE budgets SET

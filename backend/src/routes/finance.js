@@ -570,6 +570,7 @@ router.patch('/finance/budget/:bid', ...finance, async (req, res, next) => {
         final_inv_date = ${d.finalInvDate !== undefined ? (d.finalInvDate || null) : sql`final_inv_date`},
         paid_date = ${d.paidDate !== undefined ? (d.paidDate || null) : sql`paid_date`},
         total_cap_co = ${d.totalCapCo !== undefined ? (num(d.totalCapCo) ?? 0) : sql`total_cap_co`},
+        odc_amount = ${d.odcAmount !== undefined ? (d.odcAmount === '' || d.odcAmount == null ? null : num(d.odcAmount)) : sql`odc_amount`},
         original_fee_estimate = ${d.originalFeeEstimate !== undefined ? num(d.originalFeeEstimate) : sql`original_fee_estimate`},
         budget_date = ${d.budgetDate !== undefined ? (d.budgetDate || null) : sql`budget_date`},
         media_rep = ${d.mediaRep !== undefined ? (d.mediaRep || null) : sql`media_rep`},
