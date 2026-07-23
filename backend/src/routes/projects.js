@@ -362,8 +362,22 @@ router.post('/:id/locations', requireAuth, requireRole('ADMIN','PRODUCER'), asyn
 router.patch('/:id/locations/:lid', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
     const d = req.body;
-    const [l] = await sql`UPDATE locations SET name=COALESCE(${d.name??null},name), address=COALESCE(${d.address??null},address), type=COALESCE(${d.type??null}::location_type,type), emoji=COALESCE(${d.emoji??null},emoji), arrival_notes=CASE WHEN ${d.arrivalNotes!==undefined} THEN ${d.arrivalNotes||null} ELSE arrival_notes END, space_map=CASE WHEN ${d.spaceMap!==undefined} THEN ${d.spaceMap||null} ELSE space_map END WHERE id=${req.params.lid} RETURNING *`;
+    const [l] = await sql`UPDATE locations SET name=COALESCE(${d.name??null},name), address=COALESCE(${d.address??null},address), type=COALESCE(${d.type??null}::location_type,type), emoji=COALESCE(${d.emoji??null},emoji), notes=CASE WHEN ${d.notes!==undefined} THEN ${d.notes||null} ELSE notes END, arrival_notes=CASE WHEN ${d.arrivalNotes!==undefined} THEN ${d.arrivalNotes||null} ELSE arrival_notes END, space_map=CASE WHEN ${d.spaceMap!==undefined} THEN ${d.spaceMap||null} ELSE space_map END WHERE id=${req.params.lid} RETURNING *`;
     res.json(l);
+  } catch(e){next(e);}
+});
+// Auto-source the nearest hospital (ER preferred) for a location and store it in
+// its notes. Used for shooting locations so the call sheet has an ER reference.
+router.post('/:id/locations/:lid/nearest-hospital', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try {
+    const { nearestHospital } = require('../lib/hospital');
+    const [loc] = await sql`SELECT * FROM locations WHERE id=${req.params.lid} AND project_id=${req.params.id}`;
+    if (!loc) return res.status(404).json({ error: 'Location not found' });
+    const h = await nearestHospital(loc.address);
+    if (!h) return res.json(loc);   // couldn't source — leave notes as-is
+    const note = `Nearest Hospital: ${h.name}${h.address ? ' — ' + h.address : ''}`;
+    const [updated] = await sql`UPDATE locations SET notes=${note} WHERE id=${loc.id} RETURNING *`;
+    res.json(updated);
   } catch(e){next(e);}
 });
 router.delete('/:id/locations/:lid', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {

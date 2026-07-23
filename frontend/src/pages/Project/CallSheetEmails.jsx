@@ -133,8 +133,16 @@ export default function CallSheetEmails() {
         {!project && <div className="empty">Loading…</div>}
         {project && groups && (
           <>
-            <div className="page-title">Send Call Sheet Emails</div>
-            <div className="page-sub">{project.code} — {project.title}</div>
+            <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, flexWrap:'wrap' }}>
+              <div>
+                <div className="page-title">Send Call Sheet Emails</div>
+                <div className="page-sub">{project.code} — {project.title}</div>
+              </div>
+              <button className="btn btn-primary btn-sm" title="Open a print-ready call sheet (one page per shoot day) and save it as a PDF"
+                onClick={() => window.open(`/projects/${id}/call-sheet?pdf=1`, '_blank')}>
+                📄 Full Call Sheet (PDF)
+              </button>
+            </div>
             <div style={{ fontSize:11, color:'var(--muted)', margin:'6px 0 18px' }}>
               Emails send from the Main POC's inbox{poc ? ` — ${poc.name}${poc.email ? ` (${poc.email})` : ''}` : ' — set a Main POC on the project Overview'}.
             </div>

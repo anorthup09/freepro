@@ -80,7 +80,18 @@ export default function Locations({ project, setProject }) {
   const [editLocId, setEditLocId] = useState(null);
   const [locForm, setLocForm] = useState(BLANK_LOC);
   const [uploading, setUploading] = useState({});
+  const [hospBusy, setHospBusy] = useState({});
   const fileRefs = useRef({});
+
+  // Auto-source the nearest hospital (ER) into a shooting location's notes.
+  async function sourceHospital(locId) {
+    setHospBusy(b => ({ ...b, [locId]: true }));
+    try {
+      const loc = await api.nearestHospital(project.id, locId);
+      setProject(p => ({ ...p, locations: p.locations.map(l => l.id === locId ? loc : l) }));
+    } catch { /* leave notes as-is on failure */ }
+    finally { setHospBusy(b => ({ ...b, [locId]: false })); }
+  }
 
   // Attach / replace a floor plan or space map on an existing location tile
   async function handleMapFile(locId, file) {
@@ -105,14 +116,20 @@ export default function Locations({ project, setProject }) {
   async function addLocation(e) {
     e.preventDefault();
     try {
+      let saved;
       if (editLocId) {
-        const loc = await api.updateLocation(project.id, editLocId, locForm);
-        setProject(p => ({ ...p, locations: p.locations.map(l => l.id === editLocId ? loc : l) }));
+        saved = await api.updateLocation(project.id, editLocId, locForm);
+        setProject(p => ({ ...p, locations: p.locations.map(l => l.id === editLocId ? saved : l) }));
       } else {
-        const loc = await api.createLocation(project.id, locForm);
-        setProject(p => ({ ...p, locations: [...(p.locations || []), loc] }));
+        saved = await api.createLocation(project.id, locForm);
+        setProject(p => ({ ...p, locations: [...(p.locations || []), saved] }));
       }
       setShowLocModal(false); setEditLocId(null); setLocForm(BLANK_LOC);
+      // Shooting locations auto-source the nearest ER into their notes for the call sheet.
+      if (saved && saved.type === 'PRIMARY_VENUE' && saved.address
+          && !/nearest hospital/i.test(saved.notes || '')) {
+        sourceHospital(saved.id);
+      }
     } catch (e) { alert(e.message); }
   }
 
@@ -169,6 +186,19 @@ export default function Locations({ project, setProject }) {
                     </div>
                   </div>
                   {l.arrival_notes && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 6, whiteSpace: 'pre-wrap' }}><span style={{ fontWeight: 700, color: 'var(--tan)' }}>Arrival: </span>{l.arrival_notes}</div>}
+                  {/* Nearest hospital — auto-sourced for shooting locations, flows to the call sheet */}
+                  {type === 'PRIMARY_VENUE' && (
+                    <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 6, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                      <span>🏥</span>
+                      {hospBusy[l.id]
+                        ? <span style={{ fontStyle: 'italic' }}>Finding nearest hospital…</span>
+                        : l.notes
+                          ? <span><span style={{ fontWeight: 700, color: 'var(--tan)' }}>{l.notes.replace(/^Nearest Hospital:\s*/i, 'Nearest Hospital: ')}</span></span>
+                          : <span style={{ fontStyle: 'italic' }}>No hospital sourced yet</span>}
+                      <button title="Re-source the nearest hospital" onClick={() => sourceHospital(l.id)} disabled={hospBusy[l.id]}
+                        style={{ background: 'none', border: 'none', color: 'var(--tan)', cursor: 'pointer', fontSize: 11, padding: 0 }}>↻</button>
+                    </div>
+                  )}
                   {l.space_map && (
                     <div style={{ marginTop: 8 }}>
                       <img src={l.space_map} alt={`Space map for ${l.name}`} style={{ maxWidth: '100%', maxHeight: 260, borderRadius: 6, display: 'block' }} />
