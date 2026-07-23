@@ -82,7 +82,16 @@ function DaySheet({ project, techSpecs, locations, keyTalent, clientContacts, cr
             { key: 'name', label: 'Location', width: '26%', render: l => <span style={{ fontWeight: 700 }}>{LOC_LABELS[l.type] ? `${l.name}` : l.name}</span> },
             { key: 'type', label: 'Type', width: '14%', render: l => LOC_LABELS[l.type] || 'Location' },
             { key: 'address', label: 'Address', width: '30%' },
-            { key: 'notes', label: 'Notes', render: l => [l.notes, l.arrival_notes].filter(Boolean).join(' · ') },
+            { key: 'notes', label: 'Notes', render: l => (
+              <>
+                {l.arrival_notes && <div><span style={{ fontWeight: 700 }}>Arrival: </span>{l.arrival_notes}</div>}
+                {l.type === 'PRIMARY_VENUE' && l.notes && (
+                  <div style={{ marginTop: l.arrival_notes ? 3 : 0 }}>
+                    <span style={{ fontWeight: 700 }}>🏥 Nearest Hospital: </span>{String(l.notes).replace(/^Nearest Hospital:\s*/i, '')}
+                  </div>
+                )}
+              </>
+            ) },
           ]}
           rows={locations}
         />

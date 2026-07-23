@@ -17,6 +17,7 @@ const DAY_TYPES = [
   { value:'TRAVEL',       label:'Travel Day' },
   { value:'TRAVEL_SHOOT', label:'Travel/Shoot Day' },
   { value:'SCOUT',        label:'Scout Day' },
+  { value:'DARK',         label:'Dark Day' },
 ];
 const DAY_TYPE_LABEL = Object.fromEntries(DAY_TYPES.map(d => [d.value, d.label]));
 

@@ -241,6 +241,7 @@ const DAY_TYPES = [
   { value:'TRAVEL',       label:'Travel Day' },
   { value:'TRAVEL_SHOOT', label:'Travel/Shoot Day' },
   { value:'SCOUT',        label:'Scout Day' },
+  { value:'DARK',         label:'Dark Day' },
 ];
 
 // City/state/zip search that sets the weather location for a single day

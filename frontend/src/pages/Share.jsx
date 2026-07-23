@@ -9,6 +9,20 @@ import Clapboard from '../components/Clapboard.jsx';
 
 const isMobileNow = () => typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches;
 
+// Nearest-hospital text auto-sourced onto shoot locations (stored in notes).
+const hospitalText = loc => (loc && loc.type === 'PRIMARY_VENUE' && loc.notes)
+  ? String(loc.notes).replace(/^Nearest Hospital:\s*/i, '') : null;
+// Shown under a shoot location's arrival info on the call sheet.
+function HospLine({ loc }) {
+  const t = hospitalText(loc);
+  if (!t) return null;
+  return (
+    <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4, whiteSpace: 'pre-wrap' }}>
+      <span style={{ fontWeight: 700, color: 'var(--tan)' }}>🏥 Nearest Hospital: </span>{t}
+    </div>
+  );
+}
+
 // Travel-tagged schedule events are stripped from a local person's call sheet.
 const eventIsTravel = e => (e.tags || []).some(t => (t?.type || t) === 'TRAVEL');
 // Jump straight to what's happening now: the live event on today's schedule,
@@ -634,6 +648,7 @@ function ProducerView({ data, hideGear, onOpenShotList }) {
                     ? <a href={mapsUrl(l.address)} target="_blank" rel="noreferrer" className="loc-addr" style={{ color:'var(--tan)', textDecoration:'underline', display:'block' }}>{l.address}</a>
                     : null}
                   {l.arrival_notes && <div style={{ fontSize:11, color:'var(--muted)', marginTop:5, whiteSpace:'pre-wrap' }}><span style={{ fontWeight:700, color:'var(--tan)' }}>Arrival: </span>{l.arrival_notes}</div>}
+                  <HospLine loc={l} />
                   {l.space_map && <img src={l.space_map} alt={`Space map for ${l.name}`} style={{ maxWidth:'100%', maxHeight:320, borderRadius:6, marginTop:8, display:'block' }} />}
                 </div>
                 {l.address && (
@@ -866,6 +881,7 @@ function CrewView({ data, shareToken, hideGear, onOpenShotList }) {
                     ? <a href={mapsUrl(l.address)} target="_blank" rel="noreferrer" className="loc-addr" style={{ color:'var(--tan)', textDecoration:'underline', display:'block' }}>{l.address}</a>
                     : null}
                   {l.arrival_notes && <div style={{ fontSize:11, color:'var(--muted)', marginTop:5, whiteSpace:'pre-wrap' }}><span style={{ fontWeight:700, color:'var(--tan)' }}>Arrival: </span>{l.arrival_notes}</div>}
+                  <HospLine loc={l} />
                   {l.space_map && <img src={l.space_map} alt={`Space map for ${l.name}`} style={{ maxWidth:'100%', maxHeight:320, borderRadius:6, marginTop:8, display:'block' }} />}
                 </div>
                 {l.address && (
@@ -1671,6 +1687,7 @@ function ClientView({ data, onOpenShotList }) {
                     ? <a href={mapsUrl(l.address)} target="_blank" rel="noreferrer" className="loc-addr" style={{ color:'var(--tan)', textDecoration:'underline', display:'block' }}>{l.address}</a>
                     : null}
                   {l.arrival_notes && <div style={{ fontSize:11, color:'var(--muted)', marginTop:5, whiteSpace:'pre-wrap' }}><span style={{ fontWeight:700, color:'var(--tan)' }}>Arrival: </span>{l.arrival_notes}</div>}
+                  <HospLine loc={l} />
                 </div>
                 {l.address && (
                   <a href={mapsUrl(l.address)} target="_blank" rel="noreferrer"
@@ -1758,17 +1775,18 @@ function TalentView({ data }) {
         // in day/time order (deduped); fall back to the primary venue
         const venues = [];
         const seen = new Set();
+        const hospOf = name => { const m = (locations || []).find(x => x.name === name && hospitalText(x)); return m ? hospitalText(m) : null; };
         for (const day of (schedule || [])) {
           for (const e of (day.events || [])) {
             if (e.is_filming && e.location?.name && !seen.has(e.location.name)) {
               seen.add(e.location.name);
-              venues.push({ name: e.location.name, address: e.location.address, room: e.room_space });
+              venues.push({ name: e.location.name, address: e.location.address, room: e.room_space, hospital: hospOf(e.location.name) });
             }
           }
         }
         if (venues.length === 0) {
           const l = (locations || []).find(x => x.type === 'PRIMARY_VENUE') || (locations || [])[0];
-          if (l) venues.push({ name: l.name, address: l.address, room: null });
+          if (l) venues.push({ name: l.name, address: l.address, room: null, hospital: hospitalText(l) });
         }
 
         return (
@@ -1821,6 +1839,11 @@ function TalentView({ data }) {
                         {venue.room && (
                           <div style={{ fontSize:12, color:'var(--tan)', marginTop:3 }}>
                             <span style={{ color:'var(--muted)', fontSize:11 }}>Room/Space: </span>{venue.room}
+                          </div>
+                        )}
+                        {venue.hospital && (
+                          <div style={{ fontSize:12, color:'var(--text)', marginTop:5, whiteSpace:'pre-wrap' }}>
+                            <span style={{ color:'var(--muted)', fontSize:11, fontWeight:700 }}>🏥 Nearest Hospital: </span>{venue.hospital}
                           </div>
                         )}
                       </div>

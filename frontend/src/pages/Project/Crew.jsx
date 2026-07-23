@@ -705,8 +705,8 @@ export default function Crew({ project, onProjectUpdate }) {
                         </div>, document.body)}
                     </td>
                   )}
-                  <td><span style={{ fontSize:11, color:'var(--orange)' }}>{fmtDate(a.start_date)}</span></td>
-                  <td><span style={{ fontSize:11, color:'var(--orange)' }}>{fmtDate(a.end_date)}</span></td>
+                  <td style={{ whiteSpace:'nowrap' }}><span style={{ fontSize:11, color:'var(--orange)' }}>{fmtDate(a.start_date)}</span></td>
+                  <td style={{ whiteSpace:'nowrap' }}><span style={{ fontSize:11, color:'var(--orange)' }}>{fmtDate(a.end_date)}</span></td>
                   <td style={{ whiteSpace:'nowrap' }}>
                     {a.is_contractor && (a.day_rate || a.labor_days)
                       ? <span style={{ fontSize:11, color:'var(--green)', fontWeight:600 }}>{fmt$((Number(a.day_rate)||0)*(Number(a.labor_days)||0))}</span>
