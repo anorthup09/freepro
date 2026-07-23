@@ -2,12 +2,20 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useLocation, Link } from 'react-router-dom';
 import { api } from '../../api.js';
 
-// A traditional one-page-per-shoot-day call sheet, print-ready (Save as PDF).
+// A traditional one-page-per-shoot-day call sheet, print-ready.
 // Data comes from the project bundle (locations, talent, crew, tech specs) and
 // the schedule (per-day call times, weather, crew calls, and the run of show).
 const crewName = a => [a.cm_pref_first, a.cm_pref_last].filter(Boolean).join(' ').trim() || a.cm_name || a.name || '';
 const fmtLongDate = d => d ? new Date(String(d).slice(0, 10) + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : '';
 const LOC_LABELS = { PRIMARY_VENUE: 'Shooting Location', CREW_HOTEL: 'Hotel', SECONDARY: 'Location', AIRPORT: 'Airport', OTHER: 'Location' };
+// Addresses often lead with the venue name we already show in the row — strip it
+// so the address stays tight (e.g. "Manchester Grand Hyatt San Diego, 1, Market…").
+const stripName = (addr, name) => {
+  if (!addr) return '';
+  if (!name) return addr;
+  const esc = String(name).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return String(addr).replace(new RegExp('^\\s*' + esc + '\\s*,?\\s*', 'i'), '').trim() || String(addr);
+};
 
 const box = { background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8 };
 const th = { textAlign: 'left', fontSize: 8.5, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)', padding: '5px 8px', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' };
@@ -30,7 +38,7 @@ function SimpleTable({ cols, rows }) {
   );
 }
 
-function DaySheet({ project, techSpecs, locations, keyTalent, clientContacts, crew, day, dayIndex, dayCount, nameById }) {
+function DaySheet({ project, techSpecs, locations, keyTalent, clientContacts, crew, day, dayIndex, dayCount, isFirst, isLast, nameById }) {
   const time = (label, val) => val ? (
     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 11, padding: '2px 0' }}>
       <span style={{ color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: 9.5, fontWeight: 700 }}>{label}</span>
@@ -50,7 +58,7 @@ function DaySheet({ project, techSpecs, locations, keyTalent, clientContacts, cr
   const events = [...(day.events || [])].sort((a, b) => String(a.start_time || '').localeCompare(String(b.start_time || '')));
 
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto 26px', pageBreakAfter: dayIndex < dayCount - 1 ? 'always' : 'auto' }}>
+    <div style={{ maxWidth: 900, margin: '0 auto 26px', paddingTop: isFirst ? 0 : '0.4in', pageBreakAfter: isLast ? 'auto' : 'always' }}>
       {/* ── Header ── */}
       <div style={{ ...box, borderTop: '3px solid var(--orange)', padding: '14px 18px', display: 'flex', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap' }}>
         <div style={{ minWidth: 240 }}>
@@ -74,24 +82,24 @@ function DaySheet({ project, techSpecs, locations, keyTalent, clientContacts, cr
         )}
       </div>
 
-      {/* ── Locations (with nearest hospital in notes) ── */}
+      {/* ── Locations (type + arrival + nearest hospital folded under the name) ── */}
       {locations.length > 0 && <>
         <div style={sectionLbl}>Locations</div>
         <SimpleTable
           cols={[
-            { key: 'name', label: 'Location', width: '26%', render: l => <span style={{ fontWeight: 700 }}>{LOC_LABELS[l.type] ? `${l.name}` : l.name}</span> },
-            { key: 'type', label: 'Type', width: '14%', render: l => LOC_LABELS[l.type] || 'Location' },
-            { key: 'address', label: 'Address', width: '30%' },
-            { key: 'notes', label: 'Notes', render: l => (
-              <>
-                {l.arrival_notes && <div><span style={{ fontWeight: 700 }}>Arrival: </span>{l.arrival_notes}</div>}
+            { key: 'name', label: 'Location', width: '42%', render: l => (
+              <div>
+                <div style={{ fontWeight: 700 }}>{l.name}</div>
+                <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--muted)', marginTop: 1 }}>{LOC_LABELS[l.type] || 'Location'}</div>
+                {l.arrival_notes && <div style={{ fontSize: 10, marginTop: 3 }}><span style={{ fontWeight: 700 }}>Arrival: </span>{l.arrival_notes}</div>}
                 {l.type === 'PRIMARY_VENUE' && l.notes && (
-                  <div style={{ marginTop: l.arrival_notes ? 3 : 0 }}>
+                  <div style={{ fontSize: 10, marginTop: 2 }}>
                     <span style={{ fontWeight: 700 }}>🏥 Nearest Hospital: </span>{String(l.notes).replace(/^Nearest Hospital:\s*/i, '')}
                   </div>
                 )}
-              </>
+              </div>
             ) },
+            { key: 'address', label: 'Address', render: l => stripName(l.address, l.name) },
           ]}
           rows={locations}
         />
@@ -164,6 +172,8 @@ export default function CallSheet() {
   const [project, setProject] = useState(null);
   const [days, setDays] = useState(null);
   const [err, setErr] = useState('');
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [printScope, setPrintScope] = useState(null); // null | 'all' | a day id
 
   useEffect(() => {
     Promise.all([api.getProject(id), api.getSchedule(id)])
@@ -171,6 +181,7 @@ export default function CallSheet() {
       .catch(e => setErr(e.message));
   }, [id]);
 
+  // ?pdf=1 opens straight into the print dialog for the whole call sheet.
   useEffect(() => {
     if (!isPdf || !project || !days) return;
     const prev = document.title;
@@ -178,6 +189,16 @@ export default function CallSheet() {
     const t = setTimeout(() => window.print(), 700);
     return () => { clearTimeout(t); document.title = prev; };
   }, [isPdf, project, days]);
+
+  // Dropdown-triggered print — all days or a single day. printScope filters the
+  // rendered pages, then we fire the print dialog and reset once it closes.
+  useEffect(() => {
+    if (!printScope) return;
+    const done = () => setPrintScope(null);
+    window.addEventListener('afterprint', done);
+    const t = setTimeout(() => window.print(), 150);
+    return () => { clearTimeout(t); window.removeEventListener('afterprint', done); };
+  }, [printScope]);
 
   if (err) return <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)' }}><div className="empty">{err}</div></div>;
   if (!project || !days) return <div style={{ minHeight: '100vh', background: 'var(--bg)' }}><div className="empty">Loading…</div></div>;
@@ -190,23 +211,52 @@ export default function CallSheet() {
   for (const a of crew) if (a.cm_id) nameById[a.cm_id] = crewName(a);
   // Only days that actually carry call-sheet content get a page.
   const sheetDays = days.filter(d => d.call_time || d.shooting_call_time || d.wrap_time || (d.events || []).length || (d.crewCalls || []).length);
+  // When a single day is chosen from the download menu, render just that page.
+  const printSheets = printScope && printScope !== 'all' ? sheetDays.filter(d => d.id === printScope) : sheetDays;
+
+  const menuItem = { display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none', color: 'var(--text)', fontSize: 12, padding: '9px 14px', cursor: 'pointer', whiteSpace: 'nowrap' };
+  const hoverOn = e => { e.currentTarget.style.background = 'var(--bg3)'; };
+  const hoverOff = e => { e.currentTarget.style.background = 'none'; };
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)' }}>
       <div className="no-print" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 22px', gap: 10, borderBottom: '1px solid var(--border)' }}>
         <div style={{ fontSize: 13, fontWeight: 800 }}>Call Sheet — {project.code} <span style={{ color: 'var(--muted)', fontWeight: 400 }}>{project.title}</span></div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={() => window.print()} className="btn btn-primary btn-sm">📄 Save as PDF</button>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div style={{ position: 'relative' }}>
+            <button onClick={() => setMenuOpen(o => !o)} className="btn btn-primary btn-sm">📄 Download PDF ▾</button>
+            {menuOpen && (
+              <>
+                <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
+                <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 4px)', zIndex: 50, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8, minWidth: 250, boxShadow: '0 10px 28px rgba(0,0,0,0.35)', overflow: 'hidden', maxHeight: 380, overflowY: 'auto' }}>
+                  <button style={{ ...menuItem, fontWeight: 700, borderBottom: '1px solid var(--border)' }} onMouseEnter={hoverOn} onMouseLeave={hoverOff}
+                    onClick={() => { setMenuOpen(false); setPrintScope('all'); }}>
+                    All days ({sheetDays.length})
+                  </button>
+                  {sheetDays.map((d, i) => (
+                    <button key={d.id} style={menuItem} onMouseEnter={hoverOn} onMouseLeave={hoverOff}
+                      onClick={() => { setMenuOpen(false); setPrintScope(d.id); }}>
+                      Day {i + 1} — {fmtLongDate(d.date)}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
           <Link to={`/projects/${id}`} className="btn btn-ghost btn-sm" style={{ textDecoration: 'none' }}>‹ Back to Project</Link>
         </div>
       </div>
       <div style={{ padding: '18px 16px 60px' }}>
         {sheetDays.length === 0 && <div className="empty">No shoot days with call times or a schedule yet — fill those in on the Schedule tab.</div>}
-        {sheetDays.map((day, i) => (
-          <DaySheet key={day.id} project={project} techSpecs={project.techSpecs} locations={locations}
-            keyTalent={keyTalent} clientContacts={clientContacts} crew={crew}
-            day={day} dayIndex={i} dayCount={sheetDays.length} nameById={nameById} />
-        ))}
+        {printSheets.map((day, i) => {
+          const origIndex = sheetDays.findIndex(d => d.id === day.id);
+          return (
+            <DaySheet key={day.id} project={project} techSpecs={project.techSpecs} locations={locations}
+              keyTalent={keyTalent} clientContacts={clientContacts} crew={crew}
+              day={day} dayIndex={origIndex} dayCount={sheetDays.length}
+              isFirst={i === 0} isLast={i === printSheets.length - 1} nameById={nameById} />
+          );
+        })}
       </div>
     </div>
   );

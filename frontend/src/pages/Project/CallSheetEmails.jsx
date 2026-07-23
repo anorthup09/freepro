@@ -138,8 +138,8 @@ export default function CallSheetEmails() {
                 <div className="page-title">Send Call Sheet Emails</div>
                 <div className="page-sub">{project.code} — {project.title}</div>
               </div>
-              <button className="btn btn-primary btn-sm" title="Open a print-ready call sheet (one page per shoot day) and save it as a PDF"
-                onClick={() => window.open(`/projects/${id}/call-sheet?pdf=1`, '_blank')}>
+              <button className="btn btn-primary btn-sm" title="Open the print-ready call sheet, then download all days or any single day as a PDF"
+                onClick={() => window.open(`/projects/${id}/call-sheet`, '_blank')}>
                 📄 Full Call Sheet (PDF)
               </button>
             </div>
