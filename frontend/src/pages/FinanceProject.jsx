@@ -1484,18 +1484,22 @@ export function VccTab({ pid, budget, sections, lines, vcc, categories, set, vcc
                       {e.flag && <div style={{ fontSize:9, color:'#e05252', padding:'0 6px 2px' }}>⚠ {e.flag}</div>}
                     </td>
                     <td style={{ padding:'2px 6px' }}>
-                      <select value={e.category || ''} style={{ ...cellIn, fontSize:10, color:'var(--muted)' }}
-                        onChange={ev => { patchEntry(e.id, { category: ev.target.value }); saveEntry(e.id, { category: ev.target.value }); }}>
-                        <option value="">—</option>
-                        {categories.map(c => <option key={c}>{c}</option>)}
-                      </select>
+                      {vccOnly
+                        ? <span style={{ fontSize:10, color:'var(--muted)' }}>{e.category || '—'}</span>
+                        : <select value={e.category || ''} style={{ ...cellIn, fontSize:10, color:'var(--muted)' }}
+                            onChange={ev => { patchEntry(e.id, { category: ev.target.value }); saveEntry(e.id, { category: ev.target.value }); }}>
+                            <option value="">—</option>
+                            {categories.map(c => <option key={c}>{c}</option>)}
+                          </select>}
                     </td>
                     <td style={{ padding:'2px 6px' }}>
-                      <select value={canonTrip(e.trip) || ''} style={{ ...cellIn, fontSize:10, color:'var(--muted)' }}
-                        onChange={ev => { patchEntry(e.id, { trip: ev.target.value }); saveEntry(e.id, { trip: ev.target.value }); }}>
-                        <option value="">—</option>
-                        {tripOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                      </select>
+                      {vccOnly
+                        ? <span style={{ fontSize:10, color:'var(--muted)' }}>{(tripOptions.find(o => o.value === canonTrip(e.trip))?.label) || e.trip || '—'}</span>
+                        : <select value={canonTrip(e.trip) || ''} style={{ ...cellIn, fontSize:10, color:'var(--muted)' }}
+                            onChange={ev => { patchEntry(e.id, { trip: ev.target.value }); saveEntry(e.id, { trip: ev.target.value }); }}>
+                            <option value="">—</option>
+                            {tripOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                          </select>}
                     </td>
                     <td style={{ padding:'2px 6px', textAlign:'right' }}>
                       <MoneyInput value={e.amount ?? 0} width={95}
