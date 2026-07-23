@@ -34,7 +34,7 @@ if (fs.existsSync(publicDir)) {
   });
 }
 
-app.get('/health', (req, res) => res.json({ status: 'ok', ts: new Date(), aerodatabox: !!process.env.AERODATABOX_API_KEY }));
+app.get('/health', (req, res) => res.json({ status: 'ok', ts: new Date(), aerodatabox: !!process.env.AERODATABOX_API_KEY, googleMaps: !!process.env.GOOGLE_MAPS_API_KEY }));
 
 // Live probe: can this server reach the weather APIs? (diagnostic, public)
 app.get('/health/weather', async (req, res) => {
