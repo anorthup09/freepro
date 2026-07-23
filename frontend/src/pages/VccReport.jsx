@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../App.jsx';
 import { api } from '../api.js';
-import { VccTab, totals } from './FinanceProject.jsx';
+import { VccTab, totals, ReconciliationCalc, ShootTiles } from './FinanceProject.jsx';
 
 const fmt$ = n => '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const num = v => Number(v) || 0;
@@ -119,7 +119,25 @@ export function VccProjectPage() {
                 </span>
               )}
             </div>
-            <VccFinanceSummary data={data} />
+            {/* ── Cover / Summary page ── */}
+            <div style={{ pageBreakAfter: 'always' }}>
+              <VccFinanceSummary data={data} />
+              {(() => {
+                const vcc = data.vcc || [];
+                const billable = vcc.reduce((s, e) => s + num(e.amount), 0);
+                const unposted = vcc.filter(e => e.status !== 'POSTED').reduce((s, e) => s + num(e.amount), 0);
+                const b = data.budget || {};
+                return (
+                  <ReconciliationCalc fullWidth odc={b.odc_amount} unposted={unposted} billable={billable}
+                    onOdcCommit={async v => {
+                      set(d => ({ budget: { ...d.budget, odc_amount: v } }));
+                      try { if (b.id) await api.updateBudget(b.id, { odcAmount: v }); } catch (e) { alert(e.message); }
+                    }} />
+                );
+              })()}
+              <ShootTiles sections={data.sections || []} lines={data.lines || []} vcc={data.vcc || []} />
+            </div>
+            {/* ── Detail: entries + Total by Category ── */}
             <VccTab pid={pid} budget={data.budget || {}} sections={data.sections || []} lines={data.lines || []} vcc={data.vcc || []} categories={data.categories || []} set={set} vccOnly />
           </>
         )}

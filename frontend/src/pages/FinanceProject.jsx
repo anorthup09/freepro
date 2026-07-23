@@ -1100,6 +1100,115 @@ function LineRow({ l, secLines, patchLine, saveLine, delLine, dupLine, dragCtl }
   );
 }
 
+// Reconciliation Calculator — ODC (posted, from accounting) + Unposted should
+// equal Total Direct Costs. Variance glows green at $0. `fullWidth` lays the
+// figures across the page (used on the VCC PDF cover).
+export function ReconciliationCalc({ odc, unposted, billable, onOdcCommit, fullWidth }) {
+  const reconciled = num(odc) + num(unposted);
+  const variance = num(billable) - reconciled;
+  const balanced = Math.abs(variance) < 0.005;
+  const green = { fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#5ABF80', marginBottom: 8 };
+  const varBar = (
+    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 12, padding: '6px 10px', borderRadius: 8, marginTop: fullWidth ? 12 : 4,
+      background: balanced ? 'rgba(90,191,128,0.14)' : 'transparent',
+      border: balanced ? '1px solid #5ABF80' : '1px solid transparent',
+      boxShadow: balanced ? '0 0 10px rgba(90,191,128,0.6)' : 'none' }}>
+      <span style={{ color: balanced ? '#5ABF80' : 'var(--muted)', fontWeight: balanced ? 800 : 600 }}>Variance</span>
+      <span style={{ fontWeight: 800, color: balanced ? '#5ABF80' : (variance > 0 ? '#e05252' : '#e6c229') }}>{fmt$(variance)}</span>
+    </div>
+  );
+  if (fullWidth) {
+    const stat = (label, valEl, color) => (
+      <div>
+        <div style={{ fontSize: 9, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700, marginBottom: 3 }}>{label}</div>
+        <div style={{ fontSize: 16, fontWeight: 800, color: color || 'var(--text)' }}>{valEl}</div>
+      </div>
+    );
+    return (
+      <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 16px', marginBottom: 16 }}>
+        <div style={green}>Reconciliation Calculator</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 16, alignItems: 'end' }}>
+          {stat('Current ODC Amount', <MoneyInput value={odc ?? ''} width={120} onCommit={onOdcCommit} />)}
+          {stat('Current Unposted', fmt$(unposted))}
+          {stat('Reconciled Total', fmt$(reconciled))}
+          {stat('Total Direct Costs', fmt$(billable), '#e6c229')}
+        </div>
+        {varBar}
+      </div>
+    );
+  }
+  const rrow = (label, val, opts = {}) => (
+    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 11.5, padding: '3px 0' }}>
+      <span style={{ color: 'var(--muted)' }}>{label}</span>
+      <span style={{ fontWeight: opts.bold ? 800 : 600, color: opts.color || 'var(--text)' }}>{val}</span>
+    </div>
+  );
+  return (
+    <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 16px' }}>
+      <div style={green}>Reconciliation Calculator</div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, fontSize: 11.5, padding: '3px 0' }}>
+        <span style={{ color: 'var(--muted)' }}>Current ODC Amount</span>
+        <MoneyInput value={odc ?? ''} width={110} onCommit={onOdcCommit} />
+      </div>
+      {rrow('Current Unposted', fmt$(unposted))}
+      {rrow('Reconciled Total', fmt$(reconciled), { bold: true })}
+      <div style={{ borderTop: '1px solid var(--border)', margin: '8px 0' }} />
+      {rrow('Total Direct Costs', fmt$(billable), { bold: true, color: '#e6c229' })}
+      {varBar}
+    </div>
+  );
+}
+
+const SHOOT_TRAVEL_CATS = ['5900 Airfare (B)', '5180 Hotel Payments (B)', '5410 Per Diem (B)', '5255 Staff Travel Expenses (B)'];
+const SHOOT_CAT_LABELS = { '5900 Airfare (B)': 'Airfare', '5180 Hotel Payments (B)': 'Hotel', '5410 Per Diem (B)': 'Per Diem', '5255 Staff Travel Expenses (B)': 'Transportation / T&E' };
+// Per-shoot travel reconciliation tiles, filling left → right.
+export function ShootTiles({ sections, lines, vcc }) {
+  const shoots = (sections || []).filter(x => x.kind === 'shoot');
+  if (!shoots.length) return null;
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12, alignContent: 'start' }}>
+      {shoots.map(sec => {
+        const trips = [sec.trip, sec.shoot_code].filter(Boolean);
+        const mine = (vcc || []).filter(e => trips.includes(e.trip));
+        const travelEntries = mine.filter(e => SHOOT_TRAVEL_CATS.includes(e.category) && !(e.source || '').startsWith('travelhold:'));
+        const actuals = travelEntries.reduce((s2, e) => s2 + num(e.amount), 0);
+        const catBreakdown = SHOOT_TRAVEL_CATS.map(cat => [cat, travelEntries.filter(e => e.category === cat).reduce((s2, e) => s2 + num(e.amount), 0)]).filter(([, v]) => v !== 0);
+        const hold = mine.filter(e => (e.source || '').startsWith('travelhold:')).reduce((s2, e) => s2 + num(e.amount), 0);
+        const budgetTravel = (lines || []).filter(l => l.section_id === sec.id && l.is_travel).reduce((s2, l) => s2 + num(l.qty) * num(l.unit_cost), 0);
+        return (
+          <div key={sec.id} style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 10, padding: '11px 14px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
+              <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.05em', color: '#e6c229' }}>{sec.shoot_code}</span>
+              <span style={{ fontSize: 10, color: 'var(--muted)' }}>{sec.trip || '—'}</span>
+            </div>
+            <div style={{ fontSize: 9, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 8 }}>Travel — this shoot</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginTop: 4 }}>
+              <span style={{ color: 'var(--muted)' }}>Budget</span><span style={{ fontWeight: 600 }}>{fmt$(budgetTravel)}</span>
+            </div>
+            {hold > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
+                <span style={{ color: 'var(--muted)' }}>Hold in VCC</span><span style={{ fontWeight: 600, color: '#e6c229' }}>{fmt$(hold)}</span>
+              </div>
+            )}
+            {catBreakdown.map(([cat, v]) => (
+              <div key={cat} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, paddingLeft: 10 }}>
+                <span style={{ color: 'var(--muted)' }}>{SHOOT_CAT_LABELS[cat] || cat}</span><span style={{ color: 'var(--text)' }}>{fmt$(v)}</span>
+              </div>
+            ))}
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginTop: catBreakdown.length ? 3 : 0 }}>
+              <span style={{ color: 'var(--muted)' }}>Actuals</span><span style={{ fontWeight: 700, color: actuals > budgetTravel ? '#e05252' : '#5ABF80' }}>{fmt$(actuals)}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, borderTop: '1px solid var(--border)', marginTop: 5, paddingTop: 5 }}>
+              <span style={{ color: 'var(--muted)' }}>Variance</span>
+              <span style={{ fontWeight: 700, color: budgetTravel - actuals >= 0 ? '#5ABF80' : '#e05252' }}>{fmt$(budgetTravel - actuals)}</span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function VccTab({ pid, budget, sections, lines, vcc, categories, set, vccOnly }) {
   const { user } = useAuth();
   const mgmtRate = budget.mgmt_fee_rate != null ? Number(budget.mgmt_fee_rate) : 0.15;
@@ -1423,101 +1532,34 @@ export function VccTab({ pid, budget, sections, lines, vcc, categories, set, vcc
         </table>
       </div>
 
-      {/* Total by Category + Reconciliation Calculator (left) · shoot totals (right) */}
+      {/* Total by Category + Reconciliation Calculator (left) · shoot totals (right).
+          In the report/PDF (vccOnly) the calculator + shoot tiles move to the
+          cover page, so here we show just Total by Category. */}
       {(() => {
-        const shoots = sections.filter(x => x.kind === 'shoot');
-        const TRAVEL_CATS = ['5900 Airfare (B)', '5180 Hotel Payments (B)', '5410 Per Diem (B)', '5255 Staff Travel Expenses (B)'];
-        // Reconciliation: ODC (posted, from accounting) + everything not yet
-        // marked Posted should equal the Total Direct Costs when balanced.
         const unposted = vcc.filter(e => e.status !== 'POSTED').reduce((s2, e) => s2 + num(e.amount), 0);
-        const odc = num(budget.odc_amount);
-        const reconciled = odc + unposted;
-        const variance = billable - reconciled;
-        const balanced = Math.abs(variance) < 0.005;
-        const card = { background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding:'12px 16px' };
-        const green = { fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'#5ABF80', marginBottom:8 };
-        const rrow = (label, valEl, opts = {}) => (
-          <div style={{ display:'flex', justifyContent:'space-between', gap:12, fontSize:11.5, padding:'3px 0' }}>
-            <span style={{ color:'var(--muted)' }}>{label}</span>
-            <span style={{ fontWeight: opts.bold ? 800 : 600, color: opts.color || 'var(--text)' }}>{valEl}</span>
+        const totalByCat = (
+          <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding:'12px 16px' }}>
+            <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'#5ABF80', marginBottom:8 }}>Total by Category</div>
+            {Object.entries(catTotals).sort((a, b) => b[1] - a[1]).map(([cat, total]) => (
+              <div key={cat} style={{ display:'flex', justifyContent:'space-between', fontSize:11, padding:'2px 0' }}>
+                <span style={{ color:'var(--muted)' }}>{cat}</span><span style={{ fontWeight:600 }}>{fmt$(total)}</span>
+              </div>
+            ))}
+            {vcc.length === 0 && <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>Nothing to total yet.</div>}
           </div>
         );
+        if (vccOnly) return <div style={{ maxWidth:480, marginBottom:16 }}>{totalByCat}</div>;
         return (
           <div style={{ display:'flex', gap:14, alignItems:'flex-start', flexWrap:'wrap', marginBottom:16 }}>
-            {/* LEFT: Total by Category + Reconciliation Calculator */}
             <div style={{ flex:'1 1 340px', minWidth:300, display:'flex', flexDirection:'column', gap:14 }}>
-              <div style={card}>
-                <div style={green}>Total by Category</div>
-                {Object.entries(catTotals).sort((a, b) => b[1] - a[1]).map(([cat, total]) => (
-                  <div key={cat} style={{ display:'flex', justifyContent:'space-between', fontSize:11, padding:'2px 0' }}>
-                    <span style={{ color:'var(--muted)' }}>{cat}</span><span style={{ fontWeight:600 }}>{fmt$(total)}</span>
-                  </div>
-                ))}
-                {vcc.length === 0 && <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>Nothing to total yet.</div>}
-              </div>
-              <div style={card}>
-                <div style={green}>Reconciliation Calculator</div>
-                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:12, fontSize:11.5, padding:'3px 0' }}>
-                  <span style={{ color:'var(--muted)' }}>Current ODC Amount</span>
-                  <MoneyInput value={budget.odc_amount ?? ''} width={110}
-                    onCommit={v => { patchBudget({ odc_amount: v }); saveBudget({ odcAmount: v }); }} />
-                </div>
-                {rrow('Current Unposted', fmt$(unposted))}
-                {rrow('Reconciled Total', fmt$(reconciled), { bold:true })}
-                <div style={{ borderTop:'1px solid var(--border)', margin:'8px 0' }} />
-                {rrow('Total Direct Costs', fmt$(billable), { bold:true, color:'#e6c229' })}
-                <div style={{ display:'flex', justifyContent:'space-between', gap:12, fontSize:12, padding:'6px 10px', borderRadius:8, marginTop:4,
-                  background: balanced ? 'rgba(90,191,128,0.14)' : 'transparent',
-                  border: balanced ? '1px solid #5ABF80' : '1px solid transparent',
-                  boxShadow: balanced ? '0 0 10px rgba(90,191,128,0.6)' : 'none' }}>
-                  <span style={{ color: balanced ? '#5ABF80' : 'var(--muted)', fontWeight: balanced ? 800 : 600 }}>Variance</span>
-                  <span style={{ fontWeight:800, color: balanced ? '#5ABF80' : (variance > 0 ? '#e05252' : '#e6c229') }}>{fmt$(variance)}</span>
-                </div>
-              </div>
+              {totalByCat}
+              <ReconciliationCalc odc={budget.odc_amount} unposted={unposted} billable={billable}
+                onOdcCommit={v => { patchBudget({ odc_amount: v }); saveBudget({ odcAmount: v }); }} />
             </div>
-            {/* RIGHT: shoot totals */}
-            {shoots.length > 0 && (
-            <div style={{ flex:'2 1 380px', minWidth:260, display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(240px, 1fr))', gap:12, alignContent:'start' }}>
-            {shoots.map(sec => {
-              const trips = [sec.trip, sec.shoot_code].filter(Boolean);
-              const mine = vcc.filter(e => trips.includes(e.trip));
-              const travelEntries = mine.filter(e => TRAVEL_CATS.includes(e.category) && !(e.source || '').startsWith('travelhold:'));
-              const actuals = travelEntries.reduce((s2, e) => s2 + num(e.amount), 0);
-              const catBreakdown = TRAVEL_CATS.map(cat => [cat, travelEntries.filter(e => e.category === cat).reduce((s2, e) => s2 + num(e.amount), 0)]).filter(([, v]) => v !== 0);
-              const CAT_LABELS = { '5900 Airfare (B)': 'Airfare', '5180 Hotel Payments (B)': 'Hotel', '5410 Per Diem (B)': 'Per Diem', '5255 Staff Travel Expenses (B)': 'Transportation / T&E' };
-              const hold = mine.filter(e => (e.source || '').startsWith('travelhold:')).reduce((s2, e) => s2 + num(e.amount), 0);
-              const budgetTravel = lines.filter(l => l.section_id === sec.id && l.is_travel).reduce((s2, l) => s2 + num(l.qty) * num(l.unit_cost), 0);
-              return (
-                <div key={sec.id} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding:'11px 14px' }}>
-                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', gap:8 }}>
-                    <span style={{ fontSize:10, fontWeight:800, letterSpacing:'0.05em', color:'#e6c229' }}>{sec.shoot_code}</span>
-                    <span style={{ fontSize:10, color:'var(--muted)' }}>{sec.trip || '—'}</span>
-                  </div>
-                  <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginTop:8 }}>Travel — this shoot</div>
-                  <div style={{ display:'flex', justifyContent:'space-between', fontSize:11, marginTop:4 }}>
-                    <span style={{ color:'var(--muted)' }}>Budget</span><span style={{ fontWeight:600 }}>{fmt$(budgetTravel)}</span>
-                  </div>
-                  {hold > 0 && (
-                    <div style={{ display:'flex', justifyContent:'space-between', fontSize:11 }}>
-                      <span style={{ color:'var(--muted)' }}>Hold in VCC</span><span style={{ fontWeight:600, color:'#e6c229' }}>{fmt$(hold)}</span>
-                    </div>
-                  )}
-                  {catBreakdown.map(([cat, v]) => (
-                    <div key={cat} style={{ display:'flex', justifyContent:'space-between', fontSize:10, paddingLeft:10 }}>
-                      <span style={{ color:'var(--muted)' }}>{CAT_LABELS[cat] || cat}</span><span style={{ color:'var(--text)' }}>{fmt$(v)}</span>
-                    </div>
-                  ))}
-                  <div style={{ display:'flex', justifyContent:'space-between', fontSize:11, marginTop: catBreakdown.length ? 3 : 0 }}>
-                    <span style={{ color:'var(--muted)' }}>Actuals</span><span style={{ fontWeight:700, color: actuals > budgetTravel ? '#e05252' : '#5ABF80' }}>{fmt$(actuals)}</span>
-                  </div>
-                  <div style={{ display:'flex', justifyContent:'space-between', fontSize:11, borderTop:'1px solid var(--border)', marginTop:5, paddingTop:5 }}>
-                    <span style={{ color:'var(--muted)' }}>Variance</span>
-                    <span style={{ fontWeight:700, color: budgetTravel - actuals >= 0 ? '#5ABF80' : '#e05252' }}>{fmt$(budgetTravel - actuals)}</span>
-                  </div>
-                </div>
-              );
-            })}
-            </div>
+            {sections.some(x => x.kind === 'shoot') && (
+              <div style={{ flex:'2 1 380px', minWidth:260 }}>
+                <ShootTiles sections={sections} lines={lines} vcc={vcc} />
+              </div>
             )}
           </div>
         );
