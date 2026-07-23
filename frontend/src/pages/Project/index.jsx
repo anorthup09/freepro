@@ -118,6 +118,8 @@ function ShareDropdown({ projectId, showShotList, crews = [] }) {
   const [shares, setShares] = useState([]);
   const [open, setOpen] = useState(false);
   const [toast, setToast] = useState('');
+  const [openSec, setOpenSec] = useState({ copy: false, pdf: false, crewCopy: false, crewPdf: false });
+  const toggleSec = k => setOpenSec(s => ({ ...s, [k]: !s[k] }));
   const ref = useRef(null);
 
   useEffect(() => {
@@ -174,24 +176,54 @@ function ShareDropdown({ projectId, showShotList, crews = [] }) {
             style={{ border:'1px solid rgba(255,255,255,0.5)', borderRadius:5, margin:'6px 8px 2px', padding:'6px 10px', color:'var(--text)' }}>
             ✉ Send Call Sheet Emails
           </div>
-          <div style={{ borderTop:'1px solid var(--border)', margin:'4px 0', padding:'6px 14px 3px', fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em' }}>Copy Link</div>
-          <div className="share-menu-item" onClick={() => handleOption('producer')}>Producer View</div>
-          <div className="share-menu-item" onClick={() => handleOption('crew')}>Crew View{crews.length > 0 ? ' — All Crews' : ''}</div>
-          {crews.map(c => (
-            <div key={c.id} className="share-menu-item" onClick={() => handleOption('crew', null, c.id)} style={{ paddingLeft:26, color: c.color || undefined }}>
-              Crew View — {c.name}
-            </div>
-          ))}
-          <div className="share-menu-item" onClick={() => handleOption('client')}>Client View</div>
-          <div style={{ borderTop:'1px solid var(--border)', margin:'4px 0', padding:'6px 14px 3px', fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em' }}>Download PDF</div>
-          <div className="share-menu-item" onClick={() => openPdf('producer')}>Producer PDF</div>
-          <div className="share-menu-item" onClick={() => openPdf('crew')}>Crew PDF{crews.length > 0 ? ' — All Crews' : ''}</div>
-          {crews.map(c => (
-            <div key={c.id} className="share-menu-item" onClick={() => openPdf('crew', null, c.id)} style={{ paddingLeft:26, color: c.color || undefined }}>
-              Crew PDF — {c.name}
-            </div>
-          ))}
-          <div className="share-menu-item" onClick={() => openPdf('client')}>Client PDF</div>
+          {/* ── Copy Link (collapsible) ── */}
+          <div className="share-menu-item" onClick={() => toggleSec('copy')}
+            style={{ borderTop:'1px solid var(--border)', margin:'4px 0 0', padding:'6px 14px', fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', cursor:'pointer', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+            <span>Copy Link</span><span>{openSec.copy ? '▾' : '▸'}</span>
+          </div>
+          {openSec.copy && <>
+            <div className="share-menu-item" onClick={() => handleOption('producer')}>Producer View</div>
+            {crews.length > 0 ? (
+              <>
+                <div className="share-menu-item" onClick={() => toggleSec('crewCopy')} style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                  <span>Crew View</span><span style={{ color:'var(--muted)' }}>{openSec.crewCopy ? '▾' : '▸'}</span>
+                </div>
+                {openSec.crewCopy && <>
+                  <div className="share-menu-item" onClick={() => handleOption('crew')} style={{ paddingLeft:26 }}>All Crews</div>
+                  {crews.map(c => (
+                    <div key={c.id} className="share-menu-item" onClick={() => handleOption('crew', null, c.id)} style={{ paddingLeft:26, color: c.color || undefined }}>{c.name}</div>
+                  ))}
+                </>}
+              </>
+            ) : (
+              <div className="share-menu-item" onClick={() => handleOption('crew')}>Crew View</div>
+            )}
+            <div className="share-menu-item" onClick={() => handleOption('client')}>Client View</div>
+          </>}
+          {/* ── Download PDF (collapsible) ── */}
+          <div className="share-menu-item" onClick={() => toggleSec('pdf')}
+            style={{ borderTop:'1px solid var(--border)', margin:'4px 0 0', padding:'6px 14px', fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', cursor:'pointer', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+            <span>Download PDF</span><span>{openSec.pdf ? '▾' : '▸'}</span>
+          </div>
+          {openSec.pdf && <>
+            <div className="share-menu-item" onClick={() => openPdf('producer')}>Producer PDF</div>
+            {crews.length > 0 ? (
+              <>
+                <div className="share-menu-item" onClick={() => toggleSec('crewPdf')} style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                  <span>Crew PDF</span><span style={{ color:'var(--muted)' }}>{openSec.crewPdf ? '▾' : '▸'}</span>
+                </div>
+                {openSec.crewPdf && <>
+                  <div className="share-menu-item" onClick={() => openPdf('crew')} style={{ paddingLeft:26 }}>All Crews</div>
+                  {crews.map(c => (
+                    <div key={c.id} className="share-menu-item" onClick={() => openPdf('crew', null, c.id)} style={{ paddingLeft:26, color: c.color || undefined }}>{c.name}</div>
+                  ))}
+                </>}
+              </>
+            ) : (
+              <div className="share-menu-item" onClick={() => openPdf('crew')}>Crew PDF</div>
+            )}
+            <div className="share-menu-item" onClick={() => openPdf('client')}>Client PDF</div>
+          </>}
           <div style={{ borderTop:'1px solid var(--border)', margin:'4px 0' }} />
           {showShotList && (
             <div className="share-menu-item" onClick={async () => {
