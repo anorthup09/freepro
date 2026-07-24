@@ -401,6 +401,51 @@ router.get('/:id/locations/:lid/hospital-lookup', requireAuth, requireRole('ADMI
     res.json({ result: await resolveHospital(loc.address, String(req.query.q || '')) });
   } catch(e){next(e);}
 });
+
+// Server-rendered call-sheet PDF (clean, no browser print header/footer, same on
+// every device). ?day=<id> renders a single day; otherwise all call-sheet days.
+router.get('/:id/call-sheet.pdf', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try {
+    const id = req.params.id;
+    const [[project], locations, techSpecsRows, clientContacts, keyTalent, crewAssignments, days] = await Promise.all([
+      sql`SELECT * FROM projects WHERE id = ${id}`,
+      sql`SELECT * FROM locations WHERE project_id = ${id}`,
+      sql`SELECT * FROM tech_specs WHERE project_id = ${id}`,
+      sql`SELECT * FROM client_contacts WHERE project_id = ${id}`,
+      sql`SELECT * FROM key_talent WHERE project_id = ${id}`,
+      sql`SELECT ca.*, p.name as position_name, p.sort_order, cm.id as cm_id, cm.name as cm_name, cm.email as cm_email, cm.phone as cm_phone, cm.preferred_first_name as cm_pref_first, cm.preferred_last_name as cm_pref_last
+          FROM crew_assignments ca JOIN positions p ON p.id = ca.position_id LEFT JOIN crew_members cm ON cm.id = ca.crew_member_id
+          WHERE ca.project_id = ${id} ORDER BY p.sort_order, ca.slot_number`,
+      sql`SELECT * FROM shoot_days WHERE project_id = ${id} ORDER BY day_number`,
+    ]);
+    if (!project) return res.status(404).json({ error: 'Project not found' });
+    const dayIds = days.map(d => d.id);
+    let events = [], crewCalls = [];
+    if (dayIds.length) {
+      [events, crewCalls] = await Promise.all([
+        sql`SELECT se.*, array_remove(array_agg(DISTINCT ec.crew_id), NULL) as crew_ids, l.name as location_name, l.address as location_address
+            FROM schedule_events se LEFT JOIN event_crews ec ON ec.event_id = se.id LEFT JOIN locations l ON l.id = se.location_id
+            WHERE se.shoot_day_id = ANY(${sql.array(dayIds)}) GROUP BY se.id, l.name, l.address ORDER BY se.start_time`,
+        sql`SELECT * FROM crew_day_calls WHERE shoot_day_id = ANY(${sql.array(dayIds)})`,
+      ]);
+    }
+    const evByDay = {}, callByDay = {};
+    for (const e of events) (evByDay[e.shoot_day_id] ||= []).push({ ...e, crew_ids: e.crew_ids || [] });
+    for (const c of crewCalls) (callByDay[c.shoot_day_id] ||= []).push(c);
+    const fullDays = days.map(d => ({ ...d, events: evByDay[d.id] || [], crewCalls: callByDay[d.id] || [] }));
+    const sheetDays = fullDays.filter(d => d.call_time || d.shooting_call_time || d.wrap_time || (d.events || []).length || (d.crewCalls || []).length);
+    const renderDays = req.query.day ? sheetDays.filter(d => d.id === req.query.day) : sheetDays;
+    if (!renderDays.length) return res.status(404).json({ error: 'No call-sheet days to render yet — add call times or a schedule.' });
+
+    const projectForPdf = { ...project, locations, techSpecs: techSpecsRows[0] || null, clientContacts, keyTalent, crewAssignments };
+    const { renderCallSheet } = require('../lib/callsheet-pdf');
+    const buf = await renderCallSheet({ project: projectForPdf, allDays: sheetDays, renderDays });
+    const base = String(project.code || 'call-sheet').replace(/[^\w.-]+/g, '_');
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${base}${req.query.day ? '_day' : ''}_call_sheet.pdf"`);
+    res.send(buf);
+  } catch(e){next(e);}
+});
 router.delete('/:id/locations/:lid', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try { await sql`DELETE FROM locations WHERE id = ${req.params.lid}`; res.status(204).end(); } catch(e){next(e);}
 });

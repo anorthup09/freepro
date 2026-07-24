@@ -262,6 +262,14 @@ export const api = {
   nearestHospital: (projectId, id) => req('POST', `/projects/${projectId}/locations/${id}/nearest-hospital`),
   hospitalOptions: (projectId, id) => req('GET', `/projects/${projectId}/locations/${id}/hospital-options`),
   hospitalLookup: (projectId, id, q) => req('GET', `/projects/${projectId}/locations/${id}/hospital-lookup?q=${encodeURIComponent(q)}`),
+  // Server-rendered call-sheet PDF (blob) — clean output, no browser print chrome.
+  downloadCallSheet: async (projectId, dayId) => {
+    const t = localStorage.getItem('fp_token');
+    const url = `${BASE}/projects/${projectId}/call-sheet.pdf${dayId ? `?day=${encodeURIComponent(dayId)}` : ''}`;
+    const r = await fetch(url, { headers: t ? { Authorization: `Bearer ${t}` } : {} });
+    if (!r.ok) { let m = 'PDF generation failed'; try { m = (await r.json()).error || m; } catch { /* non-JSON */ } throw new Error(m); }
+    return await r.blob();
+  },
 
   // Tech specs
   saveTechSpecs: (projectId, data) => req('PUT', `/projects/${projectId}/tech-specs`, data),

@@ -181,7 +181,7 @@ export default function CallSheet() {
   const [days, setDays] = useState(null);
   const [err, setErr] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
-  const [printScope, setPrintScope] = useState(null); // null | 'all' | a day id
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     Promise.all([api.getProject(id), api.getSchedule(id)])
@@ -189,24 +189,20 @@ export default function CallSheet() {
       .catch(e => setErr(e.message));
   }, [id]);
 
-  // ?pdf=1 opens straight into the print dialog for the whole call sheet.
+  // ?pdf=1 auto-downloads the full clean PDF, then returns to the project.
   useEffect(() => {
     if (!isPdf || !project || !days) return;
-    const prev = document.title;
-    document.title = `${project.code || ''} Call Sheet`.trim();
-    const t = setTimeout(() => window.print(), 700);
-    return () => { clearTimeout(t); document.title = prev; };
+    (async () => {
+      try {
+        const blob = await api.downloadCallSheet(id);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `${project.code || 'call-sheet'}.pdf`;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+      } catch { /* leave the page up so they can use the dropdown */ }
+    })();
   }, [isPdf, project, days]);
-
-  // Dropdown-triggered print — all days or a single day. printScope filters the
-  // rendered pages, then we fire the print dialog and reset once it closes.
-  useEffect(() => {
-    if (!printScope) return;
-    const done = () => setPrintScope(null);
-    window.addEventListener('afterprint', done);
-    const t = setTimeout(() => window.print(), 150);
-    return () => { clearTimeout(t); window.removeEventListener('afterprint', done); };
-  }, [printScope]);
 
   if (err) return <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)' }}><div className="empty">{err}</div></div>;
   if (!project || !days) return <div style={{ minHeight: '100vh', background: 'var(--bg)' }}><div className="empty">Loading…</div></div>;
@@ -219,8 +215,23 @@ export default function CallSheet() {
   for (const a of crew) if (a.cm_id) nameById[a.cm_id] = crewName(a);
   // Only days that actually carry call-sheet content get a page.
   const sheetDays = days.filter(d => d.call_time || d.shooting_call_time || d.wrap_time || (d.events || []).length || (d.crewCalls || []).length);
-  // When a single day is chosen from the download menu, render just that page.
-  const printSheets = printScope && printScope !== 'all' ? sheetDays.filter(d => d.id === printScope) : sheetDays;
+
+  // Download a clean, server-rendered PDF — all days, or one day when dayId is set.
+  async function downloadPdf(dayId) {
+    setMenuOpen(false);
+    if (downloading) return;
+    setDownloading(true);
+    try {
+      const blob = await api.downloadCallSheet(id, dayId);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const dayLabel = dayId ? `-day${sheetDays.findIndex(d => d.id === dayId) + 1}` : '';
+      a.href = url; a.download = `${project.code || 'call-sheet'}${dayLabel}.pdf`;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    } catch (e) { alert('Could not generate PDF: ' + e.message); }
+    finally { setDownloading(false); }
+  }
 
   const menuItem = { display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none', color: 'var(--text)', fontSize: 12, padding: '9px 14px', cursor: 'pointer', whiteSpace: 'nowrap' };
   const hoverOn = e => { e.currentTarget.style.background = 'var(--bg3)'; };
@@ -232,18 +243,18 @@ export default function CallSheet() {
         <div style={{ fontSize: 13, fontWeight: 800 }}>Call Sheet — {project.code} <span style={{ color: 'var(--muted)', fontWeight: 400 }}>{project.title}</span></div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <div style={{ position: 'relative' }}>
-            <button onClick={() => setMenuOpen(o => !o)} className="btn btn-primary btn-sm">📄 Download PDF ▾</button>
+            <button onClick={() => setMenuOpen(o => !o)} disabled={downloading} className="btn btn-primary btn-sm">{downloading ? 'Generating…' : '📄 Download PDF ▾'}</button>
             {menuOpen && (
               <>
                 <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
                 <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 4px)', zIndex: 50, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8, minWidth: 250, boxShadow: '0 10px 28px rgba(0,0,0,0.35)', overflow: 'hidden', maxHeight: 380, overflowY: 'auto' }}>
                   <button style={{ ...menuItem, fontWeight: 700, borderBottom: '1px solid var(--border)' }} onMouseEnter={hoverOn} onMouseLeave={hoverOff}
-                    onClick={() => { setMenuOpen(false); setPrintScope('all'); }}>
+                    onClick={() => downloadPdf(null)}>
                     All days ({sheetDays.length})
                   </button>
                   {sheetDays.map((d, i) => (
                     <button key={d.id} style={menuItem} onMouseEnter={hoverOn} onMouseLeave={hoverOff}
-                      onClick={() => { setMenuOpen(false); setPrintScope(d.id); }}>
+                      onClick={() => downloadPdf(d.id)}>
                       Day {i + 1} — {fmtLongDate(d.date)}
                     </button>
                   ))}
@@ -256,15 +267,12 @@ export default function CallSheet() {
       </div>
       <div className="callsheet-print" style={{ padding: '18px 16px 60px' }}>
         {sheetDays.length === 0 && <div className="empty">No shoot days with call times or a schedule yet — fill those in on the Schedule tab.</div>}
-        {printSheets.map((day, i) => {
-          const origIndex = sheetDays.findIndex(d => d.id === day.id);
-          return (
-            <DaySheet key={day.id} project={project} techSpecs={project.techSpecs} locations={locations}
-              keyTalent={keyTalent} clientContacts={clientContacts} crew={crew}
-              day={day} dayIndex={origIndex} dayCount={sheetDays.length}
-              isFirst={i === 0} isLast={i === printSheets.length - 1} nameById={nameById} />
-          );
-        })}
+        {sheetDays.map((day, i) => (
+          <DaySheet key={day.id} project={project} techSpecs={project.techSpecs} locations={locations}
+            keyTalent={keyTalent} clientContacts={clientContacts} crew={crew}
+            day={day} dayIndex={i} dayCount={sheetDays.length}
+            isFirst={i === 0} isLast={i === sheetDays.length - 1} nameById={nameById} />
+        ))}
       </div>
     </div>
   );
