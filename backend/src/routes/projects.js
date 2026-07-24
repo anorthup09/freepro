@@ -380,10 +380,20 @@ router.post('/:id/locations/:lid/nearest-hospital', requireAuth, requireRole('AD
     res.json(updated);
   } catch(e){next(e);}
 });
+// Ranked list of nearby major hospitals (with driving distance + a map) for the
+// picker on shooting locations. The user chooses which one to save.
+router.get('/:id/locations/:lid/hospital-options', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try {
+    const { hospitalOptions } = require('../lib/hospital');
+    const [loc] = await sql`SELECT * FROM locations WHERE id=${req.params.lid} AND project_id=${req.params.id}`;
+    if (!loc) return res.status(404).json({ error: 'Location not found' });
+    if (!loc.address) return res.json({ origin: null, options: [], mapDataUrl: null });
+    res.json(await hospitalOptions(loc.address));
+  } catch(e){next(e);}
+});
 router.delete('/:id/locations/:lid', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try { await sql`DELETE FROM locations WHERE id = ${req.params.lid}`; res.status(204).end(); } catch(e){next(e);}
 });
-
 // ─── Tech Specs ──────────────────────────────────────────────────────────────
 router.put('/:id/tech-specs', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {

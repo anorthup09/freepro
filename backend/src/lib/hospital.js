@@ -108,4 +108,91 @@ async function nearestHospital(address) {
   return { name: t.name, address: addr };
 }
 
-module.exports = { nearestHospital, geocode };
+// Driving distance/time from one origin to many destinations (Google only).
+async function drivingDistances(origin, dests) {
+  if (!KEY() || !dests.length) return dests.map(() => null);
+  try {
+    const destStr = dests.map(d => `${d.lat},${d.lon}`).join('|');
+    const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${origin.lat},${origin.lon}&destinations=${encodeURIComponent(destStr)}&units=imperial&mode=driving&key=${KEY()}`;
+    const r = await fetch(url, { signal: AbortSignal.timeout(9000) });
+    const els = (await r.json())?.rows?.[0]?.elements || [];
+    return dests.map((_, i) => {
+      const el = els[i];
+      if (!el || el.status !== 'OK' || !el.distance) return null;
+      return { miles: Math.round((el.distance.value / 1609.34) * 10) / 10, minutes: Math.round(el.duration.value / 60) };
+    });
+  } catch { return dests.map(() => null); }
+}
+
+// Fetch a Google Static Map (shoot pin + numbered hospital pins) server-side and
+// return it as a data: URL so the API key never reaches the browser.
+async function staticMapDataUrl(origin, options) {
+  if (!KEY() || !origin) return null;
+  try {
+    const markers = [`markers=${encodeURIComponent('color:red|label:S|' + origin.lat + ',' + origin.lon)}`];
+    options.forEach((o, i) => markers.push(`markers=${encodeURIComponent('color:0x2b78e4|label:' + (i + 1) + '|' + o.lat + ',' + o.lon)}`));
+    const url = `https://maps.googleapis.com/maps/api/staticmap?size=620x300&scale=2&${markers.join('&')}&key=${KEY()}`;
+    const r = await fetch(url, { signal: AbortSignal.timeout(9000) });
+    if (!r.ok) return null;
+    const buf = Buffer.from(await r.arrayBuffer());
+    return `data:${r.headers.get('content-type') || 'image/png'};base64,${buf.toString('base64')}`;
+  } catch { return null; }
+}
+
+// Returns a short ranked list of nearby major hospitals for the picker:
+// { origin:{lat,lon}, options:[{name,address,lat,lon,miles,minutes,driving}], mapDataUrl }.
+async function hospitalOptions(address, limit = 3) {
+  const pt = await geocode(address);
+  if (!pt) return { origin: null, options: [], mapDataUrl: null };
+  let candidates = [];
+  if (KEY()) {
+    try {
+      const places = async keyword => {
+        const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${pt.lat},${pt.lon}&rankby=distance&type=hospital${keyword ? `&keyword=${encodeURIComponent(keyword)}` : ''}&key=${KEY()}`;
+        const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
+        return (await r.json())?.results || [];
+      };
+      const ok = p => p?.name && (p.types || []).includes('hospital')
+        && (p.business_status ? p.business_status === 'OPERATIONAL' : true) && !NOT_ER.test(p.name);
+      const seen = new Set();
+      const all = [...(await places('hospital emergency room')), ...(await places())]
+        .filter(ok)
+        .filter(p => (p.place_id && seen.has(p.place_id)) ? false : (p.place_id && seen.add(p.place_id), true))
+        .map(p => ({
+          name: p.name, address: p.vicinity || '',
+          lat: p.geometry?.location?.lat, lon: p.geometry?.location?.lng,
+          major: IS_MAJOR.test(p.name) || (p.user_ratings_total || 0) >= 80,
+        }))
+        .filter(c => c.lat != null);
+      all.forEach(c => { c.crow = haversine(pt.lat, pt.lon, c.lat, c.lon); });
+      all.sort((a, b) => a.crow - b.crow);
+      const majors = all.filter(c => c.major);
+      candidates = (majors.length ? majors : all).slice(0, 6);
+    } catch { candidates = []; }
+  }
+  if (!candidates.length) {
+    // OpenStreetMap fallback (no driving distances without a key).
+    const els = await overpassHospitals(pt.lat, pt.lon);
+    candidates = els.map(e => {
+      const la = e.lat ?? e.center?.lat, lo = e.lon ?? e.center?.lon;
+      if (la == null || !e.tags?.name || NOT_ER.test(e.tags.name) || e.tags.emergency === 'no') return null;
+      const t = e.tags;
+      const street = t['addr:housenumber'] && t['addr:street'] ? `${t['addr:housenumber']} ${t['addr:street']}` : t['addr:street'];
+      const addr = [street, t['addr:city'], t['addr:state'], t['addr:postcode']].filter(Boolean).join(', ');
+      return { name: t.name, address: addr, lat: la, lon: lo, major: t.emergency === 'yes' || IS_MAJOR.test(t.name), crow: haversine(pt.lat, pt.lon, la, lo) };
+    }).filter(Boolean).sort((a, b) => (Number(b.major) - Number(a.major)) || (a.crow - b.crow)).slice(0, 6);
+  }
+  const dm = await drivingDistances(pt, candidates);
+  candidates.forEach((c, i) => {
+    if (dm[i]) { c.miles = dm[i].miles; c.minutes = dm[i].minutes; c.driving = true; }
+    else { c.miles = Math.round((c.crow / 1609.34) * 10) / 10; c.minutes = null; c.driving = false; }
+  });
+  candidates.sort((a, b) => a.miles - b.miles);
+  const options = candidates.slice(0, limit).map(c => ({
+    name: c.name, address: c.address, lat: c.lat, lon: c.lon, miles: c.miles, minutes: c.minutes, driving: !!c.driving,
+  }));
+  const mapDataUrl = await staticMapDataUrl(pt, options);
+  return { origin: pt, options, mapDataUrl };
+}
+
+module.exports = { nearestHospital, hospitalOptions, geocode };

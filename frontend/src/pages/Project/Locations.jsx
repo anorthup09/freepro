@@ -80,17 +80,40 @@ export default function Locations({ project, setProject }) {
   const [editLocId, setEditLocId] = useState(null);
   const [locForm, setLocForm] = useState(BLANK_LOC);
   const [uploading, setUploading] = useState({});
-  const [hospBusy, setHospBusy] = useState({});
   const fileRefs = useRef({});
+  const [hospPick, setHospPick] = useState(null);      // { locId, locName }
+  const [hospData, setHospData] = useState(null);      // { origin, options, mapDataUrl, error }
+  const [hospLoading, setHospLoading] = useState(false);
+  const [hospSaving, setHospSaving] = useState(false);
 
-  // Auto-source the nearest hospital (ER) into a shooting location's notes.
-  async function sourceHospital(locId) {
-    setHospBusy(b => ({ ...b, [locId]: true }));
+  // Open the nearest-hospital picker for a shooting location and load options.
+  async function openHospPicker(loc) {
+    setHospPick({ locId: loc.id, locName: loc.name });
+    setHospData(null); setHospLoading(true);
+    try { setHospData(await api.hospitalOptions(project.id, loc.id)); }
+    catch (e) { setHospData({ options: [], error: e.message }); }
+    finally { setHospLoading(false); }
+  }
+
+  // Save the chosen hospital into the location's notes.
+  async function chooseHospital(opt) {
+    if (!hospPick) return;
+    const note = `Nearest Hospital: ${opt.name}${opt.address ? ' — ' + opt.address : ''}`;
+    setHospSaving(true);
     try {
-      const loc = await api.nearestHospital(project.id, locId);
-      setProject(p => ({ ...p, locations: p.locations.map(l => l.id === locId ? loc : l) }));
-    } catch { /* leave notes as-is on failure */ }
-    finally { setHospBusy(b => ({ ...b, [locId]: false })); }
+      const loc = await api.updateLocation(project.id, hospPick.locId, { notes: note });
+      setProject(p => ({ ...p, locations: p.locations.map(l => l.id === loc.id ? loc : l) }));
+      setHospPick(null); setHospData(null);
+    } catch (e) { alert(e.message); }
+    finally { setHospSaving(false); }
+  }
+
+  // Clear the saved hospital.
+  async function clearHospital(locId) {
+    try {
+      const loc = await api.updateLocation(project.id, locId, { notes: '' });
+      setProject(p => ({ ...p, locations: p.locations.map(l => l.id === loc.id ? loc : l) }));
+    } catch (e) { alert(e.message); }
   }
 
   // Attach / replace a floor plan or space map on an existing location tile
@@ -125,11 +148,6 @@ export default function Locations({ project, setProject }) {
         setProject(p => ({ ...p, locations: [...(p.locations || []), saved] }));
       }
       setShowLocModal(false); setEditLocId(null); setLocForm(BLANK_LOC);
-      // Shooting locations auto-source the nearest ER into their notes for the call sheet.
-      if (saved && saved.type === 'PRIMARY_VENUE' && saved.address
-          && !/nearest hospital/i.test(saved.notes || '')) {
-        sourceHospital(saved.id);
-      }
     } catch (e) { alert(e.message); }
   }
 
@@ -186,17 +204,18 @@ export default function Locations({ project, setProject }) {
                     </div>
                   </div>
                   {l.arrival_notes && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 6, whiteSpace: 'pre-wrap' }}><span style={{ fontWeight: 700, color: 'var(--tan)' }}>Arrival: </span>{l.arrival_notes}</div>}
-                  {/* Nearest hospital — auto-sourced for shooting locations, flows to the call sheet */}
+                  {/* Nearest hospital — pick from a map of nearby major hospitals; flows to the call sheet */}
                   {type === 'PRIMARY_VENUE' && (
-                    <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 6, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 6, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                       <span>🏥</span>
-                      {hospBusy[l.id]
-                        ? <span style={{ fontStyle: 'italic' }}>Finding nearest hospital…</span>
-                        : l.notes
-                          ? <span><span style={{ fontWeight: 700, color: 'var(--tan)' }}>{l.notes.replace(/^Nearest Hospital:\s*/i, 'Nearest Hospital: ')}</span></span>
-                          : <span style={{ fontStyle: 'italic' }}>No hospital sourced yet</span>}
-                      <button title="Re-source the nearest hospital" onClick={() => sourceHospital(l.id)} disabled={hospBusy[l.id]}
-                        style={{ background: 'none', border: 'none', color: 'var(--tan)', cursor: 'pointer', fontSize: 11, padding: 0 }}>↻</button>
+                      {l.notes
+                        ? <span style={{ fontWeight: 700, color: 'var(--tan)' }}>{l.notes.replace(/^Nearest Hospital:\s*/i, 'Nearest Hospital: ')}</span>
+                        : <span style={{ fontStyle: 'italic' }}>No hospital selected</span>}
+                      <button className="btn btn-ghost btn-sm" style={{ fontSize: 10, padding: '2px 8px' }} onClick={() => openHospPicker(l)}>
+                        {l.notes ? 'Change' : 'Nearest Hospital'}
+                      </button>
+                      {l.notes && <button title="Clear" onClick={() => clearHospital(l.id)}
+                        style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', fontSize: 11, padding: 0 }}>✕</button>}
                     </div>
                   )}
                   {l.space_map && (
@@ -250,6 +269,49 @@ export default function Locations({ project, setProject }) {
               </div>
               <div className="btn-row"><button className="btn btn-primary">{editLocId ? 'Save Changes' : 'Add Location'}</button><button type="button" className="btn btn-ghost" onClick={() => { setShowLocModal(false); setEditLocId(null); setLocForm(BLANK_LOC); }}>Cancel</button></div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Nearest-hospital picker: map of the shoot + nearby major hospitals to choose from */}
+      {hospPick && (
+        <div className="modal-bg" onClick={e => e.target === e.currentTarget && (setHospPick(null), setHospData(null))}>
+          <div className="modal" style={{ maxWidth: 620 }}>
+            <div className="modal-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+              <span>Nearest Hospital — {hospPick.locName}</span>
+              <button onClick={() => { setHospPick(null); setHospData(null); }} style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', fontSize: 16 }}>✕</button>
+            </div>
+            {hospLoading && <div className="empty">Finding nearby hospitals…</div>}
+            {!hospLoading && hospData && (
+              <>
+                {hospData.mapDataUrl && (
+                  <img src={hospData.mapDataUrl} alt="Map of the shoot location and nearby hospitals"
+                    style={{ width: '100%', borderRadius: 8, border: '1px solid var(--border)', display: 'block', marginBottom: 12 }} />
+                )}
+                {(hospData.options || []).length === 0 && (
+                  <div className="empty">{hospData.error ? `Couldn't load hospitals: ${hospData.error}` : 'No hospitals found near this address.'}</div>
+                )}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {(hospData.options || []).map((o, i) => (
+                    <button key={i} onClick={() => chooseHospital(o)} disabled={hospSaving}
+                      style={{ display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px', cursor: hospSaving ? 'default' : 'pointer', width: '100%' }}
+                      onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--orange)'}
+                      onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}>
+                      <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: '50%', background: '#2b78e4', color: '#fff', fontSize: 12, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{i + 1}</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{o.name}</div>
+                        {o.address && <div style={{ fontSize: 11, color: 'var(--muted)' }}>{o.address}</div>}
+                      </div>
+                      <div style={{ flexShrink: 0, textAlign: 'right' }}>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--tan)' }}>{o.miles} mi</div>
+                        <div style={{ fontSize: 10, color: 'var(--muted)' }}>{o.driving ? (o.minutes != null ? `${o.minutes} min drive` : 'driving') : 'approx.'}</div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 10 }}>📍 S marks the shoot location. Pick a hospital to save it to this location and the call sheet.</div>
+              </>
+            )}
           </div>
         </div>
       )}
