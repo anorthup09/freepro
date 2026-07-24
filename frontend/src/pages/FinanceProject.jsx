@@ -655,9 +655,18 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
   const [revealed, setRevealed] = useState({});
 
   const patchLine = (id, fields) => set(d => ({ lines: d.lines.map(l => l.id === id ? { ...l, ...fields } : l) }));
-  const saveLine = (id, data) => api.updateBudgetLine(id, data).catch(e => alert(e.message));
+  // Saves are optimistic — if the background write fails, snap the UI back to the
+  // database so the screen can't show a value that isn't actually saved (which is
+  // what silently drifted the shared budget out of sync with the live one).
+  const saveLine = async (id, data) => {
+    try { await api.updateBudgetLine(id, data); }
+    catch (e) { alert(`Couldn't save that change — reverting to the last saved value.\n\n${e.message}`); if (reload) reload(); }
+  };
   const patchBudget = (fields) => set(d => ({ budget: { ...d.budget, ...fields } }));
-  const saveBudget = (data) => api.updateBudget(budget.id, data).catch(e => alert(e.message));
+  const saveBudget = async (data) => {
+    try { await api.updateBudget(budget.id, data); }
+    catch (e) { alert(`Couldn't save that change — reverting to the last saved value.\n\n${e.message}`); if (reload) reload(); }
+  };
 
   async function addLine(sid, isTravel) {
     const l = await api.addBudgetLine(sid, { isTravel });
