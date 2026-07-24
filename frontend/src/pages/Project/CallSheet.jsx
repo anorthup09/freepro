@@ -83,7 +83,7 @@ function DaySheet({ project, techSpecs, locations, keyTalent, clientContacts, cr
           {time('Wrap', day.wrap_time)}
         </div>
         {weatherBits.length > 0 && (
-          <div style={{ flex: '0 0 auto', width: 138, fontSize: 10, color: 'var(--muted)' }}>
+          <div style={{ flex: '0 0 auto', width: 138, fontSize: 10, color: 'var(--muted)', textAlign: 'right' }}>
             <div style={{ fontSize: 9, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--tan)', marginBottom: 2 }}>Weather</div>
             {weatherBits.map((w, i) => <div key={i}>{w}</div>)}
           </div>
