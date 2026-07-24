@@ -56,6 +56,14 @@ function DaySheet({ project, techSpecs, locations, keyTalent, clientContacts, cr
     techSpecs?.aspect_ratio, techSpecs?.resolution, techSpecs?.frame_rate ? `${techSpecs.frame_rate} fps` : null,
   ].filter(Boolean);
   const events = [...(day.events || [])].sort((a, b) => String(a.start_time || '').localeCompare(String(b.start_time || '')));
+  // Only show locations tagged in THIS day's schedule — its events and its
+  // call/shooting/lunch/wrap pins. An airport (or any venue) not referenced by
+  // the day is left off that day's sheet.
+  const taggedLocIds = new Set([
+    ...(day.events || []).map(e => e.location_id),
+    day.call_time_location_id, day.shooting_call_location_id, day.lunch_location_id, day.wrap_time_location_id,
+  ].filter(Boolean));
+  const dayLocations = locations.filter(l => taggedLocIds.has(l.id));
 
   return (
     <div style={{ maxWidth: 900, margin: '0 auto 26px', paddingTop: isFirst ? 0 : '0.4in', pageBreakAfter: isLast ? 'auto' : 'always' }}>
@@ -82,8 +90,8 @@ function DaySheet({ project, techSpecs, locations, keyTalent, clientContacts, cr
         )}
       </div>
 
-      {/* ── Locations (type + arrival + nearest hospital folded under the name) ── */}
-      {locations.length > 0 && <>
+      {/* ── Locations tagged in this day's schedule (type + arrival + hospital under name) ── */}
+      {dayLocations.length > 0 && <>
         <div style={sectionLbl}>Locations</div>
         <SimpleTable
           cols={[
@@ -101,7 +109,7 @@ function DaySheet({ project, techSpecs, locations, keyTalent, clientContacts, cr
             ) },
             { key: 'address', label: 'Address', render: l => stripName(l.address, l.name) },
           ]}
-          rows={locations}
+          rows={dayLocations}
         />
       </>}
 
