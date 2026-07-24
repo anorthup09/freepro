@@ -59,24 +59,24 @@ function DaySheet({ project, techSpecs, locations, keyTalent, clientContacts, cr
 
   return (
     <div style={{ maxWidth: 900, margin: '0 auto 26px', paddingTop: isFirst ? 0 : '0.4in', pageBreakAfter: isLast ? 'auto' : 'always' }}>
-      {/* ── Header ── */}
-      <div style={{ ...box, borderTop: '3px solid var(--orange)', padding: '14px 18px', display: 'flex', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap' }}>
-        <div style={{ minWidth: 240 }}>
-          <div style={{ fontSize: 9, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--orange)' }}>Shoot Day {dayIndex + 1} of {dayCount}</div>
-          <div style={{ fontSize: 20, fontWeight: 800, lineHeight: 1.15, margin: '2px 0' }}>{project.title}</div>
-          <div style={{ fontSize: 11, color: 'var(--muted)' }}>{project.code}{project.client ? ` · ${project.client}` : ''}</div>
-          <div style={{ fontSize: 12, fontWeight: 700, marginTop: 4 }}>{fmtLongDate(day.date)}</div>
-          {specBits.length > 0 && <div style={{ fontSize: 10.5, color: 'var(--muted)', marginTop: 6 }}><b style={{ color: 'var(--tan)' }}>Tech Specs:</b> {specBits.join(' · ')}</div>}
+      {/* ── Header: general info (left) · timing (middle) · weather (right) ── */}
+      <div style={{ ...box, borderTop: '3px solid var(--orange)', padding: '11px 15px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
+        <div style={{ flex: '1 1 auto', minWidth: 0 }}>
+          <div style={{ fontSize: 8.5, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--orange)' }}>Shoot Day {dayIndex + 1} of {dayCount}</div>
+          <div style={{ fontSize: 16, fontWeight: 800, lineHeight: 1.12, margin: '1px 0' }}>{project.title}</div>
+          <div style={{ fontSize: 10, color: 'var(--muted)' }}>{project.code}{project.client ? ` · ${project.client}` : ''}</div>
+          <div style={{ fontSize: 10.5, fontWeight: 700, marginTop: 2 }}>{fmtLongDate(day.date)}</div>
+          {specBits.length > 0 && <div style={{ fontSize: 9, color: 'var(--muted)', marginTop: 3 }}><b style={{ color: 'var(--tan)' }}>Tech Specs:</b> {specBits.join(' · ')}</div>}
         </div>
-        <div style={{ minWidth: 180 }}>
+        <div style={{ flex: '0 0 auto', width: 150 }}>
           {time('Crew Call', day.call_time)}
           {time('Shooting Call', day.shooting_call_time)}
           {time('Lunch', day.lunch_time)}
           {time('Wrap', day.wrap_time)}
         </div>
         {weatherBits.length > 0 && (
-          <div style={{ minWidth: 150, fontSize: 10.5, color: 'var(--muted)' }}>
-            <div style={{ fontSize: 9.5, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--tan)', marginBottom: 3 }}>Weather</div>
+          <div style={{ flex: '0 0 auto', width: 138, fontSize: 10, color: 'var(--muted)' }}>
+            <div style={{ fontSize: 9, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--tan)', marginBottom: 2 }}>Weather</div>
             {weatherBits.map((w, i) => <div key={i}>{w}</div>)}
           </div>
         )}
@@ -246,7 +246,7 @@ export default function CallSheet() {
           <Link to={`/projects/${id}`} className="btn btn-ghost btn-sm" style={{ textDecoration: 'none' }}>‹ Back to Project</Link>
         </div>
       </div>
-      <div style={{ padding: '18px 16px 60px' }}>
+      <div className="callsheet-print" style={{ padding: '18px 16px 60px' }}>
         {sheetDays.length === 0 && <div className="empty">No shoot days with call times or a schedule yet — fill those in on the Schedule tab.</div>}
         {printSheets.map((day, i) => {
           const origIndex = sheetDays.findIndex(d => d.id === day.id);

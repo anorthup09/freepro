@@ -478,6 +478,8 @@ textarea { resize: vertical; min-height: 70px; }
   html, body { background: #fff !important; }
   body { padding: 0.45in 0.55in !important; }
   .wrap { padding: 0 !important; }
+  /* Call sheet reclaims the side margins to fit more per page */
+  .callsheet-print { margin-left: -0.28in !important; margin-right: -0.28in !important; padding-left: 0 !important; padding-right: 0 !important; }
   button:has(.jump-sched-label) { display: none !important; }
   /* Shot list: printed as a clean report — darker ink for easy scanning */
   .sl-day-tiles { background: #e2e2e2 !important; border: 1px solid #999 !important; }
