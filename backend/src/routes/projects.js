@@ -391,6 +391,16 @@ router.get('/:id/locations/:lid/hospital-options', requireAuth, requireRole('ADM
     res.json(await hospitalOptions(loc.address));
   } catch(e){next(e);}
 });
+// Manual hospital lookup — resolve a typed name to a real place (address +
+// driving distance) near the shoot location.
+router.get('/:id/locations/:lid/hospital-lookup', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try {
+    const { resolveHospital } = require('../lib/hospital');
+    const [loc] = await sql`SELECT * FROM locations WHERE id=${req.params.lid} AND project_id=${req.params.id}`;
+    if (!loc) return res.status(404).json({ error: 'Location not found' });
+    res.json({ result: await resolveHospital(loc.address, String(req.query.q || '')) });
+  } catch(e){next(e);}
+});
 router.delete('/:id/locations/:lid', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try { await sql`DELETE FROM locations WHERE id = ${req.params.lid}`; res.status(204).end(); } catch(e){next(e);}
 });

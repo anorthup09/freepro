@@ -195,4 +195,39 @@ async function hospitalOptions(address, limit = 3) {
   return { origin: pt, options, mapDataUrl };
 }
 
-module.exports = { nearestHospital, hospitalOptions, geocode };
+// Resolve a manually-typed hospital name to a real place near the shoot,
+// auto-filling its address and driving distance. Returns a single option or null.
+async function resolveHospital(address, query) {
+  if (!query || !query.trim()) return null;
+  const pt = await geocode(address);
+  if (KEY()) {
+    try {
+      let url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&type=hospital&key=${KEY()}`;
+      if (pt) url += `&location=${pt.lat},${pt.lon}&radius=50000`;
+      const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
+      const p = (await r.json())?.results?.[0];
+      if (p?.name && p.geometry?.location) {
+        const dest = { lat: p.geometry.location.lat, lon: p.geometry.location.lng };
+        let miles = pt ? Math.round(haversine(pt.lat, pt.lon, dest.lat, dest.lon) / 1609.34 * 10) / 10 : null;
+        let minutes = null, driving = false;
+        if (pt) {
+          const dm = await drivingDistances(pt, [dest]);
+          if (dm[0]) { miles = dm[0].miles; minutes = dm[0].minutes; driving = true; }
+        }
+        return { name: p.name, address: p.formatted_address || p.vicinity || '', lat: dest.lat, lon: dest.lon, miles, minutes, driving };
+      }
+    } catch { /* fall through to OSM */ }
+  }
+  try {
+    const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&addressdetails=1`, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(8000) });
+    const j = await r.json();
+    if (Array.isArray(j) && j[0]) {
+      const dest = { lat: Number(j[0].lat), lon: Number(j[0].lon) };
+      const miles = pt ? Math.round(haversine(pt.lat, pt.lon, dest.lat, dest.lon) / 1609.34 * 10) / 10 : null;
+      return { name: j[0].name || query.trim(), address: j[0].display_name || '', lat: dest.lat, lon: dest.lon, miles, minutes: null, driving: false };
+    }
+  } catch { /* none */ }
+  return null;
+}
+
+module.exports = { nearestHospital, hospitalOptions, resolveHospital, geocode };

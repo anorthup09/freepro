@@ -261,6 +261,7 @@ export const api = {
   deleteLocation: (projectId, id) => req('DELETE', `/projects/${projectId}/locations/${id}`),
   nearestHospital: (projectId, id) => req('POST', `/projects/${projectId}/locations/${id}/nearest-hospital`),
   hospitalOptions: (projectId, id) => req('GET', `/projects/${projectId}/locations/${id}/hospital-options`),
+  hospitalLookup: (projectId, id, q) => req('GET', `/projects/${projectId}/locations/${id}/hospital-lookup?q=${encodeURIComponent(q)}`),
 
   // Tech specs
   saveTechSpecs: (projectId, data) => req('PUT', `/projects/${projectId}/tech-specs`, data),

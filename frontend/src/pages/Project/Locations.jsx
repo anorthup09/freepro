@@ -85,14 +85,29 @@ export default function Locations({ project, setProject }) {
   const [hospData, setHospData] = useState(null);      // { origin, options, mapDataUrl, error }
   const [hospLoading, setHospLoading] = useState(false);
   const [hospSaving, setHospSaving] = useState(false);
+  const [manualQ, setManualQ] = useState('');
+  const [manualResult, setManualResult] = useState(null);  // null | 'none' | {name,address,miles,…}
+  const [manualBusy, setManualBusy] = useState(false);
 
   // Open the nearest-hospital picker for a shooting location and load options.
   async function openHospPicker(loc) {
     setHospPick({ locId: loc.id, locName: loc.name });
     setHospData(null); setHospLoading(true);
+    setManualQ(''); setManualResult(null); setManualBusy(false);
     try { setHospData(await api.hospitalOptions(project.id, loc.id)); }
     catch (e) { setHospData({ options: [], error: e.message }); }
     finally { setHospLoading(false); }
+  }
+
+  // Resolve a manually-typed hospital name to a real place (address + distance).
+  async function lookupManual() {
+    if (!manualQ.trim() || !hospPick) return;
+    setManualBusy(true); setManualResult(null);
+    try {
+      const { result } = await api.hospitalLookup(project.id, hospPick.locId, manualQ.trim());
+      setManualResult(result || 'none');
+    } catch (e) { alert(e.message); }
+    finally { setManualBusy(false); }
   }
 
   // Save the chosen hospital into the location's notes.
@@ -308,6 +323,42 @@ export default function Locations({ project, setProject }) {
                       </div>
                     </button>
                   ))}
+                </div>
+                {/* Manual entry — type a hospital, auto-fill its address + distance */}
+                <div style={{ borderTop: '1px solid var(--border)', marginTop: 12, paddingTop: 12 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)', marginBottom: 6 }}>Or enter a hospital manually</div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <input value={manualQ} onChange={e => setManualQ(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), lookupManual())}
+                      placeholder="Hospital name (e.g. Scripps Mercy Hospital)" style={{ flex: 1 }} />
+                    <button className="btn btn-ghost btn-sm" onClick={lookupManual} disabled={manualBusy || !manualQ.trim()} style={{ whiteSpace: 'nowrap' }}>
+                      {manualBusy ? 'Looking up…' : 'Look up'}
+                    </button>
+                  </div>
+                  {manualResult === 'none' && (
+                    <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 8 }}>
+                      No match found.{' '}
+                      <button onClick={() => chooseHospital({ name: manualQ.trim(), address: '' })} disabled={hospSaving}
+                        style={{ background: 'none', border: 'none', color: 'var(--tan)', cursor: 'pointer', fontSize: 11, textDecoration: 'underline', padding: 0 }}>
+                        Save “{manualQ.trim()}” as typed
+                      </button>
+                    </div>
+                  )}
+                  {manualResult && manualResult !== 'none' && (
+                    <button onClick={() => chooseHospital(manualResult)} disabled={hospSaving}
+                      style={{ display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', width: '100%', marginTop: 8, background: 'var(--bg2)', border: '1px solid var(--tan)', borderRadius: 8, padding: '10px 12px', cursor: hospSaving ? 'default' : 'pointer' }}>
+                      <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: '50%', background: '#5ABF80', color: '#0b0b0b', fontSize: 13, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✓</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{manualResult.name}</div>
+                        {manualResult.address && <div style={{ fontSize: 11, color: 'var(--muted)' }}>{manualResult.address}</div>}
+                      </div>
+                      {manualResult.miles != null && (
+                        <div style={{ flexShrink: 0, textAlign: 'right' }}>
+                          <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--tan)' }}>{manualResult.miles} mi</div>
+                          <div style={{ fontSize: 10, color: 'var(--muted)' }}>{manualResult.driving ? (manualResult.minutes != null ? `${manualResult.minutes} min drive` : 'driving') : 'approx.'}</div>
+                        </div>
+                      )}
+                    </button>
+                  )}
                 </div>
                 <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 10 }}>📍 S marks the shoot location. Pick a hospital to save it to this location and the call sheet.</div>
               </>
