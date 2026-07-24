@@ -52,9 +52,9 @@ async function overpassHospitals(lat, lon) {
   return [];
 }
 
-// Businesses that carry a "hospital"-ish tag but are NOT ER hospitals — we skip
-// these so the call sheet points at a real emergency department.
-const NOT_ER = /cryo|cryogenic|cryotherap|clinic|urgent care|immediate care|walk-?in|veterinar|animal|pet |dental|dentist|orthodont|chiropract|physical therapy|\brehab|rehabilitation|surg(ery|ical) cent|outpatient|ambulatory|imaging|radiolog|\blabs?\b|laborator|pharmac|hospice|behavioral|psychiatr|mental health|\beye\b|vision|optical|wellness|med ?spa|fertility|ivf|plastic surg|dermatolog|urology|cardiolog|orthopedic|cancer cent|oncolog|dialysis|blood|plasma|birth(ing)? cent|nursing home|assisted living/i;
+// Businesses that carry a "hospital"-ish tag but are NOT full ER hospitals — we
+// skip these so the call sheet points at a real emergency department.
+const NOT_ER = /cryo|cryogenic|cryotherap|clinic|urgent care|immediate care|walk-?in|veterinar|animal|pet |dental|dentist|orthodont|chiropract|physical therapy|\brehab|rehabilitation|surg(ery|ical) cent|surgical hospital|specialty (hospital|surgical|care)|long.?term acute|\bltac\b|select specialty|kindred|outpatient|ambulatory|endoscopy|infusion|sleep (center|disorder|medicine)|primary care|family (medicine|practice)|imaging|radiolog|\blabs?\b|laborator|pharmac|hospice|behavioral|psychiatr|mental health|\beye\b|vision|optical|wellness|med ?spa|fertility|ivf|plastic surg|dermatolog|urology|cardiolog|orthopedic|cancer cent|oncolog|dialysis|blood|plasma|birth(ing)? cent|nursing home|assisted living/i;
 // Names that read like a real hospital / medical center with an ER.
 const IS_MAJOR = /hospital|medical cent|med(ical)? cntr|regional|memorial|health (system|center|cent)|university|\bmercy\b|\bsaint\b|\bst\.? |presbyterian|methodist|baptist|kaiser/i;
 
@@ -62,8 +62,10 @@ const IS_MAJOR = /hospital|medical cent|med(ical)? cntr|regional|memorial|health
 async function nearestHospital(address) {
   const pt = await geocode(address);
   if (!pt) return null;
-  // Google Places — bias to actual emergency rooms, then filter out non-ER
-  // medical businesses (cryogenics offices, clinics, urgent care, etc.).
+  // Google Places — gather nearby hospitals, drop non-ER medical businesses,
+  // then prefer the nearest that reads like a real full-service hospital. Small
+  // freestanding ERs and specialty facilities have few reviews and non-hospital
+  // names, so review volume + name are strong "is this a real hospital" signals.
   if (KEY()) {
     try {
       const places = async keyword => {
@@ -73,18 +75,28 @@ async function nearestHospital(address) {
       };
       const ok = p => p?.name && (p.types || []).includes('hospital')
         && (p.business_status ? p.business_status === 'OPERATIONAL' : true) && !NOT_ER.test(p.name);
-      // 1) nearest ER-branded hospital · 2) nearest "major" hospital · 3) nearest hospital
-      const byEr = (await places('emergency room')).filter(ok);
-      const byPlain = (await places()).filter(ok);
-      const pick = byEr[0] || byPlain.find(p => IS_MAJOR.test(p.name)) || byPlain[0] || byEr[0];
+      // Merge an ER-biased search with a plain hospital search, de-dupe, and
+      // sort by true distance (results are per-query distance-sorted, so a plain
+      // concat wouldn't be).
+      const seen = new Set();
+      const cands = [...(await places('hospital emergency room')), ...(await places())]
+        .filter(ok)
+        .filter(p => (p.place_id && seen.has(p.place_id)) ? false : (p.place_id && seen.add(p.place_id), true))
+        .map(p => ({ p, dist: p.geometry?.location ? haversine(pt.lat, pt.lon, p.geometry.location.lat, p.geometry.location.lng) : Infinity }))
+        .sort((a, b) => a.dist - b.dist);
+      // "Major" = hospital-like name OR the review volume of a real facility
+      // (small clinics/specialty ERs have a handful of reviews, not hundreds).
+      const major = x => IS_MAJOR.test(x.p.name) || (x.p.user_ratings_total || 0) >= 80;
+      const pick = (cands.find(major) || cands[0])?.p;
       if (pick?.name) return { name: pick.name, address: pick.vicinity || '' };
     } catch { /* fall through to OSM */ }
   }
-  // OpenStreetMap — nearest hospital with an ER, skipping non-ER businesses.
+  // OpenStreetMap — nearest hospital with an ER, skipping non-ER businesses and
+  // anything explicitly tagged as having no emergency department.
   const els = await overpassHospitals(pt.lat, pt.lon);
   const scored = els.map(e => {
     const la = e.lat ?? e.center?.lat, lo = e.lon ?? e.center?.lon;
-    if (la == null || !e.tags?.name || NOT_ER.test(e.tags.name)) return null;
+    if (la == null || !e.tags?.name || NOT_ER.test(e.tags.name) || e.tags.emergency === 'no') return null;
     return { dist: haversine(pt.lat, pt.lon, la, lo), tags: e.tags };
   }).filter(Boolean).sort((a, b) => a.dist - b.dist);
   if (!scored.length) return null;
