@@ -921,9 +921,9 @@ function HubProjects() {
   const recon = (projects || []).filter(p => ['reconcile', 'reconciled'].includes(norm(p.budget_status))).length;
 
   const stat = (n, label, color) => (
-    <div style={{ textAlign:'center', minWidth:70 }}>
-      <div style={{ fontSize:28, fontWeight:800, color, lineHeight:1 }}>{projects ? n : '—'}</div>
-      <div style={{ fontSize:9.5, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginTop:6 }}>{label}</div>
+    <div style={{ textAlign:'center', minWidth:54 }}>
+      <div style={{ fontSize:23, fontWeight:800, color, lineHeight:1 }}>{projects ? n : '—'}</div>
+      <div style={{ fontSize:8.5, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.05em', marginTop:3 }}>{label}</div>
     </div>
   );
 
@@ -1000,22 +1000,24 @@ function HubProjects() {
   );
   return (
     <div className="hub-hubs" style={{ gridTemplateColumns:'1fr 1fr' }}>
-      <div className="hub-hubtile" onClick={() => setExpanded('projects')} title="Expand Project Hub">
+      <div className="hub-hubtile" onClick={() => setExpanded('projects')} title="Expand Project Hub" style={{ padding:'13px 18px' }}>
         <button className="hub-expandbtn" onClick={e => { e.stopPropagation(); setExpanded('projects'); }}>+</button>
-        <div style={{ fontSize:15, fontWeight:800, marginBottom:18 }}>Project Hub</div>
-        <div style={{ display:'flex', gap:10, justifyContent:'flex-start' }}>
-          {stat(rfps, 'RFPs', '#c8873c')}
-          {stat(live, 'Live', 'var(--orange)')}
-          {stat(recon, 'Reconcile', '#c9bcaa')}
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, paddingRight:28 }}>
+          <div style={{ fontSize:14, fontWeight:800 }}>Project Hub</div>
+          <div style={{ display:'flex', gap:14 }}>
+            {stat(rfps, 'RFPs', '#c8873c')}
+            {stat(live, 'Live', 'var(--orange)')}
+            {stat(recon, 'Reconcile', '#c9bcaa')}
+          </div>
         </div>
       </div>
-      <div className="hub-hubtile neutral" onClick={() => setExpanded('clients')} title="Expand Client Hub">
+      <div className="hub-hubtile neutral" onClick={() => setExpanded('clients')} title="Expand Client Hub" style={{ padding:'13px 18px' }}>
         <button className="hub-expandbtn" onClick={e => { e.stopPropagation(); setExpanded('clients'); }}>+</button>
-        <div style={{ display:'flex', alignItems:'center', gap:14, height:'100%', paddingTop:4 }}>
-          <div style={{ width:46, height:46, borderRadius:12, background:'rgba(168,154,134,0.16)', color:'#c9bcaa', display:'flex', alignItems:'center', justifyContent:'center', fontSize:24, flexShrink:0 }}>◎</div>
+        <div style={{ display:'flex', alignItems:'center', gap:12, paddingRight:28 }}>
+          <div style={{ width:38, height:38, borderRadius:10, background:'rgba(168,154,134,0.16)', color:'#c9bcaa', display:'flex', alignItems:'center', justifyContent:'center', fontSize:21, flexShrink:0 }}>◎</div>
           <div>
-            <div style={{ fontSize:15, fontWeight:800 }}>Client Hub</div>
-            <div style={{ fontSize:11, color:'var(--muted)', marginTop:3 }}>{projects ? `${clients.length} client${clients.length !== 1 ? 's' : ''}` : '—'}</div>
+            <div style={{ fontSize:14, fontWeight:800 }}>Client Hub</div>
+            <div style={{ fontSize:10.5, color:'var(--muted)', marginTop:2 }}>{projects ? `${clients.length} client${clients.length !== 1 ? 's' : ''}` : '—'}</div>
           </div>
         </div>
       </div>
