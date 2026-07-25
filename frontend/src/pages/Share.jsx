@@ -2111,6 +2111,7 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, talentC
   });
   const now = useNow();
   const [driveTimes, setDriveTimes] = useState({});
+  const [openLoc, setOpenLoc] = useState({}); // event id → address map expanded
 
   // An event is "live" when today is this day and the current time falls
   // inside its block (no end time = the hour after it starts)
@@ -2461,33 +2462,47 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, talentC
                           <div className={`ev-title${item.is_alert ? ' alert' : ''}`}>{item.is_filming ? '🎬 ' : ''}{item.title}</div>
                           {item.detail && <div className="ev-detail">{item.detail}</div>}
                           {(item.room_space || loc) && (
-                            <div style={{ display:'flex', flexWrap:'wrap', gap:'2px 16px', marginTop:4, alignItems:'baseline' }}>
+                            <div style={{ display:'flex', flexWrap:'wrap', gap:'2px 16px', marginTop:4, alignItems:'center' }}>
                               {item.room_space && (
                                 <div style={{ fontSize:12, fontWeight:700, color:'var(--text)', overflowWrap:'anywhere' }}>
                                   <span style={{ fontWeight:400, color:'var(--muted)', fontSize:11 }}>Room/Space: </span>{item.room_space}
                                 </div>
                               )}
-                              {loc && <div style={{ fontSize:11, fontWeight:600, color:'var(--text)' }}>📍 {loc.name}</div>}
+                              {loc && (
+                                <button
+                                  onClick={loc.address ? (e => { e.stopPropagation(); setOpenLoc(o => ({ ...o, [item.id || i]: !o[item.id || i] })); }) : undefined}
+                                  className={`ev-pin${loc.address ? ' clickable' : ''}${openLoc[item.id || i] ? ' on' : ''}`}
+                                  title={loc.address ? 'Show address & map' : loc.name}>
+                                  <span style={{ fontSize:12 }}>📍</span>{loc.name}
+                                  {loc.address && <span className="ev-pin-caret">{openLoc[item.id || i] ? '▾' : '▸'}</span>}
+                                </button>
+                              )}
+                              {driveTime && (
+                                <a href={directionsUrl(prevAddr, thisAddr)} target="_blank" rel="noopener noreferrer"
+                                   onClick={e => e.stopPropagation()}
+                                   style={{ color:'var(--muted)', textDecoration:'none', fontSize:10, whiteSpace:'nowrap' }}>
+                                  🚗 {driveTime} from prev
+                                </a>
+                              )}
+                            </div>
+                          )}
+                          {loc?.address && openLoc[item.id || i] && (
+                            <div className="ev-loc-card">
+                              <div className="ev-loc-info">
+                                <div className="ev-loc-name">{loc.name}</div>
+                                <a href={mapsUrl(loc.address)} target="_blank" rel="noopener noreferrer"
+                                   onClick={e => e.stopPropagation()} className="ev-loc-addr">{loc.address}</a>
+                              </div>
+                              <a href={mapsUrl(loc.address)} target="_blank" rel="noopener noreferrer"
+                                 onClick={e => e.stopPropagation()} className="ev-loc-map">
+                                <iframe title={`Map — ${loc.name}`} loading="lazy"
+                                  src={`https://maps.google.com/maps?q=${encodeURIComponent(loc.address)}&z=15&output=embed`}
+                                  style={{ width:'100%', height:'100%', border:0, pointerEvents:'none', display:'block', position:'absolute', inset:0 }} />
+                                <span className="ev-loc-maptag">Maps ↗</span>
+                              </a>
                             </div>
                           )}
                         </div>
-                        {(loc?.address || driveTime) && (
-                          <div style={{ flex:'0 1 auto', marginLeft:'auto', maxWidth:'60%', display:'flex', flexDirection:'column', alignItems:'flex-end', gap:2, textAlign:'right' }}>
-                            {loc?.address && (
-                              <a href={directionsUrl('', loc.address)} target="_blank" rel="noopener noreferrer"
-                                 style={{ color:'#4a9eff', textDecoration:'none', fontSize:10, overflowWrap:'anywhere' }}
-                                 onClick={e => { e.stopPropagation(); window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loc.address)}`,'_blank'); e.preventDefault(); }}>
-                                {loc.address}
-                              </a>
-                            )}
-                            {driveTime && (
-                              <a href={directionsUrl(prevAddr, thisAddr)} target="_blank" rel="noopener noreferrer"
-                                 style={{ color:'var(--muted)', textDecoration:'none', fontSize:10, whiteSpace:'nowrap' }}>
-                                🚗 {driveTime} from prev
-                              </a>
-                            )}
-                          </div>
-                        )}
                       </div>
                       {item.is_filming && crewAssignments && (
                         <div style={{ display:'flex', justifyContent:'flex-end', marginTop:6 }}>
