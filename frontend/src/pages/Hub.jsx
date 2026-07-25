@@ -921,9 +921,9 @@ function HubProjects() {
   const recon = (projects || []).filter(p => ['reconcile', 'reconciled'].includes(norm(p.budget_status))).length;
 
   const stat = (n, label, color) => (
-    <div style={{ textAlign:'center', minWidth:54 }}>
-      <div style={{ fontSize:23, fontWeight:800, color, lineHeight:1 }}>{projects ? n : '—'}</div>
-      <div style={{ fontSize:8.5, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.05em', marginTop:3 }}>{label}</div>
+    <div style={{ textAlign:'center', minWidth:64 }}>
+      <div style={{ fontSize:26, fontWeight:800, color, lineHeight:1 }}>{projects ? n : '—'}</div>
+      <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.05em', marginTop:5 }}>{label}</div>
     </div>
   );
 
@@ -981,7 +981,7 @@ function HubProjects() {
   );
 
   if (expanded === 'projects') return (
-    <div className="hub-hubs" style={{ gridTemplateColumns:'1fr' }}>
+    <div className="hub-hubs hub-hubs-roll" style={{ gridTemplateColumns:'1fr' }}>
       <div className="hub-hubtile" style={{ cursor:'default' }}>
         <button className="hub-expandbtn" title="Collapse" onClick={() => setExpanded(null)}>–</button>
         <div style={{ fontSize:15, fontWeight:800, marginBottom:16 }}>Project Hub</div>
@@ -990,7 +990,7 @@ function HubProjects() {
     </div>
   );
   if (expanded === 'clients') return (
-    <div className="hub-hubs" style={{ gridTemplateColumns:'1fr' }}>
+    <div className="hub-hubs hub-hubs-roll" style={{ gridTemplateColumns:'1fr' }}>
       <div className="hub-hubtile neutral" style={{ cursor:'default' }}>
         <button className="hub-expandbtn" title="Collapse" onClick={() => setExpanded(null)}>–</button>
         <div style={{ fontSize:15, fontWeight:800, marginBottom:16 }}>Client Hub</div>
@@ -999,25 +999,23 @@ function HubProjects() {
     </div>
   );
   return (
-    <div className="hub-hubs" style={{ gridTemplateColumns:'1fr 1fr' }}>
-      <div className="hub-hubtile" onClick={() => setExpanded('projects')} title="Expand Project Hub" style={{ padding:'13px 18px' }}>
+    <div className="hub-hubs" style={{ gridTemplateColumns:'1fr 1fr', maxWidth:540 }}>
+      <div className="hub-hubtile" onClick={() => setExpanded('projects')} title="Expand Project Hub">
         <button className="hub-expandbtn" onClick={e => { e.stopPropagation(); setExpanded('projects'); }}>+</button>
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, paddingRight:28 }}>
-          <div style={{ fontSize:14, fontWeight:800 }}>Project Hub</div>
-          <div style={{ display:'flex', gap:14 }}>
-            {stat(rfps, 'RFPs', '#c8873c')}
-            {stat(live, 'Live', 'var(--orange)')}
-            {stat(recon, 'Reconcile', '#c9bcaa')}
-          </div>
+        <div style={{ fontSize:15, fontWeight:800, marginBottom:16 }}>Project Hub</div>
+        <div style={{ display:'flex', gap:6, justifyContent:'space-between' }}>
+          {stat(rfps, 'RFPs', '#c8873c')}
+          {stat(live, 'Live', 'var(--orange)')}
+          {stat(recon, 'Reconcile', '#c9bcaa')}
         </div>
       </div>
-      <div className="hub-hubtile neutral" onClick={() => setExpanded('clients')} title="Expand Client Hub" style={{ padding:'13px 18px' }}>
+      <div className="hub-hubtile neutral" onClick={() => setExpanded('clients')} title="Expand Client Hub">
         <button className="hub-expandbtn" onClick={e => { e.stopPropagation(); setExpanded('clients'); }}>+</button>
-        <div style={{ display:'flex', alignItems:'center', gap:12, paddingRight:28 }}>
-          <div style={{ width:38, height:38, borderRadius:10, background:'rgba(168,154,134,0.16)', color:'#c9bcaa', display:'flex', alignItems:'center', justifyContent:'center', fontSize:21, flexShrink:0 }}>◎</div>
+        <div style={{ display:'flex', alignItems:'center', gap:12, height:'100%', paddingTop:4 }}>
+          <div style={{ width:44, height:44, borderRadius:12, background:'rgba(168,154,134,0.16)', color:'#c9bcaa', display:'flex', alignItems:'center', justifyContent:'center', fontSize:23, flexShrink:0 }}>◎</div>
           <div>
-            <div style={{ fontSize:14, fontWeight:800 }}>Client Hub</div>
-            <div style={{ fontSize:10.5, color:'var(--muted)', marginTop:2 }}>{projects ? `${clients.length} client${clients.length !== 1 ? 's' : ''}` : '—'}</div>
+            <div style={{ fontSize:15, fontWeight:800 }}>Client Hub</div>
+            <div style={{ fontSize:11, color:'var(--muted)', marginTop:3 }}>{projects ? `${clients.length} client${clients.length !== 1 ? 's' : ''}` : '—'}</div>
           </div>
         </div>
       </div>
@@ -1257,7 +1255,9 @@ const HUB_CSS = `
 .hub-fab:hover .fab-label{max-width:200px;padding-right:24px}
 
 /* Expandable Project / Client hub tiles */
-.hub-hubs{display:grid;gap:14px;margin-bottom:22px;transition:grid-template-columns .3s ease}
+.hub-hubs{display:grid;gap:14px;margin-bottom:22px;transition:grid-template-columns .3s ease,max-width .35s ease}
+.hub-hubs-roll{animation:hubRollOut .38s cubic-bezier(.22,.61,.36,1)}
+@keyframes hubRollOut{from{max-width:540px;opacity:.65}to{max-width:100%;opacity:1}}
 .hub-hubtile{position:relative;background:var(--bg2);border:1px solid var(--border);border-top:3px solid var(--orange);border-radius:14px;padding:20px 22px;cursor:pointer;transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease}
 .hub-hubtile:hover{transform:translateY(-2px);box-shadow:0 8px 26px rgba(0,0,0,0.4)}
 .hub-hubtile.neutral{border-top-color:#a89a86}
@@ -1462,10 +1462,12 @@ function AdminPanel({ user }) {
   return (
     <div style={{ padding:'0 26px 22px', display:'flex', flexDirection:'column', alignItems:'center', gap:10 }}>
       {open && (
-        <div style={{ display:'flex', justifyContent:'center', alignItems:'stretch', gap:12, flexWrap:'wrap' }}>
-          <UserManagement user={user} />
-          <Automations />
-          <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, padding:'14px 16px', minWidth:220, alignSelf:'flex-start' }}>
+        <div style={{ display:'flex', flexDirection:'column', alignItems:'stretch', gap:8, width:'100%', maxWidth:300 }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:10 }}>
+            <UserManagement user={user} />
+            <Automations />
+          </div>
+          <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, padding:'14px 16px' }}>
             <div style={{ fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:'.06em', marginBottom:12 }}>Platform</div>
             <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.06em', marginBottom:4 }}>Preview as role</div>
             <select value={preview || ''} title="Preview the platform as another role"
