@@ -929,15 +929,9 @@ function HubProjects({ onNewProject }) {
 
   const projectScroller = (
     <>
-      <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:12, flexWrap:'wrap' }}>
-        <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search code, title, client…" style={{ flex:1, minWidth:160 }} />
-        {onNewProject && (
-          <button onClick={onNewProject} title="Start a new project"
-            style={{ background:'rgba(90,191,128,0.14)', border:'1.5px solid #5ABF80', color:'#5ABF80', borderRadius:12, padding:'7px 14px', fontSize:12, fontWeight:800, cursor:'pointer', whiteSpace:'nowrap', display:'flex', alignItems:'center', gap:6 }}>
-            <span style={{ fontSize:15, lineHeight:1 }}>+</span> New Project
-          </button>
-        )}
-        <button className="btn btn-ghost btn-sm" onClick={() => nav('/project-view')} style={{ whiteSpace:'nowrap' }}>Full view →</button>
+      <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:12 }}>
+        <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search code, title, client…" style={{ flex:1, minWidth:0 }} />
+        {onNewProject && <NewProjectPill onClick={onNewProject} />}
       </div>
       {!projects && <div className="empty">Loading…</div>}
       {projects && shown.length === 0 && <div className="empty">No projects match.</div>}
@@ -965,7 +959,6 @@ function HubProjects({ onNewProject }) {
     <>
       <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:12 }}>
         <input value={cq} onChange={e => setCq(e.target.value)} placeholder="Search clients…" style={{ flex:1, minWidth:0 }} />
-        <button className="btn btn-ghost btn-sm" onClick={() => nav('/project-view')} style={{ whiteSpace:'nowrap' }}>Full view →</button>
       </div>
       {clients.length === 0 ? <div className="empty">No clients yet.</div> : (
         <div className="hub-scroll" style={{ display:'flex', gap:10, overflowX:'auto', paddingBottom:8, WebkitMaskImage:SCROLL_FADE, maskImage:SCROLL_FADE }}>
@@ -1006,18 +999,22 @@ function HubProjects({ onNewProject }) {
   );
   return (
     <div className="hub-hubs" style={{ gridTemplateColumns:'1fr 1fr', maxWidth:540 }}>
-      <div className="hub-hubtile" onClick={() => setExpanded('projects')} title="Expand Project Hub">
-        <button className="hub-expandbtn" onClick={e => { e.stopPropagation(); setExpanded('projects'); }}>+</button>
-        <div className="hh-title" style={{ fontSize:15, fontWeight:800, marginBottom:16 }}>Project Hub</div>
+      <div className="hub-hubtile" onClick={() => setExpanded('projects')} title="Open full view">
+        <div className="hh-titlerow" style={{ display:'flex', alignItems:'center', gap:7, marginBottom:16 }}>
+          <span className="hh-title" style={{ fontSize:15, fontWeight:800 }}>Project Hub</span>
+          <span className="hh-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+        </div>
         <div style={{ display:'flex', gap:6, justifyContent:'space-between' }}>
           {stat(rfps, 'RFPs', '#c8873c')}
           {stat(live, 'Live', 'var(--orange)')}
           {stat(recon, 'Reconcile', '#c9bcaa')}
         </div>
       </div>
-      <div className="hub-hubtile neutral" onClick={() => setExpanded('clients')} title="Expand Client Hub">
-        <button className="hub-expandbtn" onClick={e => { e.stopPropagation(); setExpanded('clients'); }}>+</button>
-        <div className="hh-title" style={{ fontSize:15, fontWeight:800, marginBottom:16 }}>Client Hub</div>
+      <div className="hub-hubtile neutral" onClick={() => setExpanded('clients')} title="Open full view">
+        <div className="hh-titlerow" style={{ display:'flex', alignItems:'center', gap:7, marginBottom:16 }}>
+          <span className="hh-title" style={{ fontSize:15, fontWeight:800 }}>Client Hub</span>
+          <span className="hh-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+        </div>
         <div className="hh-clientrow" style={{ display:'flex', alignItems:'center', gap:12 }}>
           <div className="hh-icon" style={{ width:44, height:44, borderRadius:12, background:'rgba(168,154,134,0.16)', color:'#c9bcaa', display:'flex', alignItems:'center', justifyContent:'center', fontSize:23, flexShrink:0 }}>◎</div>
           <div className="hh-sub" style={{ fontSize:11, color:'var(--muted)' }}>{projects ? `${clients.length} client${clients.length !== 1 ? 's' : ''}` : '—'}</div>
@@ -1262,7 +1259,9 @@ const HUB_CSS = `
   .hub-hubs:not(.hub-hubs-roll){grid-template-columns:1fr 1fr !important;max-width:100% !important;gap:10px}
   .hub-hubs-roll{grid-template-columns:1fr !important;max-width:100% !important;animation:hubRollMobile .42s cubic-bezier(.22,.61,.36,1)}
   .hub-hubtile{padding:13px 12px}
-  .hub-hubtile .hh-title{font-size:12.5px !important;margin-bottom:12px !important}
+  .hub-hubtile .hh-title{font-size:12.5px !important}
+  .hub-hubtile .hh-titlerow{margin-bottom:12px !important}
+  .hub-hubtile .hh-arrow svg{width:14px !important;height:14px !important}
   .hub-hubtile .hh-clientrow{gap:9px !important}
   .hub-hubtile .hh-stat{min-width:0 !important}
   .hub-hubtile .hh-statn{font-size:18px !important}
@@ -1277,6 +1276,17 @@ const HUB_CSS = `
 .hub-hubtile.neutral{border-top-color:#a89a86}
 .hub-expandbtn{position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--muted);font-size:17px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s ease}
 .hub-expandbtn:hover{color:var(--orange);border-color:var(--orange)}
+/* Subtle side arrow beside the hub titles (opens the full view) */
+.hh-arrow{display:inline-flex;align-items:center;justify-content:center;color:var(--muted);opacity:.55;transition:opacity .15s ease,transform .15s ease}
+.hh-arrow svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.hub-hubtile:hover .hh-arrow{opacity:1;transform:translateX(3px);color:var(--orange)}
+.hub-hubtile.neutral:hover .hh-arrow{color:#c9bcaa}
+/* Condensed New Project pill: "+" that expands to reveal the label */
+.np-pill{flex:0 0 auto;display:inline-flex;align-items:center;height:38px;border-radius:19px;background:rgba(90,191,128,0.14);border:1.5px solid #5ABF80;color:#5ABF80;cursor:pointer;overflow:hidden;padding:0;transition:box-shadow .2s ease}
+.np-pill:hover{box-shadow:0 0 14px rgba(90,191,128,0.35)}
+.np-plus{flex:0 0 auto;width:36px;height:38px;display:flex;align-items:center;justify-content:center;font-size:21px;font-weight:400;line-height:1}
+.np-label{max-width:0;overflow:hidden;white-space:nowrap;font-size:12px;font-weight:800;transition:max-width .3s ease,padding .3s ease}
+.np-pill.open .np-label,.np-pill:hover .np-label{max-width:150px;padding-right:16px}
 `;
 
 // Orange/neutral status palette for the hub (keeps the rest of the app untouched)
@@ -1352,6 +1362,20 @@ function NewProjectFab({ onClick }) {
     <button className="hub-fab" onClick={onClick} title="Start a new project">
       <span className="plus">+</span>
       <span className="fab-label">Start New Project</span>
+    </button>
+  );
+}
+
+// Condensed "+" that expands to "New Project" on hover (desktop) or first tap
+// (mobile); the next click starts a new project.
+function NewProjectPill({ onClick }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <button className={`np-pill${open ? ' open' : ''}`} title="Start a new project"
+      onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}
+      onClick={() => { if (open) onClick(); else setOpen(true); }}>
+      <span className="np-plus">+</span>
+      <span className="np-label">New Project</span>
     </button>
   );
 }
