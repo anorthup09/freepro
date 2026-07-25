@@ -113,10 +113,20 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
 
 /* ── Schedule Timeline ── */
 .tl { position: relative; padding-left: 28px; }
-.tl::before { content: ''; position: absolute; left: 7px; top: 12px; bottom: 12px; width: 2px; border-radius: 2px; background: linear-gradient(rgba(232,80,10,0.6), var(--border2) 62%); }
-.ev { display: block; margin-bottom: 16px; position: relative; }
-.ev::before { content: ''; box-sizing: border-box; position: absolute; left: -25px; top: 1px; width: 13px; height: 13px; border-radius: 50%; background: var(--bg2); border: 3px solid var(--orange); box-shadow: 0 0 0 3px var(--bg), 0 0 0 6px rgba(232,80,10,0.10); z-index: 1; }
-.ev:has(.ev-body.ev-live)::before { background: var(--orange); box-shadow: 0 0 0 3px var(--bg), 0 0 0 7px rgba(232,80,10,0.30); }
+.ev { display: block; padding-bottom: 16px; position: relative; }
+.ev.ev-last { padding-bottom: 0; }
+/* Dot */
+.ev::before { content: ''; box-sizing: border-box; position: absolute; left: -25px; top: 1px; width: 13px; height: 13px; border-radius: 50%; background: var(--bg2); border: 3px solid var(--muted); box-shadow: 0 0 0 3px var(--bg); z-index: 2; }
+/* Connecting segment down to the next dot */
+.ev::after { content: ''; position: absolute; left: -19.5px; top: 11px; bottom: 0; width: 2px; background: var(--border2); z-index: 1; }
+.ev.ev-last::after { display: none; }
+/* Live progression: passed = orange, live = orange→gray fade, upcoming = gray */
+.ev-past::before { border-color: var(--orange); }
+.ev-past::after { background: var(--orange); }
+.ev-live::before { background: var(--orange); border-color: var(--orange); box-shadow: 0 0 0 3px var(--bg), 0 0 0 7px rgba(232,80,10,0.30); }
+.ev-live::after { background: linear-gradient(var(--orange), var(--border2)); }
+.ev-upcoming::before { border-color: var(--muted); }
+.ev-upcoming::after { background: var(--border2); }
 .ev-time { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; display: flex; align-items: center; gap: 5px; margin-bottom: 5px; font-variant-numeric: tabular-nums; }
 .ev-time .ev-plane { width: 13px; height: 13px; color: var(--orange); flex-shrink: 0; }
 .ev-body { position: relative; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 11px 14px; min-width: 0; overflow-wrap: anywhere; }

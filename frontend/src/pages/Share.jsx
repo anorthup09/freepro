@@ -2212,6 +2212,17 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, talentC
     ...breakItems,
   ].sort((a, b) => a._sort - b._sort);
 
+  // Live progression along the rail: everything before "now" is orange, the
+  // current stop fades orange→gray, everything upcoming is gray.
+  const dayISOcmp = (filteredDay.date || '').slice(0, 10) || (dayStr || '');
+  const todayISOcmp = new Date().toLocaleDateString('en-CA');
+  let progressIdx;
+  if (!dayISOcmp) progressIdx = -1;
+  else if (dayISOcmp < todayISOcmp) progressIdx = allItems.length;      // whole day passed
+  else if (dayISOcmp > todayISOcmp) progressIdx = -1;                    // day not here yet
+  else { const nm = now.getHours() * 60 + now.getMinutes(); progressIdx = -1; allItems.forEach((it, k) => { if ((it._sort ?? 99999) <= nm) progressIdx = k; }); }
+  const railStatus = i => (i < progressIdx ? 'past' : i === progressIdx ? 'live' : 'upcoming');
+
   // Compute driving times between consecutive located stops: events with a
   // location plus non-delivery (reservation) catering addresses
   const stopAddr = x => x._type === 'event' ? x.location?.address
@@ -2539,9 +2550,12 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, talentC
                   </div>
                 );
               })();
+                const railTile = React.isValidElement(tile)
+                  ? React.cloneElement(tile, { className: `${tile.props.className || 'ev'} ev-${railStatus(i)}${i === allItems.length - 1 ? ' ev-last' : ''}` })
+                  : tile;
                 return (
                   <SwipeReminder key={`sw-${item._key || item.id || i}`} item={item} dayStr={dayStr}>
-                    {tile}
+                    {railTile}
                   </SwipeReminder>
                 );
               })}
