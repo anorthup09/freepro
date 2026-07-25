@@ -142,6 +142,18 @@ function directionsUrl(from, to) {
   return `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(from)}&destination=${encodeURIComponent(to)}&travelmode=driving`;
 }
 
+const PlaneIcon = ({ className, style }) => (
+  <svg className={className} style={style} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M21 15.5v-1.6l-7.5-4.4V4.3a1.5 1.5 0 0 0-3 0v5.2L3 13.9v1.6l7.5-2.2v4.4l-2 1.4v1.2l3.5-1 3.5 1v-1.2l-2-1.4v-4.4z" />
+  </svg>
+);
+const PinIcon = ({ className }) => (
+  <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M12 21s-6-5.3-6-10a6 6 0 0 1 12 0c0 4.7-6 10-6 10z" />
+    <circle cx="12" cy="11" r="2.2" />
+  </svg>
+);
+
 // Module-level caches so geocode/drive-time results persist across re-renders
 const _geoCache = new Map();
 const _driveCache = new Map();
@@ -2414,11 +2426,21 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, talentC
                   (arrAt && !isNaN(arrAt) ? now < arrAt : (now - depAt) < 3 * 3600e3);
                 return (
                   <div key={`f-${item.id}-${item._leg}`} className="ev">
-                    <div className="ev-time">✈ {item._time}</div>
+                    <div className="ev-time"><PlaneIcon className="ev-plane" /> {item._time}</div>
                     <div className={`ev-body${inFlight ? ' ev-live' : ''}`} style={{ borderLeft:`2px solid ${fs.alert ? fs.color : 'var(--orange)'}`, ...(fs.alert ? { background: `${fs.color}11` } : {}) }}>
+                      {(item.origin || item.destination || item.airline || item.flight_number || item.confirmation) && (() => {
+                        const fkey = `f-${item.id}-${item._leg}`;
+                        return (
+                          <button className={`ev-locpin${openLoc[fkey] ? ' on' : ''}`}
+                            onClick={e => { e.stopPropagation(); setOpenLoc(o => ({ ...o, [fkey]: !o[fkey] })); }}
+                            title={openLoc[fkey] ? 'Hide flight details' : 'Show flight details'}>
+                            <PlaneIcon className="pin-ico" style={{ fill:'currentColor', stroke:'none' }} /><span className="pin-pm">{openLoc[fkey] ? '−' : '+'}</span>
+                          </button>
+                        );
+                      })()}
                       {/* Flows and wraps on narrow screens — the pill and Arrives label drop
                           to their own line instead of overlapping the text (mobile fix) */}
-                      <div style={{ display:'flex', alignItems:'flex-start', gap:'4px 10px', flexWrap:'wrap' }}>
+                      <div style={{ display:'flex', alignItems:'flex-start', gap:'4px 10px', flexWrap:'wrap', paddingRight:44 }}>
                         <div style={{ display:'flex', alignItems:'center', gap:6, flex:'1 1 auto', minWidth:0 }}>
                           {fs.alert && <span style={{ fontSize:14 }}>❗</span>}
                           <div className="ev-title" style={fs.alert ? { color: fs.color } : {}}>
@@ -2431,19 +2453,21 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, talentC
                           </div>
                         )}
                       </div>
-                      <div style={{ display:'flex', alignItems:'baseline', gap:'2px 14px', flexWrap:'wrap' }}>
-                        <div className="ev-detail" style={{ flex:'1 1 auto', minWidth:0 }}>
-                          {item.origin} → {item.destination}
-                          {(item.airline || item.flight_number) && <span style={{ color:'var(--muted)', marginLeft:8 }}>{[item.airline, item.flight_number].filter(Boolean).join(' ')}</span>}
-                          {item.confirmation && <span style={{ color:'var(--muted)', marginLeft:8 }}>#{item.confirmation}</span>}
+                      {adjustedArrival && (
+                        <div style={{ fontSize:11, whiteSpace:'nowrap', marginTop:3 }}>
+                          <span style={{ color:'var(--orange)', fontWeight:700 }}>Arrives</span>
+                          <span style={{ color:'var(--text)', marginLeft:6 }}>{adjustedArrival}</span>
                         </div>
-                        {adjustedArrival && (
-                          <div style={{ fontSize:11, whiteSpace:'nowrap', flexShrink:0 }}>
-                            <span style={{ color:'var(--orange)', fontWeight:700 }}>Arrives</span>
-                            <span style={{ color:'var(--text)', marginLeft:6 }}>{adjustedArrival}</span>
+                      )}
+                      {openLoc[`f-${item.id}-${item._leg}`] && (
+                        <div className="ev-loc-card">
+                          <div className="ev-loc-info">
+                            <div className="ev-loc-name">{item.origin || '—'} → {item.destination || '—'}</div>
+                            {(item.airline || item.flight_number) && <div className="ev-loc-addr" style={{ color:'var(--muted)' }}>{[item.airline, item.flight_number].filter(Boolean).join(' ')}</div>}
+                            {item.confirmation && <div className="ev-loc-addr" style={{ color:'var(--muted)' }}>Confirmation #{item.confirmation}</div>}
                           </div>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -2457,8 +2481,15 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, talentC
                   <div key={item.id || i} id={item.id ? `ev-${item.id}` : undefined} className="ev">
                     <div className="ev-time">{fmtTime(item.start_time)}{item.end_time ? ` – ${fmtTime(item.end_time)}` : ''}</div>
                     <div className={`ev-body${item.is_alert ? ' warn' : ''}${isLive(item.start_time, item.end_time) ? ' ev-live' : ''}`} style={!item.is_alert ? { borderLeft:'2px solid var(--orange)',  } : {}}>
+                      {loc?.address && (
+                        <button className={`ev-locpin${openLoc[item.id || i] ? ' on' : ''}`}
+                          onClick={e => { e.stopPropagation(); setOpenLoc(o => ({ ...o, [item.id || i]: !o[item.id || i] })); }}
+                          title={openLoc[item.id || i] ? 'Hide location' : 'Show address & map'}>
+                          <PinIcon className="pin-ico" /><span className="pin-pm">{openLoc[item.id || i] ? '−' : '+'}</span>
+                        </button>
+                      )}
                       <div style={{ display:'flex', gap:'4px 14px', justifyContent:'space-between', alignItems:'flex-start', flexWrap:'wrap' }}>
-                        <div style={{ flex:'1 1 220px', minWidth:0 }}>
+                        <div style={{ flex:'1 1 220px', minWidth:0, paddingRight: loc?.address ? 40 : 0 }}>
                           <div className={`ev-title${item.is_alert ? ' alert' : ''}`}>{item.is_filming ? '🎬 ' : ''}{item.title}</div>
                           {item.detail && <div className="ev-detail">{item.detail}</div>}
                           {(item.room_space || loc) && (
@@ -2468,15 +2499,7 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, talentC
                                   <span style={{ fontWeight:400, color:'var(--muted)', fontSize:11 }}>Room/Space: </span>{item.room_space}
                                 </div>
                               )}
-                              {loc && (
-                                <button
-                                  onClick={loc.address ? (e => { e.stopPropagation(); setOpenLoc(o => ({ ...o, [item.id || i]: !o[item.id || i] })); }) : undefined}
-                                  className={`ev-pin${loc.address ? ' clickable' : ''}${openLoc[item.id || i] ? ' on' : ''}`}
-                                  title={loc.address ? 'Show address & map' : loc.name}>
-                                  <span style={{ fontSize:12 }}>📍</span>{loc.name}
-                                  {loc.address && <span className="ev-pin-caret">{openLoc[item.id || i] ? '▾' : '▸'}</span>}
-                                </button>
-                              )}
+                              {loc && <div style={{ fontSize:11, fontWeight:600, color:'var(--text)' }}>{loc.name}</div>}
                               {driveTime && (
                                 <a href={directionsUrl(prevAddr, thisAddr)} target="_blank" rel="noopener noreferrer"
                                    onClick={e => e.stopPropagation()}
@@ -2613,7 +2636,7 @@ function SwipeReminder({ item, dayStr, children }) {
     setDx(0);
   };
   return (
-    <div style={{ position: 'relative', overflow: 'hidden' }}>
+    <div style={{ position: 'relative', clipPath: 'inset(-10px 0 -10px -44px)' }}>
       <button type="button" onClick={addReminder} aria-label="Add reminder"
         style={{ position: 'absolute', top: 3, bottom: 3, right: 0, width: 104, border: 'none', borderRadius: 10,
           background: 'linear-gradient(135deg,#e8500a,#c2410c)', color: 'var(--text)', fontWeight: 700, fontSize: 10.5,

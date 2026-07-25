@@ -112,19 +112,20 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
 .chip strong { display: block; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 2px; font-weight: 400; }
 
 /* ── Schedule Timeline ── */
-.tl { position: relative; padding-left: 24px; }
-.tl::before { content: ''; position: absolute; left: 6px; top: 8px; bottom: 8px; width: 2px; background: var(--border2); border-radius: 2px; }
-.ev { display: flex; gap: 12px; margin-bottom: 10px; position: relative; align-items: flex-start; }
-.ev::before { content: ''; position: absolute; left: -22px; top: 9px; width: 11px; height: 11px; border-radius: 50%; background: var(--bg); border: 2px solid var(--orange); box-shadow: 0 0 0 3px rgba(232,80,10,0.14); z-index: 1; }
-.ev:has(.ev-body.ev-live)::before { background: var(--orange); box-shadow: 0 0 0 4px rgba(232,80,10,0.28); }
-.ev-time { order: 2; font-size: 12px; font-weight: 700; color: var(--text); min-width: 76px; text-align: right; padding-top: 3px; font-variant-numeric: tabular-nums; flex-shrink: 0; }
-.ev-body { order: 1; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 11px 14px; flex: 1; min-width: 0; overflow-wrap: anywhere; }
-/* Location pin toggle + expandable address/map card (fare-split style) */
-.ev-pin { display: inline-flex; align-items: center; gap: 4px; background: none; border: none; padding: 0; font-size: 11px; font-weight: 600; color: var(--text); cursor: default; }
-.ev-pin.clickable { cursor: pointer; }
-.ev-pin.clickable:hover { color: var(--orange); }
-.ev-pin-caret { font-size: 9px; color: var(--muted); }
-.ev-pin.on .ev-pin-caret { color: var(--orange); }
+.tl { position: relative; padding-left: 28px; }
+.tl::before { content: ''; position: absolute; left: 7px; top: 12px; bottom: 12px; width: 2px; border-radius: 2px; background: linear-gradient(rgba(232,80,10,0.6), var(--border2) 62%); }
+.ev { display: block; margin-bottom: 16px; position: relative; }
+.ev::before { content: ''; box-sizing: border-box; position: absolute; left: -25px; top: 1px; width: 13px; height: 13px; border-radius: 50%; background: var(--bg2); border: 3px solid var(--orange); box-shadow: 0 0 0 3px var(--bg), 0 0 0 6px rgba(232,80,10,0.10); z-index: 1; }
+.ev:has(.ev-body.ev-live)::before { background: var(--orange); box-shadow: 0 0 0 3px var(--bg), 0 0 0 7px rgba(232,80,10,0.30); }
+.ev-time { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; display: flex; align-items: center; gap: 5px; margin-bottom: 5px; font-variant-numeric: tabular-nums; }
+.ev-time .ev-plane { width: 13px; height: 13px; color: var(--orange); flex-shrink: 0; }
+.ev-body { position: relative; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 11px 14px; min-width: 0; overflow-wrap: anywhere; }
+/* Pin/+ toggle in the top-right of a tile → expandable detail card (fare-split style) */
+.ev-locpin { position: absolute; top: 9px; right: 9px; z-index: 2; display: inline-flex; align-items: center; gap: 1px; background: rgba(232,80,10,0.10); border: 1px solid rgba(232,80,10,0.4); color: var(--orange); border-radius: 20px; padding: 3px 8px 3px 6px; cursor: pointer; transition: background .15s ease, color .15s ease; }
+.ev-locpin:hover { background: rgba(232,80,10,0.22); }
+.ev-locpin.on { background: var(--orange); color: #0b0b0b; border-color: var(--orange); }
+.ev-locpin .pin-ico { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.ev-locpin .pin-pm { font-size: 13px; font-weight: 800; line-height: 1; }
 .ev-loc-card { display: flex; gap: 12px; margin-top: 10px; padding: 12px; border-radius: 12px; border: 1px solid var(--border2); background: linear-gradient(120deg, rgba(232,80,10,0.10), rgba(247,181,45,0.07)); animation: ev-loc-in .25s ease; }
 @keyframes ev-loc-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
 .ev-loc-info { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
@@ -346,9 +347,9 @@ textarea { resize: vertical; min-height: 70px; }
   /* Spec tiles: 2-col on mobile */
   .spec-tiles { grid-template-columns: repeat(2, 1fr) !important; }
 
-  /* Event tile: tighten layout, shrink time column */
-  .ev { gap: 8px; }
-  .ev-time { font-size: 10px !important; width: auto !important; min-width: 56px !important; max-width: none !important; }
+  /* Event tile: tighten layout */
+  .ev { gap: 4px; }
+  .ev-time { font-size: 10px !important; }
   .ev-body { padding: 7px 10px !important; }
   .ev-title { font-size: 12px !important; }
 
