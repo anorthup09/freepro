@@ -1156,14 +1156,7 @@ function HubDashboard() {
 
       <div style={{ ...card, position:'relative', overflow:'hidden' }}>
         <DailyFactBlob />
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
-          <div style={{ ...hdr, marginBottom:0 }}>Team Today</div>
-          <button onClick={() => nav('/team')}
-            style={{ background:'rgba(74,158,255,0.14)', border:'1.5px solid #4a9eff', color:'#4a9eff',
-              borderRadius:12, padding:'6px 14px', fontSize:11, fontWeight:800, cursor:'pointer', display:'flex', alignItems:'center', gap:6 }}>
-            Team Management
-          </button>
-        </div>
+        <div style={{ ...hdr, marginBottom:12 }}>Team Today</div>
         {!team && <div style={{ fontSize:11, color:'var(--muted)' }}>Loading…</div>}
         {team && team.length === 0 && <div style={{ fontSize:12, color:'var(--muted)', fontStyle:'italic' }}>No Unbridled team members on the roster yet.</div>}
         <div className="team-grid" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', columnGap:18 }}>
@@ -1253,6 +1246,8 @@ const HUB_CSS = `
 .hub-fab .fab-label{max-width:0;overflow:hidden;white-space:nowrap;font-size:13px;font-weight:800;letter-spacing:.02em;transition:max-width .3s ease,padding .3s ease}
 .hub-fab:hover{box-shadow:0 0 30px rgba(232,80,10,0.85);transform:translateY(-1px)}
 .hub-fab:hover .fab-label{max-width:200px;padding-right:24px}
+/* On narrow screens the centered nav grows wide enough to reach the corner FAB — lift it above the bar */
+@media(max-width:640px){.hub-fab{bottom:96px;right:20px}}
 
 /* Expandable Project / Client hub tiles */
 .hub-hubs{display:grid;gap:14px;margin:0 auto 22px;transition:grid-template-columns .3s ease,max-width .35s ease}
@@ -1274,6 +1269,7 @@ const NAV_ICONS = {
   view: <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>,
   calendar: <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>,
   reports: <svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>,
+  team: <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20v-1a5 5 0 0 1 5-5h3a5 5 0 0 1 5 5v1"/><path d="M16.5 5.3a3.2 3.2 0 0 1 0 6.1"/><path d="M21.5 20v-1a5 5 0 0 0-3.2-4.4"/></svg>,
 };
 
 function useScrolled(threshold = 44) {
@@ -1328,6 +1324,7 @@ function HubBottomNav({ isCrew, isFinance, mode, setHubMode, scrolled }) {
       )}
       {!isFinance && item(NAV_ICONS.calendar, 'Calendar', () => nav('/crew-calendar'))}
       {item(NAV_ICONS.reports, 'Reports', () => nav('/reports'))}
+      {item(NAV_ICONS.team, 'Team', () => nav('/team'))}
     </div>
   );
 }
