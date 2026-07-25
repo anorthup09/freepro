@@ -224,8 +224,9 @@ function MediaMomentOrbit() {
   const [team, setTeam] = useState(null);
   const [fact, setFact] = useState(undefined); // undefined = loading, null = none
   const today = new Date().toDateString();
-  const [phase, setPhase] = useState(localStorage.getItem('fp_mediamoment_day') === today ? 'row' : 'orbit');
+  const [phase, setPhase] = useState(localStorage.getItem('fp_mediamoment_day') === today ? 'row' : 'orbit'); // 'orbit' | 'row'
   const [w, setW] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
+  const touched = React.useRef(false);
   useEffect(() => {
     api.dashboardTeam().then(setTeam).catch(() => setTeam([]));
     api.funFactToday().then(f => setFact(f || null)).catch(() => setFact(null));
@@ -233,30 +234,27 @@ function MediaMomentOrbit() {
     window.addEventListener('resize', on);
     return () => window.removeEventListener('resize', on);
   }, []);
-  // No moment to feature today → collapse straight to the row of dots.
-  useEffect(() => { if (fact === null) setPhase(p => (p === 'orbit' ? 'row' : p)); }, [fact]);
+  // No moment to feature today → rest as the parade row (unless the user opened it).
+  useEffect(() => { if (fact === null && !touched.current) setPhase(p => (p === 'orbit' ? 'row' : p)); }, [fact]);
 
   const members = (team || []).slice(0, 15);
   if (!members.length) return null;
   const n = members.length;
   const narrow = w < 640;
-  const R = narrow ? 92 : 118;
-  const CY = narrow ? 118 : 150;
+  const R = narrow ? 120 : 152;    // wider ring so more of the moment fits inside
+  const CY = narrow ? 134 : 168;
 
-  const close = () => {
-    localStorage.setItem('fp_mediamoment_day', today);
-    setPhase('spin');
-    setTimeout(() => setPhase('row'), 850);
-  };
+  const open = () => { touched.current = true; localStorage.removeItem('fp_mediamoment_day'); setPhase('orbit'); };
+  const close = () => { touched.current = true; localStorage.setItem('fp_mediamoment_day', today); setPhase('row'); };
 
   const dotStyle = (m, i) => {
     const inOffice = m.status === 'office';
     const denver = /denver/i.test(m.location || '');
     const color = denver ? '#a89a86' : 'var(--orange)';
-    const size = inOffice ? (narrow ? 13 : 15) : (narrow ? 8 : 9);
+    const size = inOffice ? (narrow ? 9 : 10) : (narrow ? 5 : 6);  // smaller dots
     let left, top, tf;
     if (phase === 'row') {
-      left = `${((i + 0.5) / n) * 100}%`; top = '14px'; tf = 'translate(-50%,-50%)';
+      left = `${2 + ((i + 0.5) / n) * 88}%`; top = '14px'; tf = 'translate(-50%,-50%)';
     } else {
       const a = (-90 + (360 / n) * i) * Math.PI / 180;
       left = '50%'; top = `${CY}px`;
@@ -265,28 +263,32 @@ function MediaMomentOrbit() {
     return {
       position:'absolute', left, top, transform: tf, width:size, height:size, borderRadius:'50%',
       background: color, opacity: inOffice ? 1 : 0.5,
-      boxShadow: inOffice ? `0 0 8px ${denver ? 'rgba(168,154,134,0.55)' : 'rgba(232,80,10,0.7)'}` : 'none',
-      transition:'left .78s cubic-bezier(.22,.61,.36,1),top .78s cubic-bezier(.22,.61,.36,1),transform .78s cubic-bezier(.22,.61,.36,1),width .3s ease,height .3s ease,opacity .3s ease',
+      boxShadow: inOffice ? `0 0 6px ${denver ? 'rgba(168,154,134,0.5)' : 'rgba(232,80,10,0.65)'}` : 'none',
+      transition:'left .8s cubic-bezier(.22,.61,.36,1),top .8s cubic-bezier(.22,.61,.36,1),transform .8s cubic-bezier(.22,.61,.36,1),width .3s ease,height .3s ease,opacity .3s ease',
     };
   };
 
   return (
     <div className="mm-orbit" style={{ height: phase === 'row' ? 38 : CY * 2 + 12 }}>
-      <div className={`mm-ring${phase === 'spin' ? ' spin' : ''}`}>
+      <div className="mm-ring">
         {members.map((m, i) => (
           <span key={m.id} title={`${m.name} — ${m.detail && m.detail !== 'In office' ? m.detail + ' · ' : ''}${m.location || ''}`} style={dotStyle(m, i)} />
         ))}
       </div>
-      {phase !== 'row' && fact && (
-        <>
-          <button className="mm-close" onClick={close} aria-label="Close media moment">✕</button>
-          <div className="mm-center" style={{ top: `${CY}px`, opacity: phase === 'orbit' ? 1 : 0 }}>
-            <div className="mm-kicker">{fact.kind === 'wob' ? 'WAYS OF BEING' : 'MEDIAMOMENT'}</div>
-            {fact.prompt && <div className="mm-prompt">{fact.prompt}</div>}
-            <div className="mm-answer">“{fact.answer}”</div>
-            <div className="mm-name">— {fact.name}</div>
-          </div>
-        </>
+      {fact && (
+        <div className="mm-center" style={{ top: `${CY}px`, width: 2 * R - 84, opacity: phase === 'orbit' ? 1 : 0, pointerEvents: phase === 'orbit' ? 'auto' : 'none' }}>
+          <div className="mm-kicker">{fact.kind === 'wob' ? 'WAYS OF BEING' : 'MEDIAMOMENT'}</div>
+          {fact.prompt && <div className="mm-prompt">{fact.prompt}</div>}
+          <div className="mm-answer">“{fact.answer}”</div>
+          <div className="mm-name">— {fact.name}</div>
+        </div>
+      )}
+      {fact && (
+        <button className="mm-toggle" onClick={phase === 'orbit' ? close : open}
+          style={phase === 'orbit' ? { top: 0, right: 0 } : { top: '14px', right: 0, transform: 'translateY(-50%)' }}
+          aria-label={phase === 'orbit' ? 'Close media moment' : 'Open media moment'}>
+          {phase === 'orbit' ? '✕' : '+'}
+        </button>
       )}
     </div>
   );
@@ -1283,26 +1285,26 @@ function HubDashboard() {
 // ── Redesign scaffolding: liquid-glass bottom nav, expand-on-hover FAB,
 // scroll-reveal, and an orange/neutral palette ──────────────────────────────
 const HUB_CSS = `
-.hub-topbar{position:absolute;top:16px;right:22px;display:flex;align-items:center;gap:10px;z-index:30}
+.hub-topbar{position:absolute;top:16px;left:22px;display:flex;align-items:center;gap:10px;z-index:30}
 .hub-brand{display:flex;flex-direction:column;align-items:center;gap:10px;margin:26px 0 6px}
-/* Left-aligned serif heading + tagline; faint logo parked top-right */
-.hub-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin:24px 0 8px}
+/* Faint Unbridled logo as a top masthead header */
+.hub-masthead{display:flex;justify-content:flex-end;padding-top:2px;margin-bottom:0}
+.hub-logo-top{height:32px;filter:brightness(0) invert(1);opacity:.25}
+/* Left-aligned serif heading + tagline, dropped down from the masthead */
+.hub-header{margin:54px 0 10px}
 .hub-h1{font-family:Georgia,'Times New Roman',serif;font-size:34px;font-weight:700;letter-spacing:-.01em;line-height:1.05;margin:0}
 .hub-tagline{text-align:left;font-size:14px;font-weight:600;color:var(--tan);max-width:560px;margin:8px 0 0;line-height:1.45}
-.hub-logo-tr{height:38px;filter:brightness(0) invert(1);opacity:.25;flex-shrink:0;margin-top:4px}
 /* MediaMoment orbit: ring of team dots with the moment in the middle */
-.mm-orbit{position:relative;width:100%;margin:8px auto 22px;transition:height .78s cubic-bezier(.22,.61,.36,1)}
+.mm-orbit{position:relative;width:100%;margin:8px auto 22px;transition:height .8s cubic-bezier(.22,.61,.36,1)}
 .mm-ring{position:absolute;inset:0}
-.mm-ring.spin{animation:mmspin .85s cubic-bezier(.5,.05,.5,.95)}
-@keyframes mmspin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
-.mm-center{position:absolute;left:50%;transform:translate(-50%,-50%);width:min(86%,300px);text-align:center;transition:opacity .3s ease}
-.mm-kicker{font-size:9px;font-weight:900;letter-spacing:.18em;color:var(--orange)}
-.mm-prompt{font-size:11px;font-weight:700;color:var(--muted);margin-top:6px;line-height:1.35}
-.mm-answer{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;line-height:1.3;margin-top:5px}
-.mm-name{font-size:11px;font-weight:800;color:var(--muted);margin-top:5px}
-.mm-close{position:absolute;top:0;right:0;z-index:4;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--muted);font-size:12px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s ease}
-.mm-close:hover{color:var(--orange);border-color:var(--orange)}
-@media(max-width:640px){.hub-h1{font-size:28px}.hub-logo-tr{height:30px}}
+.mm-center{position:absolute;left:50%;transform:translate(-50%,-50%);text-align:center;transition:opacity .35s ease}
+.mm-kicker{font-size:8px;font-weight:900;letter-spacing:.18em;color:var(--orange)}
+.mm-prompt{font-size:9.5px;font-weight:700;color:var(--muted);margin-top:5px;line-height:1.35}
+.mm-answer{font-family:'Syne',sans-serif;font-size:13.5px;font-weight:800;line-height:1.32;margin-top:4px}
+.mm-name{font-size:9.5px;font-weight:800;color:var(--muted);margin-top:4px}
+.mm-toggle{position:absolute;z-index:4;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--muted);font-size:14px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:color .15s ease,border-color .15s ease}
+.mm-toggle:hover{color:var(--orange);border-color:var(--orange)}
+@media(max-width:640px){.hub-h1{font-size:28px}.hub-header{margin:42px 0 10px}.hub-logo-top{height:28px}}
 
 .hub-reveal{opacity:0;transform:translateY(20px);transition:opacity .55s cubic-bezier(.22,.61,.36,1),transform .55s cubic-bezier(.22,.61,.36,1)}
 .hub-reveal.in{opacity:1;transform:none}
@@ -1504,12 +1506,12 @@ export default function Hub() {
 
         <div style={{ flex:1, display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'8px 16px 120px' }}>
           <div style={{ width:'100%', maxWidth:1150 }}>
+            <div className="hub-masthead">
+              <img className="hub-logo-top" src="/unbridled-logo.png" alt="Unbridled Media" />
+            </div>
             <div className="hub-header">
-              <div className="hub-headtext">
-                <h1 className="hub-h1">Dashboard</h1>
-                <div className="hub-tagline"><HubGreeting /></div>
-              </div>
-              <img className="hub-logo-tr" src="/unbridled-logo.png" alt="Unbridled Media" />
+              <h1 className="hub-h1">Dashboard</h1>
+              <div className="hub-tagline"><HubGreeting /></div>
             </div>
             {!isAgency && <MediaMomentOrbit />}
             <TripPrompt />
