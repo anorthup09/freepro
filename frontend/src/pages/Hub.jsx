@@ -227,6 +227,9 @@ function MediaMomentOrbit() {
   const [phase, setPhase] = useState(localStorage.getItem('fp_mediamoment_day') === today ? 'row' : 'orbit'); // 'orbit' | 'row'
   const [w, setW] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
   const touched = React.useRef(false);
+  const ringRef = React.useRef(null);
+  const rafRef = React.useRef(0);
+  const angleRef = React.useRef(0);
   useEffect(() => {
     api.dashboardTeam().then(setTeam).catch(() => setTeam([]));
     api.funFactToday().then(f => setFact(f || null)).catch(() => setFact(null));
@@ -237,6 +240,24 @@ function MediaMomentOrbit() {
   // No moment to feature today → rest as the parade row (unless the user opened it).
   useEffect(() => { if (fact === null && !touched.current) setPhase(p => (p === 'orbit' ? 'row' : p)); }, [fact]);
 
+  // Gentle continuous drift while the ring is on screen — driven straight on the
+  // DOM node so there's no per-frame React re-render.
+  useEffect(() => {
+    if (phase !== 'orbit') return;
+    const el = ringRef.current;
+    if (el) el.style.transition = 'none';
+    let last = performance.now();
+    const degPerMs = 360 / 80000; // one slow revolution ≈ 80s
+    const tick = (now) => {
+      angleRef.current = (angleRef.current + (now - last) * degPerMs) % 360;
+      last = now;
+      if (ringRef.current) ringRef.current.style.transform = `rotate(${angleRef.current}deg)`;
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [phase]);
+
   const members = (team || []).slice(0, 15);
   if (!members.length) return null;
   const n = members.length;
@@ -244,8 +265,30 @@ function MediaMomentOrbit() {
   const R = narrow ? 120 : 152;    // wider ring so more of the moment fits inside
   const CY = narrow ? 134 : 168;
 
-  const open = () => { touched.current = true; localStorage.removeItem('fp_mediamoment_day'); setPhase('orbit'); };
-  const close = () => { touched.current = true; localStorage.setItem('fp_mediamoment_day', today); setPhase('row'); };
+  const open = () => {
+    touched.current = true;
+    localStorage.removeItem('fp_mediamoment_day');
+    if (ringRef.current) ringRef.current.style.transition = 'none';
+    angleRef.current = 0;
+    setPhase('orbit');
+  };
+  const close = () => {
+    touched.current = true;
+    localStorage.setItem('fp_mediamoment_day', today);
+    cancelAnimationFrame(rafRef.current);
+    const el = ringRef.current;
+    if (el) {
+      let a = angleRef.current % 360;
+      if (a > 180) a -= 360;            // unwind the short way to level
+      el.style.transition = 'none';
+      el.style.transform = `rotate(${a}deg)`;
+      void el.offsetWidth;              // commit before animating
+      el.style.transition = 'transform .8s cubic-bezier(.22,.61,.36,1)';
+      el.style.transform = 'rotate(0deg)';
+      angleRef.current = 0;
+    }
+    setPhase('row');
+  };
 
   const dotStyle = (m, i) => {
     const inOffice = m.status === 'office';
@@ -270,7 +313,7 @@ function MediaMomentOrbit() {
 
   return (
     <div className="mm-orbit" style={{ height: phase === 'row' ? 38 : CY * 2 + 12 }}>
-      <div className="mm-ring">
+      <div className="mm-ring" ref={ringRef} style={{ transformOrigin: `50% ${CY}px` }}>
         {members.map((m, i) => (
           <span key={m.id} title={`${m.name} — ${m.detail && m.detail !== 'In office' ? m.detail + ' · ' : ''}${m.location || ''}`} style={dotStyle(m, i)} />
         ))}
