@@ -1017,12 +1017,10 @@ function HubProjects({ onNewProject }) {
       </div>
       <div className="hub-hubtile neutral" onClick={() => setExpanded('clients')} title="Expand Client Hub">
         <button className="hub-expandbtn" onClick={e => { e.stopPropagation(); setExpanded('clients'); }}>+</button>
-        <div className="hh-clientrow" style={{ display:'flex', alignItems:'center', gap:12, height:'100%', paddingTop:4 }}>
+        <div className="hh-title" style={{ fontSize:15, fontWeight:800, marginBottom:16 }}>Client Hub</div>
+        <div className="hh-clientrow" style={{ display:'flex', alignItems:'center', gap:12 }}>
           <div className="hh-icon" style={{ width:44, height:44, borderRadius:12, background:'rgba(168,154,134,0.16)', color:'#c9bcaa', display:'flex', alignItems:'center', justifyContent:'center', fontSize:23, flexShrink:0 }}>◎</div>
-          <div style={{ minWidth:0 }}>
-            <div className="hh-title" style={{ fontSize:15, fontWeight:800 }}>Client Hub</div>
-            <div className="hh-sub" style={{ fontSize:11, color:'var(--muted)', marginTop:3 }}>{projects ? `${clients.length} client${clients.length !== 1 ? 's' : ''}` : '—'}</div>
-          </div>
+          <div className="hh-sub" style={{ fontSize:11, color:'var(--muted)' }}>{projects ? `${clients.length} client${clients.length !== 1 ? 's' : ''}` : '—'}</div>
         </div>
       </div>
     </div>
@@ -1265,7 +1263,6 @@ const HUB_CSS = `
   .hub-hubs-roll{grid-template-columns:1fr !important;max-width:100% !important;animation:hubRollMobile .42s cubic-bezier(.22,.61,.36,1)}
   .hub-hubtile{padding:13px 12px}
   .hub-hubtile .hh-title{font-size:12.5px !important;margin-bottom:12px !important}
-  .hub-hubtile .hh-clientrow .hh-title{margin-bottom:0 !important}
   .hub-hubtile .hh-clientrow{gap:9px !important}
   .hub-hubtile .hh-stat{min-width:0 !important}
   .hub-hubtile .hh-statn{font-size:18px !important}
