@@ -921,9 +921,9 @@ function HubProjects({ onNewProject }) {
   const recon = (projects || []).filter(p => ['reconcile', 'reconciled'].includes(norm(p.budget_status))).length;
 
   const stat = (n, label, color) => (
-    <div style={{ textAlign:'center', minWidth:64 }}>
-      <div style={{ fontSize:26, fontWeight:800, color, lineHeight:1 }}>{projects ? n : '—'}</div>
-      <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.05em', marginTop:5 }}>{label}</div>
+    <div className="hh-stat" style={{ textAlign:'center', minWidth:64 }}>
+      <div className="hh-statn" style={{ fontSize:26, fontWeight:800, color, lineHeight:1 }}>{projects ? n : '—'}</div>
+      <div className="hh-statl" style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.05em', marginTop:5 }}>{label}</div>
     </div>
   );
 
@@ -1008,7 +1008,7 @@ function HubProjects({ onNewProject }) {
     <div className="hub-hubs" style={{ gridTemplateColumns:'1fr 1fr', maxWidth:540 }}>
       <div className="hub-hubtile" onClick={() => setExpanded('projects')} title="Expand Project Hub">
         <button className="hub-expandbtn" onClick={e => { e.stopPropagation(); setExpanded('projects'); }}>+</button>
-        <div style={{ fontSize:15, fontWeight:800, marginBottom:16 }}>Project Hub</div>
+        <div className="hh-title" style={{ fontSize:15, fontWeight:800, marginBottom:16 }}>Project Hub</div>
         <div style={{ display:'flex', gap:6, justifyContent:'space-between' }}>
           {stat(rfps, 'RFPs', '#c8873c')}
           {stat(live, 'Live', 'var(--orange)')}
@@ -1017,11 +1017,11 @@ function HubProjects({ onNewProject }) {
       </div>
       <div className="hub-hubtile neutral" onClick={() => setExpanded('clients')} title="Expand Client Hub">
         <button className="hub-expandbtn" onClick={e => { e.stopPropagation(); setExpanded('clients'); }}>+</button>
-        <div style={{ display:'flex', alignItems:'center', gap:12, height:'100%', paddingTop:4 }}>
-          <div style={{ width:44, height:44, borderRadius:12, background:'rgba(168,154,134,0.16)', color:'#c9bcaa', display:'flex', alignItems:'center', justifyContent:'center', fontSize:23, flexShrink:0 }}>◎</div>
-          <div>
-            <div style={{ fontSize:15, fontWeight:800 }}>Client Hub</div>
-            <div style={{ fontSize:11, color:'var(--muted)', marginTop:3 }}>{projects ? `${clients.length} client${clients.length !== 1 ? 's' : ''}` : '—'}</div>
+        <div className="hh-clientrow" style={{ display:'flex', alignItems:'center', gap:12, height:'100%', paddingTop:4 }}>
+          <div className="hh-icon" style={{ width:44, height:44, borderRadius:12, background:'rgba(168,154,134,0.16)', color:'#c9bcaa', display:'flex', alignItems:'center', justifyContent:'center', fontSize:23, flexShrink:0 }}>◎</div>
+          <div style={{ minWidth:0 }}>
+            <div className="hh-title" style={{ fontSize:15, fontWeight:800 }}>Client Hub</div>
+            <div className="hh-sub" style={{ fontSize:11, color:'var(--muted)', marginTop:3 }}>{projects ? `${clients.length} client${clients.length !== 1 ? 's' : ''}` : '—'}</div>
           </div>
         </div>
       </div>
@@ -1261,9 +1261,18 @@ const HUB_CSS = `
 .hub-hubs-roll .hub-hubtile{min-width:0}
 @keyframes hubRollOut{from{max-width:540px;opacity:.5;transform:translateY(8px)}to{max-width:100%;opacity:1;transform:translateY(0)}}
 @media(max-width:640px){
-  .hub-hubs{grid-template-columns:1fr !important}
-  .hub-hubs:not(.hub-hubs-roll){max-width:420px !important}
-  .hub-hubs-roll{max-width:100% !important;animation:hubRollMobile .42s cubic-bezier(.22,.61,.36,1)}
+  .hub-hubs:not(.hub-hubs-roll){grid-template-columns:1fr 1fr !important;max-width:100% !important;gap:10px}
+  .hub-hubs-roll{grid-template-columns:1fr !important;max-width:100% !important;animation:hubRollMobile .42s cubic-bezier(.22,.61,.36,1)}
+  .hub-hubtile{padding:13px 12px}
+  .hub-hubtile .hh-title{font-size:12.5px !important;margin-bottom:12px !important}
+  .hub-hubtile .hh-clientrow .hh-title{margin-bottom:0 !important}
+  .hub-hubtile .hh-clientrow{gap:9px !important}
+  .hub-hubtile .hh-stat{min-width:0 !important}
+  .hub-hubtile .hh-statn{font-size:18px !important}
+  .hub-hubtile .hh-statl{font-size:7px !important;letter-spacing:.01em !important}
+  .hub-hubtile .hh-icon{width:30px !important;height:30px !important;font-size:16px !important;border-radius:9px !important}
+  .hub-hubtile .hh-sub{font-size:9.5px !important}
+  .hub-hubtile .hub-expandbtn{width:22px;height:22px;font-size:13px;top:9px;right:9px}
 }
 @keyframes hubRollMobile{from{opacity:0;transform:translateY(16px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
 .hub-hubtile{position:relative;background:var(--bg2);border:1px solid var(--border);border-top:3px solid var(--orange);border-radius:14px;padding:20px 22px;cursor:pointer;transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease}
