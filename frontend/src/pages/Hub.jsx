@@ -890,7 +890,7 @@ function SolutionsHub() {
 }
 
 // Project View mode: every project as a tile, sorted by code
-function HubProjects() {
+function HubProjects({ onNewProject }) {
   const nav = useNavigate();
   const [projects, setProjects] = useState(null);
   const [q, setQ] = useState('');
@@ -929,8 +929,14 @@ function HubProjects() {
 
   const projectScroller = (
     <>
-      <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:12 }}>
-        <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search code, title, client…" style={{ flex:1, minWidth:0 }} />
+      <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:12, flexWrap:'wrap' }}>
+        <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search code, title, client…" style={{ flex:1, minWidth:160 }} />
+        {onNewProject && (
+          <button onClick={onNewProject} title="Start a new project"
+            style={{ background:'rgba(90,191,128,0.14)', border:'1.5px solid #5ABF80', color:'#5ABF80', borderRadius:12, padding:'7px 14px', fontSize:12, fontWeight:800, cursor:'pointer', whiteSpace:'nowrap', display:'flex', alignItems:'center', gap:6 }}>
+            <span style={{ fontSize:15, lineHeight:1 }}>+</span> New Project
+          </button>
+        )}
         <button className="btn btn-ghost btn-sm" onClick={() => nav('/project-view')} style={{ whiteSpace:'nowrap' }}>Full view →</button>
       </div>
       {!projects && <div className="empty">Loading…</div>}
@@ -1251,9 +1257,15 @@ const HUB_CSS = `
 
 /* Expandable Project / Client hub tiles */
 .hub-hubs{display:grid;gap:14px;margin:0 auto 22px;transition:grid-template-columns .3s ease,max-width .35s ease}
-.hub-hubs-roll{animation:hubRollOut .38s cubic-bezier(.22,.61,.36,1)}
-@keyframes hubRollOut{from{max-width:540px;opacity:.65}to{max-width:100%;opacity:1}}
-@media(max-width:640px){.hub-hubs{grid-template-columns:1fr !important;max-width:420px !important}}
+.hub-hubs-roll{animation:hubRollOut .4s cubic-bezier(.22,.61,.36,1)}
+.hub-hubs-roll .hub-hubtile{min-width:0}
+@keyframes hubRollOut{from{max-width:540px;opacity:.5;transform:translateY(8px)}to{max-width:100%;opacity:1;transform:translateY(0)}}
+@media(max-width:640px){
+  .hub-hubs{grid-template-columns:1fr !important}
+  .hub-hubs:not(.hub-hubs-roll){max-width:420px !important}
+  .hub-hubs-roll{max-width:100% !important;animation:hubRollMobile .42s cubic-bezier(.22,.61,.36,1)}
+}
+@keyframes hubRollMobile{from{opacity:0;transform:translateY(16px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
 .hub-hubtile{position:relative;background:var(--bg2);border:1px solid var(--border);border-top:3px solid var(--orange);border-radius:14px;padding:20px 22px;cursor:pointer;transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease}
 .hub-hubtile:hover{transform:translateY(-2px);box-shadow:0 8px 26px rgba(0,0,0,0.4)}
 .hub-hubtile.neutral{border-top-color:#a89a86}
@@ -1383,7 +1395,7 @@ export default function Hub() {
             <WobBanner />
             <FunFactPrompt />
             {isAgency && <SolutionsHub />}
-            {!isAgency && !isCrew && !isFinance && mode === 'projects' && <HubProjects />}
+            {!isAgency && !isCrew && !isFinance && mode === 'projects' && <HubProjects onNewProject={() => setShowNewProject(true)} />}
             {!isAgency && (isCrew || isFinance || mode === 'ops') && (
             <div className="hub-tiles" style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(260px, 1fr))', gap:16 }}>
               {tiles.map(t => {
@@ -1427,7 +1439,7 @@ export default function Hub() {
         </div>
 
       <HubBottomNav isCrew={isCrew} isFinance={isFinance} mode={mode} setHubMode={setHubMode} scrolled={scrolled} />
-      {!isFinance && !isCrew && !isAgency && <NewProjectFab onClick={() => setShowNewProject(true)} />}
+      {mode === 'ops' && !isFinance && !isCrew && !isAgency && <NewProjectFab onClick={() => setShowNewProject(true)} />}
 
       {showNewProject && (
         <NewProjectModal
