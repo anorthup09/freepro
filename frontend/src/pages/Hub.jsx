@@ -11,7 +11,7 @@ const TILES = [
     title: 'ProFi',
     tagline: 'Project Finance · In High Fidelity',
     desc: 'Client-ready budgets, vendor cost control, and final reconciliation — mixed and mastered.',
-    accent: '#5ABF80',
+    accent: '#c8873c',
     icon: '$',
     to: '/finance',
     status: null,
@@ -32,7 +32,7 @@ const TILES = [
     title: 'AvocadoPost',
     tagline: 'Post-Production Management',
     desc: 'Edit pipelines, review & approval, versioning, and delivery.',
-    accent: '#9DC183',
+    accent: '#a89a86',
     icon: '🥑',
     to: '/avo',
     status: null,
@@ -42,7 +42,7 @@ const TILES = [
     title: 'Team Management',
     tagline: 'People Operations',
     desc: 'PTO & OOO requests, approvals, and team availability.',
-    accent: '#4a9eff',
+    accent: '#8a8f98',
     icon: '👥',
     to: '/team',
     status: null,
@@ -914,64 +914,110 @@ function HubProjects() {
   const clients = [...byClient.values()].sort((a, b) => a.name.localeCompare(b.name));
   const cs = cq.trim().toLowerCase();
   const shownClients = cs ? clients.filter(c => c.name.toLowerCase().includes(cs)) : clients;
-  return (
-    <div className="hub-2col" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', border:'1px solid var(--border)', borderRadius:12, marginBottom:22, overflow:'hidden' }}>
-      {/* Project Hub — aligns with Day in Review below */}
-      <div style={{ padding:'16px 18px', borderRight:'1px solid var(--border)', minWidth:0 }}>
-        <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:12 }}>
-          <div onClick={() => nav('/project-view')} title="Open the full Project View — every project"
-            style={{ fontSize:13, fontWeight:800, cursor:'pointer', whiteSpace:'nowrap', textDecoration:'underline', textUnderlineOffset:3, textDecorationColor:'var(--border)' }}>Project Hub</div>
-          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search code, title, client…" style={{ flex:1, minWidth:0 }} />
-        </div>
-        {!projects && <div className="empty">Loading…</div>}
-        {projects && shown.length === 0 && <div className="empty">No projects match.</div>}
-        {shown.length > 0 && (
+  const [expanded, setExpanded] = useState(null); // null | 'projects' | 'clients'
+  const norm = v => String(v || '').toLowerCase();
+  const rfps = (projects || []).filter(p => norm(p.budget_status) === 'rfp').length;
+  const live = (projects || []).filter(p => norm(p.budget_status) === 'live').length;
+  const recon = (projects || []).filter(p => ['reconcile', 'reconciled'].includes(norm(p.budget_status))).length;
+
+  const stat = (n, label, color) => (
+    <div style={{ textAlign:'center', minWidth:70 }}>
+      <div style={{ fontSize:28, fontWeight:800, color, lineHeight:1 }}>{projects ? n : '—'}</div>
+      <div style={{ fontSize:9.5, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginTop:6 }}>{label}</div>
+    </div>
+  );
+
+  const projectScroller = (
+    <>
+      <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:12 }}>
+        <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search code, title, client…" style={{ flex:1, minWidth:0 }} />
+        <button className="btn btn-ghost btn-sm" onClick={() => nav('/project-view')} style={{ whiteSpace:'nowrap' }}>Full view →</button>
+      </div>
+      {!projects && <div className="empty">Loading…</div>}
+      {projects && shown.length === 0 && <div className="empty">No projects match.</div>}
+      {shown.length > 0 && (
         <div className="hub-scroll" style={{ display:'flex', gap:10, overflowX:'auto', paddingBottom:8, WebkitMaskImage:SCROLL_FADE, maskImage:SCROLL_FADE }}>
           {shown.map(p => (
             <div key={p.id} onClick={() => nav(`/project-view/${p.id}`)}
-              style={{ flex:'0 0 auto', width:180, background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid rgba(232,232,232,0.35)', borderRadius:10, padding:'11px 13px', cursor:'pointer', transition:'transform .15s ease' }}
-              onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-3px)'}
-              onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
+              style={{ flex:'0 0 auto', width:180, background:'var(--bg)', border:'1px solid var(--border)', borderTop:'3px solid rgba(232,80,10,0.55)', borderRadius:10, padding:'11px 13px', cursor:'pointer', transition:'transform .15s ease' }}
+              onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-3px)'} onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
               <div style={{ fontSize:10, fontWeight:800, color:'var(--muted)', letterSpacing:'0.04em' }}>{p.code}</div>
               <div style={{ fontSize:12.5, fontWeight:800, margin:'3px 0 2px' }}>{p.title}</div>
               <div style={{ fontSize:10.5, color:'var(--muted)' }}>{p.client}</div>
               <div style={{ display:'flex', gap:5, marginTop:8, flexWrap:'wrap' }}>
-                <span style={{ fontSize:9, fontWeight:800, color: STATUS_COLORS[p.budget_status] || '#5ABF80', border: `1px solid ${STATUS_COLORS[p.budget_status] || '#5ABF80'}55`, borderRadius:10, padding:'2px 8px' }}>{p.budget_status || 'No budget'}</span>
+                <span style={{ fontSize:9, fontWeight:800, color: HUB_STATUS[p.budget_status] || '#a89a86', border: `1px solid ${(HUB_STATUS[p.budget_status] || '#a89a86')}55`, borderRadius:10, padding:'2px 8px' }}>{p.budget_status || 'No budget'}</span>
                 {(p.shoots || []).length > 0 && <span style={{ fontSize:9, fontWeight:800, color:'var(--orange)', border:'1px solid rgba(232,80,10,0.4)', borderRadius:10, padding:'2px 8px' }}>{p.shoots.length} shoot{p.shoots.length !== 1 ? 's' : ''}</span>}
               </div>
             </div>
           ))}
         </div>
-        )}
+      )}
+    </>
+  );
+
+  const clientScroller = (
+    <>
+      <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:12 }}>
+        <input value={cq} onChange={e => setCq(e.target.value)} placeholder="Search clients…" style={{ flex:1, minWidth:0 }} />
+        <button className="btn btn-ghost btn-sm" onClick={() => nav('/project-view')} style={{ whiteSpace:'nowrap' }}>Full view →</button>
       </div>
-      {/* Client Hub — aligns with Team Today below */}
-      <div style={{ padding:'16px 18px', minWidth:0 }}>
-        <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:12 }}>
-          <div onClick={() => nav('/project-view')} title="Open the full Project View — every client"
-            style={{ fontSize:13, fontWeight:800, cursor:'pointer', whiteSpace:'nowrap', textDecoration:'underline', textUnderlineOffset:3, textDecorationColor:'var(--border)' }}>Client Hub</div>
-          <input value={cq} onChange={e => setCq(e.target.value)} placeholder="Search clients…" style={{ flex:1, minWidth:0 }} />
-        </div>
-        {clients.length === 0
-          ? <div className="empty">No clients yet.</div>
-          : (
-          <div className="hub-scroll" style={{ display:'flex', gap:10, overflowX:'auto', paddingBottom:8, WebkitMaskImage:SCROLL_FADE, maskImage:SCROLL_FADE }}>
-            {shownClients.map(c => (
-              <div key={c.name} onClick={() => nav(`/project-view/client/${encodeURIComponent(c.name)}`)}
-                style={{ flex:'0 0 auto', width:180, background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid rgba(74,158,255,0.5)', borderRadius:10, padding:'11px 13px', cursor:'pointer', transition:'transform .15s ease' }}
-                onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-3px)'}
-                onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
-                <div style={{ fontSize:12.5, fontWeight:800 }}>{c.name}</div>
-                <div style={{ fontSize:10.5, color:'var(--muted)', margin:'3px 0 8px' }}>{c.projects.length} project{c.projects.length !== 1 ? 's' : ''}</div>
-                <div style={{ display:'flex', gap:5, flexWrap:'wrap' }}>
-                  {c.projects.slice(0, 4).map(p => (
-                    <span key={p.id} style={{ fontSize:9, fontWeight:800, color:'#4a9eff', border:'1px solid rgba(74,158,255,0.4)', borderRadius:10, padding:'2px 8px' }}>{p.code}</span>
-                  ))}
-                  {c.projects.length > 4 && <span style={{ fontSize:9, color:'var(--muted)' }}>+{c.projects.length - 4} more</span>}
-                </div>
+      {clients.length === 0 ? <div className="empty">No clients yet.</div> : (
+        <div className="hub-scroll" style={{ display:'flex', gap:10, overflowX:'auto', paddingBottom:8, WebkitMaskImage:SCROLL_FADE, maskImage:SCROLL_FADE }}>
+          {shownClients.map(c => (
+            <div key={c.name} onClick={() => nav(`/project-view/client/${encodeURIComponent(c.name)}`)}
+              style={{ flex:'0 0 auto', width:180, background:'var(--bg)', border:'1px solid var(--border)', borderTop:'3px solid #a89a86', borderRadius:10, padding:'11px 13px', cursor:'pointer', transition:'transform .15s ease' }}
+              onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-3px)'} onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
+              <div style={{ fontSize:12.5, fontWeight:800 }}>{c.name}</div>
+              <div style={{ fontSize:10.5, color:'var(--muted)', margin:'3px 0 8px' }}>{c.projects.length} project{c.projects.length !== 1 ? 's' : ''}</div>
+              <div style={{ display:'flex', gap:5, flexWrap:'wrap' }}>
+                {c.projects.slice(0, 4).map(p => <span key={p.id} style={{ fontSize:9, fontWeight:800, color:'#c9bcaa', border:'1px solid #a89a8655', borderRadius:10, padding:'2px 8px' }}>{p.code}</span>)}
+                {c.projects.length > 4 && <span style={{ fontSize:9, color:'var(--muted)' }}>+{c.projects.length - 4} more</span>}
               </div>
-            ))}
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  );
+
+  if (expanded === 'projects') return (
+    <div className="hub-hubs" style={{ gridTemplateColumns:'1fr' }}>
+      <div className="hub-hubtile" style={{ cursor:'default' }}>
+        <button className="hub-expandbtn" title="Collapse" onClick={() => setExpanded(null)}>–</button>
+        <div style={{ fontSize:15, fontWeight:800, marginBottom:16 }}>Project Hub</div>
+        {projectScroller}
+      </div>
+    </div>
+  );
+  if (expanded === 'clients') return (
+    <div className="hub-hubs" style={{ gridTemplateColumns:'1fr' }}>
+      <div className="hub-hubtile neutral" style={{ cursor:'default' }}>
+        <button className="hub-expandbtn" title="Collapse" onClick={() => setExpanded(null)}>–</button>
+        <div style={{ fontSize:15, fontWeight:800, marginBottom:16 }}>Client Hub</div>
+        {clientScroller}
+      </div>
+    </div>
+  );
+  return (
+    <div className="hub-hubs" style={{ gridTemplateColumns:'1fr 1fr' }}>
+      <div className="hub-hubtile" onClick={() => setExpanded('projects')} title="Expand Project Hub">
+        <button className="hub-expandbtn" onClick={e => { e.stopPropagation(); setExpanded('projects'); }}>+</button>
+        <div style={{ fontSize:15, fontWeight:800, marginBottom:18 }}>Project Hub</div>
+        <div style={{ display:'flex', gap:10, justifyContent:'flex-start' }}>
+          {stat(rfps, 'RFPs', '#c8873c')}
+          {stat(live, 'Live', 'var(--orange)')}
+          {stat(recon, 'Reconcile', '#c9bcaa')}
+        </div>
+      </div>
+      <div className="hub-hubtile neutral" onClick={() => setExpanded('clients')} title="Expand Client Hub">
+        <button className="hub-expandbtn" onClick={e => { e.stopPropagation(); setExpanded('clients'); }}>+</button>
+        <div style={{ display:'flex', alignItems:'center', gap:14, height:'100%', paddingTop:4 }}>
+          <div style={{ width:46, height:46, borderRadius:12, background:'rgba(168,154,134,0.16)', color:'#c9bcaa', display:'flex', alignItems:'center', justifyContent:'center', fontSize:24, flexShrink:0 }}>◎</div>
+          <div>
+            <div style={{ fontSize:15, fontWeight:800 }}>Client Hub</div>
+            <div style={{ fontSize:11, color:'var(--muted)', marginTop:3 }}>{projects ? `${clients.length} client${clients.length !== 1 ? 's' : ''}` : '—'}</div>
           </div>
-          )}
+        </div>
       </div>
     </div>
   );
@@ -1170,6 +1216,128 @@ function HubDashboard() {
   );
 }
 
+// ── Redesign scaffolding: liquid-glass bottom nav, expand-on-hover FAB,
+// scroll-reveal, and an orange/neutral palette ──────────────────────────────
+const HUB_CSS = `
+.hub-topbar{position:absolute;top:16px;right:22px;display:flex;align-items:center;gap:10px;z-index:30}
+.hub-brand{display:flex;flex-direction:column;align-items:center;gap:10px;margin:26px 0 6px}
+.hub-tagline{text-align:center;font-size:14px;font-weight:600;color:var(--muted);max-width:520px;margin:2px auto 26px;line-height:1.45}
+
+.hub-reveal{opacity:0;transform:translateY(20px);transition:opacity .55s cubic-bezier(.22,.61,.36,1),transform .55s cubic-bezier(.22,.61,.36,1)}
+.hub-reveal.in{opacity:1;transform:none}
+
+/* Liquid-glass bottom nav */
+.hub-bottomnav{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:120;display:flex;align-items:stretch;gap:2px;padding:8px 12px;border-radius:26px;
+  background:rgba(30,27,23,0.52);backdrop-filter:blur(22px) saturate(1.7);-webkit-backdrop-filter:blur(22px) saturate(1.7);
+  border:1px solid rgba(255,255,255,0.12);box-shadow:0 12px 40px rgba(0,0,0,0.55),inset 0 1px 0 rgba(255,255,255,0.12);transition:padding .28s ease}
+.hub-bottomnav.condensed{padding:7px 9px}
+.hub-navitem{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:none;border:none;color:var(--muted);
+  font-size:9.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;padding:7px 16px;border-radius:18px;transition:color .15s ease,background .15s ease,padding .28s ease}
+.hub-navitem:hover{color:var(--text);background:rgba(255,255,255,0.07)}
+.hub-navitem.active{color:var(--orange)}
+.hub-navitem svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.hub-navitem .lbl{max-height:12px;opacity:1;overflow:hidden;transition:max-height .28s ease,opacity .2s ease}
+.hub-bottomnav.condensed .hub-navitem{padding:9px 13px}
+.hub-bottomnav.condensed .hub-navitem .lbl{max-height:0;opacity:0}
+.hub-navpop{position:absolute;bottom:calc(100% + 10px);left:50%;transform:translateX(-50%);background:rgba(30,27,23,0.92);backdrop-filter:blur(18px);
+  border:1px solid rgba(255,255,255,0.14);border-radius:14px;overflow:hidden;box-shadow:0 12px 30px rgba(0,0,0,0.6);min-width:172px}
+.hub-navpop button{display:block;width:100%;text-align:left;background:none;border:none;color:var(--muted);font-size:12px;font-weight:800;padding:11px 16px;cursor:pointer}
+.hub-navpop button:hover{background:rgba(255,255,255,0.06);color:var(--text)}
+.hub-navpop button.on{color:var(--orange)}
+
+/* Expand-on-hover new-project FAB */
+.hub-fab{position:fixed;right:26px;bottom:26px;z-index:120;display:flex;align-items:center;height:56px;border-radius:28px;padding:0;
+  background:#0d0c0a;border:1px solid var(--orange);color:var(--orange);cursor:pointer;overflow:hidden;
+  box-shadow:0 0 18px rgba(232,80,10,0.5);transition:box-shadow .2s ease,transform .2s ease}
+.hub-fab .plus{flex:0 0 auto;width:56px;height:56px;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:300}
+.hub-fab .fab-label{max-width:0;overflow:hidden;white-space:nowrap;font-size:13px;font-weight:800;letter-spacing:.02em;transition:max-width .3s ease,padding .3s ease}
+.hub-fab:hover{box-shadow:0 0 30px rgba(232,80,10,0.85);transform:translateY(-1px)}
+.hub-fab:hover .fab-label{max-width:200px;padding-right:24px}
+
+/* Expandable Project / Client hub tiles */
+.hub-hubs{display:grid;gap:14px;margin-bottom:22px;transition:grid-template-columns .3s ease}
+.hub-hubtile{position:relative;background:var(--bg2);border:1px solid var(--border);border-top:3px solid var(--orange);border-radius:14px;padding:20px 22px;cursor:pointer;transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease}
+.hub-hubtile:hover{transform:translateY(-2px);box-shadow:0 8px 26px rgba(0,0,0,0.4)}
+.hub-hubtile.neutral{border-top-color:#a89a86}
+.hub-expandbtn{position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--muted);font-size:17px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s ease}
+.hub-expandbtn:hover{color:var(--orange);border-color:var(--orange)}
+`;
+
+// Orange/neutral status palette for the hub (keeps the rest of the app untouched)
+const HUB_STATUS = { RFP: '#c8873c', Draft: '#8a8f98', Sent: '#a89a86', Live: '#E8500A', Dead: '#e05252', Reconcile: '#c9a35c', Reconciled: '#a89a86', Closed: '#8a8f98' };
+
+// Minimal monochrome nav icons (stroke = currentColor)
+const NAV_ICONS = {
+  view: <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>,
+  calendar: <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>,
+  reports: <svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>,
+};
+
+function useScrolled(threshold = 44) {
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const on = () => setScrolled(window.scrollY > threshold);
+    window.addEventListener('scroll', on, { passive: true });
+    on();
+    return () => window.removeEventListener('scroll', on);
+  }, [threshold]);
+  return scrolled;
+}
+
+// Fade/slide a section in the first time it scrolls into view
+function Reveal({ children, style }) {
+  const ref = React.useRef(null);
+  const [seen, setSeen] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setSeen(true); io.disconnect(); } }, { threshold: 0.12 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return <div ref={ref} className={`hub-reveal${seen ? ' in' : ''}`} style={style}>{children}</div>;
+}
+
+function HubBottomNav({ isCrew, isFinance, mode, setHubMode, scrolled }) {
+  const nav = useNavigate();
+  const [viewMenu, setViewMenu] = useState(false);
+  const item = (icon, label, onClick, active) => (
+    <button className={`hub-navitem${active ? ' active' : ''}`} onClick={onClick}>
+      {icon}<span className="lbl">{label}</span>
+    </button>
+  );
+  return (
+    <div className={`hub-bottomnav${scrolled ? ' condensed' : ''}`}>
+      {!isCrew && !isFinance && (
+        <div style={{ position: 'relative' }}>
+          {item(NAV_ICONS.view, 'View', () => setViewMenu(m => !m), viewMenu)}
+          {viewMenu && (
+            <>
+              <div onClick={() => setViewMenu(false)} style={{ position: 'fixed', inset: 0, zIndex: 1 }} />
+              <div className="hub-navpop" style={{ zIndex: 2 }}>
+                {[['projects', 'Project View'], ['ops', 'Operations View']].map(([k, l]) => (
+                  <button key={k} className={mode === k ? 'on' : ''} onClick={() => { setHubMode(k); setViewMenu(false); }}>{l}{mode === k ? '  ✓' : ''}</button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+      {!isFinance && item(NAV_ICONS.calendar, 'Calendar', () => nav('/crew-calendar'))}
+      {item(NAV_ICONS.reports, 'Reports', () => nav('/reports'))}
+    </div>
+  );
+}
+
+function NewProjectFab({ onClick }) {
+  return (
+    <button className="hub-fab" onClick={onClick} title="Start a new project">
+      <span className="plus">+</span>
+      <span className="fab-label">Start New Project</span>
+    </button>
+  );
+}
+
 export default function Hub() {
   const nav = useNavigate();
   const { user, setUser, realUser, preview, setPreview } = useAuth();
@@ -1190,15 +1358,11 @@ export default function Hub() {
     : TILES.filter(t => t.key !== 'team');
   const tiles = opsTiles;
 
-  const [viewMenu, setViewMenu] = useState(false);
+  const scrolled = useScrolled();
   return (
-    <div style={{ minHeight:'100vh', background:'var(--bg)', display:'flex', flexDirection:'column' }}>
-      <div className="hub-head" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 26px', flexWrap:'wrap', gap:10, position:'relative' }}>
-        <div>
-          <div style={{ fontSize:14, fontWeight:800, letterSpacing:'0.02em' }}>Unbridled Media</div>
-          <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.12em', marginTop:3 }}>Operating Platform</div>
-        </div>
-        <div className="hub-head-right" style={{ display:'flex', alignItems:'center', gap:12 }}>
+    <div style={{ minHeight:'100vh', background:'var(--bg)', display:'flex', flexDirection:'column', position:'relative' }}>
+      <style>{HUB_CSS}</style>
+      <div className="hub-topbar">
           {realUser?.role === 'ADMIN' && <NewUserAlert onOpen={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })} />}
           {realUser?.role === 'ADMIN' && (
             <select value={preview || ''} title="Preview the platform as another role"
@@ -1223,85 +1387,17 @@ export default function Hub() {
                 } catch (e) { alert(e.message); }
               }}>⬇ Backup</button>
           )}
-        </div>
       </div>
 
-
-        <div style={{ flex:1, display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'20px 16px 60px' }}>
+        <div style={{ flex:1, display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'8px 16px 120px' }}>
           <div style={{ width:'100%', maxWidth:1150 }}>
-            <div style={{ textAlign:'center', marginBottom:14 }}>
-              <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height:52, filter:'brightness(0) invert(1)', opacity:0.97, display:'inline-block' }} />
+            <div className="hub-brand">
+              <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height:60, filter:'brightness(0) invert(1)', opacity:0.97 }} />
             </div>
-            <HubGreeting />
+            <div className="hub-tagline"><HubGreeting /></div>
             <TripPrompt />
             <WobBanner />
             <FunFactPrompt />
-            {!isCrew && (
-              <div className="hub-controls" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap', marginBottom:20 }}>
-                {/* View ▾ · Calendar · Reports — one pill */}
-                <div style={{ position:'relative', display:'inline-flex', border:'1px solid var(--border)', borderRadius:20, overflow:'visible' }}>
-                  {!isFinance && (
-                    <button onClick={() => setViewMenu(m => !m)}
-                      style={{ background:'rgba(232,80,10,0.16)', border:'none', borderRight:'1px solid var(--border)',
-                        color:'var(--orange)', fontSize:12, fontWeight:800, padding:'9px 20px', cursor:'pointer', letterSpacing:'0.03em',
-                        borderRadius:'20px 0 0 20px', boxShadow:'0 0 16px rgba(232,80,10,0.35)' }}>
-                      View {viewMenu ? '▾' : '▸'}
-                    </button>
-                  )}
-                  {!isFinance && (
-                    <button onClick={() => nav('/crew-calendar')}
-                      style={{ background:'transparent', border:'none', borderRight:'1px solid var(--border)',
-                        color:'#5ABF80', fontSize:12, fontWeight:800, padding:'9px 20px', cursor:'pointer', letterSpacing:'0.03em' }}>
-                      Calendar
-                    </button>
-                  )}
-                  <button onClick={() => nav('/reports')}
-                    style={{ background:'transparent', border:'none',
-                      color:'#e6c229', fontSize:12, fontWeight:800, padding:'9px 20px', cursor:'pointer', letterSpacing:'0.03em',
-                      borderRadius: isFinance ? 20 : '0 20px 20px 0' }}>
-                    Reports
-                  </button>
-                  {viewMenu && (
-                    <div style={{ position:'absolute', top:'calc(100% + 6px)', left:0, zIndex:60, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, overflow:'hidden', boxShadow:'0 10px 28px rgba(0,0,0,0.55)', minWidth:170 }}>
-                      {[['projects', 'Project View'], ['ops', 'Operations View']].map(([k, label]) => (
-                        <button key={k} onClick={() => { setHubMode(k); setViewMenu(false); }}
-                          style={{ display:'block', width:'100%', textAlign:'left', background: mode === k ? 'rgba(232,80,10,0.16)' : 'transparent', border:'none',
-                            color: mode === k ? 'var(--orange)' : 'var(--muted)', fontSize:12, fontWeight:800, padding:'10px 16px', cursor:'pointer' }}>
-                          {label}{mode === k ? ' ✓' : ''}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                {!isFinance && (
-                <button onClick={() => setShowNewProject(true)} className="hub-newproj"
-                  style={{ background:'#000', color:'#5ABF80', border:'1px solid #5ABF80', borderRadius:22,
-                    padding:'10px 24px', fontSize:12.5, fontWeight:800, letterSpacing:'0.03em', cursor:'pointer',
-                    boxShadow:'0 0 16px rgba(90,191,128,0.55)', transition:'box-shadow .15s ease, transform .15s ease' }}
-                  onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 0 24px rgba(90,191,128,0.85)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 0 16px rgba(90,191,128,0.55)'; e.currentTarget.style.transform = 'none'; }}>
-                  + Start New Project
-                </button>
-                )}
-              </div>
-            )}
-            {user?.role === 'CREW' && (
-              <div className="hub-controls" style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:12, flexWrap:'wrap', marginBottom:20 }}>
-                {/* Calendar · Reports — crew only reach FreePro & Avo, so no View toggle */}
-                <div style={{ display:'inline-flex', border:'1px solid var(--border)', borderRadius:20, overflow:'hidden' }}>
-                  <button onClick={() => nav('/crew-calendar')}
-                    style={{ background:'transparent', border:'none', borderRight:'1px solid var(--border)',
-                      color:'#5ABF80', fontSize:12, fontWeight:800, padding:'9px 20px', cursor:'pointer', letterSpacing:'0.03em', borderRadius:'20px 0 0 20px' }}>
-                    Calendar
-                  </button>
-                  <button onClick={() => nav('/reports')}
-                    style={{ background:'transparent', border:'none',
-                      color:'#e6c229', fontSize:12, fontWeight:800, padding:'9px 20px', cursor:'pointer', letterSpacing:'0.03em', borderRadius:'0 20px 20px 0' }}>
-                    Reports
-                  </button>
-                </div>
-              </div>
-            )}
             {isAgency && <SolutionsHub />}
             {!isAgency && !isCrew && !isFinance && mode === 'projects' && <HubProjects />}
             {!isAgency && (isCrew || isFinance || mode === 'ops') && (
@@ -1342,9 +1438,12 @@ export default function Hub() {
             </div>
             )}
 
-            <HubDashboard />
+            <Reveal><HubDashboard /></Reveal>
           </div>
         </div>
+
+      <HubBottomNav isCrew={isCrew} isFinance={isFinance} mode={mode} setHubMode={setHubMode} scrolled={scrolled} />
+      {!isFinance && !isCrew && !isAgency && <NewProjectFab onClick={() => setShowNewProject(true)} />}
 
       {showNewProject && (
         <NewProjectModal
