@@ -224,7 +224,7 @@ Questions? Reply to whoever sent you this.`;async function g(){try{await navigat
 .hub-fab:hover .fab-label{max-width:200px;padding-right:24px}
 
 /* Expandable Project / Client hub tiles */
-.hub-hubs{display:grid;gap:14px;margin-bottom:22px;transition:grid-template-columns .3s ease,max-width .35s ease}
+.hub-hubs{display:grid;gap:14px;margin:0 auto 22px;transition:grid-template-columns .3s ease,max-width .35s ease}
 .hub-hubs-roll{animation:hubRollOut .38s cubic-bezier(.22,.61,.36,1)}
 @keyframes hubRollOut{from{max-width:540px;opacity:.65}to{max-width:100%;opacity:1}}
 .hub-hubtile{position:relative;background:var(--bg2);border:1px solid var(--border);border-top:3px solid var(--orange);border-radius:14px;padding:20px 22px;cursor:pointer;transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease}
