@@ -1362,32 +1362,16 @@ export default function Hub() {
   return (
     <div style={{ minHeight:'100vh', background:'var(--bg)', display:'flex', flexDirection:'column', position:'relative' }}>
       <style>{HUB_CSS}</style>
-      <div className="hub-topbar">
+      {(preview || realUser?.role === 'ADMIN') && (
+        <div className="hub-topbar">
+          {preview && (
+            <button className="btn btn-ghost btn-sm" title="Stop previewing and return to your admin view"
+              onClick={() => setPreview('')}
+              style={{ color:'#a78bfa', border:'1px solid #a78bfa' }}>Previewing as {roleLabel(preview)} · Exit</button>
+          )}
           {realUser?.role === 'ADMIN' && <NewUserAlert onOpen={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })} />}
-          {realUser?.role === 'ADMIN' && (
-            <select value={preview || ''} title="Preview the platform as another role"
-              onChange={e => setPreview(e.target.value)}
-              style={{ width:'auto', fontSize:11, padding:'5px 8px', borderRadius:8, background:'var(--bg2)', color: preview ? '#a78bfa' : 'var(--muted)', border:`1px solid ${preview ? '#a78bfa' : 'var(--border)'}` }}>
-              <option value="">View as…</option>
-              {['PRODUCER', 'FINANCE', 'CREW', 'AGENCY', 'CLIENT'].map(r => <option key={r} value={r}>View as {roleLabel(r)}</option>)}
-            </select>
-          )}
-          {user?.role === 'ADMIN' && (
-            <button className="btn btn-ghost btn-sm" title="Download a full database backup (all projects, budgets, contracts, roster)"
-              onClick={async () => {
-                try {
-                  const r = await fetch('/api/admin/backup', { headers: { Authorization: `Bearer ${localStorage.getItem('fp_token')}` } });
-                  if (!r.ok) throw new Error('Backup failed');
-                  const blob = await r.blob();
-                  const a = document.createElement('a');
-                  a.href = URL.createObjectURL(blob);
-                  a.download = `freepro-backup-${new Date().toISOString().slice(0, 10)}.json.gz`;
-                  a.click();
-                  URL.revokeObjectURL(a.href);
-                } catch (e) { alert(e.message); }
-              }}>⬇ Backup</button>
-          )}
-      </div>
+        </div>
+      )}
 
         <div style={{ flex:1, display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'8px 16px 120px' }}>
           <div style={{ width:'100%', maxWidth:1150 }}>
@@ -1451,7 +1435,7 @@ export default function Hub() {
           onCreated={p => { setShowNewProject(false); nav(`/project-view/${p.id}`); }}
         />
       )}
-      {user?.role === 'ADMIN' && <AdminPanel user={user} />}
+      {realUser?.role === 'ADMIN' && <AdminPanel user={realUser} />}
     </div>
   );
 }
@@ -1459,13 +1443,38 @@ export default function Hub() {
 // Single Admin button (above Sign out) that unfolds User Management and
 // Automations — admin role only.
 function AdminPanel({ user }) {
+  const { preview, setPreview } = useAuth();
   const [open, setOpen] = useState(false);
+  async function backup() {
+    try {
+      const r = await fetch('/api/admin/backup', { headers: { Authorization: `Bearer ${localStorage.getItem('fp_token')}` } });
+      if (!r.ok) throw new Error('Backup failed');
+      const blob = await r.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `freepro-backup-${new Date().toISOString().slice(0, 10)}.json.gz`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } catch (e) { alert(e.message); }
+  }
   return (
     <div style={{ padding:'0 26px 22px', display:'flex', flexDirection:'column', alignItems:'center', gap:10 }}>
       {open && (
-        <div style={{ display:'flex', justifyContent:'center', alignItems:'center', gap:12, flexWrap:'wrap' }}>
+        <div style={{ display:'flex', justifyContent:'center', alignItems:'stretch', gap:12, flexWrap:'wrap' }}>
           <UserManagement user={user} />
           <Automations />
+          <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, padding:'14px 16px', minWidth:220, alignSelf:'flex-start' }}>
+            <div style={{ fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:'.06em', marginBottom:12 }}>Platform</div>
+            <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.06em', marginBottom:4 }}>Preview as role</div>
+            <select value={preview || ''} title="Preview the platform as another role"
+              onChange={e => setPreview(e.target.value)}
+              style={{ width:'100%', fontSize:12, padding:'6px 8px', borderRadius:8, background:'var(--bg)', color: preview ? '#a78bfa' : 'var(--muted)', border:`1px solid ${preview ? '#a78bfa' : 'var(--border)'}`, marginBottom:12 }}>
+              <option value="">View as… (off)</option>
+              {['PRODUCER', 'FINANCE', 'CREW', 'AGENCY', 'CLIENT'].map(r => <option key={r} value={r}>View as {roleLabel(r)}</option>)}
+            </select>
+            <button className="btn btn-ghost btn-sm" style={{ width:'100%' }} onClick={backup}
+              title="Download a full database backup (all projects, budgets, contracts, roster)">⬇ Backup Database</button>
+          </div>
         </div>
       )}
       <button onClick={() => setOpen(o => !o)}
