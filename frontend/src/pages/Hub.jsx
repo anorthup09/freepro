@@ -970,9 +970,10 @@ function HubProjects({ onNewProject }) {
       {projects && shown.length === 0 && <div className="empty">No projects match.</div>}
       {shown.length > 0 && (
         <div className="hub-scroll" style={{ display:'flex', gap:10, overflowX:'auto', paddingBottom:8, WebkitMaskImage:SCROLL_FADE, maskImage:SCROLL_FADE }}>
-          {shown.map(p => (
+          {shown.map((p, i) => (
             <div key={p.id} onClick={() => nav(`/project-view/${p.id}`)}
-              style={{ flex:'0 0 auto', width:180, background:'var(--bg)', border:'1px solid var(--border)', borderTop:'3px solid rgba(232,80,10,0.55)', borderRadius:10, padding:'11px 13px', cursor:'pointer', transition:'transform .15s ease' }}
+              className={flips ? 'hub-cardflip' : ''}
+              style={{ flex:'0 0 auto', width:180, background:'var(--bg)', border:'1px solid var(--border)', borderTop:'3px solid rgba(232,80,10,0.55)', borderRadius:10, padding:'11px 13px', cursor:'pointer', transition:'transform .15s ease', animationDelay:`${i * 0.045}s` }}
               onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-3px)'} onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
               <div style={{ fontSize:10, fontWeight:800, color:'var(--muted)', letterSpacing:'0.04em' }}>{p.code}</div>
               <div style={{ fontSize:12.5, fontWeight:800, margin:'3px 0 2px' }}>{p.title}</div>
@@ -992,9 +993,10 @@ function HubProjects({ onNewProject }) {
     <>
       {clients.length === 0 ? <div className="empty">No clients yet.</div> : (
         <div className="hub-scroll" style={{ display:'flex', gap:10, overflowX:'auto', paddingBottom:8, WebkitMaskImage:SCROLL_FADE, maskImage:SCROLL_FADE }}>
-          {shownClients.map(c => (
+          {shownClients.map((c, i) => (
             <div key={c.name} onClick={() => nav(`/project-view/client/${encodeURIComponent(c.name)}`)}
-              style={{ flex:'0 0 auto', width:180, background:'var(--bg)', border:'1px solid var(--border)', borderTop:'3px solid #a89a86', borderRadius:10, padding:'11px 13px', cursor:'pointer', transition:'transform .15s ease' }}
+              className={flips ? 'hub-cardflip' : ''}
+              style={{ flex:'0 0 auto', width:180, background:'var(--bg)', border:'1px solid var(--border)', borderTop:'3px solid #a89a86', borderRadius:10, padding:'11px 13px', cursor:'pointer', transition:'transform .15s ease', animationDelay:`${i * 0.045}s` }}
               onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-3px)'} onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
               <div style={{ fontSize:12.5, fontWeight:800 }}>{c.name}</div>
               <div style={{ fontSize:10.5, color:'var(--muted)', margin:'3px 0 8px' }}>{c.projects.length} project{c.projects.length !== 1 ? 's' : ''}</div>
@@ -1022,7 +1024,7 @@ function HubProjects({ onNewProject }) {
           <HubSwitchPill label={onProjects ? 'Client Hub' : 'Project Hub'} neutral={onProjects}
             onClick={doSwitch} />
         </div>
-        <div key={flips} className={flips ? 'hub-hubflip' : ''}>
+        <div key={flips}>
           {onProjects ? projectList : clientList}
         </div>
       </div>
@@ -1358,10 +1360,11 @@ const HUB_CSS = `
 .hub-switch-pill:hover{box-shadow:0 0 14px rgba(232,80,10,0.35)}
 .hub-switch-pill.neutral{background:rgba(168,154,134,0.16);border-color:#a89a86;color:#c9bcaa}
 .hub-switch-pill.neutral:hover{box-shadow:0 0 14px rgba(168,154,134,0.35)}
-/* Flip when switching between the Project and Client hubs */
-@keyframes hubFlip{0%{transform:perspective(900px) rotateY(0);opacity:1}45%{transform:perspective(900px) rotateY(90deg);opacity:0}55%{transform:perspective(900px) rotateY(-90deg);opacity:0}100%{transform:perspective(900px) rotateY(0);opacity:1}}
-.hub-hubflip{animation:hubFlip .5s cubic-bezier(.45,.05,.35,1);transform-origin:center;will-change:transform}
-@media (prefers-reduced-motion: reduce){.hub-hubflip{animation:none}}
+/* Switching hubs flips each card in on its left edge, staggered left→right, so
+   the orange project cards give way to the gray client cards (and back). */
+@keyframes hubCardFlip{0%{transform:perspective(700px) rotateY(-90deg);opacity:0}55%{opacity:1}100%{transform:perspective(700px) rotateY(0);opacity:1}}
+.hub-cardflip{animation:hubCardFlip .45s cubic-bezier(.34,.75,.35,1) backwards;transform-origin:left center;will-change:transform}
+@media (prefers-reduced-motion: reduce){.hub-cardflip{animation:none}}
 /* Dashboard open animations: Media Moment / Day in Review / Team Today drop in
    from the top; Project Hub flies in from the left, Client Hub from the right.
    fill-mode:backwards holds the start frame during any delay and then releases
