@@ -71,7 +71,7 @@ function MobileTabDock({ tabs, tab, setTab }) {
   const menuBtn = collapsible && (
     <button className="pvd-menu no-print" onClick={() => setMin(m => !m)} aria-label={min ? 'Open navigation' : 'Back to finance navigation'}
       style={{
-        position:'fixed', left:64, bottom:'calc(env(safe-area-inset-bottom, 0px) + 14px)',
+        position:'fixed', left:14, bottom:'calc(env(safe-area-inset-bottom, 0px) + 62px)',
         zIndex:111, display:'flex', alignItems:'center', gap:8, padding:'10px 14px', cursor:'pointer',
         background: min ? 'rgba(24,22,19,0.81)' : 'rgba(45,42,36,0.92)',
         backdropFilter:'blur(18px) saturate(1.5)', WebkitBackdropFilter:'blur(18px) saturate(1.5)',

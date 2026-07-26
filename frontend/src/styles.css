@@ -904,7 +904,11 @@ body.pvd-nav-open .fin-dock,
 body.pvd-nav-open .proj-bottomnav { display: none !important; }
 
 /* Project section dock — bottom-right liquid-glass pill, mirroring the Finance dock */
-.proj-bottomnav { position: fixed; right: 14px; bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); z-index: 112; display: flex; align-items: center; gap: 4px; padding: 7px 10px; background: rgba(24,22,19,0.81); backdrop-filter: blur(18px) saturate(1.5); -webkit-backdrop-filter: blur(18px) saturate(1.5); border: 1px solid rgba(255,255,255,0.12); border-radius: 32px; box-shadow: 0 10px 34px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.08); max-width: calc(100vw - 28px); }
+.proj-bottomnav { position: fixed; right: 14px; bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); z-index: 112; display: flex; align-items: center; gap: 2px; padding: 8px 12px; background: rgba(24,22,19,0.81); backdrop-filter: blur(18px) saturate(1.5); -webkit-backdrop-filter: blur(18px) saturate(1.5); border: 1px solid rgba(255,255,255,0.12); border-radius: 32px; box-shadow: 0 10px 34px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.08); max-width: calc(100vw - 28px); }
+/* Dock buttons — icon over label, mirroring the Finance dock (Harbinger/Budget/VCC) */
+.proj-bottomnav .dock-btn { display: flex; flex-direction: column; align-items: center; gap: 3px; background: transparent; border: none; cursor: pointer; color: rgba(255,255,255,0.55); border-radius: 22px; padding: 7px 14px 6px; transition: color .25s ease, background .2s ease; }
+.proj-bottomnav .dock-btn.on { color: var(--orange); background: rgba(255,255,255,0.10); }
+.proj-bottomnav .dock-lbl { font-size: 9px; font-weight: 800; letter-spacing: 0.02em; white-space: nowrap; }
 .proj-bottomnav .tab { white-space: nowrap; border-radius: 20px; padding: 6px 10px; font-size: 12px; }
 .proj-bottomnav .tab.on { color: var(--orange); background: rgba(232,80,10,0.14); }
 
