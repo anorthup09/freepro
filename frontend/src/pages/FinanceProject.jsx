@@ -735,6 +735,15 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
   const [dateEdit, setDateEdit] = useState(null);   // { secId, start, end } while editing a shoot's dates
   const [expandedSecs, setExpandedSecs] = useState({});
   const [revealed, setRevealed] = useState({});
+  // On phones the header meta card is very tall — collapse it to a compact
+  // summary bar (Total + status) that expands to the full field grid on tap.
+  const [mobile, setMobile] = useState(typeof window !== 'undefined' && window.innerWidth <= 700);
+  const [metaOpen, setMetaOpen] = useState(false);
+  useEffect(() => {
+    const onR = () => setMobile(window.innerWidth <= 700);
+    window.addEventListener('resize', onR);
+    return () => window.removeEventListener('resize', onR);
+  }, []);
 
   const patchLine = (id, fields) => set(d => ({ lines: d.lines.map(l => l.id === id ? { ...l, ...fields } : l) }));
   // Saves are optimistic — if the background write fails, snap the UI back to the
@@ -804,8 +813,20 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
   return (
     <div>
       {/* header fields */}
-      <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding:'12px 16px', marginBottom:16, display:'flex', gap:16, flexWrap:'wrap', alignItems:'flex-end' }}>
-        {[
+      <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding: mobile ? '10px 14px' : '12px 16px', marginBottom:16, display:'flex', flexDirection: mobile ? 'column' : 'row', gap: mobile ? 12 : 16, flexWrap:'wrap', alignItems: mobile ? 'stretch' : 'flex-end' }}>
+        {mobile && (
+          <div onClick={() => setMetaOpen(o => !o)} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, cursor:'pointer' }}>
+            <div style={{ display:'flex', alignItems:'baseline', gap:8, minWidth:0 }}>
+              <span style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.08em' }}>Total Budget</span>
+              <span style={{ fontSize:20, fontWeight:800, color:'#5ABF80', fontVariantNumeric:'tabular-nums' }}>{fmt$(t.total)}</span>
+            </div>
+            <div style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
+              <StatusPill value={budget.status || 'RFP'} onChange={handleStatusChange} small />
+              <span style={{ fontSize:11, color:'var(--muted)', fontWeight:700, whiteSpace:'nowrap' }}>{metaOpen ? 'Hide ▴' : 'Details ▾'}</span>
+            </div>
+          </div>
+        )}
+        {(!mobile || metaOpen) && [
           ['Budget Dated', 'budget_date', 'budgetDate', 'date'],
           ...(budget.unbridled_solutions ? [['Solutions Code', 'solutions_code', 'solutionsCode', 'text']] : []),
         ].map(([label, key, apiKey, type]) => (
@@ -816,6 +837,7 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
               onBlur={e => saveBudget({ [apiKey]: e.target.value })} />
           </div>
         ))}
+        {(!mobile || metaOpen) && <>
         <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
           <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Budget Owner</label>
           <select value={budget.media_rep || ''} style={{ width:160, fontSize:12 }}
@@ -865,11 +887,14 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
             )}
             <StatusPill value={budget.status || 'RFP'} onChange={handleStatusChange} small />
           </div>
-          <div style={{ textAlign:'right' }}>
-            <span style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.08em', marginRight:8 }}>Total Budget</span>
-            <span style={{ fontSize:18, fontWeight:800, color:'#5ABF80', fontVariantNumeric:'tabular-nums' }}>{fmt$(t.total)}</span>
-          </div>
+          {!mobile && (
+            <div style={{ textAlign:'right' }}>
+              <span style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.08em', marginRight:8 }}>Total Budget</span>
+              <span style={{ fontSize:18, fontWeight:800, color:'#5ABF80', fontVariantNumeric:'tabular-nums' }}>{fmt$(t.total)}</span>
+            </div>
+          )}
         </div>
+        </>}
       </div>
 
       {(() => { const lastShootId = [...sections].filter(x => x.kind === 'shoot').map(x => x.id).pop(); return sections.map(sec => {
