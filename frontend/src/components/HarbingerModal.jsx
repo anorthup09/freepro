@@ -154,14 +154,23 @@ const FIELD_LABELS = [
   ['closeMonth', 'Estimated Close Month'], ['notes', 'Notes'],
 ];
 
+// Step-tab icons — line-art, matching the liquid-glass docks across the app
+const HB_ICONS = {
+  project:    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5.5A2 2 0 0 1 10 3.5h4a2 2 0 0 1 2 2V7"/></svg>,
+  client:     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c0-3.6 3.4-6.2 7.5-6.2s7.5 2.6 7.5 6.2"/></svg>,
+  revenue:    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M15 9.5c0-1.4-1.3-2.5-3-2.5s-3 .9-3 2.2c0 3 6 1.6 6 4.6 0 1.3-1.3 2.2-3 2.2s-3-1.1-3-2.5"/></svg>,
+  creative:   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18h6M10 21.5h4"/><path d="M12 2.5a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1V18h6v-.7c0-.8.4-1.6 1-2.1a7 7 0 0 0-4-12.7z"/></svg>,
+  production: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="7" width="18" height="12" rx="2"/><circle cx="12" cy="13" r="3.2"/><path d="M8 7l1.4-2h5.2L16 7"/></svg>,
+  dates:      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg>,
+};
 // Wizard steps, in order — drive the top tabs + the left progress panel
 const STEPS = [
-  { id: 'project',    label: 'Project' },
-  { id: 'client',     label: 'Client' },
-  { id: 'revenue',    label: 'Revenue / Commissions' },
-  { id: 'creative',   label: 'Creative' },
-  { id: 'production',  label: 'Production / Crew' },
-  { id: 'dates',      label: 'Key Dates' },
+  { id: 'project',    label: 'Project',                short: 'Project' },
+  { id: 'client',     label: 'Client',                 short: 'Client' },
+  { id: 'revenue',    label: 'Revenue / Commissions',  short: 'Revenue' },
+  { id: 'creative',   label: 'Creative',               short: 'Creative' },
+  { id: 'production',  label: 'Production / Crew',       short: 'Production' },
+  { id: 'dates',      label: 'Key Dates',              short: 'Dates' },
 ];
 // One descriptor per field on a step: { req, filled } → drives the dots
 function stepFieldsFor(id, f, solutionsOn) {
@@ -498,23 +507,29 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted, sol
           </div>
           <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
         </div>
-        {/* Top progress tabs */}
-        <div style={{ display:'flex', gap:2, flexWrap:'wrap', borderBottom:'1px solid var(--border)', paddingBottom:12, marginBottom:4 }}>
-          {STEPS.map((s, i) => {
-            const done = !stepFields(s.id).some(fl => fl.req && !fl.filled);
-            const cur = i === step && !isReview;
-            return (
-              <button key={s.id} type="button" onClick={() => goTab(i)}
-                style={{ display:'flex', alignItems:'center', gap:6, background:'none', border:'none', cursor:'pointer', padding:'4px 8px', borderRadius:8,
-                  color: cur ? 'var(--orange)' : 'var(--muted)', fontWeight: cur ? 800 : 600, fontSize:12, whiteSpace:'nowrap' }}>
-                <span style={{ width:19, height:19, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:800, flexShrink:0,
-                  background: cur ? 'var(--orange)' : (done ? 'rgba(90,191,128,0.18)' : 'var(--bg)'),
-                  color: cur ? '#fff' : (done ? '#5ABF80' : 'var(--muted)'),
-                  border: `1px solid ${cur ? 'var(--orange)' : (done ? '#5ABF8055' : 'var(--border)')}` }}>{done && !cur ? '✓' : i + 1}</span>
-                {s.label}
-              </button>
-            );
-          })}
+        {/* Top progress tabs — liquid-glass dock, matching the app's bottom navs */}
+        <div style={{ display:'flex', justifyContent:'center', marginBottom:6 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:2, padding:'7px 10px', maxWidth:'100%', overflowX:'auto',
+            background:'rgba(24,22,19,0.81)', backdropFilter:'blur(18px) saturate(1.5)', WebkitBackdropFilter:'blur(18px) saturate(1.5)',
+            border:'1px solid rgba(255,255,255,0.12)', borderRadius:30, boxShadow:'0 10px 30px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.06)' }}>
+            {STEPS.map((s, i) => {
+              const done = !stepFields(s.id).some(fl => fl.req && !fl.filled);
+              const cur = i === step && !isReview;
+              const color = cur ? 'var(--orange)' : (done ? '#5ABF80' : 'rgba(255,255,255,0.5)');
+              return (
+                <button key={s.id} type="button" onClick={() => goTab(i)} aria-label={s.label} title={s.label}
+                  style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4, position:'relative', flexShrink:0,
+                    background: cur ? 'rgba(255,255,255,0.08)' : 'transparent', border:'none', cursor:'pointer',
+                    color, borderRadius:20, padding:'6px 13px 5px', transition:'color .2s ease, background .2s ease' }}>
+                  <span style={{ position:'relative', display:'flex', alignItems:'center', justifyContent:'center', width:30, height:30, borderRadius:'50%',
+                    background: cur ? 'rgba(232,80,10,0.16)' : (done ? 'rgba(90,191,128,0.14)' : 'transparent'), transition:'background .2s ease' }}>
+                    {HB_ICONS[s.id]}
+                  </span>
+                  <span style={{ fontSize:9, fontWeight:800, letterSpacing:'0.02em', whiteSpace:'nowrap' }}>{s.short}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
         <div style={{ display:'flex', gap:20, marginTop:14, alignItems:'flex-start' }}>
           {/* Left progress panel — dots for the current step (condensed on review) */}
