@@ -1404,7 +1404,7 @@ const HUB_CSS = `
    above the tile background but below all text/children. */
 .hub-glow{position:relative;overflow:hidden}
 .hub-glow::before{content:'';position:absolute;inset:0;z-index:0;pointer-events:none;opacity:0;
-  background:radial-gradient(120px circle at var(--gx, 50%) var(--gy, 40%), rgba(232,80,10,0.16), transparent 68%);
+  background:radial-gradient(120px circle at var(--gx, 50%) var(--gy, 40%), rgba(232,80,10,0.08), transparent 68%);
   transition:opacity .3s ease}
 .hub-glow:hover::before{opacity:1}
 .hub-glow > *{position:relative;z-index:1}
