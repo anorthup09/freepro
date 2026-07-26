@@ -66,6 +66,8 @@ export default function FinanceProject({ pidOverride }) {
   const [glass, setGlass] = useState(false);
   const [harbinger, setHarbinger] = useState(null);
   const [showHarbinger, setShowHarbinger] = useState(false);
+  const [openPrompt, setOpenPrompt] = useState(false);   // "start a new version?" on open
+  const promptedFor = useRef(null);
 
   useEffect(() => {
     api.getHarbinger(pid).then(setHarbinger).catch(() => setHarbinger(null));
@@ -78,6 +80,15 @@ export default function FinanceProject({ pidOverride }) {
   }, []);
 
   useEffect(() => { api.financeBundle(pid).then(setData).catch(e => alert(e.message)); }, [pid]);
+
+  // Every time a budget is opened, ask whether to start a new version (once per
+  // project load — not on every re-render).
+  useEffect(() => {
+    if (data?.budget && promptedFor.current !== pid) {
+      promptedFor.current = pid;
+      setOpenPrompt(true);
+    }
+  }, [data?.budget, pid]);
 
   if (!data) return <div style={{ minHeight:'100vh', background:'var(--bg)' }}><FinanceHeader /><div className="empty">Loading…</div></div>;
   const { project, budget, sections, lines, vcc, categories, estimates = [] } = data;
@@ -165,6 +176,11 @@ export default function FinanceProject({ pidOverride }) {
           </div>
         );
       })()}
+      {openPrompt && budget && (
+        <NewVersionPrompt pid={pid} budget={budget}
+          onClose={() => setOpenPrompt(false)}
+          onStarted={() => { setOpenPrompt(false); api.financeBundle(pid).then(setData); }} />
+      )}
       {showHarbinger && harbinger && <HarbingerView harbinger={harbinger} onClose={() => setShowHarbinger(false)} />}
       {editProject && (
         <EditProjectModal project={project} onClose={() => setEditProject(false)}
@@ -379,6 +395,72 @@ function FinanceDock({ tab, setTab, onHarbinger }) {
           </button>
         );
       })}
+    </div>
+  );
+}
+
+// ── On-open prompt: offer to start a new version, with a version list ──────
+// Shows every time a project budget is opened. Lists each version (current +
+// frozen snapshots) with its total budget amount and the date it was last
+// opened, then lets the user start a fresh version or continue on the current.
+function NewVersionPrompt({ pid, budget, onClose, onStarted }) {
+  const [rows, setRows] = useState(null);   // null=loading
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    api.budgetVersionSummary(pid)
+      .then(r => { if (alive) setRows(r); })
+      .catch(() => { if (alive) setRows([]); })
+      // stamp this open so the next open reports the previous time
+      .finally(() => { api.markBudgetOpened(budget.id).catch(() => {}); });
+    return () => { alive = false; };
+  }, [pid, budget.id]);
+
+  const fmtOpened = d => d ? new Date(d).toLocaleString('en-US', { month:'short', day:'numeric', year:'numeric', hour:'numeric', minute:'2-digit' }) : 'Never';
+
+  async function start() {
+    if (busy) return;
+    setBusy(true);
+    try { await api.startBudgetVersion(budget.id); onStarted(); }
+    catch (e) { alert(e.message); setBusy(false); }
+  }
+
+  return (
+    <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:260, background:'rgba(0,0,0,0.72)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid var(--orange)', borderRadius:12, width:'100%', maxWidth:460, maxHeight:'86vh', overflowY:'auto', padding:'22px 24px' }}>
+        <div style={{ fontSize:16, fontWeight:800, marginBottom:4 }}>Start a new budget version?</div>
+        <div style={{ fontSize:11, color:'var(--muted)', marginBottom:16, lineHeight:1.4 }}>
+          Starting a new version saves the current budget as a read-only snapshot (Version {Number(budget.version || 1)}) and keeps editing from a fresh Version {Number(budget.version || 1) + 1}.
+        </div>
+
+        <div style={{ fontSize:9, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--muted)', marginBottom:6 }}>Versions</div>
+        <div style={{ border:'1px solid var(--border)', borderRadius:8, overflow:'hidden', marginBottom:18 }}>
+          <div style={{ display:'flex', padding:'6px 12px', background:'var(--bg3)', fontSize:9, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.05em', color:'var(--muted)' }}>
+            <span style={{ width:70 }}>Version</span>
+            <span style={{ flex:1, textAlign:'right' }}>Total Budget</span>
+            <span style={{ flex:1.4, textAlign:'right' }}>Last Opened</span>
+          </div>
+          {rows === null && <div style={{ padding:'10px 12px', fontSize:11, color:'var(--muted)' }}>Loading…</div>}
+          {(rows || []).map(v => (
+            <div key={v.id} style={{ display:'flex', alignItems:'center', padding:'8px 12px', fontSize:11, borderTop:'1px solid rgba(255,255,255,0.05)' }}>
+              <span style={{ width:70, fontWeight:700 }}>
+                V{v.version}{v.is_current && <span style={{ color:'#5ABF80', fontWeight:600, marginLeft:5, fontSize:9 }}>current</span>}
+              </span>
+              <span style={{ flex:1, textAlign:'right', color:'var(--tan)', fontWeight:700, fontVariantNumeric:'tabular-nums' }}>{fmt$(v.total, 0)}</span>
+              <span style={{ flex:1.4, textAlign:'right', color:'var(--muted)' }}>{fmtOpened(v.last_opened_at)}</span>
+            </div>
+          ))}
+          {rows && !rows.length && <div style={{ padding:'10px 12px', fontSize:11, color:'var(--muted)' }}>No budget found.</div>}
+        </div>
+
+        <div style={{ display:'flex', justifyContent:'flex-end', gap:10 }}>
+          <button className="btn btn-ghost btn-sm" onClick={onClose}>Continue on V{Number(budget.version || 1)}</button>
+          <button className="btn btn-sm" onClick={start} disabled={busy}
+            style={{ background:'#5ABF80', border:'1px solid #5ABF80', color:'#0a0a08', fontWeight:800 }}>
+            {busy ? 'Starting…' : `+ Start Version ${Number(budget.version || 1) + 1}`}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

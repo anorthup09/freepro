@@ -448,6 +448,67 @@ router.get('/finance/:pid/versions', ...finance, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// Grand total for one budget, mirroring the frontend totals() math:
+// nonTravel + travel + mgmt(% of nonTravel) + photo. Percent lines are a
+// share of their section's non-percent, non-travel base.
+async function budgetGrandTotal(b) {
+  const secs = await sql`SELECT id, kind FROM budget_sections WHERE budget_id = ${b.id}`;
+  const photoIds = new Set(secs.filter(s => s.kind === 'photo').map(s => s.id));
+  const lines = await sql`SELECT section_id, qty, unit_cost, percent, is_travel FROM budget_lines WHERE budget_id = ${b.id}`;
+  const bySection = {};
+  for (const l of lines) (bySection[l.section_id] ||= []).push(l);
+  let nonTravel = 0, travel = 0, photo = 0;
+  for (const [sid, secLines] of Object.entries(bySection)) {
+    const base = secLines.filter(x => x.percent == null && !x.is_travel)
+      .reduce((s, x) => s + Number(x.qty || 0) * Number(x.unit_cost || 0), 0);
+    for (const l of secLines) {
+      const st = l.percent != null
+        ? Number(l.percent) * base * Number(l.qty || 0)
+        : Number(l.qty || 0) * Number(l.unit_cost || 0);
+      if (photoIds.has(sid)) photo += st;
+      else if (l.is_travel) travel += st;
+      else nonTravel += st;
+    }
+  }
+  const mgmt = Number(b.mgmt_fee_rate || 0) * nonTravel;
+  return nonTravel + travel + mgmt + photo;
+}
+
+// Version summary for the on-open prompt: the live budget plus every frozen
+// snapshot, each with its grand total and when it was last opened. Current
+// budget first, then snapshots newest-first. Does not mutate.
+router.get('/finance/:pid/version-summary', ...finance, async (req, res, next) => {
+  try {
+    const rows = await sql`
+      SELECT id, version, label, COALESCE(kind, 'main') as kind, status, created_at, last_opened_at, mgmt_fee_rate
+      FROM budgets
+      WHERE project_id = ${req.params.pid} AND COALESCE(kind, 'main') IN ('main', 'version')`;
+    const out = [];
+    for (const b of rows) {
+      out.push({
+        id: b.id,
+        version: Number(b.version || 1),
+        kind: b.kind,
+        is_current: b.kind === 'main',
+        created_at: b.created_at,
+        last_opened_at: b.last_opened_at,
+        total: await budgetGrandTotal(b),
+      });
+    }
+    out.sort((a, c) => (a.is_current === c.is_current ? c.version - a.version : a.is_current ? -1 : 1));
+    res.json(out);
+  } catch (e) { next(e); }
+});
+
+// Stamp a budget's last_opened_at (called after the open prompt is shown, so
+// the next open reports the previous open time)
+router.post('/finance/budget/:bid/opened', ...finance, async (req, res, next) => {
+  try {
+    await sql`UPDATE budgets SET last_opened_at = now() WHERE id = ${req.params.bid}`;
+    res.json({ ok: true });
+  } catch (e) { next(e); }
+});
+
 // One frozen version, with its sections and lines (read-only)
 router.get('/finance/versions/:vid', ...finance, async (req, res, next) => {
   try {
