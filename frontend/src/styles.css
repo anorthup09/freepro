@@ -71,7 +71,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
 .ov-hero .proj-code { margin-bottom: 4px; }
 .ov-hero-titlerow { display: flex; align-items: center; gap: 8px; }
 .ov-hero-shoot { font-size: 12.5px; font-weight: 600; color: var(--tan); margin-top: 4px; display: flex; align-items: center; gap: 8px; }
-.ov-hero-dates { font-size: 12px; color: var(--muted); margin-top: 5px; }
+.ov-hero-dates { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); margin-top: 5px; }
 .ov-edit-icon { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 13px; padding: 2px; line-height: 1; border-radius: 5px; transition: color .15s ease; }
 .ov-edit-icon:hover { color: var(--orange); }
 .ov-hero-meta { display: flex; align-items: center; gap: 16px; margin-top: 14px; }
@@ -755,11 +755,10 @@ textarea { resize: vertical; min-height: 70px; }
 /* Inside Project View the embedded apps keep their content but lose their own
    top nav — the outer Project View header is the one navigation */
 .pvd-embed .finance-header { display: none !important; }
-/* FreePro's nav keeps its tabs and Share menu inside Project View — only the
-   duplicate branding (logo + hub link) hides */
-.pvd-embed .nav > div:first-child,
-.pvd-embed .nav > a[title="Back to the Unbridled Media hub"] { display: none !important; }
-.pvd-embed .nav { padding-top: 0; }
+/* Inside Project View the whole FreePro shell nav is hidden — its ? and Share
+   are lifted up inline with the project name (see ProjectViewDetail), and its
+   logo/hub link would duplicate the masthead. Section nav lives in the bottom dock. */
+.pvd-embed .nav { display: none !important; }
 /* The shoot Overview repeats the project code, title, and client that the
    Project View header already shows above the nav — hide only when embedded */
 .pvd-embed .ov-head .proj-code,
@@ -906,9 +905,13 @@ body.pvd-nav-open .proj-bottomnav { display: none !important; }
 /* Project section dock — bottom-right liquid-glass pill, mirroring the Finance dock */
 .proj-bottomnav { position: fixed; right: 14px; bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); z-index: 112; display: flex; align-items: center; gap: 2px; padding: 8px 12px; background: rgba(24,22,19,0.81); backdrop-filter: blur(18px) saturate(1.5); -webkit-backdrop-filter: blur(18px) saturate(1.5); border: 1px solid rgba(255,255,255,0.12); border-radius: 32px; box-shadow: 0 10px 34px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.08); max-width: calc(100vw - 28px); }
 /* Dock buttons — icon over label, mirroring the Finance dock (Harbinger/Budget/VCC) */
-.proj-bottomnav .dock-btn { display: flex; flex-direction: column; align-items: center; gap: 3px; background: transparent; border: none; cursor: pointer; color: rgba(255,255,255,0.55); border-radius: 22px; padding: 7px 14px 6px; transition: color .25s ease, background .2s ease; }
+.proj-bottomnav .dock-btn { display: flex; flex-direction: column; align-items: center; gap: 3px; background: transparent; border: none; cursor: pointer; color: rgba(255,255,255,0.55); border-radius: 22px; padding: 7px 14px 6px; transition: color .25s ease, background .2s ease, padding .25s ease; }
 .proj-bottomnav .dock-btn.on { color: var(--orange); background: rgba(255,255,255,0.10); }
-.proj-bottomnav .dock-lbl { font-size: 9px; font-weight: 800; letter-spacing: 0.02em; white-space: nowrap; }
+.proj-bottomnav .dock-lbl { font-size: 9px; font-weight: 800; letter-spacing: 0.02em; white-space: nowrap; max-height: 12px; opacity: 1; overflow: hidden; transition: max-height .25s ease, opacity .2s ease; }
+/* Scrolled: collapse labels to an icons-only dock */
+.proj-bottomnav.shrunk { padding: 6px 10px; }
+.proj-bottomnav.shrunk .dock-lbl { max-height: 0; opacity: 0; }
+.proj-bottomnav.shrunk .dock-btn { padding: 8px 12px; gap: 0; }
 .proj-bottomnav .tab { white-space: nowrap; border-radius: 20px; padding: 6px 10px; font-size: 12px; }
 .proj-bottomnav .tab.on { color: var(--orange); background: rgba(232,80,10,0.14); }
 

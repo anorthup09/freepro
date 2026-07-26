@@ -1343,7 +1343,7 @@ const HUB_CSS = `
 .mm-center{position:absolute;left:50%;transform:translate(-50%,-50%);text-align:center;transition:opacity .35s ease}
 .mm-kicker{font-size:8px;font-weight:900;letter-spacing:.18em;color:var(--orange)}
 .mm-prompt{font-size:9.5px;font-weight:700;color:var(--muted);margin-top:5px;line-height:1.35}
-.mm-answer{font-family:'Syne',sans-serif;font-size:13.5px;font-weight:800;line-height:1.32;margin-top:4px}
+.mm-answer{font-family:Georgia,'Times New Roman',serif;font-size:15px;font-weight:700;line-height:1.34;margin-top:5px}
 .mm-name{font-size:9.5px;font-weight:800;color:var(--muted);margin-top:4px}
 .mm-toggle{position:absolute;z-index:4;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--muted);font-size:14px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:color .15s ease,border-color .15s ease}
 .mm-toggle:hover{color:var(--orange);border-color:var(--orange)}

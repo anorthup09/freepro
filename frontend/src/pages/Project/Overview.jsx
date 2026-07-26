@@ -313,17 +313,16 @@ export default function Overview({ project, setProject, onTabChange }) {
         <div className="proj-code">{project.code} · {project.client}</div>
         <div className="ov-hero-titlerow">
           <div className="proj-title">{project.title}</div>
-          {!(project.shoot_name || project.subtitle) && (
-            <button className="ov-edit-icon" title="Edit shoot info" aria-label="Edit shoot info" onClick={() => setEditInfo(true)}>✎</button>
-          )}
         </div>
         {(project.shoot_name || project.subtitle) && (
           <div className="ov-hero-shoot">
             Shoot: {project.shoot_name || project.subtitle}
-            <button className="ov-edit-icon" title="Edit shoot info" aria-label="Edit shoot info" onClick={() => setEditInfo(true)}>✎</button>
           </div>
         )}
-        <div className="ov-hero-dates">{startDate || endDate ? `${fmtDate(startDate) || 'TBD'} – ${fmtDate(endDate) || 'TBD'}` : 'Dates TBD'}</div>
+        <div className="ov-hero-dates">
+          <span>{startDate || endDate ? `${fmtDate(startDate) || 'TBD'} – ${fmtDate(endDate) || 'TBD'}` : 'Dates TBD'}</span>
+          <button className="ov-edit-icon" title="Edit shoot info" aria-label="Edit shoot info" onClick={() => setEditInfo(true)}>✎</button>
+        </div>
         <div className="ov-hero-meta">
           {daysUntil != null && daysUntil > 0 && (
             <div className="ov-hero-cd"><b>{daysUntil}</b><span>days out</span></div>

@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../App.jsx';
 import { api } from '../api.js';
 import FinanceProject from './FinanceProject.jsx';
-import Project from './Project/index.jsx';
+import Project, { ShareDropdown } from './Project/index.jsx';
 import AvoProject from './AvoProject.jsx';
 import ProjectOverview from './ProjectOverview.jsx';
 import { markRecentProject } from '../utils/recentProjects.js';
@@ -252,6 +252,8 @@ export function ProjectViewDetail() {
   const [tab, setTab] = useState('overview');
   const [shootId, setShootId] = useState('');   // FreePro project id for Pre-Production
   const [avoPageId, setAvoPageId] = useState('');
+  const [preControls, setPreControls] = useState(null); // ?/Share lifted from the embedded Pre-Pro
+  useEffect(() => { if (tab !== 'pre') setPreControls(null); }, [tab]);
 
   useEffect(() => {
     // Solutions gets a finance-free project feed; everyone else the full one.
@@ -317,6 +319,18 @@ export function ProjectViewDetail() {
             );
           })()}
           <div style={{ flex:1 }} />
+          {/* ? and Share lifted up from the embedded Pre-Pro, inline with the name */}
+          {tab === 'pre' && preControls && !preControls.isAgency && !preControls.isCrew && (
+            <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+              <button
+                className={`q-btn${preControls.tab === 'questions' ? ' on' : ''}${preControls.hasUnanswered && preControls.tab !== 'questions' ? ' glow' : ''}`}
+                onClick={() => preControls.setTab('questions')}
+                title={preControls.hasUnanswered ? 'Questions — unanswered waiting' : 'Questions'}
+                aria-label="Questions"
+              >?</button>
+              <ShareDropdown projectId={preControls.projectId} showShotList={preControls.showShotList} crews={preControls.crews} />
+            </div>
+          )}
         </div>
       </div>
 
@@ -326,7 +340,7 @@ export function ProjectViewDetail() {
       {project && tab === 'overview' && <ProjectOverview pid={pid} onOpenFinance={() => { setTab('finance'); window.scrollTo({ top: 0 }); }} />}
       {project && tab === 'finance' && <div className="pvd-embed"><FinanceProject pidOverride={pid} /></div>}
       {project && tab === 'pre' && (shootId
-        ? <div className="pvd-embed"><Project idOverride={shootId} key={shootId} /></div>
+        ? <div className="pvd-embed"><Project idOverride={shootId} key={shootId} onControls={setPreControls} /></div>
         : <div className="empty">No FreePro production tile yet — set the budget Live to create one.</div>)}
       {project && tab === 'post' && (avoPageId
         ? <div style={{ maxWidth:1250, margin:'0 auto', padding:'0 16px 40px' }}><AvoProject idOverride={avoPageId} embedded /></div>

@@ -128,7 +128,7 @@ function DropdownTab({ label, subtabs, tab, setTab, dropUp, icon }) {
 
 const FRONTEND_BASE = window.location.origin;
 
-function ShareDropdown({ projectId, showShotList, crews = [] }) {
+export function ShareDropdown({ projectId, showShotList, crews = [] }) {
   const navigate = useNavigate();
   const [shares, setShares] = useState([]);
   const [open, setOpen] = useState(false);
@@ -256,7 +256,7 @@ function ShareDropdown({ projectId, showShotList, crews = [] }) {
   );
 }
 
-export default function Project({ idOverride }) {
+export default function Project({ idOverride, onControls }) {
   const { id: idParam } = useParams();
   const id = idOverride || idParam;
   const nav = useNavigate();
@@ -364,6 +364,13 @@ export default function Project({ idOverride }) {
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
+
+  // When embedded in Project View, hand the ?/Share controls up to the parent so
+  // they can sit inline with the project name (the shell nav is hidden there).
+  useEffect(() => {
+    if (!onControls) return;
+    onControls({ setTab, tab, hasUnanswered, projectId: id, showShotList, crews: project?.crews || [], isAgency, isCrew });
+  }, [onControls, tab, hasUnanswered, id, showShotList, project, isAgency, isCrew]);
 
   useEffect(() => {
     const id = setInterval(() => setClockTime(new Date()), 1000);
@@ -503,8 +510,9 @@ export default function Project({ idOverride }) {
         </div>
       </nav>
 
-      {/* Project section nav — floated to the bottom, styled like the Finance dock */}
-      <div className="proj-bottomnav no-print">
+      {/* Project section nav — floated to the bottom, styled like the Finance dock;
+          collapses to icons-only once the page is scrolled */}
+      <div className={`proj-bottomnav no-print${glassVisible ? ' shrunk' : ''}`}>
         {!isAgency && !isCrew && (
           <button className={`dock-btn${tab === 'overview' ? ' on' : ''}`} onClick={() => { setTab('overview'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} aria-label="Overview">
             {PROJ_NAV_ICONS.overview}
