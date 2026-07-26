@@ -830,31 +830,31 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
           ['Budget Dated', 'budget_date', 'budgetDate', 'date'],
           ...(budget.unbridled_solutions ? [['Solutions Code', 'solutions_code', 'solutionsCode', 'text']] : []),
         ].map(([label, key, apiKey, type]) => (
-          <div key={key} style={{ display:'flex', flexDirection:'column', gap:3 }}>
+          <div key={key} style={{ display:'flex', flexDirection:'column', gap:3, width: mobile ? '100%' : 'auto' }}>
             <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>{label}</label>
-            <input type={type} value={budget[key] || ''} style={{ width: type === 'date' ? 140 : 130, fontSize:12 }}
+            <input type={type} value={budget[key] || ''} style={{ width: mobile ? '100%' : (type === 'date' ? 140 : 130), fontSize:12, boxSizing:'border-box' }}
               onChange={e => patchBudget({ [key]: e.target.value })}
               onBlur={e => saveBudget({ [apiKey]: e.target.value })} />
           </div>
         ))}
         {(!mobile || metaOpen) && <>
-        <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
+        <div style={{ display:'flex', flexDirection:'column', gap:3, width: mobile ? '100%' : 'auto' }}>
           <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Budget Owner</label>
-          <select value={budget.media_rep || ''} style={{ width:160, fontSize:12 }}
+          <select value={budget.media_rep || ''} style={{ width: mobile ? '100%' : 160, fontSize:12, boxSizing:'border-box' }}
             onChange={e => { patchBudget({ media_rep: e.target.value }); saveBudget({ mediaRep: e.target.value }); }}>
             <option value="">— Select —</option>
             {budget.media_rep && !BUDGET_OWNERS.includes(budget.media_rep) && <option value={budget.media_rep}>{budget.media_rep}</option>}
             {BUDGET_OWNERS.map(n => <option key={n}>{n}</option>)}
           </select>
         </div>
-        <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
+        <div style={{ display:'flex', flexDirection:'column', gap:3, width: mobile ? '100%' : 'auto' }}>
           <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Est. Final Delivery</label>
-          <input type="date" value={budget.est_final_delivery ? String(budget.est_final_delivery).slice(0, 10) : ''} style={{ width:140, fontSize:12 }}
+          <input type="date" value={budget.est_final_delivery ? String(budget.est_final_delivery).slice(0, 10) : ''} style={{ width: mobile ? '100%' : 140, fontSize:12, boxSizing:'border-box' }}
             onChange={e => { patchBudget({ est_final_delivery: e.target.value }); saveBudget({ estFinalDelivery: e.target.value }); }} />
         </div>
-        <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
+        <div style={{ display:'flex', flexDirection:'column', gap:3, width: mobile ? '100%' : 'auto' }}>
           <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Close Month</label>
-          <select value={budget.close_month || ''} style={{ width:150, fontSize:12 }}
+          <select value={budget.close_month || ''} style={{ width: mobile ? '100%' : 150, fontSize:12, boxSizing:'border-box' }}
             onChange={e => { patchBudget({ close_month: e.target.value }); saveBudget({ closeMonth: e.target.value }); }}>
             <option value="">— Select —</option>
             {budget.close_month && !closeMonthOptions.some(o => o.value === budget.close_month) && (
@@ -868,8 +868,8 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
           <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Tagged</label>
           <TagRow budgetId={budget.id} ownerName={budget.media_rep} />
         </div>
-        <div style={{ marginLeft:'auto', display:'flex', flexDirection:'column', alignItems:'flex-end', gap:8 }}>
-          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+        <div style={{ marginLeft: mobile ? 0 : 'auto', width: mobile ? '100%' : 'auto', display:'flex', flexDirection:'column', alignItems: mobile ? 'flex-start' : 'flex-end', gap:8 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
             <button onClick={() => { const on = !budget.unbridled_solutions; patchBudget({ unbridled_solutions: on }); saveBudget({ unbridledSolutions: on }); }}
               title="Reveals Solutions-specific fields (Solutions Code, commissions) in the budget and Harbinger"
               style={budget.unbridled_solutions
@@ -885,7 +885,8 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
                 Submit Harbinger
               </button>
             )}
-            <StatusPill value={budget.status || 'RFP'} onChange={handleStatusChange} small />
+            {/* status pill already shown in the mobile compact bar */}
+            {!mobile && <StatusPill value={budget.status || 'RFP'} onChange={handleStatusChange} small />}
           </div>
           {!mobile && (
             <div style={{ textAlign:'right' }}>

@@ -775,8 +775,11 @@ textarea { resize: vertical; min-height: 70px; }
   .sec-meta > input { width: 100% !important; max-width: 260px; flex: none !important; }
   .shoot-head { flex-wrap: nowrap !important; }
   .shoot-head-left { min-width: 0 !important; }
-  .shoot-head-right { max-width: 46%; }
-  .shoot-head-right > span { justify-content: flex-end; }
+  /* Cap the right column and let its action rows (Go to FreePro / Re-link,
+     the shoot dates) wrap within it instead of overflowing left over the
+     title + description on the left. */
+  .shoot-head-right { max-width: 48%; overflow: hidden; }
+  .shoot-head-right > span { justify-content: flex-end; flex-wrap: wrap; }
 }
 
 /* Feedback F button: label expands above on hover/focus */
