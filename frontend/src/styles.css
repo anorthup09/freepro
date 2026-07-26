@@ -897,13 +897,13 @@ body { padding-top: env(safe-area-inset-top, 0px); }
 
 /* While the Project View nav is expanded on the Finance tab, it swaps in for
    the Budget/VCC dock at the bottom right */
-body.pvd-nav-open .fin-dock { display: none !important; }
-/* Inside the Project View, the Finance dock stacks above the phase-switcher button (which sits above the F) */
-.pvd-embed .fin-dock { bottom: calc(env(safe-area-inset-bottom, 0px) + 128px) !important; }
+/* Both section docks hide while the phase-nav pill is expanded */
+body.pvd-nav-open .fin-dock,
+body.pvd-nav-open .proj-bottomnav { display: none !important; }
 
-/* Project section nav, floated to the bottom (liquid glass) */
-.proj-bottomnav { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); z-index: 112; display: flex; align-items: center; gap: 4px; padding: 7px 10px; background: rgba(24,22,19,0.86); backdrop-filter: blur(18px) saturate(1.5); -webkit-backdrop-filter: blur(18px) saturate(1.5); border: 1px solid rgba(255,255,255,0.12); border-radius: 30px; box-shadow: 0 10px 34px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.08); max-width: calc(100vw - 28px); }
-.proj-bottomnav .tab { white-space: nowrap; border-radius: 20px; padding: 7px 13px; }
+/* Project section dock — bottom-right liquid-glass pill, mirroring the Finance dock */
+.proj-bottomnav { position: fixed; right: 14px; bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); z-index: 112; display: flex; align-items: center; gap: 4px; padding: 7px 10px; background: rgba(24,22,19,0.81); backdrop-filter: blur(18px) saturate(1.5); -webkit-backdrop-filter: blur(18px) saturate(1.5); border: 1px solid rgba(255,255,255,0.12); border-radius: 32px; box-shadow: 0 10px 34px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.08); max-width: calc(100vw - 28px); }
+.proj-bottomnav .tab { white-space: nowrap; border-radius: 20px; padding: 6px 10px; font-size: 12px; }
 .proj-bottomnav .tab.on { color: var(--orange); background: rgba(232,80,10,0.14); }
 
 /* Mobile: the V# versions pill pins top-right, level with the client name */

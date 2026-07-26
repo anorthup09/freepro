@@ -27,50 +27,105 @@ const TAB_ICONS = {
 
 // Instagram-style liquid-glass dock: pinned bottom-center on phones, icons +
 // labels at the top of the page, shrinking to icons alone once you scroll.
-// Phase switcher (Overview / Finance / Pre-Pro / Post-Pro) as a single round
-// button parked just above the feedback "F" in the bottom-left; tapping it pops
-// the options open in a vertical stack.
 function MobileTabDock({ tabs, tab, setTab }) {
-  const [open, setOpen] = useState(false);
+  const [shrunk, setShrunk] = useState(false);
+  const [mobile, setMobile] = useState(typeof window !== 'undefined' && window.innerWidth <= 700);
   useEffect(() => {
-    if (!open) return;
-    const close = () => setOpen(false);
-    window.addEventListener('scroll', close, { passive: true });
-    return () => window.removeEventListener('scroll', close);
-  }, [open]);
-  const cur = tabs.find(([k]) => k === tab) || tabs[0];
+    const onR = () => setMobile(window.innerWidth <= 700);
+    window.addEventListener('resize', onR);
+    return () => window.removeEventListener('resize', onR);
+  }, []);
+  // Finance and Pre-Pro on MOBILE collapse the phase nav to a menu button by the
+  // F — their own section dock (Budget/VCC or Logistics/Gear/Deliverable) owns the
+  // bottom-right. On desktop both docks fit: nav bottom-center, section dock right.
+  const collapsible = mobile && (tab === 'finance' || tab === 'pre');
+  const [min, setMin] = useState(true);
+  useEffect(() => { setMin(true); }, [collapsible]);
+  useEffect(() => {
+    document.body.classList.toggle('pvd-nav-open', collapsible && !min);
+    return () => document.body.classList.remove('pvd-nav-open');
+  }, [collapsible, min]);
+  const btnRefs = useRef({});
+  const [bubble, setBubble] = useState(null);   // sliding highlight behind the active icon
+  useEffect(() => {
+    const measure = () => {
+      const el = btnRefs.current[tab];
+      if (el) setBubble({ left: el.offsetLeft, top: el.offsetTop, width: el.offsetWidth, height: el.offsetHeight });
+    };
+    measure();
+    // icon labels collapse/expand over 250ms — re-measure once they settle
+    const t = setTimeout(measure, 300);
+    window.addEventListener('resize', measure);
+    return () => { clearTimeout(t); window.removeEventListener('resize', measure); };
+  }, [tab, shrunk, tabs.length, min]);
+  useEffect(() => {
+    let raf = null;
+    const onScroll = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => { setShrunk(window.innerWidth <= 700 && window.scrollY > 60); raf = null; });
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => { window.removeEventListener('scroll', onScroll); if (raf) cancelAnimationFrame(raf); };
+  }, []);
+  const menuBtn = collapsible && (
+    <button className="pvd-menu no-print" onClick={() => setMin(m => !m)} aria-label={min ? 'Open navigation' : 'Back to finance navigation'}
+      style={{
+        position:'fixed', left:64, bottom:'calc(env(safe-area-inset-bottom, 0px) + 14px)',
+        zIndex:111, display:'flex', alignItems:'center', gap:8, padding:'10px 14px', cursor:'pointer',
+        background: min ? 'rgba(24,22,19,0.81)' : 'rgba(45,42,36,0.92)',
+        backdropFilter:'blur(18px) saturate(1.5)', WebkitBackdropFilter:'blur(18px) saturate(1.5)',
+        border: min ? '1px solid rgba(255,255,255,0.12)' : '1px solid rgba(255,255,255,0.28)', borderRadius:32,
+        boxShadow:'0 10px 34px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.08)',
+        color:'rgba(255,255,255,0.8)', transition:'background .2s ease, border-color .2s ease',
+      }}>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.8)" strokeWidth="2.2" strokeLinecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      {min && tabs.find(([k]) => k === tab) && TAB_ICONS[tab]}
+    </button>
+  );
+  if (collapsible && min) return menuBtn;
   return (
     <>
-      {open && <div onClick={() => setOpen(false)} className="no-print" style={{ position:'fixed', inset:0, zIndex:118 }} />}
-      <div className="pvd-fabnav no-print" style={{
-        position:'fixed', left:14, bottom:'calc(env(safe-area-inset-bottom, 0px) + 70px)', zIndex:119,
-        display:'flex', flexDirection:'column-reverse', alignItems:'flex-start', gap:8,
-      }}>
-        {open && tabs.map(([k, label, color]) => (
-          <button key={k} onClick={() => { setTab(k); setOpen(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+    {menuBtn}
+    <div className="pvd-dock no-print" style={{
+      position:'fixed', bottom:'calc(env(safe-area-inset-bottom, 0px) + 14px)',
+      ...(mobile ? { right:14 } : { left:'50%', transform:'translateX(-50%)' }),
+      zIndex:110, display:'flex', alignItems:'center', gap:2,
+      padding: shrunk ? '6px 10px' : '8px 12px',
+      background:'rgba(24,22,19,0.81)', backdropFilter:'blur(18px) saturate(1.5)', WebkitBackdropFilter:'blur(18px) saturate(1.5)',
+      border:'1px solid rgba(255,255,255,0.12)', borderRadius:32,
+      boxShadow:'0 10px 34px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.08)',
+      transition:'padding .25s ease',
+    }}>
+      {bubble && (
+        <div aria-hidden style={{
+          position:'absolute', left:bubble.left, top:bubble.top, width:bubble.width, height:bubble.height,
+          background:'rgba(255,255,255,0.10)', borderRadius:22, pointerEvents:'none',
+          transition:'left .3s cubic-bezier(.34,1.3,.5,1), width .3s cubic-bezier(.34,1.3,.5,1), top .3s ease, height .3s ease',
+        }} />
+      )}
+      {tabs.map(([k, label, color]) => {
+        const on = tab === k;
+        return (
+          <button key={k} ref={el => { btnRefs.current[k] = el; }} onClick={() => { setTab(k); setMin(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
             aria-label={label}
             style={{
-              display:'flex', alignItems:'center', gap:9, padding:'8px 15px 8px 11px', borderRadius:26, cursor:'pointer',
-              background:'rgba(24,22,19,0.94)', backdropFilter:'blur(18px) saturate(1.5)', WebkitBackdropFilter:'blur(18px) saturate(1.5)',
-              border:`1px solid ${tab === k ? color : 'rgba(255,255,255,0.16)'}`,
-              color: tab === k ? color : 'rgba(255,255,255,0.82)', whiteSpace:'nowrap',
-              boxShadow:'0 8px 24px rgba(0,0,0,0.5)',
+              display:'flex', flexDirection:'column', alignItems:'center', gap:3, position:'relative',
+              background:'transparent', border:'none', cursor:'pointer',
+              color: on ? color : 'rgba(255,255,255,0.55)',
+              borderRadius:22, padding: shrunk ? '8px 12px' : '7px 12px 6px',
+              transition:'all .25s ease',
             }}>
             {TAB_ICONS[k]}
-            <span style={{ fontSize:12.5, fontWeight:800, letterSpacing:'.02em' }}>{label.replace('Project ', '').replace('-Production', '-Pro')}</span>
+            <span style={{
+              fontSize:9, fontWeight:800, letterSpacing:'0.02em', whiteSpace:'nowrap',
+              maxHeight: shrunk ? 0 : 12, opacity: shrunk ? 0 : 1, overflow:'hidden',
+              transition:'max-height .25s ease, opacity .2s ease',
+            }}>{label.replace('Project ', '').replace('-Production', '-Pro')}</span>
           </button>
-        ))}
-        <button className="pvd-fab-main" onClick={() => setOpen(o => !o)} aria-label="Switch section"
-          style={{
-            width:48, height:48, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center',
-            background:'rgba(24,22,19,0.94)', backdropFilter:'blur(18px) saturate(1.5)', WebkitBackdropFilter:'blur(18px) saturate(1.5)',
-            border:`1.5px solid ${cur[2]}`, color: cur[2], cursor:'pointer',
-            boxShadow:'0 10px 30px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.08)',
-            transition:'border-color .2s ease, color .2s ease',
-          }}>
-          {TAB_ICONS[tab]}
-        </button>
-      </div>
+        );
+      })}
+    </div>
     </>
   );
 }
