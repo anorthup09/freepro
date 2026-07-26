@@ -1025,11 +1025,12 @@ function HubProjects({ onNewProject, finance }) {
         <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:12 }}>
           {onNewProject && !finance && <NewProjectPill onClick={onNewProject} />}
           {onProjects
-            ? <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search code, title, client…" style={{ flex:1, minWidth:0 }} />
+            ? <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search code, title, client…" style={{ flex: finance ? '0 0 34%' : 1, minWidth: finance ? 160 : 0 }} />
             : <input value={cq} onChange={e => setCq(e.target.value)} placeholder="Search clients…" style={{ flex:1, minWidth:0 }} />}
           {!finance && <HubSwitchPill label={onProjects ? 'Client Hub' : 'Project Hub'} neutral={onProjects}
             onClick={doSwitch} />}
           {!finance && <HubAppMenu />}
+          {finance && <FinancePill onClick={() => nav('/finance')} />}
         </div>
         <div key={flips}>
           {onProjects ? projectList : clientList}
@@ -1099,6 +1100,19 @@ function HubAppMenu() {
         </span>
       </button>
     </div>
+  );
+}
+
+// Right-aligned $ shortcut to Project Finance (Finance-role hub), icon-only with
+// a hover-revealed label, matching the other hub-tile pills.
+function FinancePill({ onClick }) {
+  return (
+    <button className="np-pill hub-menu-pill" title="Project Finance" onClick={onClick} style={{ marginLeft:'auto' }}>
+      <span className="np-plus" style={{ display:'flex', alignItems:'center', justifyContent:'center' }}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      </span>
+      <span className="np-label">Project Finance</span>
+    </button>
   );
 }
 
