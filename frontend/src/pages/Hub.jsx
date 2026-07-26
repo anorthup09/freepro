@@ -1045,7 +1045,7 @@ function HubProjects({ onNewProject }) {
   );
   return (
     <div className="hub-hubs" style={{ gridTemplateColumns:'1fr 1fr', maxWidth:540 }}>
-      <div className="hub-hubtile" onClick={() => setExpanded('projects')} title="Open full view">
+      <div className="hub-hubtile hub-anim-left" onClick={() => setExpanded('projects')} title="Open full view">
         <div className="hh-titlerow" style={{ display:'flex', alignItems:'center', gap:7, marginBottom:16 }}>
           <span className="hh-title" style={{ fontSize:15, fontWeight:800 }}>Project Hub</span>
           <span className="hh-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
@@ -1056,7 +1056,7 @@ function HubProjects({ onNewProject }) {
           {stat(recon, 'Reconcile', '#c9bcaa')}
         </div>
       </div>
-      <div className="hub-hubtile neutral" onClick={() => setExpanded('clients')} title="Open full view">
+      <div className="hub-hubtile neutral hub-anim-right" onClick={() => setExpanded('clients')} title="Open full view">
         <div className="hh-titlerow" style={{ display:'flex', alignItems:'center', gap:7, marginBottom:16 }}>
           <span className="hh-title" style={{ fontSize:15, fontWeight:800 }}>Client Hub</span>
           <span className="hh-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
@@ -1109,7 +1109,7 @@ function HubDashboard() {
 
   return (
     <div className="hub-dash" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginTop:22 }}>
-      <div style={card}>
+      <div className="hub-anim-drop" style={{ ...card, animationDelay:'.1s' }}>
         <div style={{ ...hdr, marginBottom:2, color:'#e8500a' }}>Day in Review</div>
         <div style={{ fontSize:12, color:'var(--muted)', fontWeight:600, marginBottom:10 }}>{dateLabel}</div>
         {!day && <div style={{ fontSize:11, color:'var(--muted)' }}>Loading…</div>}
@@ -1201,7 +1201,7 @@ function HubDashboard() {
         )}
       </div>
 
-      <div style={{ ...card, position:'relative', overflow:'hidden' }}>
+      <div className="hub-anim-drop" style={{ ...card, position:'relative', overflow:'hidden', animationDelay:'.18s' }}>
         <div style={{ ...hdr, marginBottom:12 }}>Team Today</div>
         {!team && <div style={{ fontSize:11, color:'var(--muted)' }}>Loading…</div>}
         {team && team.length === 0 && <div style={{ fontSize:12, color:'var(--muted)', fontStyle:'italic' }}>No Unbridled team members on the roster yet.</div>}
@@ -1372,6 +1372,19 @@ const HUB_CSS = `
 .np-plus{flex:0 0 auto;width:36px;height:38px;display:flex;align-items:center;justify-content:center;font-size:21px;font-weight:400;line-height:1}
 .np-label{max-width:0;overflow:hidden;white-space:nowrap;font-size:12px;font-weight:800;transition:max-width .3s ease,padding .3s ease}
 .np-pill.open .np-label,.np-pill:hover .np-label{max-width:150px;padding-right:16px}
+/* Dashboard open animations: Media Moment / Day in Review / Team Today drop in
+   from the top; Project Hub flies in from the left, Client Hub from the right.
+   fill-mode:backwards holds the start frame during any delay and then releases
+   the element to its normal styles (so the hubtile hover-lift still works). */
+@keyframes hubDropIn{from{opacity:0;transform:translateY(-26px)}to{opacity:1;transform:none}}
+@keyframes hubFlyLeft{from{opacity:0;transform:translateX(-52px)}to{opacity:1;transform:none}}
+@keyframes hubFlyRight{from{opacity:0;transform:translateX(52px)}to{opacity:1;transform:none}}
+.hub-anim-drop{animation:hubDropIn .6s cubic-bezier(.22,.61,.36,1) backwards}
+.hub-anim-left{animation:hubFlyLeft .62s cubic-bezier(.22,.61,.36,1) backwards}
+.hub-anim-right{animation:hubFlyRight .62s cubic-bezier(.22,.61,.36,1) backwards}
+@media (prefers-reduced-motion: reduce){
+  .hub-anim-drop,.hub-anim-left,.hub-anim-right{animation:none}
+}
 `;
 
 // Orange/neutral status palette for the hub (keeps the rest of the app untouched)
@@ -1509,7 +1522,7 @@ export default function Hub() {
               <h1 className="hub-h1">Dashboard</h1>
               <div className="hub-tagline"><HubGreeting /></div>
             </div>
-            {!isCrew && <MediaMomentOrbit />}
+            {!isCrew && <div className="hub-anim-drop"><MediaMomentOrbit /></div>}
             <TripPrompt />
             <WobBanner />
             <FunFactPrompt />
