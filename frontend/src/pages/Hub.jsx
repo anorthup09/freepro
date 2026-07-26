@@ -254,16 +254,9 @@ function MediaMomentOrbit() {
       </div>
       {intro && (
         <div className="mm-intro" aria-hidden>
-          <div className="mm-intro-logo">
-            <svg className="mm-ap" viewBox="0 0 52 52" width="48" height="48">
-              <circle cx="26" cy="26" r="24" fill="#E05A1C" />
-              <path d="M14 34 C12 27 16 19 24 17 C32 15 38 20 37 28 C36 35 30 38 24 36 C18 34 16 40 20 44" stroke="#fff" strokeWidth="3" strokeLinecap="round" fill="none" />
-              <path d="M22 18 C28 16 35 21 34 29" stroke="#fff" strokeWidth="2" strokeLinecap="round" fill="none" opacity="0.65" />
-            </svg>
-            <div className="mm-word">
-              <div className="mm-word-1">UNBRIDLED</div>
-              <div className="mm-word-2">MEDIA</div>
-            </div>
+          <div className="mm-logo">
+            <img className="mm-logo-word" src="/unbridled-logo.png" alt="" />
+            <img className="mm-logo-ap" src="/unbridled-logo.png" alt="" />
           </div>
         </div>
       )}
@@ -1294,16 +1287,19 @@ const HUB_CSS = `
 .mm-intro{position:absolute;inset:0;z-index:6;border-radius:16px;overflow:hidden;background:var(--bg2);
   display:flex;align-items:center;justify-content:center;animation:mmIntroOut .55s ease 1.95s forwards}
 @keyframes mmIntroOut{to{opacity:0;visibility:hidden}}
-.mm-intro-logo{display:flex;align-items:center;gap:12px}
-.mm-ap{transform-origin:center;animation:mmApIn .6s cubic-bezier(.22,.61,.36,1) both, mmApZoom 1s cubic-bezier(.6,0,.25,1) 1.25s forwards}
-@keyframes mmApIn{from{transform:translateX(56px) scale(.55);opacity:0}to{transform:translateX(0) scale(1);opacity:1}}
-@keyframes mmApZoom{from{transform:scale(1) rotate(0deg);opacity:1}to{transform:scale(24) rotate(220deg);opacity:0}}
-.mm-word{overflow:hidden;animation:mmWordIn .6s cubic-bezier(.22,.61,.36,1) both, mmFade .35s ease 1.15s forwards}
-@keyframes mmWordIn{from{opacity:0;transform:translateX(-26px)}to{opacity:1;transform:none}}
+/* Real logo, split into two layers of the same PNG so each animates on its own:
+   the wordmark (whitened for the dark card) wipes in from the left, the orange
+   aperture slides in from the right, then the aperture zooms + turns to reveal. */
+.mm-logo{position:relative;width:210px;height:46px}
+.mm-logo img{position:absolute;left:0;top:0;height:46px;width:auto}
+.mm-logo-word{clip-path:inset(0 0 0 26%);filter:brightness(0) invert(1);
+  animation:mmWordIn .6s cubic-bezier(.22,.61,.36,1) both, mmFade .35s ease 1.2s forwards}
+.mm-logo-ap{clip-path:inset(0 78% 0 0);transform-origin:11% 50%;
+  animation:mmApIn .6s cubic-bezier(.22,.61,.36,1) both, mmApZoom 1s cubic-bezier(.6,0,.25,1) 1.3s forwards}
+@keyframes mmWordIn{from{opacity:0;transform:translateX(-40px)}to{opacity:1;transform:none}}
+@keyframes mmApIn{from{opacity:0;transform:translateX(54px) scale(.7)}to{opacity:1;transform:none}}
+@keyframes mmApZoom{from{opacity:1;transform:scale(1) rotate(0deg)}to{opacity:0;transform:scale(22) rotate(210deg)}}
 @keyframes mmFade{to{opacity:0}}
-.mm-word-1{font:900 21px 'Arial Black',Arial,sans-serif;letter-spacing:1.5px;color:#fff;line-height:1;animation:mmWipe .55s cubic-bezier(.22,.61,.36,1) .12s both}
-.mm-word-2{font:900 13px 'Arial Black',Arial,sans-serif;letter-spacing:5px;color:#fff;line-height:1;margin-top:3px;animation:mmWipe .55s cubic-bezier(.22,.61,.36,1) .24s both}
-@keyframes mmWipe{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
 @media(max-width:640px){.hub-h1{font-size:28px}.hub-header{margin:42px 0 10px}.hub-logo-top{height:28px}}
 
 .hub-reveal{opacity:0;transform:translateY(20px);transition:opacity .55s cubic-bezier(.22,.61,.36,1),transform .55s cubic-bezier(.22,.61,.36,1)}
