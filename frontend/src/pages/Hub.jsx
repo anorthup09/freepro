@@ -248,7 +248,8 @@ function MediaMomentOrbit() {
         <div className="mm-b-main">
           <div className="mm-kicker">{isWob ? 'WAYS OF BEING' : 'MEDIAMOMENT'}</div>
           {fact.prompt && <div className="mm-prompt">{fact.prompt}</div>}
-          <div className="mm-answer">“{fact.answer}”<span className="mm-name"> — {fact.name}</span></div>
+          <div className="mm-answer">“{fact.answer}”</div>
+          <div className="mm-name">— {fact.name}</div>
         </div>
       </div>
       {intro && (
@@ -1278,7 +1279,7 @@ const HUB_CSS = `
 .mm-kicker{font-size:9px;font-weight:900;letter-spacing:.18em;color:var(--orange)}
 .mm-prompt{font-size:10.5px;font-weight:700;color:var(--muted);margin-top:4px;line-height:1.3}
 .mm-answer{font-family:Georgia,'Times New Roman',serif;font-size:14px;font-weight:700;line-height:1.4;margin-top:5px;color:var(--text)}
-.mm-name{font-family:'DM Sans',sans-serif;font-size:11px;font-weight:800;color:var(--muted);white-space:nowrap}
+.mm-name{font-family:'DM Sans',sans-serif;font-size:11px;font-weight:800;color:var(--muted);white-space:nowrap;text-align:right;margin-top:4px}
 @keyframes mmCardIn{from{opacity:0;transform:scale(.97) translateY(6px)}to{opacity:1;transform:none}}
 @media(max-width:640px){.mm-answer{font-size:13px}}
 
