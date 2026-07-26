@@ -42,7 +42,7 @@ export default function FinanceOverview() {
                 <th style={{ padding:8, textAlign:'right' }}>Total Budget</th>
                 <th style={{ padding:8, textAlign:'right' }}>Total Fee</th>
                 <th style={{ padding:8 }}>Close Month</th>
-                <th style={{ padding:'8px 16px 8px 8px', textAlign:'right' }}>Open In</th>
+                <th style={{ padding:'8px 16px 8px 8px', textAlign:'right' }}></th>
               </tr>
             </thead>
             <tbody>
@@ -66,9 +66,7 @@ export default function FinanceOverview() {
                     <td style={{ padding:8, textAlign:'right', fontWeight:600, color:'#5ABF80', whiteSpace:'nowrap' }}>{p.budget_id ? fmt$(p.fee) : '—'}</td>
                     <td style={{ padding:8, whiteSpace:'nowrap' }}>{fmtCloseMonth(p.close_month)}</td>
                     <td style={{ padding:'8px 16px 8px 8px', textAlign:'right', whiteSpace:'nowrap' }}>
-                      <span title="ProFi" onClick={() => nav(`/finance/${p.id}`)} style={{ cursor:'pointer', color:'#5ABF80', fontWeight:800, padding:'0 7px' }}>$</span>
-                      <FreeProLink p={p} nav={nav} />
-                      <span title="AvocadoPost — in development" style={{ opacity:0.3, padding:'0 7px' }}>🥑</span>
+                      <button className="btn btn-ghost btn-sm" title="Open this project" onClick={() => nav(`/project-view/${p.id}`)}>Open →</button>
                     </td>
                   </tr>
                 );
