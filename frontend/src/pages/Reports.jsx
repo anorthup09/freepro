@@ -5,11 +5,6 @@ import HomeButton from '../components/HomeButton.jsx';
 
 const REPORTS = [
   {
-    title: 'Project Pipeline',
-    desc: 'Every active project at a glance — where each one sits from pre-production through delivery.',
-    accent: 'var(--orange)', to: '/pipeline',
-  },
-  {
     title: 'Project Finance Overview',
     desc: 'Every project with budget, direct costs, gross profit, and status — the full financial picture.',
     accent: '#5ABF80', to: '/finance/overview',
