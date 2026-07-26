@@ -461,12 +461,12 @@ textarea { resize: vertical; min-height: 70px; }
   .ov-quick-links > div { display: flex !important; width: 100%; gap: 8px; }
   .ov-quick-links > div .btn { flex: 1 1 0; text-align: center; justify-content: center; }
 
-  /* Overview: the contacts card scrolls sideways as one unit so the fixed
-     name/title/phone/email columns stay reachable on phones */
-  .ov-contacts-card { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
-  .ov-contacts-card .ov-poc-row { min-width: max-content; flex-wrap: nowrap; }
-  .ov-contacts-card .ov-poc-row > div { min-width: max-content; }
-  /* Other POC-style rows outside the contacts card still wrap */
+  /* Overview contacts: rows wrap so the "+ Add" button stays on-screen; any
+     wide name/title/phone/email grid scrolls inside its own row instead */
+  .ov-contacts-card { overflow: hidden !important; }
+  .ov-contacts-card .ov-poc-row { flex-wrap: wrap; min-width: 0; row-gap: 6px; }
+  .ov-contacts-card .ov-poc-row > span:first-child { width: auto !important; }
+  .ov-contacts-card .ov-poc-row > div { min-width: 0 !important; width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .ov-poc-row { flex-wrap: wrap; }
 
   /* Overview: stack Key Dates below Client/Agency Contacts */
@@ -898,6 +898,13 @@ body { padding-top: env(safe-area-inset-top, 0px); }
 /* While the Project View nav is expanded on the Finance tab, it swaps in for
    the Budget/VCC dock at the bottom right */
 body.pvd-nav-open .fin-dock { display: none !important; }
+/* Inside the Project View, the Finance dock stacks above the phase-switcher button (which sits above the F) */
+.pvd-embed .fin-dock { bottom: calc(env(safe-area-inset-bottom, 0px) + 128px) !important; }
+
+/* Project section nav, floated to the bottom (liquid glass) */
+.proj-bottomnav { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); z-index: 112; display: flex; align-items: center; gap: 4px; padding: 7px 10px; background: rgba(24,22,19,0.86); backdrop-filter: blur(18px) saturate(1.5); -webkit-backdrop-filter: blur(18px) saturate(1.5); border: 1px solid rgba(255,255,255,0.12); border-radius: 30px; box-shadow: 0 10px 34px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.08); max-width: calc(100vw - 28px); }
+.proj-bottomnav .tab { white-space: nowrap; border-radius: 20px; padding: 7px 13px; }
+.proj-bottomnav .tab.on { color: var(--orange); background: rgba(232,80,10,0.14); }
 
 /* Mobile: the V# versions pill pins top-right, level with the client name */
 @media (max-width: 700px) {

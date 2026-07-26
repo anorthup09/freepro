@@ -74,7 +74,7 @@ function fmtSlHeaderDate(str) {
   return String(str).replace(/,?\s*\d{4}\s*$/, '');
 }
 
-function DropdownTab({ label, subtabs, tab, setTab }) {
+function DropdownTab({ label, subtabs, tab, setTab, dropUp }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   const isActive = subtabs.some(t => t.id === tab);
@@ -93,7 +93,7 @@ function DropdownTab({ label, subtabs, tab, setTab }) {
         {label} ▾
       </button>
       {open && (
-        <div style={{ position:'absolute', top:'100%', left:0, zIndex:200, background:'var(--bg)', border:'1px solid var(--border)', borderRadius:6, boxShadow:'0 4px 12px rgba(0,0,0,0.3)', minWidth:160, overflow:'hidden' }}>
+        <div style={{ position:'absolute', ...(dropUp ? { bottom:'100%', marginBottom:6 } : { top:'100%' }), left:0, zIndex:200, background:'var(--bg)', border:'1px solid var(--border)', borderRadius:6, boxShadow:'0 4px 12px rgba(0,0,0,0.3)', minWidth:160, overflow:'hidden' }}>
           {subtabs.map(t => (
             <div
               key={t.id}
@@ -472,14 +472,6 @@ export default function Project({ idOverride }) {
           <Link to="/projects" className="logo">Free<em>Pro</em></Link>
           <span style={{ fontSize:9, color:'var(--muted)', letterSpacing:'0.06em', paddingLeft:1 }}>Powered by Unbridled Media</span>
         </div>
-        <div className="tabs">
-          {!isAgency && !isCrew && <button className={`tab${tab === 'overview' ? ' on' : ''}`} onClick={() => setTab('overview')}>Overview</button>}
-          {!isCrew && <DropdownTab label="Logistics" subtabs={isAgency
-            ? [{ id:'schedule', label:'Schedule' }, { id:'travel', label:'Travel' }, { id:'shot-list', label:'Shot List' }, { id:'additional-docs', label:'Additional Docs' }]
-            : [...BASE_LOGISTICS_TABS, ...(showTravel ? [{ id:'travel', label:'Travel' }] : []), ...(showCateringGrid ? [{ id:'catering', label:'Catering/Meals' }] : []), ...(showShotList ? [{ id:'shot-list', label:'Shot List' }] : []), ...(showScripts ? [{ id:'scripts', label:'Scripts' }] : []), { id:'additional-docs', label:'Additional Docs' }, { id:'producer-checklist', label:'Producer Checklist' }]} tab={tab} setTab={setTab} />}
-          <DropdownTab label="Gear" subtabs={GEAR_TABS} tab={tab} setTab={setTab} />
-          {!isCrew && <button className={`tab${tab === 'deliverable-overview' ? ' on' : ''}`} onClick={() => setTab('deliverable-overview')}>Deliverable</button>}
-        </div>
         {!isAgency && !isCrew && <button
           className={`q-btn${tab === 'questions' ? ' on' : ''}${hasUnanswered && tab !== 'questions' ? ' glow' : ''}`}
           onClick={() => setTab('questions')}
@@ -500,6 +492,20 @@ export default function Project({ idOverride }) {
           <ShareDropdown projectId={id} showShotList={showShotList} crews={project?.crews || []} />
         </div>
       )}
+
+      {/* Project section nav — floated to the bottom */}
+      <div className="proj-bottomnav no-print">
+        {!isAgency && !isCrew && (
+          <button className={`tab${tab === 'overview' ? ' on' : ''}`} onClick={() => { setTab('overview'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} title="Overview" aria-label="Overview" style={{ display:'flex', alignItems:'center' }}>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg>
+          </button>
+        )}
+        {!isCrew && <DropdownTab dropUp label="Logistics" subtabs={isAgency
+          ? [{ id:'schedule', label:'Schedule' }, { id:'travel', label:'Travel' }, { id:'shot-list', label:'Shot List' }, { id:'additional-docs', label:'Additional Docs' }]
+          : [...BASE_LOGISTICS_TABS, ...(showTravel ? [{ id:'travel', label:'Travel' }] : []), ...(showCateringGrid ? [{ id:'catering', label:'Catering/Meals' }] : []), ...(showShotList ? [{ id:'shot-list', label:'Shot List' }] : []), ...(showScripts ? [{ id:'scripts', label:'Scripts' }] : []), { id:'additional-docs', label:'Additional Docs' }, { id:'producer-checklist', label:'Producer Checklist' }]} tab={tab} setTab={setTab} />}
+        <DropdownTab dropUp label="Gear" subtabs={GEAR_TABS} tab={tab} setTab={setTab} />
+        {!isCrew && <button className={`tab${tab === 'deliverable-overview' ? ' on' : ''}`} onClick={() => setTab('deliverable-overview')}>Deliverable</button>}
+      </div>
 
       <div className="wrap">
         {tab === 'overview'             && <Overview     project={project} setProject={setProject} onTabChange={setTab} />}
