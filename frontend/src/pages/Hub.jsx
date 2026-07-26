@@ -1078,7 +1078,7 @@ function HubAppMenu() {
   const scissors = <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4L8.12 15.88"/><path d="M14.47 14.48L20 20"/><path d="M8.12 8.12L12 12"/></svg>;
   const apps = [
     { label:'Project Finance', to:'/finance', icon:dollar, accent:'#c8873c', bg:'rgba(200,135,60,0.16)' },
-    { label:'FreePro', to:'/projects', icon:camera, accent:'var(--orange)', bg:'rgba(232,80,10,0.16)' },
+    { label:'Production', to:'/projects', icon:camera, accent:'var(--orange)', bg:'rgba(232,80,10,0.16)' },
     { label:'Post Production', to:'/avo', icon:scissors, accent:'#a89a86', bg:'rgba(168,154,134,0.18)' },
   ];
   return (
@@ -1089,7 +1089,7 @@ function HubAppMenu() {
       ))}
       <button className={`np-pill hub-menu-pill${open ? ' active' : ''}`} title="Apps" onClick={() => setOpen(o => !o)}>
         <span className="np-plus" style={{ display:'flex', alignItems:'center', justifyContent:'center' }}>
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M4 9h16M4 15h16"/></svg>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
         </span>
       </button>
     </div>
@@ -1134,7 +1134,7 @@ function HubDashboard() {
   const hdr = { fontSize:12, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.07em', marginBottom:12 };
 
   return (
-    <div className="hub-dash" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginTop:22 }}>
+    <div className="hub-dash" style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(300px, 1fr))', gap:16, marginTop:22 }}>
       <div className="hub-anim-drop" style={{ ...card, animationDelay:'.1s' }}>
         <div style={{ ...hdr, marginBottom:2, color:'#e8500a' }}>Day in Review</div>
         <div style={{ fontSize:12, color:'var(--muted)', fontWeight:600, marginBottom:10 }}>{dateLabel}</div>
@@ -1172,21 +1172,27 @@ function HubDashboard() {
             ))}
           </>
         )}
+      </div>
+
+      <div className="hub-anim-drop" style={{ ...card, animationDelay:'.18s' }}>
+        <div style={{ ...hdr, marginBottom:12, color:'#e8500a', display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
+          My Tasks
+          <button onClick={openAddTask} title="Add a task to your list"
+            style={{ background:'transparent', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:10,
+              padding:'1px 8px', fontSize:9, fontWeight:800, cursor:'pointer', textTransform:'none', letterSpacing:0 }}>
+            + Add New
+          </button>
+          {day && (day.tasks || []).some(t => !hiddenTasks.includes(t.id) && t.due_date && String(t.due_date).slice(0, 10) === (day?.date || new Date().toISOString().slice(0, 10))) && (
+            <span style={{ background:'rgba(232,80,10,0.16)', border:'1px solid var(--orange)', color:'var(--orange)', borderRadius:10, padding:'1px 8px', fontSize:9, fontWeight:800, textTransform:'none', letterSpacing:0 }}>
+              (!) Task Due Today
+            </span>
+          )}
+        </div>
+        {!day && <div style={{ fontSize:11, color:'var(--muted)' }}>Loading…</div>}
+        {day && (day.tasks || []).filter(t => !hiddenTasks.includes(t.id)).length === 0 && (
+          <div style={{ fontSize:12, color:'var(--muted)', fontStyle:'italic' }}>No tasks on your list.</div>
+        )}
         {day && (
-          <>
-            <div style={{ ...hdr, fontSize:10, margin:'16px 0 6px', display:'flex', alignItems:'center', gap:8 }}>
-              My Tasks
-              <button onClick={openAddTask} title="Add a task to your list"
-                style={{ background:'transparent', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:10,
-                  padding:'1px 8px', fontSize:9, fontWeight:800, cursor:'pointer', textTransform:'none', letterSpacing:0 }}>
-                + Add New
-              </button>
-              {(day.tasks || []).some(t => !hiddenTasks.includes(t.id) && t.due_date && String(t.due_date).slice(0, 10) === (day?.date || new Date().toISOString().slice(0, 10))) && (
-                <span style={{ background:'rgba(232,80,10,0.16)', border:'1px solid var(--orange)', color:'var(--orange)', borderRadius:10, padding:'1px 8px', fontSize:9, fontWeight:800, textTransform:'none', letterSpacing:0 }}>
-                  (!) Task Due Today
-                </span>
-              )}
-            </div>
             <div style={{ maxHeight:280, overflowY:'auto' }}>
             {(day.tasks || []).filter(t => !hiddenTasks.includes(t.id)).map(t => {
               const today = day?.date || new Date().toISOString().slice(0, 10);
@@ -1223,15 +1229,14 @@ function HubDashboard() {
               );
             })}
             </div>
-          </>
         )}
       </div>
 
-      <div className="hub-anim-drop" style={{ ...card, position:'relative', overflow:'hidden', animationDelay:'.18s' }}>
-        <div style={{ ...hdr, marginBottom:12 }}>Team Today</div>
+      <div className="hub-anim-drop" style={{ ...card, position:'relative', overflow:'hidden', animationDelay:'.26s' }}>
+        <div style={{ ...hdr, marginBottom:12, color:'#e8500a' }}>Team Today</div>
         {!team && <div style={{ fontSize:11, color:'var(--muted)' }}>Loading…</div>}
         {team && team.length === 0 && <div style={{ fontSize:12, color:'var(--muted)', fontStyle:'italic' }}>No Unbridled team members on the roster yet.</div>}
-        <div className="team-grid" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', columnGap:18 }}>
+        <div className="team-grid" style={{ display:'grid', gridTemplateColumns:'1fr', columnGap:18 }}>
           {(team || []).map(m => (
             <div key={m.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'6px 4px', borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
               <span title={m.status === 'out' ? 'Out of Office / PTO' : m.status === 'shoot' ? 'Traveling / on a shoot' : 'In office'}
