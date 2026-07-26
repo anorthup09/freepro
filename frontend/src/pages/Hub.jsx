@@ -223,115 +223,45 @@ function DailyFactBlob() {
 function MediaMomentOrbit() {
   const [team, setTeam] = useState(null);
   const [fact, setFact] = useState(undefined); // undefined = loading, null = none
-  const today = new Date().toDateString();
-  const [phase, setPhase] = useState(localStorage.getItem('fp_mediamoment_day') === today ? 'row' : 'orbit'); // 'orbit' | 'row'
-  const [w, setW] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
-  const touched = React.useRef(false);
-  const ringRef = React.useRef(null);
-  const rafRef = React.useRef(0);
-  const angleRef = React.useRef(0);
   useEffect(() => {
     api.dashboardTeam().then(setTeam).catch(() => setTeam([]));
     api.funFactToday().then(f => setFact(f || null)).catch(() => setFact(null));
-    const on = () => setW(window.innerWidth);
-    window.addEventListener('resize', on);
-    return () => window.removeEventListener('resize', on);
   }, []);
-  // No moment to feature today → rest as the parade row (unless the user opened it).
-  useEffect(() => { if (fact === null && !touched.current) setPhase(p => (p === 'orbit' ? 'row' : p)); }, [fact]);
-
-  // Gentle continuous drift while the ring is on screen — driven straight on the
-  // DOM node so there's no per-frame React re-render.
-  useEffect(() => {
-    if (phase !== 'orbit') return;
-    const el = ringRef.current;
-    if (el) el.style.transition = 'none';
-    let last = performance.now();
-    const degPerMs = 360 / 80000; // one slow revolution ≈ 80s
-    const tick = (now) => {
-      angleRef.current = (angleRef.current + (now - last) * degPerMs) % 360;
-      last = now;
-      if (ringRef.current) ringRef.current.style.transform = `rotate(${angleRef.current}deg)`;
-      rafRef.current = requestAnimationFrame(tick);
-    };
-    rafRef.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafRef.current);
-  }, [phase]);
-
+  if (fact === undefined) return null;         // still loading
   const members = (team || []).slice(0, 15);
-  if (!members.length) return null;
-  const n = members.length;
-  const narrow = w < 640;
-  const R = narrow ? 120 : 152;    // wider ring so more of the moment fits inside
-  const CY = narrow ? 134 : 168;
-
-  const open = () => {
-    touched.current = true;
-    localStorage.removeItem('fp_mediamoment_day');
-    if (ringRef.current) ringRef.current.style.transition = 'none';
-    angleRef.current = 0;
-    setPhase('orbit');
-  };
-  const close = () => {
-    touched.current = true;
-    localStorage.setItem('fp_mediamoment_day', today);
-    cancelAnimationFrame(rafRef.current);
-    const el = ringRef.current;
-    if (el) {
-      let a = angleRef.current % 360;
-      if (a > 180) a -= 360;            // unwind the short way to level
-      el.style.transition = 'none';
-      el.style.transform = `rotate(${a}deg)`;
-      void el.offsetWidth;              // commit before animating
-      el.style.transition = 'transform .8s cubic-bezier(.22,.61,.36,1)';
-      el.style.transform = 'rotate(0deg)';
-      angleRef.current = 0;
-    }
-    setPhase('row');
-  };
-
-  const dotStyle = (m, i) => {
-    const inOffice = m.status === 'office';
-    const denver = /denver/i.test(m.location || '');
-    const color = denver ? '#a89a86' : 'var(--orange)';
-    const size = inOffice ? (narrow ? 9 : 10) : (narrow ? 5 : 6);  // smaller dots
-    let left, top, tf;
-    if (phase === 'row') {
-      left = `${2 + ((i + 0.5) / n) * 88}%`; top = '14px'; tf = 'translate(-50%,-50%)';
-    } else {
-      const a = (-90 + (360 / n) * i) * Math.PI / 180;
-      left = '50%'; top = `${CY}px`;
-      tf = `translate(calc(-50% + ${(R * Math.cos(a)).toFixed(1)}px), calc(-50% + ${(R * Math.sin(a)).toFixed(1)}px))`;
-    }
-    return {
-      position:'absolute', left, top, transform: tf, width:size, height:size, borderRadius:'50%',
-      background: color, opacity: inOffice ? 1 : 0.5,
-      boxShadow: inOffice ? `0 0 6px ${denver ? 'rgba(168,154,134,0.5)' : 'rgba(232,80,10,0.65)'}` : 'none',
-      transition:'left .8s cubic-bezier(.22,.61,.36,1),top .8s cubic-bezier(.22,.61,.36,1),transform .8s cubic-bezier(.22,.61,.36,1),width .3s ease,height .3s ease,opacity .3s ease',
-    };
-  };
-
+  const inOffice = members.filter(m => m.status === 'office').length;
+  if (!fact && !members.length) return null;   // nothing to show
+  const isWob = fact && fact.kind === 'wob';
   return (
-    <div className="mm-orbit" style={{ height: phase === 'row' ? 38 : CY * 2 + 12 }}>
-      <div className="mm-ring" ref={ringRef} style={{ transformOrigin: `50% ${CY}px` }}>
-        {members.map((m, i) => (
-          <span key={m.id} title={`${m.name} — ${m.detail && m.detail !== 'In office' ? m.detail + ' · ' : ''}${m.location || ''}`} style={dotStyle(m, i)} />
-        ))}
+    <div className="mm-banner">
+      <div className="mm-b-main">
+        {fact ? (
+          <>
+            <div className="mm-kicker">{isWob ? 'WAYS OF BEING' : 'MEDIAMOMENT'}</div>
+            {fact.prompt && <div className="mm-prompt">{fact.prompt}</div>}
+            <div className="mm-answer">“{fact.answer}”</div>
+            <div className="mm-name">— {fact.name}</div>
+          </>
+        ) : (
+          <div className="mm-kicker">TEAM TODAY</div>
+        )}
       </div>
-      {fact && (
-        <div className="mm-center" style={{ top: `${CY}px`, width: 2 * R - 84, opacity: phase === 'orbit' ? 1 : 0, pointerEvents: phase === 'orbit' ? 'auto' : 'none' }}>
-          <div className="mm-kicker">{fact.kind === 'wob' ? 'WAYS OF BEING' : 'MEDIAMOMENT'}</div>
-          {fact.prompt && <div className="mm-prompt">{fact.prompt}</div>}
-          <div className="mm-answer">“{fact.answer}”</div>
-          <div className="mm-name">— {fact.name}</div>
+      {members.length > 0 && (
+        <div className="mm-b-team">
+          <div className="mm-b-dots">
+            {members.map(m => {
+              const denver = /denver/i.test(m.location || '');
+              const office = m.status === 'office';
+              return (
+                <span key={m.id} title={`${m.name}${m.detail && m.detail !== 'In office' ? ' — ' + m.detail : ''}${m.location ? ' · ' + m.location : ''}`}
+                  style={{ width: office ? 9 : 6, height: office ? 9 : 6, borderRadius:'50%', flexShrink:0,
+                    background: denver ? '#a89a86' : 'var(--orange)', opacity: office ? 1 : 0.45,
+                    boxShadow: office ? `0 0 5px ${denver ? 'rgba(168,154,134,0.5)' : 'rgba(232,80,10,0.6)'}` : 'none' }} />
+              );
+            })}
+          </div>
+          <div className="mm-b-count">{inOffice} in office · St. Louis <span style={{ color:'var(--orange)' }}>●</span> Denver <span style={{ color:'#a89a86' }}>●</span></div>
         </div>
-      )}
-      {fact && (
-        <button className="mm-toggle" onClick={phase === 'orbit' ? close : open}
-          style={phase === 'orbit' ? { top: 0, right: 0 } : { top: '14px', right: 0, transform: 'translateY(-50%)' }}
-          aria-label={phase === 'orbit' ? 'Close media moment' : 'Open media moment'}>
-          {phase === 'orbit' ? '✕' : '+'}
-        </button>
       )}
     </div>
   );
@@ -1341,15 +1271,21 @@ const HUB_CSS = `
 .hub-h1{font-family:Georgia,'Times New Roman',serif;font-size:34px;font-weight:700;letter-spacing:-.01em;line-height:1.05;margin:0}
 .hub-tagline{text-align:left;font-size:14px;font-weight:600;color:var(--tan);max-width:560px;margin:8px 0 0;line-height:1.45}
 /* MediaMoment orbit: ring of team dots with the moment in the middle */
-.mm-orbit{position:relative;width:100%;margin:8px auto 22px;transition:height .8s cubic-bezier(.22,.61,.36,1)}
-.mm-ring{position:absolute;inset:0}
-.mm-center{position:absolute;left:50%;transform:translate(-50%,-50%);text-align:center;transition:opacity .35s ease}
-.mm-kicker{font-size:8px;font-weight:900;letter-spacing:.18em;color:var(--orange)}
-.mm-prompt{font-size:9.5px;font-weight:700;color:var(--muted);margin-top:5px;line-height:1.35}
-.mm-answer{font-family:Georgia,'Times New Roman',serif;font-size:15px;font-weight:700;line-height:1.34;margin-top:5px}
-.mm-name{font-size:9.5px;font-weight:800;color:var(--muted);margin-top:4px}
-.mm-toggle{position:absolute;z-index:4;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--muted);font-size:14px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:color .15s ease,border-color .15s ease}
-.mm-toggle:hover{color:var(--orange);border-color:var(--orange)}
+/* MediaMoment banner: a wide horizontal card, à la a rewards "balance" banner */
+.mm-banner{position:relative;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;overflow:hidden;
+  margin:8px 0 22px;padding:18px 22px;border-radius:16px;border:1px solid var(--border);
+  background:linear-gradient(120deg, rgba(232,80,10,0.16), rgba(232,80,10,0.03) 58%, transparent), var(--bg2);}
+.mm-banner::after{content:'';position:absolute;right:-46px;top:-46px;width:190px;height:190px;border-radius:50%;
+  background:radial-gradient(circle, rgba(232,80,10,0.13), transparent 70%);pointer-events:none}
+.mm-b-main{position:relative;z-index:1;min-width:0;flex:1 1 320px}
+.mm-kicker{font-size:9px;font-weight:900;letter-spacing:.18em;color:var(--orange)}
+.mm-prompt{font-size:11px;font-weight:700;color:var(--muted);margin-top:5px;line-height:1.35}
+.mm-answer{font-family:Georgia,'Times New Roman',serif;font-size:17px;font-weight:700;line-height:1.34;margin-top:6px;color:var(--text)}
+.mm-name{font-size:11px;font-weight:800;color:var(--muted);margin-top:5px}
+.mm-b-team{position:relative;z-index:1;display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0}
+.mm-b-dots{display:flex;align-items:center;gap:6px;flex-wrap:wrap;max-width:190px;justify-content:flex-end}
+.mm-b-count{font-size:9.5px;font-weight:800;letter-spacing:.03em;color:var(--muted);text-transform:uppercase;white-space:nowrap}
+@media(max-width:640px){.mm-b-team{align-items:flex-start;width:100%}.mm-b-dots{justify-content:flex-start;max-width:none}.mm-answer{font-size:15px}}
 @media(max-width:640px){.hub-h1{font-size:28px}.hub-header{margin:42px 0 10px}.hub-logo-top{height:28px}}
 
 .hub-reveal{opacity:0;transform:translateY(20px);transition:opacity .55s cubic-bezier(.22,.61,.36,1),transform .55s cubic-bezier(.22,.61,.36,1)}
