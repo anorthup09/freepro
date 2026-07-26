@@ -1086,7 +1086,7 @@ function HubAppMenu() {
   const apps = [
     { label:'Project Finance', to:'/finance', icon:dollar, accent:'#c8873c', bg:'rgba(200,135,60,0.16)' },
     { label:'Production', to:'/projects', icon:camera, accent:'var(--orange)', bg:'rgba(232,80,10,0.16)' },
-    { label:'Post Production', to:'/avo', icon:scissors, accent:'#a89a86', bg:'rgba(168,154,134,0.18)' },
+    { label:'Post-Production', to:'/avo', icon:scissors, accent:'#a89a86', bg:'rgba(168,154,134,0.18)' },
   ];
   return (
     <div ref={ref} style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
