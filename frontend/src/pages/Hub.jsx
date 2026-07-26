@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../App.jsx';
 import { api } from '../api.js';
@@ -1023,6 +1023,7 @@ function HubProjects({ onNewProject }) {
             : <input value={cq} onChange={e => setCq(e.target.value)} placeholder="Search clients…" style={{ flex:1, minWidth:0 }} />}
           <HubSwitchPill label={onProjects ? 'Client Hub' : 'Project Hub'} neutral={onProjects}
             onClick={doSwitch} />
+          <HubAppMenu />
         </div>
         <div key={flips}>
           {onProjects ? projectList : clientList}
@@ -1045,6 +1046,53 @@ function HubSwitchPill({ label, onClick, neutral }) {
       </span>
       <span className="np-label">{label}</span>
     </button>
+  );
+}
+
+// One app shortcut inside the hub-tile app menu: icon-only, reveals its name on
+// hover (same pattern as the + and switch pills).
+function AppPill({ icon, label, accent, bg, onClick, i }) {
+  return (
+    <button className="np-pill hub-app-pill" title={label} onClick={onClick}
+      style={{ background:bg, borderColor:accent, color:accent, animationDelay:`${i * 0.05}s` }}>
+      <span className="np-plus" style={{ display:'flex', alignItems:'center', justifyContent:'center' }}>{icon}</span>
+      <span className="np-label">{label}</span>
+    </button>
+  );
+}
+
+// Orange "≡" menu circle on the right of the hub tile. Clicking it expands the
+// three app shortcuts (Project Finance / FreePro / Post Production) to its left.
+function HubAppMenu() {
+  const nav = useNavigate();
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!open) return;
+    const h = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, [open]);
+  const dollar = <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>;
+  const camera = <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="M16 10l6-3v10l-6-3z"/></svg>;
+  const scissors = <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4L8.12 15.88"/><path d="M14.47 14.48L20 20"/><path d="M8.12 8.12L12 12"/></svg>;
+  const apps = [
+    { label:'Project Finance', to:'/finance', icon:dollar, accent:'#c8873c', bg:'rgba(200,135,60,0.16)' },
+    { label:'FreePro', to:'/projects', icon:camera, accent:'var(--orange)', bg:'rgba(232,80,10,0.16)' },
+    { label:'Post Production', to:'/avo', icon:scissors, accent:'#a89a86', bg:'rgba(168,154,134,0.18)' },
+  ];
+  return (
+    <div ref={ref} style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
+      <span style={{ width:1, height:26, background:'var(--border)', flexShrink:0 }} />
+      {open && apps.map((a, i) => (
+        <AppPill key={a.to} {...a} i={i} onClick={() => nav(a.to)} />
+      ))}
+      <button className={`np-pill hub-menu-pill${open ? ' active' : ''}`} title="Apps" onClick={() => setOpen(o => !o)}>
+        <span className="np-plus" style={{ display:'flex', alignItems:'center', justifyContent:'center' }}>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M4 9h16M4 15h16"/></svg>
+        </span>
+      </button>
+    </div>
   );
 }
 
@@ -1360,6 +1408,11 @@ const HUB_CSS = `
 .hub-switch-pill:hover{box-shadow:0 0 14px rgba(232,80,10,0.35)}
 .hub-switch-pill.neutral{background:rgba(168,154,134,0.16);border-color:#a89a86;color:#c9bcaa}
 .hub-switch-pill.neutral:hover{box-shadow:0 0 14px rgba(168,154,134,0.35)}
+/* Orange app-menu (≡) circle + the app shortcuts it expands to its left */
+.hub-menu-pill{background:rgba(232,80,10,0.14);border-color:var(--orange);color:var(--orange)}
+.hub-menu-pill:hover,.hub-menu-pill.active{box-shadow:0 0 14px rgba(232,80,10,0.4)}
+@keyframes hubAppIn{from{opacity:0;transform:translateX(14px) scale(.8)}to{opacity:1;transform:none}}
+.hub-app-pill{animation:hubAppIn .26s cubic-bezier(.34,.75,.35,1) backwards}
 /* Switching hubs flips each card in on its left edge, staggered left→right, so
    the orange project cards give way to the gray client cards (and back). */
 @keyframes hubCardFlip{0%{transform:perspective(700px) rotateY(-90deg);opacity:0}55%{opacity:1}100%{transform:perspective(700px) rotateY(0);opacity:1}}
@@ -1423,14 +1476,12 @@ function Reveal({ children, style }) {
 // Dashboard. Calendar/Reports/Team follow the same role permissions everywhere
 // and derive isCrew/isFinance from the signed-in user, so any page can drop in
 // <HubBottomNav /> with no extra wiring.
-export function HubBottomNav({ home = false, mode, setHubMode, raised = false }) {
+export function HubBottomNav({ raised = false }) {
   const nav = useNavigate();
   const loc = useLocation();
   const { user } = useAuth();
-  const isCrew = ['CREW', 'AGENCY'].includes(user?.role);
   const isFinance = user?.role === 'FINANCE';
   const scrolled = useScrolled();
-  const [viewMenu, setViewMenu] = useState(false);
   const path = loc.pathname;
   const item = (icon, label, onClick, active) => (
     <button className={`hub-navitem${active ? ' active' : ''}`} onClick={onClick}>
@@ -1439,23 +1490,7 @@ export function HubBottomNav({ home = false, mode, setHubMode, raised = false })
   );
   return (
     <div className={`hub-bottomnav${scrolled ? ' condensed' : ''}${raised ? ' raised' : ''}`}>
-      {home
-        ? (!isCrew && !isFinance && (
-            <div style={{ position: 'relative' }}>
-              {item(NAV_ICONS.view, 'View', () => setViewMenu(m => !m), viewMenu)}
-              {viewMenu && (
-                <>
-                  <div onClick={() => setViewMenu(false)} style={{ position: 'fixed', inset: 0, zIndex: 1 }} />
-                  <div className="hub-navpop" style={{ zIndex: 2 }}>
-                    {[['projects', 'Project View'], ['ops', 'Operations View']].map(([k, l]) => (
-                      <button key={k} className={mode === k ? 'on' : ''} onClick={() => { setHubMode(k); setViewMenu(false); }}>{l}{mode === k ? '  ✓' : ''}</button>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-          ))
-        : item(NAV_ICONS.home, 'Home', () => nav('/'))}
+      {item(NAV_ICONS.home, 'Home', () => nav('/'), path === '/')}
       {!isFinance && item(NAV_ICONS.calendar, 'Calendar', () => nav('/crew-calendar'), path.startsWith('/crew-calendar'))}
       {item(NAV_ICONS.reports, 'Reports', () => nav('/reports'), path.startsWith('/reports'))}
       {item(NAV_ICONS.team, 'Team', () => nav('/team'), path.startsWith('/team'))}
@@ -1491,8 +1526,6 @@ export default function Hub() {
   const { user, setUser, realUser, preview, setPreview } = useAuth();
   const isCrew = ['CREW','AGENCY'].includes(user?.role);
   const isFinance = user?.role === 'FINANCE';
-  const [mode, setMode] = useState(() => localStorage.getItem('hub_mode') || 'ops'); // 'projects' | 'ops'
-  const setHubMode = m => { setMode(m); localStorage.setItem('hub_mode', m); };
   const [showNewProject, setShowNewProject] = useState(false);
   // Team Management sits below as a constant, elongated tile
   const teamTile = TILES.find(t => t.key === 'team');
@@ -1535,8 +1568,8 @@ export default function Hub() {
             <FunFactPrompt />
             {/* Solutions + Crew both get the project-scroll dashboard (all projects, no finance) */}
             {isCrew && <SolutionsHub />}
-            {!isAgency && !isCrew && !isFinance && mode === 'projects' && <HubProjects onNewProject={() => setShowNewProject(true)} />}
-            {!isCrew && (isFinance || mode === 'ops') && (
+            {!isAgency && !isCrew && !isFinance && <HubProjects onNewProject={() => setShowNewProject(true)} />}
+            {!isCrew && isFinance && (
             <div className="hub-tiles" style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(260px, 1fr))', gap:16 }}>
               {tiles.map(t => {
                 const clickable = !!t.to;
@@ -1578,8 +1611,7 @@ export default function Hub() {
           </div>
         </div>
 
-      <HubBottomNav home mode={mode} setHubMode={setHubMode} />
-      {mode === 'ops' && !isFinance && !isCrew && !isAgency && <NewProjectFab onClick={() => setShowNewProject(true)} />}
+      <HubBottomNav />
 
       {showNewProject && (
         <NewProjectModal
