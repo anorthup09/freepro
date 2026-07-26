@@ -960,25 +960,12 @@ function HubProjects({ onNewProject }) {
   const clients = [...byClient.values()].sort((a, b) => a.name.localeCompare(b.name));
   const cs = cq.trim().toLowerCase();
   const shownClients = cs ? clients.filter(c => c.name.toLowerCase().includes(cs)) : clients;
-  const [expanded, setExpanded] = useState(null); // null | 'projects' | 'clients'
-  const norm = v => String(v || '').toLowerCase();
-  const rfps = (projects || []).filter(p => norm(p.budget_status) === 'rfp').length;
-  const live = (projects || []).filter(p => norm(p.budget_status) === 'live').length;
-  const recon = (projects || []).filter(p => ['reconcile', 'reconciled'].includes(norm(p.budget_status))).length;
+  const [view, setView] = useState('projects'); // 'projects' | 'clients'
+  const [flips, setFlips] = useState(0);         // >0 once the user has flipped, so the
+  const doSwitch = () => { setView(v => v === 'projects' ? 'clients' : 'projects'); setFlips(f => f + 1); };
 
-  const stat = (n, label, color) => (
-    <div className="hh-stat" style={{ textAlign:'center', minWidth:64 }}>
-      <div className="hh-statn" style={{ fontSize:26, fontWeight:800, color, lineHeight:1 }}>{projects ? n : '—'}</div>
-      <div className="hh-statl" style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.05em', marginTop:5 }}>{label}</div>
-    </div>
-  );
-
-  const projectScroller = (
+  const projectList = (
     <>
-      <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:12 }}>
-        <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search code, title, client…" style={{ flex:1, minWidth:0 }} />
-        {onNewProject && <NewProjectPill onClick={onNewProject} />}
-      </div>
       {!projects && <div className="empty">Loading…</div>}
       {projects && shown.length === 0 && <div className="empty">No projects match.</div>}
       {shown.length > 0 && (
@@ -1001,11 +988,8 @@ function HubProjects({ onNewProject }) {
     </>
   );
 
-  const clientScroller = (
+  const clientList = (
     <>
-      <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:12 }}>
-        <input value={cq} onChange={e => setCq(e.target.value)} placeholder="Search clients…" style={{ flex:1, minWidth:0 }} />
-      </div>
       {clients.length === 0 ? <div className="empty">No clients yet.</div> : (
         <div className="hub-scroll" style={{ display:'flex', gap:10, overflowX:'auto', paddingBottom:8, WebkitMaskImage:SCROLL_FADE, maskImage:SCROLL_FADE }}>
           {shownClients.map(c => (
@@ -1025,48 +1009,40 @@ function HubProjects({ onNewProject }) {
     </>
   );
 
-  if (expanded === 'projects') return (
-    <div className="hub-hubs hub-hubs-roll" style={{ gridTemplateColumns:'1fr' }}>
-      <div className="hub-hubtile" style={{ cursor:'default' }}>
-        <button className="hub-expandbtn" title="Collapse" onClick={() => setExpanded(null)}>–</button>
-        <div style={{ fontSize:15, fontWeight:800, marginBottom:16 }}>Project Hub</div>
-        {projectScroller}
-      </div>
-    </div>
-  );
-  if (expanded === 'clients') return (
-    <div className="hub-hubs hub-hubs-roll" style={{ gridTemplateColumns:'1fr' }}>
-      <div className="hub-hubtile neutral" style={{ cursor:'default' }}>
-        <button className="hub-expandbtn" title="Collapse" onClick={() => setExpanded(null)}>–</button>
-        <div style={{ fontSize:15, fontWeight:800, marginBottom:16 }}>Client Hub</div>
-        {clientScroller}
-      </div>
-    </div>
-  );
+  // Single always-open tile that flips between Project Hub and Client Hub.
+  const onProjects = view === 'projects';
   return (
-    <div className="hub-hubs" style={{ gridTemplateColumns:'1fr 1fr', maxWidth:540 }}>
-      <div className="hub-hubtile hub-anim-left" onClick={() => setExpanded('projects')} title="Open full view">
-        <div className="hh-titlerow" style={{ display:'flex', alignItems:'center', gap:7, marginBottom:16 }}>
-          <span className="hh-title" style={{ fontSize:15, fontWeight:800 }}>Project Hub</span>
-          <span className="hh-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+    <div className="hub-hubs" style={{ gridTemplateColumns:'1fr' }}>
+      <div className={`hub-hubtile hub-anim-left${onProjects ? '' : ' neutral'}`} style={{ cursor:'default', paddingTop:16 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:12 }}>
+          {onNewProject && <NewProjectPill onClick={onNewProject} />}
+          {onProjects
+            ? <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search code, title, client…" style={{ flex:1, minWidth:0 }} />
+            : <input value={cq} onChange={e => setCq(e.target.value)} placeholder="Search clients…" style={{ flex:1, minWidth:0 }} />}
+          <HubSwitchPill label={onProjects ? 'Client Hub' : 'Project Hub'} neutral={onProjects}
+            onClick={doSwitch} />
         </div>
-        <div style={{ display:'flex', gap:6, justifyContent:'space-between' }}>
-          {stat(rfps, 'RFPs', '#c8873c')}
-          {stat(live, 'Live', 'var(--orange)')}
-          {stat(recon, 'Reconcile', '#c9bcaa')}
-        </div>
-      </div>
-      <div className="hub-hubtile neutral hub-anim-right" onClick={() => setExpanded('clients')} title="Open full view">
-        <div className="hh-titlerow" style={{ display:'flex', alignItems:'center', gap:7, marginBottom:16 }}>
-          <span className="hh-title" style={{ fontSize:15, fontWeight:800 }}>Client Hub</span>
-          <span className="hh-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
-        </div>
-        <div className="hh-clientrow" style={{ display:'flex', alignItems:'center', gap:12 }}>
-          <div className="hh-icon" style={{ width:44, height:44, borderRadius:12, background:'rgba(168,154,134,0.16)', color:'#c9bcaa', display:'flex', alignItems:'center', justifyContent:'center', fontSize:23, flexShrink:0 }}>◎</div>
-          <div className="hh-sub" style={{ fontSize:11, color:'var(--muted)' }}>{projects ? `${clients.length} client${clients.length !== 1 ? 's' : ''}` : '—'}</div>
+        <div key={flips} className={flips ? 'hub-hubflip' : ''}>
+          {onProjects ? projectList : clientList}
         </div>
       </div>
     </div>
+  );
+}
+
+// Icon-only pill that reveals its label on hover (mirrors NewProjectPill) — the
+// Project ⇄ Client Hub flip switch, right-aligned in the hub tile's control row.
+function HubSwitchPill({ label, onClick, neutral }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <button className={`np-pill hub-switch-pill${neutral ? ' neutral' : ''}${open ? ' open' : ''}`} title={`Switch to ${label}`}
+      onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}
+      onClick={onClick}>
+      <span className="np-plus" style={{ display:'flex', alignItems:'center', justifyContent:'center' }}>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3l4 4-4 4"/><path d="M21 7H7a4 4 0 0 0-4 4"/><path d="M7 21l-4-4 4-4"/><path d="M3 17h14a4 4 0 0 0 4-4"/></svg>
+      </span>
+      <span className="np-label">{label}</span>
+    </button>
   );
 }
 
@@ -1344,7 +1320,7 @@ const HUB_CSS = `
 .hub-hubs-roll .hub-hubtile{min-width:0}
 @keyframes hubRollOut{from{max-width:540px;opacity:.5;transform:translateY(8px)}to{max-width:100%;opacity:1;transform:translateY(0)}}
 @media(max-width:640px){
-  .hub-hubs:not(.hub-hubs-roll){grid-template-columns:1fr 1fr !important;max-width:100% !important;gap:10px}
+  .hub-hubs:not(.hub-hubs-roll){grid-template-columns:1fr !important;max-width:100% !important;gap:10px}
   .hub-hubs-roll{grid-template-columns:1fr !important;max-width:100% !important;animation:hubRollMobile .42s cubic-bezier(.22,.61,.36,1)}
   .hub-hubtile{padding:13px 12px}
   .hub-hubtile .hh-title{font-size:12.5px !important}
@@ -1375,6 +1351,17 @@ const HUB_CSS = `
 .np-plus{flex:0 0 auto;width:36px;height:38px;display:flex;align-items:center;justify-content:center;font-size:21px;font-weight:400;line-height:1}
 .np-label{max-width:0;overflow:hidden;white-space:nowrap;font-size:12px;font-weight:800;transition:max-width .3s ease,padding .3s ease}
 .np-pill.open .np-label,.np-pill:hover .np-label{max-width:150px;padding-right:16px}
+/* Project ⇄ Client flip switch — icon-only, reveals its label on hover like the
+   New Project pill. Orange when it will switch to the Project Hub, tan when it
+   will switch to the Client Hub. */
+.hub-switch-pill{background:rgba(232,80,10,0.14);border-color:var(--orange);color:var(--orange)}
+.hub-switch-pill:hover{box-shadow:0 0 14px rgba(232,80,10,0.35)}
+.hub-switch-pill.neutral{background:rgba(168,154,134,0.16);border-color:#a89a86;color:#c9bcaa}
+.hub-switch-pill.neutral:hover{box-shadow:0 0 14px rgba(168,154,134,0.35)}
+/* Flip when switching between the Project and Client hubs */
+@keyframes hubFlip{0%{transform:perspective(900px) rotateY(0);opacity:1}45%{transform:perspective(900px) rotateY(90deg);opacity:0}55%{transform:perspective(900px) rotateY(-90deg);opacity:0}100%{transform:perspective(900px) rotateY(0);opacity:1}}
+.hub-hubflip{animation:hubFlip .5s cubic-bezier(.45,.05,.35,1);transform-origin:center;will-change:transform}
+@media (prefers-reduced-motion: reduce){.hub-hubflip{animation:none}}
 /* Dashboard open animations: Media Moment / Day in Review / Team Today drop in
    from the top; Project Hub flies in from the left, Client Hub from the right.
    fill-mode:backwards holds the start frame during any delay and then releases
