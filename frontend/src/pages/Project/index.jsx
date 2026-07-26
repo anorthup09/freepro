@@ -108,18 +108,23 @@ function DropdownTab({ label, subtabs, tab, setTab, dropUp, icon }) {
         </button>
       )}
       {open && (
-        <div style={{ position:'absolute', ...(dropUp ? { bottom:'100%', marginBottom:6 } : { top:'100%' }), left:0, zIndex:200, background:'var(--bg)', border:'1px solid var(--border)', borderRadius:6, boxShadow:'0 4px 12px rgba(0,0,0,0.3)', minWidth:160, overflow:'hidden' }}>
-          {subtabs.map(t => (
-            <div
-              key={t.id}
-              onClick={() => { setTab(t.id); setOpen(false); }}
-              style={{ padding:'8px 14px', fontSize:12, fontWeight: tab === t.id ? 700 : 400, color: tab === t.id ? 'var(--orange)' : 'var(--text)', cursor:'pointer', background: tab === t.id ? 'var(--bg2)' : 'transparent' }}
-              onMouseEnter={e => e.currentTarget.style.background = 'var(--bg2)'}
-              onMouseLeave={e => e.currentTarget.style.background = tab === t.id ? 'var(--bg2)' : 'transparent'}
-            >
-              {t.label}
-            </div>
-          ))}
+        // Flush outer wrapper (bottom/top:100%) whose 6px inner margin becomes a
+        // hoverable bridge — without it the gap between button and menu is dead
+        // space that fires onMouseLeave and closes the menu before you reach it.
+        <div style={{ position:'absolute', ...(dropUp ? { bottom:'100%' } : { top:'100%' }), left:0, zIndex:200 }}>
+          <div style={{ ...(dropUp ? { marginBottom:6 } : { marginTop:6 }), background:'var(--bg)', border:'1px solid var(--border)', borderRadius:6, boxShadow:'0 4px 12px rgba(0,0,0,0.3)', minWidth:160, overflow:'hidden' }}>
+            {subtabs.map(t => (
+              <div
+                key={t.id}
+                onClick={() => { setTab(t.id); setOpen(false); }}
+                style={{ padding:'8px 14px', fontSize:12, fontWeight: tab === t.id ? 700 : 400, color: tab === t.id ? 'var(--orange)' : 'var(--text)', cursor:'pointer', background: tab === t.id ? 'var(--bg2)' : 'transparent' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'var(--bg2)'}
+                onMouseLeave={e => e.currentTarget.style.background = tab === t.id ? 'var(--bg2)' : 'transparent'}
+              >
+                {t.label}
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
