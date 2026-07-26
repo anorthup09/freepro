@@ -936,6 +936,13 @@ function SolutionsHub() {
 }
 
 // Project View mode: every project as a tile, sorted by code
+// Moves the .hub-glow spotlight to the cursor by writing --gx/--gy on the tile.
+const glowMove = e => {
+  const r = e.currentTarget.getBoundingClientRect();
+  e.currentTarget.style.setProperty('--gx', (e.clientX - r.left) + 'px');
+  e.currentTarget.style.setProperty('--gy', (e.clientY - r.top) + 'px');
+};
+
 function HubProjects({ onNewProject }) {
   const nav = useNavigate();
   const [projects, setProjects] = useState(null);
@@ -1015,7 +1022,7 @@ function HubProjects({ onNewProject }) {
   const onProjects = view === 'projects';
   return (
     <div className="hub-hubs" style={{ gridTemplateColumns:'1fr' }}>
-      <div className={`hub-hubtile hub-glow hub-anim-left${onProjects ? '' : ' neutral'}`} style={{ cursor:'default', paddingTop:16, minWidth:0 }}>
+      <div className={`hub-hubtile hub-glow hub-anim-left${onProjects ? '' : ' neutral'}`} onMouseMove={glowMove} style={{ cursor:'default', paddingTop:16, minWidth:0 }}>
         <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:12 }}>
           {onNewProject && <NewProjectPill onClick={onNewProject} />}
           {onProjects
@@ -1135,7 +1142,7 @@ function HubDashboard() {
 
   return (
     <div className="hub-dash" style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(300px, 1fr))', gap:16, marginTop:22 }}>
-      <div className="hub-anim-drop hub-glow" style={{ ...card, animationDelay:'.1s' }}>
+      <div className="hub-anim-drop hub-glow" onMouseMove={glowMove} style={{ ...card, animationDelay:'.1s' }}>
         <div style={{ ...hdr, marginBottom:2, color:'#e8500a' }}>Day in Review</div>
         <div style={{ fontSize:12, color:'var(--muted)', fontWeight:600, marginBottom:10 }}>{dateLabel}</div>
         {!day && <div style={{ fontSize:11, color:'var(--muted)' }}>Loading…</div>}
@@ -1174,7 +1181,7 @@ function HubDashboard() {
         )}
       </div>
 
-      <div className="hub-anim-drop hub-glow" style={{ ...card, animationDelay:'.18s' }}>
+      <div className="hub-anim-drop hub-glow" onMouseMove={glowMove} style={{ ...card, animationDelay:'.18s' }}>
         <div style={{ ...hdr, marginBottom:12, color:'#e8500a', display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
           My Tasks
           <button onClick={openAddTask} title="Add a task to your list"
@@ -1232,7 +1239,7 @@ function HubDashboard() {
         )}
       </div>
 
-      <div className="hub-anim-drop hub-glow" style={{ ...card, position:'relative', overflow:'hidden', animationDelay:'.26s' }}>
+      <div className="hub-anim-drop hub-glow" onMouseMove={glowMove} style={{ ...card, position:'relative', overflow:'hidden', animationDelay:'.26s' }}>
         <div style={{ ...hdr, marginBottom:12, color:'#e8500a' }}>Team Today</div>
         {!team && <div style={{ fontSize:11, color:'var(--muted)' }}>Loading…</div>}
         {team && team.length === 0 && <div style={{ fontSize:12, color:'var(--muted)', fontStyle:'italic' }}>No Unbridled team members on the roster yet.</div>}
@@ -1392,12 +1399,13 @@ const HUB_CSS = `
 @keyframes hubRollMobile{from{opacity:0;transform:translateY(16px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
 .hub-hubtile{position:relative;background:var(--bg2);border:1px solid var(--border);border-top:3px solid var(--orange);border-radius:14px;padding:20px 22px;cursor:pointer;transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease}
 .hub-hubtile:hover{transform:translateY(-2px);box-shadow:0 8px 26px rgba(0,0,0,0.4)}
-/* Subtle orange glow behind the content on hover (hub tile + the 3 dashboard tiles).
-   A blurred radial sits above the tile background but below all text/children. */
+/* Small, subtle orange spotlight that follows the cursor across the tiles
+   (hub tile + the 3 dashboard tiles). --gx/--gy are set on mousemove; it sits
+   above the tile background but below all text/children. */
 .hub-glow{position:relative;overflow:hidden}
-.hub-glow::before{content:'';position:absolute;inset:-25%;z-index:0;pointer-events:none;opacity:0;
-  background:radial-gradient(circle at 50% 42%, rgba(232,80,10,0.22), rgba(232,80,10,0.07) 45%, transparent 70%);
-  filter:blur(22px);transition:opacity .4s ease}
+.hub-glow::before{content:'';position:absolute;inset:0;z-index:0;pointer-events:none;opacity:0;
+  background:radial-gradient(120px circle at var(--gx, 50%) var(--gy, 40%), rgba(232,80,10,0.16), transparent 68%);
+  transition:opacity .3s ease}
 .hub-glow:hover::before{opacity:1}
 .hub-glow > *{position:relative;z-index:1}
 @media (prefers-reduced-motion: reduce){.hub-glow::before{transition:none}}
