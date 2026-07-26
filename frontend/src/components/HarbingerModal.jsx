@@ -136,6 +136,7 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted, sol
     primaryContactName: '', primaryContactEmail: '', mailingAddress: '', invoiceCc: '',
     mediaRevenue: '', capcoRevenue: '', mediaCommissionOwners: '', budgetOwner: '',
     mediaCommissionPct: '', solutionsCommissionOwners: '', noCommissions: false, solutionsCommissionPct: '',
+    commissionable: false, mediaCommission: false, solutionsCommission: false,
     budgetLink: '', creativeNotes: '', videoReferences: '', kickoffDate: '',
     preferredPm: '', preferredProducer: '', budgetedPositions: '', shootingLocations: '',
     gearScope: '', productionDates: '', preferredCrew: '', crewNotes: '',
@@ -160,6 +161,13 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted, sol
   useEffect(() => {
     if (user?.name) setF(v => v.budgetOwner ? v : { ...v, budgetOwner: user.name });
   }, [user]);
+
+  // If the prefill already carries commission data, open the matching toggles
+  useEffect(() => {
+    const hasMedia = !!(initial?.mediaCommissionOwners || initial?.mediaCommissionPct);
+    const hasSol = !!(initial?.solutionsCommissionOwners || initial?.solutionsCommissionPct);
+    if (hasMedia || hasSol) setF(v => ({ ...v, commissionable: true, mediaCommission: v.mediaCommission || hasMedia, solutionsCommission: v.solutionsCommission || hasSol }));
+  }, []);
 
   // Load crew roster + saved client contacts, and draft the SOW synopsis with AI
   useEffect(() => {
@@ -293,6 +301,26 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted, sol
   );
   const row = (...kids) => <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>{kids.map((k2, i) => <div key={i} style={{ flex:1, minWidth:180 }}>{k2}</div>)}</div>;
 
+  const budgetOwnerField = (
+    <div key="budgetOwner">
+      <label style={lbl}>Budget Owner (Primary Contact at Unbridled Media){req}</label>
+      <select style={inS} value={f.budgetOwner} onChange={set('budgetOwner')}>
+        {!f.budgetOwner && <option value="">Select…</option>}
+        {f.budgetOwner && !umCrew.some(m => m.name === f.budgetOwner) && <option value={f.budgetOwner}>{f.budgetOwner}</option>}
+        {umCrew.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}
+      </select>
+    </div>
+  );
+
+  // Commission-type chip (Media / Solutions) shown once the project is marked commissionable
+  const commChip = (label, k) => (
+    <button type="button" key={k} onClick={() => setF(v => ({ ...v, [k]: !v[k] }))}
+      style={{ background: f[k] ? 'rgba(90,191,128,0.16)' : 'var(--bg)', border: `1px solid ${f[k] ? '#5ABF80' : 'var(--border)'}`,
+        color: f[k] ? '#5ABF80' : 'var(--muted)', borderRadius:20, padding:'6px 15px', fontSize:12, fontWeight:800, cursor:'pointer', transition:'all .15s ease' }}>
+      {f[k] ? '✓ ' : ''}{label}
+    </button>
+  );
+
   return (
     <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.75)', zIndex:130, display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'30px 14px', overflowY:'auto' }}>
       <div onClick={e => e.stopPropagation()} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid #5ABF80', borderRadius:12, padding:'22px 26px', width:'100%', maxWidth:720 }}>
@@ -306,7 +334,13 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted, sol
           <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
         </div>
         <div style={{ display:'flex', flexDirection:'column', gap:12, marginTop:12 }}>
-          <div style={secHead}>Project</div>
+          <div style={{ display:'flex', alignItems:'flex-end', gap:16, flexWrap:'wrap' }}>
+            <div style={{ ...secHead, flex:'0 0 auto', marginBottom:10 }}>Project</div>
+            <div style={{ display:'flex', gap:12, flex:1, minWidth:260, marginLeft:'auto' }}>
+              <div style={{ flex:1, minWidth:120 }}>{text('Proposed Code', 'proposedCode', true)}</div>
+              {solutionsOn && <div style={{ flex:1, minWidth:120 }}>{text('Existing Solutions / Client Code (If Applicable)', 'solutionsCode')}</div>}
+            </div>
+          </div>
           {row(text('Your Email Address', 'email', true, 'Shows on the contract sent to the client.'),
             <div style={{ position:'relative' }}>
               <label style={lbl}>Client Company Name{req}</label>
@@ -332,8 +366,7 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted, sol
               {clientMatch && <div style={{ ...hint, color:'#5ABF80' }}>Saved client — contact info auto-filled below.</div>}
             </div>)}
           {row(text('Name of Project', 'projectName', true),
-               text('Proposed Code', 'proposedCode', true))}
-          {solutionsOn && text('Existing Solutions Code or Client Specific Code (If Applicable)', 'solutionsCode')}
+               budgetOwnerField)}
           <div>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4 }}>
               <label style={{ ...lbl, marginBottom:0 }}>SOW & Project Description{req}</label>
@@ -376,19 +409,35 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted, sol
           <div style={secHead}>Revenue & Commissions</div>
           {row(text('Media Revenue (Total Budget minus CapCo Allocation)', 'mediaRevenue', true),
                text('Capture Co Revenue Amount (If Applicable)', 'capcoRevenue'))}
-          {row(text('Media Commission Owner(s) (If applicable)', 'mediaCommissionOwners'),
-            <div key="budgetOwner">
-              <label style={lbl}>Budget Owner (Primary Contact at Unbridled Media){req}</label>
-              <select style={inS} value={f.budgetOwner} onChange={set('budgetOwner')}>
-                {!f.budgetOwner && <option value="">Select…</option>}
-                {f.budgetOwner && !umCrew.some(m => m.name === f.budgetOwner) && <option value={f.budgetOwner}>{f.budgetOwner}</option>}
-                {umCrew.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}
-              </select>
-            </div>)}
-          {text('Media Commission % Breakdown', 'mediaCommissionPct')}
-          {solutionsOn && row(text('Solutions Commission Owner(s) (If Applicable)', 'solutionsCommissionOwners'),
-               text('% for Solutions Commission(s)', 'solutionsCommissionPct'))}
-          {check('No Commissions', 'noCommissions', 'check if there are no commissions')}
+
+          {/* Commissionable toggle — black by default, green with a check when on */}
+          <button type="button"
+            onClick={() => setF(v => ({ ...v, commissionable: !v.commissionable, noCommissions: v.commissionable }))}
+            style={{ display:'flex', alignItems:'center', gap:9, alignSelf:'flex-start',
+              background: f.commissionable ? 'rgba(90,191,128,0.16)' : 'var(--bg)',
+              border: `1px solid ${f.commissionable ? '#5ABF80' : 'var(--border)'}`,
+              color: f.commissionable ? '#5ABF80' : 'var(--text)',
+              borderRadius:8, padding:'9px 15px', fontSize:13, fontWeight:800, cursor:'pointer', transition:'all .15s ease' }}>
+            <span style={{ width:16, height:16, borderRadius:4, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center',
+              fontSize:11, fontWeight:900, border:`1px solid ${f.commissionable ? '#5ABF80' : 'var(--muted)'}`,
+              background: f.commissionable ? '#5ABF80' : 'transparent', color:'#0d0c0a' }}>{f.commissionable ? '✓' : ''}</span>
+            Commissionable Project
+          </button>
+
+          {f.commissionable && (
+            <div style={{ display:'flex', flexDirection:'column', gap:12, borderLeft:'2px solid rgba(90,191,128,0.35)', paddingLeft:14, marginLeft:2 }}>
+              <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
+                {commChip('Media Commission', 'mediaCommission')}
+                {solutionsOn && commChip('Solutions Commission', 'solutionsCommission')}
+              </div>
+              {f.mediaCommission && row(
+                text('Media Commission Owner(s)', 'mediaCommissionOwners'),
+                text('Media Commission %', 'mediaCommissionPct'))}
+              {solutionsOn && f.solutionsCommission && row(
+                text('Solutions Commission Owner(s)', 'solutionsCommissionOwners'),
+                text('% for Solutions Commission(s)', 'solutionsCommissionPct'))}
+            </div>
+          )}
 
           <div style={secHead}>Creative & Kickoff</div>
           {text('Link to Budget', 'budgetLink')}
