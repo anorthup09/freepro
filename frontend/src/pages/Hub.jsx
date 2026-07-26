@@ -1013,7 +1013,7 @@ function HubProjects({ onNewProject }) {
   const onProjects = view === 'projects';
   return (
     <div className="hub-hubs" style={{ gridTemplateColumns:'1fr' }}>
-      <div className={`hub-hubtile hub-anim-left${onProjects ? '' : ' neutral'}`} style={{ cursor:'default', paddingTop:16 }}>
+      <div className={`hub-hubtile hub-anim-left${onProjects ? '' : ' neutral'}`} style={{ cursor:'default', paddingTop:16, minWidth:0 }}>
         <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:12 }}>
           {onNewProject && <NewProjectPill onClick={onNewProject} />}
           {onProjects
