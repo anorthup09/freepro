@@ -479,17 +479,16 @@ export default function Project({ idOverride }) {
             : [...BASE_LOGISTICS_TABS, ...(showTravel ? [{ id:'travel', label:'Travel' }] : []), ...(showCateringGrid ? [{ id:'catering', label:'Catering/Meals' }] : []), ...(showShotList ? [{ id:'shot-list', label:'Shot List' }] : []), ...(showScripts ? [{ id:'scripts', label:'Scripts' }] : []), { id:'additional-docs', label:'Additional Docs' }, { id:'producer-checklist', label:'Producer Checklist' }]} tab={tab} setTab={setTab} />}
           <DropdownTab label="Gear" subtabs={GEAR_TABS} tab={tab} setTab={setTab} />
           {!isCrew && <button className={`tab${tab === 'deliverable-overview' ? ' on' : ''}`} onClick={() => setTab('deliverable-overview')}>Deliverable</button>}
-          {!isAgency && !isCrew && <button
-            className={`tab tab-questions${tab === 'questions' ? ' on' : ''}`}
-            onClick={() => setTab('questions')}
-            style={{ border:'1px solid var(--orange)', borderRadius:6, color:'var(--text)', flexShrink:0, display:'flex', alignItems:'center', gap:5 }}
-          >
-            {hasUnanswered && tab !== 'questions' && <span style={{ fontSize:11, color:'var(--orange)' }}>!</span>}
-            Questions
-          </button>}
         </div>
+        {!isAgency && !isCrew && <button
+          className={`q-btn${tab === 'questions' ? ' on' : ''}${hasUnanswered && tab !== 'questions' ? ' glow' : ''}`}
+          onClick={() => setTab('questions')}
+          title={hasUnanswered ? 'Questions — unanswered waiting' : 'Questions'}
+          aria-label="Questions"
+          style={{ marginLeft:'auto' }}
+        >?</button>}
         {/* Share collapses while scrolled; reappears at the top of the page */}
-        <Link to="/" title="Back to the Unbridled Media hub" style={{ display:'flex', alignItems:'center', marginLeft:'auto', marginRight:10 }}>
+        <Link to="/" title="Back to the Unbridled Media hub" style={{ display:'flex', alignItems:'center', marginLeft: (!isAgency && !isCrew) ? 12 : 'auto', marginRight:10 }}>
           <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height:18, filter:'brightness(0) invert(1)', opacity:0.9 }} />
         </Link>
         <HomeButton style={{ marginRight:8 }} />

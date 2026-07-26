@@ -148,6 +148,7 @@ export default function Overview({ project, setProject, onTabChange }) {
   const [sharePwSaved, setSharePwSaved] = useState(false);
   const [shares, setShares] = useState([]);
   const [copyToast, setCopyToast] = useState('');
+  const [sharingOpen, setSharingOpen] = useState(false);
 
   useEffect(() => {
     api.getShares(project.id).then(setShares).catch(() => {});
@@ -306,87 +307,89 @@ export default function Overview({ project, setProject, onTabChange }) {
 
   return (
     <div>
-      {/* Header */}
-      <div className="ov-head" style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', paddingBottom:18, borderBottom:'1px solid var(--border)', marginBottom:4 }}>
-        <div>
-          <div className="proj-code">{project.code}</div>
+      {/* Hero header */}
+      <div className="ov-head ov-hero">
+        <div className="ov-hero-status"><StatusSelect project={project} setProject={setProject} /></div>
+        <div className="proj-code">{project.code} · {project.client}</div>
+        <div className="ov-hero-titlerow">
           <div className="proj-title">{project.title}</div>
-          {(project.shoot_name || project.subtitle) && (
-            <div style={{ fontSize:13, fontWeight:700, color:'var(--orange)', marginTop:2 }}>Shoot: {project.shoot_name || project.subtitle}</div>
-          )}
-          <div className="proj-meta">
-            <div className="meta"><span className="dot6" />{startDate || endDate ? `${fmtDate(startDate) || 'TBD'} – ${fmtDate(endDate) || 'TBD'}` : 'Dates TBD'}</div>
-            <div className="meta"><span className="dot6" />{project.client}</div>
-          </div>
-          {project.notes && (
-            <div style={{ marginTop:10, fontSize:13, color:'var(--muted)', maxWidth:480, lineHeight:1.6, whiteSpace:'pre-wrap' }}>{project.notes}</div>
+          {!(project.shoot_name || project.subtitle) && (
+            <button className="ov-edit-icon" title="Edit shoot info" aria-label="Edit shoot info" onClick={() => setEditInfo(true)}>✎</button>
           )}
         </div>
-        <div className="ov-head-actions" style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:8 }}>
+        {(project.shoot_name || project.subtitle) && (
+          <div className="ov-hero-shoot">
+            Shoot: {project.shoot_name || project.subtitle}
+            <button className="ov-edit-icon" title="Edit shoot info" aria-label="Edit shoot info" onClick={() => setEditInfo(true)}>✎</button>
+          </div>
+        )}
+        <div className="proj-meta ov-hero-meta">
           {daysUntil != null && daysUntil > 0 && (
-            <div className="ov-head-count" style={{ textAlign:'right', background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'8px 14px' }}>
-              <div style={{ fontSize:22, fontWeight:700, color:'var(--orange)', lineHeight:1 }}>{daysUntil}</div>
-              <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginTop:2 }}>days until {project.title}</div>
-            </div>
+            <div className="ov-hero-cd"><b>{daysUntil}</b><span>days out</span></div>
           )}
           {daysUntil != null && daysUntil === 0 && (
-            <div className="ov-head-count" style={{ textAlign:'right', background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'8px 14px' }}>
-              <div style={{ fontSize:13, fontWeight:700, color:'var(--orange)' }}>Day 1 is today!</div>
-            </div>
+            <div className="ov-hero-cd"><b>Today</b><span>day 1</span></div>
           )}
-          <div className="ov-head-btns" style={{ display:'flex', alignItems:'center', gap:8 }}>
-            <StatusSelect project={project} setProject={setProject} />
-            <button className="btn btn-ghost btn-sm" onClick={() => setEditInfo(true)}>Edit Shoot Info</button>
-          </div>
+          <div className="meta"><span className="dot6" />{startDate || endDate ? `${fmtDate(startDate) || 'TBD'} – ${fmtDate(endDate) || 'TBD'}` : 'Dates TBD'}</div>
         </div>
+        {project.notes && (
+          <div style={{ marginTop:12, fontSize:13, color:'var(--muted)', maxWidth:520, lineHeight:1.6, whiteSpace:'pre-wrap' }}>{project.notes}</div>
+        )}
       </div>
 
-      {/* Public View Password */}
-      <form onSubmit={saveSharePw} className="ov-pw-form" style={{ display:'flex', alignItems:'center', gap:10, background:'rgba(232,80,10,0.12)', border:'1px solid rgba(232,80,10,0.45)', borderRadius:8, padding:'10px 14px', margin:'20px 0 10px' }}>
-        <span style={{ fontSize:13, fontWeight:700, whiteSpace:'nowrap', color:'var(--text)', flexShrink:0 }}>Public PW</span>
-        <input
-          value={sharePw}
-          onChange={e => { setSharePw(e.target.value.replace(/[^a-zA-Z0-9]/g, '')); setSharePwSaved(false); }}
-          placeholder="No password set"
-          style={{ width:140, flexShrink:0 }}
-        />
-        <div className="ov-pw-actions" style={{ display:'flex', alignItems:'center', gap:8 }}>
-          <button className="btn btn-ghost btn-sm" type="submit" disabled={sharePwSaving} style={{ color:'var(--text)' }}>
-            {sharePwSaved ? 'Saved!' : sharePwSaving ? 'Saving…' : 'Save'}
-          </button>
-          {sharePw && <button type="button" className="btn btn-ghost btn-sm" style={{ color:'var(--text)' }} onClick={() => { setSharePw(''); }}>Clear</button>}
-        </div>
-        <div className="ov-pw-divider" style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center' }}>
-          <span style={{ color:'rgba(255,255,255,0.3)', fontSize:14, userSelect:'none' }}>|</span>
-        </div>
-        <div className="ov-quick-links" style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4 }}>
-          <span style={{ fontSize:9, color:'rgba(255,255,255,0.55)', textTransform:'uppercase', letterSpacing:'0.08em', fontWeight:600 }}>Quick Copy Links</span>
-          <div style={{ display:'flex', gap:4 }}>
-          {['producer','crew','client'].map(vt => (
-            <button key={vt} type="button" className="btn btn-ghost btn-sm" style={{ color:'var(--text)' }} onClick={() => copyShareLink(vt)}>
-              {copyToast === vt ? '✓ Copied!' : `${vt.charAt(0).toUpperCase() + vt.slice(1)} View`}
-            </button>
-          ))}
+      {/* Sharing & Access — quiet, collapsible */}
+      <div className="ov-share">
+        <button type="button" className="ov-share-head" onClick={() => setSharingOpen(o => !o)}>
+          <span className="ov-share-title">Sharing &amp; Access <span className="ov-share-sub">· {sharePw ? 'password set' : 'no password'}</span></span>
+          <span className="ov-share-caret">{sharingOpen ? '−' : '+'}</span>
+        </button>
+        {sharingOpen && (
+          <div className="ov-share-body">
+            <form onSubmit={saveSharePw} className="ov-pw-form">
+              <span style={{ fontSize:12, fontWeight:700, whiteSpace:'nowrap', color:'var(--text)', flexShrink:0 }}>Public PW</span>
+              <input
+                value={sharePw}
+                onChange={e => { setSharePw(e.target.value.replace(/[^a-zA-Z0-9]/g, '')); setSharePwSaved(false); }}
+                placeholder="No password set"
+                style={{ width:140, flexShrink:0 }}
+              />
+              <div className="ov-pw-actions" style={{ display:'flex', alignItems:'center', gap:8 }}>
+                <button className="btn btn-ghost btn-sm" type="submit" disabled={sharePwSaving} style={{ color:'var(--text)' }}>
+                  {sharePwSaved ? 'Saved!' : sharePwSaving ? 'Saving…' : 'Save'}
+                </button>
+                {sharePw && <button type="button" className="btn btn-ghost btn-sm" style={{ color:'var(--text)' }} onClick={() => { setSharePw(''); }}>Clear</button>}
+              </div>
+            </form>
+            <div className="ov-quick-links">
+              <span style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.08em', fontWeight:600 }}>Quick Copy Links</span>
+              <div style={{ display:'flex', gap:6 }}>
+                {['producer','crew','client'].map(vt => (
+                  <button key={vt} type="button" className="btn btn-ghost btn-sm" style={{ color:'var(--text)' }} onClick={() => copyShareLink(vt)}>
+                    {copyToast === vt ? '✓ Copied!' : `${vt.charAt(0).toUpperCase() + vt.slice(1)} View`}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
-        </div>
-      </form>
+        )}
+      </div>
 
       {/* Main POC · Gear Contact · Client & Agency Contacts — one card */}
       <div className="ov-contacts-card" style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden', marginBottom:10 }}>
-        <div className="ov-poc-row" style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 16px' }}>
-          <span style={{ fontSize:13, fontWeight:700, color:'var(--text)', whiteSpace:'nowrap', width:160, flexShrink:0 }}>Main POC</span>
-          <div style={{ flex:1, minWidth:0, display:'grid', gridTemplateColumns:'170px 220px 120px 1fr auto', alignItems:'center', gap:10, fontSize:12, whiteSpace:'nowrap' }}>
-            <select value={pocId} onChange={e => savePoc(e.target.value)} style={{ gridColumn:'1 / 3', width:'100%', minWidth:0 }}>
-              <option value="">— Unassigned —</option>
-              {assignedCrew.map(a => (
-                <option key={a.crewMember.id} value={a.crewMember.id}>
-                  {displayName(a.crewMember)} — {a.position.name}
-                </option>
-              ))}
-            </select>
-            <span style={{ color:'var(--muted)' }}>{pocSaving ? 'Saving…' : (pocMember?.phone ? <Tel v={pocMember.phone} /> : '—')}</span>
-            <span style={{ color:'var(--muted)', overflow:'hidden', textOverflow:'ellipsis' }}>{pocMember?.email ? <Mail v={pocMember.email} /> : '—'}</span>
-            <span />
+        <div className="ov-poc-main" style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 16px' }}>
+          <span style={{ fontSize:13, fontWeight:700, color:'var(--text)', whiteSpace:'nowrap', flexShrink:0 }}>Main POC</span>
+          <select value={pocId} onChange={e => savePoc(e.target.value)} style={{ flex:'1 1 auto', minWidth:0, maxWidth:320 }}>
+            <option value="">— Unassigned —</option>
+            {assignedCrew.map(a => (
+              <option key={a.crewMember.id} value={a.crewMember.id}>
+                {displayName(a.crewMember)} — {a.position.name}
+              </option>
+            ))}
+          </select>
+          <div className="ov-poc-contact" style={{ marginLeft:'auto', display:'flex', gap:8, flexShrink:0 }}>
+            {pocSaving && <span style={{ fontSize:11, color:'var(--muted)', alignSelf:'center' }}>Saving…</span>}
+            {pocMember?.phone && <a className="ov-cbtn" href={`tel:${String(pocMember.phone).replace(/[^+\d]/g,'')}`}>📞 Call</a>}
+            {pocMember?.email && <a className="ov-cbtn" href={`mailto:${pocMember.email}`}>✉ Email</a>}
           </div>
         </div>
         {gearPerson && (
