@@ -472,26 +472,21 @@ export default function Project({ idOverride }) {
           <Link to="/projects" className="logo">Free<em>Pro</em></Link>
           <span style={{ fontSize:9, color:'var(--muted)', letterSpacing:'0.06em', paddingLeft:1 }}>Powered by Unbridled Media</span>
         </div>
-        {!isAgency && !isCrew && <button
-          className={`q-btn${tab === 'questions' ? ' on' : ''}${hasUnanswered && tab !== 'questions' ? ' glow' : ''}`}
-          onClick={() => setTab('questions')}
-          title={hasUnanswered ? 'Questions — unanswered waiting' : 'Questions'}
-          aria-label="Questions"
-          style={{ marginLeft:'auto' }}
-        >?</button>}
-        {/* Share collapses while scrolled; reappears at the top of the page */}
-        <Link to="/" title="Back to the Unbridled Media hub" style={{ display:'flex', alignItems:'center', marginLeft: (!isAgency && !isCrew) ? 12 : 'auto', marginRight:10 }}>
-          <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height:18, filter:'brightness(0) invert(1)', opacity:0.9 }} />
-        </Link>
-        <HomeButton style={{ marginRight:8 }} />
-        {!glassVisible && !isAgency && !isCrew && <ShareDropdown projectId={id} showShotList={showShotList} crews={project?.crews || []} />}
-      </nav>
-      {/* Mobile: Share moves below the nav line so the tab row wraps cleanly */}
-      {!glassVisible && !isAgency && !isCrew && (
-        <div className="share-row-mobile">
-          <ShareDropdown projectId={id} showShotList={showShotList} crews={project?.crews || []} />
+        {/* Right cluster: ? and Share sit together (? left of Share), then home */}
+        <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:10 }}>
+          {!isAgency && !isCrew && <button
+            className={`q-btn${tab === 'questions' ? ' on' : ''}${hasUnanswered && tab !== 'questions' ? ' glow' : ''}`}
+            onClick={() => setTab('questions')}
+            title={hasUnanswered ? 'Questions — unanswered waiting' : 'Questions'}
+            aria-label="Questions"
+          >?</button>}
+          {!glassVisible && !isAgency && !isCrew && <ShareDropdown projectId={id} showShotList={showShotList} crews={project?.crews || []} />}
+          <Link to="/" title="Back to the Unbridled Media hub" style={{ display:'flex', alignItems:'center' }}>
+            <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height:18, filter:'brightness(0) invert(1)', opacity:0.9 }} />
+          </Link>
+          <HomeButton />
         </div>
-      )}
+      </nav>
 
       {/* Project section nav — floated to the bottom */}
       <div className="proj-bottomnav no-print">

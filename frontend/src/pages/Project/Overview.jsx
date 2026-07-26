@@ -323,14 +323,14 @@ export default function Overview({ project, setProject, onTabChange }) {
             <button className="ov-edit-icon" title="Edit shoot info" aria-label="Edit shoot info" onClick={() => setEditInfo(true)}>✎</button>
           </div>
         )}
-        <div className="proj-meta ov-hero-meta">
+        <div className="ov-hero-dates">{startDate || endDate ? `${fmtDate(startDate) || 'TBD'} – ${fmtDate(endDate) || 'TBD'}` : 'Dates TBD'}</div>
+        <div className="ov-hero-meta">
           {daysUntil != null && daysUntil > 0 && (
             <div className="ov-hero-cd"><b>{daysUntil}</b><span>days out</span></div>
           )}
           {daysUntil != null && daysUntil === 0 && (
             <div className="ov-hero-cd"><b>Today</b><span>day 1</span></div>
           )}
-          <div className="meta"><span className="dot6" />{startDate || endDate ? `${fmtDate(startDate) || 'TBD'} – ${fmtDate(endDate) || 'TBD'}` : 'Dates TBD'}</div>
         </div>
         {project.notes && (
           <div style={{ marginTop:12, fontSize:13, color:'var(--muted)', maxWidth:520, lineHeight:1.6, whiteSpace:'pre-wrap' }}>{project.notes}</div>

@@ -66,9 +66,12 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
 
 /* ── Overview hero header ── */
 .ov-hero { position: relative; background: linear-gradient(160deg, var(--bg3), var(--bg2)); border: 1px solid var(--border); border-radius: 16px; padding: 16px 18px; margin-bottom: 12px; }
+/* Keep the top lines clear of the status pill parked top-right */
+.ov-hero .proj-code, .ov-hero-titlerow, .ov-hero-shoot { padding-right: 100px; }
 .ov-hero .proj-code { margin-bottom: 4px; }
 .ov-hero-titlerow { display: flex; align-items: center; gap: 8px; }
 .ov-hero-shoot { font-size: 12.5px; font-weight: 600; color: var(--tan); margin-top: 4px; display: flex; align-items: center; gap: 8px; }
+.ov-hero-dates { font-size: 12px; color: var(--muted); margin-top: 5px; }
 .ov-edit-icon { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 13px; padding: 2px; line-height: 1; border-radius: 5px; transition: color .15s ease; }
 .ov-edit-icon:hover { color: var(--orange); }
 .ov-hero-meta { display: flex; align-items: center; gap: 16px; margin-top: 14px; }
@@ -99,7 +102,6 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
 @keyframes q-glow { 0%, 100% { box-shadow: 0 0 0 0 rgba(232,80,10,0.6); } 50% { box-shadow: 0 0 0 7px rgba(232,80,10,0); } }
 @media (max-width: 640px) {
   .ov-hero-meta { flex-wrap: wrap; gap: 10px 16px; }
-  .ov-hero-status { position: static; display: block; margin-bottom: 10px; }
   .ov-poc-main { flex-wrap: wrap; }
   .ov-poc-main .ov-poc-contact { margin-left: 0 !important; width: 100%; }
   .ov-share-body .ov-quick-links { margin-left: 0; width: 100%; }
