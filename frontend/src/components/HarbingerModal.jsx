@@ -412,16 +412,19 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted, sol
 
   // Wizard navigation
   const [step, setStep] = useState(0);
+  const [dir, setDir] = useState(1);   // slide direction: 1 forward, -1 back
   const [attempted, setAttempted] = useState(() => new Set());
   const isReview = step >= STEPS.length;
   const stepFields = id => stepFieldsFor(id, f, solutionsOn);
   const markAttempted = i => setAttempted(s => new Set(s).add(i));
-  const goTab = i => { markAttempted(step); setStep(i); };
-  const goNext = () => { markAttempted(step); setStep(s => Math.min(s + 1, STEPS.length - 1)); };
+  const goStep = next => { setDir(next >= step ? 1 : -1); markAttempted(step); setStep(next); };
+  const goTab = i => goStep(i);
+  const goNext = () => goStep(Math.min(step + 1, STEPS.length - 1));
   const firstIncomplete = () => STEPS.findIndex(s => stepFields(s.id).some(fl => fl.req && !fl.filled));
   const goReview = () => {
     setAttempted(new Set(STEPS.map((_, i) => i)));
     const inc = firstIncomplete();
+    setDir(1);
     setStep(inc >= 0 ? inc : STEPS.length);
   };
   const arrowBtn = { display: 'inline-flex', alignItems: 'center', gap: 8, background: '#5ABF80', color: '#0b0b0b', border: 'none', borderRadius: 9, padding: '10px 20px', fontSize: 13, fontWeight: 800, cursor: 'pointer' };
@@ -497,7 +500,7 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted, sol
   return (
     <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.75)', zIndex:130, display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'30px 14px', overflowY:'auto' }}>
       <div onClick={e => e.stopPropagation()} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid #5ABF80', borderRadius:12, padding:'22px 26px', width:'100%', maxWidth:820 }}>
-        <style>{`@keyframes hbPulse{0%,100%{box-shadow:0 0 0 0 rgba(90,191,128,0.55)}50%{box-shadow:0 0 0 12px rgba(90,191,128,0)}}.hb-pulse{animation:hbPulse 1.8s ease-in-out infinite}`}</style>
+        <style>{`@keyframes hbPulse{0%,100%{box-shadow:0 0 0 0 rgba(90,191,128,0.55)}50%{box-shadow:0 0 0 12px rgba(90,191,128,0)}}.hb-pulse{animation:hbPulse 1.8s ease-in-out infinite}@keyframes hbSlideR{from{opacity:0;transform:translateX(26px)}to{opacity:1;transform:none}}@keyframes hbSlideL{from{opacity:0;transform:translateX(-26px)}to{opacity:1;transform:none}}@keyframes hbPop{0%{transform:scale(.6);opacity:.3}60%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}`}</style>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:12 }}>
           <div>
             <div style={{ fontSize:18, fontWeight:800 }}>Harbinger — Project Initiation</div>
@@ -521,8 +524,9 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted, sol
                   style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4, position:'relative', flexShrink:0,
                     background: cur ? 'rgba(255,255,255,0.08)' : 'transparent', border:'none', cursor:'pointer',
                     color, borderRadius:20, padding:'6px 13px 5px', transition:'color .2s ease, background .2s ease' }}>
-                  <span style={{ position:'relative', display:'flex', alignItems:'center', justifyContent:'center', width:30, height:30, borderRadius:'50%',
-                    background: cur ? 'rgba(232,80,10,0.16)' : (done ? 'rgba(90,191,128,0.14)' : 'transparent'), transition:'background .2s ease' }}>
+                  <span key={cur ? 'on' : 'off'} style={{ position:'relative', display:'flex', alignItems:'center', justifyContent:'center', width:30, height:30, borderRadius:'50%',
+                    background: cur ? 'rgba(232,80,10,0.16)' : (done ? 'rgba(90,191,128,0.14)' : 'transparent'), transition:'background .2s ease',
+                    animation: cur ? 'hbPop .32s cubic-bezier(.34,1.4,.5,1)' : 'none' }}>
                     {HB_ICONS[s.id]}
                   </span>
                   <span style={{ fontSize:9, fontWeight:800, letterSpacing:'0.02em', whiteSpace:'nowrap' }}>{s.short}</span>
@@ -555,8 +559,9 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted, sol
             })}
           </div>
 
-          {/* Step content */}
-          <div style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', gap:12 }}>
+          {/* Step content — slides in on each step change */}
+          <div key={isReview ? 'review' : step} style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', gap:12,
+            animation: `${dir === 1 ? 'hbSlideR' : 'hbSlideL'} .28s ease` }}>
           {step === 0 && (<>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'flex-end', gap:16, flexWrap:'wrap' }}>
             <button type="button" onClick={() => setF(v => ({ ...v, contractSigned: !v.contractSigned }))}
