@@ -422,6 +422,12 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted, sol
   const videoRefCount = String(f.videoReferences || '').split('\n').filter(s => s.trim()).length;
 
   // Wizard navigation
+  const [mobile, setMobile] = useState(typeof window !== 'undefined' && window.innerWidth <= 640);
+  useEffect(() => {
+    const onR = () => setMobile(window.innerWidth <= 640);
+    window.addEventListener('resize', onR);
+    return () => window.removeEventListener('resize', onR);
+  }, []);
   const [step, setStep] = useState(0);
   const [dir, setDir] = useState(1);   // slide direction: 1 forward, -1 back
   const [attempted, setAttempted] = useState(() => new Set());
@@ -510,7 +516,7 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted, sol
 
   return (
     <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.75)', zIndex:130, display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'30px 14px', overflowY:'auto' }}>
-      <div onClick={e => e.stopPropagation()} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid #5ABF80', borderRadius:12, padding:'22px 26px', width:'100%', maxWidth:820 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid #5ABF80', borderRadius:12, padding: mobile ? '18px 15px' : '22px 26px', width:'100%', maxWidth:820 }}>
         <style>{`@keyframes hbPulse{0%,100%{box-shadow:0 0 0 0 rgba(90,191,128,0.55)}50%{box-shadow:0 0 0 12px rgba(90,191,128,0)}}.hb-pulse{animation:hbPulse 1.8s ease-in-out infinite}@keyframes hbSlideR{from{opacity:0;transform:translateX(26px)}to{opacity:1;transform:none}}@keyframes hbSlideL{from{opacity:0;transform:translateX(-26px)}to{opacity:1;transform:none}}@keyframes hbPop{0%{transform:scale(.6);opacity:.3}60%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}`}</style>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:12 }}>
           <div>
@@ -540,39 +546,45 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted, sol
                     animation: cur ? 'hbPop .32s cubic-bezier(.34,1.4,.5,1)' : 'none' }}>
                     {HB_ICONS[s.id]}
                   </span>
-                  <span style={{ fontSize:9, fontWeight:800, letterSpacing:'0.02em', whiteSpace:'nowrap' }}>{s.short}</span>
+                  {!mobile && <span style={{ fontSize:9, fontWeight:800, letterSpacing:'0.02em', whiteSpace:'nowrap' }}>{s.short}</span>}
                 </button>
               );
             })}
           </div>
         </div>
-        <div style={{ display:'flex', gap:20, marginTop:14, alignItems:'flex-start' }}>
-          {/* Left progress panel — dots for the current step (condensed on review) */}
-          <div style={{ flex:`0 0 ${isReview ? 128 : 182}px`, transition:'flex-basis .2s ease' }}>
-            {STEPS.map((s, i) => {
-              const active = i === step && !isReview;
-              return (
-                <div key={s.id} style={{ marginBottom: active ? 12 : 9 }}>
-                  <button type="button" onClick={() => goTab(i)}
-                    style={{ background:'none', border:'none', cursor:'pointer', padding:0, textAlign:'left', fontSize:12,
-                      color: i === step && !isReview ? 'var(--text)' : 'var(--muted)', fontWeight: i === step && !isReview ? 800 : 600 }}>
-                    {s.label}
-                  </button>
-                  {active && (
-                    <div style={{ display:'flex', gap:5, flexWrap:'wrap', marginTop:7 }}>
-                      {stepFields(s.id).map((fld, di) => (
-                        <span key={di} style={{ width:9, height:9, borderRadius:'50%', background: dotColor(fld, attempted.has(i)), transition:'background .2s ease' }} />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+        <div style={{ display:'flex', flexDirection: mobile ? 'column' : 'row', gap: mobile ? 12 : 20, marginTop:14, alignItems: mobile ? 'stretch' : 'flex-start' }}>
+          {/* Left progress panel — desktop only (dots move to the bottom on mobile) */}
+          {!mobile && (
+            <div style={{ flex:`0 0 ${isReview ? 128 : 182}px`, transition:'flex-basis .2s ease' }}>
+              {STEPS.map((s, i) => {
+                const active = i === step && !isReview;
+                return (
+                  <div key={s.id} style={{ marginBottom: active ? 12 : 9 }}>
+                    <button type="button" onClick={() => goTab(i)}
+                      style={{ background:'none', border:'none', cursor:'pointer', padding:0, textAlign:'left', fontSize:12,
+                        color: i === step && !isReview ? 'var(--text)' : 'var(--muted)', fontWeight: i === step && !isReview ? 800 : 600 }}>
+                      {s.label}
+                    </button>
+                    {active && (
+                      <div style={{ display:'flex', gap:5, flexWrap:'wrap', marginTop:7 }}>
+                        {stepFields(s.id).map((fld, di) => (
+                          <span key={di} style={{ width:9, height:9, borderRadius:'50%', background: dotColor(fld, attempted.has(i)), transition:'background .2s ease' }} />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
           {/* Step content — slides in on each step change */}
           <div key={isReview ? 'review' : step} style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', gap:12,
             animation: `${dir === 1 ? 'hbSlideR' : 'hbSlideL'} .28s ease` }}>
+          {/* Mobile: only the current step's title at the top */}
+          {mobile && !isReview && (
+            <div style={{ fontSize:14, fontWeight:800, color:'var(--text)' }}>{STEPS[step].label}</div>
+          )}
           {step === 0 && (<>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'flex-end', gap:16, flexWrap:'wrap' }}>
             <button type="button" onClick={() => setF(v => ({ ...v, contractSigned: !v.contractSigned }))}
@@ -793,16 +805,25 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted, sol
             </div>
           )}
 
+          {/* Mobile: progress dots for the current step, moved to the bottom */}
+          {mobile && !isReview && (
+            <div style={{ display:'flex', justifyContent:'center', gap:6, flexWrap:'wrap', paddingTop:6, marginTop:2, borderTop:'1px solid var(--border)' }}>
+              {stepFields(STEPS[step].id).map((fld, di) => (
+                <span key={di} style={{ width:9, height:9, borderRadius:'50%', background: dotColor(fld, attempted.has(step)), transition:'background .2s ease' }} />
+              ))}
+            </div>
+          )}
+
           {/* Wizard footer */}
           {!isReview ? (
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:8, marginTop:8 }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:8, marginTop:8, flexWrap:'wrap' }}>
               <button className="btn btn-ghost btn-sm" onClick={onClose}>Cancel</button>
               {step < STEPS.length - 1
-                ? <button type="button" onClick={goNext} style={arrowBtn}>Next: {STEPS[step + 1].label} <span style={{ fontSize:15, lineHeight:1 }}>→</span></button>
-                : <button type="button" onClick={goReview} style={arrowBtn}>Review Harbinger <span style={{ fontSize:15, lineHeight:1 }}>→</span></button>}
+                ? <button type="button" onClick={goNext} style={arrowBtn}>Next: {mobile ? STEPS[step + 1].short : STEPS[step + 1].label} <span style={{ fontSize:15, lineHeight:1 }}>→</span></button>
+                : <button type="button" onClick={goReview} style={arrowBtn}>{mobile ? 'Review' : 'Review Harbinger'} <span style={{ fontSize:15, lineHeight:1 }}>→</span></button>}
             </div>
           ) : (
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:8, marginTop:10 }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:8, marginTop:10, flexWrap:'wrap' }}>
               <button className="btn btn-ghost btn-sm" onClick={() => setStep(STEPS.length - 1)}>‹ Back to edit</button>
               <button type="button" className="hb-pulse" disabled={!ok || saving} onClick={submit}
                 style={{ background:'#5ABF80', color:'#0b0b0b', border:'none', borderRadius:10, padding:'13px 28px', fontSize:14, fontWeight:900, cursor: ok ? 'pointer' : 'default', opacity: saving ? 0.6 : 1 }}>
