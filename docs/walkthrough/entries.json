@@ -524,5 +524,91 @@
       "Advance with the green Next arrow or the tabs; once every required field is filled, click Review Harbinger, then the pulsing Submit Harbinger & Go Live."
     ],
     "screenshot": "harbinger-wizard.png"
+  },
+  {
+    "title": "Budget versions — new-version prompt on open",
+    "page": "ProFi — Project Finance",
+    "what": "Opening a project's budget now offers to start a new version. A prompt lists every version of that budget — the current one plus any frozen snapshots — each with its full grand total and the date and time it was last opened, so you can see at a glance how the number has moved across revisions. Continue keeps you on the current version; starting a new version saves the current budget as a read-only snapshot and rolls the version number forward.",
+    "where": "ProFi → open a project → Budget",
+    "how": [
+      "Open any project's budget in ProFi.",
+      "Read the prompt — each row shows a version, its total budget, and when it was last opened.",
+      "Click Continue on V# to keep editing the current version,",
+      "or click + Start Version # to freeze the current budget as a snapshot and begin a fresh version."
+    ],
+    "screenshot": "budget-version-prompt.png"
+  },
+  {
+    "title": "Mobile budget — collapsible header card",
+    "page": "ProFi — Project Finance",
+    "what": "On phones the budget's header card (Budget Dated, Solutions Code, Budget Owner, Est. Final Delivery, Close Month, Client Contact, Tagged, and Total) used to stack into a tall block that filled the screen. It now collapses to a compact bar showing the Total Budget and the status pill, with a Details toggle. Tap Details to expand the full editable field grid; tap Hide to collapse it again. Desktop is unchanged.",
+    "where": "ProFi → open a project → Budget (on a phone)",
+    "how": [
+      "Open a project's budget on a phone.",
+      "The header shows a compact Total Budget + status bar by default.",
+      "Tap Details to expand the full fields (dates, owner, client contact, and so on).",
+      "Tap Hide to collapse back to the compact bar."
+    ],
+    "screenshot": "mobile-budget-header.png"
+  },
+  {
+    "title": "Mobile budget — condensed line items with a detail popout",
+    "page": "ProFi — Project Finance",
+    "what": "On phones each budget line is condensed to three columns — the scope/item name, a + button, and the line total — so the budget no longer scrolls sideways. Tapping the + opens a popout with the rest of that line's detail: notes, hrs/days, unit cost, the live subtotal, and Duplicate / Delete. Everything stays fully editable. Desktop keeps its full multi-column table.",
+    "where": "ProFi → open a project → Budget (on a phone)",
+    "how": [
+      "Open a project's budget on a phone.",
+      "Each line shows just the item name, a + button, and the line total.",
+      "Tap the + on a line to open its details (notes, hrs/days, unit cost, subtotal).",
+      "Edit any field there, or use Duplicate / Delete, then close to return to the list."
+    ],
+    "screenshot": "mobile-budget-lines.png"
+  },
+  {
+    "title": "Dashboard — animated reveal on open",
+    "page": "The Hub",
+    "what": "The Dashboard now animates as it loads. The Media Moment, Day in Review, My Tasks, and Team Today tiles drop in from the top in a light cascade, and the Project Hub tile flies in from the side with a fade. The motion respects the system 'reduce motion' accessibility setting.",
+    "where": "The Hub (Dashboard) — on load",
+    "how": [
+      "Open the Dashboard.",
+      "The top tiles drop in from above and the hub tile flies in — no action needed."
+    ],
+    "screenshot": "dashboard-open-animations.png"
+  },
+  {
+    "title": "Project ⇄ Client Hub — one flip tile",
+    "page": "The Hub",
+    "what": "The Dashboard's Project Hub and Client Hub are now a single always-open tile that flips between the two. A search box and the green New Project button sit at the top-left; an icon switch button on the right flips the tile — Switch to Client Hub, then back to Project Hub. On each switch the cards flip in one by one from the left and the accent retints (orange for projects, gray for clients). The project row and client row each scroll sideways through everything.",
+    "where": "The Hub (Dashboard) → Project Hub tile",
+    "how": [
+      "On the Dashboard, use the search box in the hub tile to find a project (or client).",
+      "Scroll the card row sideways to browse.",
+      "Click the switch button on the right (Switch to Client Hub / Project Hub) to flip between the two hubs.",
+      "Use the green + (New Project) on the left to start a project."
+    ],
+    "screenshot": "hub-flip-tile.png"
+  },
+  {
+    "title": "Hub tile app menu — jump to Finance, Production, Post",
+    "page": "The Hub",
+    "what": "The Project Hub tile has an orange menu (three-line) button on the right. Clicking it expands three icon shortcuts — Project Finance, Production, and Post Production — that take you straight to those apps. Each shows its name on hover, matching the + and switch buttons.",
+    "where": "The Hub (Dashboard) → Project Hub tile → menu button",
+    "how": [
+      "On the Dashboard's hub tile, click the orange three-line menu button on the right.",
+      "Three app shortcuts expand to its left: Project Finance, Production, Post Production.",
+      "Hover any icon to see its name; click to open that app."
+    ],
+    "screenshot": "hub-app-menu.png"
+  },
+  {
+    "title": "Bottom nav everywhere — Home, Calendar, Reports, Team",
+    "page": "The Hub",
+    "what": "The Dashboard's floating bottom navigation now follows you onto the Calendar, Reports, and Team pages, so you can jump between them from anywhere (each option respects your role's permissions). The first button is now Home on every page — it returns you to the Dashboard — replacing the old View switch.",
+    "where": "Dashboard, Calendar, Reports, and Team pages — bottom nav",
+    "how": [
+      "From the Dashboard, Calendar, Reports, or Team page, use the floating bottom nav.",
+      "Tap Home to return to the Dashboard, or Calendar / Reports / Team to jump between them."
+    ],
+    "screenshot": "persistent-bottom-nav.png"
   }
 ]
