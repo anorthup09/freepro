@@ -221,46 +221,50 @@ function DailyFactBlob() {
 // Full dot = in office, shrunk = out; orange = St. Louis, gray = Denver.
 // Closing the moment spins the ring and parades the dots up into a row.
 function MediaMomentOrbit() {
-  const [team, setTeam] = useState(null);
   const [fact, setFact] = useState(undefined); // undefined = loading, null = none
+  const [intro, setIntro] = useState(false);   // Netflix-style logo reveal
+  const started = React.useRef(false);
   useEffect(() => {
-    api.dashboardTeam().then(setTeam).catch(() => setTeam([]));
     api.funFactToday().then(f => setFact(f || null)).catch(() => setFact(null));
   }, []);
-  if (fact === undefined) return null;         // still loading
-  const members = (team || []).slice(0, 15);
-  const inOffice = members.filter(m => m.status === 'office').length;
-  if (!fact && !members.length) return null;   // nothing to show
-  const isWob = fact && fact.kind === 'wob';
+  // Play the logo intro once per session, once the moment has loaded
+  useEffect(() => {
+    if (fact === undefined || started.current) return;
+    started.current = true;
+    if (!fact) return;
+    let played;
+    try { played = sessionStorage.getItem('mm_intro_played'); } catch {}
+    if (played) return;
+    try { sessionStorage.setItem('mm_intro_played', '1'); } catch {}
+    setIntro(true);
+    const t = setTimeout(() => setIntro(false), 2700);
+    return () => clearTimeout(t);
+  }, [fact]);
+  if (fact === undefined || !fact) return null;   // loading or no moment → hide
+  const isWob = fact.kind === 'wob';
   return (
-    <div className="mm-banner">
-      <div className="mm-b-main">
-        {fact ? (
-          <>
-            <div className="mm-kicker">{isWob ? 'WAYS OF BEING' : 'MEDIAMOMENT'}</div>
-            {fact.prompt && <div className="mm-prompt">{fact.prompt}</div>}
-            <div className="mm-answer">“{fact.answer}”</div>
-            <div className="mm-name">— {fact.name}</div>
-          </>
-        ) : (
-          <div className="mm-kicker">TEAM TODAY</div>
-        )}
+    <div className="mm-wrap">
+      <div className="mm-banner">
+        <div className="mm-b-main">
+          <div className="mm-kicker">{isWob ? 'WAYS OF BEING' : 'MEDIAMOMENT'}</div>
+          {fact.prompt && <div className="mm-prompt">{fact.prompt}</div>}
+          <div className="mm-answer">“{fact.answer}”</div>
+        </div>
+        <div className="mm-name">— {fact.name}</div>
       </div>
-      {members.length > 0 && (
-        <div className="mm-b-team">
-          <div className="mm-b-dots">
-            {members.map(m => {
-              const denver = /denver/i.test(m.location || '');
-              const office = m.status === 'office';
-              return (
-                <span key={m.id} title={`${m.name}${m.detail && m.detail !== 'In office' ? ' — ' + m.detail : ''}${m.location ? ' · ' + m.location : ''}`}
-                  style={{ width: office ? 9 : 6, height: office ? 9 : 6, borderRadius:'50%', flexShrink:0,
-                    background: denver ? '#a89a86' : 'var(--orange)', opacity: office ? 1 : 0.45,
-                    boxShadow: office ? `0 0 5px ${denver ? 'rgba(168,154,134,0.5)' : 'rgba(232,80,10,0.6)'}` : 'none' }} />
-              );
-            })}
+      {intro && (
+        <div className="mm-intro" aria-hidden>
+          <div className="mm-intro-logo">
+            <svg className="mm-ap" viewBox="0 0 52 52" width="48" height="48">
+              <circle cx="26" cy="26" r="24" fill="#E05A1C" />
+              <path d="M14 34 C12 27 16 19 24 17 C32 15 38 20 37 28 C36 35 30 38 24 36 C18 34 16 40 20 44" stroke="#fff" strokeWidth="3" strokeLinecap="round" fill="none" />
+              <path d="M22 18 C28 16 35 21 34 29" stroke="#fff" strokeWidth="2" strokeLinecap="round" fill="none" opacity="0.65" />
+            </svg>
+            <div className="mm-word">
+              <div className="mm-word-1">UNBRIDLED</div>
+              <div className="mm-word-2">MEDIA</div>
+            </div>
           </div>
-          <div className="mm-b-count">{inOffice} in office · St. Louis <span style={{ color:'var(--orange)' }}>●</span> Denver <span style={{ color:'#a89a86' }}>●</span></div>
         </div>
       )}
     </div>
@@ -1271,21 +1275,35 @@ const HUB_CSS = `
 .hub-h1{font-family:Georgia,'Times New Roman',serif;font-size:34px;font-weight:700;letter-spacing:-.01em;line-height:1.05;margin:0}
 .hub-tagline{text-align:left;font-size:14px;font-weight:600;color:var(--tan);max-width:560px;margin:8px 0 0;line-height:1.45}
 /* MediaMoment orbit: ring of team dots with the moment in the middle */
-/* MediaMoment banner: a wide horizontal card, à la a rewards "balance" banner */
-.mm-banner{position:relative;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;overflow:hidden;
-  margin:8px 0 22px;padding:18px 22px;border-radius:16px;border:1px solid var(--border);
-  background:linear-gradient(120deg, rgba(232,80,10,0.16), rgba(232,80,10,0.03) 58%, transparent), var(--bg2);}
+/* MediaMoment banner: a wide horizontal card with a Netflix-style logo reveal */
+.mm-wrap{position:relative;margin:8px 0 22px}
+.mm-banner{position:relative;display:flex;flex-direction:column;overflow:hidden;padding:18px 22px;border-radius:16px;border:1px solid var(--border);
+  background:linear-gradient(120deg, rgba(232,80,10,0.16), rgba(232,80,10,0.03) 58%, transparent), var(--bg2);
+  animation:mmCardIn .7s cubic-bezier(.22,.61,.36,1) both}
 .mm-banner::after{content:'';position:absolute;right:-46px;top:-46px;width:190px;height:190px;border-radius:50%;
   background:radial-gradient(circle, rgba(232,80,10,0.13), transparent 70%);pointer-events:none}
-.mm-b-main{position:relative;z-index:1;min-width:0;flex:1 1 320px}
+.mm-b-main{position:relative;z-index:1;min-width:0}
 .mm-kicker{font-size:9px;font-weight:900;letter-spacing:.18em;color:var(--orange)}
 .mm-prompt{font-size:11px;font-weight:700;color:var(--muted);margin-top:5px;line-height:1.35}
 .mm-answer{font-family:Georgia,'Times New Roman',serif;font-size:17px;font-weight:700;line-height:1.34;margin-top:6px;color:var(--text)}
-.mm-name{font-size:11px;font-weight:800;color:var(--muted);margin-top:5px}
-.mm-b-team{position:relative;z-index:1;display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0}
-.mm-b-dots{display:flex;align-items:center;gap:6px;flex-wrap:wrap;max-width:190px;justify-content:flex-end}
-.mm-b-count{font-size:9.5px;font-weight:800;letter-spacing:.03em;color:var(--muted);text-transform:uppercase;white-space:nowrap}
-@media(max-width:640px){.mm-b-team{align-items:flex-start;width:100%}.mm-b-dots{justify-content:flex-start;max-width:none}.mm-answer{font-size:15px}}
+.mm-name{position:relative;z-index:1;align-self:flex-end;font-size:11px;font-weight:800;color:var(--muted);margin-top:10px}
+@keyframes mmCardIn{from{opacity:0;transform:scale(.97) translateY(6px)}to{opacity:1;transform:none}}
+@media(max-width:640px){.mm-answer{font-size:15px}}
+
+/* ── Netflix-style intro: assemble the logo, then the aperture zooms + turns ── */
+.mm-intro{position:absolute;inset:0;z-index:6;border-radius:16px;overflow:hidden;background:var(--bg2);
+  display:flex;align-items:center;justify-content:center;animation:mmIntroOut .55s ease 1.95s forwards}
+@keyframes mmIntroOut{to{opacity:0;visibility:hidden}}
+.mm-intro-logo{display:flex;align-items:center;gap:12px}
+.mm-ap{transform-origin:center;animation:mmApIn .6s cubic-bezier(.22,.61,.36,1) both, mmApZoom 1s cubic-bezier(.6,0,.25,1) 1.25s forwards}
+@keyframes mmApIn{from{transform:translateX(56px) scale(.55);opacity:0}to{transform:translateX(0) scale(1);opacity:1}}
+@keyframes mmApZoom{from{transform:scale(1) rotate(0deg);opacity:1}to{transform:scale(24) rotate(220deg);opacity:0}}
+.mm-word{overflow:hidden;animation:mmWordIn .6s cubic-bezier(.22,.61,.36,1) both, mmFade .35s ease 1.15s forwards}
+@keyframes mmWordIn{from{opacity:0;transform:translateX(-26px)}to{opacity:1;transform:none}}
+@keyframes mmFade{to{opacity:0}}
+.mm-word-1{font:900 21px 'Arial Black',Arial,sans-serif;letter-spacing:1.5px;color:#fff;line-height:1;animation:mmWipe .55s cubic-bezier(.22,.61,.36,1) .12s both}
+.mm-word-2{font:900 13px 'Arial Black',Arial,sans-serif;letter-spacing:5px;color:#fff;line-height:1;margin-top:3px;animation:mmWipe .55s cubic-bezier(.22,.61,.36,1) .24s both}
+@keyframes mmWipe{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
 @media(max-width:640px){.hub-h1{font-size:28px}.hub-header{margin:42px 0 10px}.hub-logo-top{height:28px}}
 
 .hub-reveal{opacity:0;transform:translateY(20px);transition:opacity .55s cubic-bezier(.22,.61,.36,1),transform .55s cubic-bezier(.22,.61,.36,1)}
