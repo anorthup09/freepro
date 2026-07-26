@@ -610,5 +610,42 @@
       "Tap Home to return to the Dashboard, or Calendar / Reports / Team to jump between them."
     ],
     "screenshot": "persistent-bottom-nav.png"
+  },
+  {
+    "title": "Dashboard — Day in Review, My Tasks & Team Today as three tiles",
+    "page": "The Hub",
+    "what": "The lower dashboard is now three separate tiles instead of two stacked cards — Day in Review, My Tasks, and Team Today — each with an orange header. My Tasks has its own tile with quick add and check-off and a 'Task Due Today' flag; Team Today lists who's in the office, traveling, or out. The row is responsive: three across on wide screens, stacking down on smaller ones.",
+    "where": "The Hub (Dashboard)",
+    "how": [
+      "Open the Dashboard.",
+      "Scan Day in Review for today's shoots, due dates, and what's coming tomorrow.",
+      "Use My Tasks to add (+ Add New) and check off tasks — a Task Due Today flag appears when relevant.",
+      "Check Team Today for who is in office, traveling, or out."
+    ],
+    "screenshot": "dashboard-three-tiles.png"
+  },
+  {
+    "title": "Dashboard — cursor-following highlight on the tiles",
+    "page": "The Hub",
+    "what": "Hovering the dashboard tiles (Project/Client Hub, Day in Review, My Tasks, Team Today) shows a subtle orange highlight that follows the cursor behind the content — a light interactive touch that respects the system reduce-motion setting.",
+    "where": "The Hub (Dashboard) — hover any tile",
+    "how": [
+      "Move your mouse over any dashboard tile.",
+      "A faint orange glow tracks the cursor behind the text."
+    ],
+    "screenshot": "dashboard-tile-glow.png"
+  },
+  {
+    "title": "Finance role — Project Hub with per-project Overview & Finance",
+    "page": "The Hub",
+    "what": "Signed in as Finance, the dashboard now shows the Project Hub — a searchable, scrollable list of every project — instead of a single ProFi tile. The search sits at the left and a $ Project Finance shortcut is pinned to the right. Opening a project lands on a focused view with just two tabs, Overview and Project Finance (the full budget), so finance can go straight from the roster to a project's numbers.",
+    "where": "The Hub (Dashboard), as the Finance role",
+    "how": [
+      "Sign in as Finance and open the Dashboard.",
+      "Search or scroll the Project Hub to find a project.",
+      "Click a project to open it on the Overview / Project Finance tabs.",
+      "Use the $ button at the top-right of the hub to jump to the full Project Finance list."
+    ],
+    "screenshot": "finance-project-hub.png"
   }
 ]
