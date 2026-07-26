@@ -101,18 +101,22 @@ const gradientAccent = (i, n) => {
 const CREW_SAFE = new Set(['/reports/foodie', '/reports/music-resources', '/reports/video-references', '/reports/drives', '/reports/gear']);
 
 const CSS = `
-.rpt-pills{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 20px}
-.rpt-pill{display:inline-flex;align-items:center;gap:8px;background:var(--bg2);border:1px solid var(--border);color:var(--muted);
-  border-radius:22px;padding:9px 16px;font-size:12px;font-weight:800;letter-spacing:.02em;cursor:pointer;transition:all .15s ease;white-space:nowrap}
-.rpt-pill svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.rpt-pill:hover{border-color:var(--orange);color:var(--text)}
-.rpt-pill.on{background:rgba(232,80,10,0.14);border-color:var(--orange);color:var(--orange)}
-.rpt-list{display:flex;flex-direction:column;gap:10px;max-width:560px}
+.rpt-pills{display:flex;gap:22px;flex-wrap:wrap;justify-content:center;margin:20px 0 28px}
+.rpt-pill{display:flex;flex-direction:column;align-items:center;gap:8px;background:none;border:none;color:var(--muted);
+  cursor:pointer;font-size:11px;font-weight:800;letter-spacing:.02em;transition:color .18s ease}
+.rpt-pill .ic{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--bg2);
+  border:1px solid var(--border);transition:transform .2s cubic-bezier(.34,1.45,.5,1),background .18s ease,border-color .18s ease}
+.rpt-pill svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.rpt-pill:hover{color:var(--text)}
+.rpt-pill:hover .ic{transform:scale(1.18);border-color:var(--orange)}
+.rpt-pill.on{color:var(--orange)}
+.rpt-pill.on .ic{background:rgba(232,80,10,0.16);border-color:var(--orange);transform:scale(1.1)}
+.rpt-list{display:flex;flex-direction:column;gap:9px;max-width:340px;margin:0 auto}
 .rpt-tile{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--bg2);border:1px solid var(--border);
-  border-left:4px solid var(--orange);border-radius:10px;padding:14px 18px;cursor:pointer;transition:transform .15s ease}
+  border-left:4px solid var(--orange);border-radius:9px;padding:9px 14px;cursor:pointer;transition:transform .15s ease}
 .rpt-tile:hover{transform:translateX(3px)}
-@keyframes rptIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
-.rpt-tile{animation:rptIn .28s cubic-bezier(.22,.61,.36,1) backwards}
+@keyframes rptIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
+.rpt-tile{animation:rptIn .6s cubic-bezier(.22,.61,.36,1) backwards}
 @media (prefers-reduced-motion: reduce){.rpt-tile{animation:none}}
 `;
 
@@ -148,13 +152,13 @@ export default function Reports() {
         </div>
       </div>
       <div style={{ maxWidth:900, margin:'0 auto', padding:'10px 16px 120px' }}>
-        <div className="page-title">Reports &amp; Resources</div>
-        <div className="page-sub">Pick a category to see its reports</div>
+        <div className="page-title" style={{ textAlign:'center' }}>Reports &amp; Resources</div>
+        <div className="page-sub" style={{ textAlign:'center' }}>Pick a category to see its reports</div>
 
         <div className="rpt-pills">
           {shownCats.map(c => (
             <button key={c.key} className={`rpt-pill${activeCat?.key === c.key ? ' on' : ''}`} onClick={() => setActive(c.key)}>
-              {c.icon}{c.label}
+              <span className="ic">{c.icon}</span>{c.label}
             </button>
           ))}
         </div>
@@ -163,9 +167,9 @@ export default function Reports() {
           {tiles.map((r, i, arr) => {
             const accent = gradientAccent(i, arr.length);
             return (
-              <div key={r.to} className="rpt-tile" style={{ borderLeftColor:accent, animationDelay:`${i * 0.04}s` }} onClick={() => nav(r.to)}>
-                <div style={{ fontSize:14, fontWeight:800 }}>{r.title}</div>
-                <div style={{ fontSize:11, color:accent, fontWeight:700, whiteSpace:'nowrap' }}>Open →</div>
+              <div key={r.to} className="rpt-tile" style={{ borderLeftColor:accent, animationDelay:`${i * 0.09}s` }} onClick={() => nav(r.to)}>
+                <div style={{ fontSize:13, fontWeight:800 }}>{r.title}</div>
+                <div style={{ fontSize:10.5, color:accent, fontWeight:700, whiteSpace:'nowrap' }}>Open →</div>
               </div>
             );
           })}

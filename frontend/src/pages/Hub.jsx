@@ -1510,7 +1510,8 @@ function Reveal({ children, style }) {
 // View toggle; on the linked pages it becomes a Home button back to the
 // Dashboard. Calendar/Reports/Team follow the same role permissions everywhere
 // and derive isCrew/isFinance from the signed-in user, so any page can drop in
-// <HubBottomNav /> with no extra wiring.
+// <HubBottomNav /> with no extra wiring. It injects its own CSS so it renders
+// correctly on pages that don't include the full HUB_CSS (Calendar/Reports/Team).
 export function HubBottomNav({ raised = false }) {
   const nav = useNavigate();
   const loc = useLocation();
@@ -1524,14 +1525,36 @@ export function HubBottomNav({ raised = false }) {
     </button>
   );
   return (
-    <div className={`hub-bottomnav${scrolled ? ' condensed' : ''}${raised ? ' raised' : ''}`}>
-      {item(NAV_ICONS.home, 'Home', () => nav('/'), path === '/')}
-      {!isFinance && item(NAV_ICONS.calendar, 'Calendar', () => nav('/crew-calendar'), path.startsWith('/crew-calendar'))}
-      {item(NAV_ICONS.reports, 'Reports', () => nav('/reports'), path.startsWith('/reports'))}
-      {item(NAV_ICONS.team, 'Team', () => nav('/team'), path.startsWith('/team'))}
-    </div>
+    <>
+      <style>{NAV_CSS}</style>
+      <div className={`hub-bottomnav${scrolled ? ' condensed' : ''}${raised ? ' raised' : ''}`}>
+        {item(NAV_ICONS.home, 'Home', () => nav('/'), path === '/')}
+        {!isFinance && item(NAV_ICONS.calendar, 'Calendar', () => nav('/crew-calendar'), path.startsWith('/crew-calendar'))}
+        {item(NAV_ICONS.reports, 'Reports', () => nav('/reports'), path.startsWith('/reports'))}
+        {item(NAV_ICONS.team, 'Team', () => nav('/team'), path.startsWith('/team'))}
+      </div>
+    </>
   );
 }
+
+// Self-contained styles for the bottom nav (duplicated from HUB_CSS so the nav
+// works on any page).
+const NAV_CSS = `
+.hub-bottomnav{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:120;display:flex;align-items:stretch;gap:2px;padding:8px 12px;border-radius:26px;
+  background:rgba(30,27,23,0.72);backdrop-filter:blur(22px) saturate(1.7);-webkit-backdrop-filter:blur(22px) saturate(1.7);
+  border:1px solid rgba(255,255,255,0.12);box-shadow:0 12px 40px rgba(0,0,0,0.55),inset 0 1px 0 rgba(255,255,255,0.12);transition:padding .28s ease}
+.hub-bottomnav.condensed{padding:7px 9px}
+.hub-bottomnav.raised{bottom:96px}
+@media (max-width:700px){.hub-bottomnav.raised{bottom:104px}}
+.hub-navitem{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:none;border:none;color:var(--muted);
+  font-size:9.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;padding:7px 16px;border-radius:18px;transition:color .15s ease,background .15s ease,padding .28s ease}
+.hub-navitem:hover{color:var(--text);background:rgba(255,255,255,0.07)}
+.hub-navitem.active{color:var(--orange)}
+.hub-navitem svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.hub-navitem .lbl{max-height:12px;opacity:1;overflow:hidden;transition:max-height .28s ease,opacity .2s ease}
+.hub-bottomnav.condensed .hub-navitem{padding:9px 13px}
+.hub-bottomnav.condensed .hub-navitem .lbl{max-height:0;opacity:0}
+`;
 
 function NewProjectFab({ onClick }) {
   return (
