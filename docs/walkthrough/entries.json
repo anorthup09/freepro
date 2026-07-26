@@ -509,5 +509,20 @@
       "Per-shoot totals sit to its right when the project has multiple shoots."
     ],
     "screenshot": "total-by-category.png"
+  },
+  {
+    "title": "Harbinger — guided project-initiation wizard",
+    "page": "ProFi — Project Finance",
+    "what": "The Harbinger kickoff is now a step-by-step wizard instead of one long form. Six stages run across a liquid-glass icon dock at the top — Project, Client, Revenue/Commissions, Creative, Production/Crew, Key Dates — matching the app's bottom navs; the active stage highlights orange and completed stages glow green. A left panel shows one dot per field on the current stage: gray until filled, orange once filled (required or not), red if a required field is skipped. Move freely with the tabs or the green Next arrow — the page slides and the active icon pops on each move. Final review is gated until every required field is filled; the pulsing \"Submit Harbinger & Go Live\" button only appears on the condensed review page. Stage upgrades: Client is now an + Add Client Info pop-out that builds contact tiles with Primary and Invoice POC badges (a Primary and an Invoice POC are required); Revenue auto-calculates Total Budget from Media Budget + CapCo Revenue and hides commission fields behind a Commissionable Project toggle; Creative condenses the direction notes and collects video references as tag bubbles; Production has a No Shoot toggle (auto-selected when the budget has no production items) that grays the shoot logistics, with searchable Preferred PM/Producer/Crew/Editors.",
+    "where": "ProFi → open a project → Finance → Submit Harbinger (fires when a budget moves to Live)",
+    "how": [
+      "Open a project's budget in ProFi and start the Harbinger (Submit Harbinger, or when moving the budget Live).",
+      "Work through the six tabs at the top — the left dots show what's filled (orange), skipped-and-required (red), or still empty (gray).",
+      "On Client, click + Add Client Info to add each contact, then mark one Primary and one Invoice POC.",
+      "On Revenue, enter Media Budget and any CapCo Revenue — Total Budget calculates itself; flip Commissionable Project on to add commission owners and %.",
+      "On Production, toggle No Shoot if there is no shoot (it self-selects when the budget has none); add searchable Preferred PM/Producer/Crew/Editors.",
+      "Advance with the green Next arrow or the tabs; once every required field is filled, click Review Harbinger, then the pulsing Submit Harbinger & Go Live."
+    ],
+    "screenshot": "harbinger-wizard.png"
   }
 ]

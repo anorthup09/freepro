@@ -185,6 +185,7 @@ function stepFieldsFor(id, f, solutionsOn) {
     case 'client': return [
       { req: true, filled: f.clientInfos.length > 0 && f.clientInfos.some(c => c.isPrimary) },
       { req: true, filled: f.clientInfos.some(c => c.invoicePoc) },
+      { req: true, filled: f.clientInfos.some(c => c.contractPoc) },
       { req: true, filled: b(f.invoiceCc) },
     ];
     case 'revenue': return [
@@ -285,7 +286,7 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted, sol
     const hasSol = !!(initial?.solutionsCommissionOwners || initial?.solutionsCommissionPct);
     if (hasMedia || hasSol) setF(v => ({ ...v, commissionable: true, mediaCommission: v.mediaCommission || hasMedia, solutionsCommission: v.solutionsCommission || hasSol }));
     if (initial?.primaryContactName || initial?.primaryContactEmail) {
-      setF(v => v.clientInfos.length ? v : ({ ...v, clientInfos: [{ id: uid(), name: initial.primaryContactName || '', position: '', involvement: '', email: initial.primaryContactEmail || '', mailingAddress: initial.mailingAddress || '', isPrimary: true, invoicePoc: true }] }));
+      setF(v => v.clientInfos.length ? v : ({ ...v, clientInfos: [{ id: uid(), name: initial.primaryContactName || '', position: '', involvement: '', email: initial.primaryContactEmail || '', mailingAddress: initial.mailingAddress || '', isPrimary: true, invoicePoc: true, contractPoc: true }] }));
     }
     // No production positions/dates in the prefill → treat as a no-shoot project
     if (initial && !((initial.budgetedPositions || '').trim() || (initial.productionDates || '').trim())) {
@@ -323,7 +324,7 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted, sol
   const seedFromClient = c => setF(v => {
     if (v.clientInfos.length) return v;
     if (!(c.primary_contact_name || c.primary_contact_email)) return v;
-    return { ...v, clientInfos: [{ id: uid(), name: c.primary_contact_name || '', position: '', involvement: '', email: c.primary_contact_email || '', mailingAddress: c.mailing_address || '', isPrimary: true, invoicePoc: true }] };
+    return { ...v, clientInfos: [{ id: uid(), name: c.primary_contact_name || '', position: '', involvement: '', email: c.primary_contact_email || '', mailingAddress: c.mailing_address || '', isPrimary: true, invoicePoc: true, contractPoc: true }] };
   });
 
   // When the typed company exactly matches a saved client, seed the primary contact
@@ -342,6 +343,7 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted, sol
       let head = c.name + (c.position ? ` — ${c.position}` : '');
       if (c.isPrimary) head += ' (Primary)';
       if (c.invoicePoc) head += ' (Invoice POC)';
+      if (c.contractPoc) head += ' (Contract POC)';
       const bits = [head];
       if (c.involvement) bits.push(`Involvement: ${c.involvement}`);
       if (c.email) bits.push(c.email);
@@ -357,9 +359,16 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted, sol
     if (!m || !m.name.trim() || !m.email.trim()) { alert('Client Name and Email are required.'); return; }
     setF(v => {
       let list = [...v.clientInfos];
-      if (m.editId) list = list.map(c => c.id === m.editId ? { ...c, name: m.name.trim(), position: m.position.trim(), involvement: m.involvement.trim(), email: m.email.trim(), mailingAddress: m.mailingAddress.trim(), invoicePoc: !!m.invoicePoc } : c);
-      else list.push({ id: uid(), name: m.name.trim(), position: m.position.trim(), involvement: m.involvement.trim(), email: m.email.trim(), mailingAddress: m.mailingAddress.trim(), isPrimary: list.length === 0, invoicePoc: !!m.invoicePoc });
-      if (m.invoicePoc) { const keep = m.editId || list[list.length - 1].id; list = list.map(c => c.id === keep ? c : { ...c, invoicePoc: false }); }
+      const data = { name: m.name.trim(), position: m.position.trim(), involvement: m.involvement.trim(), email: m.email.trim(), mailingAddress: m.mailingAddress.trim(), isPrimary: !!m.isPrimary, invoicePoc: !!m.invoicePoc, contractPoc: !!m.contractPoc };
+      let keep;
+      if (m.editId) { list = list.map(c => c.id === m.editId ? { ...c, ...data } : c); keep = m.editId; }
+      else { keep = uid(); list.push({ id: keep, ...data }); }
+      // Primary / Invoice POC / Contract POC are each single-assignment
+      if (m.isPrimary) list = list.map(c => c.id === keep ? c : { ...c, isPrimary: false });
+      if (m.invoicePoc) list = list.map(c => c.id === keep ? c : { ...c, invoicePoc: false });
+      if (m.contractPoc) list = list.map(c => c.id === keep ? c : { ...c, contractPoc: false });
+      // Always keep at least one Primary
+      if (list.length && !list.some(c => c.isPrimary)) list = list.map((c, i) => i === 0 ? { ...c, isPrimary: true } : c);
       return { ...v, clientInfos: list };
     });
     setContactModal(null);
@@ -373,6 +382,7 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted, sol
   }
   const setPrimary = id => setF(v => ({ ...v, clientInfos: v.clientInfos.map(c => ({ ...c, isPrimary: c.id === id })) }));
   const setInvoicePoc = id => setF(v => ({ ...v, clientInfos: v.clientInfos.map(c => ({ ...c, invoicePoc: c.id === id })) }));
+  const setContractPoc = id => setF(v => ({ ...v, clientInfos: v.clientInfos.map(c => ({ ...c, contractPoc: c.id === id })) }));
 
   // Contact search on the Primary Client Contact field — fills name/email/mailing
   const [contactOpen, setContactOpen] = useState(false);
@@ -408,6 +418,7 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted, sol
 
   const hasPrimary = f.clientInfos.some(c => c.isPrimary);
   const hasInvoicePoc = f.clientInfos.some(c => c.invoicePoc);
+  const hasContractPoc = f.clientInfos.some(c => c.contractPoc);
   const videoRefCount = String(f.videoReferences || '').split('\n').filter(s => s.trim()).length;
 
   // Wizard navigation
@@ -429,7 +440,7 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted, sol
   };
   const arrowBtn = { display: 'inline-flex', alignItems: 'center', gap: 8, background: '#5ABF80', color: '#0b0b0b', border: 'none', borderRadius: 9, padding: '10px 20px', fontSize: 13, fontWeight: 800, cursor: 'pointer' };
   const ok = f.email && f.clientCompany && f.projectName && f.proposedCode && f.sow
-    && f.clientInfos.length > 0 && hasPrimary && hasInvoicePoc && f.invoiceCc
+    && f.clientInfos.length > 0 && hasPrimary && hasInvoicePoc && hasContractPoc && f.invoiceCc
     && f.mediaRevenue && f.budgetOwner && f.finalDelivery && f.closeMonth;
 
   async function submit() {
@@ -618,7 +629,7 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted, sol
 
           </>)}
           {step === 1 && (<>
-          <div style={hint}>Add each client contact. At least one Primary contact is required, and one contact must be marked the Invoice POC.</div>
+          <div style={hint}>Add each client contact. A Primary, an Invoice POC, and a Contract POC are all required — one person can hold all three.</div>
           {f.clientInfos.length > 0 && (
             <div style={{ display:'flex', flexWrap:'wrap', gap:10 }}>
               {f.clientInfos.map(c => (
@@ -626,6 +637,7 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted, sol
                   <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:5 }}>
                     {c.isPrimary && <span style={{ fontSize:8.5, fontWeight:900, letterSpacing:'0.08em', color:'#a78bfa', border:'1px solid #a78bfa55', borderRadius:9, padding:'1px 7px' }}>PRIMARY</span>}
                     {c.invoicePoc && <span style={{ fontSize:8.5, fontWeight:900, letterSpacing:'0.08em', color:'#5ABF80', border:'1px solid #5ABF8055', borderRadius:9, padding:'1px 7px' }}>INVOICE POC</span>}
+                    {c.contractPoc && <span style={{ fontSize:8.5, fontWeight:900, letterSpacing:'0.08em', color:'#5ABF80', border:'1px solid #5ABF8055', borderRadius:9, padding:'1px 7px' }}>CONTRACT POC</span>}
                   </div>
                   <div style={{ fontSize:13, fontWeight:800 }}>{c.name}{c.position ? <span style={{ color:'var(--muted)', fontWeight:600, fontSize:11 }}> · {c.position}</span> : null}</div>
                   {c.involvement && <div style={{ fontSize:11, color:'var(--muted)', marginTop:2 }}>{c.involvement}</div>}
@@ -634,17 +646,21 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted, sol
                   <div style={{ display:'flex', gap:8, marginTop:9, flexWrap:'wrap', alignItems:'center' }}>
                     {!c.isPrimary && <button type="button" onClick={() => setPrimary(c.id)} style={{ background:'none', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:12, padding:'2px 9px', fontSize:10, fontWeight:700, cursor:'pointer' }}>Make Primary</button>}
                     {!c.invoicePoc && <button type="button" onClick={() => setInvoicePoc(c.id)} style={{ background:'none', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:12, padding:'2px 9px', fontSize:10, fontWeight:700, cursor:'pointer' }}>Set Invoice POC</button>}
-                    <button type="button" onClick={() => setContactModal({ editId:c.id, name:c.name, position:c.position, involvement:c.involvement, email:c.email, mailingAddress:c.mailingAddress, invoicePoc:c.invoicePoc })} style={{ background:'none', border:'none', color:'var(--muted)', fontSize:11, fontWeight:700, cursor:'pointer', padding:2 }}>Edit</button>
+                    {!c.contractPoc && <button type="button" onClick={() => setContractPoc(c.id)} style={{ background:'none', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:12, padding:'2px 9px', fontSize:10, fontWeight:700, cursor:'pointer' }}>Set Contract POC</button>}
+                    <button type="button" onClick={() => setContactModal({ editId:c.id, name:c.name, position:c.position, involvement:c.involvement, email:c.email, mailingAddress:c.mailingAddress, isPrimary:c.isPrimary, invoicePoc:c.invoicePoc, contractPoc:c.contractPoc })} style={{ background:'none', border:'none', color:'var(--muted)', fontSize:11, fontWeight:700, cursor:'pointer', padding:2 }}>Edit</button>
                     <button type="button" onClick={() => removeContact(c.id)} style={{ background:'none', border:'none', color:'#e05252', fontSize:11, fontWeight:700, cursor:'pointer', padding:2, marginLeft:'auto' }}>Remove</button>
                   </div>
                 </div>
               ))}
             </div>
           )}
-          {f.clientInfos.length > 0 && !hasInvoicePoc && (
-            <div style={{ ...hint, color:'#e6c229' }}>Mark one contact as the Invoice POC to continue.</div>
+          {f.clientInfos.length > 0 && (!hasInvoicePoc || !hasContractPoc) && (
+            <div style={{ ...hint, color:'#e6c229' }}>
+              {!hasInvoicePoc && !hasContractPoc ? 'Assign an Invoice POC and a Contract POC to continue.'
+                : !hasInvoicePoc ? 'Assign an Invoice POC to continue.' : 'Assign a Contract POC to continue.'}
+            </div>
           )}
-          <button type="button" onClick={() => setContactModal({ editId:null, name:'', position:'', involvement:'', email:'', mailingAddress:'', invoicePoc: f.clientInfos.length === 0 })}
+          <button type="button" onClick={() => setContactModal({ editId:null, name:'', position:'', involvement:'', email:'', mailingAddress:'', isPrimary: f.clientInfos.length === 0, invoicePoc: f.clientInfos.length === 0, contractPoc: f.clientInfos.length === 0 })}
             style={{ alignSelf:'flex-start', background:'rgba(90,191,128,0.14)', border:'1px solid #5ABF80', color:'#5ABF80', borderRadius:8, padding:'9px 15px', fontSize:12.5, fontWeight:800, cursor:'pointer' }}>
             + Add Client Info
           </button>
@@ -814,10 +830,24 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted, sol
                 </div>
                 <div><label style={lbl}>Email{req}</label><input style={inS} value={contactModal.email} onChange={e => setContactModal(m => ({ ...m, email: e.target.value }))} /></div>
                 <div><label style={lbl}>Mailing Address</label><input style={inS} value={contactModal.mailingAddress} onChange={e => setContactModal(m => ({ ...m, mailingAddress: e.target.value }))} /></div>
-                <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:13, cursor:'pointer' }}>
-                  <input type="checkbox" checked={!!contactModal.invoicePoc} onChange={e => setContactModal(m => ({ ...m, invoicePoc: e.target.checked }))} style={{ width:'auto', margin:0 }} />
-                  <span>Invoice POC <span style={{ color:'var(--muted)', fontSize:11 }}>— receives invoices for this project</span></span>
-                </label>
+                <div>
+                  <label style={lbl}>Roles <span style={{ color:'var(--muted)', fontWeight:400 }}>(one person can hold all three)</span></label>
+                  <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+                    {[['isPrimary', 'Primary POC'], ['invoicePoc', 'Invoice POC'], ['contractPoc', 'Contract POC']].map(([k, label]) => {
+                      const on = !!contactModal[k];
+                      return (
+                        <button type="button" key={k} onClick={() => setContactModal(m => ({ ...m, [k]: !m[k] }))}
+                          style={{ display:'flex', alignItems:'center', gap:8, flex:'1 1 auto', justifyContent:'center',
+                            background: on ? 'rgba(90,191,128,0.16)' : 'var(--bg)', border:`1px solid ${on ? '#5ABF80' : 'var(--border)'}`,
+                            color: on ? '#5ABF80' : 'var(--text)', borderRadius:8, padding:'8px 12px', fontSize:12, fontWeight:800, cursor:'pointer', transition:'all .15s ease' }}>
+                          <span style={{ width:15, height:15, borderRadius:4, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:900,
+                            border:`1px solid ${on ? '#5ABF80' : 'var(--muted)'}`, background: on ? '#5ABF80' : 'transparent', color:'#0d0c0a' }}>{on ? '✓' : ''}</span>
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
               <div style={{ display:'flex', justifyContent:'flex-end', gap:8, marginTop:16 }}>
                 <button className="btn btn-ghost btn-sm" onClick={() => setContactModal(null)}>Cancel</button>
