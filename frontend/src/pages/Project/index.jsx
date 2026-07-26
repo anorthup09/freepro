@@ -519,7 +519,7 @@ export default function Project({ idOverride, onControls }) {
         )}
         <DropdownTab dropUp icon={PROJ_NAV_ICONS.logistics} label="Logistics" subtabs={isViewer
           ? [{ id:'schedule', label:'Schedule' }, { id:'travel', label:'Travel' }, { id:'shot-list', label:'Shot List' }, { id:'additional-docs', label:'Additional Docs' }]
-          : [...BASE_LOGISTICS_TABS, ...(showTravel ? [{ id:'travel', label:'Travel' }] : []), ...(showCateringGrid ? [{ id:'catering', label:'Catering/Meals' }] : []), ...(showShotList ? [{ id:'shot-list', label:'Shot List' }] : []), ...(showScripts ? [{ id:'scripts', label:'Scripts' }] : []), { id:'additional-docs', label:'Additional Docs' }, { id:'producer-checklist', label:'Producer Checklist' }]} tab={tab} setTab={setTab} />}
+          : [...BASE_LOGISTICS_TABS, ...(showTravel ? [{ id:'travel', label:'Travel' }] : []), ...(showCateringGrid ? [{ id:'catering', label:'Catering/Meals' }] : []), ...(showShotList ? [{ id:'shot-list', label:'Shot List' }] : []), ...(showScripts ? [{ id:'scripts', label:'Scripts' }] : []), { id:'additional-docs', label:'Additional Docs' }, { id:'producer-checklist', label:'Producer Checklist' }]} tab={tab} setTab={setTab} />
         <DropdownTab dropUp icon={PROJ_NAV_ICONS.gear} label="Gear" subtabs={GEAR_TABS} tab={tab} setTab={setTab} />
         <button className={`dock-btn${tab === 'deliverable-overview' ? ' on' : ''}`} onClick={() => setTab('deliverable-overview')} aria-label="Deliverable">
           {PROJ_NAV_ICONS.deliverable}
