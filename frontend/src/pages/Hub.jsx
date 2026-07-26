@@ -248,9 +248,8 @@ function MediaMomentOrbit() {
         <div className="mm-b-main">
           <div className="mm-kicker">{isWob ? 'WAYS OF BEING' : 'MEDIAMOMENT'}</div>
           {fact.prompt && <div className="mm-prompt">{fact.prompt}</div>}
-          <div className="mm-answer">“{fact.answer}”</div>
+          <div className="mm-answer">“{fact.answer}”<span className="mm-name"> — {fact.name}</span></div>
         </div>
-        <div className="mm-name">— {fact.name}</div>
       </div>
       {intro && (
         <div className="mm-intro" aria-hidden>
@@ -1270,18 +1269,18 @@ const HUB_CSS = `
 /* MediaMoment orbit: ring of team dots with the moment in the middle */
 /* MediaMoment banner: a wide horizontal card with a Netflix-style logo reveal */
 .mm-wrap{position:relative;margin:8px 0 22px}
-.mm-banner{position:relative;display:flex;flex-direction:column;overflow:hidden;padding:18px 22px;border-radius:16px;border:1px solid var(--border);
+.mm-banner{position:relative;display:flex;flex-direction:column;overflow:hidden;padding:15px 20px;border-radius:16px;border:1px solid var(--border);
   background:linear-gradient(120deg, rgba(232,80,10,0.16), rgba(232,80,10,0.03) 58%, transparent), var(--bg2);
   animation:mmCardIn .7s cubic-bezier(.22,.61,.36,1) both}
 .mm-banner::after{content:'';position:absolute;right:-46px;top:-46px;width:190px;height:190px;border-radius:50%;
   background:radial-gradient(circle, rgba(232,80,10,0.13), transparent 70%);pointer-events:none}
 .mm-b-main{position:relative;z-index:1;min-width:0}
 .mm-kicker{font-size:9px;font-weight:900;letter-spacing:.18em;color:var(--orange)}
-.mm-prompt{font-size:11px;font-weight:700;color:var(--muted);margin-top:5px;line-height:1.35}
-.mm-answer{font-family:Georgia,'Times New Roman',serif;font-size:17px;font-weight:700;line-height:1.34;margin-top:6px;color:var(--text)}
-.mm-name{position:relative;z-index:1;align-self:flex-end;font-size:11px;font-weight:800;color:var(--muted);margin-top:10px}
+.mm-prompt{font-size:10.5px;font-weight:700;color:var(--muted);margin-top:4px;line-height:1.3}
+.mm-answer{font-family:Georgia,'Times New Roman',serif;font-size:14px;font-weight:700;line-height:1.4;margin-top:5px;color:var(--text)}
+.mm-name{font-family:'DM Sans',sans-serif;font-size:11px;font-weight:800;color:var(--muted);white-space:nowrap}
 @keyframes mmCardIn{from{opacity:0;transform:scale(.97) translateY(6px)}to{opacity:1;transform:none}}
-@media(max-width:640px){.mm-answer{font-size:15px}}
+@media(max-width:640px){.mm-answer{font-size:13px}}
 
 /* ── Netflix-style intro: assemble the logo, then the aperture zooms + turns ── */
 .mm-intro{position:absolute;inset:0;z-index:6;border-radius:16px;overflow:hidden;background:var(--bg2);
