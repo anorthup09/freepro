@@ -21,6 +21,63 @@ function closeMonthOptions() {
 const isUnbridled = m => (m.company || '').toLowerCase().includes('unbridled');
 const crewLabel = m => [m.preferred_first_name, m.preferred_last_name].filter(Boolean).join(' ').trim() || m.name || '';
 
+const uid = () => (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `c${Date.now()}${Math.round(Math.random() * 1e6)}`;
+
+// Parse a currency-ish string to a number ("$113,721.25" → 113721.25)
+const num$ = s => Number(String(s || '').replace(/[^0-9.-]/g, '')) || 0;
+const fmtUSD = n => n.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+
+// Collapsed-by-default card that expands on click — keeps long fields tidy
+function Collapsible({ title, summary, children, defaultOpen = false }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div style={{ border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden', width: '100%' }}>
+      <button type="button" onClick={() => setOpen(o => !o)}
+        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, background: 'var(--bg)', border: 'none', color: 'var(--text)', padding: '10px 12px', cursor: 'pointer', fontSize: 11, fontWeight: 600, textAlign: 'left' }}>
+        <span>{title}{summary && !open && <span style={{ color: 'var(--muted)', fontWeight: 400 }}> — {summary}</span>}</span>
+        <span style={{ color: 'var(--muted)', fontSize: 14, lineHeight: 1 }}>{open ? '−' : '+'}</span>
+      </button>
+      {open && <div style={{ padding: '10px 12px', borderTop: '1px solid var(--border)' }}>{children}</div>}
+    </div>
+  );
+}
+
+// URL entry with an Add button; accepted links show as removable tag bubbles.
+// Stored as a newline-joined string so it round-trips through the form data.
+function UrlTagField({ value, onChange }) {
+  const [url, setUrl] = useState('');
+  const links = String(value || '').split('\n').map(s => s.trim()).filter(Boolean);
+  const addUrl = () => {
+    const u = url.trim();
+    if (!u) return;
+    if (!links.some(l => l.toLowerCase() === u.toLowerCase())) onChange([...links, u].join('\n'));
+    setUrl('');
+  };
+  const remove = u => onChange(links.filter(l => l !== u).join('\n'));
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 6 }}>
+        <input style={{ ...inS, flex: 1 }} value={url} placeholder="Paste a URL…"
+          onChange={e => setUrl(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addUrl(); } }} />
+        <button type="button" onClick={addUrl}
+          style={{ background: 'rgba(90,191,128,0.14)', border: '1px solid #5ABF80', color: '#5ABF80', borderRadius: 6, padding: '0 14px', fontSize: 12, fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap' }}>Add</button>
+      </div>
+      {links.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+          {links.map(l => (
+            <a key={l} href={l.startsWith('http') ? l : `https://${l}`} target="_blank" rel="noreferrer"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, maxWidth: '100%', background: 'rgba(90,191,128,0.12)', border: '1px solid #5ABF80', color: '#5ABF80', borderRadius: 12, padding: '3px 9px', fontSize: 11, fontWeight: 700, textDecoration: 'none' }}>
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 170 }}>{l.replace(/^https?:\/\//, '')}</span>
+              <span onClick={e => { e.preventDefault(); remove(l); }} style={{ cursor: 'pointer', fontWeight: 800 }}>✕</span>
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Tag Unbridled crew members into a comma-joined text field (chips + search).
 function CrewTagField({ label, value, onChange, crew }) {
   const [q, setQ] = useState('');
@@ -132,7 +189,7 @@ export function HarbingerView({ harbinger, onClose }) {
 export default function HarbingerModal({ pid, initial, onClose, onSubmitted, solutionsOn = false }) {
   const [f, setF] = useState({
     email: '', clientCompany: '', projectName: '', proposedCode: '', solutionsCode: '',
-    sow: '', budgetSummary: '', clientContacts: '', contractSigned: false,
+    sow: '', budgetSummary: '', clientContacts: '', contractSigned: false, clientInfos: [], noShoot: false,
     primaryContactName: '', primaryContactEmail: '', mailingAddress: '', invoiceCc: '',
     mediaRevenue: '', capcoRevenue: '', mediaCommissionOwners: '', budgetOwner: '',
     mediaCommissionPct: '', solutionsCommissionOwners: '', noCommissions: false, solutionsCommissionPct: '',
@@ -145,6 +202,7 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted, sol
   });
   const [saving, setSaving] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);   // AI brief review before submit
+  const [contactModal, setContactModal] = useState(null); // client contact add/edit popout
   const set = k => e => setF(v => ({ ...v, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
   const setVal = (k, val) => setF(v => ({ ...v, [k]: val }));
 
@@ -162,11 +220,19 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted, sol
     if (user?.name) setF(v => v.budgetOwner ? v : { ...v, budgetOwner: user.name });
   }, [user]);
 
-  // If the prefill already carries commission data, open the matching toggles
+  // Prefill-driven defaults: open commission toggles, seed a Primary contact,
+  // and auto-select "No Shoot" when the budget has no production items.
   useEffect(() => {
     const hasMedia = !!(initial?.mediaCommissionOwners || initial?.mediaCommissionPct);
     const hasSol = !!(initial?.solutionsCommissionOwners || initial?.solutionsCommissionPct);
     if (hasMedia || hasSol) setF(v => ({ ...v, commissionable: true, mediaCommission: v.mediaCommission || hasMedia, solutionsCommission: v.solutionsCommission || hasSol }));
+    if (initial?.primaryContactName || initial?.primaryContactEmail) {
+      setF(v => v.clientInfos.length ? v : ({ ...v, clientInfos: [{ id: uid(), name: initial.primaryContactName || '', position: '', involvement: '', email: initial.primaryContactEmail || '', mailingAddress: initial.mailingAddress || '', isPrimary: true, invoicePoc: true }] }));
+    }
+    // No production positions/dates in the prefill → treat as a no-shoot project
+    if (initial && !((initial.budgetedPositions || '').trim() || (initial.productionDates || '').trim())) {
+      setF(v => ({ ...v, noShoot: true }));
+    }
   }, []);
 
   // Load crew roster + saved client contacts, and draft the SOW synopsis with AI
@@ -195,30 +261,60 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted, sol
   }, [contacts, f.clientCompany]);
   const [clientOpen, setClientOpen] = useState(false);
 
-  // When the typed company exactly matches a saved client, fill any empty
-  // contact fields (never clobbering values already entered/prefilled)
-  useEffect(() => {
-    if (!clientMatch) return;
-    setF(v => ({
-      ...v,
-      primaryContactName: v.primaryContactName || clientMatch.primary_contact_name || '',
-      primaryContactEmail: v.primaryContactEmail || clientMatch.primary_contact_email || '',
-      mailingAddress: v.mailingAddress || clientMatch.mailing_address || '',
-      clientContacts: v.clientContacts || clientMatch.contacts_note || '',
-    }));
-  }, [clientMatch]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Seed a Primary contact tile from a saved client's info (only when empty)
+  const seedFromClient = c => setF(v => {
+    if (v.clientInfos.length) return v;
+    if (!(c.primary_contact_name || c.primary_contact_email)) return v;
+    return { ...v, clientInfos: [{ id: uid(), name: c.primary_contact_name || '', position: '', involvement: '', email: c.primary_contact_email || '', mailingAddress: c.mailing_address || '', isPrimary: true, invoicePoc: true }] };
+  });
+
+  // When the typed company exactly matches a saved client, seed the primary contact
+  useEffect(() => { if (clientMatch) seedFromClient(clientMatch); }, [clientMatch]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function applyClient(c) {
-    setF(v => ({
-      ...v,
-      clientCompany: c.name || v.clientCompany,
-      primaryContactName: c.primary_contact_name || v.primaryContactName,
-      primaryContactEmail: c.primary_contact_email || v.primaryContactEmail,
-      mailingAddress: c.mailing_address || v.mailingAddress,
-      clientContacts: c.contacts_note || v.clientContacts,
-    }));
+    setF(v => ({ ...v, clientCompany: c.name || v.clientCompany }));
+    seedFromClient(c);
     setClientOpen(false);
   }
+
+  // Keep flat contract fields in sync with the contact tiles (source of truth)
+  useEffect(() => {
+    const primary = f.clientInfos.find(c => c.isPrimary) || f.clientInfos[0] || null;
+    const lines = f.clientInfos.map(c => {
+      let head = c.name + (c.position ? ` — ${c.position}` : '');
+      if (c.isPrimary) head += ' (Primary)';
+      if (c.invoicePoc) head += ' (Invoice POC)';
+      const bits = [head];
+      if (c.involvement) bits.push(`Involvement: ${c.involvement}`);
+      if (c.email) bits.push(c.email);
+      if (c.mailingAddress) bits.push(c.mailingAddress);
+      return bits.join('\n');
+    });
+    setF(v => ({ ...v, primaryContactName: primary?.name || '', primaryContactEmail: primary?.email || '', mailingAddress: primary?.mailingAddress || '', clientContacts: lines.join('\n\n') }));
+  }, [f.clientInfos]);
+
+  // Contact tile CRUD
+  function saveContact() {
+    const m = contactModal;
+    if (!m || !m.name.trim() || !m.email.trim()) { alert('Client Name and Email are required.'); return; }
+    setF(v => {
+      let list = [...v.clientInfos];
+      if (m.editId) list = list.map(c => c.id === m.editId ? { ...c, name: m.name.trim(), position: m.position.trim(), involvement: m.involvement.trim(), email: m.email.trim(), mailingAddress: m.mailingAddress.trim(), invoicePoc: !!m.invoicePoc } : c);
+      else list.push({ id: uid(), name: m.name.trim(), position: m.position.trim(), involvement: m.involvement.trim(), email: m.email.trim(), mailingAddress: m.mailingAddress.trim(), isPrimary: list.length === 0, invoicePoc: !!m.invoicePoc });
+      if (m.invoicePoc) { const keep = m.editId || list[list.length - 1].id; list = list.map(c => c.id === keep ? c : { ...c, invoicePoc: false }); }
+      return { ...v, clientInfos: list };
+    });
+    setContactModal(null);
+  }
+  function removeContact(id) {
+    setF(v => {
+      let list = v.clientInfos.filter(c => c.id !== id);
+      if (list.length && !list.some(c => c.isPrimary)) list = list.map((c, i) => i === 0 ? { ...c, isPrimary: true } : c);
+      return { ...v, clientInfos: list };
+    });
+  }
+  const setPrimary = id => setF(v => ({ ...v, clientInfos: v.clientInfos.map(c => ({ ...c, isPrimary: c.id === id })) }));
+  const setInvoicePoc = id => setF(v => ({ ...v, clientInfos: v.clientInfos.map(c => ({ ...c, invoicePoc: c.id === id })) }));
 
   // Contact search on the Primary Client Contact field — fills name/email/mailing
   const [contactOpen, setContactOpen] = useState(false);
@@ -252,8 +348,11 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted, sol
     } catch (e) { alert(e.message); }
   }
 
+  const hasPrimary = f.clientInfos.some(c => c.isPrimary);
+  const hasInvoicePoc = f.clientInfos.some(c => c.invoicePoc);
+  const videoRefCount = String(f.videoReferences || '').split('\n').filter(s => s.trim()).length;
   const ok = f.email && f.clientCompany && f.projectName && f.proposedCode && f.sow
-    && f.primaryContactName && f.primaryContactEmail && f.mailingAddress && f.invoiceCc
+    && f.clientInfos.length > 0 && hasPrimary && hasInvoicePoc && f.invoiceCc
     && f.mediaRevenue && f.budgetOwner && f.finalDelivery && f.closeMonth;
 
   async function submit() {
@@ -334,17 +433,23 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted, sol
           <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
         </div>
         <div style={{ display:'flex', flexDirection:'column', gap:12, marginTop:12 }}>
-          <div style={{ display:'flex', alignItems:'flex-end', gap:16, flexWrap:'wrap' }}>
-            <div style={{ ...secHead, flex:'0 0 auto', marginBottom:10 }}>Project</div>
-            <div style={{ display:'flex', gap:12, flex:1, minWidth:260, marginLeft:'auto' }}>
-              <div style={{ flex:1, minWidth:120 }}>{text('Proposed Code', 'proposedCode', true)}</div>
-              {solutionsOn && <div style={{ flex:1, minWidth:120 }}>{text('Existing Solutions / Client Code (If Applicable)', 'solutionsCode')}</div>}
-            </div>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, flexWrap:'wrap' }}>
+            <div style={{ ...secHead, flex:'0 0 auto', margin:0 }}>Project</div>
+            <button type="button" onClick={() => setF(v => ({ ...v, contractSigned: !v.contractSigned }))}
+              style={{ display:'flex', alignItems:'center', gap:8,
+                background: f.contractSigned ? 'rgba(90,191,128,0.16)' : 'var(--bg)',
+                border: `1px solid ${f.contractSigned ? '#5ABF80' : 'var(--border)'}`,
+                color: f.contractSigned ? '#5ABF80' : 'var(--text)',
+                borderRadius:8, padding:'7px 13px', fontSize:12, fontWeight:800, cursor:'pointer', transition:'all .15s ease' }}>
+              <span style={{ width:15, height:15, borderRadius:4, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:900,
+                border:`1px solid ${f.contractSigned ? '#5ABF80' : 'var(--muted)'}`, background: f.contractSigned ? '#5ABF80' : 'transparent', color:'#0d0c0a' }}>{f.contractSigned ? '✓' : ''}</span>
+              Contract / MSA Signed
+            </button>
           </div>
           {row(text('Your Email Address', 'email', true, 'Shows on the contract sent to the client.'),
             <div style={{ position:'relative' }}>
               <label style={lbl}>Client Company Name{req}</label>
-              <div style={hint}>Search the client roster to auto-fill saved contact info, or add a new client.</div>
+              <div style={hint}>Search client roster or add new</div>
               <input style={inS} value={f.clientCompany}
                 onChange={e => { setVal('clientCompany', e.target.value); setClientOpen(true); }}
                 onFocus={() => setClientOpen(true)}
@@ -363,10 +468,12 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted, sol
                   )}
                 </div>
               )}
-              {clientMatch && <div style={{ ...hint, color:'#5ABF80' }}>Saved client — contact info auto-filled below.</div>}
+              {clientMatch && <div style={{ ...hint, color:'#5ABF80' }}>Saved client — primary contact added below.</div>}
             </div>)}
           {row(text('Name of Project', 'projectName', true),
                budgetOwnerField)}
+          {row(text('Proposed Code', 'proposedCode', true),
+               solutionsOn ? text('Existing Solutions / Client Code (If Applicable)', 'solutionsCode') : <div />)}
           <div>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4 }}>
               <label style={{ ...lbl, marginBottom:0 }}>SOW & Project Description{req}</label>
@@ -381,34 +488,45 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted, sol
           {area('Budget Summary / Breakdown', 'budgetSummary', false, 'Optional — only if the client needs a budget breakdown on the contract. The total project estimate appears on the contract regardless.')}
 
           <div style={secHead}>Client</div>
-          {area('Client Contacts (Names, positions, involvement, who to send invoices to, etc…)', 'clientContacts')}
-          {check('Contract (or MSA) is Already Signed', 'contractSigned')}
-          {row(
-            <div style={{ position:'relative' }}>
-              <label style={lbl}>Primary Client Contact — Full Name{req}</label>
-              <div style={hint}>Search a saved contact to auto-fill email &amp; mailing address, or type a new one.</div>
-              <input style={inS} value={f.primaryContactName}
-                onChange={e => { setVal('primaryContactName', e.target.value); setContactOpen(true); }}
-                onFocus={() => setContactOpen(true)}
-                onBlur={() => setTimeout(() => setContactOpen(false), 150)} />
-              {contactOpen && contactSuggestions.length > 0 && (
-                <div style={{ position:'absolute', top:'100%', left:0, right:0, zIndex:140, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:7, marginTop:3, maxHeight:220, overflowY:'auto', boxShadow:'0 8px 22px rgba(0,0,0,0.5)' }}>
-                  {contactSuggestions.map(c => (
-                    <div key={c.id} onMouseDown={() => applyContact(c)} style={{ padding:'7px 10px', fontSize:13, cursor:'pointer', borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
-                      <div style={{ fontWeight:700 }}>{c.primary_contact_name}</div>
-                      <div style={{ color:'var(--muted)', fontSize:11 }}>{c.name}{c.primary_contact_email ? ` · ${c.primary_contact_email}` : ''}</div>
-                    </div>
-                  ))}
+          <div style={hint}>Add each client contact. At least one Primary contact is required, and one contact must be marked the Invoice POC.</div>
+          {f.clientInfos.length > 0 && (
+            <div style={{ display:'flex', flexWrap:'wrap', gap:10 }}>
+              {f.clientInfos.map(c => (
+                <div key={c.id} style={{ flex:'1 1 260px', minWidth:230, background:'var(--bg)', border:`1px solid ${c.invoicePoc ? '#5ABF80' : 'var(--border)'}`, borderRadius:9, padding:'11px 13px', position:'relative' }}>
+                  <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:5 }}>
+                    {c.isPrimary && <span style={{ fontSize:8.5, fontWeight:900, letterSpacing:'0.08em', color:'#a78bfa', border:'1px solid #a78bfa55', borderRadius:9, padding:'1px 7px' }}>PRIMARY</span>}
+                    {c.invoicePoc && <span style={{ fontSize:8.5, fontWeight:900, letterSpacing:'0.08em', color:'#5ABF80', border:'1px solid #5ABF8055', borderRadius:9, padding:'1px 7px' }}>INVOICE POC</span>}
+                  </div>
+                  <div style={{ fontSize:13, fontWeight:800 }}>{c.name}{c.position ? <span style={{ color:'var(--muted)', fontWeight:600, fontSize:11 }}> · {c.position}</span> : null}</div>
+                  {c.involvement && <div style={{ fontSize:11, color:'var(--muted)', marginTop:2 }}>{c.involvement}</div>}
+                  <div style={{ fontSize:11.5, color:'var(--tan)', marginTop:3 }}>{c.email}</div>
+                  {c.mailingAddress && <div style={{ fontSize:11, color:'var(--muted)', marginTop:2, whiteSpace:'pre-wrap' }}>{c.mailingAddress}</div>}
+                  <div style={{ display:'flex', gap:8, marginTop:9, flexWrap:'wrap', alignItems:'center' }}>
+                    {!c.isPrimary && <button type="button" onClick={() => setPrimary(c.id)} style={{ background:'none', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:12, padding:'2px 9px', fontSize:10, fontWeight:700, cursor:'pointer' }}>Make Primary</button>}
+                    {!c.invoicePoc && <button type="button" onClick={() => setInvoicePoc(c.id)} style={{ background:'none', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:12, padding:'2px 9px', fontSize:10, fontWeight:700, cursor:'pointer' }}>Set Invoice POC</button>}
+                    <button type="button" onClick={() => setContactModal({ editId:c.id, name:c.name, position:c.position, involvement:c.involvement, email:c.email, mailingAddress:c.mailingAddress, invoicePoc:c.invoicePoc })} style={{ background:'none', border:'none', color:'var(--muted)', fontSize:11, fontWeight:700, cursor:'pointer', padding:2 }}>Edit</button>
+                    <button type="button" onClick={() => removeContact(c.id)} style={{ background:'none', border:'none', color:'#e05252', fontSize:11, fontWeight:700, cursor:'pointer', padding:2, marginLeft:'auto' }}>Remove</button>
+                  </div>
                 </div>
-              )}
-            </div>,
-            text('Primary Client Contact — Email Address', 'primaryContactEmail', true))}
-          {text('Client/Company Mailing Address', 'mailingAddress', true)}
+              ))}
+            </div>
+          )}
+          {f.clientInfos.length > 0 && !hasInvoicePoc && (
+            <div style={{ ...hint, color:'#e6c229' }}>Mark one contact as the Invoice POC to continue.</div>
+          )}
+          <button type="button" onClick={() => setContactModal({ editId:null, name:'', position:'', involvement:'', email:'', mailingAddress:'', invoicePoc: f.clientInfos.length === 0 })}
+            style={{ alignSelf:'flex-start', background:'rgba(90,191,128,0.14)', border:'1px solid #5ABF80', color:'#5ABF80', borderRadius:8, padding:'9px 15px', fontSize:12.5, fontWeight:800, cursor:'pointer' }}>
+            + Add Client Info
+          </button>
           {text('Contract/Invoice CC', 'invoiceCc', true, 'Auto-filled with your email — anyone else who receives a copy of the contract or invoices.')}
 
           <div style={secHead}>Revenue & Commissions</div>
-          {row(text('Media Revenue (Total Budget minus CapCo Allocation)', 'mediaRevenue', true),
-               text('Capture Co Revenue Amount (If Applicable)', 'capcoRevenue'))}
+          {row(text('Media Budget (Total less CapCo Revenue)', 'mediaRevenue', true),
+               text('CapCo Revenue Amount (If Applicable)', 'capcoRevenue'),
+            <div>
+              <label style={lbl}>Total Budget</label>
+              <div style={{ ...inS, display:'flex', alignItems:'center', color:'var(--muted)', background:'rgba(255,255,255,0.03)' }}>{fmtUSD(num$(f.mediaRevenue) + num$(f.capcoRevenue))}</div>
+            </div>)}
 
           {/* Commissionable toggle — black by default, green with a check when on */}
           <button type="button"
@@ -441,29 +559,48 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted, sol
 
           <div style={secHead}>Creative & Kickoff</div>
           {text('Link to Budget', 'budgetLink')}
-          {area('Creative Direction Notes', 'creativeNotes')}
-          {text('Link to video references shared with client or that exemplify target creative', 'videoReferences')}
           {row(
-            <div>
-              <label style={lbl}>Client Kickoff Call Date?</label>
-              <input type="date" style={inS} value={f.kickoffDate} onChange={set('kickoffDate')} />
-            </div>,
-            text('Preferred PM(s)', 'preferredPm'))}
-          {text('Preferred Producer(s)/Director(s)', 'preferredProducer')}
+            <Collapsible title="Creative Direction Notes" summary={f.creativeNotes.trim() ? 'notes added' : 'add notes'}>
+              <textarea style={{ ...areaS, minHeight:120 }} value={f.creativeNotes} onChange={set('creativeNotes')} />
+            </Collapsible>,
+            <Collapsible title="Video Reference Links" summary={videoRefCount ? `${videoRefCount} link${videoRefCount !== 1 ? 's' : ''}` : 'add links'}>
+              <div style={hint}>Links shared with the client or that exemplify target creative.</div>
+              <UrlTagField value={f.videoReferences} onChange={val => setVal('videoReferences', val)} />
+            </Collapsible>)}
 
           <div style={secHead}>Production</div>
-          {area('All Budgeted Positions', 'budgetedPositions')}
-          {text('Shooting Location(s) (Enter NO SHOOT if applicable)', 'shootingLocations')}
-          {area('Gear Scope/Summary (Enter NO SHOOT if applicable)', 'gearScope')}
-          {area('Production and Travel Dates (all key shooting dates and anticipated crew travel dates)', 'productionDates')}
+          {/* No Shoot toggle — dark by default, red when on; grays the shoot logistics */}
+          <button type="button" onClick={() => setF(v => ({ ...v, noShoot: !v.noShoot }))}
+            style={{ alignSelf:'flex-start', display:'flex', alignItems:'center', gap:8,
+              background: f.noShoot ? 'rgba(224,82,82,0.16)' : 'var(--bg)',
+              border: `1px solid ${f.noShoot ? '#e05252' : 'var(--border)'}`,
+              color: f.noShoot ? '#e05252' : 'var(--text)',
+              borderRadius:8, padding:'8px 14px', fontSize:12.5, fontWeight:800, cursor:'pointer', transition:'all .15s ease' }}>
+            <span style={{ width:15, height:15, borderRadius:4, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:900,
+              border:`1px solid ${f.noShoot ? '#e05252' : 'var(--muted)'}`, background: f.noShoot ? '#e05252' : 'transparent', color:'#0d0c0a' }}>{f.noShoot ? '✓' : ''}</span>
+            No Shoot (If Applicable)
+          </button>
+          <div style={{ display:'flex', flexDirection:'column', gap:12, opacity: f.noShoot ? 0.4 : 1, pointerEvents: f.noShoot ? 'none' : 'auto', transition:'opacity .15s ease' }}>
+            {area('All Budgeted Positions', 'budgetedPositions')}
+            {row(text('Shooting Location(s)', 'shootingLocations'),
+                 area('Gear Scope/Summary', 'gearScope'))}
+            {area('Production and Travel Dates (all key shooting dates and anticipated crew travel dates)', 'productionDates')}
+          </div>
+          {row(
+            <CrewTagField label="Preferred PM(s)" value={f.preferredPm} onChange={val => setVal('preferredPm', val)} crew={crew} />,
+            <CrewTagField label="Preferred Producer(s)/Director(s)" value={f.preferredProducer} onChange={val => setVal('preferredProducer', val)} crew={crew} />)}
           {row(
             <CrewTagField label="Preferred Crew" value={f.preferredCrew} onChange={val => setVal('preferredCrew', val)} crew={crew} />,
             <CrewTagField label="Preferred Editor(s)" value={f.preferredEditors} onChange={val => setVal('preferredEditors', val)} crew={crew} />)}
           {area('Crew Preference Notes', 'crewNotes')}
           {row(yesNo('Pro Colorist Needed?', 'proColorist'), yesNo('Pro Audio Engineer Needed?', 'proAudio'))}
 
-          <div style={secHead}>Delivery & Close</div>
+          <div style={secHead}>Important Dates</div>
           {row(
+            <div>
+              <label style={lbl}>Client Kickoff Call Date?</label>
+              <input type="date" style={inS} value={f.kickoffDate} onChange={set('kickoffDate')} />
+            </div>,
             <div>
               <label style={lbl}>Estimated Final Delivery{req}</label>
               <input type="date" style={inS} value={f.finalDelivery} onChange={set('finalDelivery')} />
@@ -488,6 +625,38 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted, sol
             </button>
           </div>
         </div>
+
+        {/* Add / edit a client contact */}
+        {contactModal && (
+          <div onClick={e => e.target === e.currentTarget && setContactModal(null)}
+            style={{ position:'fixed', inset:0, zIndex:160, background:'rgba(0,0,0,0.82)', display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'40px 14px', overflowY:'auto' }}>
+            <div style={{ width:'100%', maxWidth:460, background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid #5ABF80', borderRadius:12, padding:'20px 22px' }}>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
+                <div style={{ fontSize:15, fontWeight:800 }}>{contactModal.editId ? 'Edit' : 'Add'} Client Contact</div>
+                <button className="btn btn-ghost btn-sm" onClick={() => setContactModal(null)}>✕</button>
+              </div>
+              <div style={{ display:'flex', flexDirection:'column', gap:11 }}>
+                <div><label style={lbl}>Client Name{req}</label><input style={inS} value={contactModal.name} onChange={e => setContactModal(m => ({ ...m, name: e.target.value }))} /></div>
+                <div style={{ display:'flex', gap:12 }}>
+                  <div style={{ flex:1 }}><label style={lbl}>Position <span style={{ color:'var(--muted)', fontWeight:400 }}>(Optional)</span></label><input style={inS} value={contactModal.position} onChange={e => setContactModal(m => ({ ...m, position: e.target.value }))} /></div>
+                  <div style={{ flex:1 }}><label style={lbl}>Involvement <span style={{ color:'var(--muted)', fontWeight:400 }}>(Optional)</span></label><input style={inS} value={contactModal.involvement} onChange={e => setContactModal(m => ({ ...m, involvement: e.target.value }))} /></div>
+                </div>
+                <div><label style={lbl}>Email{req}</label><input style={inS} value={contactModal.email} onChange={e => setContactModal(m => ({ ...m, email: e.target.value }))} /></div>
+                <div><label style={lbl}>Mailing Address</label><input style={inS} value={contactModal.mailingAddress} onChange={e => setContactModal(m => ({ ...m, mailingAddress: e.target.value }))} /></div>
+                <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:13, cursor:'pointer' }}>
+                  <input type="checkbox" checked={!!contactModal.invoicePoc} onChange={e => setContactModal(m => ({ ...m, invoicePoc: e.target.checked }))} style={{ width:'auto', margin:0 }} />
+                  <span>Invoice POC <span style={{ color:'var(--muted)', fontSize:11 }}>— receives invoices for this project</span></span>
+                </label>
+              </div>
+              <div style={{ display:'flex', justifyContent:'flex-end', gap:8, marginTop:16 }}>
+                <button className="btn btn-ghost btn-sm" onClick={() => setContactModal(null)}>Cancel</button>
+                <button onClick={saveContact} style={{ background:'#5ABF80', color:'#0b0b0b', border:'none', borderRadius:8, padding:'8px 18px', fontSize:13, fontWeight:800, cursor:'pointer' }}>
+                  {contactModal.editId ? 'Save' : 'Add Contact'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Full-Harbinger review before it goes out; the AI brief stays editable here */}
         {reviewOpen && (
