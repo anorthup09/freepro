@@ -540,7 +540,7 @@ function UserManagement({ user }) {
   useEffect(() => {
     api.getUsers().then(us => setPendingCount(us.filter(u => u.role === 'PENDING').length)).catch(() => {});
   }, []);
-  const ROLES = ['PENDING', 'CREW', 'AGENCY', 'CLIENT', 'FINANCE', 'PRODUCER', 'ADMIN'];
+  const ROLES = ['PENDING', 'CREW', 'AGENCY', 'FINANCE', 'PRODUCER', 'ADMIN'];
   const inviteBlurb = `You're invited to the Unbridled Operating Platform — budgets, call sheets, schedules, and post-production in one place.
 
 1. Go to ${window.location.origin}/login
@@ -885,7 +885,7 @@ function Automations() {
 const SCROLL_FADE = 'linear-gradient(to right, transparent 0, #000 16px, #000 calc(100% - 16px), transparent 100%)';
 
 // The AGENCY role is presented to users as "Solutions" everywhere it's shown.
-const roleLabel = r => r === 'AGENCY' ? 'Solutions' : r;
+const roleLabel = r => r === 'AGENCY' ? 'SOLUTIONS' : r;
 
 // Solutions role landing: a Project Hub scroll limited to projects whose budget
 // is tagged "Unbridled Solutions". Tiles open the project page (no finance).
@@ -903,12 +903,11 @@ function SolutionsHub() {
   const s = q.trim().toLowerCase();
   const shown = s ? list.filter(p => (p.code || '').toLowerCase().includes(s) || (p.title || '').toLowerCase().includes(s) || (p.client || '').toLowerCase().includes(s)) : list;
   return (
-    <div style={{ border:'1px solid var(--border)', borderRadius:12, marginBottom:22, overflow:'hidden' }}>
-      <div style={{ padding:'16px 18px', minWidth:0 }}>
-        <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:12 }}>
-          <div style={{ fontSize:13, fontWeight:800, whiteSpace:'nowrap' }}>Project Hub</div>
-          <span style={{ fontSize:9, fontWeight:800, color:'#a78bfa', border:'1px solid #a78bfa55', borderRadius:10, padding:'2px 8px', whiteSpace:'nowrap' }}>{label}</span>
-          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search code, title, client…" style={{ flex:1, minWidth:0 }} />
+    <div className="hub-hubs" style={{ gridTemplateColumns:'1fr' }}>
+      <div className="hub-hubtile hub-glow hub-anim-left" onMouseMove={glowMove} style={{ cursor:'default', paddingTop:16, minWidth:0 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:12 }}>
+          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search code, title, client…" style={{ flex:'0 0 34%', minWidth:160 }} />
+          <span style={{ fontSize:9, fontWeight:800, color:'var(--orange)', border:'1px solid rgba(232,80,10,0.4)', borderRadius:10, padding:'2px 8px', whiteSpace:'nowrap' }}>{label}</span>
         </div>
         {!projects && <div className="empty">Loading…</div>}
         {projects && shown.length === 0 && <div className="empty">No {isCrewRole ? '' : 'Solutions '}projects yet.</div>}
@@ -916,14 +915,14 @@ function SolutionsHub() {
           <div className="hub-scroll" style={{ display:'flex', gap:10, overflowX:'auto', paddingBottom:8, WebkitMaskImage:SCROLL_FADE, maskImage:SCROLL_FADE }}>
             {shown.map(p => (
               <div key={p.id} onClick={() => nav(`/project-view/${p.id}`)}
-                style={{ flex:'0 0 auto', width:180, background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid rgba(167,139,250,0.5)', borderRadius:10, padding:'11px 13px', cursor:'pointer', transition:'transform .15s ease' }}
+                style={{ flex:'0 0 auto', width:180, background:'var(--bg)', border:'1px solid var(--border)', borderTop:'3px solid rgba(232,80,10,0.55)', borderRadius:10, padding:'11px 13px', cursor:'pointer', transition:'transform .15s ease' }}
                 onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-3px)'}
                 onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
                 <div style={{ fontSize:10, fontWeight:800, color:'var(--muted)', letterSpacing:'0.04em' }}>{p.code}</div>
                 <div style={{ fontSize:12.5, fontWeight:800, margin:'3px 0 2px' }}>{p.title}</div>
                 <div style={{ fontSize:10.5, color:'var(--muted)' }}>{p.client}</div>
                 <div style={{ display:'flex', gap:5, marginTop:8, flexWrap:'wrap' }}>
-                  <span style={{ fontSize:9, fontWeight:800, color: STATUS_COLORS[p.budget_status] || '#5ABF80', border: `1px solid ${STATUS_COLORS[p.budget_status] || '#5ABF80'}55`, borderRadius:10, padding:'2px 8px' }}>{p.budget_status || 'No budget'}</span>
+                  <span style={{ fontSize:9, fontWeight:800, color: HUB_STATUS[p.budget_status] || '#a89a86', border: `1px solid ${(HUB_STATUS[p.budget_status] || '#a89a86')}55`, borderRadius:10, padding:'2px 8px' }}>{p.budget_status || 'No budget'}</span>
                   {(p.shoots || []).length > 0 && <span style={{ fontSize:9, fontWeight:800, color:'var(--orange)', border:'1px solid rgba(232,80,10,0.4)', borderRadius:10, padding:'2px 8px' }}>{p.shoots.length} shoot{p.shoots.length !== 1 ? 's' : ''}</span>}
                 </div>
               </div>
@@ -943,7 +942,7 @@ const glowMove = e => {
   e.currentTarget.style.setProperty('--gy', (e.clientY - r.top) + 'px');
 };
 
-function HubProjects({ onNewProject }) {
+function HubProjects({ onNewProject, finance }) {
   const nav = useNavigate();
   const [projects, setProjects] = useState(null);
   const [q, setQ] = useState('');
@@ -1024,13 +1023,13 @@ function HubProjects({ onNewProject }) {
     <div className="hub-hubs" style={{ gridTemplateColumns:'1fr' }}>
       <div className={`hub-hubtile hub-glow hub-anim-left${onProjects ? '' : ' neutral'}`} onMouseMove={glowMove} style={{ cursor:'default', paddingTop:16, minWidth:0 }}>
         <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:12 }}>
-          {onNewProject && <NewProjectPill onClick={onNewProject} />}
+          {onNewProject && !finance && <NewProjectPill onClick={onNewProject} />}
           {onProjects
             ? <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search code, title, client…" style={{ flex:1, minWidth:0 }} />
             : <input value={cq} onChange={e => setCq(e.target.value)} placeholder="Search clients…" style={{ flex:1, minWidth:0 }} />}
-          <HubSwitchPill label={onProjects ? 'Client Hub' : 'Project Hub'} neutral={onProjects}
-            onClick={doSwitch} />
-          <HubAppMenu />
+          {!finance && <HubSwitchPill label={onProjects ? 'Client Hub' : 'Project Hub'} neutral={onProjects}
+            onClick={doSwitch} />}
+          {!finance && <HubAppMenu />}
         </div>
         <div key={flips}>
           {onProjects ? projectList : clientList}
@@ -1549,17 +1548,7 @@ export default function Hub() {
   const isCrew = ['CREW','AGENCY'].includes(user?.role);
   const isFinance = user?.role === 'FINANCE';
   const [showNewProject, setShowNewProject] = useState(false);
-  // Team Management sits below as a constant, elongated tile
-  const teamTile = TILES.find(t => t.key === 'team');
   const isAgency = user?.role === 'AGENCY';
-  const opsTiles = isAgency
-    ? TILES.filter(t => t.key !== 'profi' && t.key !== 'team')
-    : isCrew
-    ? TILES.filter(t => t.key !== 'profi' && t.key !== 'team').map(t => t.key === 'freepro' ? { ...t, to: '/crew-views', tagline: 'Crew Views' } : t)
-    : isFinance
-    ? TILES.filter(t => t.key === 'profi')
-    : TILES.filter(t => t.key !== 'team');
-  const tiles = opsTiles;
 
   return (
     <div style={{ minHeight:'100vh', background:'var(--bg)', display:'flex', flexDirection:'column', position:'relative' }}>
@@ -1591,43 +1580,7 @@ export default function Hub() {
             {/* Solutions + Crew both get the project-scroll dashboard (all projects, no finance) */}
             {isCrew && <SolutionsHub />}
             {!isAgency && !isCrew && !isFinance && <HubProjects onNewProject={() => setShowNewProject(true)} />}
-            {!isCrew && isFinance && (
-            <div className="hub-tiles" style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(260px, 1fr))', gap:16 }}>
-              {tiles.map(t => {
-                const clickable = !!t.to;
-                return (
-                  <div key={t.key}
-                    onClick={() => clickable && nav(t.to)}
-                    style={{
-                      background:'var(--bg2)', border:'1px solid var(--border)', borderTop:`3px solid ${t.accent}`,
-                      borderRadius:12, padding:'26px 24px 22px', cursor: clickable ? 'pointer' : 'default',
-                      opacity: clickable ? 1 : 0.65, transition:'transform .15s ease, border-color .15s ease',
-                      display:'flex', flexDirection:'column', minHeight:200,
-                    }}
-                    onMouseEnter={e => { if (clickable) e.currentTarget.style.transform = 'translateY(-3px)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.transform = 'none'; }}
-                  >
-                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
-                      <div style={{ width:40, height:40, borderRadius:10, background:`${t.accent}22`, color:t.accent, display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, fontWeight:800 }}>
-                        {t.icon}
-                      </div>
-                      {t.status && (
-                        <span style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:t.accent, border:`1px solid ${t.accent}55`, borderRadius:20, padding:'3px 10px' }}>
-                          {t.status}
-                        </span>
-                      )}
-                    </div>
-                    <div style={{ fontSize:17, fontWeight:800 }}>
-                      {t.em ? <>Free<em style={{ color:'var(--orange)', fontStyle:'normal' }}>Pro</em></> : t.title}
-                    </div>
-                    <div style={{ fontSize:10, color:t.accent, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', margin:'3px 0 10px' }}>{t.tagline}</div>
-                    <div style={{ fontSize:12, color:'var(--muted)', lineHeight:1.55, flex:1 }}>{t.desc}</div>
-                    {clickable && <div style={{ fontSize:11, color:t.accent, fontWeight:600, marginTop:14 }}>Open →</div>}
-                  </div>
-                );
-              })}
-            </div>
-            )}
+            {isFinance && <HubProjects finance />}
 
             <Reveal><HubDashboard /></Reveal>
           </div>
@@ -1678,7 +1631,7 @@ function AdminPanel({ user }) {
               onChange={e => setPreview(e.target.value)}
               style={{ width:'100%', fontSize:12, padding:'6px 8px', borderRadius:8, background:'var(--bg)', color: preview ? '#a78bfa' : 'var(--muted)', border:`1px solid ${preview ? '#a78bfa' : 'var(--border)'}`, marginBottom:12 }}>
               <option value="">View as… (off)</option>
-              {['PRODUCER', 'FINANCE', 'CREW', 'AGENCY', 'CLIENT'].map(r => <option key={r} value={r}>View as {roleLabel(r)}</option>)}
+              {['PRODUCER', 'FINANCE', 'CREW', 'AGENCY'].map(r => <option key={r} value={r}>View as {roleLabel(r)}</option>)}
             </select>
             <button className="btn btn-ghost btn-sm" style={{ width:'100%' }} onClick={backup}
               title="Download a full database backup (all projects, budgets, contracts, roster)">⬇ Backup Database</button>
