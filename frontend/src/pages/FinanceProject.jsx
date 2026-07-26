@@ -1009,9 +1009,16 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
                 )}
               </div>
             </div>
-            <div className="budget-tbl-wrap">
+            <div className={mobile ? 'budget-tbl-wrap budget-tbl-wrap--condensed' : 'budget-tbl-wrap'}>
             <table style={{ width:'100%', borderCollapse:'collapse' }}>
               <thead>
+                {mobile ? (
+                  <tr style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', textAlign:'left' }}>
+                    <th style={{ padding:'6px 6px 6px 14px' }}>Scope of Work</th>
+                    <th style={{ width:34 }}></th>
+                    <th style={{ padding:6, textAlign:'right', width:96 }}>Total</th>
+                  </tr>
+                ) : (
                 <tr style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', textAlign:'left' }}>
                   <th style={{ padding:'6px 6px 6px 14px', width:'30%' }}>Scope of Work</th>
                   <th style={{ padding:6 }}>Notes</th>
@@ -1020,17 +1027,18 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
                   <th style={{ padding:6, textAlign:'right', width:100 }}>Subtotal</th>
                   <th style={{ width:34 }}></th>
                 </tr>
+                )}
               </thead>
               <tbody>
                 {sec.kind === 'shoot' && shownMain.length > 0 && (
-                  <tr><td colSpan={4} style={{ padding:'6px 6px 2px 14px', fontSize:9, color:'var(--tan)', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em' }}>Labor</td>
-                    <td style={{ textAlign:'right', padding:'6px 6px 2px', fontSize:10, color:'var(--tan)', fontWeight:700 }}></td><td/></tr>
+                  <tr><td colSpan={mobile ? 3 : 4} style={{ padding:'6px 6px 2px 14px', fontSize:9, color:'var(--tan)', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em' }}>Labor</td>
+                    {!mobile && <><td style={{ textAlign:'right', padding:'6px 6px 2px', fontSize:10, color:'var(--tan)', fontWeight:700 }}></td><td/></>}</tr>
                 )}
-                {shownMain.map(l => <LineRow key={l.id} l={l} secLines={secLines} patchLine={patchLine} saveLine={saveLine} delLine={delLine} dupLine={dupLine} dragCtl={dragCtl} />)}
+                {shownMain.map(l => <LineRow key={l.id} l={l} secLines={secLines} patchLine={patchLine} saveLine={saveLine} delLine={delLine} dupLine={dupLine} dragCtl={dragCtl} mobile={mobile} />)}
                 {sec.kind === 'shoot' && (
                   <tr>
-                    <td colSpan={6} style={{ padding:'6px 6px 6px 14px' }}>
-                      <select value="" style={{ fontSize:11, width:240, color:'#5ABF80', border:'1px dashed rgba(90,191,128,0.45)', background:'transparent', borderRadius:6, padding:'4px 8px' }}
+                    <td colSpan={mobile ? 3 : 6} style={{ padding:'6px 6px 6px 14px' }}>
+                      <select value="" style={{ fontSize:11, width: mobile ? '100%' : 240, maxWidth:280, color:'#5ABF80', border:'1px dashed rgba(90,191,128,0.45)', background:'transparent', borderRadius:6, padding:'4px 8px' }}
                         onChange={e => addPosition(e.target.value)}>
                         <option value="">+ Add Position…</option>
                         {isCollapsed
@@ -1046,21 +1054,21 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
                 )}
                 {sec.kind === 'shoot' && (
                   <tr>
-                    <td colSpan={4} style={{ padding:'6px 6px 6px 14px', fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.06em', color:'#5ABF80', borderBottom:'1px solid rgba(90,191,128,0.5)' }}>Labor Subtotal</td>
+                    <td colSpan={mobile ? 2 : 4} style={{ padding:'6px 6px 6px 14px', fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.06em', color:'#5ABF80', borderBottom:'1px solid rgba(90,191,128,0.5)' }}>Labor Subtotal</td>
                     <td style={{ padding:'6px 10px 6px 6px', textAlign:'right', fontSize:12, fontWeight:800, color:'#5ABF80', borderBottom:'1px solid rgba(90,191,128,0.5)' }}>{fmt$(mainTotal)}</td>
-                    <td style={{ borderBottom:'1px solid rgba(90,191,128,0.5)' }} />
+                    {!mobile && <td style={{ borderBottom:'1px solid rgba(90,191,128,0.5)' }} />}
                   </tr>
                 )}
                 {travel.length > 0 && (
-                  <tr><td colSpan={4} style={{ padding:'6px 6px 2px 14px', fontSize:9, color:'var(--tan)', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em' }}>Travel</td>
-                    <td style={{ textAlign:'right', padding:'6px 6px 2px', fontSize:10, color:'var(--tan)', fontWeight:700 }}></td><td/></tr>
+                  <tr><td colSpan={mobile ? 3 : 4} style={{ padding:'6px 6px 2px 14px', fontSize:9, color:'var(--tan)', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em' }}>Travel</td>
+                    {!mobile && <><td style={{ textAlign:'right', padding:'6px 6px 2px', fontSize:10, color:'var(--tan)', fontWeight:700 }}></td><td/></>}</tr>
                 )}
-                {travel.map(l => <LineRow key={l.id} l={l} secLines={secLines} patchLine={patchLine} saveLine={saveLine} delLine={delLine} dupLine={dupLine} dragCtl={dragCtl} />)}
+                {travel.map(l => <LineRow key={l.id} l={l} secLines={secLines} patchLine={patchLine} saveLine={saveLine} delLine={delLine} dupLine={dupLine} dragCtl={dragCtl} mobile={mobile} />)}
                 {sec.kind === 'shoot' && (
                   <tr>
-                    <td colSpan={6} style={{ padding:'6px 6px 6px 14px' }}>
+                    <td colSpan={mobile ? 3 : 6} style={{ padding:'6px 6px 6px 14px' }}>
                       <button onClick={() => addLine(sec.id, true)}
-                        style={{ fontSize:11, width:240, textAlign:'left', color:'#5ABF80', border:'1px dashed rgba(90,191,128,0.45)', background:'transparent', borderRadius:6, padding:'4px 8px', cursor:'pointer' }}>
+                        style={{ fontSize:11, width: mobile ? '100%' : 240, maxWidth:280, textAlign:'left', color:'#5ABF80', border:'1px dashed rgba(90,191,128,0.45)', background:'transparent', borderRadius:6, padding:'4px 8px', cursor:'pointer' }}>
                         + Travel Line…
                       </button>
                     </td>
@@ -1068,9 +1076,9 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
                 )}
                 {travel.length > 0 && (
                   <tr>
-                    <td colSpan={4} style={{ padding:'6px 6px 6px 14px', fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.06em', color:'#5ABF80', borderBottom:'1px solid rgba(90,191,128,0.5)' }}>Travel Subtotal</td>
+                    <td colSpan={mobile ? 2 : 4} style={{ padding:'6px 6px 6px 14px', fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.06em', color:'#5ABF80', borderBottom:'1px solid rgba(90,191,128,0.5)' }}>Travel Subtotal</td>
                     <td style={{ padding:'6px 10px 6px 6px', textAlign:'right', fontSize:12, fontWeight:800, color:'#5ABF80', borderBottom:'1px solid rgba(90,191,128,0.5)' }}>{fmt$(travelTotal)}</td>
-                    <td style={{ borderBottom:'1px solid rgba(90,191,128,0.5)' }} />
+                    {!mobile && <td style={{ borderBottom:'1px solid rgba(90,191,128,0.5)' }} />}
                   </tr>
                 )}
               </tbody>
@@ -1145,11 +1153,84 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
   );
 }
 
-function LineRow({ l, secLines, patchLine, saveLine, delLine, dupLine, dragCtl }) {
+// Popout shown when a mobile line's "+" is tapped: the full detail (notes,
+// hrs/days, unit cost, subtotal) that the desktop table shows across columns,
+// plus duplicate/delete — so phones can keep the row itself to just item + total.
+function LineDetailModal({ l, st, patchLine, saveLine, delLine, dupLine, onClose }) {
+  const isPct = l.percent != null;
+  const field = (label, node) => (
+    <div style={{ marginBottom:12 }}>
+      <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', display:'block', marginBottom:4 }}>{label}</label>
+      {node}
+    </div>
+  );
+  return (
+    <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:260, background:'rgba(0,0,0,0.72)', display:'flex', alignItems:'flex-end', justifyContent:'center' }}>
+      <div onClick={e => e.stopPropagation()} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid #5ABF80', borderRadius:'14px 14px 0 0', width:'100%', maxWidth:520, maxHeight:'86vh', overflowY:'auto', padding:'18px 18px 26px' }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
+          <div style={{ fontSize:15, fontWeight:800 }}>{l.scope || 'Line details'}</div>
+          <button onClick={onClose} style={{ background:'none', border:'none', color:'var(--muted)', fontSize:18, cursor:'pointer' }}>✕</button>
+        </div>
+        {field('Scope of Work', <input value={l.scope || ''} style={{ width:'100%', fontSize:13, boxSizing:'border-box' }}
+          onChange={e => patchLine(l.id, { scope: e.target.value })} onBlur={e => saveLine(l.id, { scope: e.target.value })} />)}
+        {field('Notes', <input value={l.notes || ''} style={{ width:'100%', fontSize:12, boxSizing:'border-box' }}
+          onChange={e => patchLine(l.id, { notes: e.target.value })} onBlur={e => saveLine(l.id, { notes: e.target.value })} />)}
+        <div style={{ display:'flex', gap:14 }}>
+          <div style={{ flex:1 }}>{field('Hrs/Days', isPct
+            ? <button type="button"
+                onClick={() => { const q = num(l.qty) > 0 ? 0 : 1; patchLine(l.id, { qty: q }); saveLine(l.id, { qty: q }); }}
+                style={{ background: num(l.qty) > 0 ? 'rgba(90,191,128,0.15)' : 'transparent', border:'1px solid ' + (num(l.qty) > 0 ? '#5ABF80' : 'var(--border)'), color: num(l.qty) > 0 ? '#5ABF80' : 'var(--muted)', borderRadius:20, padding:'5px 14px', fontSize:10, fontWeight:800, letterSpacing:'0.05em', textTransform:'uppercase', cursor:'pointer' }}>
+                {num(l.qty) > 0 ? '✓ On' : 'Off'}
+              </button>
+            : <input type="number" step={l.is_travel ? '1' : '0.5'} value={l.qty ?? 0} style={{ width:'100%', fontSize:13, textAlign:'right', boxSizing:'border-box' }}
+                onChange={e => patchLine(l.id, { qty: e.target.value })}
+                onBlur={e => { const v = l.is_travel ? String(Math.round(num(e.target.value))) : e.target.value; if (v !== e.target.value) patchLine(l.id, { qty: v }); saveLine(l.id, { qty: v }); }} />)}
+          </div>
+          <div style={{ flex:1 }}>{field('Unit Cost', isPct
+            ? <div style={{ fontSize:12, color:'var(--muted)', padding:'6px 0' }}>{Math.round(l.percent * 100)}% of section</div>
+            : <MoneyInput value={l.unit_cost ?? 0} width={'100%'} onCommit={v => { patchLine(l.id, { unit_cost: v }); saveLine(l.id, { unitCost: v }); }} />)}
+          </div>
+        </div>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', borderTop:'1px solid var(--border)', marginTop:6, paddingTop:14 }}>
+          <span style={{ fontSize:11, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Subtotal</span>
+          <span style={{ fontSize:18, fontWeight:800, color: st ? '#5ABF80' : 'var(--muted)' }}>{st ? fmt$(st) : '—'}</span>
+        </div>
+        <div style={{ display:'flex', gap:10, marginTop:18, alignItems:'center' }}>
+          {dupLine && <button className="btn btn-ghost btn-sm" onClick={() => { dupLine(l); onClose(); }}>+ Duplicate</button>}
+          <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text)', marginLeft:'auto' }} onClick={() => { delLine(l.id); onClose(); }}>✕ Delete line</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LineRow({ l, secLines, patchLine, saveLine, delLine, dupLine, dragCtl, mobile }) {
   const st = lineSubtotal(l, secLines);
   const [hover, setHover] = useState(false);
   const [over, setOver] = useState(false);
+  const [open, setOpen] = useState(false);   // mobile detail popout
   const hoverBtn = { background:'none', border:'none', cursor:'pointer', padding:0, flexShrink:0, opacity: hover ? 1 : 0, transition:'opacity .12s ease' };
+
+  // Mobile: condense to [scope] · [+ expand] · [total]; everything else moves
+  // into the popout so the row never needs horizontal scrolling.
+  if (mobile) {
+    return (
+      <tr style={{ borderTop:'1px solid rgba(255,255,255,0.05)' }}>
+        <td style={{ padding:'5px 4px 5px 14px' }}>
+          <input value={l.scope || ''} style={{ ...cellIn, fontSize:12.5 }}
+            onChange={e => patchLine(l.id, { scope: e.target.value })}
+            onBlur={e => saveLine(l.id, { scope: e.target.value })} />
+        </td>
+        <td style={{ textAlign:'center', width:34 }}>
+          <button type="button" title="Expand line details" onClick={() => setOpen(true)}
+            style={{ width:26, height:26, borderRadius:8, background:'rgba(90,191,128,0.14)', border:'1px solid rgba(90,191,128,0.5)', color:'#5ABF80', fontSize:16, fontWeight:800, lineHeight:1, cursor:'pointer' }}>+</button>
+          {open && <LineDetailModal l={l} st={st} patchLine={patchLine} saveLine={saveLine} delLine={delLine} dupLine={dupLine} onClose={() => setOpen(false)} />}
+        </td>
+        <td style={{ padding:'5px 12px 5px 6px', textAlign:'right', fontSize:12.5, fontWeight:700, color: st ? 'var(--text)' : 'var(--muted)', whiteSpace:'nowrap' }}>{st ? fmt$(st) : '—'}</td>
+      </tr>
+    );
+  }
+
   return (
     <tr style={{ borderTop: over ? '2px solid #5ABF80' : '1px solid rgba(255,255,255,0.03)' }}
       onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}

@@ -657,6 +657,9 @@ textarea { resize: vertical; min-height: 70px; }
 .tbl-col-grip:hover::after { background: #9DC183; width: 3px; }
 @media (max-width: 700px) {
   .budget-tbl-wrap table { min-width: 620px; }
+  /* Condensed line-item layout (item · + · total) fits the screen, so it must
+     not inherit the 620px scroll width used by the full desktop-column table. */
+  .budget-tbl-wrap--condensed table { min-width: 0; }
   .fp-actions { width: 100%; align-items: stretch !important; }
   .fp-actions > div { justify-content: flex-start !important; }
   .fp-actions > button { width: 100%; }
