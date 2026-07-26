@@ -154,6 +154,55 @@ const FIELD_LABELS = [
   ['closeMonth', 'Estimated Close Month'], ['notes', 'Notes'],
 ];
 
+// Wizard steps, in order — drive the top tabs + the left progress panel
+const STEPS = [
+  { id: 'project',    label: 'Project' },
+  { id: 'client',     label: 'Client' },
+  { id: 'revenue',    label: 'Revenue / Commissions' },
+  { id: 'creative',   label: 'Creative' },
+  { id: 'production',  label: 'Production / Crew' },
+  { id: 'dates',      label: 'Key Dates' },
+];
+// One descriptor per field on a step: { req, filled } → drives the dots
+function stepFieldsFor(id, f, solutionsOn) {
+  const b = v => !!(typeof v === 'string' ? v.trim() : v);
+  switch (id) {
+    case 'project': return [
+      { req: true, filled: b(f.email) }, { req: true, filled: b(f.clientCompany) }, { req: true, filled: b(f.projectName) },
+      { req: true, filled: b(f.budgetOwner) }, { req: true, filled: b(f.proposedCode) },
+      ...(solutionsOn ? [{ req: false, filled: b(f.solutionsCode) }] : []),
+      { req: false, filled: b(f.contractSigned) }, { req: true, filled: b(f.sow) }, { req: false, filled: b(f.budgetSummary) },
+    ];
+    case 'client': return [
+      { req: true, filled: f.clientInfos.length > 0 && f.clientInfos.some(c => c.isPrimary) },
+      { req: true, filled: f.clientInfos.some(c => c.invoicePoc) },
+      { req: true, filled: b(f.invoiceCc) },
+    ];
+    case 'revenue': return [
+      { req: true, filled: b(f.mediaRevenue) }, { req: false, filled: b(f.capcoRevenue) },
+      ...(f.commissionable && f.mediaCommission ? [{ req: false, filled: b(f.mediaCommissionOwners) }, { req: false, filled: b(f.mediaCommissionPct) }] : []),
+      ...(f.commissionable && f.solutionsCommission ? [{ req: false, filled: b(f.solutionsCommissionOwners) }, { req: false, filled: b(f.solutionsCommissionPct) }] : []),
+    ];
+    case 'creative': return [
+      { req: false, filled: b(f.budgetLink) }, { req: false, filled: b(f.creativeNotes) }, { req: false, filled: b(f.videoReferences) },
+    ];
+    case 'production': return (f.noShoot ? [] : [
+      { req: false, filled: b(f.budgetedPositions) }, { req: false, filled: b(f.shootingLocations) },
+      { req: false, filled: b(f.gearScope) }, { req: false, filled: b(f.productionDates) },
+    ]).concat([
+      { req: false, filled: b(f.preferredPm) }, { req: false, filled: b(f.preferredProducer) },
+      { req: false, filled: b(f.preferredCrew) }, { req: false, filled: b(f.preferredEditors) },
+      { req: false, filled: b(f.crewNotes) }, { req: false, filled: b(f.proColorist) }, { req: false, filled: b(f.proAudio) },
+    ]);
+    case 'dates': return [
+      { req: false, filled: b(f.kickoffDate) }, { req: true, filled: b(f.finalDelivery) }, { req: true, filled: b(f.closeMonth) },
+    ];
+    default: return [];
+  }
+}
+// Dot color: filled → orange, required-but-skipped → red, otherwise gray
+const dotColor = (fld, attempted) => fld.filled ? '#e8500a' : (fld.req && attempted ? '#e05252' : '#4a453e');
+
 // Read-only view of a submitted Harbinger
 export function HarbingerView({ harbinger, onClose }) {
   const d = harbinger.data || {};
@@ -351,6 +400,22 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted, sol
   const hasPrimary = f.clientInfos.some(c => c.isPrimary);
   const hasInvoicePoc = f.clientInfos.some(c => c.invoicePoc);
   const videoRefCount = String(f.videoReferences || '').split('\n').filter(s => s.trim()).length;
+
+  // Wizard navigation
+  const [step, setStep] = useState(0);
+  const [attempted, setAttempted] = useState(() => new Set());
+  const isReview = step >= STEPS.length;
+  const stepFields = id => stepFieldsFor(id, f, solutionsOn);
+  const markAttempted = i => setAttempted(s => new Set(s).add(i));
+  const goTab = i => { markAttempted(step); setStep(i); };
+  const goNext = () => { markAttempted(step); setStep(s => Math.min(s + 1, STEPS.length - 1)); };
+  const firstIncomplete = () => STEPS.findIndex(s => stepFields(s.id).some(fl => fl.req && !fl.filled));
+  const goReview = () => {
+    setAttempted(new Set(STEPS.map((_, i) => i)));
+    const inc = firstIncomplete();
+    setStep(inc >= 0 ? inc : STEPS.length);
+  };
+  const arrowBtn = { display: 'inline-flex', alignItems: 'center', gap: 8, background: '#5ABF80', color: '#0b0b0b', border: 'none', borderRadius: 9, padding: '10px 20px', fontSize: 13, fontWeight: 800, cursor: 'pointer' };
   const ok = f.email && f.clientCompany && f.projectName && f.proposedCode && f.sow
     && f.clientInfos.length > 0 && hasPrimary && hasInvoicePoc && f.invoiceCc
     && f.mediaRevenue && f.budgetOwner && f.finalDelivery && f.closeMonth;
@@ -422,19 +487,63 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted, sol
 
   return (
     <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.75)', zIndex:130, display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'30px 14px', overflowY:'auto' }}>
-      <div onClick={e => e.stopPropagation()} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid #5ABF80', borderRadius:12, padding:'22px 26px', width:'100%', maxWidth:720 }}>
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:4 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid #5ABF80', borderRadius:12, padding:'22px 26px', width:'100%', maxWidth:820 }}>
+        <style>{`@keyframes hbPulse{0%,100%{box-shadow:0 0 0 0 rgba(90,191,128,0.55)}50%{box-shadow:0 0 0 12px rgba(90,191,128,0)}}.hb-pulse{animation:hbPulse 1.8s ease-in-out infinite}`}</style>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:12 }}>
           <div>
             <div style={{ fontSize:18, fontWeight:800 }}>Harbinger — Project Initiation</div>
             <div style={{ fontSize:11, color:'var(--muted)', marginTop:3 }}>
-              Kicks off the project internally and notifies accounting to open the project code. Submitting moves this budget to <b style={{ color:'#5ABF80' }}>Live</b>.
+              {isReview ? <>Review everything below, then <b style={{ color:'#5ABF80' }}>go live</b>.</> : <>Kicks off the project internally and notifies accounting to open the project code.</>}
             </div>
           </div>
           <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
         </div>
-        <div style={{ display:'flex', flexDirection:'column', gap:12, marginTop:12 }}>
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, flexWrap:'wrap' }}>
-            <div style={{ ...secHead, flex:'0 0 auto', margin:0 }}>Project</div>
+        {/* Top progress tabs */}
+        <div style={{ display:'flex', gap:2, flexWrap:'wrap', borderBottom:'1px solid var(--border)', paddingBottom:12, marginBottom:4 }}>
+          {STEPS.map((s, i) => {
+            const done = !stepFields(s.id).some(fl => fl.req && !fl.filled);
+            const cur = i === step && !isReview;
+            return (
+              <button key={s.id} type="button" onClick={() => goTab(i)}
+                style={{ display:'flex', alignItems:'center', gap:6, background:'none', border:'none', cursor:'pointer', padding:'4px 8px', borderRadius:8,
+                  color: cur ? 'var(--orange)' : 'var(--muted)', fontWeight: cur ? 800 : 600, fontSize:12, whiteSpace:'nowrap' }}>
+                <span style={{ width:19, height:19, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:800, flexShrink:0,
+                  background: cur ? 'var(--orange)' : (done ? 'rgba(90,191,128,0.18)' : 'var(--bg)'),
+                  color: cur ? '#fff' : (done ? '#5ABF80' : 'var(--muted)'),
+                  border: `1px solid ${cur ? 'var(--orange)' : (done ? '#5ABF8055' : 'var(--border)')}` }}>{done && !cur ? '✓' : i + 1}</span>
+                {s.label}
+              </button>
+            );
+          })}
+        </div>
+        <div style={{ display:'flex', gap:20, marginTop:14, alignItems:'flex-start' }}>
+          {/* Left progress panel — dots for the current step (condensed on review) */}
+          <div style={{ flex:`0 0 ${isReview ? 128 : 182}px`, transition:'flex-basis .2s ease' }}>
+            {STEPS.map((s, i) => {
+              const active = i === step && !isReview;
+              return (
+                <div key={s.id} style={{ marginBottom: active ? 12 : 9 }}>
+                  <button type="button" onClick={() => goTab(i)}
+                    style={{ background:'none', border:'none', cursor:'pointer', padding:0, textAlign:'left', fontSize:12,
+                      color: i === step && !isReview ? 'var(--text)' : 'var(--muted)', fontWeight: i === step && !isReview ? 800 : 600 }}>
+                    {s.label}
+                  </button>
+                  {active && (
+                    <div style={{ display:'flex', gap:5, flexWrap:'wrap', marginTop:7 }}>
+                      {stepFields(s.id).map((fld, di) => (
+                        <span key={di} style={{ width:9, height:9, borderRadius:'50%', background: dotColor(fld, attempted.has(i)), transition:'background .2s ease' }} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Step content */}
+          <div style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', gap:12 }}>
+          {step === 0 && (<>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'flex-end', gap:16, flexWrap:'wrap' }}>
             <button type="button" onClick={() => setF(v => ({ ...v, contractSigned: !v.contractSigned }))}
               style={{ display:'flex', alignItems:'center', gap:8,
                 background: f.contractSigned ? 'rgba(90,191,128,0.16)' : 'var(--bg)',
@@ -487,7 +596,8 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted, sol
           </div>
           {area('Budget Summary / Breakdown', 'budgetSummary', false, 'Optional — only if the client needs a budget breakdown on the contract. The total project estimate appears on the contract regardless.')}
 
-          <div style={secHead}>Client</div>
+          </>)}
+          {step === 1 && (<>
           <div style={hint}>Add each client contact. At least one Primary contact is required, and one contact must be marked the Invoice POC.</div>
           {f.clientInfos.length > 0 && (
             <div style={{ display:'flex', flexWrap:'wrap', gap:10 }}>
@@ -520,7 +630,8 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted, sol
           </button>
           {text('Contract/Invoice CC', 'invoiceCc', true, 'Auto-filled with your email — anyone else who receives a copy of the contract or invoices.')}
 
-          <div style={secHead}>Revenue & Commissions</div>
+          </>)}
+          {step === 2 && (<>
           {row(text('Media Budget (Total less CapCo Revenue)', 'mediaRevenue', true),
                text('CapCo Revenue Amount (If Applicable)', 'capcoRevenue'),
             <div>
@@ -557,7 +668,8 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted, sol
             </div>
           )}
 
-          <div style={secHead}>Creative & Kickoff</div>
+          </>)}
+          {step === 3 && (<>
           {text('Link to Budget', 'budgetLink')}
           {row(
             <Collapsible title="Creative Direction Notes" summary={f.creativeNotes.trim() ? 'notes added' : 'add notes'}>
@@ -568,7 +680,8 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted, sol
               <UrlTagField value={f.videoReferences} onChange={val => setVal('videoReferences', val)} />
             </Collapsible>)}
 
-          <div style={secHead}>Production</div>
+          </>)}
+          {step === 4 && (<>
           {/* No Shoot toggle — dark by default, red when on; grays the shoot logistics */}
           <button type="button" onClick={() => setF(v => ({ ...v, noShoot: !v.noShoot }))}
             style={{ alignSelf:'flex-start', display:'flex', alignItems:'center', gap:8,
@@ -595,7 +708,8 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted, sol
           {area('Crew Preference Notes', 'crewNotes')}
           {row(yesNo('Pro Colorist Needed?', 'proColorist'), yesNo('Pro Audio Engineer Needed?', 'proAudio'))}
 
-          <div style={secHead}>Important Dates</div>
+          </>)}
+          {step === 5 && (<>
           {row(
             <div>
               <label style={lbl}>Client Kickoff Call Date?</label>
@@ -616,13 +730,50 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted, sol
               </select>
             </div>)}
           {area('Notes', 'notes')}
+          </>)}
 
-          <div style={{ display:'flex', justifyContent:'flex-end', gap:8, marginTop:4 }}>
-            <button className="btn btn-ghost btn-sm" onClick={onClose}>Cancel</button>
-            <button disabled={!ok || saving} onClick={() => setReviewOpen(true)}
-              style={{ background: ok ? '#5ABF80' : 'var(--border)', color:'#0b0b0b', border:'none', borderRadius:8, padding:'10px 22px', fontSize:13, fontWeight:800, cursor: ok ? 'pointer' : 'default', opacity: saving ? 0.6 : 1 }}>
-              {saving ? 'Submitting…' : 'Submit Harbinger & Go Live'}
-            </button>
+          {isReview && (
+            <div style={{ display:'flex', flexDirection:'column', gap:11 }}>
+              <div style={{ fontSize:13, fontWeight:800, marginBottom:2 }}>Review the Harbinger before it goes out</div>
+              {FIELD_LABELS.map(([k, label]) => {
+                if (k === 'sow') return (
+                  <div key={k}>
+                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:3 }}>
+                      <div style={{ fontSize:10, color:'#5ABF80', textTransform:'uppercase', letterSpacing:'0.06em', fontWeight:800 }}>{label} — editable</div>
+                      <button type="button" onClick={generateSow} disabled={sowLoading} style={{ background:'none', border:'1px solid #5ABF80', color:'#5ABF80', borderRadius:8, padding:'2px 9px', fontSize:10, fontWeight:800, cursor: sowLoading ? 'default' : 'pointer', opacity: sowLoading ? 0.6 : 1 }}>{sowLoading ? 'Generating…' : '✨ Regenerate'}</button>
+                    </div>
+                    <textarea value={f.sow} onChange={set('sow')} style={{ ...areaS, minHeight:130, fontSize:12.5, lineHeight:1.55 }} />
+                  </div>
+                );
+                const v = f[k];
+                if (v === undefined || v === null || v === '' || v === false) return null;
+                return (
+                  <div key={k}>
+                    <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:2 }}>{label}</div>
+                    <div style={{ fontSize:13, whiteSpace:'pre-wrap' }}>{v === true ? 'Yes' : String(v)}</div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Wizard footer */}
+          {!isReview ? (
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:8, marginTop:8 }}>
+              <button className="btn btn-ghost btn-sm" onClick={onClose}>Cancel</button>
+              {step < STEPS.length - 1
+                ? <button type="button" onClick={goNext} style={arrowBtn}>Next: {STEPS[step + 1].label} <span style={{ fontSize:15, lineHeight:1 }}>→</span></button>
+                : <button type="button" onClick={goReview} style={arrowBtn}>Review Harbinger <span style={{ fontSize:15, lineHeight:1 }}>→</span></button>}
+            </div>
+          ) : (
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:8, marginTop:10 }}>
+              <button className="btn btn-ghost btn-sm" onClick={() => setStep(STEPS.length - 1)}>‹ Back to edit</button>
+              <button type="button" className="hb-pulse" disabled={!ok || saving} onClick={submit}
+                style={{ background:'#5ABF80', color:'#0b0b0b', border:'none', borderRadius:10, padding:'13px 28px', fontSize:14, fontWeight:900, cursor: ok ? 'pointer' : 'default', opacity: saving ? 0.6 : 1 }}>
+                {saving ? 'Submitting…' : 'Submit Harbinger & Go Live'}
+              </button>
+            </div>
+          )}
           </div>
         </div>
 
