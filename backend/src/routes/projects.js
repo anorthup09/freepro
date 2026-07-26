@@ -740,7 +740,7 @@ router.delete('/:id/agency-contacts/:cid', requireAuth, requireRole('ADMIN','PRO
 });
 
 // ─── Gear ────────────────────────────────────────────────────────────────────
-router.put('/:id/gear', requireAuth, requireRole('ADMIN','PRODUCER','AGENCY'), async (req, res, next) => {
+router.put('/:id/gear', requireAuth, requireRole('ADMIN','PRODUCER','AGENCY','CREW'), async (req, res, next) => {
   try {
     const d = req.body;
     const [g] = await sql`
@@ -774,7 +774,7 @@ router.put('/:id/gear', requireAuth, requireRole('ADMIN','PRODUCER','AGENCY'), a
 });
 
 // ─── Online Rentals ──────────────────────────────────────────────────────────
-router.post('/:id/online-rentals', requireAuth, requireRole('ADMIN','PRODUCER','AGENCY'), async (req, res, next) => {
+router.post('/:id/online-rentals', requireAuth, requireRole('ADMIN','PRODUCER','AGENCY','CREW'), async (req, res, next) => {
   try {
     const { renterName, confirmation, trackingNumber, cost, notes } = req.body;
     const [r] = await sql`
@@ -785,7 +785,7 @@ router.post('/:id/online-rentals', requireAuth, requireRole('ADMIN','PRODUCER','
   } catch(e){next(e);}
 });
 
-router.patch('/:id/online-rentals/:rid', requireAuth, requireRole('ADMIN','PRODUCER','AGENCY'), async (req, res, next) => {
+router.patch('/:id/online-rentals/:rid', requireAuth, requireRole('ADMIN','PRODUCER','AGENCY','CREW'), async (req, res, next) => {
   try {
     const { renterName, confirmation, trackingNumber, cost, notes } = req.body;
     const [r] = await sql`
@@ -801,7 +801,7 @@ router.patch('/:id/online-rentals/:rid', requireAuth, requireRole('ADMIN','PRODU
   } catch(e){next(e);}
 });
 
-router.delete('/:id/online-rentals/:rid', requireAuth, requireRole('ADMIN','PRODUCER','AGENCY'), async (req, res, next) => {
+router.delete('/:id/online-rentals/:rid', requireAuth, requireRole('ADMIN','PRODUCER','AGENCY','CREW'), async (req, res, next) => {
   try {
     await sql`DELETE FROM online_rentals WHERE id = ${req.params.rid} AND project_id = ${req.params.id}`;
     res.status(204).end();
@@ -816,7 +816,7 @@ router.get('/:id/gear-items', requireAuth, async (req, res, next) => {
   } catch(e){next(e);}
 });
 
-router.post('/:id/gear-items', requireAuth, requireRole('ADMIN','PRODUCER','AGENCY'), async (req, res, next) => {
+router.post('/:id/gear-items', requireAuth, requireRole('ADMIN','PRODUCER','AGENCY','CREW'), async (req, res, next) => {
   try {
     const { category, item, source, notes, sortOrder, qty, contractorName } = req.body;
     const [row] = await sql`
@@ -828,7 +828,7 @@ router.post('/:id/gear-items', requireAuth, requireRole('ADMIN','PRODUCER','AGEN
   } catch(e){next(e);}
 });
 
-router.patch('/:id/gear-items/:itemId', requireAuth, requireRole('ADMIN','PRODUCER','AGENCY'), async (req, res, next) => {
+router.patch('/:id/gear-items/:itemId', requireAuth, requireRole('ADMIN','PRODUCER','AGENCY','CREW'), async (req, res, next) => {
   try {
     const d = req.body;
     const [row] = await sql`
@@ -847,7 +847,7 @@ router.patch('/:id/gear-items/:itemId', requireAuth, requireRole('ADMIN','PRODUC
   } catch(e){next(e);}
 });
 
-router.delete('/:id/gear-items/:itemId', requireAuth, requireRole('ADMIN','PRODUCER','AGENCY'), async (req, res, next) => {
+router.delete('/:id/gear-items/:itemId', requireAuth, requireRole('ADMIN','PRODUCER','AGENCY','CREW'), async (req, res, next) => {
   try {
     await sql`DELETE FROM gear_items WHERE id = ${req.params.itemId} AND project_id = ${req.params.id}`;
     await syncGearAssignTask(req.params.id);

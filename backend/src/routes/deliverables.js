@@ -52,7 +52,7 @@ router.get('/:id/deliverables', requireAuth, async (req, res, next) => {
   } catch(e){next(e);}
 });
 
-router.post('/:id/deliverables', requireAuth, requireRole('ADMIN','PRODUCER','AGENCY'), async (req, res, next) => {
+router.post('/:id/deliverables', requireAuth, requireRole('ADMIN','PRODUCER','AGENCY','CREW'), async (req, res, next) => {
   try {
     const d = req.body;
     const [item] = await sql`
@@ -64,7 +64,7 @@ router.post('/:id/deliverables', requireAuth, requireRole('ADMIN','PRODUCER','AG
   } catch(e){next(e);}
 });
 
-router.patch('/:id/deliverables/:did', requireAuth, requireRole('ADMIN','PRODUCER','AGENCY'), async (req, res, next) => {
+router.patch('/:id/deliverables/:did', requireAuth, requireRole('ADMIN','PRODUCER','AGENCY','CREW'), async (req, res, next) => {
   try {
     const d = req.body;
     const [item] = await sql`
@@ -80,7 +80,7 @@ router.patch('/:id/deliverables/:did', requireAuth, requireRole('ADMIN','PRODUCE
   } catch(e){next(e);}
 });
 
-router.delete('/:id/deliverables/:did', requireAuth, requireRole('ADMIN','PRODUCER','AGENCY'), async (req, res, next) => {
+router.delete('/:id/deliverables/:did', requireAuth, requireRole('ADMIN','PRODUCER','AGENCY','CREW'), async (req, res, next) => {
   try {
     await sql`UPDATE edits SET deliverable_id = NULL WHERE deliverable_id = ${req.params.did}`;
     await sql`DELETE FROM deliverables WHERE id = ${req.params.did}`;

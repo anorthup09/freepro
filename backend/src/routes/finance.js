@@ -182,14 +182,17 @@ router.get('/finance/projects', ...finance, async (req, res, next) => {
 // Project Hub feed for the Solutions (AGENCY) role: only projects whose main
 // budget is tagged "Unbridled Solutions". Returns lightweight tiles (no dollar
 // figures) — the Solutions role never sees finance data.
-const solutionsView = [requireAuth, requireRole('ADMIN', 'PRODUCER', 'FINANCE', 'AGENCY')];
+const solutionsView = [requireAuth, requireRole('ADMIN', 'PRODUCER', 'FINANCE', 'AGENCY', 'CREW')];
 router.get('/solutions/projects', ...solutionsView, async (req, res, next) => {
   try {
+    // CREW mirrors Solutions but sees every project (finance-free); AGENCY is
+    // limited to budgets tagged "Unbridled Solutions".
+    const allProjects = req.user?.role === 'CREW';
     const projects = await sql`
       SELECT p.id, p.code, p.title, p.client, p.client_logo, p.status, b.id as budget_id, b.status as budget_status
       FROM projects p
       JOIN budgets b ON b.project_id = p.id AND COALESCE(b.kind, 'main') = 'main'
-      WHERE p.status != 'ARCHIVED' AND p.parent_project_id IS NULL AND b.unbridled_solutions = TRUE
+      WHERE p.status != 'ARCHIVED' AND p.parent_project_id IS NULL ${allProjects ? sql`` : sql`AND b.unbridled_solutions = TRUE`}
       ORDER BY p.code`;
     const bids = projects.map(p => p.budget_id).filter(Boolean);
     const shoots = bids.length

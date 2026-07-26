@@ -134,7 +134,7 @@ function PVHeader({ showBack }) {
   const { user } = useAuth();
   const nav = useNavigate();
   // Solutions doesn't have the full Project View grid — send them back to their hub.
-  const backTo = user?.role === 'AGENCY' ? '/' : '/project-view';
+  const backTo = ['AGENCY', 'CREW'].includes(user?.role) ? '/' : '/project-view';
   return (
     <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 26px', flexWrap:'wrap', gap:10 }}>
       <div style={{ display:'flex', alignItems:'center', gap:14 }}>
@@ -247,7 +247,7 @@ export function ProjectViewDetail() {
   useEffect(() => { markRecentProject(pid); }, [pid]);
   const nav = useNavigate();
   const { user } = useAuth();
-  const isSolutions = user?.role === 'AGENCY';
+  const isSolutions = ['AGENCY', 'CREW'].includes(user?.role);
   const [project, setProject] = useState(null);
   const [tab, setTab] = useState('overview');
   const [shootId, setShootId] = useState('');   // FreePro project id for Pre-Production

@@ -964,6 +964,9 @@ const roleLabel = r => r === 'AGENCY' ? 'Solutions' : r;
 // is tagged "Unbridled Solutions". Tiles open the project page (no finance).
 function SolutionsHub() {
   const nav = useNavigate();
+  const { user } = useAuth();
+  const isCrewRole = user?.role === 'CREW';
+  const label = isCrewRole ? 'Crew' : 'Solutions';
   const [projects, setProjects] = useState(null);
   const [q, setQ] = useState('');
   useEffect(() => { api.solutionsProjects().then(setProjects).catch(e => alert(e.message)); }, []);
@@ -977,11 +980,11 @@ function SolutionsHub() {
       <div style={{ padding:'16px 18px', minWidth:0 }}>
         <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:12 }}>
           <div style={{ fontSize:13, fontWeight:800, whiteSpace:'nowrap' }}>Project Hub</div>
-          <span style={{ fontSize:9, fontWeight:800, color:'#a78bfa', border:'1px solid #a78bfa55', borderRadius:10, padding:'2px 8px', whiteSpace:'nowrap' }}>Solutions</span>
+          <span style={{ fontSize:9, fontWeight:800, color:'#a78bfa', border:'1px solid #a78bfa55', borderRadius:10, padding:'2px 8px', whiteSpace:'nowrap' }}>{label}</span>
           <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search code, title, client…" style={{ flex:1, minWidth:0 }} />
         </div>
         {!projects && <div className="empty">Loading…</div>}
-        {projects && shown.length === 0 && <div className="empty">No Solutions projects yet.</div>}
+        {projects && shown.length === 0 && <div className="empty">No {isCrewRole ? '' : 'Solutions '}projects yet.</div>}
         {shown.length > 0 && (
           <div className="hub-scroll" style={{ display:'flex', gap:10, overflowX:'auto', paddingBottom:8, WebkitMaskImage:SCROLL_FADE, maskImage:SCROLL_FADE }}>
             {shown.map(p => (
@@ -1556,13 +1559,14 @@ export default function Hub() {
               <h1 className="hub-h1">Dashboard</h1>
               <div className="hub-tagline"><HubGreeting /></div>
             </div>
-            {!isAgency && <MediaMomentOrbit />}
+            {!isCrew && <MediaMomentOrbit />}
             <TripPrompt />
             <WobBanner />
             <FunFactPrompt />
-            {isAgency && <SolutionsHub />}
+            {/* Solutions + Crew both get the project-scroll dashboard (all projects, no finance) */}
+            {isCrew && <SolutionsHub />}
             {!isAgency && !isCrew && !isFinance && mode === 'projects' && <HubProjects onNewProject={() => setShowNewProject(true)} />}
-            {!isAgency && (isCrew || isFinance || mode === 'ops') && (
+            {!isCrew && (isFinance || mode === 'ops') && (
             <div className="hub-tiles" style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(260px, 1fr))', gap:16 }}>
               {tiles.map(t => {
                 const clickable = !!t.to;

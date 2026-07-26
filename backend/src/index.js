@@ -91,17 +91,16 @@ app.use('/api', (req, res, next) => {
         || p.startsWith('/resources')
         || p.startsWith('/gear-assets')
         || p.startsWith('/gear-requests')));
-    if (u.role === 'CREW' && !crewAllowed(req.path, req.method)) {
-      return res.status(403).json({ error: 'Crew accounts can only access Crew Views, AvocadoPost, and Team Management' });
-    }
-    // AGENCY = crew access + read-only project logistics + editable gear & deliverables
-    // + the Solutions Project Hub feed + the read-only project cover page (no finance).
-    if (u.role === 'AGENCY' && !(crewAllowed(req.path, req.method)
-      || (req.method === 'GET' && (req.path.startsWith('/projects') || req.path.startsWith('/gear-requests') || req.path.startsWith('/solutions')))
-      || req.path.startsWith('/project-overview')
-      || /^\/projects\/[^/]+\/(gear|gear-items|online-rentals|deliverables)(\/|$)/.test(req.path)
-      || req.path.startsWith('/gear-requests'))) {
-      return res.status(403).json({ error: 'Agency accounts have view access to project logistics and edit access to gear and deliverables' });
+    // AGENCY (Solutions) and CREW share the same surface: crew access + read-only
+    // project logistics + editable gear & deliverables + the Solutions/all-project
+    // Hub feed + the read-only project cover page (no finance anywhere).
+    const agencyAllowed = (p, m) => crewAllowed(p, m)
+      || (m === 'GET' && (p.startsWith('/projects') || p.startsWith('/gear-requests') || p.startsWith('/solutions')))
+      || p.startsWith('/project-overview')
+      || /^\/projects\/[^/]+\/(gear|gear-items|online-rentals|deliverables)(\/|$)/.test(p)
+      || p.startsWith('/gear-requests');
+    if ((u.role === 'AGENCY' || u.role === 'CREW') && !agencyAllowed(req.path, req.method)) {
+      return res.status(403).json({ error: 'This account has view access to project logistics and edit access to gear and deliverables' });
     }
     // FINANCE = ProFi + Reports + dashboard (My Tasks / Team Today) + Team Management
     if (u.role === 'FINANCE' && !(req.path.startsWith('/auth') || req.path.startsWith('/share')

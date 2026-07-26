@@ -263,7 +263,7 @@ function TaskRow({ t, members, onSave, onDelete }) {
 export default function ProjectOverview({ pid, onOpenFinance }) {
   const nav = useNavigate();
   const { user } = useAuth();
-  const isSolutions = user?.role === 'AGENCY';   // Solutions never sees finance
+  const isSolutions = ['AGENCY', 'CREW'].includes(user?.role);   // Solutions + Crew never see finance
   const [data, setData] = useState(null);
   const [members, setMembers] = useState([]);
   const [err, setErr] = useState('');

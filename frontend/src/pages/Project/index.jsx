@@ -264,14 +264,12 @@ export default function Project({ idOverride, onControls }) {
   const { user } = useAuth();
   const isAgency = user?.role === 'AGENCY';
   const isCrew = user?.role === 'CREW';
-  const GEAR_TAB_IDS = ['gear-request', 'gear', 'gear-list'];
+  // Solutions + Crew are finance-free viewers with the same reduced section nav
+  const isViewer = isAgency || isCrew;
   const [tab, setTab] = useState(() => {
     const q = new URLSearchParams(window.location.search).get('tab');
-    if (isCrew) return GEAR_TAB_IDS.includes(q) ? q : 'gear-request';
-    return q || (user?.role === 'AGENCY' ? 'schedule' : 'overview');
+    return q || (isViewer ? 'schedule' : 'overview');
   });
-  // Crew are scoped to the Gear dropdown only — clamp any non-gear tab
-  useEffect(() => { if (isCrew && !GEAR_TAB_IDS.includes(tab)) setTab('gear-request'); }, [isCrew, tab]);
 
   // Keep the active tab in the URL so a refresh returns to the same tab
   useEffect(() => {
@@ -519,16 +517,14 @@ export default function Project({ idOverride, onControls }) {
             <span className="dock-lbl">Overview</span>
           </button>
         )}
-        {!isCrew && <DropdownTab dropUp icon={PROJ_NAV_ICONS.logistics} label="Logistics" subtabs={isAgency
+        <DropdownTab dropUp icon={PROJ_NAV_ICONS.logistics} label="Logistics" subtabs={isViewer
           ? [{ id:'schedule', label:'Schedule' }, { id:'travel', label:'Travel' }, { id:'shot-list', label:'Shot List' }, { id:'additional-docs', label:'Additional Docs' }]
           : [...BASE_LOGISTICS_TABS, ...(showTravel ? [{ id:'travel', label:'Travel' }] : []), ...(showCateringGrid ? [{ id:'catering', label:'Catering/Meals' }] : []), ...(showShotList ? [{ id:'shot-list', label:'Shot List' }] : []), ...(showScripts ? [{ id:'scripts', label:'Scripts' }] : []), { id:'additional-docs', label:'Additional Docs' }, { id:'producer-checklist', label:'Producer Checklist' }]} tab={tab} setTab={setTab} />}
         <DropdownTab dropUp icon={PROJ_NAV_ICONS.gear} label="Gear" subtabs={GEAR_TABS} tab={tab} setTab={setTab} />
-        {!isCrew && (
-          <button className={`dock-btn${tab === 'deliverable-overview' ? ' on' : ''}`} onClick={() => setTab('deliverable-overview')} aria-label="Deliverable">
-            {PROJ_NAV_ICONS.deliverable}
-            <span className="dock-lbl">Deliverable</span>
-          </button>
-        )}
+        <button className={`dock-btn${tab === 'deliverable-overview' ? ' on' : ''}`} onClick={() => setTab('deliverable-overview')} aria-label="Deliverable">
+          {PROJ_NAV_ICONS.deliverable}
+          <span className="dock-lbl">Deliverable</span>
+        </button>
       </div>
 
       <div className="wrap">
