@@ -222,9 +222,9 @@ Questions? Reply to whoever sent you this.`;async function f(){try{await navigat
    aperture slides in from the right, then the aperture zooms + turns to reveal. */
 .mm-logo{position:relative;width:210px;height:46px}
 .mm-logo img{position:absolute;left:0;top:0;height:46px;width:auto}
-.mm-logo-word{clip-path:inset(0 0 0 26%);filter:brightness(0) invert(1);
+.mm-logo-word{clip-path:inset(0 0 0 28%);filter:brightness(0) invert(1);
   animation:mmWordIn .6s cubic-bezier(.22,.61,.36,1) both, mmFade .35s ease 1.2s forwards}
-.mm-logo-ap{clip-path:inset(0 78% 0 0);transform-origin:11% 50%;
+.mm-logo-ap{clip-path:inset(0 74% 0 0);transform-origin:12% 50%;
   animation:mmApIn .6s cubic-bezier(.22,.61,.36,1) both, mmApZoom 1s cubic-bezier(.6,0,.25,1) 1.3s forwards}
 @keyframes mmWordIn{from{opacity:0;transform:translateX(-40px)}to{opacity:1;transform:none}}
 @keyframes mmApIn{from{opacity:0;transform:translateX(54px) scale(.7)}to{opacity:1;transform:none}}
