@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../App.jsx';
 import { api } from '../api.js';
 import { NewProjectModal } from './Finance.jsx';
@@ -1310,6 +1310,9 @@ const HUB_CSS = `
   background:rgba(30,27,23,0.52);backdrop-filter:blur(22px) saturate(1.7);-webkit-backdrop-filter:blur(22px) saturate(1.7);
   border:1px solid rgba(255,255,255,0.12);box-shadow:0 12px 40px rgba(0,0,0,0.55),inset 0 1px 0 rgba(255,255,255,0.12);transition:padding .28s ease}
 .hub-bottomnav.condensed{padding:7px 9px}
+/* Lifted clear of a page's own bottom dock (e.g. Team's GlassDock) so the global nav doesn't overlap it */
+.hub-bottomnav.raised{bottom:96px}
+@media (max-width:700px){.hub-bottomnav.raised{bottom:104px}}
 .hub-navitem{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:none;border:none;color:var(--muted);
   font-size:9.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;padding:7px 16px;border-radius:18px;transition:color .15s ease,background .15s ease,padding .28s ease}
 .hub-navitem:hover{color:var(--text);background:rgba(255,255,255,0.07)}
@@ -1393,6 +1396,7 @@ const HUB_STATUS = { RFP: '#c8873c', Draft: '#8a8f98', Sent: '#a89a86', Live: '#
 // Minimal monochrome nav icons (stroke = currentColor)
 const NAV_ICONS = {
   view: <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>,
+  home: <svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg>,
   calendar: <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>,
   reports: <svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>,
   team: <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20v-1a5 5 0 0 1 5-5h3a5 5 0 0 1 5 5v1"/><path d="M16.5 5.3a3.2 3.2 0 0 1 0 6.1"/><path d="M21.5 20v-1a5 5 0 0 0-3.2-4.4"/></svg>,
@@ -1423,34 +1427,48 @@ function Reveal({ children, style }) {
   return <div ref={ref} className={`hub-reveal${seen ? ' in' : ''}`} style={style}>{children}</div>;
 }
 
-function HubBottomNav({ isCrew, isFinance, mode, setHubMode, scrolled }) {
+// Persistent bottom nav shared by the Dashboard and the pages it links to
+// (Calendar, Reports, Team). On the Dashboard (`home`) the first slot is the
+// View toggle; on the linked pages it becomes a Home button back to the
+// Dashboard. Calendar/Reports/Team follow the same role permissions everywhere
+// and derive isCrew/isFinance from the signed-in user, so any page can drop in
+// <HubBottomNav /> with no extra wiring.
+export function HubBottomNav({ home = false, mode, setHubMode, raised = false }) {
   const nav = useNavigate();
+  const loc = useLocation();
+  const { user } = useAuth();
+  const isCrew = ['CREW', 'AGENCY'].includes(user?.role);
+  const isFinance = user?.role === 'FINANCE';
+  const scrolled = useScrolled();
   const [viewMenu, setViewMenu] = useState(false);
+  const path = loc.pathname;
   const item = (icon, label, onClick, active) => (
     <button className={`hub-navitem${active ? ' active' : ''}`} onClick={onClick}>
       {icon}<span className="lbl">{label}</span>
     </button>
   );
   return (
-    <div className={`hub-bottomnav${scrolled ? ' condensed' : ''}`}>
-      {!isCrew && !isFinance && (
-        <div style={{ position: 'relative' }}>
-          {item(NAV_ICONS.view, 'View', () => setViewMenu(m => !m), viewMenu)}
-          {viewMenu && (
-            <>
-              <div onClick={() => setViewMenu(false)} style={{ position: 'fixed', inset: 0, zIndex: 1 }} />
-              <div className="hub-navpop" style={{ zIndex: 2 }}>
-                {[['projects', 'Project View'], ['ops', 'Operations View']].map(([k, l]) => (
-                  <button key={k} className={mode === k ? 'on' : ''} onClick={() => { setHubMode(k); setViewMenu(false); }}>{l}{mode === k ? '  ✓' : ''}</button>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-      )}
-      {!isFinance && item(NAV_ICONS.calendar, 'Calendar', () => nav('/crew-calendar'))}
-      {item(NAV_ICONS.reports, 'Reports', () => nav('/reports'))}
-      {item(NAV_ICONS.team, 'Team', () => nav('/team'))}
+    <div className={`hub-bottomnav${scrolled ? ' condensed' : ''}${raised ? ' raised' : ''}`}>
+      {home
+        ? (!isCrew && !isFinance && (
+            <div style={{ position: 'relative' }}>
+              {item(NAV_ICONS.view, 'View', () => setViewMenu(m => !m), viewMenu)}
+              {viewMenu && (
+                <>
+                  <div onClick={() => setViewMenu(false)} style={{ position: 'fixed', inset: 0, zIndex: 1 }} />
+                  <div className="hub-navpop" style={{ zIndex: 2 }}>
+                    {[['projects', 'Project View'], ['ops', 'Operations View']].map(([k, l]) => (
+                      <button key={k} className={mode === k ? 'on' : ''} onClick={() => { setHubMode(k); setViewMenu(false); }}>{l}{mode === k ? '  ✓' : ''}</button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          ))
+        : item(NAV_ICONS.home, 'Home', () => nav('/'))}
+      {!isFinance && item(NAV_ICONS.calendar, 'Calendar', () => nav('/crew-calendar'), path.startsWith('/crew-calendar'))}
+      {item(NAV_ICONS.reports, 'Reports', () => nav('/reports'), path.startsWith('/reports'))}
+      {item(NAV_ICONS.team, 'Team', () => nav('/team'), path.startsWith('/team'))}
     </div>
   );
 }
@@ -1498,7 +1516,6 @@ export default function Hub() {
     : TILES.filter(t => t.key !== 'team');
   const tiles = opsTiles;
 
-  const scrolled = useScrolled();
   return (
     <div style={{ minHeight:'100vh', background:'var(--bg)', display:'flex', flexDirection:'column', position:'relative' }}>
       <style>{HUB_CSS}</style>
@@ -1571,7 +1588,7 @@ export default function Hub() {
           </div>
         </div>
 
-      <HubBottomNav isCrew={isCrew} isFinance={isFinance} mode={mode} setHubMode={setHubMode} scrolled={scrolled} />
+      <HubBottomNav home mode={mode} setHubMode={setHubMode} />
       {mode === 'ops' && !isFinance && !isCrew && !isAgency && <NewProjectFab onClick={() => setShowNewProject(true)} />}
 
       {showNewProject && (

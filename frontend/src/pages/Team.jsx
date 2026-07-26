@@ -6,6 +6,7 @@ import { maybeMailNotice } from '../utils/mailNotice.js';
 import RosterLookup from '../components/RosterLookup.jsx';
 import HomeButton from '../components/HomeButton.jsx';
 import GlassDock from '../components/GlassDock.jsx';
+import { HubBottomNav } from './Hub.jsx';
 
 const BLUE = '#4a9eff';
 const PTO_TYPES = ['PTO', 'WFH', 'STL/DEN Only', 'Comp', 'Other OOO'];
@@ -310,6 +311,7 @@ export default function Team() {
         </div>
         )}
       </div>
+      <HubBottomNav raised />
     </div>
   );
 }
