@@ -1336,18 +1336,15 @@ const HUB_CSS = `
    media moment are slid off sideways via JS refs as the page scrolls. */
 @media(max-width:700px){
   .dash-hero{position:sticky;top:6px;z-index:1;overflow-x:clip}
-  .dash-scroll{position:relative;z-index:3;background:var(--bg)}
+  .dash-hero .hub-header,.dash-hero .hub-anim-drop{will-change:transform,opacity}
+  .dash-scroll{position:relative;z-index:3;background:var(--bg);will-change:transform}
 }
 /* MediaMoment orbit: ring of team dots with the moment in the middle */
 /* MediaMoment banner: a wide horizontal card with a Netflix-style logo reveal */
 .mm-wrap{position:relative;margin:8px 0 22px}
-.mm-banner{position:relative;display:flex;flex-direction:column;overflow:hidden;padding:15px 20px;border-radius:16px;
+.mm-banner{position:relative;display:flex;flex-direction:column;overflow:hidden;padding:15px 20px;border-radius:16px;border:1px solid var(--border);
   background:linear-gradient(120deg, rgba(232,80,10,0.16), rgba(232,80,10,0.03) 58%, transparent), var(--bg2);
-  animation:mmCardIn .7s cubic-bezier(.22,.61,.36,1) both;
-  -webkit-mask-image:linear-gradient(to right,transparent,#000 3%,#000 97%,transparent),linear-gradient(to bottom,transparent,#000 5%,#000 95%,transparent);
-  -webkit-mask-composite:source-in;
-  mask-image:linear-gradient(to right,transparent,#000 3%,#000 97%,transparent),linear-gradient(to bottom,transparent,#000 5%,#000 95%,transparent);
-  mask-composite:intersect}
+  animation:mmCardIn .7s cubic-bezier(.22,.61,.36,1) both}
 .mm-banner::after{content:'';position:absolute;right:-46px;top:-46px;width:190px;height:190px;border-radius:50%;
   background:radial-gradient(circle, rgba(232,80,10,0.13), transparent 70%);pointer-events:none}
 .mm-b-main{position:relative;z-index:1;min-width:0}
@@ -1635,21 +1632,21 @@ export default function Hub() {
   // left and the Media Moment off to the right (the tiles below are layered on
   // top and scroll over them). Driven straight off refs to avoid re-rendering
   // the whole dashboard on every scroll frame.
-  const taglineRef = useRef(null);
-  const mmRef = useRef(null);
+  const heroLeftRef = useRef(null);   // heading + tagline slide left
+  const mmRef = useRef(null);         // media moment slides right
   useEffect(() => {
     let raf = null;
     const apply = () => {
       raf = null;
       const mob = window.innerWidth <= 700;
       const s = window.scrollY;
-      if (taglineRef.current) {
-        taglineRef.current.style.transform = mob ? `translateX(${-s * 1.2}px)` : '';
-        taglineRef.current.style.opacity = mob ? String(Math.max(0, 1 - s / 110)) : '';
+      if (heroLeftRef.current) {
+        heroLeftRef.current.style.transform = mob ? `translate3d(${-s * 1.2}px,0,0)` : '';
+        heroLeftRef.current.style.opacity = mob ? String(Math.max(0, 1 - s / 140)) : '';
       }
       if (mmRef.current) {
-        mmRef.current.style.transform = mob ? `translateX(${s * 1.25}px)` : '';
-        mmRef.current.style.opacity = mob ? String(Math.max(0, 1 - s / 150)) : '';
+        mmRef.current.style.transform = mob ? `translate3d(${s * 1.25}px,0,0)` : '';
+        mmRef.current.style.opacity = mob ? String(Math.max(0, 1 - s / 160)) : '';
       }
     };
     const onScroll = () => { if (!raf) raf = requestAnimationFrame(apply); };
@@ -1679,9 +1676,9 @@ export default function Hub() {
               <img className="hub-logo-top" src="/unbridled-logo.png" alt="Unbridled Media" />
             </div>
             <div className="dash-hero">
-              <div className="hub-header">
+              <div className="hub-header" ref={heroLeftRef}>
                 <h1 className="hub-h1">Hey {firstName},</h1>
-                <div className="hub-tagline" ref={taglineRef}><HubGreeting /></div>
+                <div className="hub-tagline"><HubGreeting /></div>
               </div>
               {!isCrew && <div className="hub-anim-drop" ref={mmRef}><MediaMomentOrbit /></div>}
             </div>
