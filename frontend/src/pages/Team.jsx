@@ -6,7 +6,6 @@ import { maybeMailNotice } from '../utils/mailNotice.js';
 import RosterLookup from '../components/RosterLookup.jsx';
 import HomeButton from '../components/HomeButton.jsx';
 import GlassDock from '../components/GlassDock.jsx';
-import { HubBottomNav } from './Hub.jsx';
 
 const BLUE = '#4a9eff';
 const PTO_TYPES = ['PTO', 'WFH', 'STL/DEN Only', 'Comp', 'Other OOO'];
@@ -20,17 +19,12 @@ const lbl = { fontSize:10, color:'var(--muted)', textTransform:'uppercase', lett
 const fmtD = d => d ? new Date(String(d).slice(0, 10) + 'T12:00:00').toLocaleDateString('en-US', { month:'numeric', day:'numeric', year:'2-digit' }) : '—';
 
 function TeamHeader() {
-  const { user, setUser } = useAuth();
   return (
     <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 26px', flexWrap:'wrap', gap:10 }}>
-      <div style={{ display:'flex', alignItems:'baseline', gap:14 }}>
-        <Link to="/" style={{ display:'flex', alignItems:'center' }} title="Back to the Unbridled Media hub">
-          <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height:20, filter:'brightness(0) invert(1)', opacity:0.95 }} />
-        </Link>
-        <span style={{ fontSize:12, color:BLUE, fontWeight:700, letterSpacing:'0.04em' }}>👥 Team Management</span>
-      </div>
+      <Link to="/" style={{ display:'flex', alignItems:'center' }} title="Back to the Unbridled Media hub">
+        <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height:20, filter:'brightness(0) invert(1)', opacity:0.95 }} />
+      </Link>
       <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-        <span style={{ fontSize:11, color:'var(--muted)' }}>{user?.name}</span>
         <Link to="/crew-calendar" className="btn btn-ghost btn-sm" style={{ textDecoration:'none' }}>Crew Calendar</Link>
         <HomeButton />
       </div>
@@ -126,9 +120,6 @@ export default function Team() {
     <div style={{ minHeight:'100vh', background:'var(--bg)' }}>
       <TeamHeader />
       <div style={{ maxWidth:1150, margin:'0 auto', padding:'6px 16px 80px' }}>
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, flexWrap:'wrap', marginBottom:4 }}>
-          <div className="page-title" style={{ marginBottom:0 }}>Team Management</div>
-        </div>
         <GlassDock active={view} onSelect={setView} items={[
           { key:'roster', label:'Roster', color:BLUE, icon:(
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.4 2.9-5.5 6.5-5.5s6.5 2.1 6.5 5.5"/><circle cx="17" cy="9" r="2.4"/><path d="M16.5 14.7c2.9.3 5 2.1 5 4.8"/></svg>
@@ -311,7 +302,6 @@ export default function Team() {
         </div>
         )}
       </div>
-      <HubBottomNav raised />
     </div>
   );
 }
