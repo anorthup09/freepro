@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../App.jsx';
 import HomeButton from '../components/HomeButton.jsx';
@@ -101,16 +101,18 @@ const gradientAccent = (i, n) => {
 const CREW_SAFE = new Set(['/reports/foodie', '/reports/music-resources', '/reports/video-references', '/reports/drives', '/reports/gear']);
 
 const CSS = `
-.rpt-pills{display:flex;gap:22px;flex-wrap:wrap;justify-content:center;margin:20px 0 28px}
-.rpt-pill{display:flex;flex-direction:column;align-items:center;gap:8px;background:none;border:none;color:var(--muted);
-  cursor:pointer;font-size:11px;font-weight:800;letter-spacing:.02em;transition:color .18s ease}
-.rpt-pill .ic{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--bg2);
-  border:1px solid var(--border);transition:transform .2s cubic-bezier(.34,1.45,.5,1),background .18s ease,border-color .18s ease}
-.rpt-pill svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.rpt-pill:hover{color:var(--text)}
-.rpt-pill:hover .ic{transform:scale(1.18);border-color:var(--orange)}
-.rpt-pill.on{color:var(--orange)}
-.rpt-pill.on .ic{background:rgba(232,80,10,0.16);border-color:var(--orange);transform:scale(1.1)}
+.rpt-dockwrap{display:flex;justify-content:center;margin:20px 0 28px}
+.rpt-dock{position:relative;display:inline-flex;flex-wrap:wrap;justify-content:center;align-items:stretch;gap:2px;padding:8px 12px;border-radius:26px;
+  background:rgba(30,27,23,0.72);backdrop-filter:blur(22px) saturate(1.7);-webkit-backdrop-filter:blur(22px) saturate(1.7);
+  border:1px solid rgba(255,255,255,0.12);box-shadow:0 12px 40px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.12)}
+.rpt-navbubble{position:absolute;z-index:0;background:rgba(255,255,255,0.10);border-radius:18px;pointer-events:none;
+  transition:left .3s cubic-bezier(.34,1.3,.5,1),width .3s cubic-bezier(.34,1.3,.5,1),top .3s ease,height .3s ease}
+.rpt-navitem{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;background:none;border:none;color:var(--muted);
+  font-size:9.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;padding:9px 16px;border-radius:18px;transition:color .18s ease}
+.rpt-navitem svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s cubic-bezier(.34,1.45,.5,1)}
+.rpt-navitem:hover{color:var(--text)}
+.rpt-navitem:hover svg{transform:scale(1.18)}
+.rpt-navitem.on{color:var(--orange)}
 .rpt-list{display:flex;flex-direction:column;gap:9px;max-width:340px;margin:0 auto}
 .rpt-tile{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--bg2);border:1px solid var(--border);
   border-left:4px solid var(--orange);border-radius:9px;padding:9px 14px;cursor:pointer;transition:transform .15s ease}
@@ -137,6 +139,20 @@ export default function Reports() {
   const activeCat = shownCats.find(c => c.key === active) || shownCats[0];
   const tiles = activeCat ? reportsFor(activeCat) : [];
 
+  // Sliding selection bubble behind the active category (matches the app docks).
+  const btnRefs = useRef({});
+  const [bubble, setBubble] = useState(null);
+  useEffect(() => {
+    const measure = () => {
+      const el = btnRefs.current[activeCat?.key];
+      setBubble(el ? { left: el.offsetLeft, top: el.offsetTop, width: el.offsetWidth, height: el.offsetHeight } : null);
+    };
+    measure();
+    const t = setTimeout(measure, 320);
+    window.addEventListener('resize', measure);
+    return () => { clearTimeout(t); window.removeEventListener('resize', measure); };
+  }, [activeCat?.key, shownCats.length]);
+
   return (
     <div style={{ minHeight:'100vh', background:'var(--bg)' }}>
       <style>{CSS}</style>
@@ -155,12 +171,16 @@ export default function Reports() {
         <div className="page-title" style={{ textAlign:'center' }}>Reports &amp; Resources</div>
         <div className="page-sub" style={{ textAlign:'center' }}>Pick a category to see its reports</div>
 
-        <div className="rpt-pills">
-          {shownCats.map(c => (
-            <button key={c.key} className={`rpt-pill${activeCat?.key === c.key ? ' on' : ''}`} onClick={() => setActive(c.key)}>
-              <span className="ic">{c.icon}</span>{c.label}
-            </button>
-          ))}
+        <div className="rpt-dockwrap">
+          <div className="rpt-dock">
+            {bubble && <div className="rpt-navbubble" style={{ left: bubble.left, top: bubble.top, width: bubble.width, height: bubble.height }} />}
+            {shownCats.map(c => (
+              <button key={c.key} ref={el => { btnRefs.current[c.key] = el; }}
+                className={`rpt-navitem${activeCat?.key === c.key ? ' on' : ''}`} onClick={() => setActive(c.key)}>
+                {c.icon}<span>{c.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="rpt-list" key={activeCat?.key}>

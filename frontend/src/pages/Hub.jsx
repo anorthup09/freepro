@@ -1519,19 +1519,36 @@ export function HubBottomNav({ raised = false }) {
   const isFinance = user?.role === 'FINANCE';
   const scrolled = useScrolled();
   const path = loc.pathname;
-  const item = (icon, label, onClick, active) => (
-    <button className={`hub-navitem${active ? ' active' : ''}`} onClick={onClick}>
-      {icon}<span className="lbl">{label}</span>
-    </button>
-  );
+  const items = [
+    { key: 'home', label: 'Home', icon: NAV_ICONS.home, to: '/', active: path === '/' },
+    ...(!isFinance ? [{ key: 'calendar', label: 'Calendar', icon: NAV_ICONS.calendar, to: '/crew-calendar', active: path.startsWith('/crew-calendar') }] : []),
+    { key: 'reports', label: 'Reports', icon: NAV_ICONS.reports, to: '/reports', active: path.startsWith('/reports') },
+    { key: 'team', label: 'Team', icon: NAV_ICONS.team, to: '/team', active: path.startsWith('/team') },
+  ];
+  const activeKey = (items.find(i => i.active) || {}).key;
+  const btnRefs = useRef({});
+  const [bubble, setBubble] = useState(null);
+  useEffect(() => {
+    const measure = () => {
+      const el = btnRefs.current[activeKey];
+      setBubble(el ? { left: el.offsetLeft, top: el.offsetTop, width: el.offsetWidth, height: el.offsetHeight } : null);
+    };
+    measure();
+    const t = setTimeout(measure, 320);
+    window.addEventListener('resize', measure);
+    return () => { clearTimeout(t); window.removeEventListener('resize', measure); };
+  }, [activeKey, scrolled, items.length]);
   return (
     <>
       <style>{NAV_CSS}</style>
       <div className={`hub-bottomnav${scrolled ? ' condensed' : ''}${raised ? ' raised' : ''}`}>
-        {item(NAV_ICONS.home, 'Home', () => nav('/'), path === '/')}
-        {!isFinance && item(NAV_ICONS.calendar, 'Calendar', () => nav('/crew-calendar'), path.startsWith('/crew-calendar'))}
-        {item(NAV_ICONS.reports, 'Reports', () => nav('/reports'), path.startsWith('/reports'))}
-        {item(NAV_ICONS.team, 'Team', () => nav('/team'), path.startsWith('/team'))}
+        {bubble && <div className="hub-navbubble" style={{ left: bubble.left, top: bubble.top, width: bubble.width, height: bubble.height }} />}
+        {items.map(it => (
+          <button key={it.key} ref={el => { btnRefs.current[it.key] = el; }}
+            className={`hub-navitem${it.active ? ' active' : ''}`} onClick={() => nav(it.to)}>
+            {it.icon}<span className="lbl">{it.label}</span>
+          </button>
+        ))}
       </div>
     </>
   );
@@ -1546,14 +1563,16 @@ const NAV_CSS = `
 .hub-bottomnav.condensed{padding:7px 9px}
 .hub-bottomnav.raised{bottom:96px}
 @media (max-width:700px){.hub-bottomnav.raised{bottom:104px}}
-.hub-navitem{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:none;border:none;color:var(--muted);
-  font-size:9.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;padding:7px 16px;border-radius:18px;transition:color .15s ease,background .15s ease,padding .28s ease}
-.hub-navitem:hover{color:var(--text);background:rgba(255,255,255,0.07)}
+.hub-navitem{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:none;border:none;color:var(--muted);
+  font-size:9.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;padding:7px 16px;border-radius:18px;transition:color .15s ease,padding .28s ease}
+.hub-navitem:hover{color:var(--text)}
 .hub-navitem.active{color:var(--orange)}
 .hub-navitem svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 .hub-navitem .lbl{max-height:12px;opacity:1;overflow:hidden;transition:max-height .28s ease,opacity .2s ease}
 .hub-bottomnav.condensed .hub-navitem{padding:9px 13px}
 .hub-bottomnav.condensed .hub-navitem .lbl{max-height:0;opacity:0}
+.hub-navbubble{position:absolute;z-index:0;background:rgba(255,255,255,0.10);border-radius:18px;pointer-events:none;
+  transition:left .3s cubic-bezier(.34,1.3,.5,1),width .3s cubic-bezier(.34,1.3,.5,1),top .3s ease,height .3s ease}
 `;
 
 function NewProjectFab({ onClick }) {
