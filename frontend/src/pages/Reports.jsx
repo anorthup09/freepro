@@ -102,9 +102,12 @@ const CREW_SAFE = new Set(['/reports/foodie', '/reports/music-resources', '/repo
 
 const CSS = `
 .rpt-dockwrap{display:flex;justify-content:center;margin:20px 0 28px}
-.rpt-dock{position:relative;display:inline-flex;flex-wrap:wrap;justify-content:center;align-items:stretch;gap:2px;padding:8px 12px;border-radius:26px;
+.rpt-dock{position:relative;display:inline-flex;flex-wrap:nowrap;justify-content:center;align-items:stretch;gap:2px;padding:8px 12px;border-radius:26px;max-width:100%;overflow-x:auto;
   background:rgba(30,27,23,0.72);backdrop-filter:blur(22px) saturate(1.7);-webkit-backdrop-filter:blur(22px) saturate(1.7);
-  border:1px solid rgba(255,255,255,0.12);box-shadow:0 12px 40px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.12)}
+  border:1px solid rgba(255,255,255,0.12);box-shadow:0 12px 40px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.12);scrollbar-width:none}
+.rpt-dock::-webkit-scrollbar{display:none}
+.rpt-navitem{flex:0 0 auto}
+@media (max-width:700px){.rpt-dock{padding:6px 8px}.rpt-navitem{padding:8px 10px}.rpt-navitem svg{width:20px;height:20px}}
 .rpt-navbubble{position:absolute;z-index:0;background:rgba(255,255,255,0.10);border-radius:18px;pointer-events:none;
   transition:left .3s cubic-bezier(.34,1.3,.5,1),width .3s cubic-bezier(.34,1.3,.5,1),top .3s ease,height .3s ease}
 .rpt-navitem{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;background:none;border:none;color:var(--muted);
