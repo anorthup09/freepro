@@ -60,7 +60,10 @@ export function HubGreeting() {
   const [text, setText] = useState('');
   useEffect(() => { api.hubGreeting().then(r => setText(r.text || '')).catch(() => {}); }, []);
   if (!text) return null;
-  return <span>{text}</span>;
+  // The heading now says "Hey <name>," so drop a duplicate greeting prefix.
+  let t = text.replace(/^\s*hey\s+[^,:.!]+[,:]\s*/i, '');
+  t = t ? t.charAt(0).toUpperCase() + t.slice(1) : text;
+  return <span>{t}</span>;
 }
 
 // On the road today? Offer a one-tap jump to the public view for your role —
@@ -1318,12 +1321,23 @@ const HUB_CSS = `
 .hub-header{margin:54px 0 10px}
 .hub-h1{font-family:Georgia,'Times New Roman',serif;font-size:34px;font-weight:700;letter-spacing:-.01em;line-height:1.05;margin:0}
 .hub-tagline{text-align:left;font-size:14px;font-weight:600;color:var(--tan);max-width:560px;margin:8px 0 0;line-height:1.45}
+/* Mobile: pin the hero (heading/tagline/media moment) and let the tiles below
+   scroll up over it (they carry a solid bg + higher z-index). The tagline and
+   media moment are slid off sideways via JS refs as the page scrolls. */
+@media(max-width:700px){
+  .dash-hero{position:sticky;top:6px;z-index:1;overflow-x:clip}
+  .dash-scroll{position:relative;z-index:3;background:var(--bg)}
+}
 /* MediaMoment orbit: ring of team dots with the moment in the middle */
 /* MediaMoment banner: a wide horizontal card with a Netflix-style logo reveal */
 .mm-wrap{position:relative;margin:8px 0 22px}
-.mm-banner{position:relative;display:flex;flex-direction:column;overflow:hidden;padding:15px 20px;border-radius:16px;border:1px solid var(--border);
+.mm-banner{position:relative;display:flex;flex-direction:column;overflow:hidden;padding:15px 20px;border-radius:16px;
   background:linear-gradient(120deg, rgba(232,80,10,0.16), rgba(232,80,10,0.03) 58%, transparent), var(--bg2);
-  animation:mmCardIn .7s cubic-bezier(.22,.61,.36,1) both}
+  animation:mmCardIn .7s cubic-bezier(.22,.61,.36,1) both;
+  -webkit-mask-image:linear-gradient(to right,transparent,#000 3%,#000 97%,transparent),linear-gradient(to bottom,transparent,#000 5%,#000 95%,transparent);
+  -webkit-mask-composite:source-in;
+  mask-image:linear-gradient(to right,transparent,#000 3%,#000 97%,transparent),linear-gradient(to bottom,transparent,#000 5%,#000 95%,transparent);
+  mask-composite:intersect}
 .mm-banner::after{content:'';position:absolute;right:-46px;top:-46px;width:190px;height:190px;border-radius:50%;
   background:radial-gradient(circle, rgba(232,80,10,0.13), transparent 70%);pointer-events:none}
 .mm-b-main{position:relative;z-index:1;min-width:0}
@@ -1605,6 +1619,35 @@ export default function Hub() {
   const isFinance = user?.role === 'FINANCE';
   const [showNewProject, setShowNewProject] = useState(false);
   const isAgency = user?.role === 'AGENCY';
+  const firstName = (user?.name || '').trim().split(/\s+/)[0] || 'there';
+
+  // Mobile scroll parallax: as the page scrolls, slide the tagline off to the
+  // left and the Media Moment off to the right (the tiles below are layered on
+  // top and scroll over them). Driven straight off refs to avoid re-rendering
+  // the whole dashboard on every scroll frame.
+  const taglineRef = useRef(null);
+  const mmRef = useRef(null);
+  useEffect(() => {
+    let raf = null;
+    const apply = () => {
+      raf = null;
+      const mob = window.innerWidth <= 700;
+      const s = window.scrollY;
+      if (taglineRef.current) {
+        taglineRef.current.style.transform = mob ? `translateX(${-s * 1.2}px)` : '';
+        taglineRef.current.style.opacity = mob ? String(Math.max(0, 1 - s / 110)) : '';
+      }
+      if (mmRef.current) {
+        mmRef.current.style.transform = mob ? `translateX(${s * 1.25}px)` : '';
+        mmRef.current.style.opacity = mob ? String(Math.max(0, 1 - s / 150)) : '';
+      }
+    };
+    const onScroll = () => { if (!raf) raf = requestAnimationFrame(apply); };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    apply();
+    return () => { window.removeEventListener('scroll', onScroll); window.removeEventListener('resize', onScroll); if (raf) cancelAnimationFrame(raf); };
+  }, []);
 
   return (
     <div style={{ minHeight:'100vh', background:'var(--bg)', display:'flex', flexDirection:'column', position:'relative' }}>
@@ -1625,20 +1668,24 @@ export default function Hub() {
             <div className="hub-masthead">
               <img className="hub-logo-top" src="/unbridled-logo.png" alt="Unbridled Media" />
             </div>
-            <div className="hub-header">
-              <h1 className="hub-h1">Dashboard</h1>
-              <div className="hub-tagline"><HubGreeting /></div>
+            <div className="dash-hero">
+              <div className="hub-header">
+                <h1 className="hub-h1">Hey {firstName},</h1>
+                <div className="hub-tagline" ref={taglineRef}><HubGreeting /></div>
+              </div>
+              {!isCrew && <div className="hub-anim-drop" ref={mmRef}><MediaMomentOrbit /></div>}
             </div>
-            {!isCrew && <div className="hub-anim-drop"><MediaMomentOrbit /></div>}
-            <TripPrompt />
-            <WobBanner />
-            <FunFactPrompt />
-            {/* Solutions + Crew both get the project-scroll dashboard (all projects, no finance) */}
-            {isCrew && <SolutionsHub />}
-            {!isAgency && !isCrew && !isFinance && <HubProjects onNewProject={() => setShowNewProject(true)} />}
-            {isFinance && <HubProjects finance />}
+            <div className="dash-scroll">
+              <TripPrompt />
+              <WobBanner />
+              <FunFactPrompt />
+              {/* Solutions + Crew both get the project-scroll dashboard (all projects, no finance) */}
+              {isCrew && <SolutionsHub />}
+              {!isAgency && !isCrew && !isFinance && <HubProjects onNewProject={() => setShowNewProject(true)} />}
+              {isFinance && <HubProjects finance />}
 
-            <Reveal><HubDashboard /></Reveal>
+              <Reveal><HubDashboard /></Reveal>
+            </div>
           </div>
         </div>
 
