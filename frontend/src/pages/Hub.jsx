@@ -972,6 +972,16 @@ function HubProjects({ onNewProject, finance }) {
   const [view, setView] = useState('projects'); // 'projects' | 'clients'
   const [flips, setFlips] = useState(0);         // >0 once the user has flipped, so the
   const doSwitch = () => { setView(v => v === 'projects' ? 'clients' : 'projects'); setFlips(f => f + 1); };
+  const [appOpen, setAppOpen] = useState(false); // app (≡) menu expanded
+  const [mobile, setMobile] = useState(typeof window !== 'undefined' && window.innerWidth <= 700);
+  useEffect(() => {
+    const onR = () => setMobile(window.innerWidth <= 700);
+    window.addEventListener('resize', onR);
+    return () => window.removeEventListener('resize', onR);
+  }, []);
+  // On phones, hide the search field while the app menu is expanded so the row
+  // stays clean instead of crushing the search into a sliver.
+  const hideSearch = mobile && appOpen;
 
   const projectList = (
     <>
@@ -1027,12 +1037,13 @@ function HubProjects({ onNewProject, finance }) {
       <div className={`hub-hubtile hub-glow hub-anim-left${onProjects ? '' : ' neutral'}`} onMouseMove={glowMove} style={{ cursor:'default', paddingTop:16, minWidth:0 }}>
         <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:12 }}>
           {onNewProject && !finance && <NewProjectPill onClick={onNewProject} />}
-          {onProjects
+          {!hideSearch && (onProjects
             ? <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search code, title, client…" style={{ flex: finance ? '0 0 34%' : 1, minWidth: finance ? 160 : 0 }} />
-            : <input value={cq} onChange={e => setCq(e.target.value)} placeholder="Search clients…" style={{ flex:1, minWidth:0 }} />}
+            : <input value={cq} onChange={e => setCq(e.target.value)} placeholder="Search clients…" style={{ flex:1, minWidth:0 }} />)}
+          {hideSearch && <div style={{ flex:1 }} />}
           {!finance && <HubSwitchPill label={onProjects ? 'Client Hub' : 'Project Hub'} neutral={onProjects}
             onClick={doSwitch} />}
-          {!finance && <HubAppMenu />}
+          {!finance && <HubAppMenu open={appOpen} setOpen={setAppOpen} />}
           {finance && <FinancePill onClick={() => nav('/finance')} />}
         </div>
         <div key={flips}>
@@ -1073,9 +1084,8 @@ function AppPill({ icon, label, accent, bg, onClick, i }) {
 
 // Orange "≡" menu circle on the right of the hub tile. Clicking it expands the
 // three app shortcuts (Project Finance / FreePro / Post Production) to its left.
-function HubAppMenu() {
+function HubAppMenu({ open, setOpen }) {
   const nav = useNavigate();
-  const [open, setOpen] = useState(false);
   const ref = useRef(null);
   useEffect(() => {
     if (!open) return;
