@@ -2,6 +2,8 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../App.jsx';
+import HomeButton from '../components/HomeButton.jsx';
+import { HubBottomNav } from './Hub.jsx';
 
 const STATUS_PILL = {
   PLANNING:  'amber',
@@ -121,7 +123,10 @@ export default function CrewViews() {
           <span className="logo">Free<em>Pro</em></span>
           <span style={{ fontSize:9, color:'var(--muted)', letterSpacing:'0.06em', paddingLeft:1 }}>Powered by Unbridled Media</span>
         </div>
-        <span style={{ color: 'var(--muted)', fontSize: 12 }}>{user?.name}</span>
+        <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+          <span style={{ color: 'var(--muted)', fontSize: 12 }}>{user?.name}</span>
+          <HomeButton />
+        </div>
       </nav>
       <div className="wrap">
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:18 }}>
@@ -165,7 +170,9 @@ export default function CrewViews() {
             {showArchived && <div className="proj-list" style={{ opacity:0.6 }}>{archived.map(p => card(p, false))}</div>}
           </div>
         )}
+        <div style={{ height: 100 }} />
       </div>
+      <HubBottomNav />
     </>
   );
 }
