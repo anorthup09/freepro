@@ -4,6 +4,7 @@ import { useAuth } from '../App.jsx';
 import { api } from '../api.js';
 import { NewProjectModal } from './Finance.jsx';
 import { recentProjectTimes } from '../utils/recentProjects.js';
+import { moneyConfetti } from '../lib/confetti.js';
 
 const TILES = [
   {
@@ -1619,6 +1620,96 @@ function NewProjectPill({ onClick }) {
   );
 }
 
+// V1-approval celebration. Recipients get a queue of gold-confetti drops (one
+// per congratulator); everyone else gets a ringing-gong announcement with a
+// reciprocal "send congrats" button. Mounted on the dashboard.
+function V1Celebration() {
+  const [data, setData] = useState(null);   // { announcements, drops }
+  const [ai, setAi] = useState(0);          // announcement index
+  const [di, setDi] = useState(0);          // drop index
+  const [thanks, setThanks] = useState(false);
+  useEffect(() => { api.getCelebrations().then(setData).catch(() => {}); }, []);
+
+  const drops = data?.drops || [];
+  const anns = data?.announcements || [];
+  const recipientMode = drops.length > 0;
+
+  // Recipient: rain gold confetti each time a new drop is shown.
+  useEffect(() => {
+    if (recipientMode && di < drops.length) moneyConfetti(5000);
+  }, [recipientMode, di, drops.length]);
+
+  if (!data) return null;
+  const first = n => (n || '').trim().split(/\s+/)[0] || 'them';
+
+  const wrap = { position:'fixed', inset:0, zIndex:400, background:'rgba(0,0,0,0.78)', backdropFilter:'blur(3px)', display:'flex', alignItems:'center', justifyContent:'center', padding:20 };
+  const card = { background:'var(--bg2)', border:'1px solid #e6c229', borderTop:'3px solid #e6c229', borderRadius:16, width:'100%', maxWidth:440, padding:'28px 26px', textAlign:'center', boxShadow:'0 20px 60px rgba(0,0,0,0.6)' };
+
+  // ── Recipient: one confetti drop per congratulator ──
+  if (recipientMode) {
+    if (di >= drops.length) return null;
+    const d = drops[di];
+    const finish = async () => {
+      if (di + 1 >= drops.length) { try { await api.markDropsSeen(drops.map(x => x.id)); } catch {} }
+      setDi(i => i + 1);
+    };
+    return (
+      <div style={wrap}>
+        <style>{V1_CSS}</style>
+        <div style={card}>
+          <div style={{ fontSize:46 }}>🎉</div>
+          <div style={{ fontSize:19, fontWeight:800, margin:'8px 0 6px', color:'#e6c229' }}>{d.celebrator_name} is celebrating your V1 approval!</div>
+          <div style={{ fontSize:12, color:'var(--muted)' }}>{d.edit_title}{d.project_title ? ` — ${d.project_title}` : ''}</div>
+          <button className="btn btn-sm" onClick={finish}
+            style={{ marginTop:20, background:'#e6c229', border:'1px solid #e6c229', color:'#0a0a08', fontWeight:800 }}>
+            {di + 1 < drops.length ? `Next (${di + 1} of ${drops.length}) →` : 'Woohoo!'}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Everyone else: gong announcement + reciprocal congrats ──
+  if (ai >= anns.length) return null;
+  const a = anns[ai];
+  const advance = () => { setThanks(false); setAi(i => i + 1); };
+  const congrats = async () => {
+    try { await api.celebrateApproval(a.id); } catch {}
+    moneyConfetti(4000);
+    setThanks(true);
+    setTimeout(advance, 2600);
+  };
+  const skip = async () => { try { await api.markAnnouncementSeen(a.id); } catch {} advance(); };
+  return (
+    <div style={wrap}>
+      <style>{V1_CSS}</style>
+      <div style={card}>
+        <div className="v1-gong" style={{ fontSize:54 }}>🔔</div>
+        {thanks ? (
+          <div style={{ fontSize:18, fontWeight:800, margin:'10px 0', color:'#e6c229' }}>Congrats sent to {first(a.recipient_name)}! 🎉</div>
+        ) : (
+          <>
+            <div style={{ fontSize:9, fontWeight:900, letterSpacing:'0.18em', color:'#e6c229', marginTop:8 }}>V1 APPROVAL</div>
+            <div style={{ fontSize:19, fontWeight:800, margin:'6px 0 6px' }}>{a.recipient_name} received approval on a V1!</div>
+            <div style={{ fontSize:12, color:'var(--muted)', marginBottom:20 }}>{a.edit_title}{a.project_title ? ` — ${a.project_title}` : ''}{a.project_code ? ` (${a.project_code})` : ''}</div>
+            <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+              <button className="btn btn-sm" onClick={congrats}
+                style={{ background:'#e6c229', border:'1px solid #e6c229', color:'#0a0a08', fontWeight:800, padding:'9px 14px' }}>
+                Tell {first(a.recipient_name)} congrats on the V1 approval!
+              </button>
+              <button className="btn btn-ghost btn-sm" onClick={skip} style={{ color:'var(--muted)' }}>Dismiss</button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const V1_CSS = `@keyframes v1GongRing{0%,100%{transform:rotate(0)}15%{transform:rotate(16deg)}30%{transform:rotate(-13deg)}45%{transform:rotate(9deg)}60%{transform:rotate(-6deg)}75%{transform:rotate(3deg)}}
+.v1-gong{display:inline-block;transform-origin:50% 12%;animation:v1GongRing 1.1s ease-in-out infinite}
+@media(prefers-reduced-motion:reduce){.v1-gong{animation:none}}`;
+
 export default function Hub() {
   const nav = useNavigate();
   const { user, setUser, realUser, preview, setPreview } = useAuth();
@@ -1659,6 +1750,7 @@ export default function Hub() {
   return (
     <div style={{ minHeight:'100vh', background:'var(--bg)', display:'flex', flexDirection:'column', position:'relative' }}>
       <style>{HUB_CSS}</style>
+      <V1Celebration />
       {(preview || realUser?.role === 'ADMIN') && (
         <div className="hub-topbar">
           {preview && (

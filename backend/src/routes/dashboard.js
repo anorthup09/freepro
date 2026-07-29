@@ -685,4 +685,49 @@ router.get('/funfact/today', requireAuth, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// ── V1-approval celebrations ────────────────────────────────────────────────
+router.get('/celebrations', requireAuth, async (req, res, next) => {
+  try {
+    const email = (req.user.email || '').toLowerCase();
+    const announcements = await sql`
+      SELECT id, edit_title, project_code, project_title, recipient_name, recipient_email, created_at
+      FROM v1_approvals a
+      WHERE LOWER(COALESCE(a.recipient_email, '')) <> ${email}
+        AND a.created_at > NOW() - INTERVAL '30 days'
+        AND NOT EXISTS (SELECT 1 FROM v1_approval_seen s WHERE s.approval_id = a.id AND LOWER(s.user_email) = ${email})
+      ORDER BY a.created_at DESC LIMIT 5`;
+    const drops = await sql`
+      SELECT c.id, c.celebrator_name, a.edit_title, a.project_title
+      FROM v1_celebrations c JOIN v1_approvals a ON a.id = c.approval_id
+      WHERE LOWER(COALESCE(a.recipient_email, '')) = ${email} AND c.seen_by_recipient = FALSE
+      ORDER BY c.created_at ASC LIMIT 20`;
+    res.json({ announcements, drops });
+  } catch (e) { next(e); }
+});
+
+router.post('/celebrations/:id/seen', requireAuth, async (req, res, next) => {
+  try {
+    await sql`INSERT INTO v1_approval_seen (approval_id, user_email) VALUES (${req.params.id}, ${(req.user.email || '').toLowerCase()}) ON CONFLICT DO NOTHING`;
+    res.json({ ok: true });
+  } catch (e) { next(e); }
+});
+
+router.post('/celebrations/:id/celebrate', requireAuth, async (req, res, next) => {
+  try {
+    const email = (req.user.email || '').toLowerCase();
+    await sql`INSERT INTO v1_celebrations (approval_id, celebrator_email, celebrator_name)
+      VALUES (${req.params.id}, ${email}, ${req.user.name || req.user.email}) ON CONFLICT DO NOTHING`;
+    await sql`INSERT INTO v1_approval_seen (approval_id, user_email) VALUES (${req.params.id}, ${email}) ON CONFLICT DO NOTHING`;
+    res.json({ ok: true });
+  } catch (e) { next(e); }
+});
+
+router.post('/celebrations/drops/seen', requireAuth, async (req, res, next) => {
+  try {
+    const ids = Array.isArray(req.body.ids) ? req.body.ids : [];
+    if (ids.length) await sql`UPDATE v1_celebrations SET seen_by_recipient = TRUE WHERE id = ANY(${ids})`;
+    res.json({ ok: true });
+  } catch (e) { next(e); }
+});
+
 module.exports = router;

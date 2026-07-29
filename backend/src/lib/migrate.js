@@ -1762,6 +1762,38 @@ async function migrate() {
       PRIMARY KEY (rec_id, user_key)
     )`;
 
+  // V1-approval celebration: the recorded first client-facing (V1) approval, the
+  // per-user "seen" gate for the announcement gong, and each congratulator's
+  // celebration (consumed by the recipient as confetti drops).
+  await sql`CREATE TABLE IF NOT EXISTS v1_approvals (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      edit_id TEXT,
+      edit_title TEXT,
+      project_code TEXT,
+      project_title TEXT,
+      recipient_member_id TEXT,
+      recipient_name TEXT,
+      recipient_email TEXT,
+      created_by TEXT,
+      created_by_name TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`;
+  await sql`CREATE TABLE IF NOT EXISTS v1_approval_seen (
+      approval_id TEXT NOT NULL,
+      user_email TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      PRIMARY KEY (approval_id, user_email)
+    )`;
+  await sql`CREATE TABLE IF NOT EXISTS v1_celebrations (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      approval_id TEXT NOT NULL,
+      celebrator_email TEXT NOT NULL,
+      celebrator_name TEXT,
+      seen_by_recipient BOOLEAN DEFAULT FALSE,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE (approval_id, celebrator_email)
+    )`;
+
   console.log('Migration complete.');
 }
 

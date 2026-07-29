@@ -173,11 +173,12 @@ router.post('/edits', ...staff, async (req, res, next) => {
     const lane0 = laneFromWorkflow(ws0);
     const [e] = await sql`
       INSERT INTO edits (project_id, project_code, title, description, lead_editor_id, pm_id,
-        aspect_ratio, resolution, frame_rate, asset_ref, music_ref, category, drive, creative, status, workflow_status, focus, approved, review_link, start_date, end_date, tracker_type, cost_estimate)
+        aspect_ratio, resolution, frame_rate, asset_ref, music_ref, category, drive, creative, status, workflow_status, focus, approved, review_link, start_date, end_date, tracker_type, cost_estimate, version)
       VALUES (${projectId}, ${d.projectCode || null}, ${d.title}, ${d.description || null}, ${d.leadEditorId || null}, ${d.pmId || null},
         ${d.aspectRatio || null}, ${d.resolution || null}, ${d.frameRate || null}, ${d.assetRef || null}, ${d.musicRef || null},
         ${d.category || null}, ${d.drive || null}, ${d.creative || null}, ${lane0}, ${ws0}, ${d.focus === true}, ${ws0 === 'APPROVED'}, ${d.reviewLink || null},
-        ${d.startDate || null}, ${d.endDate || null}, ${d.trackerType || null}, ${d.costEstimate ? Number(d.costEstimate) || null : null})
+        ${d.startDate || null}, ${d.endDate || null}, ${d.trackerType || null}, ${d.costEstimate ? Number(d.costEstimate) || null : null},
+        ${d.version != null ? Math.max(0.1, Math.round(Number(d.version) * 10) / 10) : 0.1})
       RETURNING *`;
     const who = req.user?.email || 'someone';
     await logAct(e.id, 'log', who, 'created this edit');
@@ -258,6 +259,25 @@ const MILESTONE_LABELS = {
   color_audio_send: 'Send to Color & Audio', color_audio_complete: 'Color & Audio Complete',
   final_comp: 'Final Comp Complete', final_delivery: 'Final Delivery',
 };
+
+// Record a V1 (first client-facing) approval for an edit → seeds the cross-user
+// celebration. Body: { recipientMemberId }.
+router.post('/edits/:id/v1-approval', ...staff, async (req, res, next) => {
+  try {
+    const [e] = await FULL_EDIT(req.params.id);
+    if (!e) return res.status(404).json({ error: 'Edit not found' });
+    const { recipientMemberId } = req.body;
+    if (!recipientMemberId) return res.status(400).json({ error: 'Pick the editor who received the V1 approval' });
+    const [m] = await sql`SELECT COALESCE(NULLIF(TRIM(CONCAT(preferred_first_name,' ',preferred_last_name)),''), name) as name, email FROM crew_members WHERE id = ${recipientMemberId}`;
+    if (!m) return res.status(404).json({ error: 'Editor not found' });
+    const [row] = await sql`INSERT INTO v1_approvals
+      (edit_id, edit_title, project_code, project_title, recipient_member_id, recipient_name, recipient_email, created_by, created_by_name)
+      VALUES (${e.id}, ${e.title || 'Untitled edit'}, ${e.project_code || null}, ${e.project_title || null},
+              ${recipientMemberId}, ${m.name}, ${m.email || null}, ${req.user.email || null}, ${req.user.name || null})
+      RETURNING *`;
+    res.json(row);
+  } catch (e) { next(e); }
+});
 
 const FIELD_LOGS = {
   title: 'Title', description: 'Description', aspectRatio: 'Aspect Ratio', resolution: 'Resolution',

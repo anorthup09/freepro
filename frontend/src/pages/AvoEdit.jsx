@@ -8,6 +8,50 @@ import ContractSendModal from '../components/ContractSendModal.jsx';
 import RfrModal from '../components/RfrModal.jsx';
 
 const lbl = { fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4, display:'block' };
+
+// "Approved V1" → pick the editor who earned the V1 approval, which seeds the
+// team-wide celebration (gong on next login + confetti congrats).
+function V1ApprovalModal({ edit, onClose }) {
+  const [memberId, setMemberId] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(false);
+  async function submit() {
+    if (!memberId || busy) return;
+    setBusy(true);
+    try { await api.recordV1Approval(edit.id, memberId); setDone(true); }
+    catch (err) { alert(err.message); setBusy(false); }
+  }
+  return (
+    <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:400, background:'rgba(0,0,0,0.72)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+      <div onClick={ev => ev.stopPropagation()} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid #e6c229', borderRadius:14, width:'100%', maxWidth:440, padding:'22px 24px' }}>
+        {done ? (
+          <div style={{ textAlign:'center' }}>
+            <div style={{ fontSize:42 }}>🔔</div>
+            <div style={{ fontSize:16, fontWeight:800, margin:'8px 0 4px' }}>V1 approval recorded!</div>
+            <div style={{ fontSize:12, color:'var(--muted)', lineHeight:1.5 }}>The team gets the gong next time they log in — and can send confetti congrats.</div>
+            <button className="btn btn-primary btn-sm" style={{ marginTop:16 }} onClick={onClose}>Done</button>
+          </div>
+        ) : (
+          <>
+            <div style={{ fontSize:15, fontWeight:800, marginBottom:4 }}>🔔 Approved V1</div>
+            <div style={{ fontSize:12, color:'var(--muted)', marginBottom:16, lineHeight:1.45 }}>
+              Select the editor who received a V1 approval on <b style={{ color:'var(--text)' }}>{edit.title || 'this edit'}</b>. The whole team will get to celebrate them.
+            </div>
+            <span style={lbl}>Editor</span>
+            <EditorSelect value={memberId} unbridledOnly onChange={setMemberId} placeholder="— Select editor —" />
+            <div style={{ display:'flex', justifyContent:'flex-end', gap:10, marginTop:20 }}>
+              <button className="btn btn-ghost btn-sm" onClick={onClose}>Cancel</button>
+              <button className="btn btn-sm" disabled={!memberId || busy} onClick={submit}
+                style={{ background:'#e6c229', border:'1px solid #e6c229', color:'#0a0a08', fontWeight:800, opacity: (!memberId || busy) ? 0.5 : 1 }}>
+                {busy ? 'Recording…' : '🔔 Ring the Gong'}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
 const KIND_STYLE = {
   comment: { border:`1px solid var(--border)`, background:'var(--bg2)' },
   rfr: { border:'1px solid rgba(230,194,41,0.5)', background:'rgba(230,194,41,0.06)' },
@@ -422,6 +466,7 @@ export default function AvoEdit() {
   const [copied, setCopied] = useState('');
   const [shareTimeline, setShareTimeline] = useState(false);
   const [showCal, setShowCal] = useState(false);
+  const [showV1, setShowV1] = useState(false);   // "Approved V1" recipient picker
   const [ptoFlagOpen, setPtoFlagOpen] = useState(null);   // milestone key with the PTO-conflict pop-out open
   const [shootFlagOpen, setShootFlagOpen] = useState(null);   // milestone key with the shoot-overlap pop-out open
   const [projectPageId, setProjectPageId] = useState(null);   // Avo project page for this edit's code
@@ -603,7 +648,16 @@ export default function AvoEdit() {
                     </button>
                   ))}
                 </div>
+                {Number(e.version) >= 1 && (
+                  <button onClick={() => setShowV1(true)} title="Record a V1 client approval and celebrate the editor"
+                    style={{ flexShrink:0, whiteSpace:'nowrap', display:'inline-flex', alignItems:'center', gap:5,
+                      background:'rgba(230,194,41,0.16)', border:'1px solid #e6c229', color:'#e6c229',
+                      borderRadius:14, padding:'4px 12px', fontSize:11, fontWeight:800, cursor:'pointer' }}>
+                    🔔 Approved V1
+                  </button>
+                )}
               </div>
+              {showV1 && <V1ApprovalModal edit={e} onClose={() => setShowV1(false)} />}
               {shareTimeline && <TimelineShareModal edit={e} onClose={() => setShareTimeline(false)} />}
       {showCal && <MilestoneCalendarModal edit={e} onClose={() => setShowCal(false)} />}
       {showTimeline && (() => {

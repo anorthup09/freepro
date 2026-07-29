@@ -63,13 +63,16 @@ export function AvoHeader({ right }) {
 
 const fmtD = d => d ? new Date(String(d).slice(0, 10) + 'T12:00:00').toLocaleDateString('en-US', { month:'numeric', day:'numeric', year:'2-digit' }) : '—';
 const overdue = d => d && new Date(String(d).slice(0, 10) + 'T23:59:00') < new Date();
-export const fmtV = v => 'V' + (Number(v) || 1).toFixed(1);
+// Versions below 1.0 are the Internal Creative Review (ICR) rounds; 1.0+ are
+// client-facing (V1, V2, …).
+export const fmtV = v => { const n = Number(v) || 1; return n < 1 ? 'ICR ' + n.toFixed(1).slice(1) : 'V' + n.toFixed(1); };
 export const stepV = (v, dir) => Math.max(0.1, Math.round(((Number(v) || 1) + dir * 0.1) * 10) / 10);
 
 // Version number is typable too — blur/Enter saves
 export function VersionInput({ value, onSave, style }) {
   const [v, setV] = useState((Number(value) || 1).toFixed(1));
   useEffect(() => setV((Number(value) || 1).toFixed(1)), [value]);
+  const isIcr = (parseFloat(v) || 0) < 1;
   const commit = () => {
     const n = parseFloat(v);
     if (!isNaN(n) && n > 0 && n !== Number(value)) onSave(Math.round(n * 10) / 10);
@@ -77,7 +80,7 @@ export function VersionInput({ value, onSave, style }) {
   };
   return (
     <span style={{ display:'inline-flex', alignItems:'center', fontWeight:800, color:AVO }}>
-      V<input value={v} onChange={e => setV(e.target.value)} onBlur={commit}
+      <span style={{ marginRight:3 }}>{isIcr ? 'ICR' : 'V'}</span><input value={v} onChange={e => setV(e.target.value)} onBlur={commit}
         onKeyDown={e => e.key === 'Enter' && e.target.blur()} onClick={e => e.stopPropagation()}
         style={{ width:34, background:'transparent', border:'1px solid transparent', borderRadius:4, color:AVO, fontWeight:800, fontSize:'inherit', padding:'1px 2px', textAlign:'center', ...style }}
         onFocus={e => e.target.style.borderColor = 'var(--border)'} />
