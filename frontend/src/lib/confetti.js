@@ -1,22 +1,22 @@
 // Gold confetti + tiny dollar signs raining from the top of the screen.
 // Framework-free: appends a fixed overlay to <body>, animates with the Web
 // Animations API, and cleans itself up when the show is over.
-export function moneyConfetti(duration = 8000) {
+export function moneyConfetti(duration = 8000, { money = true, count = 150 } = {}) {
   const wrap = document.createElement('div');
   wrap.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:9999;overflow:hidden;';
   const GOLD = ['#f7b52d', '#e6c229', '#ffd700', '#f2a33c', '#fff3b0', '#d4af37'];
   const secs = duration / 1000;
-  const N = 150;
+  const N = count;
   for (let i = 0; i < N; i++) {
-    const money = Math.random() < 0.2;
+    const isMoney = money && Math.random() < 0.2;
     const el = document.createElement('div');
-    const size = money ? 13 + Math.random() * 9 : 6 + Math.random() * 8;
+    const size = isMoney ? 13 + Math.random() * 9 : 6 + Math.random() * 8;
     const fall = 3.5 + Math.random() * 3.5;                       // fall time (s)
     const delay = Math.random() * Math.max(0.1, secs - fall - 0.3); // stagger within the window
     const sway = Math.random() * 120 - 60;
     const spin = Math.random() * 720 - 360;
     el.style.cssText = `position:absolute;top:-32px;left:${Math.random() * 100}%;will-change:transform,opacity;opacity:0;`;
-    if (money) {
+    if (isMoney) {
       el.textContent = '💲';
       el.style.fontSize = size + 'px';
     } else {

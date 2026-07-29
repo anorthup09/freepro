@@ -1637,7 +1637,7 @@ function V1Celebration() {
 
   // Recipient: rain gold confetti each time a new drop is shown.
   useEffect(() => {
-    if (recipientMode && di < drops.length) moneyConfetti(5000);
+    if (recipientMode && di < drops.length) moneyConfetti(5000, { money: false, count: 300 });
   }, [recipientMode, di, drops.length]);
 
   if (!data) return null;
@@ -1676,7 +1676,7 @@ function V1Celebration() {
   const advance = () => { setThanks(false); setAi(i => i + 1); };
   const congrats = async () => {
     try { await api.celebrateApproval(a.id); } catch {}
-    moneyConfetti(4000);
+    moneyConfetti(4000, { money: false, count: 300 });
     setThanks(true);
     setTimeout(advance, 2600);
   };
