@@ -208,7 +208,7 @@ function NewEditModal({ onClose, onCreated }) {
                 <option value="">— No project (Avo only) —</option>
                 {codes.map(c => <option key={c.code} value={c.code}>{c.code.replace(/-\d+$/, '')}{c.title ? ` — ${c.title}` : ''}</option>)}
               </select></div>
-            <div style={{ flex:1, minWidth:150 }}><div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4 }}>Lead Editor</div>
+            <div style={{ flex:1, minWidth:150 }}><div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4 }}>Current Editor</div>
               <EditorSelect value={f.leadEditorId} onChange={v => setF(x => ({ ...x, leadEditorId: v }))} /></div>
           </div>
           <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
@@ -432,7 +432,7 @@ export default function Avo() {
                 <div className="budget-tbl-wrap" style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10 }}>
                   <table style={{ width:'100%', borderCollapse:'collapse', minWidth:640 }}>
                     <thead>
-                      <tr><th style={th}>Video Title</th><th style={th}>Lead Editor</th><th style={th}>Due</th><th style={th}></th></tr>
+                      <tr><th style={th}>Video Title</th><th style={th}>Current Editor</th><th style={th}>Due</th><th style={th}></th></tr>
                     </thead>
                     <tbody>
                       {arch.map(e => (

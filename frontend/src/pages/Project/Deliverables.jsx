@@ -69,7 +69,7 @@ export function AvoForm({ title, form, setForm, onSubmit, onCancel, saving, edit
                 <option value="__add__">+ Add category…</option>
               </select>
             </div>
-            <div className="field"><label>Lead Editor</label><EditorSelect value={form.leadEditorId} onChange={v => setForm(f=>({...f,leadEditorId:v}))} /></div>
+            <div className="field"><label>Current Editor</label><EditorSelect value={form.leadEditorId} onChange={v => setForm(f=>({...f,leadEditorId:v}))} /></div>
             {isContractEditor && (
               <div className="field span2" style={{ background:'rgba(230,194,41,0.06)', border:'1px solid rgba(230,194,41,0.35)', borderRadius:8, padding:'10px 12px' }}>
                 <label style={{ color:'#e6c229' }}>Contract Editor — Cost Estimate ($)</label>

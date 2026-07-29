@@ -12,7 +12,7 @@ const lbl = { fontSize:10, color:'var(--muted)', textTransform:'uppercase', lett
 // "Approved V1" → pick the editor who earned the V1 approval, which seeds the
 // team-wide celebration (gong on next login + confetti congrats).
 function V1ApprovalModal({ edit, onClose }) {
-  const [memberId, setMemberId] = useState('');
+  const [memberId, setMemberId] = useState(edit.lead_editor_id || '');
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
   async function submit() {
@@ -35,7 +35,7 @@ function V1ApprovalModal({ edit, onClose }) {
           <>
             <div style={{ fontSize:15, fontWeight:800, marginBottom:4, display:'flex', alignItems:'center', gap:7 }}><span style={{ color:'#e6c229', display:'flex' }}><GongIcon size={18} /></span>Approved V1</div>
             <div style={{ fontSize:12, color:'var(--muted)', marginBottom:16, lineHeight:1.45 }}>
-              Select the editor who received a V1 approval on <b style={{ color:'var(--text)' }}>{edit.title || 'this edit'}</b>. The whole team will get to celebrate them.
+              Confirm the editor who received a V1 approval on <b style={{ color:'var(--text)' }}>{edit.title || 'this edit'}</b> — defaults to the current editor, but you can pick someone else. The whole team will get to celebrate them.
             </div>
             <span style={lbl}>Editor</span>
             <EditorSelect value={memberId} unbridledOnly onChange={setMemberId} placeholder="— Select editor —" />
@@ -909,7 +909,7 @@ export default function AvoEdit() {
                             style={{ display:'inline-block', width:140, flexShrink:0 }}>
                             {EDITOR_TASKS.includes(k) && (
                               <EditorSelect value={e.milestone_assignees?.[k] || ''}
-                                placeholder={e.lead_editor_name_resolved || e.lead_editor_name || 'Lead Editor'}
+                                placeholder={e.lead_editor_name_resolved || e.lead_editor_name || 'Current Editor'}
                                 onChange={v => {
                                   patch({ milestone_assignees: { ...(e.milestone_assignees || {}), [k]: v || undefined } });
                                   // reload so the availability flag reflects the newly-picked editor
@@ -1014,7 +1014,7 @@ export default function AvoEdit() {
                 <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
                   {field('Project Code', 'project_code', 'projectCode')}
                   <div style={{ flex:1, minWidth:150 }}>
-                    <span style={lbl}>Lead Editor</span>
+                    <span style={lbl}>Current Editor</span>
                     <EditorSelect value={e.lead_editor_id} onChange={v => { patch({ lead_editor_id: v }); save({ leadEditorId: v }).then(load); }} />
                   </div>
                   <div style={{ flex:1, minWidth:150 }}>
