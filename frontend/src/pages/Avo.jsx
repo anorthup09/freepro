@@ -88,6 +88,20 @@ export function VersionInput({ value, onSave, style }) {
   );
 }
 
+// Little gong (struck disc in a stand) — used on the V1-approval flow in place
+// of a bell. Inherits currentColor so it tints with its button/text.
+export function GongIcon({ size = 16, style, className }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"
+      strokeLinecap="round" strokeLinejoin="round" style={style} className={className} aria-hidden="true">
+      <path d="M4 3.5h16M4 3.5v18M20 3.5v18M2.5 21.5h5M16.5 21.5h5" />
+      <path d="M9 3.5v2.2M15 3.5v2.2" />
+      <circle cx="12" cy="12.8" r="4.9" />
+      <circle cx="12" cy="12.8" r="1.3" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
 function ProjectLookup() {
   const nav = useNavigate();
   const [pages, setPages] = useState(null);

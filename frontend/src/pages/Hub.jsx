@@ -5,6 +5,7 @@ import { api } from '../api.js';
 import { NewProjectModal } from './Finance.jsx';
 import { recentProjectTimes } from '../utils/recentProjects.js';
 import { moneyConfetti } from '../lib/confetti.js';
+import { GongIcon } from './Avo.jsx';
 
 const TILES = [
   {
@@ -1684,7 +1685,7 @@ function V1Celebration() {
     <div style={wrap}>
       <style>{V1_CSS}</style>
       <div style={card}>
-        <div className="v1-gong" style={{ fontSize:54 }}>🔔</div>
+        <div className="v1-gong" style={{ color:'#e6c229', display:'inline-flex' }}><GongIcon size={54} /></div>
         {thanks ? (
           <div style={{ fontSize:18, fontWeight:800, margin:'10px 0', color:'#e6c229' }}>Congrats sent to {first(a.recipient_name)}! 🎉</div>
         ) : (
@@ -1706,8 +1707,8 @@ function V1Celebration() {
   );
 }
 
-const V1_CSS = `@keyframes v1GongRing{0%,100%{transform:rotate(0)}15%{transform:rotate(16deg)}30%{transform:rotate(-13deg)}45%{transform:rotate(9deg)}60%{transform:rotate(-6deg)}75%{transform:rotate(3deg)}}
-.v1-gong{display:inline-block;transform-origin:50% 12%;animation:v1GongRing 1.1s ease-in-out infinite}
+const V1_CSS = `@keyframes v1GongRing{0%,55%,100%{transform:translateX(0) rotate(0)}8%{transform:translateX(-2.5px) rotate(-2.5deg)}16%{transform:translateX(2.5px) rotate(2.5deg)}24%{transform:translateX(-2px) rotate(-1.5deg)}32%{transform:translateX(2px) rotate(1.5deg)}40%{transform:translateX(-1px)}48%{transform:translateX(1px)}}
+.v1-gong{transform-origin:50% 50%;animation:v1GongRing 1.6s ease-in-out infinite}
 @media(prefers-reduced-motion:reduce){.v1-gong{animation:none}}`;
 
 export default function Hub() {

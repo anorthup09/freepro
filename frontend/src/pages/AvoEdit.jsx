@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api.js';
 import { maybeMailNotice } from '../utils/mailNotice.js';
-import { AvoHeader, EditorSelect, AVO, AVO_STATUSES, ClipIcon, fmtV, stepV, VersionInput } from './Avo.jsx';
+import { AvoHeader, EditorSelect, AVO, AVO_STATUSES, ClipIcon, fmtV, stepV, VersionInput, GongIcon } from './Avo.jsx';
 import { MILESTONES, milestoneText, milestoneRunners } from '../components/GanttChart.jsx';
 import ContractSendModal from '../components/ContractSendModal.jsx';
 import RfrModal from '../components/RfrModal.jsx';
@@ -26,14 +26,14 @@ function V1ApprovalModal({ edit, onClose }) {
       <div onClick={ev => ev.stopPropagation()} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid #e6c229', borderRadius:14, width:'100%', maxWidth:440, padding:'22px 24px' }}>
         {done ? (
           <div style={{ textAlign:'center' }}>
-            <div style={{ fontSize:42 }}>🔔</div>
+            <div style={{ color:'#e6c229', display:'flex', justifyContent:'center' }}><GongIcon size={40} /></div>
             <div style={{ fontSize:16, fontWeight:800, margin:'8px 0 4px' }}>V1 approval recorded!</div>
             <div style={{ fontSize:12, color:'var(--muted)', lineHeight:1.5 }}>The team gets the gong next time they log in — and can send confetti congrats.</div>
             <button className="btn btn-primary btn-sm" style={{ marginTop:16 }} onClick={onClose}>Done</button>
           </div>
         ) : (
           <>
-            <div style={{ fontSize:15, fontWeight:800, marginBottom:4 }}>🔔 Approved V1</div>
+            <div style={{ fontSize:15, fontWeight:800, marginBottom:4, display:'flex', alignItems:'center', gap:7 }}><span style={{ color:'#e6c229', display:'flex' }}><GongIcon size={18} /></span>Approved V1</div>
             <div style={{ fontSize:12, color:'var(--muted)', marginBottom:16, lineHeight:1.45 }}>
               Select the editor who received a V1 approval on <b style={{ color:'var(--text)' }}>{edit.title || 'this edit'}</b>. The whole team will get to celebrate them.
             </div>
@@ -42,8 +42,8 @@ function V1ApprovalModal({ edit, onClose }) {
             <div style={{ display:'flex', justifyContent:'flex-end', gap:10, marginTop:20 }}>
               <button className="btn btn-ghost btn-sm" onClick={onClose}>Cancel</button>
               <button className="btn btn-sm" disabled={!memberId || busy} onClick={submit}
-                style={{ background:'#e6c229', border:'1px solid #e6c229', color:'#0a0a08', fontWeight:800, opacity: (!memberId || busy) ? 0.5 : 1 }}>
-                {busy ? 'Recording…' : '🔔 Ring the Gong'}
+                style={{ background:'#e6c229', border:'1px solid #e6c229', color:'#0a0a08', fontWeight:800, opacity: (!memberId || busy) ? 0.5 : 1, display:'inline-flex', alignItems:'center', gap:6 }}>
+                {busy ? 'Recording…' : <><GongIcon size={14} />Ring the Gong</>}
               </button>
             </div>
           </>
@@ -653,7 +653,7 @@ export default function AvoEdit() {
                     style={{ flexShrink:0, whiteSpace:'nowrap', display:'inline-flex', alignItems:'center', gap:5,
                       background:'rgba(230,194,41,0.16)', border:'1px solid #e6c229', color:'#e6c229',
                       borderRadius:14, padding:'4px 12px', fontSize:11, fontWeight:800, cursor:'pointer' }}>
-                    🔔 Approved V1
+                    <GongIcon size={13} /> Approved V1
                   </button>
                 )}
               </div>
