@@ -8,6 +8,35 @@ const staff = [requireAuth, requireRole('ADMIN', 'PRODUCER', 'AGENCY', 'CREW')];
 
 const PREF = "COALESCE(NULLIF(TRIM(CONCAT(cm.preferred_first_name, ' ', cm.preferred_last_name)), ''), cm.name)";
 
+// Mirrors avo.js: the editor milestones in pipeline order and the live "who's on
+// it now" pick — the assignee of the next editor milestone still ahead (else the
+// last one), plus that milestone's date, falling back to the lead editor / end date.
+const EDITOR_MS = ['icr_v1_due', 'client_v1_due', 'client_v2_due', 'client_v3_due', 'color_audio_send', 'final_comp'];
+const parseJson = (v, fb) => v == null ? fb : (typeof v === 'string' ? (() => { try { return JSON.parse(v); } catch { return fb; } })() : v);
+function currentEditorPick(e) {
+  const ms = parseJson(e.milestones, {});
+  const asg = parseJson(e.milestone_assignees, {});
+  const dated = EDITOR_MS.filter(k => ms[k]).map(k => ({ k, date: String(ms[k]).slice(0, 10) })).sort((a, b) => a.date.localeCompare(b.date));
+  if (!dated.length) return { id: e.lead_editor_id || null, date: null };
+  const chosen = dated.find(d => d.date >= bizToday()) || dated[dated.length - 1];
+  return { id: asg[chosen.k] || e.lead_editor_id || null, date: chosen.date };
+}
+// Resolve current_editor (name) + current_due (active milestone date) onto each edit.
+async function attachCurrentEditor(edits) {
+  const picked = edits.map(e => [e, currentEditorPick(e)]);
+  const ids = [...new Set(picked.map(([, p]) => p.id).filter(Boolean))];
+  const names = {};
+  if (ids.length) {
+    const rows = await sql`SELECT id, ${sql.unsafe(PREF)} AS n FROM crew_members cm WHERE id = ANY(${sql.array(ids)})`;
+    for (const r of rows) names[r.id] = r.n;
+  }
+  for (const [e, p] of picked) {
+    e.current_editor = (p.id && names[p.id]) || e.lead_editor || null;
+    e.current_due = p.date || e.end_date || null;
+  }
+  return edits;
+}
+
 // Same math as ProFi's pipeline rollup (finance.js)
 function lineSubtotal(l, sectionLines) {
   if (l.percent != null) {
@@ -64,12 +93,13 @@ router.get('/project-overview/:pid', ...staff, async (req, res, next) => {
              AND bs.kind = 'shoot' AND bs.freepro_project_id IS NOT NULL
          )
       ORDER BY start_date NULLS LAST, code`;
-    const edits = await sql`
+    const edits = await attachCurrentEditor(await sql`
       SELECT e.id, e.title, e.status, e.workflow_status, e.focus, e.version, e.end_date,
+             e.archived, e.lead_editor_id, e.milestones, e.milestone_assignees,
              COALESCE((SELECT ${sql.unsafe(PREF)} FROM crew_members cm WHERE cm.id = e.lead_editor_id), e.lead_editor_name) as lead_editor
       FROM edits e
       WHERE e.project_code = ${project.code} OR e.project_code LIKE ${project.code + '-%'}
-      ORDER BY e.tracker_sort NULLS LAST, e.end_date NULLS LAST, e.created_at`;
+      ORDER BY e.archived NULLS FIRST, e.tracker_sort NULLS LAST, e.end_date NULLS LAST, e.created_at`);
     const callNotes = await sql`
       SELECT * FROM project_call_notes WHERE project_id = ${project.id} ORDER BY call_date DESC NULLS LAST, created_at DESC`;
     const tasks = await sql`

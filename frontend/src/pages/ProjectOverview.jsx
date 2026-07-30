@@ -335,14 +335,19 @@ export default function ProjectOverview({ pid, onOpenFinance }) {
           {edits.length === 0 && <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>No edits on this project code yet.</div>}
           {edits.map(e => {
             const st = DELIV_STATUS(e.workflow_status);   // lifecycle; null → Upcoming
+            const killed = e.archived;                    // killed = pulled from the pipeline
+            const editor = e.current_editor || e.lead_editor || '';   // milestone-aware "who's on it now"
+            const due = e.current_due || e.end_date;                  // active timeline deadline
             return (
               <div key={e.id} onClick={() => nav(`/avo/${e.id}`)}
-                style={{ display:'flex', alignItems:'center', gap:10, padding:'7px 4px', borderBottom:'1px solid rgba(255,255,255,0.04)', cursor:'pointer' }}>
-                <span style={{ fontSize:11, fontWeight:700, flex:1 }}>{e.title} <span style={{ color:'var(--muted)', fontWeight:400 }}>· v{Number(e.version) || 1}</span></span>
-                <span style={{ fontSize:10, color:'var(--muted)', whiteSpace:'nowrap' }}>{e.lead_editor || ''}</span>
-                {e.end_date && <span style={{ fontSize:10, color:'var(--muted)', whiteSpace:'nowrap' }}>due {fmtD(e.end_date)}</span>}
-                {e.focus && <StatusPill status="Focus" color={FOCUS_COLOR} />}
-                <StatusPill status={st ? st[1] : 'Upcoming'} color={st ? st[2] : '#8a8f98'} />
+                style={{ display:'flex', alignItems:'center', gap:10, padding:'7px 4px', borderBottom:'1px solid rgba(255,255,255,0.04)', cursor:'pointer', opacity: killed ? 0.55 : 1 }}>
+                <span style={{ fontSize:11, fontWeight:700, flex:1, textDecoration: killed ? 'line-through' : 'none' }}>{e.title} <span style={{ color:'var(--muted)', fontWeight:400 }}>· v{Number(e.version) || 1}</span></span>
+                <span style={{ fontSize:10, color:'var(--muted)', whiteSpace:'nowrap' }}>{editor}</span>
+                {!killed && due && <span style={{ fontSize:10, color:'var(--muted)', whiteSpace:'nowrap' }}>due {fmtD(due)}</span>}
+                {!killed && e.focus && <StatusPill status="Focus" color={FOCUS_COLOR} />}
+                {killed
+                  ? <StatusPill status="Killed" color="#8a8f98" />
+                  : <StatusPill status={st ? st[1] : 'Upcoming'} color={st ? st[2] : '#8a8f98'} />}
               </div>
             );
           })}
