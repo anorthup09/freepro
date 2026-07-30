@@ -11,14 +11,15 @@ const lbl = { fontSize:10, color:'var(--muted)', textTransform:'uppercase', lett
 
 // "Approved V1" → pick the editor who earned the V1 approval, which seeds the
 // team-wide celebration (gong on next login + confetti congrats).
-function V1ApprovalModal({ edit, onClose }) {
+function V1ApprovalModal({ edit, onClose, onApproved }) {
   const [memberId, setMemberId] = useState(edit.lead_editor_id || '');
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
   async function submit() {
     if (!memberId || busy) return;
     setBusy(true);
-    try { await api.recordV1Approval(edit.id, memberId); setDone(true); }
+    // Record the celebration, then close out the edit: mark Approved and archive it.
+    try { await api.recordV1Approval(edit.id, memberId); await onApproved?.(); setDone(true); }
     catch (err) { alert(err.message); setBusy(false); }
   }
   return (
@@ -28,7 +29,7 @@ function V1ApprovalModal({ edit, onClose }) {
           <div style={{ textAlign:'center' }}>
             <div style={{ color:'#e6c229', display:'flex', justifyContent:'center' }}><GongIcon size={40} /></div>
             <div style={{ fontSize:16, fontWeight:800, margin:'8px 0 4px' }}>V1 approval recorded!</div>
-            <div style={{ fontSize:12, color:'var(--muted)', lineHeight:1.5 }}>The team gets the gong next time they log in — and can send confetti congrats.</div>
+            <div style={{ fontSize:12, color:'var(--muted)', lineHeight:1.5 }}>The team gets the gong next time they log in — and can send confetti congrats. This edit is now marked <b style={{ color:'var(--text)' }}>Approved</b> and archived.</div>
             <button className="btn btn-primary btn-sm" style={{ marginTop:16 }} onClick={onClose}>Done</button>
           </div>
         ) : (
@@ -648,7 +649,7 @@ export default function AvoEdit() {
                     </button>
                   ))}
                 </div>
-                {Number(e.version) >= 1 && (
+                {Number(e.version) >= 1 && Number(e.version) < 2 && !e.archived && (
                   <button onClick={() => setShowV1(true)} title="Record a V1 client approval and celebrate the editor"
                     style={{ flexShrink:0, whiteSpace:'nowrap', display:'inline-flex', alignItems:'center', gap:5,
                       background:'rgba(230,194,41,0.16)', border:'1px solid #e6c229', color:'#e6c229',
@@ -657,7 +658,8 @@ export default function AvoEdit() {
                   </button>
                 )}
               </div>
-              {showV1 && <V1ApprovalModal edit={e} onClose={() => setShowV1(false)} />}
+              {showV1 && <V1ApprovalModal edit={e} onClose={() => setShowV1(false)}
+                onApproved={() => save({ workflowStatus: 'APPROVED', archived: true }).then(load)} />}
               {shareTimeline && <TimelineShareModal edit={e} onClose={() => setShareTimeline(false)} />}
       {showCal && <MilestoneCalendarModal edit={e} onClose={() => setShowCal(false)} />}
       {showTimeline && (() => {
