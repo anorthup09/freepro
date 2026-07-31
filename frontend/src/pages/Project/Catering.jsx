@@ -138,7 +138,7 @@ export default function Catering({ project }) {
                       title={entry ? `Edit ${mc.label}` : `Add ${mc.label}`}
                       style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:8, paddingBottom:8, borderBottom: mt !== 'DINNER' ? '1px solid var(--border)' : 'none', cursor:'pointer', borderRadius:6, marginLeft:-4, marginRight:-4, paddingLeft:4, paddingRight:4 }}>
                       <div style={{ fontSize:11, fontWeight:700, color: mc.color, display:'flex', alignItems:'center', gap:6, flexWrap:'wrap' }}>
-                        <span>{mc.emoji} {mc.label}</span>
+                        <span>{mc.label}</span>
                         {entry && <span style={{ fontSize:8, fontWeight:800, color:'var(--muted)', border:'1px solid var(--border)', borderRadius:9, padding:'1px 6px', textTransform:'uppercase', letterSpacing:'0.05em', whiteSpace:'nowrap' }}>{entry.is_delivery === false ? 'Pick-Up' : 'Delivery'}</span>}
                       </div>
                       {entry ? (
@@ -146,7 +146,7 @@ export default function Catering({ project }) {
                           <div style={{ fontWeight:600, color:'var(--text)' }}>{entry.name}</div>
                           {entry.address && <div style={{ color:'var(--muted)', fontSize:10 }}>{entry.address}</div>}
                           {entry.order_number && <div style={{ color:'var(--muted)', fontSize:10 }}>Order #{entry.order_number}</div>}
-                          {entry.delivery_time && <div style={{ color: mc.color, fontSize:10 }}>🚚 {fmtTime(entry.delivery_time)}</div>}
+                          {entry.delivery_time && <div style={{ color: mc.color, fontSize:10 }}>{fmtTime(entry.delivery_time)}</div>}
                         </div>
                       ) : (
                         <span style={{ fontSize:10, color:'var(--muted)', fontStyle:'italic' }}>Not set</span>
