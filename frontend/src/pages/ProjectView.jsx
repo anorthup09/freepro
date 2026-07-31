@@ -296,14 +296,28 @@ export function ProjectViewDetail() {
       <PVHeader showBack />
       <div style={{ maxWidth:1250, margin:'0 auto', padding:'0 16px' }}>
         <div className="pvd-bar" style={{ display:'flex', flexDirection:'column', alignItems:'flex-start', gap:6, marginBottom:6 }}>
-          {project && (
-            <div className="pvd-title" style={{ minWidth:0 }}>
-              {project.client_logo
-                ? <img src={project.client_logo} alt={project.client} style={{ height:20, maxWidth:120, objectFit:'contain', display:'block', marginBottom:3 }} />
-                : project.client && <div style={{ fontSize:10, color:'var(--muted)', fontWeight:700, letterSpacing:'0.04em', marginBottom:1 }}>{project.client}</div>}
-              <div style={{ fontSize:13, fontWeight:800 }}>{project.code} — {project.title}</div>
-            </div>
-          )}
+          <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:10, width:'100%' }}>
+            {project && (
+              <div className="pvd-title" style={{ minWidth:0 }}>
+                {project.client_logo
+                  ? <img src={project.client_logo} alt={project.client} style={{ height:20, maxWidth:120, objectFit:'contain', display:'block', marginBottom:3 }} />
+                  : project.client && <div style={{ fontSize:10, color:'var(--muted)', fontWeight:700, letterSpacing:'0.04em', marginBottom:1 }}>{project.client}</div>}
+                <div style={{ fontSize:13, fontWeight:800 }}>{project.code} — {project.title}</div>
+              </div>
+            )}
+            {/* ? and Share lifted up from the embedded Pre-Pro — top-right */}
+            {tab === 'pre' && preControls && !preControls.isAgency && !preControls.isCrew && (
+              <div style={{ display:'flex', alignItems:'center', gap:10, flexShrink:0 }}>
+                <button
+                  className={`q-btn${preControls.tab === 'questions' ? ' on' : ''}${preControls.hasUnanswered && preControls.tab !== 'questions' ? ' glow' : ''}`}
+                  onClick={() => preControls.setTab('questions')}
+                  title={preControls.hasUnanswered ? 'Questions — unanswered waiting' : 'Questions'}
+                  aria-label="Questions"
+                >?</button>
+                <ShareDropdown projectId={preControls.projectId} showShotList={preControls.showShotList} crews={preControls.crews} />
+              </div>
+            )}
+          </div>
           {tab === 'pre' && shoots.length > 1 && (() => {
             const idx = Math.max(0, shoots.findIndex(s => s.freeproProjectId === shootId));
             const go = d => {
@@ -324,19 +338,6 @@ export function ProjectViewDetail() {
               </div>
             );
           })()}
-          <div style={{ flex:1 }} />
-          {/* ? and Share lifted up from the embedded Pre-Pro, inline with the name */}
-          {tab === 'pre' && preControls && !preControls.isAgency && !preControls.isCrew && (
-            <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-              <button
-                className={`q-btn${preControls.tab === 'questions' ? ' on' : ''}${preControls.hasUnanswered && preControls.tab !== 'questions' ? ' glow' : ''}`}
-                onClick={() => preControls.setTab('questions')}
-                title={preControls.hasUnanswered ? 'Questions — unanswered waiting' : 'Questions'}
-                aria-label="Questions"
-              >?</button>
-              <ShareDropdown projectId={preControls.projectId} showShotList={preControls.showShotList} crews={preControls.crews} />
-            </div>
-          )}
         </div>
       </div>
 

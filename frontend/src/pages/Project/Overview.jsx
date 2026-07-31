@@ -317,45 +317,44 @@ export default function Overview({ project, setProject, onTabChange,
 
   return (
     <div>
-      {/* Shoot name — sits under the project code/name, above the hero tile */}
-      {(project.shoot_name || project.subtitle) && (
-        <div className="ov-shoot-line" style={{ display:'flex', alignItems:'center', gap:8, fontSize:13, fontWeight:600, color:'var(--tan)', margin:'0 0 10px' }}>
-          Shoot: {project.shoot_name || project.subtitle}
+      {/* Shoot name (+ notes) — sits under the project code/name, above the hero tile */}
+      {((project.shoot_name || project.subtitle) || project.notes) && (
+        <div className="ov-shoot-line" style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap', fontSize:13, fontWeight:600, color:'var(--tan)', margin:'0 0 10px' }}>
+          {(project.shoot_name || project.subtitle) && <span>Shoot: {project.shoot_name || project.subtitle}</span>}
           <button className="ov-edit-icon" title="Edit shoot info" aria-label="Edit shoot info" onClick={() => setEditInfo(true)}>✎</button>
+          {(project.shoot_name || project.subtitle) && project.notes && <span style={{ color:'var(--border2)' }}>|</span>}
+          {project.notes && <span style={{ color:'var(--muted)', fontWeight:400 }}>{project.notes}</span>}
         </div>
       )}
       {/* Hero header */}
       <div className="ov-head ov-hero">
-        <div className="ov-hero-status">
-          <StatusSelect project={project} setProject={setProject} />
-        </div>
         <div className="proj-code">{project.code} · {project.client}</div>
         <div className="ov-hero-titlerow">
           <div className="proj-title">{project.title}</div>
-          {!(project.shoot_name || project.subtitle) && (
+          {!(project.shoot_name || project.subtitle) && !project.notes && (
             <button className="ov-edit-icon" title="Edit shoot info" aria-label="Edit shoot info" onClick={() => setEditInfo(true)}>✎</button>
           )}
         </div>
-        {daysUntil != null && daysUntil > 0 && (
-          <div className="ov-hero-cd"><b>{daysUntil}</b><span>days out</span></div>
-        )}
-        {daysUntil != null && daysUntil === 0 && (
-          <div className="ov-hero-cd"><b>Today</b><span>day 1</span></div>
-        )}
-        {setShowCateringGrid && (
-          <div className="ov-toggle-row" style={{ display:'flex', gap:6, flexWrap:'nowrap', overflowX:'auto', alignItems:'center', justifyContent:'center', marginTop:14, scrollbarWidth:'none' }}>
-            {addonToggles.map(t => (
-              <button key={t.label}
-                onClick={() => { if (!t.on) { t.set(true); t.go?.(); } else { t.set(false); } }}
-                style={{ fontSize:11, fontWeight:600, padding:'4px 10px', borderRadius:6, border:`1px solid ${t.on ? t.color : 'var(--border2)'}`, background: t.on ? `${t.color}26` : 'var(--bg2)', color: t.on ? t.color : 'var(--muted)', cursor:'pointer', transition:'all .15s', whiteSpace:'nowrap', flexShrink:0 }}>
-                {t.on ? `✓ ${t.label}` : `+ ${t.label}`}
-              </button>
-            ))}
-          </div>
-        )}
-        {project.notes && (
-          <div style={{ marginTop:12, fontSize:13, color:'var(--muted)', maxWidth:520, lineHeight:1.6, whiteSpace:'pre-wrap' }}>{project.notes}</div>
-        )}
+        {/* One plane: days out (left) · section toggles (center) · status pill (right) */}
+        <div style={{ display:'flex', alignItems:'center', gap:12, marginTop:4 }}>
+          {daysUntil != null && daysUntil > 0
+            ? <div className="ov-hero-cd" style={{ flexShrink:0 }}><b>{daysUntil}</b><span>days out</span></div>
+            : daysUntil != null && daysUntil === 0
+            ? <div className="ov-hero-cd" style={{ flexShrink:0 }}><b>Today</b><span>day 1</span></div>
+            : <span style={{ flexShrink:0 }} />}
+          {setShowCateringGrid && (
+            <div className="ov-toggle-row" style={{ display:'flex', gap:6, flexWrap:'nowrap', overflowX:'auto', alignItems:'center', justifyContent:'center', flex:1, minWidth:0, scrollbarWidth:'none' }}>
+              {addonToggles.map(t => (
+                <button key={t.label}
+                  onClick={() => { if (!t.on) { t.set(true); t.go?.(); } else { t.set(false); } }}
+                  style={{ fontSize:11, fontWeight:600, padding:'4px 10px', borderRadius:6, border:`1px solid ${t.on ? t.color : 'var(--border2)'}`, background: t.on ? `${t.color}26` : 'var(--bg2)', color: t.on ? t.color : 'var(--muted)', cursor:'pointer', transition:'all .15s', whiteSpace:'nowrap', flexShrink:0 }}>
+                  {t.on ? `✓ ${t.label}` : `+ ${t.label}`}
+                </button>
+              ))}
+            </div>
+          )}
+          <div style={{ flexShrink:0 }}><StatusSelect project={project} setProject={setProject} /></div>
+        </div>
       </div>
 
       {/* Sharing & Access — quiet, collapsible */}
