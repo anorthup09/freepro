@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../App.jsx';
 import { AvoHeader, AVO, AVO_STATUSES, DELIVERABLE_STATUSES, DELIV_STATUS, FOCUS_COLOR, ClipIcon, EditorSelect, VersionInput, stepV } from './Avo.jsx';
@@ -380,6 +380,16 @@ function VideoTracker({ edits, setEdits, config, onConfig, code, readOnly, onOpe
   }
   const [addForm, setAddForm] = useState(null);   // BLANK form when the pop-out is open
   const [savingAdd, setSavingAdd] = useState(false);
+  // Deep-link from the Deliverables page (?add=1) opens the add form straight away
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    if (!readOnly && searchParams.get('add') === '1') {
+      setAddForm({ ...BLANK_DELIVERABLE_FORM });
+      const next = new URLSearchParams(searchParams);
+      next.delete('add');
+      setSearchParams(next, { replace: true });
+    }
+  }, []);
   const [colsOpen, setColsOpen] = useState(false); // column show/hide menu
   const [colsAnchor, setColsAnchor] = useState({ x: 0, y: 0 });
   async function submitAdd(ev) {

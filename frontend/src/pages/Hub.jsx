@@ -204,7 +204,8 @@ function DailyFactBlob() {
         {/* Faint visual of whatever the answer is about — extra spice */}
         {fact.image?.type === 'photo' && (
           <img src={fact.image.value} alt="" aria-hidden
-            style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', opacity:0.13, pointerEvents:'none', borderRadius:'inherit' }} />
+            style={{ position:'absolute', top:0, right:0, bottom:0, width:'58%', height:'100%', objectFit:'cover', opacity:0.4, pointerEvents:'none',
+              WebkitMaskImage:'linear-gradient(to right, transparent, #000 65%)', maskImage:'linear-gradient(to right, transparent, #000 65%)' }} />
         )}
         {fact.image?.type === 'emoji' && (
           <div aria-hidden style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:150, opacity:0.12, pointerEvents:'none', transform:'rotate(-8deg)' }}>

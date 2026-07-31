@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../../api.js';
 import { displayName } from '../../utils/displayName.js';
 import { EditorSelect, DELIVERABLE_STATUSES } from '../Avo.jsx';
@@ -127,9 +128,23 @@ export default function Deliverables({ project }) {
   const [aspectRatio, setAspectRatio] = useState(project.techSpecs?.aspect_ratio || '');
   const [resolution, setResolution] = useState(project.techSpecs?.resolution || '');
 
+  const nav = useNavigate();
+  // The Project Video Tracker page for this project code (add deliverables there)
+  const [avoProjectId, setAvoProjectId] = useState(null);
   useEffect(() => {
     api.getDeliverables(project.id).then(setItems);
+    api.avoProjectByCode(project.code).then(p => setAvoProjectId(p?.id || null)).catch(() => {});
   }, [project.id]);
+
+  // Send "+ Add Deliverable" to the Project Video Tracker's add flow (mirrors here)
+  async function goAddOnTracker() {
+    try {
+      let id = avoProjectId;
+      if (!id) { const p = await api.createAvoProject(project.code, project.title); id = p?.id; setAvoProjectId(id); }
+      if (id) nav(`/avo/project/${id}?add=1`);
+      else setShowAdd(true);
+    } catch { setShowAdd(true); }
+  }
 
   // Editor picks from the crew roster so the name always matches the Avo lead editor
   const [roster, setRoster] = useState([]);
@@ -288,7 +303,7 @@ export default function Deliverables({ project }) {
         <div>
           <div style={{ fontSize:13, fontWeight:600, color:'var(--text)' }}>Deliverables <span style={{ fontWeight:400, color:'var(--muted)' }}>· {items.length} output{items.length !== 1 ? 's' : ''}</span></div>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowAdd(true)}>+ Add Deliverable</button>
+        <button className="btn btn-primary" onClick={goAddOnTracker}>+ Add Deliverable</button>
       </div>
 
       <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden' }}>

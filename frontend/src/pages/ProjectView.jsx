@@ -295,7 +295,7 @@ export function ProjectViewDetail() {
     <div className="pvd-page" style={{ minHeight:'100vh', background:'var(--bg)' }}>
       <PVHeader showBack />
       <div style={{ maxWidth:1250, margin:'0 auto', padding:'0 16px' }}>
-        <div className="pvd-bar" style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap', marginBottom:6 }}>
+        <div className="pvd-bar" style={{ display:'flex', flexDirection:'column', alignItems:'flex-start', gap:6, marginBottom:6 }}>
           {project && (
             <div className="pvd-title" style={{ minWidth:0 }}>
               {project.client_logo
