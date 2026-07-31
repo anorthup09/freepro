@@ -69,11 +69,64 @@ async function syncSlDaysToProjectRange(projectId) {
   }
 }
 
-// GET /api/projects/:id/shot-list
+// Every project has at least one shot list; existing scenes/breaks with no
+// shot_list_id are adopted by the first (default) list on first access.
+async function ensureShotLists(projectId) {
+  const existing = await sql`SELECT * FROM shot_lists WHERE project_id = ${projectId} ORDER BY sort_order, created_at`;
+  if (existing.length) return existing;
+  const [sl] = await sql`
+    INSERT INTO shot_lists (id, project_id, name, sort_order)
+    VALUES (gen_random_uuid()::text, ${projectId}, ${'Main Shot List'}, 0) RETURNING *`;
+  await sql`UPDATE shot_list_scenes SET shot_list_id = ${sl.id} WHERE project_id = ${projectId} AND shot_list_id IS NULL`;
+  await sql`UPDATE shot_list_breaks SET shot_list_id = ${sl.id} WHERE project_id = ${projectId} AND shot_list_id IS NULL`;
+  return [sl];
+}
+
+// GET /api/projects/:id/shot-lists — the named shot lists for this project
+router.get('/:id/shot-lists', requireAuth, async (req, res, next) => {
+  try { res.json(await ensureShotLists(req.params.id)); } catch(e) { next(e); }
+});
+
+// POST /api/projects/:id/shot-lists — add a separate shot list to the same shoot
+router.post('/:id/shot-lists', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try {
+    await ensureShotLists(req.params.id);
+    const [{ n }] = await sql`SELECT COALESCE(MAX(sort_order), -1) + 1 AS n FROM shot_lists WHERE project_id = ${req.params.id}`;
+    const [sl] = await sql`
+      INSERT INTO shot_lists (id, project_id, name, sort_order)
+      VALUES (gen_random_uuid()::text, ${req.params.id}, ${req.body.name || `Shot List ${Number(n) + 1}`}, ${Number(n)})
+      RETURNING *`;
+    res.status(201).json(sl);
+  } catch(e) { next(e); }
+});
+
+// PATCH /api/projects/:id/shot-lists/:slId — rename
+router.patch('/:id/shot-lists/:slId', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try {
+    const [sl] = await sql`UPDATE shot_lists SET name = ${req.body.name || null} WHERE id = ${req.params.slId} AND project_id = ${req.params.id} RETURNING *`;
+    if (!sl) return res.status(404).json({ error: 'Shot list not found' });
+    res.json(sl);
+  } catch(e) { next(e); }
+});
+
+// DELETE /api/projects/:id/shot-lists/:slId — never delete the last one
+router.delete('/:id/shot-lists/:slId', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try {
+    const [{ count }] = await sql`SELECT count(*)::int AS count FROM shot_lists WHERE project_id = ${req.params.id}`;
+    if (count <= 1) return res.status(400).json({ error: 'A project must keep at least one shot list.' });
+    await sql`DELETE FROM shot_lists WHERE id = ${req.params.slId} AND project_id = ${req.params.id}`;
+    res.json({ ok: true });
+  } catch(e) { next(e); }
+});
+
+// GET /api/projects/:id/shot-list — scenes for one shot list (?shotListId=),
+// or every scene in the project (no param) so the Schedule/Share see them all.
 router.get('/:id/shot-list', requireAuth, async (req, res, next) => {
   try {
-    const scenes = await sql`
-      SELECT * FROM shot_list_scenes WHERE project_id = ${req.params.id} ORDER BY sort_order, scene_number`;
+    const slId = req.query.shotListId || null;
+    const scenes = slId
+      ? await sql`SELECT * FROM shot_list_scenes WHERE project_id = ${req.params.id} AND shot_list_id = ${slId} ORDER BY sort_order, scene_number`
+      : await sql`SELECT * FROM shot_list_scenes WHERE project_id = ${req.params.id} ORDER BY sort_order, scene_number`;
     const shots = scenes.length
       ? await sql`SELECT * FROM shot_list_shots WHERE scene_id = ANY(${sql.array(scenes.map(s => s.id))}) ORDER BY sort_order, created_at`
       : [];
@@ -106,12 +159,15 @@ router.put('/:id/shot-list/columns', requireAuth, requireRole('ADMIN','PRODUCER'
 // POST /api/projects/:id/shot-list/scenes
 router.post('/:id/shot-list/scenes', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const { name, description, sceneType, dayId, estStartTime } = req.body;
-    const [{ max_num }] = await sql`SELECT COALESCE(MAX(scene_number), 0) as max_num FROM shot_list_scenes WHERE project_id = ${req.params.id}`;
-    const [scene_num] = await sql`SELECT COALESCE(MAX(sort_order), 0) + 1 as n FROM shot_list_scenes WHERE project_id = ${req.params.id}`;
+    const { name, description, sceneType, dayId, estStartTime, shotListId } = req.body;
+    const lists = await ensureShotLists(req.params.id);
+    const slId = shotListId || lists[0].id;
+    // Scene numbers/order run per shot list, so each list starts at Scene 1.
+    const [{ max_num }] = await sql`SELECT COALESCE(MAX(scene_number), 0) as max_num FROM shot_list_scenes WHERE shot_list_id = ${slId}`;
+    const [scene_num] = await sql`SELECT COALESCE(MAX(sort_order), 0) + 1 as n FROM shot_list_scenes WHERE shot_list_id = ${slId}`;
     const [scene] = await sql`
-      INSERT INTO shot_list_scenes (id, project_id, scene_number, name, description, scene_type, sort_order, day_id, est_start_time)
-      VALUES (gen_random_uuid()::text, ${req.params.id}, ${Number(max_num) + 1}, ${name}, ${description||null}, ${sceneType||'interior'}, ${Number(scene_num.n)}, ${dayId||null}, ${estStartTime||null})
+      INSERT INTO shot_list_scenes (id, project_id, shot_list_id, scene_number, name, description, scene_type, sort_order, day_id, est_start_time)
+      VALUES (gen_random_uuid()::text, ${req.params.id}, ${slId}, ${Number(max_num) + 1}, ${name}, ${description||null}, ${sceneType||'interior'}, ${Number(scene_num.n)}, ${dayId||null}, ${estStartTime||null})
       RETURNING *`;
     res.status(201).json({ ...scene, shots: [] });
   } catch(e) { next(e); }
@@ -248,10 +304,13 @@ router.delete('/:id/shot-list/days/:dayId', requireAuth, requireRole('ADMIN','PR
   } catch(e) { next(e); }
 });
 
-// GET /api/projects/:id/shot-list/breaks
+// GET /api/projects/:id/shot-list/breaks (?shotListId= scopes to one list)
 router.get('/:id/shot-list/breaks', requireAuth, async (req, res, next) => {
   try {
-    const breaks = await sql`SELECT * FROM shot_list_breaks WHERE project_id = ${req.params.id} ORDER BY sort_order, created_at`;
+    const slId = req.query.shotListId || null;
+    const breaks = slId
+      ? await sql`SELECT * FROM shot_list_breaks WHERE project_id = ${req.params.id} AND shot_list_id = ${slId} ORDER BY sort_order, created_at`
+      : await sql`SELECT * FROM shot_list_breaks WHERE project_id = ${req.params.id} ORDER BY sort_order, created_at`;
     res.json(breaks);
   } catch(e) { next(e); }
 });
@@ -259,10 +318,11 @@ router.get('/:id/shot-list/breaks', requireAuth, async (req, res, next) => {
 // POST /api/projects/:id/shot-list/breaks
 router.post('/:id/shot-list/breaks', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const { dayId, startTime, endTime } = req.body;
+    const { dayId, startTime, endTime, shotListId } = req.body;
+    const lists = await ensureShotLists(req.params.id);
     const [b] = await sql`
-      INSERT INTO shot_list_breaks (project_id, day_id, start_time, end_time)
-      VALUES (${req.params.id}, ${dayId||null}, ${startTime||null}, ${endTime||null})
+      INSERT INTO shot_list_breaks (project_id, shot_list_id, day_id, start_time, end_time)
+      VALUES (${req.params.id}, ${shotListId || lists[0].id}, ${dayId||null}, ${startTime||null}, ${endTime||null})
       RETURNING *
     `;
     res.json(b);

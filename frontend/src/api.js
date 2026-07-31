@@ -498,7 +498,12 @@ export const api = {
     return r.blob();
   },
 
-  getShotList: (projectId) => req('GET', `/projects/${projectId}/shot-list`),
+  getShotList: (projectId, shotListId) => req('GET', `/projects/${projectId}/shot-list${shotListId ? `?shotListId=${shotListId}` : ''}`),
+  // Named shot lists (multiple per project)
+  getShotLists: (projectId) => req('GET', `/projects/${projectId}/shot-lists`),
+  createShotList: (projectId, name) => req('POST', `/projects/${projectId}/shot-lists`, { name }),
+  renameShotList: (projectId, id, name) => req('PATCH', `/projects/${projectId}/shot-lists/${id}`, { name }),
+  deleteShotList: (projectId, id) => req('DELETE', `/projects/${projectId}/shot-lists/${id}`),
   createScene: (projectId, data) => req('POST', `/projects/${projectId}/shot-list/scenes`, data),
   updateScene: (projectId, sceneId, data) => req('PATCH', `/projects/${projectId}/shot-list/scenes/${sceneId}`, data),
   deleteScene: (projectId, sceneId) => req('DELETE', `/projects/${projectId}/shot-list/scenes/${sceneId}`),
@@ -511,7 +516,7 @@ export const api = {
   setShotListColumns: (projectId, columns) => req('PUT', `/projects/${projectId}/shot-list/columns`, { columns }),
 
   // Shot List Breaks
-  getBreaks: (projectId) => req('GET', `/projects/${projectId}/shot-list/breaks`),
+  getBreaks: (projectId, shotListId) => req('GET', `/projects/${projectId}/shot-list/breaks${shotListId ? `?shotListId=${shotListId}` : ''}`),
   createBreak: (projectId, data) => req('POST', `/projects/${projectId}/shot-list/breaks`, data),
   updateBreak: (projectId, id, data) => req('PATCH', `/projects/${projectId}/shot-list/breaks/${id}`, data),
   deleteBreak: (projectId, id) => req('DELETE', `/projects/${projectId}/shot-list/breaks/${id}`),

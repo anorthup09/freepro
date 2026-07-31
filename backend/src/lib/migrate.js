@@ -1799,6 +1799,19 @@ async function migrate() {
   await sql`ALTER TABLE projects ADD COLUMN IF NOT EXISTS shot_list_columns JSONB DEFAULT '[]'::jsonb`;
   await sql`ALTER TABLE shot_list_shots ADD COLUMN IF NOT EXISTS custom JSONB DEFAULT '{}'::jsonb`;
 
+  // Multiple named shot lists per project (same shoot, separate lists). Scenes
+  // and breaks belong to a shot list; days stay shared (same physical shoot days).
+  await sql`
+    CREATE TABLE IF NOT EXISTS shot_lists (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      name TEXT,
+      sort_order INT DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`;
+  await sql`ALTER TABLE shot_list_scenes ADD COLUMN IF NOT EXISTS shot_list_id TEXT REFERENCES shot_lists(id) ON DELETE CASCADE`;
+  await sql`ALTER TABLE shot_list_breaks ADD COLUMN IF NOT EXISTS shot_list_id TEXT REFERENCES shot_lists(id) ON DELETE CASCADE`;
+
   console.log('Migration complete.');
 }
 

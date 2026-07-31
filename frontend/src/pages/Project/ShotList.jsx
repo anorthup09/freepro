@@ -1199,6 +1199,21 @@ export function ReferencePhotos({ project, scenes }) {
   );
 }
 
+// Inline-editable name for the current shot list (saves on blur)
+function ShotListNameInput({ value, onSave }) {
+  const [v, setV] = useState(value || '');
+  useEffect(() => { setV(value || ''); }, [value]);
+  return (
+    <input value={v} onChange={e => setV(e.target.value)}
+      onBlur={() => onSave(v)}
+      onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+      placeholder="Name this shot list…"
+      style={{ background:'transparent', border:'1px solid transparent', borderRadius:5, color:'var(--text)', fontSize:15, fontWeight:700, fontFamily:'inherit', padding:'2px 4px', margin:'2px 0', outline:'none', width:'100%', maxWidth:420 }}
+      onFocus={e => e.target.style.borderColor = 'var(--border)'}
+      onBlurCapture={e => e.target.style.borderColor = 'transparent'} />
+  );
+}
+
 export default function ShotList({ project, onScenesChange, onCurrentDayChange, onOpenScheduleDay }) {
   const [scenes, setScenes] = useState([]);
   const [talent, setTalent] = useState([]);
@@ -1215,6 +1230,9 @@ export default function ShotList({ project, onScenesChange, onCurrentDayChange, 
   const [breakAnchorMap, setBreakAnchorMap] = useState({}); // breakId -> sceneId (in-memory anchor)
   const [currentDayId, setCurrentDayId] = useState(null);
   const [columns, setColumns] = useState([]);   // custom shot-list columns (shared across all scenes)
+  const [shotLists, setShotLists] = useState([]);      // named shot lists for this project
+  const [activeShotListId, setActiveShotListId] = useState(null);
+  const activeList = shotLists.find(l => l.id === activeShotListId) || null;
   const dayRefs = useRef({});
 
   // Persist the whole column set (add/rename/delete/reorder all funnel here)
@@ -1256,13 +1274,22 @@ export default function ShotList({ project, onScenesChange, onCurrentDayChange, 
   }
 
   useEffect(() => {
-    api.getShotList(project.id).then(s => { setScenes(s); onScenesChange?.(s); }).catch(() => {});
+    api.getShotLists(project.id).then(ls => {
+      setShotLists(ls);
+      setActiveShotListId(a => (a && ls.some(l => l.id === a)) ? a : (ls[0]?.id || null));
+    }).catch(() => {});
     api.getTalent(project.id).then(setTalent).catch(() => {});
     api.getSlDays(project.id).then(d => { setDays(d); if (d.length) onCurrentDayChange?.(d[0]); }).catch(() => {});
     api.getSchedule(project.id).then(d => setScheduleDays(d || [])).catch(() => {});
-    api.getBreaks(project.id).then(setBreaks).catch(() => {});
     api.getShotListColumns(project.id).then(c => setColumns(c || [])).catch(() => {});
   }, [project.id]);
+
+  // Scenes + breaks belong to the active shot list
+  useEffect(() => {
+    if (!activeShotListId) return;
+    api.getShotList(project.id, activeShotListId).then(s => { setScenes(s); onScenesChange?.(s); }).catch(() => {});
+    api.getBreaks(project.id, activeShotListId).then(setBreaks).catch(() => {});
+  }, [project.id, activeShotListId]);
 
   const totalShots = scenes.reduce((s, sc) => s + sc.shots.length, 0);
   const totalMinutes = scenes.reduce((s, sc) => s + sc.shots.reduce((a, sh) => {
@@ -1289,10 +1316,42 @@ export default function ShotList({ project, onScenesChange, onCurrentDayChange, 
     setShowAddScene(true);
   }
 
+  async function addShotList() {
+    const name = prompt('Name the new shot list:', `Shot List ${shotLists.length + 1}`);
+    if (name === null) return;
+    try {
+      const sl = await api.createShotList(project.id, name.trim() || `Shot List ${shotLists.length + 1}`);
+      setShotLists(ls => [...ls, sl]);
+      setActiveShotListId(sl.id);
+      setScenes([]); setBreaks([]); onScenesChange?.([]);
+    } catch (e) { alert(e.message); }
+  }
+
+  async function renameActiveShotList(name) {
+    const nm = (name || '').trim();
+    if (!activeList || nm === (activeList.name || '')) return;
+    try {
+      const sl = await api.renameShotList(project.id, activeList.id, nm);
+      setShotLists(ls => ls.map(l => l.id === sl.id ? sl : l));
+    } catch (e) { alert(e.message); }
+  }
+
+  async function removeActiveShotList() {
+    if (!activeList) return;
+    if (shotLists.length <= 1) { alert('A project must keep at least one shot list.'); return; }
+    if (!confirm(`Delete "${activeList.name || 'this shot list'}" and all of its scenes? This can't be undone.`)) return;
+    try {
+      await api.deleteShotList(project.id, activeList.id);
+      const remaining = shotLists.filter(l => l.id !== activeList.id);
+      setShotLists(remaining);
+      setActiveShotListId(remaining[0]?.id || null);
+    } catch (e) { alert(e.message); }
+  }
+
   async function addScene(e) {
     e.preventDefault();
     try {
-      const scene = await api.createScene(project.id, sceneForm);
+      const scene = await api.createScene(project.id, { ...sceneForm, shotListId: activeShotListId });
       updateScenes(prev => [...prev, scene]);
       setShowAddScene(false);
       setSceneForm({ name: '', description: '', sceneType: 'interior', dayId: '', estStartTime: '' });
@@ -1325,7 +1384,7 @@ export default function ShotList({ project, onScenesChange, onCurrentDayChange, 
   async function addBreak(e) {
     e.preventDefault();
     try {
-      const b = await api.createBreak(project.id, { dayId: breakForm.dayId || null, startTime: breakForm.startTime, endTime: breakForm.endTime });
+      const b = await api.createBreak(project.id, { dayId: breakForm.dayId || null, startTime: breakForm.startTime, endTime: breakForm.endTime, shotListId: activeShotListId });
       const newBreaks = [...breaks, b];
       setBreaks(newBreaks);
       await recalcDay(breakForm.dayId, scenes, newBreaks, breakAnchorMap);
@@ -1336,7 +1395,7 @@ export default function ShotList({ project, onScenesChange, onCurrentDayChange, 
 
   async function handleSceneBreakAdd({ dayId, startTime, endTime, sceneId }) {
     try {
-      const b = await api.createBreak(project.id, { dayId: dayId || null, startTime, endTime });
+      const b = await api.createBreak(project.id, { dayId: dayId || null, startTime, endTime, shotListId: activeShotListId });
       const newBreaks = [...breaks, b];
       setBreaks(newBreaks);
       const newAnchorMap = { ...breakAnchorMap, [b.id]: sceneId };
@@ -1524,11 +1583,31 @@ export default function ShotList({ project, onScenesChange, onCurrentDayChange, 
   return (
     <div>
       <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:4, gap:10, flexWrap:'wrap' }}>
-        <div>
+        <div style={{ minWidth:0, flex:1 }}>
           <div className="page-title" style={{ marginBottom:0 }}>Shot List</div>
+          {activeList && <ShotListNameInput value={activeList.name} onSave={renameActiveShotList} />}
           <div className="page-sub">{project.client} · {project.code}</div>
         </div>
+        <button onClick={addShotList} title="Add a separate shot list for this shoot"
+          style={{ flexShrink:0, background:'rgba(90,191,128,0.15)', border:'1px solid #5ABF80', color:'#5ABF80', borderRadius:9, width:30, height:30, fontSize:20, fontWeight:800, lineHeight:1, cursor:'pointer', display:'inline-flex', alignItems:'center', justifyContent:'center' }}>+</button>
       </div>
+
+      {/* Switch between this shoot's shot lists */}
+      {shotLists.length > 1 && (
+        <div style={{ display:'flex', gap:6, flexWrap:'wrap', alignItems:'center', marginBottom:14 }}>
+          {shotLists.map(l => (
+            <button key={l.id} onClick={() => setActiveShotListId(l.id)}
+              style={{ borderRadius:16, padding:'4px 12px', fontSize:12, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap',
+                border: l.id === activeShotListId ? '1px solid #5ABF80' : '1px solid var(--border)',
+                color: l.id === activeShotListId ? '#5ABF80' : 'var(--muted)',
+                background: l.id === activeShotListId ? 'rgba(90,191,128,0.12)' : 'var(--bg2)' }}>
+              {l.name || 'Untitled'}
+            </button>
+          ))}
+          <button onClick={removeActiveShotList} title="Delete the current shot list"
+            style={{ marginLeft:4, background:'none', border:'none', color:'var(--muted)', fontSize:11, cursor:'pointer', opacity:0.7 }}>Delete list</button>
+        </div>
+      )}
 
       {showAddScene && createPortal(
         <div className="modal-bg" onClick={e => e.target === e.currentTarget && setShowAddScene(false)}>
