@@ -135,6 +135,16 @@ function CustomCell({ value, onSave, captured }) {
   );
 }
 
+// Custom-column field for the expanded shot card — styled like the other .field inputs
+function CustomFieldInput({ value, onSave }) {
+  const [v, setV] = useState(value || '');
+  useEffect(() => { setV(value || ''); }, [value]);
+  return (
+    <input value={v} onChange={e => setV(e.target.value)}
+      onBlur={() => { if (v !== (value || '')) onSave(v); }} placeholder="…" />
+  );
+}
+
 function ShotRow({ shot, index, sceneNumber, projectId, onUpdate, onDelete, accentColor, allExpanded, talent, columns = [],
                    dragHandleProps, isDragOver, sceneStartTime, allShots }) {
   const captured = shot.status === 'captured';
@@ -371,6 +381,12 @@ function ShotRow({ shot, index, sceneNumber, projectId, onUpdate, onDelete, acce
                 <label style={{ fontSize:10 }}>Audio</label>
                 <input value={detail.audioNotes} onChange={e => setDetail(f => ({...f, audioNotes: e.target.value}))} placeholder="e.g. Lav mic, Boom, No audio" />
               </div>
+              {columns.map(col => (
+                <div className="field" style={{ margin:0 }} key={col.id}>
+                  <label style={{ fontSize:10 }}>{col.label}</label>
+                  <CustomFieldInput value={shot.custom?.[col.id]} onSave={v => saveCustom(col.id, v)} />
+                </div>
+              ))}
             </div>
 
             {/* Talent tags */}
@@ -471,6 +487,12 @@ function ShotRow({ shot, index, sceneNumber, projectId, onUpdate, onDelete, acce
                 <label style={{ fontSize:10 }}>Audio</label>
                 <input value={detail.audioNotes} onChange={e => setDetail(f => ({...f, audioNotes: e.target.value}))} placeholder="e.g. Lav mic, Boom, No audio" />
               </div>
+              {columns.map(col => (
+                <div className="field" style={{ margin:0 }} key={col.id}>
+                  <label style={{ fontSize:10 }}>{col.label}</label>
+                  <CustomFieldInput value={shot.custom?.[col.id]} onSave={v => saveCustom(col.id, v)} />
+                </div>
+              ))}
             </div>
 
             {/* Talent tags */}
