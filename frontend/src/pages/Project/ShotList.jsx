@@ -122,7 +122,20 @@ function RefPhotoButton({ projectId, shotId }) {
   );
 }
 
-function ShotRow({ shot, index, sceneNumber, projectId, onUpdate, onDelete, accentColor, allExpanded, talent,
+// Editable custom-column cell (mirrors the description input pattern)
+function CustomCell({ value, onSave, captured }) {
+  const [v, setV] = useState(value || '');
+  useEffect(() => { setV(value || ''); }, [value]);
+  return (
+    <input value={v} onChange={e => setV(e.target.value)}
+      onClick={e => e.stopPropagation()}
+      onBlur={() => { if (v !== (value || '')) onSave(v); }}
+      placeholder="—"
+      style={{ width:'100%', background:'transparent', border:'none', outline:'none', color: captured ? 'var(--muted)' : 'var(--text)', fontSize:13, fontFamily:'inherit', padding:0 }} />
+  );
+}
+
+function ShotRow({ shot, index, sceneNumber, projectId, onUpdate, onDelete, accentColor, allExpanded, talent, columns = [],
                    dragHandleProps, isDragOver, sceneStartTime, allShots }) {
   const captured = shot.status === 'captured';
   const [desc, setDesc] = useState(shot.description || '');
@@ -189,6 +202,13 @@ function ShotRow({ shot, index, sceneNumber, projectId, onUpdate, onDelete, acce
   async function save(field, value) {
     try {
       const updated = await api.updateShot(projectId, shot.id, { [field]: value ?? null });
+      onUpdate(updated);
+    } catch {}
+  }
+
+  async function saveCustom(colId, value) {
+    try {
+      const updated = await api.updateShot(projectId, shot.id, { customKey: colId, customValue: value });
       onUpdate(updated);
     } catch {}
   }
@@ -296,6 +316,12 @@ function ShotRow({ shot, index, sceneNumber, projectId, onUpdate, onDelete, acce
             return t ? <span style={{ fontSize:12, color: captured ? 'var(--muted)' : 'var(--muted)', fontVariantNumeric:'tabular-nums', fontWeight:600 }}>{t}</span> : <span style={{ color:'var(--muted)', opacity:0.3, fontSize:12 }}>—</span>;
           })()}
         </td>
+        {/* Custom columns */}
+        {columns.map(col => (
+          <td key={col.id} style={{ padding:'6px 8px', width:120 }} onClick={e => e.stopPropagation()}>
+            <CustomCell value={shot.custom?.[col.id]} captured={captured} onSave={v => saveCustom(col.id, v)} />
+          </td>
+        ))}
         {/* Delete */}
         <td style={{ padding:'10px 14px 10px 4px', width:28, textAlign:'right' }}>
           <button onClick={e => { e.stopPropagation(); onDelete(shot.id); }} style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:13, padding:0, lineHeight:1, opacity:0.35 }}>✕</button>
@@ -406,7 +432,7 @@ function ShotRow({ shot, index, sceneNumber, projectId, onUpdate, onDelete, acce
         </div>, document.body)}
       {isOpen && !(open && isMobileNow()) && (
         <tr style={{ borderBottom:'1px solid var(--border)', background:'rgba(255,255,255,0.025)' }}>
-          <td colSpan={9} className="sl-detail-cell" style={{ padding:'12px 14px 16px 76px' }}>
+          <td colSpan={9 + (columns?.length || 0)} className="sl-detail-cell" style={{ padding:'12px 14px 16px 76px' }}>
             <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:8 }}>
               <RefPhotoButton projectId={projectId} shotId={shot.id} />
             </div>
@@ -510,7 +536,7 @@ function ShotRow({ shot, index, sceneNumber, projectId, onUpdate, onDelete, acce
 }
 
 // ── New Shot Row ──────────────────────────────────────────────────────────────
-function NewShotRow({ sceneNumber, nextIndex, projectId, sceneId, onAdded, accentColor }) {
+function NewShotRow({ sceneNumber, nextIndex, projectId, sceneId, onAdded, accentColor, columns = [] }) {
   const [desc, setDesc] = useState('');
   const [movement, setMovement] = useState('');
   const [saving, setSaving] = useState(false);
@@ -561,7 +587,8 @@ function NewShotRow({ sceneNumber, nextIndex, projectId, sceneId, onAdded, accen
       </td>
       <td className="sl-col-hide" style={{ width:80 }} />
       <td style={{ padding:'6px 8px', width:60 }} />
-
+      <td style={{ width:72 }} />
+      {columns.map(col => <td key={col.id} style={{ width:120 }} />)}
       <td style={{ width:28 }} />
     </tr>
   );
@@ -659,7 +686,7 @@ function DaySynopsisCard({ day, onDelete, onAddScene, scenes, scheduleDays, onDa
 }
 
 // ── Scene Block ───────────────────────────────────────────────────────────────
-function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded, onShotDelete, onDeleteScene, onStartTimeChange, onShotsReorder, onSceneUpdate, onAddBreak, isFirstScene, shootingCall }) {
+function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded, onShotDelete, onDeleteScene, onStartTimeChange, onShotsReorder, onSceneUpdate, onAddBreak, isFirstScene, shootingCall, columns = [], onColumnsChange }) {
   const st = SCENE_TYPE_STYLES[scene.scene_type] || SCENE_TYPE_STYLES.interior;
   const effectiveStart = fmt12(isFirstScene && shootingCall ? shootingCall : (scene.est_start_time || '')) || '';
   const [startTime, setStartTime] = useState(effectiveStart);
@@ -767,6 +794,31 @@ function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded,
   const [showBreakForm, setShowBreakForm] = useState(false);
   const [breakEndTime, setBreakEndTime] = useState('');
 
+  // ── Custom columns (shared across the whole shot list) ──
+  const [colMenu, setColMenu] = useState(null);   // { mode:'add'|'edit', colId?, x, y }
+  const [colDraft, setColDraft] = useState('');
+  const dragColRef = useRef(null);
+  function commitColMenu() {
+    const label = colDraft.trim();
+    if (!label) { setColMenu(null); return; }
+    if (colMenu.mode === 'add') {
+      const id = 'c' + Math.random().toString(36).slice(2, 9);
+      onColumnsChange?.([...(columns || []), { id, label }]);
+    } else {
+      onColumnsChange?.((columns || []).map(c => c.id === colMenu.colId ? { ...c, label } : c));
+    }
+    setColMenu(null);
+  }
+  function deleteColumn(colId) { onColumnsChange?.((columns || []).filter(c => c.id !== colId)); setColMenu(null); }
+  function moveColumn(fromId, toId) {
+    if (!fromId || fromId === toId) return;
+    const rest = (columns || []).filter(c => c.id !== fromId);
+    const moved = (columns || []).find(c => c.id === fromId);
+    const idx = rest.findIndex(c => c.id === toId);
+    rest.splice(idx < 0 ? rest.length : idx, 0, moved);
+    onColumnsChange?.(rest);
+  }
+
   function handleAddBreak(e) {
     e.preventDefault();
     if (!wrapTime || !breakEndTime) return;
@@ -845,7 +897,26 @@ function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded,
             <th className="sl-col-hide" style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:130 }}>Movement</th>
             <th className="sl-col-hide" style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:80 }}>Talent</th>
             <th style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:60 }}>Allocation</th>
-            <th style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:92 }}>Est. Start Time</th>
+            <th style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:92 }}>
+              <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
+                Est. Start Time
+                <button title="Add a custom column to every shot in this shot list"
+                  onClick={e => { const r = e.currentTarget.getBoundingClientRect(); setColDraft(''); setColMenu({ mode:'add', x:r.left, y:r.bottom }); }}
+                  style={{ background:'rgba(255,255,255,0.06)', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:5, width:16, height:16, lineHeight:1, fontSize:12, fontWeight:800, cursor:'pointer', display:'inline-flex', alignItems:'center', justifyContent:'center', padding:0 }}>+</button>
+              </span>
+            </th>
+            {(columns || []).map(col => (
+              <th key={col.id} draggable
+                onDragStart={() => { dragColRef.current = col.id; }}
+                onDragOver={e => e.preventDefault()}
+                onDrop={() => { moveColumn(dragColRef.current, col.id); dragColRef.current = null; }}
+                onDragEnd={() => { dragColRef.current = null; }}
+                onClick={e => { const r = e.currentTarget.getBoundingClientRect(); setColDraft(col.label); setColMenu({ mode:'edit', colId:col.id, x:r.left, y:r.bottom }); }}
+                title="Drag to reorder · click to rename or delete"
+                style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:120, cursor:'pointer', whiteSpace:'nowrap' }}>
+                {col.label} <span style={{ opacity:0.35, fontSize:9 }}>⠿</span>
+              </th>
+            ))}
             <th style={{ width:28 }} />
           </tr>
         </thead>
@@ -853,7 +924,7 @@ function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded,
           {scene.shots.map((shot, i) => (
             <ShotRow key={shot.id} shot={shot} index={i} sceneNumber={scene.scene_number}
               projectId={projectId} onUpdate={onShotUpdate} onDelete={onShotDelete}
-              accentColor={st.badgeText} allExpanded={allExpanded} talent={talent}
+              accentColor={st.badgeText} allExpanded={allExpanded} talent={talent} columns={columns}
               sceneStartTime={startTime} allShots={scene.shots}
               isDragOver={dragOverIndex === i}
               dragHandleProps={{
@@ -868,7 +939,7 @@ function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded,
           <NewShotRow
             key={`new-${scene.id}`}
             sceneNumber={scene.scene_number} nextIndex={scene.shots.length}
-            projectId={projectId} sceneId={scene.id}
+            projectId={projectId} sceneId={scene.id} columns={columns}
             onAdded={shot => onShotAdded(scene.id, shot)} accentColor={st.badgeText} />
         </tbody>
       </table>
@@ -903,6 +974,29 @@ function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded,
           )}
         </div>
       </div>
+
+      {/* Custom-column add / edit popover */}
+      {colMenu && createPortal(
+        <div onClick={() => setColMenu(null)} style={{ position:'fixed', inset:0, zIndex:320 }}>
+          <div onClick={e => e.stopPropagation()}
+            style={{ position:'fixed', top: colMenu.y + 4, left: Math.min(colMenu.x, window.innerWidth - 236), width:220, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:12, boxShadow:'0 10px 28px rgba(0,0,0,0.55)' }}>
+            <div style={{ fontSize:9, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', marginBottom:6 }}>{colMenu.mode === 'add' ? 'New Column' : 'Edit Column'}</div>
+            <input autoFocus value={colDraft} onChange={e => setColDraft(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') commitColMenu(); if (e.key === 'Escape') setColMenu(null); }}
+              placeholder="Column name…"
+              style={{ width:'100%', fontSize:12, padding:'6px 8px', background:'var(--bg)', border:'1px solid var(--border)', borderRadius:5, color:'var(--text)', fontFamily:'inherit', outline:'none' }} />
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:10, gap:8 }}>
+              {colMenu.mode === 'edit'
+                ? <button onClick={() => { if (confirm('Delete this column? Its values are removed from every shot.')) deleteColumn(colMenu.colId); }}
+                    style={{ background:'none', border:'none', color:'#e05252', fontSize:11, fontWeight:700, cursor:'pointer', padding:0 }}>Delete</button>
+                : <span />}
+              <div style={{ display:'flex', gap:6 }}>
+                <button onClick={() => setColMenu(null)} style={{ background:'none', border:'none', color:'var(--muted)', fontSize:11, cursor:'pointer', padding:'2px 4px' }}>Cancel</button>
+                <button onClick={commitColMenu} className="btn btn-primary btn-sm" style={{ fontSize:11, padding:'3px 12px' }}>{colMenu.mode === 'add' ? 'Add' : 'Save'}</button>
+              </div>
+            </div>
+          </div>
+        </div>, document.body)}
 
       {/* Scene Edit Modal — portalled to body so it escapes overflow:hidden */}
       {showEditModal && createPortal(
@@ -1098,7 +1192,14 @@ export default function ShotList({ project, onScenesChange, onCurrentDayChange, 
   const [editingBreak, setEditingBreak] = useState(null);
   const [breakAnchorMap, setBreakAnchorMap] = useState({}); // breakId -> sceneId (in-memory anchor)
   const [currentDayId, setCurrentDayId] = useState(null);
+  const [columns, setColumns] = useState([]);   // custom shot-list columns (shared across all scenes)
   const dayRefs = useRef({});
+
+  // Persist the whole column set (add/rename/delete/reorder all funnel here)
+  async function saveColumns(next) {
+    setColumns(next);
+    try { await api.setShotListColumns(project.id, next); } catch (e) { alert(e.message); }
+  }
 
   useEffect(() => {
     const observers = [];
@@ -1138,6 +1239,7 @@ export default function ShotList({ project, onScenesChange, onCurrentDayChange, 
     api.getSlDays(project.id).then(d => { setDays(d); if (d.length) onCurrentDayChange?.(d[0]); }).catch(() => {});
     api.getSchedule(project.id).then(d => setScheduleDays(d || [])).catch(() => {});
     api.getBreaks(project.id).then(setBreaks).catch(() => {});
+    api.getShotListColumns(project.id).then(c => setColumns(c || [])).catch(() => {});
   }, [project.id]);
 
   const totalShots = scenes.reduce((s, sc) => s + sc.shots.length, 0);
@@ -1472,6 +1574,7 @@ export default function ShotList({ project, onScenesChange, onCurrentDayChange, 
                 onShotUpdate={handleShotUpdate} onShotAdded={handleShotAdded} onShotDelete={handleShotDelete}
                 onDeleteScene={deleteScene} onStartTimeChange={handleStartTimeChange}
                 onShotsReorder={handleShotsReorder} onSceneUpdate={handleSceneUpdate} onAddBreak={handleSceneBreakAdd}
+                columns={columns} onColumnsChange={saveColumns}
                 isFirstScene={items.filter(i => i._type === 'scene').indexOf(item) === 0}
                 shootingCall={items.filter(i => i._type === 'scene').indexOf(item) === 0 ? (fmt12(day.shooting_call) || '') : undefined} />
             ) : (
@@ -1509,6 +1612,7 @@ export default function ShotList({ project, onScenesChange, onCurrentDayChange, 
                 onShotUpdate={handleShotUpdate} onShotAdded={handleShotAdded} onShotDelete={handleShotDelete}
                 onDeleteScene={deleteScene} onStartTimeChange={handleStartTimeChange}
                 onShotsReorder={handleShotsReorder} onSceneUpdate={handleSceneUpdate} onAddBreak={handleSceneBreakAdd}
+                columns={columns} onColumnsChange={saveColumns}
                 isFirstScene={ui === 0} />
             ))}
           </div>

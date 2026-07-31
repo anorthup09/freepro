@@ -83,6 +83,26 @@ router.get('/:id/shot-list', requireAuth, async (req, res, next) => {
   } catch(e) { next(e); }
 });
 
+// ── Custom columns (shared across the whole shot list) ──
+// GET /api/projects/:id/shot-list/columns
+router.get('/:id/shot-list/columns', requireAuth, async (req, res, next) => {
+  try {
+    const [p] = await sql`SELECT shot_list_columns FROM projects WHERE id = ${req.params.id}`;
+    res.json(p?.shot_list_columns || []);
+  } catch(e) { next(e); }
+});
+
+// PUT /api/projects/:id/shot-list/columns — replace the whole column set
+router.put('/:id/shot-list/columns', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try {
+    const cols = Array.isArray(req.body.columns) ? req.body.columns
+      .filter(c => c && c.id && typeof c.label === 'string')
+      .map(c => ({ id: String(c.id), label: c.label })) : [];
+    const [p] = await sql`UPDATE projects SET shot_list_columns = ${sql.json(cols)} WHERE id = ${req.params.id} RETURNING shot_list_columns`;
+    res.json(p?.shot_list_columns || []);
+  } catch(e) { next(e); }
+});
+
 // POST /api/projects/:id/shot-list/scenes
 router.post('/:id/shot-list/scenes', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
@@ -140,9 +160,13 @@ router.patch('/:id/shot-list/shots/:shotId', requireAuth, requireRole('ADMIN','P
   try {
     const { description, distance, movement, priority, estMinutes, status,
             angle, lens, frameRate, coverage, talentTags, specialEquipment, audioNotes,
-            setupMinutes, takesCount, takeMinutes, bufferMinutes, sortOrder } = req.body;
+            setupMinutes, takesCount, takeMinutes, bufferMinutes, sortOrder,
+            customKey, customValue } = req.body;
     const [shot] = await sql`
       UPDATE shot_list_shots SET
+        custom = ${customKey !== undefined
+          ? sql`jsonb_set(COALESCE(custom, '{}'::jsonb), ${sql.array([String(customKey)])}, ${sql.json(customValue ?? '')}, true)`
+          : sql`custom`},
         description = COALESCE(${description??null}, description),
         distance = ${distance !== undefined ? (distance||null) : sql`distance`},
         movement = ${movement !== undefined ? (movement||null) : sql`movement`},

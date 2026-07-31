@@ -1794,6 +1794,11 @@ async function migrate() {
       UNIQUE (approval_id, celebrator_email)
     )`;
 
+  // Shot list custom columns: definitions live on the project (shared across the
+  // whole shot list), per-shot values in a JSON map keyed by column id.
+  await sql`ALTER TABLE projects ADD COLUMN IF NOT EXISTS shot_list_columns JSONB DEFAULT '[]'::jsonb`;
+  await sql`ALTER TABLE shot_list_shots ADD COLUMN IF NOT EXISTS custom JSONB DEFAULT '{}'::jsonb`;
+
   console.log('Migration complete.');
 }
 
