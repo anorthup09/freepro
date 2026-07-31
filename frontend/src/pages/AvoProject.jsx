@@ -453,9 +453,12 @@ function VideoTracker({ edits, setEdits, config, onConfig, code, readOnly, onOpe
     { key:'end_date', label:'Due Date', render: e => <span style={{ whiteSpace:'nowrap', fontSize:12 }}>{fmtD(e.end_date)}</span> },
     { key:'video_assets', label:'Video Assets', minWidth:160, expandable:true, render: (e, expanded) => <Cell value={e.video_assets} placeholder="iPhone videos, music…" readOnly={readOnly} multiline={expanded} onSave={v => saveEdit(e.id, { videoAssets: v })} /> },
     { key:'lead_editor', label:'Editor', render: e => <span style={{ fontSize:12, whiteSpace:'nowrap' }}>{e.current_editor || e.lead_editor || '—'}</span> },
-    { key:'review_link', label:'Review Link', render: e => e.review_link
-      ? <a href={e.review_link} target="_blank" rel="noreferrer" style={{ color:'#4a9eff', fontSize:11 }}>▶ {e.review_link.replace(/^https?:\/\/(www\.)?/, '').slice(0, 22)}</a>
-      : <span style={{ color:'var(--muted)', fontSize:11 }}>—</span> },
+    { key:'review_link', label:'Review Link', minWidth:150, render: e => (
+      <span style={{ display:'inline-flex', alignItems:'center', gap:4, width:'100%' }}>
+        <Cell value={e.review_link} placeholder="Paste review link…" readOnly={readOnly} onSave={v => saveEdit(e.id, { reviewLink: v })} style={{ color: e.review_link ? '#4a9eff' : undefined }} />
+        {e.review_link && <a href={e.review_link} target="_blank" rel="noreferrer" title="Open review link" onClick={ev => ev.stopPropagation()} style={{ color:'#4a9eff', fontSize:12, flexShrink:0, textDecoration:'none' }}>▶</a>}
+      </span>
+    ) },
     { key:'latest_comment', label:'Latest Comment', minWidth:150, render: e => e.latest_comment
       ? <span style={{ fontSize:11 }} title={e.latest_comment}>{e.latest_comment.slice(0, 40)}{e.latest_comment.length > 40 ? '…' : ''}</span>
       : <span style={{ color:'var(--muted)', fontSize:11 }}>—</span> },
@@ -546,7 +549,7 @@ function VideoTracker({ edits, setEdits, config, onConfig, code, readOnly, onOpe
           </span>
         )} />
       <div style={{ padding:'8px 2px', fontSize:10, color:'var(--muted)' }}>
-        Feeds live from the editing pipeline. Title, due date, editor, review link, and status come from each edit; Type, Notes, Video Assets, and any custom columns are editable here.
+        Feeds live from the editing pipeline. Title, due date, editor, and status come from each edit; Review Link, Type, Notes, Video Assets, and any custom columns are editable here (changes mirror back to the edit).
       </div>
       {addForm && (
         <AvoForm title="Add Deliverable" form={addForm} setForm={setAddForm}
