@@ -10,8 +10,8 @@ import { AvoForm, BLANK_DELIVERABLE_FORM } from './Project/Deliverables.jsx';
 import ContractSendModal from '../components/ContractSendModal.jsx';
 import RfrModal from '../components/RfrModal.jsx';
 
-const th = { padding:'7px 10px', fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', textAlign:'left', whiteSpace:'nowrap' };
-const td = { padding:'4px 6px', verticalAlign:'middle' };
+const th = { padding:'7px 10px', fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', textAlign:'left', whiteSpace:'nowrap', borderBottom:'1px solid var(--border)', borderRight:'1px solid var(--border)' };
+const td = { padding:'4px 6px', verticalAlign:'middle', borderBottom:'1px solid var(--border)', borderRight:'1px solid var(--border)' };
 const cellInput = { background:'transparent', border:'1px solid transparent', fontSize:12, width:'100%', padding:'5px 6px', borderRadius:5 };
 
 const TYPE_COLORS = ['#5ABF80', '#d66a9b', '#e6c229', '#e8955a', '#f08080', '#4a9eff', '#a78bfa', '#40A0A0'];
@@ -256,7 +256,7 @@ function SmartTable({ rows, colDefs, config, onConfig, saveExtra, leading, trail
             )}
             {shownRows.map((r, ri) => r.__header ? (
               <tr key={r.id}>
-                <td colSpan={nCols} style={{ padding:'7px 12px', background:'rgba(255,255,255,0.04)', borderTop:'1px solid var(--border)' }}>
+                <td colSpan={nCols} style={{ padding:'7px 12px', background:'var(--bg3)', borderTop:'1px solid var(--border)', borderBottom:'1px solid var(--border)' }}>
                   <span style={{ fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.08em', color:r.__color || 'var(--muted)' }}>{r.__header}</span>
                 </td>
               </tr>
@@ -264,7 +264,7 @@ function SmartTable({ rows, colDefs, config, onConfig, saveExtra, leading, trail
               <tr key={r.id}
                 onDragOver={dragRow != null ? e => { e.preventDefault(); setOverRow(ri); } : undefined}
                 onDrop={dragRow != null ? () => { dropRow(ri); setDragRow(null); setOverRow(null); } : undefined}
-                style={{ borderTop: overRow === ri && dragRow != null && dragRow !== ri ? `2px solid ${AVO}` : '1px solid rgba(255,255,255,0.04)', opacity: r.__dim ? 0.5 : dragRow === ri ? 0.4 : 1, background: r.tracker_color ? `${r.tracker_color}22` : undefined }}>
+                style={{ borderTop: overRow === ri && dragRow != null && dragRow !== ri ? `2px solid ${AVO}` : undefined, opacity: r.__dim ? 0.5 : dragRow === ri ? 0.4 : 1, background: r.tracker_color ? `${r.tracker_color}22` : undefined }}>
                 {onReorder && (
                   <td style={{ ...td, textAlign:'center', width:26 }}>
                     <span draggable={!filterActive} title={filterActive ? 'Clear filters to reorder rows' : 'Drag to reorder row'}
@@ -288,8 +288,8 @@ function SmartTable({ rows, colDefs, config, onConfig, saveExtra, leading, trail
                   return (
                     <td key={c.key} rowSpan={span?.rs} colSpan={span?.cs} onClick={() => cellClick(ri, ci)}
                       style={{ ...td, minWidth: w || c.minWidth, width: w, maxWidth: w, position:'relative',
-                        ...(span ? { border:'1px solid rgba(255,255,255,0.09)', verticalAlign:'middle' } : {}),
-                        ...(mergeMode ? { cursor:'pointer', background: sel ? `${AVO}30` : span ? 'rgba(255,255,255,0.03)' : undefined } : {}) }}>
+                        ...(span ? { border:'1px solid var(--border2)', verticalAlign:'middle' } : {}),
+                        ...(mergeMode ? { cursor:'pointer', background: sel ? `${AVO}30` : span ? 'var(--bg3)' : undefined } : {}) }}>
                       <div style={mergeMode ? { pointerEvents:'none' } : undefined}>{content}</div>
                       {colExp && isExpandable(c) && !readOnly && !mergeMode && (
                         <button title={eff ? 'Collapse this cell' : 'Expand this cell'}
