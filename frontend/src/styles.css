@@ -829,6 +829,10 @@ textarea { resize: vertical; min-height: 70px; }
 @media (max-width: 700px) {
   .signout-footer { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 104px) !important; }
 }
+/* On desktop the Hub/Project docks float bottom-center — keep sign out above them */
+@media (min-width: 701px) {
+  .signout-footer { padding-bottom: 120px !important; }
+}
 
 /* Hub on phones: Project Hub and Client Hub stack full-width instead of
    squeezing side by side */

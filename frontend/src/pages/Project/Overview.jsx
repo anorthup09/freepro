@@ -337,13 +337,13 @@ export default function Overview({ project, setProject, onTabChange,
           )}
         </div>
         {daysUntil != null && daysUntil > 0 && (
-          <div className="ov-hero-cd" style={{ marginTop:10 }}><b>{daysUntil}</b><span>days out</span></div>
+          <div className="ov-hero-cd"><b>{daysUntil}</b><span>days out</span></div>
         )}
         {daysUntil != null && daysUntil === 0 && (
-          <div className="ov-hero-cd" style={{ marginTop:10 }}><b>Today</b><span>day 1</span></div>
+          <div className="ov-hero-cd"><b>Today</b><span>day 1</span></div>
         )}
         {setShowCateringGrid && (
-          <div className="ov-toggle-row" style={{ display:'flex', gap:6, flexWrap:'nowrap', overflowX:'auto', alignItems:'center', marginTop:14, scrollbarWidth:'none' }}>
+          <div className="ov-toggle-row" style={{ display:'flex', gap:6, flexWrap:'nowrap', overflowX:'auto', alignItems:'center', justifyContent:'center', marginTop:14, scrollbarWidth:'none' }}>
             {addonToggles.map(t => (
               <button key={t.label}
                 onClick={() => { if (!t.on) { t.set(true); t.go?.(); } else { t.set(false); } }}
