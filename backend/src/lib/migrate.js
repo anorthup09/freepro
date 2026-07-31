@@ -490,6 +490,12 @@ async function migrate() {
   await sql`ALTER TABLE schedule_events ADD COLUMN IF NOT EXISTS adhoc_address TEXT`;
   // FALSE = the crew goes out (reservation) — the address becomes a driving stop
   await sql`ALTER TABLE catering_orders ADD COLUMN IF NOT EXISTS is_delivery BOOLEAN DEFAULT TRUE`;
+  // Meal service type: DELIVERY | PICKUP | DINEIN (null = not chosen yet). Keeps
+  // is_delivery in sync (true only for DELIVERY) so the driving-stop logic still works.
+  await sql`ALTER TABLE catering_orders ADD COLUMN IF NOT EXISTS service_type TEXT`;
+  // Backfill service_type from the old is_delivery flag on existing meals with data
+  await sql`UPDATE catering_orders SET service_type = CASE WHEN is_delivery = false THEN 'PICKUP' ELSE 'DELIVERY' END
+            WHERE service_type IS NULL AND (name IS NOT NULL OR address IS NOT NULL OR delivery_time IS NOT NULL OR order_number IS NOT NULL)`;
 
   await sql`ALTER TABLE key_talent ADD COLUMN IF NOT EXISTS call_time TEXT`;
 

@@ -22,10 +22,14 @@ const MEAL_COLORS = {
   DINNER:    { color:'#f87171', bg:'rgba(248,113,113,0.10)', emoji:'🍽️', label:'Dinner' },
 };
 
+// Meal service type — DELIVERY | PICKUP | DINEIN
+const SERVICE_LABEL = { DELIVERY:'Delivery', PICKUP:'Pick Up', DINEIN:'Dine-In' };
+const svcOf = entry => entry?.service_type || (entry && entry.is_delivery === false ? 'PICKUP' : entry ? 'DELIVERY' : '');
+
 export default function Catering({ project }) {
   const [days, setDays] = useState([]);
   const [cateringModal, setCateringModal] = useState(null);
-  const [cateringForm, setCateringForm] = useState({ mealTypes:[], name:'', address:'', orderNumber:'', deliveryTime:'', isDelivery:true });
+  const [cateringForm, setCateringForm] = useState({ mealTypes:[], name:'', address:'', orderNumber:'', deliveryTime:'', serviceType:'' });
   const [expandedDays, setExpandedDays] = useState({});
   const [savedToast, setSavedToast] = useState(false);
   const toastTimer = React.useRef(null);
@@ -52,10 +56,10 @@ export default function Catering({ project }) {
         address: existing?.address || '',
         orderNumber: existing?.order_number || '',
         deliveryTime: existing?.delivery_time || '',
-        isDelivery: existing ? existing.is_delivery !== false : true,
+        serviceType: existing?.service_type || '',
       });
     } else {
-      setCateringForm({ mealTypes: [], name: '', address: '', orderNumber: '', deliveryTime: '', isDelivery: true });
+      setCateringForm({ mealTypes: [], name: '', address: '', orderNumber: '', deliveryTime: '', serviceType: '' });
     }
     setCateringModal(dayId);
   }
@@ -69,24 +73,24 @@ export default function Catering({ project }) {
       address: existing?.address || '',
       orderNumber: existing?.order_number || '',
       deliveryTime: existing?.delivery_time || '',
-      isDelivery: existing ? existing.is_delivery !== false : true,
+      serviceType: existing?.service_type || '',
     });
   }
 
   async function saveCatering(e) {
     e.preventDefault();
     const dayId = cateringModal;
-    const { mealTypes, name, address, orderNumber, deliveryTime, isDelivery } = cateringForm;
+    const { mealTypes, name, address, orderNumber, deliveryTime, serviceType } = cateringForm;
     if (!mealTypes.length) return;
     try {
-      const results = await api.saveCatering(project.id, dayId, { mealTypes, name, address, orderNumber, deliveryTime, isDelivery, deleteMealTypes: [] });
+      const results = await api.saveCatering(project.id, dayId, { mealTypes, name, address, orderNumber, deliveryTime, serviceType, deleteMealTypes: [] });
       setDays(ds => ds.map(d => {
         if (d.id !== dayId) return d;
         const kept = (d.catering||[]).filter(c => !mealTypes.includes(c.meal_type));
         return { ...d, catering: [...kept, ...results] };
       }));
       // Clear fields and deselect meal so user can pick the next one
-      setCateringForm({ mealTypes: [], name: '', address: '', orderNumber: '', deliveryTime: '', isDelivery: true });
+      setCateringForm({ mealTypes: [], name: '', address: '', orderNumber: '', deliveryTime: '', serviceType: '' });
       flashSaved();
     } catch(e) { alert(e.message); }
   }
@@ -139,7 +143,9 @@ export default function Catering({ project }) {
                       style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:8, paddingBottom:8, borderBottom: mt !== 'DINNER' ? '1px solid var(--border)' : 'none', cursor:'pointer', borderRadius:6, marginLeft:-4, marginRight:-4, paddingLeft:4, paddingRight:4 }}>
                       <div style={{ fontSize:11, fontWeight:700, color: mc.color, display:'flex', alignItems:'center', gap:6, flexWrap:'wrap' }}>
                         <span>{mc.label}</span>
-                        {entry && <span style={{ fontSize:8, fontWeight:800, color:'var(--muted)', border:'1px solid var(--border)', borderRadius:9, padding:'1px 6px', textTransform:'uppercase', letterSpacing:'0.05em', whiteSpace:'nowrap' }}>{entry.is_delivery === false ? 'Pick-Up' : 'Delivery'}</span>}
+                        {entry && (entry.service_type
+                          ? <span style={{ fontSize:8, fontWeight:800, color:'var(--orange)', border:'1px solid var(--orange)', background:'rgba(232,80,10,0.12)', borderRadius:9, padding:'1px 6px', textTransform:'uppercase', letterSpacing:'0.05em', whiteSpace:'nowrap' }}>{SERVICE_LABEL[entry.service_type]}</span>
+                          : <span style={{ fontSize:8, fontWeight:800, color:'var(--muted)', border:'1px solid var(--border)', borderRadius:9, padding:'1px 6px', textTransform:'uppercase', letterSpacing:'0.05em', whiteSpace:'nowrap' }}>— Select —</span>)}
                       </div>
                       {entry ? (
                         <div style={{ textAlign:'right', fontSize:11 }}>
@@ -172,12 +178,15 @@ export default function Catering({ project }) {
           <div className="modal">
             <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:10 }}>
               <div className="modal-title">Add Catering Info</div>
-              <label title="Checked: the food comes to you. Unchecked: it's a reservation — the address becomes a driving stop on the schedule."
-                style={{ display:'flex', alignItems:'center', gap:6, fontSize:12, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap', marginTop:2 }}>
-                <input type="checkbox" checked={cateringForm.isDelivery}
-                  onChange={e => setCateringForm(f=>({ ...f, isDelivery: e.target.checked }))} style={{ width:'auto', accentColor:'#4ade80' }} />
-                Delivery
-              </label>
+              <select value={cateringForm.serviceType}
+                title="Delivery: food comes to you. Pick Up / Dine-In: the address becomes a driving stop on the schedule."
+                onChange={e => setCateringForm(f=>({ ...f, serviceType: e.target.value }))}
+                style={{ marginTop:2, fontSize:12, fontWeight:700, background:'var(--bg)', border:`1px solid ${cateringForm.serviceType ? 'var(--orange)' : 'var(--border)'}`, color: cateringForm.serviceType ? 'var(--orange)' : 'var(--muted)', borderRadius:6, padding:'5px 10px', cursor:'pointer' }}>
+                <option value="">— Select —</option>
+                <option value="DELIVERY">Delivery</option>
+                <option value="PICKUP">Pick Up</option>
+                <option value="DINEIN">Dine-In</option>
+              </select>
             </div>
             <form onSubmit={saveCatering}>
               <div style={{ marginBottom:14 }}>

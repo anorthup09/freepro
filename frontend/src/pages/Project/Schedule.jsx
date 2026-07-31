@@ -322,6 +322,9 @@ const MEAL_COLORS = {
   DINNER:    { color:'#f87171', bg:'rgba(248,113,113,0.10)', emoji:'🍽️', label:'Dinner' },
   LUNCH:     { color:'#4ade80', bg:'rgba(74,222,128,0.08)',  emoji:'🥗', label:'Lunch' },
 };
+// Meal service type → label; falls back to the legacy is_delivery flag.
+const SERVICE_LABEL = { DELIVERY:'Delivery', PICKUP:'Pick Up', DINEIN:'Dine-In' };
+const svcLabel = c => c?.service_type ? SERVICE_LABEL[c.service_type] : (c && c.is_delivery === false ? 'Pick Up' : 'Delivery');
 
 const TAG_TYPES = ['VIDEO','PHOTO','AUDIO','ALL_CREW','TALENT','TRAVEL'];
 const TAG_CLASS = { VIDEO:'v', PHOTO:'p', AUDIO:'a', ALL_CREW:'a', TALENT:'t', TRAVEL:'tr', CUSTOM:'v' };
@@ -371,7 +374,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
   const [weatherByDay, setWeatherByDay] = useState({});
   const weatherResyncDone = useRef(false);
   const [cateringModal, setCateringModal] = useState(null);
-  const [cateringForm, setCateringForm] = useState({ mealTypes:[], name:'', address:'', orderNumber:'', deliveryTime:'', isDelivery:true });
+  const [cateringForm, setCateringForm] = useState({ mealTypes:[], name:'', address:'', orderNumber:'', deliveryTime:'', serviceType:'' });
   const [shotListScenes, setShotListScenes] = useState([]);
   const [slDays, setSlDays] = useState([]);
   const [savedToast, setSavedToast] = useState(false);
@@ -534,19 +537,19 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
     const existing = day?.catering || [];
     const mealTypes = existing.map(c => c.meal_type);
     const first = existing[0] || {};
-    setCateringForm({ mealTypes, name: first.name||'', address: first.address||'', orderNumber: first.order_number||'', deliveryTime: first.delivery_time||'', isDelivery: first.is_delivery !== false });
+    setCateringForm({ mealTypes, name: first.name||'', address: first.address||'', orderNumber: first.order_number||'', deliveryTime: first.delivery_time||'', serviceType: first.service_type || '' });
     setCateringModal(dayId);
   }
 
   async function saveCatering(e) {
     e.preventDefault();
     const dayId = cateringModal;
-    const { mealTypes, name, address, orderNumber, deliveryTime, isDelivery } = cateringForm;
+    const { mealTypes, name, address, orderNumber, deliveryTime, serviceType } = cateringForm;
     const day = days.find(d => d.id === dayId);
     const existingTypes = (day?.catering || []).map(c => c.meal_type);
     const deleteMealTypes = existingTypes.filter(mt => !mealTypes.includes(mt));
     try {
-      const results = await api.saveCatering(project.id, dayId, { mealTypes, name, address, orderNumber, deliveryTime, isDelivery, deleteMealTypes });
+      const results = await api.saveCatering(project.id, dayId, { mealTypes, name, address, orderNumber, deliveryTime, serviceType, deleteMealTypes });
       setDays(ds => ds.map(d => {
         if (d.id !== dayId) return d;
         const kept = (d.catering||[]).filter(c => !mealTypes.includes(c.meal_type) && !deleteMealTypes.includes(c.meal_type));
@@ -1105,7 +1108,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                                 })()}
                               {!isEditing && item._key === 'lt' && lunchCatering && (
                                 <div style={{ textAlign:'right' }}>
-                                  <div style={{ fontSize:10, fontWeight:600, color:'var(--text)' }}>{lunchCatering.name} <span style={{ fontSize:8, fontWeight:800, color:'var(--muted)', border:'1px solid var(--border)', borderRadius:9, padding:'0 6px', textTransform:'uppercase', letterSpacing:'0.05em', whiteSpace:'nowrap' }}>{lunchCatering.is_delivery === false ? 'Pick-Up' : 'Delivery'}</span></div>
+                                  <div style={{ fontSize:10, fontWeight:600, color:'var(--text)' }}>{lunchCatering.name} <span style={{ fontSize:8, fontWeight:800, color:'var(--muted)', border:'1px solid var(--border)', borderRadius:9, padding:'0 6px', textTransform:'uppercase', letterSpacing:'0.05em', whiteSpace:'nowrap' }}>{svcLabel(lunchCatering)}</span></div>
                                   {lunchCatering.address && <div style={{ fontSize:10, color:'var(--muted)' }}>{lunchCatering.address}</div>}
                                   {lunchCatering.order_number && <div style={{ fontSize:10, color:'var(--muted)' }}>Order #{lunchCatering.order_number}</div>}
                                   {lunchCatering.delivery_time && <div style={{ fontSize:10, color:'#4ade80' }}>🚚 {fmtTime(lunchCatering.delivery_time)}</div>}
@@ -1272,7 +1275,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                           <div className="ev-time">{item.delivery_time ? fmtTime(item.delivery_time) : '—'}</div>
                           <div className={`ev-body${isLiveBlock(item.delivery_time, null) ? ' ev-live' : ''}`} style={{ borderLeft:`2px solid ${mc.color}` }}>
                             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
-                              <div className="ev-title">{mc.label}<span style={{ fontSize:9, fontWeight:800, color:'var(--muted)', border:'1px solid var(--border)', borderRadius:10, padding:'1px 7px', marginLeft:8, textTransform:'uppercase', letterSpacing:'0.05em', whiteSpace:'nowrap', display:'inline-block' }}>{item.is_delivery === false ? 'Pick-Up' : 'Delivery'}</span></div>
+                              <div className="ev-title">{mc.label}<span style={{ fontSize:9, fontWeight:800, color:'var(--muted)', border:'1px solid var(--border)', borderRadius:10, padding:'1px 7px', marginLeft:8, textTransform:'uppercase', letterSpacing:'0.05em', whiteSpace:'nowrap', display:'inline-block' }}>{svcLabel(item)}</span></div>
                               <div style={{ textAlign:'right' }}>
                                 {item.name && <div style={{ fontSize:12, fontWeight:600, color:'var(--text)' }}>{item.name}</div>}
                                 {item.address && <div style={{ fontSize:10, color:'var(--muted)' }}>{item.address}</div>}
@@ -1506,12 +1509,15 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
           <div className="modal">
             <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:10 }}>
               <div className="modal-title">Add Catering Info</div>
-              <label title="Checked: the food comes to you. Unchecked: it's a reservation — the address becomes a driving stop on the schedule."
-                style={{ display:'flex', alignItems:'center', gap:6, fontSize:12, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap', marginTop:2 }}>
-                <input type="checkbox" checked={cateringForm.isDelivery}
-                  onChange={e => setCateringForm(f=>({ ...f, isDelivery: e.target.checked }))} style={{ width:'auto', accentColor:'#4ade80' }} />
-                Delivery
-              </label>
+              <select value={cateringForm.serviceType}
+                title="Delivery: food comes to you. Pick Up / Dine-In: the address becomes a driving stop on the schedule."
+                onChange={e => setCateringForm(f=>({ ...f, serviceType: e.target.value }))}
+                style={{ marginTop:2, fontSize:12, fontWeight:700, background:'var(--bg)', border:`1px solid ${cateringForm.serviceType ? 'var(--orange)' : 'var(--border)'}`, color: cateringForm.serviceType ? 'var(--orange)' : 'var(--muted)', borderRadius:6, padding:'5px 10px', cursor:'pointer' }}>
+                <option value="">— Select —</option>
+                <option value="DELIVERY">Delivery</option>
+                <option value="PICKUP">Pick Up</option>
+                <option value="DINEIN">Dine-In</option>
+              </select>
             </div>
             <form onSubmit={saveCatering}>
               <div style={{ marginBottom:14 }}>
