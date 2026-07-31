@@ -42,8 +42,21 @@ export default function Catering({ project }) {
     }).catch(() => {});
   }, [project.id]);
 
-  function openCateringModal(dayId) {
-    setCateringForm({ mealTypes: [], name: '', address: '', orderNumber: '', deliveryTime: '', isDelivery: true });
+  function openCateringModal(dayId, mealType) {
+    if (mealType) {
+      const day = days.find(d => d.id === dayId);
+      const existing = (day?.catering || []).find(c => c.meal_type === mealType);
+      setCateringForm({
+        mealTypes: [mealType],
+        name: existing?.name || '',
+        address: existing?.address || '',
+        orderNumber: existing?.order_number || '',
+        deliveryTime: existing?.delivery_time || '',
+        isDelivery: existing ? existing.is_delivery !== false : true,
+      });
+    } else {
+      setCateringForm({ mealTypes: [], name: '', address: '', orderNumber: '', deliveryTime: '', isDelivery: true });
+    }
     setCateringModal(dayId);
   }
 
@@ -106,8 +119,11 @@ export default function Catering({ project }) {
                 <div style={{ fontWeight:700, fontSize:13 }}>
                   Day {i+1} · {parseDay(d.date).toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' })}
                 </div>
-                <button className="btn btn-ghost btn-sm" style={{ fontSize:11, padding:'3px 10px' }} onClick={() => openCateringModal(d.id)}>
-                  Add/Edit Meal
+                <button title="Add / edit a meal" onClick={() => openCateringModal(d.id)}
+                  style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', padding:6, display:'inline-flex', alignItems:'center', lineHeight:1 }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+                  </svg>
                 </button>
               </div>
               <div style={{ padding:'10px 14px' }}>
@@ -118,7 +134,9 @@ export default function Catering({ project }) {
                   const mc = MEAL_COLORS[mt];
                   const entry = byMeal[mt];
                   return (
-                    <div key={mt} style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:8, paddingBottom:8, borderBottom: mt !== 'DINNER' ? '1px solid var(--border)' : 'none' }}>
+                    <div key={mt} onClick={() => openCateringModal(d.id, mt)}
+                      title={entry ? `Edit ${mc.label}` : `Add ${mc.label}`}
+                      style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:8, paddingBottom:8, borderBottom: mt !== 'DINNER' ? '1px solid var(--border)' : 'none', cursor:'pointer', borderRadius:6, marginLeft:-4, marginRight:-4, paddingLeft:4, paddingRight:4 }}>
                       <div style={{ fontSize:11, fontWeight:700, color: mc.color }}>{mc.emoji} {mc.label}</div>
                       {entry ? (
                         <div style={{ textAlign:'right', fontSize:11 }}>
