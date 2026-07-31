@@ -759,6 +759,9 @@ textarea { resize: vertical; min-height: 70px; }
 /* Inside Project View the embedded apps keep their content but lose their own
    top nav — the outer Project View header is the one navigation */
 .pvd-embed .finance-header { display: none !important; }
+/* Match the embedded content width to the outer Project View header (1250/16)
+   so the Overview shoot name + tile left-align with the logo/code/pill above */
+.pvd-embed .wrap { max-width: 1250px; padding-left: 16px; padding-right: 16px; }
 /* Inside Project View the whole FreePro shell nav is hidden — its ? and Share
    are lifted up inline with the project name (see ProjectViewDetail), and its
    logo/hub link would duplicate the masthead. Section nav lives in the bottom dock. */
