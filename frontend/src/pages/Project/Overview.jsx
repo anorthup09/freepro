@@ -317,6 +317,13 @@ export default function Overview({ project, setProject, onTabChange,
 
   return (
     <div>
+      {/* Shoot name — sits under the project code/name, above the hero tile */}
+      {(project.shoot_name || project.subtitle) && (
+        <div className="ov-shoot-line" style={{ display:'flex', alignItems:'center', gap:8, fontSize:13, fontWeight:600, color:'var(--tan)', margin:'0 0 10px' }}>
+          Shoot: {project.shoot_name || project.subtitle}
+          <button className="ov-edit-icon" title="Edit shoot info" aria-label="Edit shoot info" onClick={() => setEditInfo(true)}>✎</button>
+        </div>
+      )}
       {/* Hero header */}
       <div className="ov-head ov-hero">
         <div className="ov-hero-status">
@@ -329,12 +336,6 @@ export default function Overview({ project, setProject, onTabChange,
             <button className="ov-edit-icon" title="Edit shoot info" aria-label="Edit shoot info" onClick={() => setEditInfo(true)}>✎</button>
           )}
         </div>
-        {(project.shoot_name || project.subtitle) && (
-          <div className="ov-hero-shoot">
-            Shoot: {project.shoot_name || project.subtitle}
-            <button className="ov-edit-icon" title="Edit shoot info" aria-label="Edit shoot info" onClick={() => setEditInfo(true)}>✎</button>
-          </div>
-        )}
         {daysUntil != null && daysUntil > 0 && (
           <div className="ov-hero-cd" style={{ marginTop:10 }}><b>{daysUntil}</b><span>days out</span></div>
         )}
