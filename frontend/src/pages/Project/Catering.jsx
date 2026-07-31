@@ -137,7 +137,10 @@ export default function Catering({ project }) {
                     <div key={mt} onClick={() => openCateringModal(d.id, mt)}
                       title={entry ? `Edit ${mc.label}` : `Add ${mc.label}`}
                       style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:8, paddingBottom:8, borderBottom: mt !== 'DINNER' ? '1px solid var(--border)' : 'none', cursor:'pointer', borderRadius:6, marginLeft:-4, marginRight:-4, paddingLeft:4, paddingRight:4 }}>
-                      <div style={{ fontSize:11, fontWeight:700, color: mc.color }}>{mc.emoji} {mc.label}</div>
+                      <div style={{ fontSize:11, fontWeight:700, color: mc.color, display:'flex', alignItems:'center', gap:6, flexWrap:'wrap' }}>
+                        <span>{mc.emoji} {mc.label}</span>
+                        {entry && <span style={{ fontSize:8, fontWeight:800, color:'var(--muted)', border:'1px solid var(--border)', borderRadius:9, padding:'1px 6px', textTransform:'uppercase', letterSpacing:'0.05em', whiteSpace:'nowrap' }}>{entry.is_delivery === false ? 'Pick-Up' : 'Delivery'}</span>}
+                      </div>
                       {entry ? (
                         <div style={{ textAlign:'right', fontSize:11 }}>
                           <div style={{ fontWeight:600, color:'var(--text)' }}>{entry.name}</div>

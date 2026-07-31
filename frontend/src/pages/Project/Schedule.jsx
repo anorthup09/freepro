@@ -1105,7 +1105,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                                 })()}
                               {!isEditing && item._key === 'lt' && lunchCatering && (
                                 <div style={{ textAlign:'right' }}>
-                                  <div style={{ fontSize:10, fontWeight:600, color:'var(--text)' }}>{lunchCatering.name}</div>
+                                  <div style={{ fontSize:10, fontWeight:600, color:'var(--text)' }}>{lunchCatering.name} <span style={{ fontSize:8, fontWeight:800, color:'var(--muted)', border:'1px solid var(--border)', borderRadius:9, padding:'0 6px', textTransform:'uppercase', letterSpacing:'0.05em', whiteSpace:'nowrap' }}>{lunchCatering.is_delivery === false ? 'Pick-Up' : 'Delivery'}</span></div>
                                   {lunchCatering.address && <div style={{ fontSize:10, color:'var(--muted)' }}>{lunchCatering.address}</div>}
                                   {lunchCatering.order_number && <div style={{ fontSize:10, color:'var(--muted)' }}>Order #{lunchCatering.order_number}</div>}
                                   {lunchCatering.delivery_time && <div style={{ fontSize:10, color:'#4ade80' }}>🚚 {fmtTime(lunchCatering.delivery_time)}</div>}
@@ -1272,7 +1272,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                           <div className="ev-time">{item.delivery_time ? fmtTime(item.delivery_time) : '—'}</div>
                           <div className={`ev-body${isLiveBlock(item.delivery_time, null) ? ' ev-live' : ''}`} style={{ borderLeft:`2px solid ${mc.color}` }}>
                             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
-                              <div className="ev-title">{mc.label}{isOut ? <span style={{ fontSize:9, fontWeight:800, color:'var(--muted)', border:'1px solid var(--border)', borderRadius:10, padding:'1px 7px', marginLeft:8, textTransform:'uppercase', letterSpacing:'0.05em', whiteSpace:'nowrap', display:'inline-block' }}>Reservation</span> : null}</div>
+                              <div className="ev-title">{mc.label}<span style={{ fontSize:9, fontWeight:800, color:'var(--muted)', border:'1px solid var(--border)', borderRadius:10, padding:'1px 7px', marginLeft:8, textTransform:'uppercase', letterSpacing:'0.05em', whiteSpace:'nowrap', display:'inline-block' }}>{item.is_delivery === false ? 'Pick-Up' : 'Delivery'}</span></div>
                               <div style={{ textAlign:'right' }}>
                                 {item.name && <div style={{ fontSize:12, fontWeight:600, color:'var(--text)' }}>{item.name}</div>}
                                 {item.address && <div style={{ fontSize:10, color:'var(--muted)' }}>{item.address}</div>}
