@@ -349,7 +349,6 @@ export default function Overview({ project, setProject, onTabChange,
       {/* Add-on logistics sections — enable them here, then jump straight in */}
       {setShowCateringGrid && (
         <div style={{ display:'flex', gap:8, flexWrap:'wrap', alignItems:'center', margin:'4px 0 14px' }}>
-          <span style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', marginRight:2 }}>Add Sections</span>
           {addonToggles.map(t => (
             <button key={t.label}
               onClick={() => { if (!t.on) { t.set(true); t.go?.(); } else { t.set(false); } }}
