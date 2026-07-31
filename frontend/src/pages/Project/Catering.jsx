@@ -176,12 +176,12 @@ export default function Catering({ project }) {
       {cateringModal && (
         <div className="modal-bg" onClick={e => e.target === e.currentTarget && setCateringModal(null)}>
           <div className="modal">
-            <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:10 }}>
-              <div className="modal-title">Add Catering Info</div>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10 }}>
+              <div className="modal-title" style={{ marginBottom:0 }}>Add Catering Info</div>
               <select value={cateringForm.serviceType}
                 title="Delivery: food comes to you. Pick Up / Dine-In: the address becomes a driving stop on the schedule."
                 onChange={e => setCateringForm(f=>({ ...f, serviceType: e.target.value }))}
-                style={{ marginTop:2, fontSize:12, fontWeight:700, background:'var(--bg)', border:`1px solid ${cateringForm.serviceType ? 'var(--orange)' : 'var(--border)'}`, color: cateringForm.serviceType ? 'var(--orange)' : 'var(--muted)', borderRadius:6, padding:'5px 10px', cursor:'pointer' }}>
+                style={{ width:130, flexShrink:0, fontSize:12, fontWeight:700, background:'var(--bg)', border:`1px solid ${cateringForm.serviceType ? 'var(--orange)' : 'var(--border)'}`, color: cateringForm.serviceType ? 'var(--orange)' : 'var(--muted)', borderRadius:6, padding:'6px 10px', cursor:'pointer' }}>
                 <option value="">— Select —</option>
                 <option value="DELIVERY">Delivery</option>
                 <option value="PICKUP">Pick Up</option>
