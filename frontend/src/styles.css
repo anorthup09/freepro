@@ -80,6 +80,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
 .ov-hero-cd span { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
 /* Status pill parks in the hero's top-right corner */
 .ov-hero-status { position: absolute; top: 14px; right: 14px; display: flex; align-items: center; gap: 8px; }
+.ov-toggle-row::-webkit-scrollbar { display: none; }
 
 /* ── Sharing & Access (collapsible) ── */
 .ov-share { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 12px; overflow: hidden; }

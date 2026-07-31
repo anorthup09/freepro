@@ -320,30 +320,33 @@ export default function Overview({ project, setProject, onTabChange,
       {/* Hero header */}
       <div className="ov-head ov-hero">
         <div className="ov-hero-status">
-          <button className="ov-edit-icon" title="Edit shoot info" aria-label="Edit shoot info" onClick={() => setEditInfo(true)}>✎</button>
           <StatusSelect project={project} setProject={setProject} />
         </div>
-        {daysUntil != null && daysUntil > 0 && (
-          <div className="ov-hero-cd" style={{ marginBottom:8 }}><b>{daysUntil}</b><span>days out</span></div>
-        )}
-        {daysUntil != null && daysUntil === 0 && (
-          <div className="ov-hero-cd" style={{ marginBottom:8 }}><b>Today</b><span>day 1</span></div>
-        )}
         <div className="proj-code">{project.code} · {project.client}</div>
         <div className="ov-hero-titlerow">
           <div className="proj-title">{project.title}</div>
+          {!(project.shoot_name || project.subtitle) && (
+            <button className="ov-edit-icon" title="Edit shoot info" aria-label="Edit shoot info" onClick={() => setEditInfo(true)}>✎</button>
+          )}
         </div>
         {(project.shoot_name || project.subtitle) && (
           <div className="ov-hero-shoot">
             Shoot: {project.shoot_name || project.subtitle}
+            <button className="ov-edit-icon" title="Edit shoot info" aria-label="Edit shoot info" onClick={() => setEditInfo(true)}>✎</button>
           </div>
         )}
+        {daysUntil != null && daysUntil > 0 && (
+          <div className="ov-hero-cd" style={{ marginTop:10 }}><b>{daysUntil}</b><span>days out</span></div>
+        )}
+        {daysUntil != null && daysUntil === 0 && (
+          <div className="ov-hero-cd" style={{ marginTop:10 }}><b>Today</b><span>day 1</span></div>
+        )}
         {setShowCateringGrid && (
-          <div style={{ display:'flex', gap:8, flexWrap:'wrap', alignItems:'center', marginTop:14 }}>
+          <div className="ov-toggle-row" style={{ display:'flex', gap:6, flexWrap:'nowrap', overflowX:'auto', alignItems:'center', marginTop:14, scrollbarWidth:'none' }}>
             {addonToggles.map(t => (
               <button key={t.label}
                 onClick={() => { if (!t.on) { t.set(true); t.go?.(); } else { t.set(false); } }}
-                style={{ fontSize:11, fontWeight:600, padding:'4px 12px', borderRadius:6, border:`1px solid ${t.on ? t.color : 'var(--border2)'}`, background: t.on ? `${t.color}26` : 'var(--bg2)', color: t.on ? t.color : 'var(--muted)', cursor:'pointer', transition:'all .15s', whiteSpace:'nowrap' }}>
+                style={{ fontSize:11, fontWeight:600, padding:'4px 10px', borderRadius:6, border:`1px solid ${t.on ? t.color : 'var(--border2)'}`, background: t.on ? `${t.color}26` : 'var(--bg2)', color: t.on ? t.color : 'var(--muted)', cursor:'pointer', transition:'all .15s', whiteSpace:'nowrap', flexShrink:0 }}>
                 {t.on ? `✓ ${t.label}` : `+ ${t.label}`}
               </button>
             ))}
