@@ -169,7 +169,7 @@ export default function Catering({ project }) {
                       <button key={mt} type="button"
                         onClick={() => selectMealType(mt)}
                         style={{ flex:1, padding:'8px 6px', borderRadius:8, border:`2px solid ${sel ? mc.color : 'var(--border)'}`, background: sel ? mc.bg : 'var(--bg)', color: sel ? mc.color : 'var(--muted)', fontWeight:700, fontSize:12, cursor:'pointer', transition:'all .12s' }}>
-                        {mc.emoji} {mc.label}
+                        {mc.label}
                       </button>
                     );
                   })}
@@ -181,9 +181,16 @@ export default function Catering({ project }) {
                 <div className="field"><label>Order Number</label><input value={cateringForm.orderNumber} onChange={e => setCateringForm(f=>({...f,orderNumber:e.target.value}))} placeholder="#12345" /></div>
                 <div className="field"><label>Reservation/Delivery Time</label><input type="time" value={cateringForm.deliveryTime} onChange={e => setCateringForm(f=>({...f,deliveryTime:e.target.value}))} /></div>
               </div>
-              <div className="btn-row">
+              <div className="btn-row" style={{ display:'flex', alignItems:'center' }}>
                 <button className="btn btn-primary" type="submit">Save Catering</button>
                 <button type="button" className="btn btn-ghost" onClick={() => setCateringModal(null)}>Cancel</button>
+                <button type="button" title="Clear the fields"
+                  onClick={() => setCateringForm(f => ({ ...f, name:'', address:'', orderNumber:'', deliveryTime:'' }))}
+                  style={{ marginLeft:'auto', background:'none', border:'none', color:'var(--muted)', cursor:'pointer', padding:6, display:'inline-flex', alignItems:'center' }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6" />
+                  </svg>
+                </button>
               </div>
             </form>
           </div>

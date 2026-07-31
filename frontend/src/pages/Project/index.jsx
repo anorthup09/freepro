@@ -533,7 +533,7 @@ export default function Project({ idOverride, onControls }) {
       </div>
 
       <div className="wrap">
-        {tab === 'overview'             && <Overview     project={project} setProject={setProject} onTabChange={setTab} />}
+        {tab === 'overview'             && <Overview     project={project} setProject={setProject} onTabChange={setTab} showCateringGrid={showCateringGrid} setShowCateringGrid={toggleCateringGrid} onCateringTabChange={() => setTab('catering')} showShotList={showShotList} setShowShotList={toggleShotList} onShotListTabChange={() => setTab('shot-list')} showScripts={showScripts} setShowScripts={toggleScripts} onScriptsTabChange={() => setTab('scripts')} showTravel={showTravel} setShowTravel={toggleTravel} onTravelTabChange={() => setTab('travel')} />}
         {tab === 'schedule'             && <Schedule     project={project} showCateringGrid={showCateringGrid} setShowCateringGrid={toggleCateringGrid} onCateringTabChange={() => setTab('catering')} showShotList={showShotList} setShowShotList={toggleShotList} onShotListTabChange={() => setTab('shot-list')} showScripts={showScripts} setShowScripts={toggleScripts} onScriptsTabChange={() => setTab('scripts')} showTravel={showTravel} setShowTravel={toggleTravel} onTravelTabChange={() => setTab('travel')} focusDate={scheduleFocusDate} onFocusConsumed={() => setScheduleFocusDate(null)} />}
         {tab === 'catering'             && <Catering     project={project} />}
         {tab === 'scripts'              && <Scripts      project={project} />}

@@ -126,7 +126,17 @@ function parseDay(dateStr) {
   return new Date(dateStr.slice(0, 10) + 'T12:00:00');
 }
 
-export default function Overview({ project, setProject, onTabChange }) {
+export default function Overview({ project, setProject, onTabChange,
+  showCateringGrid, setShowCateringGrid, onCateringTabChange,
+  showShotList, setShowShotList, onShotListTabChange,
+  showScripts, setShowScripts, onScriptsTabChange,
+  showTravel, setShowTravel, onTravelTabChange }) {
+  const addonToggles = [
+    { on: showTravel,       set: setShowTravel,       go: onTravelTabChange,   color:'#a78bfa', label:'Travel' },
+    { on: showCateringGrid, set: setShowCateringGrid, go: onCateringTabChange, color:'#22c55e', label:'Catering/Meals' },
+    { on: showShotList,     set: setShowShotList,     go: onShotListTabChange, color:'#60a5fa', label:'Shot List' },
+    { on: showScripts,      set: setShowScripts,      go: onScriptsTabChange,  color:'#fbbf24', label:'Script' },
+  ];
   const [editInfo, setEditInfo] = useState(false);
   const nav = useNavigate();
   const [scheduleDays, setScheduleDays] = useState([]);
@@ -335,6 +345,20 @@ export default function Overview({ project, setProject, onTabChange }) {
           <div style={{ marginTop:12, fontSize:13, color:'var(--muted)', maxWidth:520, lineHeight:1.6, whiteSpace:'pre-wrap' }}>{project.notes}</div>
         )}
       </div>
+
+      {/* Add-on logistics sections — enable them here, then jump straight in */}
+      {setShowCateringGrid && (
+        <div style={{ display:'flex', gap:8, flexWrap:'wrap', alignItems:'center', margin:'4px 0 14px' }}>
+          <span style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', marginRight:2 }}>Add Sections</span>
+          {addonToggles.map(t => (
+            <button key={t.label}
+              onClick={() => { if (!t.on) { t.set(true); t.go?.(); } else { t.set(false); } }}
+              style={{ fontSize:11, fontWeight:600, padding:'4px 12px', borderRadius:6, border:`1px solid ${t.on ? t.color : 'var(--border2)'}`, background: t.on ? `${t.color}26` : 'var(--bg2)', color: t.on ? t.color : 'var(--muted)', cursor:'pointer', transition:'all .15s', whiteSpace:'nowrap' }}>
+              {t.on ? `✓ ${t.label}` : `+ ${t.label}`}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Sharing & Access — quiet, collapsible */}
       <div className="ov-share">

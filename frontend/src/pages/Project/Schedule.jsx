@@ -770,35 +770,6 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
     }));
   }
 
-  const toggleButtons = (
-    <div style={{ display:'flex', gap:6, flexWrap:'nowrap', overflowX:'auto', WebkitOverflowScrolling:'touch', maxWidth:'100%', scrollbarWidth:'none' }}>
-            <button
-              onClick={() => { if (!showTravel) { setShowTravel(true); onTravelTabChange?.(); } else { setShowTravel(false); } }}
-              style={{ fontSize:11, fontWeight:600, padding:'4px 12px', borderRadius:6, border:`1px solid ${showTravel ? '#a78bfa' : 'var(--border2)'}`, background: showTravel ? 'rgba(167,139,250,0.15)' : 'var(--bg2)', color: showTravel ? '#a78bfa' : 'var(--muted)', cursor:'pointer', transition:'all .15s', whiteSpace:'nowrap' }}
-            >
-              {showTravel ? '✓ Travel' : '+ Travel'}
-            </button>
-            <button
-              onClick={() => { if (!showCateringGrid) { setShowCateringGrid(true); onCateringTabChange?.(); } else { setShowCateringGrid(false); } }}
-              style={{ fontSize:11, fontWeight:600, padding:'4px 12px', borderRadius:6, border:`1px solid ${showCateringGrid ? '#22c55e' : 'var(--border2)'}`, background: showCateringGrid ? 'rgba(34,197,94,0.15)' : 'var(--bg2)', color: showCateringGrid ? '#22c55e' : 'var(--muted)', cursor:'pointer', transition:'all .15s', whiteSpace:'nowrap' }}
-            >
-              {showCateringGrid ? '✓ Catering/Meals' : '+ Catering/Meals'}
-            </button>
-            <button
-              onClick={() => { if (!showShotList) { setShowShotList(true); onShotListTabChange?.(); } else { setShowShotList(false); } }}
-              style={{ fontSize:11, fontWeight:600, padding:'4px 12px', borderRadius:6, border:`1px solid ${showShotList ? '#60a5fa' : 'var(--border2)'}`, background: showShotList ? 'rgba(96,165,250,0.15)' : 'var(--bg2)', color: showShotList ? '#60a5fa' : 'var(--muted)', cursor:'pointer', transition:'all .15s', whiteSpace:'nowrap' }}
-            >
-              {showShotList ? '✓ Shot List' : '+ Shot List'}
-            </button>
-            <button
-              onClick={() => { if (!showScripts) { setShowScripts(true); onScriptsTabChange?.(); } else { setShowScripts(false); } }}
-              style={{ fontSize:11, fontWeight:600, padding:'4px 12px', borderRadius:6, border:`1px solid ${showScripts ? '#fbbf24' : 'var(--border2)'}`, background: showScripts ? 'rgba(251,191,36,0.15)' : 'var(--bg2)', color: showScripts ? '#fbbf24' : 'var(--muted)', cursor:'pointer', transition:'all .15s', whiteSpace:'nowrap' }}
-            >
-              {showScripts ? '✓ Script' : '+ Script'}
-            </button>
-          </div>
-  );
-
   return (
     <div>
       {savedToast && (
@@ -858,7 +829,6 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
             ))}
           </div>
         ) : <div />}
-        <div style={{ flexShrink:0, maxWidth:'100%', minWidth:0 }}>{toggleButtons}</div>
       </div>
 
       {/* Day detail */}
