@@ -323,6 +323,12 @@ export default function Overview({ project, setProject, onTabChange,
           <button className="ov-edit-icon" title="Edit shoot info" aria-label="Edit shoot info" onClick={() => setEditInfo(true)}>✎</button>
           <StatusSelect project={project} setProject={setProject} />
         </div>
+        {daysUntil != null && daysUntil > 0 && (
+          <div className="ov-hero-cd" style={{ marginBottom:8 }}><b>{daysUntil}</b><span>days out</span></div>
+        )}
+        {daysUntil != null && daysUntil === 0 && (
+          <div className="ov-hero-cd" style={{ marginBottom:8 }}><b>Today</b><span>day 1</span></div>
+        )}
         <div className="proj-code">{project.code} · {project.client}</div>
         <div className="ov-hero-titlerow">
           <div className="proj-title">{project.title}</div>
@@ -332,21 +338,17 @@ export default function Overview({ project, setProject, onTabChange,
             Shoot: {project.shoot_name || project.subtitle}
           </div>
         )}
-        <div className="ov-hero-meta">
-          {daysUntil != null && daysUntil > 0 && (
-            <div className="ov-hero-cd"><b>{daysUntil}</b><span>days out</span></div>
-          )}
-          {daysUntil != null && daysUntil === 0 && (
-            <div className="ov-hero-cd"><b>Today</b><span>day 1</span></div>
-          )}
-          {setShowCateringGrid && addonToggles.map(t => (
-            <button key={t.label}
-              onClick={() => { if (!t.on) { t.set(true); t.go?.(); } else { t.set(false); } }}
-              style={{ fontSize:11, fontWeight:600, padding:'4px 12px', borderRadius:6, border:`1px solid ${t.on ? t.color : 'var(--border2)'}`, background: t.on ? `${t.color}26` : 'var(--bg2)', color: t.on ? t.color : 'var(--muted)', cursor:'pointer', transition:'all .15s', whiteSpace:'nowrap' }}>
-              {t.on ? `✓ ${t.label}` : `+ ${t.label}`}
-            </button>
-          ))}
-        </div>
+        {setShowCateringGrid && (
+          <div style={{ display:'flex', gap:8, flexWrap:'wrap', alignItems:'center', marginTop:14 }}>
+            {addonToggles.map(t => (
+              <button key={t.label}
+                onClick={() => { if (!t.on) { t.set(true); t.go?.(); } else { t.set(false); } }}
+                style={{ fontSize:11, fontWeight:600, padding:'4px 12px', borderRadius:6, border:`1px solid ${t.on ? t.color : 'var(--border2)'}`, background: t.on ? `${t.color}26` : 'var(--bg2)', color: t.on ? t.color : 'var(--muted)', cursor:'pointer', transition:'all .15s', whiteSpace:'nowrap' }}>
+                {t.on ? `✓ ${t.label}` : `+ ${t.label}`}
+              </button>
+            ))}
+          </div>
+        )}
         {project.notes && (
           <div style={{ marginTop:12, fontSize:13, color:'var(--muted)', maxWidth:520, lineHeight:1.6, whiteSpace:'pre-wrap' }}>{project.notes}</div>
         )}
