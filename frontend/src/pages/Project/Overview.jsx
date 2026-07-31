@@ -319,7 +319,10 @@ export default function Overview({ project, setProject, onTabChange,
     <div>
       {/* Hero header */}
       <div className="ov-head ov-hero">
-        <div className="ov-hero-status"><StatusSelect project={project} setProject={setProject} /></div>
+        <div className="ov-hero-status">
+          <button className="ov-edit-icon" title="Edit shoot info" aria-label="Edit shoot info" onClick={() => setEditInfo(true)}>✎</button>
+          <StatusSelect project={project} setProject={setProject} />
+        </div>
         <div className="proj-code">{project.code} · {project.client}</div>
         <div className="ov-hero-titlerow">
           <div className="proj-title">{project.title}</div>
@@ -329,10 +332,6 @@ export default function Overview({ project, setProject, onTabChange,
             Shoot: {project.shoot_name || project.subtitle}
           </div>
         )}
-        <div className="ov-hero-dates">
-          <span>{startDate || endDate ? `${fmtDate(startDate) || 'TBD'} – ${fmtDate(endDate) || 'TBD'}` : 'Dates TBD'}</span>
-          <button className="ov-edit-icon" title="Edit shoot info" aria-label="Edit shoot info" onClick={() => setEditInfo(true)}>✎</button>
-        </div>
         <div className="ov-hero-meta">
           {daysUntil != null && daysUntil > 0 && (
             <div className="ov-hero-cd"><b>{daysUntil}</b><span>days out</span></div>
@@ -340,16 +339,7 @@ export default function Overview({ project, setProject, onTabChange,
           {daysUntil != null && daysUntil === 0 && (
             <div className="ov-hero-cd"><b>Today</b><span>day 1</span></div>
           )}
-        </div>
-        {project.notes && (
-          <div style={{ marginTop:12, fontSize:13, color:'var(--muted)', maxWidth:520, lineHeight:1.6, whiteSpace:'pre-wrap' }}>{project.notes}</div>
-        )}
-      </div>
-
-      {/* Add-on logistics sections — enable them here, then jump straight in */}
-      {setShowCateringGrid && (
-        <div style={{ display:'flex', gap:8, flexWrap:'wrap', alignItems:'center', margin:'4px 0 14px' }}>
-          {addonToggles.map(t => (
+          {setShowCateringGrid && addonToggles.map(t => (
             <button key={t.label}
               onClick={() => { if (!t.on) { t.set(true); t.go?.(); } else { t.set(false); } }}
               style={{ fontSize:11, fontWeight:600, padding:'4px 12px', borderRadius:6, border:`1px solid ${t.on ? t.color : 'var(--border2)'}`, background: t.on ? `${t.color}26` : 'var(--bg2)', color: t.on ? t.color : 'var(--muted)', cursor:'pointer', transition:'all .15s', whiteSpace:'nowrap' }}>
@@ -357,7 +347,10 @@ export default function Overview({ project, setProject, onTabChange,
             </button>
           ))}
         </div>
-      )}
+        {project.notes && (
+          <div style={{ marginTop:12, fontSize:13, color:'var(--muted)', maxWidth:520, lineHeight:1.6, whiteSpace:'pre-wrap' }}>{project.notes}</div>
+        )}
+      </div>
 
       {/* Sharing & Access — quiet, collapsible */}
       <div className="ov-share">
@@ -472,9 +465,12 @@ export default function Overview({ project, setProject, onTabChange,
       <div className="ov-kd-grid" style={{ display:'grid', gap:20, marginBottom:20 }}>
         {/* Left: Key Dates */}
         <div className="ov-kd-dates">
+              <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', gap:12, marginBottom:8, flexWrap:'wrap' }}>
+                <div className="sec-lbl" style={{ fontWeight:700, fontSize:12, color:'var(--text)', margin:0 }}>Key Dates</div>
+                <span style={{ fontSize:12, fontWeight:600, color:'var(--muted)', whiteSpace:'nowrap' }}>{startDate || endDate ? `${fmtDate(startDate) || 'TBD'} – ${fmtDate(endDate) || 'TBD'}` : 'Dates TBD'}</span>
+              </div>
           {scheduleDays.length > 0 && (
             <>
-              <div className="sec-lbl" style={{ fontWeight:700, fontSize:12, color:'var(--text)' }}>Key Dates</div>
               <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden' }}>
                 {scheduleDays.map((d, i) => (
                   <div key={d.id} style={{ display:'grid', gridTemplateColumns:'1fr auto', alignItems:'center', gap:12, padding:'10px 16px', borderBottom: i < scheduleDays.length - 1 ? '1px solid var(--border)' : 'none' }}>

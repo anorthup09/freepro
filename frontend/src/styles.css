@@ -67,7 +67,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
 /* ── Overview hero header ── */
 .ov-hero { position: relative; background: linear-gradient(160deg, var(--bg3), var(--bg2)); border: 1px solid var(--border); border-radius: 16px; padding: 16px 18px; margin-bottom: 12px; }
 /* Keep the top lines clear of the status pill parked top-right */
-.ov-hero .proj-code, .ov-hero-titlerow, .ov-hero-shoot { padding-right: 100px; }
+.ov-hero .proj-code, .ov-hero-titlerow, .ov-hero-shoot { padding-right: 130px; }
 .ov-hero .proj-code { margin-bottom: 4px; }
 .ov-hero-titlerow { display: flex; align-items: center; gap: 8px; }
 .ov-hero-shoot { font-size: 12.5px; font-weight: 600; color: var(--tan); margin-top: 4px; display: flex; align-items: center; gap: 8px; }
@@ -76,10 +76,10 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
 .ov-edit-icon:hover { color: var(--orange); }
 .ov-hero-meta { display: flex; align-items: center; gap: 16px; margin-top: 14px; }
 .ov-hero-cd { display: flex; align-items: baseline; gap: 6px; }
-.ov-hero-cd b { font-size: 26px; font-weight: 800; color: var(--orange); line-height: 1; }
+.ov-hero-cd b { font-size: 18px; font-weight: 800; color: var(--orange); line-height: 1; }
 .ov-hero-cd span { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
 /* Status pill parks in the hero's top-right corner */
-.ov-hero-status { position: absolute; top: 14px; right: 14px; }
+.ov-hero-status { position: absolute; top: 14px; right: 14px; display: flex; align-items: center; gap: 8px; }
 
 /* ── Sharing & Access (collapsible) ── */
 .ov-share { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 12px; overflow: hidden; }
