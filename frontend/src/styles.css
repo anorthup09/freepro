@@ -84,7 +84,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
 .ov-metarow { display: flex; align-items: center; gap: 12px; margin-top: 4px; flex-wrap: wrap; }
 .ov-metarow .ov-toggle-row { flex: 1 1 auto; justify-content: center; }
 @media (max-width: 700px) {
-  .ov-metarow .ov-toggle-row { order: 3; flex-basis: 100%; justify-content: flex-start; margin-top: 4px; }
+  .ov-metarow .ov-toggle-row { order: 3; flex-basis: 100%; justify-content: center; margin-top: 4px; }
   .ov-metarow-status { margin-left: auto; }
 }
 .ov-toggle-row::-webkit-scrollbar { display: none; }
