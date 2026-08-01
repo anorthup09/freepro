@@ -335,15 +335,16 @@ export default function Overview({ project, setProject, onTabChange,
             <button className="ov-edit-icon" title="Edit shoot info" aria-label="Edit shoot info" onClick={() => setEditInfo(true)}>✎</button>
           )}
         </div>
-        {/* One plane: days out (left) · section toggles (center) · status pill (right) */}
-        <div style={{ display:'flex', alignItems:'center', gap:12, marginTop:4 }}>
+        {/* Desktop: days out (left) · toggles (center) · status (right) on one plane.
+            Mobile: toggles wrap to a second row below days-out/status. */}
+        <div className="ov-metarow">
           {daysUntil != null && daysUntil > 0
             ? <div className="ov-hero-cd" style={{ flexShrink:0 }}><b>{daysUntil}</b><span>days out</span></div>
             : daysUntil != null && daysUntil === 0
             ? <div className="ov-hero-cd" style={{ flexShrink:0 }}><b>Today</b><span>day 1</span></div>
             : <span style={{ flexShrink:0 }} />}
           {setShowCateringGrid && (
-            <div className="ov-toggle-row" style={{ display:'flex', gap:6, flexWrap:'nowrap', overflowX:'auto', alignItems:'center', justifyContent:'center', flex:1, minWidth:0, scrollbarWidth:'none' }}>
+            <div className="ov-toggle-row" style={{ display:'flex', gap:6, flexWrap:'nowrap', overflowX:'auto', alignItems:'center', minWidth:0, scrollbarWidth:'none' }}>
               {addonToggles.map(t => (
                 <button key={t.label}
                   onClick={() => { if (!t.on) { t.set(true); t.go?.(); } else { t.set(false); } }}
@@ -353,7 +354,7 @@ export default function Overview({ project, setProject, onTabChange,
               ))}
             </div>
           )}
-          <div style={{ flexShrink:0 }}><StatusSelect project={project} setProject={setProject} /></div>
+          <div className="ov-metarow-status" style={{ flexShrink:0 }}><StatusSelect project={project} setProject={setProject} /></div>
         </div>
       </div>
 

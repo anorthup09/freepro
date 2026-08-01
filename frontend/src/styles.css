@@ -80,6 +80,13 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
 .ov-hero-cd span { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
 /* Status pill parks in the hero's top-right corner */
 .ov-hero-status { position: absolute; top: 14px; right: 14px; display: flex; align-items: center; gap: 8px; }
+/* Overview tile meta row: one plane on desktop, toggles wrap to a 2nd row on phones */
+.ov-metarow { display: flex; align-items: center; gap: 12px; margin-top: 4px; flex-wrap: wrap; }
+.ov-metarow .ov-toggle-row { flex: 1 1 auto; justify-content: center; }
+@media (max-width: 700px) {
+  .ov-metarow .ov-toggle-row { order: 3; flex-basis: 100%; justify-content: flex-start; margin-top: 4px; }
+  .ov-metarow-status { margin-left: auto; }
+}
 .ov-toggle-row::-webkit-scrollbar { display: none; }
 
 /* ── Sharing & Access (collapsible) ── */
