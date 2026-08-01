@@ -133,7 +133,7 @@ export default function Overview({ project, setProject, onTabChange,
   showTravel, setShowTravel, onTravelTabChange }) {
   const addonToggles = [
     { on: showTravel,       set: setShowTravel,       go: onTravelTabChange,   color:'#a78bfa', label:'Travel' },
-    { on: showCateringGrid, set: setShowCateringGrid, go: onCateringTabChange, color:'#22c55e', label:'Catering/Meals' },
+    { on: showCateringGrid, set: setShowCateringGrid, go: onCateringTabChange, color:'#22c55e', label:'Meals' },
     { on: showShotList,     set: setShowShotList,     go: onShotListTabChange, color:'#60a5fa', label:'Shot List' },
     { on: showScripts,      set: setShowScripts,      go: onScriptsTabChange,  color:'#fbbf24', label:'Script' },
   ];
