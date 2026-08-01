@@ -320,10 +320,16 @@ export default function Overview({ project, setProject, onTabChange,
       {/* Shoot name (+ notes) — sits under the project code/name, above the hero tile */}
       {((project.shoot_name || project.subtitle) || project.notes) && (
         <div className="ov-shoot-line" style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap', fontSize:13, fontWeight:600, color:'var(--tan)', margin:'0 0 10px' }}>
-          {(project.shoot_name || project.subtitle) && <span>Shoot: {project.shoot_name || project.subtitle}</span>}
-          <button className="ov-edit-icon" title="Edit shoot info" aria-label="Edit shoot info" onClick={() => setEditInfo(true)}>✎</button>
-          {(project.shoot_name || project.subtitle) && project.notes && <span style={{ color:'var(--border2)' }}>|</span>}
-          {project.notes && <span style={{ color:'var(--muted)', fontWeight:400 }}>{project.notes}</span>}
+          <span style={{ display:'inline-flex', alignItems:'center', gap:8 }}>
+            {(project.shoot_name || project.subtitle) && <span>Shoot: {project.shoot_name || project.subtitle}</span>}
+            <button className="ov-edit-icon" title="Edit shoot info" aria-label="Edit shoot info" onClick={() => setEditInfo(true)}>✎</button>
+          </span>
+          {project.notes && (
+            <span style={{ display:'inline-flex', alignItems:'center', gap:8, color:'var(--muted)', fontWeight:400 }}>
+              {(project.shoot_name || project.subtitle) && <span style={{ color:'var(--border2)' }}>|</span>}
+              {project.notes}
+            </span>
+          )}
         </div>
       )}
       {/* Hero header */}
