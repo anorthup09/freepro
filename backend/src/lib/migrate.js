@@ -1818,6 +1818,9 @@ async function migrate() {
   await sql`ALTER TABLE shot_list_scenes ADD COLUMN IF NOT EXISTS shot_list_id TEXT REFERENCES shot_lists(id) ON DELETE CASCADE`;
   await sql`ALTER TABLE shot_list_breaks ADD COLUMN IF NOT EXISTS shot_list_id TEXT REFERENCES shot_lists(id) ON DELETE CASCADE`;
 
+  // Per-project schedule tag color overrides ({ VIDEO:'#hex', ... })
+  await sql`ALTER TABLE projects ADD COLUMN IF NOT EXISTS schedule_tag_colors JSONB DEFAULT '{}'::jsonb`;
+
   console.log('Migration complete.');
 }
 

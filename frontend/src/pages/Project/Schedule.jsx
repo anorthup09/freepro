@@ -329,6 +329,15 @@ const svcLabel = c => c?.service_type ? SERVICE_LABEL[c.service_type] : (c && c.
 const TAG_TYPES = ['VIDEO','PHOTO','AUDIO','ALL_CREW','TALENT','TRAVEL'];
 const TAG_CLASS = { VIDEO:'v', PHOTO:'p', AUDIO:'a', ALL_CREW:'a', TALENT:'t', TRAVEL:'tr', CUSTOM:'v' };
 const TAG_LABEL = { VIDEO:'Video', PHOTO:'Photo', AUDIO:'Audio', ALL_CREW:'All Crew', TALENT:'Talent', TRAVEL:'Travel', CUSTOM:'Custom' };
+// Color-coding legend: each tag maps to one CSS var + default hex; overrides
+// persist on the project and drive the --etag-* variables on the Schedule root.
+const TAG_COLOR_DEFS = [
+  { key:'VIDEO',  cssVar:'--etag-v',  label:'Video',           def:'#a78bfa' },
+  { key:'PHOTO',  cssVar:'--etag-p',  label:'Photo',           def:'#fbbf24' },
+  { key:'AUDIO',  cssVar:'--etag-a',  label:'Audio / All Crew', def:'#4ade80' },
+  { key:'TALENT', cssVar:'--etag-t',  label:'Talent',          def:'#f87171' },
+  { key:'TRAVEL', cssVar:'--etag-tr', label:'Travel',          def:'#4a9eff' },
+];
 
 const SYNTHETIC_META = {
   ct:  { color:'#4a9eff', bg:'rgba(74,158,255,0.08)',  notesKey:'callTimeNotes',      tagsKey:'callTimeTags',      locationKey:'callTimeLocationId' },
@@ -694,6 +703,17 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
   const [clapEvent, setClapEvent] = useState(null);
   const [quickSlate, setQuickSlate] = useState(false);
   const includePhoto = project.include_photo !== false;
+
+  // Color coding: per-project tag color overrides (drive the --etag-* vars)
+  const [showColorCoding, setShowColorCoding] = useState(false);
+  const [tagColors, setTagColors] = useState(project.schedule_tag_colors || {});
+  const tagColorVars = {};
+  TAG_COLOR_DEFS.forEach(t => { if (tagColors[t.key]) tagColorVars[t.cssVar] = tagColors[t.key]; });
+  async function saveTagColors(next) {
+    setTagColors(next);
+    try { await api.updateProject(project.id, { scheduleTagColors: next }); }
+    catch (e) { alert(e.message); }
+  }
   const crewByPosition = (posName) => {
     const a = (project.crewAssignments || []).find(x => (x.position?.name || x.position_name || '').toLowerCase() === posName && x.crewMember);
     return a ? displayName(a.crewMember) : '';
@@ -774,7 +794,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
   }
 
   return (
-    <div>
+    <div style={tagColorVars}>
       {savedToast && (
         <div style={{ position:'fixed', bottom:24, right:24, background:'#22c55e', color:'var(--text)', fontSize:13, fontWeight:600, padding:'8px 18px', borderRadius:20, zIndex:9999, boxShadow:'0 2px 12px rgba(0,0,0,0.25)', pointerEvents:'none', letterSpacing:'.02em' }}>
           ✓ Saved
@@ -786,15 +806,59 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
             <div className="page-title">Schedule</div>
             <div className="page-sub">{parseDay(project.start_date||project.startDate).toLocaleDateString()} – {parseDay(project.end_date||project.endDate).toLocaleDateString()}</div>
           </div>
-          <button onClick={() => setQuickSlate(true)}
-            style={{ display:'inline-flex', alignItems:'center', gap:6, background:'rgba(255,140,0,0.12)', border:'1px solid rgba(255,140,0,0.45)', borderRadius:6, padding:'4px 12px', fontSize:11, fontWeight:700, color:'var(--orange)', cursor:'pointer', letterSpacing:'.05em', textTransform:'uppercase', whiteSpace:'nowrap', flexShrink:0 }}>
-            🎬 Quick Slate
-          </button>
+          <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:8, flexShrink:0 }}>
+            <button onClick={() => setQuickSlate(true)}
+              style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', background:'rgba(255,140,0,0.12)', border:'1px solid rgba(255,140,0,0.45)', borderRadius:6, padding:'4px 14px', fontSize:11, fontWeight:700, color:'var(--orange)', cursor:'pointer', letterSpacing:'.05em', textTransform:'uppercase', whiteSpace:'nowrap' }}>
+              Slate
+            </button>
+            <button onClick={() => setShowColorCoding(true)} title="View and customize the timeline tag colors"
+              style={{ display:'inline-flex', alignItems:'center', gap:7, background:'var(--bg2)', border:'1px solid var(--border2)', borderRadius:6, padding:'4px 12px', fontSize:11, fontWeight:700, color:'var(--text)', cursor:'pointer', letterSpacing:'.05em', textTransform:'uppercase', whiteSpace:'nowrap' }}>
+              <span style={{ display:'inline-flex', gap:2 }}>
+                {TAG_COLOR_DEFS.map(t => <span key={t.key} style={{ width:8, height:8, borderRadius:'50%', background: tagColors[t.key] || t.def }} />)}
+              </span>
+              Color Coding
+            </button>
+          </div>
         </div>
 
       </div>
 
       {days.length === 0 && <div className="empty">No shoot days yet — add a day to start building the schedule.</div>}
+
+      {showColorCoding && (
+        <div className="modal-bg" onClick={e => e.target === e.currentTarget && setShowColorCoding(false)}>
+          <div className="modal" style={{ maxWidth:440 }}>
+            <div className="modal-title">Color Coding</div>
+            <div style={{ fontSize:11, color:'var(--muted)', marginBottom:14, lineHeight:1.5 }}>
+              The colors used for the timeline tags. Tap a swatch to recolor a category — it applies across this project's schedule.
+            </div>
+            <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+              {TAG_COLOR_DEFS.map(t => {
+                const color = tagColors[t.key] || t.def;
+                return (
+                  <div key={t.key} style={{ display:'flex', alignItems:'center', gap:12 }}>
+                    <span className={`etag ${TAG_CLASS[t.key]}`} style={{ minWidth:70, textAlign:'center' }}>{t.label}</span>
+                    <div style={{ flex:1 }} />
+                    <input type="color" value={color}
+                      onChange={e => saveTagColors({ ...tagColors, [t.key]: e.target.value })}
+                      style={{ width:38, height:28, padding:0, border:'1px solid var(--border)', borderRadius:6, background:'transparent', cursor:'pointer' }} />
+                    <span style={{ fontSize:11, color:'var(--muted)', fontVariantNumeric:'tabular-nums', width:64 }}>{color}</span>
+                    {tagColors[t.key] && tagColors[t.key] !== t.def && (
+                      <button type="button" title="Reset to default"
+                        onClick={() => { const n = { ...tagColors }; delete n[t.key]; saveTagColors(n); }}
+                        style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11, padding:2 }}>↺</button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="btn-row" style={{ marginTop:16, justifyContent:'space-between' }}>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => saveTagColors({})}>Reset all</button>
+              <button type="button" className="btn btn-primary btn-sm" onClick={() => setShowColorCoding(false)}>Done</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {quickSlate && (
         <Clapboard
