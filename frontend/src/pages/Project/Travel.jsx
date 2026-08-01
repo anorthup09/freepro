@@ -1138,12 +1138,17 @@ export default function Travel({ project }) {
                 <div className="field"><label>Flight # <span style={{ color:'var(--muted)', fontSize:10 }}>(auto)</span></label><input value={flightForm.flightNumber} onChange={e => setFlightForm(f=>({...f,flightNumber:e.target.value}))} placeholder="UA1234" /></div>
                 <div className="field"><label>Origin <span style={{ color:'var(--muted)', fontSize:10 }}>(auto)</span></label><input value={flightForm.origin} onChange={e => setFlightForm(f=>({...f,origin:e.target.value}))} placeholder="STL" /></div>
                 <div className="field"><label>Destination <span style={{ color:'var(--muted)', fontSize:10 }}>(auto)</span></label><input value={flightForm.destination} onChange={e => setFlightForm(f=>({...f,destination:e.target.value}))} placeholder="MCI" /></div>
-                <div className="field"><label>Depart <span style={{ color:'var(--muted)', fontSize:10 }}>(auto)</span></label><input type="datetime-local" value={flightForm.departTime} onChange={e => setFlightForm(f=>({...f,departTime:e.target.value}))} /></div>
-                <div className="field"><label>Arrive <span style={{ color:'var(--muted)', fontSize:10 }}>(auto)</span></label><input type="datetime-local" value={flightForm.arriveTime} onChange={e => setFlightForm(f=>({...f,arriveTime:e.target.value}))} /></div>
+                <div className="field" style={{ minWidth:0 }}><label>Depart <span style={{ color:'var(--muted)', fontSize:10 }}>(auto)</span></label><input type="datetime-local" value={flightForm.departTime} onChange={e => setFlightForm(f=>({...f,departTime:e.target.value}))} style={{ width:'100%', minWidth:0, boxSizing:'border-box' }} /></div>
+                <div className="field" style={{ minWidth:0 }}><label>Arrive <span style={{ color:'var(--muted)', fontSize:10 }}>(auto)</span></label><input type="datetime-local" value={flightForm.arriveTime} onChange={e => setFlightForm(f=>({...f,arriveTime:e.target.value}))} style={{ width:'100%', minWidth:0, boxSizing:'border-box' }} /></div>
 
-                <div className="field span2" style={{ flexDirection:'row', alignItems:'center', gap:10 }}>
-                  <input type="checkbox" id="isReturn" checked={flightForm.isReturn} onChange={e => setFlightForm(f=>({...f,isReturn:e.target.checked}))} style={{ width:'auto' }} />
-                  <label htmlFor="isReturn" style={{ textTransform:'none', letterSpacing:0, fontSize:12, color:'var(--text)' }}>Round trip (add the return flight on this confirmation)</label>
+                <div className="field span2">
+                  <button type="button" onClick={() => setFlightForm(f=>({...f, isReturn: !f.isReturn}))}
+                    style={{ width:'100%', padding:'9px 12px', borderRadius:8, fontSize:12, fontWeight:700, cursor:'pointer', transition:'all .15s',
+                      border:`1px solid ${flightForm.isReturn ? 'var(--orange)' : 'var(--border2)'}`,
+                      background: flightForm.isReturn ? 'var(--orange)' : 'var(--bg2)',
+                      color: flightForm.isReturn ? '#fff' : 'var(--muted)' }}>
+                    {flightForm.isReturn ? '✓ Round Trip — return flight on this confirmation' : '+ Round Trip (add the return flight)'}
+                  </button>
                 </div>
 
                 {flightForm.isReturn && (
@@ -1179,8 +1184,8 @@ export default function Travel({ project }) {
                     <div className="field"><label>Return Flight # <span style={{ color:'var(--muted)', fontSize:10 }}>(auto)</span></label><input value={returnForm.flightNumber} onChange={e => setReturnForm(f=>({...f,flightNumber:e.target.value}))} placeholder="UA4321" /></div>
                     <div className="field"><label>Return Origin <span style={{ color:'var(--muted)', fontSize:10 }}>(auto)</span></label><input value={returnForm.origin} onChange={e => setReturnForm(f=>({...f,origin:e.target.value}))} placeholder="MCI" /></div>
                     <div className="field"><label>Return Destination <span style={{ color:'var(--muted)', fontSize:10 }}>(auto)</span></label><input value={returnForm.destination} onChange={e => setReturnForm(f=>({...f,destination:e.target.value}))} placeholder="STL" /></div>
-                    <div className="field"><label>Return Depart <span style={{ color:'var(--muted)', fontSize:10 }}>(auto)</span></label><input type="datetime-local" value={returnForm.departTime} onChange={e => setReturnForm(f=>({...f,departTime:e.target.value}))} /></div>
-                    <div className="field"><label>Return Arrive <span style={{ color:'var(--muted)', fontSize:10 }}>(auto)</span></label><input type="datetime-local" value={returnForm.arriveTime} onChange={e => setReturnForm(f=>({...f,arriveTime:e.target.value}))} /></div>
+                    <div className="field" style={{ minWidth:0 }}><label>Return Depart <span style={{ color:'var(--muted)', fontSize:10 }}>(auto)</span></label><input type="datetime-local" value={returnForm.departTime} onChange={e => setReturnForm(f=>({...f,departTime:e.target.value}))} style={{ width:'100%', minWidth:0, boxSizing:'border-box' }} /></div>
+                    <div className="field" style={{ minWidth:0 }}><label>Return Arrive <span style={{ color:'var(--muted)', fontSize:10 }}>(auto)</span></label><input type="datetime-local" value={returnForm.arriveTime} onChange={e => setReturnForm(f=>({...f,arriveTime:e.target.value}))} style={{ width:'100%', minWidth:0, boxSizing:'border-box' }} /></div>
                   </>
                 )}
               </div>
