@@ -208,7 +208,8 @@ function DailyFactBlob() {
               WebkitMaskImage:'linear-gradient(to right, transparent, #000 65%)', maskImage:'linear-gradient(to right, transparent, #000 65%)' }} />
         )}
         {fact.image?.type === 'emoji' && (
-          <div aria-hidden style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:150, opacity:0.12, pointerEvents:'none', transform:'rotate(-8deg)' }}>
+          <div aria-hidden style={{ position:'absolute', top:0, right:0, bottom:0, width:'55%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:170, opacity:0.2, pointerEvents:'none', transform:'rotate(-8deg)',
+            WebkitMaskImage:'linear-gradient(to right, transparent, #000 60%)', maskImage:'linear-gradient(to right, transparent, #000 60%)' }}>
             {fact.image.value}
           </div>
         )}
