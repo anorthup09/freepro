@@ -247,6 +247,15 @@ export default function Travel({ project }) {
   const [flightLegs, setFlightLegs] = useState(null); // all legs the number flies that day
   const [selectedLegIdx, setSelectedLegIdx] = useState(-1);
   const [flightForm, setFlightForm] = useState({ crewMemberId:null, passengerName:'', flightNumber:'', airline:'', origin:'', destination:'', departTime:'', arriveTime:'', departTz:'', arriveTz:'', departDisplay:'', arriveDisplay:'', confirmation:'', isReturn:false, cost:'', status:'' });
+  // Round trip: the return leg booked on the same confirmation gets its own lookup
+  const BLANK_RETURN = { flightNumber:'', airline:'', origin:'', destination:'', departTime:'', arriveTime:'', departTz:'', arriveTz:'', departDisplay:'', arriveDisplay:'', status:'' };
+  const [returnForm, setReturnForm] = useState(BLANK_RETURN);
+  const [returnLookupQuery, setReturnLookupQuery] = useState('');
+  const [returnLookupDate, setReturnLookupDate] = useState('');
+  const [returnLooking, setReturnLooking] = useState(false);
+  const [returnLookupError, setReturnLookupError] = useState('');
+  const [returnLegs, setReturnLegs] = useState(null);
+  const [returnSelectedLegIdx, setReturnSelectedLegIdx] = useState(-1);
 
   // Edit modals
   const [editFlight, setEditFlight] = useState(null); // flight object being edited
@@ -421,6 +430,41 @@ export default function Travel({ project }) {
     setFlightLooking(false);
   }
 
+  // ── Return-leg lookup (round trip on the same confirmation) ──
+  function applyReturnLeg(leg) {
+    setReturnForm(f => ({
+      ...f,
+      flightNumber: leg.flightNumber || returnLookupQuery.toUpperCase(),
+      airline: leg.airline || f.airline,
+      origin: leg.origin || f.origin,
+      destination: leg.destination || f.destination,
+      departTime: localWall(leg.departTimeLocal) || safeIso(leg.departTime)?.slice(0,16) || f.departTime,
+      arriveTime: localWall(leg.arriveTimeLocal) || safeIso(leg.arriveTime)?.slice(0,16) || f.arriveTime,
+      departTz: tzOffsetOf(leg.departTimeLocal) || f.departTz || '',
+      arriveTz: tzOffsetOf(leg.arriveTimeLocal) || f.arriveTz || '',
+      departDisplay: leg.departDisplay || '',
+      arriveDisplay: leg.arriveDisplay || '',
+      status: leg.status || '',
+    }));
+  }
+  async function lookupReturn() {
+    if (!returnLookupQuery) return;
+    setReturnLooking(true); setReturnLookupError(''); setReturnLegs(null); setReturnSelectedLegIdx(-1);
+    try {
+      const data = await api.flightLookup(returnLookupQuery, returnLookupDate);
+      const legs = Array.isArray(data.legs) && data.legs.length ? data.legs : [data];
+      setReturnLegs(legs);
+      if (legs.length === 1) { setReturnSelectedLegIdx(0); applyReturnLeg(legs[0]); }
+    } catch(err) {
+      setReturnLookupError(err.message || 'Flight not found');
+    }
+    setReturnLooking(false);
+  }
+  function resetReturn() {
+    setReturnForm(BLANK_RETURN); setReturnLookupQuery(''); setReturnLookupDate('');
+    setReturnLookupError(''); setReturnLegs(null); setReturnSelectedLegIdx(-1);
+  }
+
   async function addFlight(e) {
     e.preventDefault();
     try {
@@ -439,10 +483,31 @@ export default function Travel({ project }) {
         arriveTz: flightForm.arriveTz || null,
         cost: flightForm.cost || null,
       });
-      setFlights(prev => [...prev, f]);
+      const created = [f];
+      // Round trip: also book the return leg under the same confirmation / crew.
+      if (flightForm.isReturn && (returnForm.flightNumber || returnForm.origin)) {
+        const r = await api.createFlight(project.id, {
+          ...returnForm,
+          passengerName: flightForm.passengerName || 'Unknown',
+          crewMemberId: flightForm.crewMemberId || null,
+          confirmation: flightForm.confirmation,
+          isReturn: true,
+          departTime: wallToUtc(returnForm.departTime, returnForm.departTz)
+            || (returnLookupDate ? safeIso(returnLookupDate + 'T12:00:00') : null),
+          arriveTime: wallToUtc(returnForm.arriveTime, returnForm.arriveTz),
+          departDisplay: returnForm.departDisplay || wallDisplay(returnForm.departTime) || null,
+          arriveDisplay: returnForm.arriveDisplay || wallDisplay(returnForm.arriveTime) || null,
+          departTz: returnForm.departTz || null,
+          arriveTz: returnForm.arriveTz || null,
+          cost: null, // the whole booking's cost is tracked on the outbound flight
+        });
+        created.push(r);
+      }
+      setFlights(prev => [...prev, ...created]);
       setShowFlight(false);
       setFlightLookupQuery(''); setFlightLookupDate(''); setFlightLookupError(''); setFlightLegs(null); setSelectedLegIdx(-1);
       setFlightForm({ crewMemberId:null, passengerName:'', flightNumber:'', airline:'', origin:'', destination:'', departTime:'', arriveTime:'', departTz:'', arriveTz:'', departDisplay:'', arriveDisplay:'', confirmation:'', isReturn:false, cost:'', status:'' });
+      resetReturn();
     } catch(err) { alert(err.message); }
   }
 
@@ -1004,7 +1069,7 @@ export default function Travel({ project }) {
 
       {/* ── Add Flight Modal ── */}
       {showFlight && (
-        <div className="modal-bg" onClick={e => e.target === e.currentTarget && setShowFlight(false)}>
+        <div className="modal-bg" onClick={e => e.target === e.currentTarget && (setShowFlight(false), resetReturn())}>
           <div className="modal">
             <div className="modal-title">Add Flight</div>
             <form onSubmit={addFlight}>
@@ -1078,12 +1143,50 @@ export default function Travel({ project }) {
 
                 <div className="field span2" style={{ flexDirection:'row', alignItems:'center', gap:10 }}>
                   <input type="checkbox" id="isReturn" checked={flightForm.isReturn} onChange={e => setFlightForm(f=>({...f,isReturn:e.target.checked}))} style={{ width:'auto' }} />
-                  <label htmlFor="isReturn" style={{ textTransform:'none', letterSpacing:0, fontSize:12, color:'var(--text)' }}>Return flight</label>
+                  <label htmlFor="isReturn" style={{ textTransform:'none', letterSpacing:0, fontSize:12, color:'var(--text)' }}>Round trip (add the return flight on this confirmation)</label>
                 </div>
+
+                {flightForm.isReturn && (
+                  <>
+                    {/* Return-leg lookup */}
+                    <div className="field span2" style={{ borderTop:'1px solid var(--border)', paddingTop:12, marginTop:2 }}>
+                      <label>Return Flight — Number + Date <span style={{ color:'var(--muted)', fontSize:10 }}>— same confirmation; auto-fills the return route & times</span></label>
+                      <div style={{ display:'flex', gap:6 }}>
+                        <input value={returnLookupQuery} onChange={e => setReturnLookupQuery(e.target.value)} placeholder="UA4321" style={{ width:100, flexShrink:0 }} />
+                        <input type="date" value={returnLookupDate} onChange={e => setReturnLookupDate(e.target.value)} style={{ flex:1 }} />
+                        <button type="button" className="btn btn-ghost btn-sm" onClick={lookupReturn} disabled={returnLooking || !returnLookupQuery} style={{ flexShrink:0 }}>
+                          {returnLooking ? 'Looking…' : 'Look up'}
+                        </button>
+                      </div>
+                      {returnLookupError && <div style={{ fontSize:11, color:'var(--red-text, #e08080)', marginTop:3 }}>{returnLookupError}</div>}
+                      {returnLegs && (
+                        <div style={{ marginTop:6 }}>
+                          <label style={{ fontSize:10, color: returnLegs.length > 1 && returnSelectedLegIdx === -1 ? 'var(--orange)' : 'var(--muted)' }}>
+                            {returnLegs.length > 1 ? `This flight flies ${returnLegs.length} legs that day — select the return leg:` : 'Return leg'}
+                          </label>
+                          <select value={returnSelectedLegIdx} style={{ marginTop:2 }}
+                            onChange={e => { const i = Number(e.target.value); setReturnSelectedLegIdx(i); if (returnLegs[i]) applyReturnLeg(returnLegs[i]); }}>
+                            {returnSelectedLegIdx === -1 && <option value={-1}>— Select a leg —</option>}
+                            {returnLegs.map((leg, i) => <option key={i} value={i}>{legLabel(leg)}</option>)}
+                          </select>
+                        </div>
+                      )}
+                      {returnForm.status && <div style={{ fontSize:11, fontWeight:600, color: statusColor(returnForm.status), marginTop:3 }}>{returnForm.status}</div>}
+                    </div>
+
+                    {/* Return auto-filled fields */}
+                    <div className="field"><label>Return Airline <span style={{ color:'var(--muted)', fontSize:10 }}>(auto)</span></label><input value={returnForm.airline} onChange={e => setReturnForm(f=>({...f,airline:e.target.value}))} placeholder="United" /></div>
+                    <div className="field"><label>Return Flight # <span style={{ color:'var(--muted)', fontSize:10 }}>(auto)</span></label><input value={returnForm.flightNumber} onChange={e => setReturnForm(f=>({...f,flightNumber:e.target.value}))} placeholder="UA4321" /></div>
+                    <div className="field"><label>Return Origin <span style={{ color:'var(--muted)', fontSize:10 }}>(auto)</span></label><input value={returnForm.origin} onChange={e => setReturnForm(f=>({...f,origin:e.target.value}))} placeholder="MCI" /></div>
+                    <div className="field"><label>Return Destination <span style={{ color:'var(--muted)', fontSize:10 }}>(auto)</span></label><input value={returnForm.destination} onChange={e => setReturnForm(f=>({...f,destination:e.target.value}))} placeholder="STL" /></div>
+                    <div className="field"><label>Return Depart <span style={{ color:'var(--muted)', fontSize:10 }}>(auto)</span></label><input type="datetime-local" value={returnForm.departTime} onChange={e => setReturnForm(f=>({...f,departTime:e.target.value}))} /></div>
+                    <div className="field"><label>Return Arrive <span style={{ color:'var(--muted)', fontSize:10 }}>(auto)</span></label><input type="datetime-local" value={returnForm.arriveTime} onChange={e => setReturnForm(f=>({...f,arriveTime:e.target.value}))} /></div>
+                  </>
+                )}
               </div>
               <div className="btn-row">
-                <button className="btn btn-primary">Add Flight</button>
-                <button type="button" className="btn btn-ghost" onClick={() => setShowFlight(false)}>Cancel</button>
+                <button className="btn btn-primary">{flightForm.isReturn ? 'Add Round Trip' : 'Add Flight'}</button>
+                <button type="button" className="btn btn-ghost" onClick={() => { setShowFlight(false); resetReturn(); }}>Cancel</button>
               </div>
             </form>
           </div>
