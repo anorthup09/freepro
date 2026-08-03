@@ -1337,46 +1337,55 @@ router.get('/budget-share/:token', async (req, res, next) => {
 });
 
 // Weekly finance report: snapshot current state, diff against the previous snapshot
+const REPORT_DEAD = ['Dead', 'Reconcile', 'Reconciled', 'Closed'];
+function diffReports(current, prev) {
+  const prevMap = Object.fromEntries(prev.map(x => [x.project_id, x]));
+  const added = [], changed = [], closed = [];
+  for (const c of current) {
+    const p = prevMap[c.project_id];
+    if (!p) { added.push(c); continue; }
+    const diffs = [];
+    if (Math.abs(Number(p.budget_total || 0) - c.budget_total) >= 0.01) diffs.push({ field: 'Budget', from: Number(p.budget_total || 0), to: c.budget_total, money: true });
+    if (Math.abs(Number(p.fee || 0) - c.fee) >= 0.01) diffs.push({ field: 'Fee', from: Number(p.fee || 0), to: c.fee, money: true });
+    if ((p.budget_status || '') !== (c.budget_status || '')) diffs.push({ field: 'Status', from: p.budget_status || '—', to: c.budget_status || '—' });
+    if ((p.close_month || '') !== (c.close_month || '')) diffs.push({ field: 'Close Month', from: p.close_month || '—', to: c.close_month || '—' });
+    const nowClosed = REPORT_DEAD.includes(c.budget_status) || c.project_status === 'ARCHIVED';
+    const wasClosed = REPORT_DEAD.includes(p.budget_status || '');
+    if (nowClosed && !wasClosed) closed.push({ ...c, reason: c.budget_status === 'Dead' ? 'Budget marked Dead' : ['Reconcile', 'Reconciled'].includes(c.budget_status) ? 'Reconciled' : 'Project archived' });
+    else if (diffs.length) changed.push({ ...c, diffs });
+  }
+  const removed = prev.filter(x => !current.some(c => c.project_id === x.project_id)).map(x => ({ code: x.code, title: x.title }));
+  return { added, changed, closed, removed };
+}
+
+// Compute the current live portfolio state (no snapshot written)
+async function liveFinanceState() {
+  const projects = await sql`
+    SELECT p.id, p.code, p.title, p.client, p.status as project_status, b.id as budget_id, b.status as budget_status,
+           b.mgmt_fee_rate, b.media_rep, b.close_month
+    FROM projects p LEFT JOIN budgets b ON b.project_id = p.id AND COALESCE(b.kind, 'main') = 'main'
+    WHERE p.parent_project_id IS NULL
+    ORDER BY p.code`;
+  const lines = await sql`SELECT budget_id, qty, unit_cost, percent, is_travel, section_id FROM budget_lines`;
+  return projects.filter(p => (p.budget_status || '') !== 'RFP').map(p => {
+    const { total, fee } = budgetTotal(lines.filter(l => l.budget_id === p.budget_id), Number(p.mgmt_fee_rate ?? 0.15));
+    return {
+      project_id: p.id, code: p.code, title: p.title, client: p.client,
+      media_rep: p.media_rep || null, budget_status: p.budget_status || (p.budget_id ? 'Draft' : 'No budget'),
+      budget_total: Math.round(total * 100) / 100, fee: Math.round(fee * 100) / 100,
+      close_month: p.close_month || null, project_status: p.project_status,
+    };
+  });
+}
+
+// POST — "Pull Report": snapshot the live state and diff vs the latest snapshot
 router.post('/finance/weekly-report', ...finance, async (req, res, next) => {
   try {
-    const projects = await sql`
-      SELECT p.id, p.code, p.title, p.client, p.status as project_status, b.id as budget_id, b.status as budget_status,
-             b.mgmt_fee_rate, b.media_rep, b.close_month
-      FROM projects p LEFT JOIN budgets b ON b.project_id = p.id AND COALESCE(b.kind, 'main') = 'main'
-      WHERE p.parent_project_id IS NULL
-      ORDER BY p.code`;
-    const lines = await sql`SELECT budget_id, qty, unit_cost, percent, is_travel, section_id FROM budget_lines`;
-    const current = projects.filter(p => (p.budget_status || '') !== 'RFP').map(p => {
-      const { total, fee } = budgetTotal(lines.filter(l => l.budget_id === p.budget_id), Number(p.mgmt_fee_rate ?? 0.15));
-      return {
-        project_id: p.id, code: p.code, title: p.title, client: p.client,
-        media_rep: p.media_rep || null, budget_status: p.budget_status || (p.budget_id ? 'Draft' : 'No budget'),
-        budget_total: Math.round(total * 100) / 100, fee: Math.round(fee * 100) / 100,
-        close_month: p.close_month || null, project_status: p.project_status,
-      };
-    });
-
+    const current = await liveFinanceState();
     const [latest] = await sql`SELECT batch_id, created_at FROM finance_snapshots ORDER BY created_at DESC LIMIT 1`;
     let prev = [];
     if (latest) prev = await sql`SELECT * FROM finance_snapshots WHERE batch_id = ${latest.batch_id}`;
-    const prevMap = Object.fromEntries(prev.map(x => [x.project_id, x]));
-
-    const added = [], changed = [], closed = [];
-    const DEAD = ['Dead', 'Reconcile', 'Reconciled', 'Closed'];
-    for (const c of current) {
-      const p = prevMap[c.project_id];
-      if (!p) { added.push(c); continue; }
-      const diffs = [];
-      if (Math.abs(Number(p.budget_total || 0) - c.budget_total) >= 0.01) diffs.push({ field: 'Budget', from: Number(p.budget_total || 0), to: c.budget_total, money: true });
-      if (Math.abs(Number(p.fee || 0) - c.fee) >= 0.01) diffs.push({ field: 'Fee', from: Number(p.fee || 0), to: c.fee, money: true });
-      if ((p.budget_status || '') !== (c.budget_status || '')) diffs.push({ field: 'Status', from: p.budget_status || '—', to: c.budget_status || '—' });
-      if ((p.close_month || '') !== (c.close_month || '')) diffs.push({ field: 'Close Month', from: p.close_month || '—', to: c.close_month || '—' });
-      const nowClosed = DEAD.includes(c.budget_status) || c.project_status === 'ARCHIVED';
-      const wasClosed = DEAD.includes(p.budget_status || '');
-      if (nowClosed && !wasClosed) closed.push({ ...c, reason: c.budget_status === 'Dead' ? 'Budget marked Dead' : ['Reconcile', 'Reconciled'].includes(c.budget_status) ? 'Reconciled' : 'Project archived' });
-      else if (diffs.length) changed.push({ ...c, diffs });
-    }
-    const removedIds = prev.filter(x => !current.some(c => c.project_id === x.project_id));
+    const { added, changed, closed, removed } = diffReports(current, prev);
 
     const batchId = require('crypto').randomUUID();
     for (const c of current) {
@@ -1384,11 +1393,46 @@ router.post('/finance/weekly-report', ...finance, async (req, res, next) => {
         VALUES (${batchId}, ${c.project_id}, ${c.code}, ${c.title}, ${c.media_rep}, ${c.budget_status}, ${c.budget_total}, ${c.fee}, ${c.close_month})`;
     }
     res.json({
+      batchId,
       generatedAt: new Date().toISOString(),
       previousAt: latest ? latest.created_at : null,
       firstReport: !latest,
-      added, changed, closed,
-      removed: removedIds.map(x => ({ code: x.code, title: x.title })),
+      added, changed, closed, removed,
+      current,
+    });
+  } catch (e) { next(e); }
+});
+
+// GET — list saved report versions (batches), newest first
+router.get('/finance/weekly-report/versions', ...finance, async (req, res, next) => {
+  try {
+    const rows = await sql`SELECT batch_id, MIN(created_at) as created_at FROM finance_snapshots GROUP BY batch_id ORDER BY created_at DESC`;
+    res.json(rows.map(r => ({ batchId: r.batch_id, generatedAt: r.created_at })));
+  } catch (e) { next(e); }
+});
+
+// GET — reconstruct a saved report version (no new snapshot written)
+router.get('/finance/weekly-report/:batchId', ...finance, async (req, res, next) => {
+  try {
+    const rows = await sql`SELECT * FROM finance_snapshots WHERE batch_id = ${req.params.batchId} ORDER BY code`;
+    if (!rows.length) return res.status(404).json({ error: 'Report version not found' });
+    const createdAt = rows[0].created_at;
+    const [prior] = await sql`SELECT batch_id, MIN(created_at) as created_at FROM finance_snapshots
+      WHERE created_at < ${createdAt} GROUP BY batch_id ORDER BY created_at DESC LIMIT 1`;
+    let prev = [];
+    if (prior) prev = await sql`SELECT * FROM finance_snapshots WHERE batch_id = ${prior.batch_id}`;
+    const current = rows.map(r => ({
+      project_id: r.project_id, code: r.code, title: r.title, media_rep: r.media_rep,
+      budget_status: r.budget_status, budget_total: Number(r.budget_total || 0), fee: Number(r.fee || 0),
+      close_month: r.close_month,
+    }));
+    const { added, changed, closed, removed } = diffReports(current, prev);
+    res.json({
+      batchId: req.params.batchId,
+      generatedAt: createdAt,
+      previousAt: prior ? prior.created_at : null,
+      firstReport: !prior,
+      added, changed, closed, removed,
       current,
     });
   } catch (e) { next(e); }

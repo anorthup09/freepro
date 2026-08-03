@@ -16,11 +16,73 @@ export default function FinanceReport() {
   const [report, setReport] = useState(null);
   const [error, setError] = useState('');
   const [year, setYear] = useState('all');
+  const [versions, setVersions] = useState(null);     // saved report versions (newest first)
+  const [selectedBatch, setSelectedBatch] = useState('');
+  const [pulling, setPulling] = useState(false);
 
-  useEffect(() => { api.weeklyFinanceReport().then(setReport).catch(e => setError(e.message)); }, []);
+  // On open: load the version list and show the latest saved report — never
+  // generate a fresh snapshot automatically (that only happens on "Pull Report").
+  useEffect(() => {
+    api.financeReportVersions().then(vs => {
+      setVersions(vs);
+      if (vs.length) { setSelectedBatch(vs[0].batchId); api.financeReportVersion(vs[0].batchId).then(setReport).catch(e => setError(e.message)); }
+    }).catch(e => setError(e.message));
+  }, []);
+
+  async function pullReport() {
+    if (pulling) return;
+    setPulling(true);
+    try {
+      const r = await api.weeklyFinanceReport();
+      setReport(r);
+      const vs = await api.financeReportVersions();
+      setVersions(vs);
+      setSelectedBatch(r.batchId || (vs[0] && vs[0].batchId) || '');
+    } catch (e) { alert(e.message); }
+    setPulling(false);
+  }
+
+  async function loadVersion(batchId) {
+    setSelectedBatch(batchId);
+    if (!batchId) return;
+    try { setReport(await api.financeReportVersion(batchId)); } catch (e) { alert(e.message); }
+  }
+
+  const controls = (
+    <div className="no-print" style={{ display:'flex', gap:8, alignItems:'center', flexWrap:'wrap' }}>
+      {versions && versions.length > 0 && (
+        <select value={selectedBatch} onChange={e => loadVersion(e.target.value)}
+          title="View a previous report version"
+          style={{ fontSize:12, background:'var(--bg2)', border:'1px solid var(--border)', color:'var(--text)', borderRadius:8, padding:'6px 10px', maxWidth:220 }}>
+          {versions.map((v, i) => <option key={v.batchId} value={v.batchId}>{fmtDT(v.generatedAt)}{i === 0 ? ' (latest)' : ''}</option>)}
+        </select>
+      )}
+      <button className="btn btn-primary btn-sm" onClick={() => window.print()} disabled={!report}>Print / Save PDF</button>
+      <button className="btn btn-primary btn-sm" onClick={pullReport} disabled={pulling}
+        style={{ background:'#5ABF80', borderColor:'#5ABF80', color:'#08160E' }}>{pulling ? 'Pulling…' : 'Pull Report'}</button>
+      <HomeButton />
+    </div>
+  );
 
   if (error) return <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--muted)' }}>{error}</div>;
-  if (!report) return <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--muted)' }}>Generating report…</div>;
+
+  // No report loaded yet (none pulled, or none exist): show the header + a prompt
+  if (!report) return (
+    <div style={{ minHeight:'100vh', background:'var(--bg)', padding:'30px 16px 80px' }}>
+      <div style={{ maxWidth:900, margin:'0 auto' }}>
+        <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, flexWrap:'wrap' }}>
+          <div>
+            <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height:22, filter:'brightness(0) invert(1)', opacity:0.9 }} />
+            <div style={{ fontSize:19, fontWeight:800, marginTop:10 }}>Weekly Project Finance Report</div>
+            <div style={{ fontSize:11, color:'var(--muted)', marginTop:3 }}>
+              {versions === null ? 'Loading…' : 'No report generated yet — hit Pull Report to snapshot the current portfolio.'}
+            </div>
+          </div>
+          {controls}
+        </div>
+      </div>
+    </div>
+  );
 
   const secTitle = { fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.08em', color:'#5ABF80', margin:'22px 0 8px' };
   const card = { background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, overflow:'hidden' };
@@ -45,10 +107,7 @@ export default function FinanceReport() {
               {report.previousAt ? ` · changes since ${fmtDT(report.previousAt)}` : ' · first report (baseline — all projects listed as current portfolio)'}
             </div>
           </div>
-          <div className="no-print" style={{ display:'flex', gap:8 }}>
-            <button className="btn btn-primary btn-sm" onClick={() => window.print()}>Print / Save PDF</button>
-            <HomeButton />
-          </div>
+          {controls}
         </div>
 
         {!report.firstReport && (
