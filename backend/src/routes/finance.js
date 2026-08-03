@@ -1367,12 +1367,17 @@ async function liveFinanceState() {
     WHERE p.parent_project_id IS NULL
     ORDER BY p.code`;
   const lines = await sql`SELECT budget_id, qty, unit_cost, percent, is_travel, section_id FROM budget_lines`;
+  // Gross Profit mirrors the VCC Profit Summary: payments (budget total) minus
+  // billable (sum of VCC entry amounts). Stored in the snapshot `fee` column.
+  const vcc = await sql`SELECT project_id, SUM(amount) as total FROM vcc_entries GROUP BY project_id`;
+  const vccMap = Object.fromEntries(vcc.map(v => [v.project_id, Number(v.total)]));
   return projects.filter(p => (p.budget_status || '') !== 'RFP').map(p => {
-    const { total, fee } = budgetTotal(lines.filter(l => l.budget_id === p.budget_id), Number(p.mgmt_fee_rate ?? 0.15));
+    const { total } = budgetTotal(lines.filter(l => l.budget_id === p.budget_id), Number(p.mgmt_fee_rate ?? 0.15));
+    const grossProfit = total - (vccMap[p.id] || 0);
     return {
       project_id: p.id, code: p.code, title: p.title, client: p.client,
       media_rep: p.media_rep || null, budget_status: p.budget_status || (p.budget_id ? 'Draft' : 'No budget'),
-      budget_total: Math.round(total * 100) / 100, fee: Math.round(fee * 100) / 100,
+      budget_total: Math.round(total * 100) / 100, fee: Math.round(grossProfit * 100) / 100,
       close_month: p.close_month || null, project_status: p.project_status,
     };
   });
