@@ -248,6 +248,71 @@ router.get('/finance/vcc-report', ...finance, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// Weekly finance report routes — registered BEFORE the `/finance/:pid`
+// catch-all (and before `/finance/:pid/versions`) so their paths aren't
+// swallowed by the :pid param routes. (Helpers diffReports/liveFinanceState are
+// hoisted declarations defined further down and available at request time.)
+
+// POST — "Pull Report": snapshot the live state and diff vs the latest snapshot
+router.post('/finance/weekly-report', ...finance, async (req, res, next) => {
+  try {
+    const current = await liveFinanceState();
+    const [latest] = await sql`SELECT batch_id, created_at FROM finance_snapshots ORDER BY created_at DESC LIMIT 1`;
+    let prev = [];
+    if (latest) prev = await sql`SELECT * FROM finance_snapshots WHERE batch_id = ${latest.batch_id}`;
+    const { added, changed, closed, removed } = diffReports(current, prev);
+
+    const batchId = require('crypto').randomUUID();
+    for (const c of current) {
+      await sql`INSERT INTO finance_snapshots (batch_id, project_id, code, title, media_rep, budget_status, budget_total, fee, close_month)
+        VALUES (${batchId}, ${c.project_id}, ${c.code}, ${c.title}, ${c.media_rep}, ${c.budget_status}, ${c.budget_total}, ${c.fee}, ${c.close_month})`;
+    }
+    res.json({
+      batchId,
+      generatedAt: new Date().toISOString(),
+      previousAt: latest ? latest.created_at : null,
+      firstReport: !latest,
+      added, changed, closed, removed,
+      current,
+    });
+  } catch (e) { next(e); }
+});
+
+// GET — list saved report versions (batches), newest first
+router.get('/finance/weekly-report/versions', ...finance, async (req, res, next) => {
+  try {
+    const rows = await sql`SELECT batch_id, MIN(created_at) as created_at FROM finance_snapshots GROUP BY batch_id ORDER BY created_at DESC`;
+    res.json(rows.map(r => ({ batchId: r.batch_id, generatedAt: r.created_at })));
+  } catch (e) { next(e); }
+});
+
+// GET — reconstruct a saved report version (no new snapshot written)
+router.get('/finance/weekly-report/:batchId', ...finance, async (req, res, next) => {
+  try {
+    const rows = await sql`SELECT * FROM finance_snapshots WHERE batch_id = ${req.params.batchId} ORDER BY code`;
+    if (!rows.length) return res.status(404).json({ error: 'Report version not found' });
+    const createdAt = rows[0].created_at;
+    const [prior] = await sql`SELECT batch_id, MIN(created_at) as created_at FROM finance_snapshots
+      WHERE created_at < ${createdAt} GROUP BY batch_id ORDER BY created_at DESC LIMIT 1`;
+    let prev = [];
+    if (prior) prev = await sql`SELECT * FROM finance_snapshots WHERE batch_id = ${prior.batch_id}`;
+    const current = rows.map(r => ({
+      project_id: r.project_id, code: r.code, title: r.title, media_rep: r.media_rep,
+      budget_status: r.budget_status, budget_total: Number(r.budget_total || 0), fee: Number(r.fee || 0),
+      close_month: r.close_month,
+    }));
+    const { added, changed, closed, removed } = diffReports(current, prev);
+    res.json({
+      batchId: req.params.batchId,
+      generatedAt: createdAt,
+      previousAt: prior ? prior.created_at : null,
+      firstReport: !prior,
+      added, changed, closed, removed,
+      current,
+    });
+  } catch (e) { next(e); }
+});
+
 router.get('/finance/:pid', ...finance, async (req, res, next) => {
   try {
     const [project] = await sql`SELECT id, code, title, client, status, start_date, end_date FROM projects WHERE id = ${req.params.pid}`;
@@ -1383,65 +1448,10 @@ async function liveFinanceState() {
   });
 }
 
-// POST — "Pull Report": snapshot the live state and diff vs the latest snapshot
-router.post('/finance/weekly-report', ...finance, async (req, res, next) => {
-  try {
-    const current = await liveFinanceState();
-    const [latest] = await sql`SELECT batch_id, created_at FROM finance_snapshots ORDER BY created_at DESC LIMIT 1`;
-    let prev = [];
-    if (latest) prev = await sql`SELECT * FROM finance_snapshots WHERE batch_id = ${latest.batch_id}`;
-    const { added, changed, closed, removed } = diffReports(current, prev);
-
-    const batchId = require('crypto').randomUUID();
-    for (const c of current) {
-      await sql`INSERT INTO finance_snapshots (batch_id, project_id, code, title, media_rep, budget_status, budget_total, fee, close_month)
-        VALUES (${batchId}, ${c.project_id}, ${c.code}, ${c.title}, ${c.media_rep}, ${c.budget_status}, ${c.budget_total}, ${c.fee}, ${c.close_month})`;
-    }
-    res.json({
-      batchId,
-      generatedAt: new Date().toISOString(),
-      previousAt: latest ? latest.created_at : null,
-      firstReport: !latest,
-      added, changed, closed, removed,
-      current,
-    });
-  } catch (e) { next(e); }
-});
-
-// GET — list saved report versions (batches), newest first
-router.get('/finance/weekly-report/versions', ...finance, async (req, res, next) => {
-  try {
-    const rows = await sql`SELECT batch_id, MIN(created_at) as created_at FROM finance_snapshots GROUP BY batch_id ORDER BY created_at DESC`;
-    res.json(rows.map(r => ({ batchId: r.batch_id, generatedAt: r.created_at })));
-  } catch (e) { next(e); }
-});
-
-// GET — reconstruct a saved report version (no new snapshot written)
-router.get('/finance/weekly-report/:batchId', ...finance, async (req, res, next) => {
-  try {
-    const rows = await sql`SELECT * FROM finance_snapshots WHERE batch_id = ${req.params.batchId} ORDER BY code`;
-    if (!rows.length) return res.status(404).json({ error: 'Report version not found' });
-    const createdAt = rows[0].created_at;
-    const [prior] = await sql`SELECT batch_id, MIN(created_at) as created_at FROM finance_snapshots
-      WHERE created_at < ${createdAt} GROUP BY batch_id ORDER BY created_at DESC LIMIT 1`;
-    let prev = [];
-    if (prior) prev = await sql`SELECT * FROM finance_snapshots WHERE batch_id = ${prior.batch_id}`;
-    const current = rows.map(r => ({
-      project_id: r.project_id, code: r.code, title: r.title, media_rep: r.media_rep,
-      budget_status: r.budget_status, budget_total: Number(r.budget_total || 0), fee: Number(r.fee || 0),
-      close_month: r.close_month,
-    }));
-    const { added, changed, closed, removed } = diffReports(current, prev);
-    res.json({
-      batchId: req.params.batchId,
-      generatedAt: createdAt,
-      previousAt: prior ? prior.created_at : null,
-      firstReport: !prior,
-      added, changed, closed, removed,
-      current,
-    });
-  } catch (e) { next(e); }
-});
+// NOTE: the "// Weekly finance report" route handlers (POST /finance/weekly-report,
+// GET /finance/weekly-report/versions, GET /finance/weekly-report/:batchId) are
+// registered EARLIER — right before the `/finance/:pid` catch-all — so that
+// `/finance/weekly-report/versions` isn't swallowed by `/finance/:pid/versions`.
 
 // Project pipeline stage overrides (JSON map of stage -> 'active' | 'done')
 router.patch('/finance/pipeline/:pid', ...finance, async (req, res, next) => {
