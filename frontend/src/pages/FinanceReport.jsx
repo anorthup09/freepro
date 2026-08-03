@@ -53,17 +53,23 @@ export default function FinanceReport() {
 
   const controls = (
     <div className="no-print" style={{ display:'flex', gap:8, alignItems:'center', flexWrap:'wrap' }}>
-      {versions && versions.length > 0 && (
-        <select value={selectedBatch} onChange={e => loadVersion(e.target.value)}
-          title="View a previous report version"
-          style={{ fontSize:12, background:'var(--bg2)', border:'1px solid var(--border)', color:'var(--text)', borderRadius:8, padding:'6px 10px', maxWidth:220 }}>
-          {versions.map((v, i) => <option key={v.batchId} value={v.batchId}>{fmtDT(v.generatedAt)}{i === 0 ? ' (latest)' : ''}</option>)}
-        </select>
-      )}
       <button className="btn btn-primary btn-sm" onClick={() => window.print()} disabled={!report}>Print / Save PDF</button>
       <button className="btn btn-primary btn-sm" onClick={pullReport} disabled={pulling}
         style={{ background:'#5ABF80', borderColor:'#5ABF80', color:'#08160E' }}>{pulling ? 'Pulling…' : 'Pull Report'}</button>
       <HomeButton />
+    </div>
+  );
+
+  // Version picker — lives on the top-left, under the title, so previous report
+  // versions are always clearly visible (not buried among the action buttons).
+  const versionPicker = versions && versions.length > 0 && (
+    <div className="no-print" style={{ display:'flex', alignItems:'center', gap:8, marginTop:10 }}>
+      <span style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', fontWeight:700 }}>Version</span>
+      <select value={selectedBatch} onChange={e => loadVersion(e.target.value)}
+        title="View a previous report version"
+        style={{ fontSize:12, background:'var(--bg2)', border:'1px solid var(--border)', color:'var(--text)', borderRadius:8, padding:'6px 10px', maxWidth:280 }}>
+        {versions.map((v, i) => <option key={v.batchId} value={v.batchId}>{fmtDT(v.generatedAt)}{i === 0 ? ' (latest)' : ''}</option>)}
+      </select>
     </div>
   );
 
@@ -109,6 +115,7 @@ export default function FinanceReport() {
               Generated {fmtDT(report.generatedAt)}
               {report.previousAt ? ` · changes since ${fmtDT(report.previousAt)}` : ' · first report (baseline — all projects listed as current portfolio)'}
             </div>
+            {versionPicker}
           </div>
           {controls}
         </div>
