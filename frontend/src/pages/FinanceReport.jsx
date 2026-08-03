@@ -116,7 +116,7 @@ export default function FinanceReport() {
             <div style={card}>
               {report.added.length === 0 ? <div style={{ padding:'10px 14px', fontSize:12, color:'var(--muted)', fontStyle:'italic' }}>No new projects this period.</div> : (
                 <table style={{ width:'100%', borderCollapse:'collapse' }}>
-                  <thead><tr><th style={th}>Code</th><th style={th}>Project</th><th style={th}>Owner</th><th style={th}>Status</th><th style={{ ...th, textAlign:'right' }}>Budget</th><th style={{ ...th, textAlign:'right' }}>Fee</th></tr></thead>
+                  <thead><tr><th style={th}>Code</th><th style={th}>Project</th><th style={th}>Owner</th><th style={th}>Status</th><th style={{ ...th, textAlign:'right' }}>Budget</th><th style={{ ...th, textAlign:'right' }}>Gross Profit</th></tr></thead>
                   <tbody>{report.added.map(p => (
                     <tr key={p.project_id} style={{ borderTop:'1px solid rgba(255,255,255,0.04)' }}>
                       <td style={{ ...td, color:'var(--muted)' }}>{p.code}</td>
@@ -154,7 +154,7 @@ export default function FinanceReport() {
                 report.closed.map(p => (
                   <div key={p.project_id} style={{ padding:'10px 14px', borderTop:'1px solid rgba(255,255,255,0.04)', display:'flex', justifyContent:'space-between', gap:10, flexWrap:'wrap' }}>
                     <div style={{ fontSize:12 }}><b>{p.code}</b> — {p.title} <span style={{ color:'#e05252', fontSize:11 }}>({p.reason})</span></div>
-                    <div style={{ fontSize:12 }}>Budget {fmt$(p.budget_total)} · Fee <span style={{ color:'#5ABF80' }}>{fmt$(p.fee)}</span></div>
+                    <div style={{ fontSize:12 }}>Budget {fmt$(p.budget_total)} · Gross Profit <span style={{ color:'#5ABF80' }}>{fmt$(p.fee)}</span></div>
                   </div>
                 ))
               )}
@@ -173,7 +173,7 @@ export default function FinanceReport() {
         </div>
         <div style={card}>
           <table style={{ width:'100%', borderCollapse:'collapse' }}>
-            <thead><tr><th style={th}>Code</th><th style={th}>Project</th><th style={th}>Owner</th><th style={th}>Status</th><th style={{ ...th, textAlign:'right' }}>Budget</th><th style={{ ...th, textAlign:'right' }}>Fee</th><th style={th}>Close</th></tr></thead>
+            <thead><tr><th style={th}>Code</th><th style={th}>Project</th><th style={th}>Owner</th><th style={th}>Status</th><th style={{ ...th, textAlign:'right' }}>Budget</th><th style={{ ...th, textAlign:'right' }}>Gross Profit</th><th style={th}>Close</th></tr></thead>
             <tbody>
               {shown.map(p => {
                 const sc = STATUS_COLORS[p.budget_status] || 'var(--muted)';

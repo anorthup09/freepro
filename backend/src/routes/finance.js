@@ -1346,7 +1346,7 @@ function diffReports(current, prev) {
     if (!p) { added.push(c); continue; }
     const diffs = [];
     if (Math.abs(Number(p.budget_total || 0) - c.budget_total) >= 0.01) diffs.push({ field: 'Budget', from: Number(p.budget_total || 0), to: c.budget_total, money: true });
-    if (Math.abs(Number(p.fee || 0) - c.fee) >= 0.01) diffs.push({ field: 'Fee', from: Number(p.fee || 0), to: c.fee, money: true });
+    if (Math.abs(Number(p.fee || 0) - c.fee) >= 0.01) diffs.push({ field: 'Gross Profit', from: Number(p.fee || 0), to: c.fee, money: true });
     if ((p.budget_status || '') !== (c.budget_status || '')) diffs.push({ field: 'Status', from: p.budget_status || '—', to: c.budget_status || '—' });
     if ((p.close_month || '') !== (c.close_month || '')) diffs.push({ field: 'Close Month', from: p.close_month || '—', to: c.close_month || '—' });
     const nowClosed = REPORT_DEAD.includes(c.budget_status) || c.project_status === 'ARCHIVED';
