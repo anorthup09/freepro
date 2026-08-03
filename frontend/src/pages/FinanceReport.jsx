@@ -20,12 +20,15 @@ export default function FinanceReport() {
   const [selectedBatch, setSelectedBatch] = useState('');
   const [pulling, setPulling] = useState(false);
 
-  // On open: load the version list and show the latest saved report — never
-  // generate a fresh snapshot automatically (that only happens on "Pull Report").
+  // On open: load the version list and show the latest saved report. We don't
+  // regenerate on every open (that's what "Pull Report" is for) — but if there
+  // is no saved report at all, bootstrap the first one so the page is never
+  // blank and the latest always loads by default thereafter.
   useEffect(() => {
     api.financeReportVersions().then(vs => {
       setVersions(vs);
       if (vs.length) { setSelectedBatch(vs[0].batchId); api.financeReportVersion(vs[0].batchId).then(setReport).catch(e => setError(e.message)); }
+      else pullReport();
     }).catch(e => setError(e.message));
   }, []);
 
