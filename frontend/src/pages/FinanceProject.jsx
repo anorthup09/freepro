@@ -1638,7 +1638,7 @@ export function VccTab({ pid, budget, sections, lines, vcc, categories, set, vcc
           {categories.map(c => <option key={c}>{c}</option>)}
         </select>
         <select value={form.trip} style={{ width:130, fontSize:11 }} onChange={e => setForm(f => ({ ...f, trip: e.target.value }))}>
-          <option value="">Trip…</option>
+          <option value="">Cost Center…</option>
           {tripOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
         <input type="number" step="0.01" placeholder="Amount" value={form.amount} style={{ width:100, fontSize:11, textAlign:'right' }} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} />
@@ -1657,7 +1657,7 @@ export function VccTab({ pid, budget, sections, lines, vcc, categories, set, vcc
               <th style={{ padding:6, width:110 }}>Vendor</th>
               <th style={{ padding:6 }}>Description</th>
               <th style={{ padding:6, width:190 }}>Category</th>
-              <th style={{ padding:6, width:110 }}>Trip</th>
+              <th style={{ padding:6, width:110 }}>Cost Center</th>
               <th style={{ padding:6, textAlign:'right', width:90 }}>Amount</th>
               <th style={{ padding:6, width:70 }}>Status</th>
               <th style={{ width:34 }}></th>
