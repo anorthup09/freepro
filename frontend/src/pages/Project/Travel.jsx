@@ -314,17 +314,17 @@ export default function Travel({ project }) {
   const [editFlightForm, setEditFlightForm] = useState({ crewMemberId:'', passengerName:'', airline:'', flightNumber:'', origin:'', destination:'', departTime:'', arriveTime:'', departTz:'', arriveTz:'', confirmation:'', cost:'', isReturn:false });
   const [editGuest, setEditGuest] = useState(null); // { guest, hotelId }
   const [editGuestForm, setEditGuestForm] = useState({ confirmation:'', cost:'', checkIn:'', checkOut:'' });
-  const [editCar, setEditCar] = useState(null); // car object being edited
-  const [editCarForm, setEditCarForm] = useState({ vendor:'', pickupLocation:'', dropoffLocation:'', confirmation:'', cost:'', notes:'' });
-
   // Drive / car modals
   const [showCar, setShowCar] = useState(false);
-  const [carForm, setCarForm] = useState({ crewMemberId:'', vendor:'', pickupLocation:'', pickupAddress:'', dropoffLocation:'', dropoffAddress:'', pickupDate:'', dropoffDate:'', confirmation:'', cost:'', notes:'' });
+  const [carEditId, setCarEditId] = useState(null); // null = adding, else rental car id being edited
+  const BLANK_CAR = { crewMemberId:'', vendor:'', pickupLocation:'', pickupAddress:'', dropoffLocation:'', dropoffAddress:'', pickupDate:'', dropoffDate:'', confirmation:'', cost:'', notes:'' };
+  const [carForm, setCarForm] = useState(BLANK_CAR);
 
   // Driving (driver + tagged passengers)
   const [drives, setDrives] = useState([]);
   const [showDrive, setShowDrive] = useState(false);
-  const BLANK_DRIVE = { driverCrewMemberId:'', passengerIds:[], origin:null, destination:null, departDate:'', departTime:'', car:'', notes:'' }; // origin/destination: { label, latitude, longitude }
+  const [driveEditId, setDriveEditId] = useState(null); // null = adding, else drive id being edited
+  const BLANK_DRIVE = { driverCrewMemberId:'', passengerIds:[], origin:null, destination:null, departDate:'', departTime:'', car:'', notes:'', driveMinutes:null }; // origin/destination: { label, latitude, longitude }
   const [driveForm, setDriveForm] = useState(BLANK_DRIVE);
 
   const projectCrew = project.crewAssignments || [];
@@ -626,17 +626,42 @@ export default function Travel({ project }) {
   }
 
   // ── Rental cars ───────────────────────────────────────────────────────────
-  async function addCar(e) {
-    e.preventDefault();
-    const c = await api.createRentalCar(project.id, {
-      ...carForm,
-      pickupDate: carForm.pickupDate ? new Date(carForm.pickupDate).toISOString() : null,
-      dropoffDate: carForm.dropoffDate ? new Date(carForm.dropoffDate).toISOString() : null,
-      cost: carForm.cost || null,
+  function openEditCar(c) {
+    setCarForm({
+      crewMemberId: c.crew_member_id || '',
+      vendor: c.vendor || '',
+      pickupLocation: c.pickup_location || '',
+      pickupAddress: '',
+      dropoffLocation: c.dropoff_location || '',
+      dropoffAddress: '',
+      pickupDate: c.pickup_date ? String(c.pickup_date).slice(0, 10) : '',
+      dropoffDate: c.dropoff_date ? String(c.dropoff_date).slice(0, 10) : '',
+      confirmation: c.confirmation || '',
+      cost: c.cost || '',
+      notes: c.notes || '',
     });
-    setCars(prev => [...prev, c]);
-    setShowCar(false);
-    setCarForm({ crewMemberId:'', vendor:'', pickupLocation:'', pickupAddress:'', dropoffLocation:'', dropoffAddress:'', pickupDate:'', dropoffDate:'', confirmation:'', cost:'', notes:'' });
+    setCarEditId(c.id);
+    setShowCar(true);
+  }
+  function closeCar() { setShowCar(false); setCarEditId(null); setCarForm(BLANK_CAR); }
+  async function submitCar(e) {
+    e.preventDefault();
+    try {
+      const payload = {
+        ...carForm,
+        pickupDate: carForm.pickupDate ? new Date(carForm.pickupDate).toISOString() : null,
+        dropoffDate: carForm.dropoffDate ? new Date(carForm.dropoffDate).toISOString() : null,
+        cost: carForm.cost || null,
+      };
+      if (carEditId) {
+        const updated = await api.updateRentalCar(project.id, carEditId, payload);
+        setCars(prev => prev.map(c => c.id === carEditId ? { ...c, ...updated } : c));
+      } else {
+        const c = await api.createRentalCar(project.id, payload);
+        setCars(prev => [...prev, c]);
+      }
+      closeCar();
+    } catch (err) { alert(err.message); }
   }
   async function removeCar(id) {
     await api.deleteRentalCar(project.id, id);
@@ -645,21 +670,42 @@ export default function Travel({ project }) {
 
   // ── Driving ───────────────────────────────────────────────────────────────
   const crewById = id => memberById(id);
-  async function addDrive(e) {
+  function openEditDrive(d) {
+    const dep = d.depart_time ? new Date(d.depart_time) : null;
+    const pad = n => String(n).padStart(2, '0');
+    setDriveForm({
+      driverCrewMemberId: d.driver_crew_member_id || '',
+      passengerIds: (d.members || []).map(m => m.crew_member_id).filter(Boolean),
+      origin: d.origin ? { label: d.origin } : null,
+      destination: d.destination ? { label: d.destination } : null,
+      departDate: dep ? `${dep.getFullYear()}-${pad(dep.getMonth() + 1)}-${pad(dep.getDate())}` : '',
+      departTime: dep ? `${pad(dep.getHours())}:${pad(dep.getMinutes())}` : '',
+      car: d.car || '',
+      notes: d.notes || '',
+      driveMinutes: d.drive_minutes ?? null,
+    });
+    setDriveEditId(d.id);
+    setShowDrive(true);
+  }
+  function closeDrive() { setShowDrive(false); setDriveEditId(null); setDriveForm(BLANK_DRIVE); }
+  async function submitDrive(e) {
     e.preventDefault();
     const f = driveForm;
     if (!f.origin || !f.destination) return alert('Pick the From and To cities from the suggestions.');
     try {
-      // Estimated drive time via OSRM between the two picked cities
-      let driveMinutes = null;
-      try {
-        const r = await fetch(`https://router.project-osrm.org/route/v1/driving/${f.origin.longitude},${f.origin.latitude};${f.destination.longitude},${f.destination.latitude}?overview=false`);
-        const dj = await r.json();
-        if (dj.routes?.[0]?.duration) driveMinutes = Math.round(dj.routes[0].duration / 60);
-      } catch { /* estimate unavailable — save without it */ }
+      // Recompute the estimated drive time only when both cities carry fresh
+      // coordinates (a re-picked suggestion); otherwise keep the stored estimate.
+      let driveMinutes = f.driveMinutes ?? null;
+      if (f.origin.longitude != null && f.destination.longitude != null) {
+        try {
+          const r = await fetch(`https://router.project-osrm.org/route/v1/driving/${f.origin.longitude},${f.origin.latitude};${f.destination.longitude},${f.destination.latitude}?overview=false`);
+          const dj = await r.json();
+          if (dj.routes?.[0]?.duration) driveMinutes = Math.round(dj.routes[0].duration / 60);
+        } catch { /* estimate unavailable — keep whatever we have */ }
+      }
       const departISO = f.departDate && f.departTime ? new Date(`${f.departDate}T${f.departTime}`).toISOString() : null;
       const arriveISO = departISO && driveMinutes != null ? new Date(new Date(departISO).getTime() + driveMinutes * 60000).toISOString() : null;
-      const d = await api.createDrive(project.id, {
+      const payload = {
         driverCrewMemberId: f.driverCrewMemberId,
         driverName: displayName(crewById(f.driverCrewMemberId)) || null,
         origin: f.origin.label,
@@ -670,10 +716,15 @@ export default function Travel({ project }) {
         car: f.car || null,
         notes: f.notes || null,
         members: f.passengerIds.map(id => ({ crewMemberId: id, name: displayName(crewById(id)) || '' })),
-      });
-      setDrives(prev => [...prev, d]);
-      setShowDrive(false);
-      setDriveForm(BLANK_DRIVE);
+      };
+      if (driveEditId) {
+        const d = await api.updateDrive(project.id, driveEditId, payload);
+        setDrives(prev => prev.map(x => x.id === driveEditId ? d : x));
+      } else {
+        const d = await api.createDrive(project.id, payload);
+        setDrives(prev => [...prev, d]);
+      }
+      closeDrive();
     } catch (err) { alert(err.message); }
   }
   async function removeDrive(id) {
@@ -747,33 +798,6 @@ export default function Travel({ project }) {
         ? { ...h, guests: h.guests.map(g => g.id === editGuest.guest.id ? { ...g, ...updated } : g) }
         : h));
       setEditGuest(null);
-    } catch(err) { alert(err.message); }
-  }
-
-  function openEditCar(c) {
-    setEditCar(c);
-    setEditCarForm({
-      vendor: c.vendor || '',
-      pickupLocation: c.pickup_location || '',
-      dropoffLocation: c.dropoff_location || '',
-      confirmation: c.confirmation || '',
-      cost: c.cost || '',
-      notes: c.notes || '',
-    });
-  }
-  async function saveEditCar(e) {
-    e.preventDefault();
-    try {
-      const updated = await api.updateRentalCar(project.id, editCar.id, {
-        vendor: editCarForm.vendor || null,
-        pickupLocation: editCarForm.pickupLocation || null,
-        dropoffLocation: editCarForm.dropoffLocation || null,
-        confirmation: editCarForm.confirmation || null,
-        cost: editCarForm.cost || null,
-        notes: editCarForm.notes || null,
-      });
-      setCars(prev => prev.map(c => c.id === editCar.id ? { ...c, ...updated } : c));
-      setEditCar(null);
     } catch(err) { alert(err.message); }
   }
 
@@ -973,7 +997,7 @@ export default function Travel({ project }) {
         <button className="btn btn-ghost btn-sm" onClick={() => setShowDrive(true)}>+ Driver</button>
       </div>
       {drives.map(d => (
-        <div key={d.id} className="frow" style={{ flexWrap:'wrap', gap:8 }}>
+        <div key={d.id} className="frow" style={{ flexWrap:'wrap', gap:8, cursor:'pointer' }} onClick={() => openEditDrive(d)} title="Click to edit">
           <div className="fname">🚗 {d.driver || d.driver_name || 'Driver TBD'}</div>
           <span style={{ fontSize:9, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)', border:'1px solid var(--border)', borderRadius:10, padding:'1px 7px' }}>Driver</span>
           {(d.origin || d.destination) && (
@@ -991,18 +1015,18 @@ export default function Travel({ project }) {
             </div>
           )}
           {d.notes && <span style={{ fontSize:10, color:'var(--muted)' }}>{d.notes}</span>}
-          <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11, marginLeft:'auto' }} onClick={() => removeDrive(d.id)}>✕</button>
+          <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11, marginLeft:'auto' }} onClick={e => { e.stopPropagation(); removeDrive(d.id); }}>✕</button>
         </div>
       ))}
       {drives.length === 0 && <div className="empty">No drivers added yet.</div>}
 
 
-      {/* ── Add Driver Modal ── */}
+      {/* ── Add / Edit Driver Modal ── */}
       {showDrive && (
-        <div className="modal-bg" onClick={e => e.target === e.currentTarget && setShowDrive(false)}>
+        <div className="modal-bg" onClick={e => e.target === e.currentTarget && closeDrive()}>
           <div className="modal">
-            <div className="modal-title">Add Driver</div>
-            <form onSubmit={addDrive}>
+            <div className="modal-title">{driveEditId ? 'Edit Driver' : 'Add Driver'}</div>
+            <form onSubmit={submitDrive}>
               <div className="form-grid cols1" style={{ marginBottom:12 }}>
                 <div className="field">
                   <label>Driver <span style={{ color:'var(--red-text)', marginLeft:3 }}>*</span></label>
@@ -1045,8 +1069,8 @@ export default function Travel({ project }) {
                 <div className="field"><label>Notes</label><input value={driveForm.notes} onChange={e => setDriveForm(f=>({...f,notes:e.target.value}))} placeholder="Pick up catering on the way…" /></div>
               </div>
               <div className="btn-row">
-                <button className="btn btn-primary">Add Driver</button>
-                <button type="button" className="btn btn-ghost" onClick={() => setShowDrive(false)}>Cancel</button>
+                <button className="btn btn-primary">{driveEditId ? 'Save Driver' : 'Add Driver'}</button>
+                <button type="button" className="btn btn-ghost" onClick={closeDrive}>Cancel</button>
               </div>
             </form>
           </div>
@@ -1297,10 +1321,10 @@ export default function Travel({ project }) {
 
       {/* ── Rental Car Modal ── */}
       {showCar && (
-        <div className="modal-bg" onClick={e => e.target === e.currentTarget && setShowCar(false)}>
+        <div className="modal-bg" onClick={e => e.target === e.currentTarget && closeCar()}>
           <div className="modal">
-            <div className="modal-title">Add Rental Car</div>
-            <form onSubmit={addCar}>
+            <div className="modal-title">{carEditId ? 'Edit Rental Car' : 'Add Rental Car'}</div>
+            <form onSubmit={submitCar}>
               <div className="form-grid" style={{ marginBottom:12 }}>
                 <div className="field span2">
                   <label>Crew Member</label>
@@ -1322,8 +1346,8 @@ export default function Travel({ project }) {
                 <div className="field span2"><label>Notes</label><input value={carForm.notes} onChange={e => setCarForm(f=>({...f,notes:e.target.value}))} placeholder="Full-size SUV" /></div>
               </div>
               <div className="btn-row">
-                <button className="btn btn-primary">Add Rental Car</button>
-                <button type="button" className="btn btn-ghost" onClick={() => setShowCar(false)}>Cancel</button>
+                <button className="btn btn-primary">{carEditId ? 'Save Rental Car' : 'Add Rental Car'}</button>
+                <button type="button" className="btn btn-ghost" onClick={closeCar}>Cancel</button>
               </div>
             </form>
           </div>
@@ -1414,29 +1438,6 @@ export default function Travel({ project }) {
               <div className="btn-row">
                 <button className="btn btn-primary">Save</button>
                 <button type="button" className="btn btn-ghost" onClick={() => setEditGuest(null)}>Cancel</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ── Edit Car Modal ── */}
-      {editCar && (
-        <div className="modal-bg" onClick={e => e.target === e.currentTarget && setEditCar(null)}>
-          <div className="modal">
-            <div className="modal-title">Edit Rental Car — {editCar.vendor}</div>
-            <form onSubmit={saveEditCar}>
-              <div className="form-grid" style={{ marginBottom:12 }}>
-                <div className="field span2"><label>Renter</label><input value={editCarForm.vendor} onChange={e => setEditCarForm(f=>({...f,vendor:e.target.value}))} placeholder="Renter name" required /></div>
-                <div className="field"><label>Pickup Location</label><input value={editCarForm.pickupLocation} onChange={e => setEditCarForm(f=>({...f,pickupLocation:e.target.value}))} /></div>
-                <div className="field"><label>Dropoff Location</label><input value={editCarForm.dropoffLocation} onChange={e => setEditCarForm(f=>({...f,dropoffLocation:e.target.value}))} /></div>
-                <div className="field"><label>Confirmation #</label><input value={editCarForm.confirmation} onChange={e => setEditCarForm(f=>({...f,confirmation:e.target.value}))} /></div>
-                <div className="field"><label>Cost ($)</label><input type="number" step="0.01" min="0" value={editCarForm.cost} onChange={e => setEditCarForm(f=>({...f,cost:e.target.value}))} placeholder="0.00" /></div>
-                <div className="field span2"><label>Notes</label><input value={editCarForm.notes} onChange={e => setEditCarForm(f=>({...f,notes:e.target.value}))} /></div>
-              </div>
-              <div className="btn-row">
-                <button className="btn btn-primary">Save</button>
-                <button type="button" className="btn btn-ghost" onClick={() => setEditCar(null)}>Cancel</button>
               </div>
             </form>
           </div>

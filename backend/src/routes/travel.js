@@ -144,6 +144,27 @@ router.post('/:id/travel/drives', requireAuth, requireRole('ADMIN','PRODUCER'), 
   } catch(e){next(e);}
 });
 
+router.put('/:id/travel/drives/:did', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try {
+    const { origin, destination, notes, members=[], driverCrewMemberId, driverName, departTime, arriveTime, driveMinutes, car } = req.body;
+    const [d] = await sql`
+      UPDATE drive_groups SET
+        origin = ${origin||null}, destination = ${destination||null}, notes = ${notes||null},
+        driver_crew_member_id = ${driverCrewMemberId||null}, driver_name = ${driverName||null},
+        depart_time = ${departTime||null}, arrive_time = ${arriveTime||null},
+        drive_minutes = ${driveMinutes||null}, car = ${car||null}
+      WHERE id = ${req.params.did} AND project_id = ${req.params.id}
+      RETURNING *`;
+    if (!d) return res.status(404).json({ error: 'Drive not found' });
+    await sql`DELETE FROM drive_group_members WHERE drive_group_id = ${d.id}`;
+    const mems = await Promise.all(members.map(m => sql`INSERT INTO drive_group_members (id, drive_group_id, name, crew_member_id) VALUES (gen_random_uuid()::text, ${d.id}, ${m.name}, ${m.crewMemberId||null}) RETURNING *`));
+    const [full] = await sql`
+      SELECT d.*, COALESCE(NULLIF(TRIM(CONCAT(cm.preferred_first_name, ' ', cm.preferred_last_name)), ''), cm.name, d.driver_name) as driver
+      FROM drive_groups d LEFT JOIN crew_members cm ON cm.id = d.driver_crew_member_id WHERE d.id = ${d.id}`;
+    res.json({ ...full, members: mems.flat() });
+  } catch(e){next(e);}
+});
+
 router.delete('/:id/travel/drives/:did', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try { await sql`DELETE FROM drive_groups WHERE id = ${req.params.did}`; res.status(204).end(); } catch(e){next(e);}
 });
@@ -190,11 +211,13 @@ router.patch('/:id/travel/rental-cars/:cid', requireAuth, requireRole('ADMIN','P
     const [c] = await sql`
       UPDATE rental_cars SET
         vendor = COALESCE(${d.vendor??null}, vendor),
-        pickup_location = COALESCE(${d.pickupLocation??null}, pickup_location),
-        dropoff_location = COALESCE(${d.dropoffLocation??null}, dropoff_location),
-        confirmation = COALESCE(${d.confirmation??null}, confirmation),
+        pickup_location = ${d.pickupLocation !== undefined ? (d.pickupLocation || null) : sql`pickup_location`},
+        dropoff_location = ${d.dropoffLocation !== undefined ? (d.dropoffLocation || null) : sql`dropoff_location`},
+        pickup_date = ${d.pickupDate !== undefined ? (d.pickupDate || null) : sql`pickup_date`},
+        dropoff_date = ${d.dropoffDate !== undefined ? (d.dropoffDate || null) : sql`dropoff_date`},
+        confirmation = ${d.confirmation !== undefined ? (d.confirmation || null) : sql`confirmation`},
         cost = ${d.cost != null ? d.cost : sql`cost`},
-        notes = COALESCE(${d.notes??null}, notes)
+        notes = ${d.notes !== undefined ? (d.notes || null) : sql`notes`}
       WHERE id = ${req.params.cid}
       RETURNING *`;
     if (c) await feedCarLocation(req.params.id, {

@@ -52,7 +52,8 @@ router.get('/:token', async (req, res, next) => {
       sql`SELECT * FROM locations WHERE project_id = ${projectId}`,
       sql`SELECT * FROM tech_specs WHERE project_id = ${projectId}`,
       sql`SELECT * FROM client_contacts WHERE project_id = ${projectId}`,
-      sql`SELECT * FROM key_talent WHERE project_id = ${projectId}`,
+      sql`SELECT kt.*, (SELECT MIN(sd.date) FROM talent_day_calls tdc JOIN shoot_days sd ON sd.id = tdc.shoot_day_id WHERE tdc.talent_id = kt.id) as talent_date
+          FROM key_talent kt WHERE kt.project_id = ${projectId}`,
       sql`SELECT * FROM agency_contacts WHERE project_id = ${projectId}`,
       sql`SELECT id, title, note FROM project_general_notes WHERE project_id = ${projectId} ORDER BY sort, created_at`,
     ]);
@@ -113,7 +114,9 @@ router.get('/:token', async (req, res, next) => {
       const events = await sql`
         SELECT se.*, l.name as location_name, l.address as location_address,
                array_remove(array_agg(DISTINCT ec.crew_id), NULL) as crew_ids,
-               json_agg(DISTINCT jsonb_build_object('id',et.id,'type',et.type,'label',et.label)) FILTER (WHERE et.id IS NOT NULL) as tags
+               json_agg(DISTINCT jsonb_build_object('id',et.id,'type',et.type,'label',et.label)) FILTER (WHERE et.id IS NOT NULL) as tags,
+               (SELECT COALESCE(json_agg(jsonb_build_object('id',ea.id,'filename',ea.filename,'mime',ea.mime,'size',ea.size) ORDER BY ea.created_at), '[]'::json)
+                  FROM event_attachments ea WHERE ea.event_id = se.id) as attachments
         FROM schedule_events se
         LEFT JOIN event_tags et ON et.event_id = se.id
         LEFT JOIN event_crews ec ON ec.event_id = se.id
@@ -500,6 +503,24 @@ router.get('/:token/docs/:did/file', async (req, res, next) => {
     if (!f?.data) return res.status(404).json({ error: 'Document not found' });
     res.setHeader('Content-Type', f.mime || 'application/octet-stream');
     res.setHeader('Content-Disposition', `inline; filename="${f.filename.replace(/"/g, '')}"`);
+    res.send(Buffer.from(f.data));
+  } catch(e) { next(e); }
+});
+
+// GET /share/:token/attachments/:attId/file — public event-attachment download/view
+router.get('/:token/attachments/:attId/file', async (req, res, next) => {
+  try {
+    const r = await resolveShare(req.params.token, req.query.pw, req);
+    if (r.error) return res.status(r.status).json({ error: r.error });
+    const [f] = await sql`
+      SELECT ea.filename, ea.mime, ea.data
+      FROM event_attachments ea
+      JOIN schedule_events se ON se.id = ea.event_id
+      JOIN shoot_days sd ON sd.id = se.shoot_day_id
+      WHERE ea.id = ${req.params.attId} AND sd.project_id = ${r.share.project_id}`;
+    if (!f?.data) return res.status(404).json({ error: 'Attachment not found' });
+    res.setHeader('Content-Type', f.mime || 'application/octet-stream');
+    res.setHeader('Content-Disposition', `${req.query.inline ? 'inline' : 'attachment'}; filename="${f.filename.replace(/"/g, '')}"`);
     res.send(Buffer.from(f.data));
   } catch(e) { next(e); }
 });

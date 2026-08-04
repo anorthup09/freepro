@@ -103,6 +103,10 @@ const LEGACY_DELIV_TYPE = { PRE_PRODUCED:'Pre-Event', ON_SITE:'On-Site', POST_SH
 const delivTypeOf = d => d.tracker_type || LEGACY_DELIV_TYPE[d.category] || d.category || 'Other';
 const delivTypeColor = t => DELIV_TYPE_COLOR[t] || '#8a8f98';
 
+// Talent grid Date column: earliest call date (talent_date), formatted + sorted.
+const fmtTalentDate = d => d ? new Date(String(d).slice(0, 10) + 'T12:00:00').toLocaleDateString('en-US', { month:'short', day:'numeric' }) : '—';
+const byTalentDate = (a, b) => (a.talent_date ? String(a.talent_date).slice(0, 10) : '9999-99-99').localeCompare(b.talent_date ? String(b.talent_date).slice(0, 10) : '9999-99-99');
+
 // General notes shown as tiles between Key Contacts and Crew.
 function GeneralNotesBlock({ notes }) {
   if (!notes?.length) return null;
@@ -587,7 +591,7 @@ function FlightsTable({ flights }) {
 }
 
 // ── Producer View ────────────────────────────────────────────────────────────
-function ProducerView({ data, hideGear, onOpenShotList }) {
+function ProducerView({ data, hideGear, onOpenShotList, shareToken, pw }) {
   const { project, locations, techSpecs, clientContacts, agencyContacts = [], keyTalent, generalNotes = [], crewAssignments, schedule: rawSchedule, flights: allFlights, drives: allDrives = [], hotelBlocks: allHotelBlocks, rentalCars: allRentalCars, deliverables, gear, onlineRentals = [], shotList = [], slDays = [], slBreaks = [] } = data;
   const scheduleRef = useRef(null);
   const [tagFilter, setTagFilter] = useState(null);
@@ -772,7 +776,7 @@ function ProducerView({ data, hideGear, onOpenShotList }) {
       {keyTalent?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Talent</div>
-          <ShareTable cols={['Name','Video Title','Role','Phone','Email','Dietary']} colClasses={['','','','nowrap','','']} rows={keyTalent.map(t => [t.name, t.video_title||'—', t.role||'—', (t.phone ? <Tel v={t.phone} /> : '—'), (t.email ? <Mail v={t.email} /> : '—'), t.dietary_restrictions && t.dietary_restrictions !== 'N/A' ? `⚠️ ${t.dietary_restrictions}` : '—'])} />
+          <ShareTable cols={['Date','Name','Video Title','Role','Phone','Email','Dietary']} colClasses={['nowrap','','','','nowrap','','']} rows={[...keyTalent].sort(byTalentDate).map(t => [fmtTalentDate(t.talent_date), t.name, t.video_title||'—', t.role||'—', (t.phone ? <Tel v={t.phone} /> : '—'), (t.email ? <Mail v={t.email} /> : '—'), t.dietary_restrictions && t.dietary_restrictions !== 'N/A' ? `⚠️ ${t.dietary_restrictions}` : '—'])} />
         </section>
       )}
 
@@ -809,7 +813,7 @@ function ProducerView({ data, hideGear, onOpenShotList }) {
           ? { ...day, events: (day.events || []).filter(e => !(e.crew_ids || []).length || e.crew_ids.includes(crewFilter)) }
           : day
         ).map((day, i) => (
-          <DaySection key={day.id} day={day} showCalls flights={flights} drives={drives} dayIndex={i} tagFilter={tagFilter} personFilter={personFilter} cateringDetail="full" shotList={shotList} slDays={slDays} slBreaks={slBreaks} onOpenShotList={onOpenShotList} crewAssignments={crewAssignments} includePhoto={project.include_photo !== false} projectCity={[project.city, project.state].filter(Boolean).join(', ')} headerGradient />
+          <DaySection key={day.id} day={day} showCalls flights={flights} drives={drives} dayIndex={i} tagFilter={tagFilter} personFilter={personFilter} cateringDetail="full" shotList={shotList} slDays={slDays} slBreaks={slBreaks} onOpenShotList={onOpenShotList} crewAssignments={crewAssignments} includePhoto={project.include_photo !== false} projectCity={[project.city, project.state].filter(Boolean).join(', ')} headerGradient shareToken={shareToken} pw={pw} />
         ))}
       </div>
     </div>
@@ -817,7 +821,7 @@ function ProducerView({ data, hideGear, onOpenShotList }) {
 }
 
 // ── Crew View ────────────────────────────────────────────────────────────────
-function CrewView({ data, shareToken, hideGear, onOpenShotList }) {
+function CrewView({ data, shareToken, hideGear, onOpenShotList, pw }) {
   // Crew get airport/hotel from their own flight & hotel blocks, so those
   // location types are dropped from the crew call sheet's Locations list below.
   const { project, locations: rawLocations, techSpecs, clientContacts, agencyContacts = [], keyTalent, generalNotes = [], crewAssignments, schedule: rawSchedule, flights: allFlights, drives: allDrives = [], hotelBlocks: allHotelBlocks, rentalCars: allRentalCars, deliverables, gear, onlineRentals = [], shotList = [], slDays = [], slBreaks = [] } = data;
@@ -990,7 +994,7 @@ function CrewView({ data, shareToken, hideGear, onOpenShotList }) {
       {keyTalent?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Talent</div>
-          <ShareTable cols={['Name','Video Title','Role','Phone','Email','Dietary']} colClasses={['','','','nowrap','','']} rows={keyTalent.map(t => [t.name, t.video_title||'—', t.role||'—', (t.phone ? <Tel v={t.phone} /> : '—'), (t.email ? <Mail v={t.email} /> : '—'), t.dietary_restrictions && t.dietary_restrictions !== 'N/A' ? `⚠️ ${t.dietary_restrictions}` : '—'])} />
+          <ShareTable cols={['Date','Name','Video Title','Role','Phone','Email','Dietary']} colClasses={['nowrap','','','','nowrap','','']} rows={[...keyTalent].sort(byTalentDate).map(t => [fmtTalentDate(t.talent_date), t.name, t.video_title||'—', t.role||'—', (t.phone ? <Tel v={t.phone} /> : '—'), (t.email ? <Mail v={t.email} /> : '—'), t.dietary_restrictions && t.dietary_restrictions !== 'N/A' ? `⚠️ ${t.dietary_restrictions}` : '—'])} />
         </section>
       )}
 
@@ -1016,7 +1020,7 @@ function CrewView({ data, shareToken, hideGear, onOpenShotList }) {
           return [day.call_time_tags, day.shooting_call_tags, day.lunch_tags, day.wrap_time_tags]
             .some(tags => Array.isArray(tags) && (tags.includes(tagFilter) || tags.includes('ALL_CREW')));
         }).map((day, i) => (
-          <DaySection key={day.id} day={day} showCalls flights={flights} drives={drives} dayIndex={i} tagFilter={tagFilter} personFilter={personFilter} cateringDetail="name" shotList={shotList} slDays={slDays} slBreaks={slBreaks} onOpenShotList={onOpenShotList} crewAssignments={crewAssignments} includePhoto={project.include_photo !== false} projectCity={[project.city, project.state].filter(Boolean).join(', ')} headerGradient />
+          <DaySection key={day.id} day={day} showCalls flights={flights} drives={drives} dayIndex={i} tagFilter={tagFilter} personFilter={personFilter} cateringDetail="name" shotList={shotList} slDays={slDays} slBreaks={slBreaks} onOpenShotList={onOpenShotList} crewAssignments={crewAssignments} includePhoto={project.include_photo !== false} projectCity={[project.city, project.state].filter(Boolean).join(', ')} headerGradient shareToken={shareToken} pw={pw} />
         ))}
       </div>
     </div>
@@ -2124,6 +2128,9 @@ const MEAL_META = {
   DINNER:    { emoji:'🍽️', label:'Dinner',    color:'#4ade80' },
 };
 
+// Catering service type → pill label (matches the Catering/Meals tab).
+const SVC_LABEL_SHARE = { DELIVERY:'Delivery', PICKUP:'Pick Up', DINEIN:'Dine-In', CREWMEAL:'Crew Meal', ONOWN:'On Own' };
+
 function CateringBadge({ catering, detail }) {
   if (!catering || catering.length === 0) return null;
   const ordered = ['BREAKFAST','LUNCH','DINNER'].map(mt => catering.find(c => c.meal_type === mt)).filter(Boolean);
@@ -2152,7 +2159,8 @@ function CateringBadge({ catering, detail }) {
   );
 }
 
-function DaySection({ day, showCalls, flights, drives, dayIndex, talentCallTime, talentCallLocation, hideCallWrap, tagFilter, personFilter, cateringDetail, shotList, slDays, slBreaks, onOpenShotList, crewAssignments, projectCity, talentMode, includePhoto, headerGradient }) {
+function DaySection({ day, showCalls, flights, drives, dayIndex, talentCallTime, talentCallLocation, hideCallWrap, tagFilter, personFilter, cateringDetail, shotList, slDays, slBreaks, onOpenShotList, crewAssignments, projectCity, talentMode, includePhoto, headerGradient, shareToken, pw }) {
+  const attUrl = attId => `${window.location.origin}/api/share/${shareToken}/attachments/${attId}/file?inline=1${pw ? `&pw=${encodeURIComponent(pw)}` : ''}`;
   const [clapEvent, setClapEvent] = useState(null);
   const crewByPosition = (posName) => {
     const a = (crewAssignments || []).find(x => (x.position?.name || '').toLowerCase() === posName && x.crewMember);
@@ -2205,11 +2213,15 @@ function DaySection({ day, showCalls, flights, drives, dayIndex, talentCallTime,
   });
 
   // Crew driving legs on this day — depart + arrive tiles (from the Travel tab).
+  // Match on the LOCAL calendar date (same basis as the displayed time) so an
+  // arrival whose UTC instant crosses midnight doesn't jump to the next day.
   const driveHHMM = iso => { const d = new Date(iso); return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; };
+  const localDateKey = iso => { const d = new Date(iso); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+  const dayKey = filteredDay.date ? String(filteredDay.date).slice(0, 10) : dayStr;
   const driveLegs = (drives || []).flatMap(d => {
     const legs = [];
-    if (d.depart_time && isoDate(new Date(d.depart_time)) === dayStr) legs.push({ ...d, _leg:'depart', _time: driveHHMM(d.depart_time) });
-    if (d.arrive_time && isoDate(new Date(d.arrive_time)) === dayStr) legs.push({ ...d, _leg:'arrive', _time: driveHHMM(d.arrive_time) });
+    if (d.depart_time && localDateKey(d.depart_time) === dayKey) legs.push({ ...d, _leg:'depart', _time: driveHHMM(d.depart_time) });
+    if (d.arrive_time && localDateKey(d.arrive_time) === dayKey) legs.push({ ...d, _leg:'arrive', _time: driveHHMM(d.arrive_time) });
     return legs;
   });
 
@@ -2317,7 +2329,7 @@ function DaySection({ day, showCalls, flights, drives, dayIndex, talentCallTime,
 
   return (
     <section className="share-section">
-      <div style={headerGradient ? { background:'linear-gradient(to bottom, rgba(232,80,10,0.32), rgba(232,80,10,0))', borderRadius:8, padding:'12px 14px', margin:'0 -14px 4px' } : undefined}>
+      <div style={headerGradient ? { border:'1.5px solid transparent', borderRadius:8, padding:'12px 14px', margin:'0 -14px 4px', background:'linear-gradient(var(--bg), var(--bg)) padding-box, linear-gradient(to bottom, rgba(232,80,10,0.85), rgba(232,80,10,0)) border-box' } : undefined}>
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
         <div>
           <div className="sec-lbl" style={{ margin:0 }}>
@@ -2389,7 +2401,7 @@ function DaySection({ day, showCalls, flights, drives, dayIndex, talentCallTime,
                     <div className="ev-time">{item.delivery_time ? fmtTime(item.delivery_time) : '—'}{item.end_time ? ` – ${fmtTime(item.end_time)}` : ''}</div>
                     <div className={`ev-body${isLive(item.delivery_time, item.end_time || null) ? ' ev-live' : ''}`} style={{ borderLeft:`2px solid ${mm.color}`, background: `${mm.color}14` }}>
                       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
-                        <div className="ev-title">{mm.label}{isOut ? <span style={{ fontSize:9, fontWeight:800, color:'var(--muted)', border:'1px solid var(--border)', borderRadius:10, padding:'1px 7px', marginLeft:8, textTransform:'uppercase', letterSpacing:'0.05em', whiteSpace:'nowrap', display:'inline-block' }}>Reservation</span> : null}</div>
+                        <div className="ev-title">{mm.label}{(() => { const svc = SVC_LABEL_SHARE[item.service_type] || (isOut ? 'Reservation' : null); return svc ? <span style={{ fontSize:9, fontWeight:800, color:'var(--muted)', border:'1px solid var(--border)', borderRadius:10, padding:'1px 7px', marginLeft:8, textTransform:'uppercase', letterSpacing:'0.05em', whiteSpace:'nowrap', display:'inline-block' }}>{svc}</span> : null; })()}</div>
                         {cateringDetail && (
                           <div style={{ textAlign:'right' }}>
                             {item.name && <div style={{ fontSize:12, fontWeight:600, color:'var(--text)' }}>{item.name}</div>}
@@ -2609,6 +2621,17 @@ function DaySection({ day, showCalls, flights, drives, dayIndex, talentCallTime,
                           )}
                         </div>
                       </div>
+                      {shareToken && (item.attachments || []).length > 0 && (
+                        <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginTop:8 }}>
+                          {item.attachments.map(att => (
+                            <a key={att.id} href={attUrl(att.id)} target="_blank" rel="noopener noreferrer"
+                               onClick={e => e.stopPropagation()}
+                               style={{ display:'inline-flex', alignItems:'center', gap:5, background:'var(--bg3)', border:'1px solid var(--border2)', borderRadius:6, padding:'3px 9px', fontSize:11, fontWeight:600, color:'var(--tan)', textDecoration:'none', maxWidth:'100%' }}>
+                              📎 <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{att.filename}</span>
+                            </a>
+                          ))}
+                        </div>
+                      )}
                       {item.is_filming && crewAssignments && (
                         <div style={{ display:'flex', justifyContent:'flex-end', marginTop:6 }}>
                           <button onClick={e => { e.stopPropagation(); setClapEvent(item); }}
@@ -3017,8 +3040,8 @@ export default function Share() {
           <ShotListShareView scenes={data.shotList || []} days={data.slDays || []} breaks={data.slBreaks || []} shareToken={token} talent={[...(data.keyTalent||[]), ...(data.crewAssignments||[]).filter(a=>a.crewMember).map(a=>({name: a.crewMember.first_name ? `${a.crewMember.first_name} ${a.crewMember.last_name||''}`.trim() : a.crewMember.name || ''}))] .filter(t=>t.name)} />
         ) : (
           <>
-            {view_type === 'producer' && <ProducerView data={data} hideGear onOpenShotList={data.project.show_shot_list ? () => setSharePage('shot-list') : null} />}
-            {view_type === 'crew'     && <CrewView     data={data} shareToken={token} hideGear onOpenShotList={data.project.show_shot_list ? () => setSharePage('shot-list') : null} />}
+            {view_type === 'producer' && <ProducerView data={data} shareToken={token} pw={resolvedPw} hideGear onOpenShotList={data.project.show_shot_list ? () => setSharePage('shot-list') : null} />}
+            {view_type === 'crew'     && <CrewView     data={data} shareToken={token} pw={resolvedPw} hideGear onOpenShotList={data.project.show_shot_list ? () => setSharePage('shot-list') : null} />}
             {view_type === 'client'   && <ClientView   data={data} onOpenShotList={data.project.show_shot_list ? () => setSharePage('shot-list') : null} />}
             {view_type === 'talent'   && <TalentView   data={data} />}
           </>
