@@ -2088,9 +2088,9 @@ function DietaryCell({ value }) {
 }
 
 const MEAL_META = {
-  BREAKFAST: { emoji:'🍳', label:'Breakfast', color:'#fbbf24' },
+  BREAKFAST: { emoji:'🍳', label:'Breakfast', color:'#4ade80' },
   LUNCH:     { emoji:'🥗', label:'Lunch',     color:'#4ade80' },
-  DINNER:    { emoji:'🍽️', label:'Dinner',    color:'#f87171' },
+  DINNER:    { emoji:'🍽️', label:'Dinner',    color:'#4ade80' },
 };
 
 function CateringBadge({ catering, detail }) {

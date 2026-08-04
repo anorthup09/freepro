@@ -318,9 +318,9 @@ function WeatherLocationPicker({ day, projectCity, onSelect, onClear }) {
 }
 
 const MEAL_COLORS = {
-  BREAKFAST: { color:'#fbbf24', bg:'rgba(251,191,36,0.10)', emoji:'🍳', label:'Breakfast' },
-  DINNER:    { color:'#f87171', bg:'rgba(248,113,113,0.10)', emoji:'🍽️', label:'Dinner' },
-  LUNCH:     { color:'#4ade80', bg:'rgba(74,222,128,0.08)',  emoji:'🥗', label:'Lunch' },
+  BREAKFAST: { color:'#4ade80', bg:'rgba(74,222,128,0.08)', emoji:'🍳', label:'Breakfast' },
+  DINNER:    { color:'#4ade80', bg:'rgba(74,222,128,0.08)', emoji:'🍽️', label:'Dinner' },
+  LUNCH:     { color:'#4ade80', bg:'rgba(74,222,128,0.08)', emoji:'🥗', label:'Lunch' },
 };
 // Meal service type → label; falls back to the legacy is_delivery flag.
 const SERVICE_LABEL = { DELIVERY:'Delivery', PICKUP:'Pick Up', DINEIN:'Dine-In', CREWMEAL:'Crew Meal' };
