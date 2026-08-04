@@ -259,7 +259,16 @@ export function ProjectViewDetail() {
   const isSolutions = ['AGENCY', 'CREW'].includes(user?.role);
   const isFinance = user?.role === 'FINANCE';
   const [project, setProject] = useState(null);
-  const [tab, setTab] = useState('overview');
+  // Keep the active tab in the URL (?tab=) so a browser refresh stays on the
+  // page you're on instead of resetting to Overview.
+  const loc = useLocation();
+  const [tab, setTabRaw] = useState(() => new URLSearchParams(loc.search).get('tab') || 'overview');
+  const setTab = t => {
+    setTabRaw(t);
+    const sp = new URLSearchParams(window.location.search);
+    sp.set('tab', t);
+    nav({ pathname: loc.pathname, search: sp.toString() }, { replace: true });
+  };
   const [shootId, setShootId] = useState('');   // FreePro project id for Pre-Production
   const [avoPageId, setAvoPageId] = useState('');
   const [preControls, setPreControls] = useState(null); // ?/Share lifted from the embedded Pre-Pro
