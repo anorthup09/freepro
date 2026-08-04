@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { api } from '../../api.js';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../App.jsx';
 import { displayName } from '../../utils/displayName.js';
 
 // Tap-to-contact links: phones dial, emails open the mail app
@@ -140,17 +139,6 @@ export default function Overview({ project, setProject, onTabChange,
   ];
   const [editInfo, setEditInfo] = useState(false);
   const nav = useNavigate();
-  const { user } = useAuth();
-  const [deleting, setDeleting] = useState(false);
-
-  async function deleteProject() {
-    if (!confirm(`Permanently delete "${project.code} — ${project.title}"?\n\nThis removes the shoot and all its crew, schedule, gear, and call-sheet data. This cannot be undone.`)) return;
-    setDeleting(true);
-    try {
-      await api.deleteProject(project.id);
-      nav('/');
-    } catch (e) { alert(e.message); setDeleting(false); }
-  }
   const [scheduleDays, setScheduleDays] = useState([]);
   const [info, setInfo] = useState({ code: project.code, title: project.title, client: project.client, city: project.city, state: project.state, startDate: (project.start_date||project.startDate)?.slice(0,10), endDate: (project.end_date||project.endDate)?.slice(0,10), status: project.status, notes: project.notes || '' });
   const [showLocModal, setShowLocModal] = useState(false);
@@ -412,22 +400,6 @@ export default function Overview({ project, setProject, onTabChange,
           </div>
         )}
       </div>
-
-      {/* Danger Zone — admin-only permanent delete */}
-      {user?.role === 'ADMIN' && (
-        <div style={{ border:'1px solid rgba(224,82,82,0.4)', borderRadius:8, padding:'12px 16px', marginBottom:10, display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap' }}>
-          <div>
-            <div style={{ fontSize:12, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.06em', color:'#e05252' }}>Danger Zone</div>
-            <div style={{ fontSize:11, color:'var(--muted)', marginTop:2 }}>Permanently delete this shoot and all its crew, schedule, gear &amp; call-sheet data. This cannot be undone.</div>
-          </div>
-          <button type="button" onClick={deleteProject} disabled={deleting}
-            style={{ background:'transparent', border:'1px solid #e05252', color:'#e05252', borderRadius:6, fontSize:12, fontWeight:700, padding:'7px 14px', cursor: deleting ? 'default' : 'pointer', whiteSpace:'nowrap', opacity: deleting ? 0.5 : 1 }}
-            onMouseEnter={e => { if (!e.currentTarget.disabled) { e.currentTarget.style.background = '#e05252'; e.currentTarget.style.color = '#fff'; } }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#e05252'; }}>
-            {deleting ? 'Deleting…' : 'Delete Project'}
-          </button>
-        </div>
-      )}
 
       {/* Main POC · Gear Contact · Client & Agency Contacts — one card */}
       <div className="ov-contacts-card" style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden', marginBottom:10 }}>

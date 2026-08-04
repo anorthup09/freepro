@@ -339,13 +339,26 @@ router.patch('/:id', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, r
   } catch (err) { next(err); }
 });
 
-// DELETE /api/projects/:id
+// DELETE /api/projects/:id — remove the project everywhere: Finance (budget/VCC,
+// via project_id FK cascade), Pre-Production (this tile + any child shoot tiles
+// hung off parent_project_id, which has no FK cascade), and Post-Production
+// (the AvocadoPost page, keyed by project code, not project_id).
 router.delete('/:id', requireAuth, requireRole('ADMIN'), async (req, res, next) => {
   try {
-    // Clear any finance-side shoot link so a budget section doesn't keep
+    const id = req.params.id;
+    const [proj] = await sql`SELECT code FROM projects WHERE id = ${id}`;
+    // Child production tiles link to this project via parent_project_id (no FK).
+    const children = await sql`SELECT id FROM projects WHERE parent_project_id = ${id}`;
+    const allIds = [id, ...children.map(c => c.id)];
+    // Clear any finance-side shoot links so a budget section doesn't keep
     // pointing at a deleted shoot (freepro_project_id has no FK constraint).
-    await sql`UPDATE budget_sections SET freepro_project_id = NULL WHERE freepro_project_id = ${req.params.id}`;
-    await sql`DELETE FROM projects WHERE id = ${req.params.id}`;
+    await sql`UPDATE budget_sections SET freepro_project_id = NULL WHERE freepro_project_id = ANY(${sql.array(allIds)})`;
+    // Post-production lives in AvocadoPost, matched by project code (its
+    // deliverables/edits cascade off the page via page_id).
+    if (proj?.code) await sql`DELETE FROM avo_project_pages WHERE code = ${proj.code}`;
+    // Delete the tile(s) + parent — budgets, schedule, crew, gear, locations,
+    // call sheets, etc. all cascade via their project_id FK.
+    await sql`DELETE FROM projects WHERE id = ANY(${sql.array(allIds)})`;
     res.status(204).end();
   } catch (err) { next(err); }
 });
