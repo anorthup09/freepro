@@ -183,7 +183,7 @@ router.get('/:token', async (req, res, next) => {
 
     if (viewType === 'producer') {
       const safe = async (q) => { try { return await q; } catch(e) { console.error('share query failed:', e.message); return []; } };
-      const [flights, hotelBlocks, rentalCars, deliverables, gear, onlineRentals, shotListScenes, shotListDays, shotListBreaks] = await Promise.all([
+      const [flights, hotelBlocks, rentalCars, deliverables, gear, onlineRentals, shotListScenes, shotListDays, shotListBreaks, drives] = await Promise.all([
         safe(sql`SELECT f.id, f.passenger_name, f.origin, f.destination, f.depart_time, f.arrive_time, f.depart_display, f.arrive_display, f.airline, f.flight_number, f.confirmation, f.is_return,
                    COALESCE(COALESCE(NULLIF(TRIM(CONCAT(cm.preferred_first_name, ' ', cm.preferred_last_name)), ''), cm.name), f.passenger_name) as crew_name
             FROM flights f LEFT JOIN crew_members cm ON cm.id = f.crew_member_id
@@ -199,6 +199,10 @@ router.get('/:token', async (req, res, next) => {
         safe(sql`SELECT s.*, json_agg(sh ORDER BY sh.sort_order, sh.created_at) FILTER (WHERE sh.id IS NOT NULL) as shots FROM shot_list_scenes s LEFT JOIN shot_list_shots sh ON sh.scene_id = s.id WHERE s.project_id = ${projectId} GROUP BY s.id ORDER BY s.sort_order, s.scene_number`),
         safe(sql`SELECT * FROM shot_list_days WHERE project_id = ${projectId} ORDER BY sort_order, day_number`),
         safe(sql`SELECT * FROM shot_list_breaks WHERE project_id = ${projectId} ORDER BY sort_order, created_at`),
+        safe(sql`SELECT d.id, d.origin, d.destination, d.depart_time, d.arrive_time, d.drive_minutes, d.driver_name,
+                   COALESCE(NULLIF(TRIM(CONCAT(cm.preferred_first_name, ' ', cm.preferred_last_name)), ''), cm.name, d.driver_name) as driver
+            FROM drive_groups d LEFT JOIN crew_members cm ON cm.id = d.driver_crew_member_id
+            WHERE d.project_id = ${projectId} ORDER BY d.depart_time NULLS LAST`),
       ]);
       responseData = {
         ...responseData,
@@ -212,6 +216,7 @@ router.get('/:token', async (req, res, next) => {
         flights,
         hotelBlocks,
         rentalCars,
+        drives,
         deliverables,
         gear: gear[0] || null,
         onlineRentals,
@@ -226,7 +231,7 @@ router.get('/:token', async (req, res, next) => {
         crewCalls: day.crewCalls.filter(c => !c.audience || c.audience.length === 0 || c.audience.includes('crew')),
       }));
       const safe2 = async (q) => { try { return await q; } catch(e) { console.error('share query failed:', e.message); return []; } };
-      const [crewFlights, crewHotels, crewCars, crewDeliverables, crewGear, crewOnlineRentals, crewShotList, crewSlDays, crewSlBreaks] = await Promise.all([
+      const [crewFlights, crewHotels, crewCars, crewDeliverables, crewGear, crewOnlineRentals, crewShotList, crewSlDays, crewSlBreaks, crewDrives] = await Promise.all([
         safe2(sql`SELECT f.id, f.passenger_name, f.origin, f.destination, f.depart_time, f.arrive_time, f.depart_display, f.arrive_display, f.airline, f.flight_number, f.confirmation, f.is_return,
                    COALESCE(COALESCE(NULLIF(TRIM(CONCAT(cm.preferred_first_name, ' ', cm.preferred_last_name)), ''), cm.name), f.passenger_name) as crew_name
             FROM flights f LEFT JOIN crew_members cm ON cm.id = f.crew_member_id
@@ -242,6 +247,10 @@ router.get('/:token', async (req, res, next) => {
         safe2(sql`SELECT s.*, json_agg(sh ORDER BY sh.sort_order, sh.created_at) FILTER (WHERE sh.id IS NOT NULL) as shots FROM shot_list_scenes s LEFT JOIN shot_list_shots sh ON sh.scene_id = s.id WHERE s.project_id = ${projectId} GROUP BY s.id ORDER BY s.sort_order, s.scene_number`),
         safe2(sql`SELECT * FROM shot_list_days WHERE project_id = ${projectId} ORDER BY sort_order, day_number`),
         safe2(sql`SELECT * FROM shot_list_breaks WHERE project_id = ${projectId} ORDER BY sort_order, created_at`),
+        safe2(sql`SELECT d.id, d.origin, d.destination, d.depart_time, d.arrive_time, d.drive_minutes, d.driver_name,
+                   COALESCE(NULLIF(TRIM(CONCAT(cm.preferred_first_name, ' ', cm.preferred_last_name)), ''), cm.name, d.driver_name) as driver
+            FROM drive_groups d LEFT JOIN crew_members cm ON cm.id = d.driver_crew_member_id
+            WHERE d.project_id = ${projectId} ORDER BY d.depart_time NULLS LAST`),
       ]);
       responseData = {
         ...responseData,
@@ -255,6 +264,7 @@ router.get('/:token', async (req, res, next) => {
         flights: crewFlights,
         hotelBlocks: crewHotels,
         rentalCars: crewCars,
+        drives: crewDrives,
         deliverables: crewDeliverables,
         gear: crewGear[0] || null,
         onlineRentals: crewOnlineRentals,
