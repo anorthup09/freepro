@@ -323,7 +323,7 @@ const MEAL_COLORS = {
   LUNCH:     { color:'#4ade80', bg:'rgba(74,222,128,0.08)',  emoji:'🥗', label:'Lunch' },
 };
 // Meal service type → label; falls back to the legacy is_delivery flag.
-const SERVICE_LABEL = { DELIVERY:'Delivery', PICKUP:'Pick Up', DINEIN:'Dine-In' };
+const SERVICE_LABEL = { DELIVERY:'Delivery', PICKUP:'Pick Up', DINEIN:'Dine-In', CREWMEAL:'Crew Meal' };
 const svcLabel = c => c?.service_type ? SERVICE_LABEL[c.service_type] : (c && c.is_delivery === false ? 'Pick Up' : 'Delivery');
 
 const TAG_TYPES = ['VIDEO','PHOTO','AUDIO','ALL_CREW','TALENT','TRAVEL','GENERAL'];
@@ -353,6 +353,26 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
   const [days, setDays] = useState([]);
   const [activeDay, setActiveDay] = useState(null);
   const [showAddEvent, setShowAddEvent] = useState(false);
+  const [eventFiles, setEventFiles] = useState([]);   // pending attachments {filename,mime,fileBase64,size}
+  async function pickEventFiles(e) {
+    const files = [...(e.target.files || [])];
+    e.target.value = '';
+    for (const file of files) {
+      if (file.size > 10 * 1024 * 1024) { alert(`${file.name} is over 10MB — pick a smaller file.`); continue; }
+      const b64 = await new Promise((ok, bad) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1]); r.onerror = bad; r.readAsDataURL(file); });
+      setEventFiles(list => [...list, { filename: file.name, mime: file.type, fileBase64: b64, size: file.size }]);
+    }
+  }
+  // Attachments are behind Bearer auth, so fetch as a blob and open it.
+  async function openAttachment(att) {
+    try {
+      const res = await fetch(api.eventAttachmentUrl(att.id, true), { headers: { Authorization: `Bearer ${localStorage.getItem('fp_token')}` } });
+      if (!res.ok) throw new Error('Download failed');
+      const url = URL.createObjectURL(await res.blob());
+      window.open(url, '_blank');
+      setTimeout(() => URL.revokeObjectURL(url), 15000);
+    } catch (e) { alert(e.message); }
+  }
   const [eventForm, setEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', roomSpace:'', isAlert:false, isFilming:false, tags:[], audience:[], crewIds:[], locationId:'', adhocLocation:'', adhocAddress:'' });
   const [editEventId, setEditEventId] = useState(null);
   const [editEventForm, setEditEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', roomSpace:'', isAlert:false, isFilming:false, tags:[], audience:[], crewIds:[], locationId:'', adhocLocation:'', adhocAddress:'' });
@@ -386,7 +406,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
   const [weatherByDay, setWeatherByDay] = useState({});
   const weatherResyncDone = useRef(false);
   const [cateringModal, setCateringModal] = useState(null);
-  const [cateringForm, setCateringForm] = useState({ mealTypes:[], name:'', address:'', orderNumber:'', deliveryTime:'', serviceType:'' });
+  const [cateringForm, setCateringForm] = useState({ mealTypes:[], name:'', address:'', orderNumber:'', deliveryTime:'', endTime:'', serviceType:'' });
   const [shotListScenes, setShotListScenes] = useState([]);
   const [slDays, setSlDays] = useState([]);
   const [savedToast, setSavedToast] = useState(false);
@@ -549,19 +569,19 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
     const existing = day?.catering || [];
     const mealTypes = existing.map(c => c.meal_type);
     const first = existing[0] || {};
-    setCateringForm({ mealTypes, name: first.name||'', address: first.address||'', orderNumber: first.order_number||'', deliveryTime: first.delivery_time||'', serviceType: first.service_type || '' });
+    setCateringForm({ mealTypes, name: first.name||'', address: first.address||'', orderNumber: first.order_number||'', deliveryTime: first.delivery_time||'', endTime: first.end_time||'', serviceType: first.service_type || '' });
     setCateringModal(dayId);
   }
 
   async function saveCatering(e) {
     e.preventDefault();
     const dayId = cateringModal;
-    const { mealTypes, name, address, orderNumber, deliveryTime, serviceType } = cateringForm;
+    const { mealTypes, name, address, orderNumber, deliveryTime, endTime, serviceType } = cateringForm;
     const day = days.find(d => d.id === dayId);
     const existingTypes = (day?.catering || []).map(c => c.meal_type);
     const deleteMealTypes = existingTypes.filter(mt => !mealTypes.includes(mt));
     try {
-      const results = await api.saveCatering(project.id, dayId, { mealTypes, name, address, orderNumber, deliveryTime, serviceType, deleteMealTypes });
+      const results = await api.saveCatering(project.id, dayId, { mealTypes, name, address, orderNumber, deliveryTime, endTime, serviceType, deleteMealTypes });
       setDays(ds => ds.map(d => {
         if (d.id !== dayId) return d;
         const kept = (d.catering||[]).filter(c => !mealTypes.includes(c.meal_type) && !deleteMealTypes.includes(c.meal_type));
@@ -727,9 +747,16 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
     if (!activeDay) return alert('No shoot day selected.');
     try {
       const ev = await api.createEvent(project.id, activeDay, eventForm);
+      // Upload any files attached in the modal, then attach their metadata.
+      const uploaded = [];
+      for (const f of eventFiles) {
+        try { uploaded.push(await api.addEventAttachment(project.id, ev.id, f)); } catch (er) { alert(`Couldn't attach ${f.filename}: ${er.message}`); }
+      }
+      ev.attachments = uploaded;
       setDays(ds => ds.map(d => d.id === activeDay ? { ...d, events: [...d.events, ev].sort((a,b) => (a.start_time||'').localeCompare(b.start_time||'')) } : d));
       setShowAddEvent(false);
       setEventForm({ startTime:'', endTime:'', title:'', detail:'', isAlert:false, isFilming:false, tags:[], audience:[], crewIds:[] });
+      setEventFiles([]);
     } catch(e) {
       if (e.message?.includes('not found') || e.message?.includes('foreign key') || e.message?.includes('fkey')) {
         try {
@@ -1409,6 +1436,17 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                               onClick={e => { e.stopPropagation(); deleteEvent(item.id); }}>✕</button>
                           </div>
                           {item.detail && <div className="ev-detail">{item.detail}</div>}
+                          {(item.attachments || []).length > 0 && (
+                            <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginTop:5 }}>
+                              {item.attachments.map(att => (
+                                <button key={att.id} type="button" onClick={e => { e.stopPropagation(); openAttachment(att); }}
+                                  title={`Open ${att.filename}`}
+                                  style={{ display:'inline-flex', alignItems:'center', gap:5, fontSize:10, fontWeight:600, color:'var(--tan)', background:'rgba(255,255,255,0.05)', border:'1px solid var(--border)', borderRadius:10, padding:'2px 9px', cursor:'pointer', maxWidth:180, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                                  📎 {att.filename}
+                                </button>
+                              ))}
+                            </div>
+                          )}
                           {(item.room_space || item.location) && (
                             <div style={{ display:'flex', flexWrap:'wrap', gap:'2px 14px', marginTop:4, alignItems:'flex-start', justifyContent:'space-between' }}>
                               <div style={{ display:'flex', flexWrap:'wrap', gap:'2px 16px', alignItems:'baseline', flex:'1 1 200px', minWidth:0 }}>
@@ -1458,7 +1496,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
 
       {/* Add Event Modal */}
       {showAddEvent && (
-        <div className="modal-bg" onClick={e => e.target === e.currentTarget && setShowAddEvent(false)}>
+        <div className="modal-bg" onClick={e => e.target === e.currentTarget && (setShowAddEvent(false), setEventFiles([]))}>
           <div className="modal">
             <div className="modal-title">Add Event — Day {currentDay?.day_number || ''}{currentDay?.date ? ` · ${parseDay(currentDay.date).toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' })}` : ''}</div>
             <form onSubmit={addEvent}>
@@ -1567,7 +1605,24 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                   )}
                 </div>
               </div>
-              <div className="btn-row"><button className="btn btn-primary">Add Event</button><button type="button" className="btn btn-ghost" onClick={() => setShowAddEvent(false)}>Cancel</button></div>
+              {eventFiles.length > 0 && (
+                <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:8 }}>
+                  {eventFiles.map((f, i) => (
+                    <span key={i} style={{ display:'inline-flex', alignItems:'center', gap:6, fontSize:11, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, padding:'3px 10px' }}>
+                      📎 {f.filename}
+                      <button type="button" onClick={() => setEventFiles(list => list.filter((_, k) => k !== i))} style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }}>✕</button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div className="btn-row" style={{ display:'flex', alignItems:'center', gap:8 }}>
+                <button className="btn btn-primary">Add Event</button>
+                <button type="button" className="btn btn-ghost" onClick={() => { setShowAddEvent(false); setEventFiles([]); }}>Cancel</button>
+                <label className="btn btn-ghost btn-sm" style={{ marginLeft:'auto', cursor:'pointer', whiteSpace:'nowrap' }} title="Attach small files (10MB max)">
+                  + 📎 Attachment
+                  <input type="file" multiple onChange={pickEventFiles} style={{ display:'none' }} />
+                </label>
+              </div>
             </form>
           </div>
         </div>
@@ -1587,6 +1642,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                 <option value="DELIVERY">Delivery</option>
                 <option value="PICKUP">Pick Up</option>
                 <option value="DINEIN">Dine-In</option>
+                <option value="CREWMEAL">Crew Meal</option>
               </select>
             </div>
             <form onSubmit={saveCatering}>
@@ -1609,8 +1665,9 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
               <div className="form-grid" style={{ marginBottom:12 }}>
                 <div className="field span2"><label>Name of Catering / Restaurant</label><input value={cateringForm.name} onChange={e => setCateringForm(f=>({...f,name:e.target.value}))} placeholder="Catering Co." /></div>
                 <div className="field span2"><label>Address</label><input value={cateringForm.address} onChange={e => setCateringForm(f=>({...f,address:e.target.value}))} placeholder="123 Main St" /></div>
-                <div className="field"><label>Order Number</label><input value={cateringForm.orderNumber} onChange={e => setCateringForm(f=>({...f,orderNumber:e.target.value}))} placeholder="#12345" /></div>
-                <div className="field"><label>Reservation/Delivery Time</label><input type="time" value={cateringForm.deliveryTime} onChange={e => setCateringForm(f=>({...f,deliveryTime:e.target.value}))} /></div>
+                <div className="field span2"><label>Order Number</label><input value={cateringForm.orderNumber} onChange={e => setCateringForm(f=>({...f,orderNumber:e.target.value}))} placeholder="#12345" /></div>
+                <div className="field"><label>Reservation/Delivery/Start Time</label><input type="time" value={cateringForm.deliveryTime} onChange={e => setCateringForm(f=>({...f,deliveryTime:e.target.value}))} /></div>
+                <div className="field"><label>End Time</label><input type="time" value={cateringForm.endTime} onChange={e => setCateringForm(f=>({...f,endTime:e.target.value}))} /></div>
               </div>
               <div className="btn-row">
                 <button className="btn btn-primary" type="submit">Save Catering</button>

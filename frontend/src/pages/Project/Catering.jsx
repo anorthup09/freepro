@@ -23,13 +23,13 @@ const MEAL_COLORS = {
 };
 
 // Meal service type — DELIVERY | PICKUP | DINEIN
-const SERVICE_LABEL = { DELIVERY:'Delivery', PICKUP:'Pick Up', DINEIN:'Dine-In' };
+const SERVICE_LABEL = { DELIVERY:'Delivery', PICKUP:'Pick Up', DINEIN:'Dine-In', CREWMEAL:'Crew Meal' };
 const svcOf = entry => entry?.service_type || (entry && entry.is_delivery === false ? 'PICKUP' : entry ? 'DELIVERY' : '');
 
 export default function Catering({ project }) {
   const [days, setDays] = useState([]);
   const [cateringModal, setCateringModal] = useState(null);
-  const [cateringForm, setCateringForm] = useState({ mealTypes:[], name:'', address:'', orderNumber:'', deliveryTime:'', serviceType:'' });
+  const [cateringForm, setCateringForm] = useState({ mealTypes:[], name:'', address:'', orderNumber:'', deliveryTime:'', endTime:'', serviceType:'' });
   const [expandedDays, setExpandedDays] = useState({});
   const [savedToast, setSavedToast] = useState(false);
   const toastTimer = React.useRef(null);
@@ -56,10 +56,11 @@ export default function Catering({ project }) {
         address: existing?.address || '',
         orderNumber: existing?.order_number || '',
         deliveryTime: existing?.delivery_time || '',
+        endTime: existing?.end_time || '',
         serviceType: existing?.service_type || '',
       });
     } else {
-      setCateringForm({ mealTypes: [], name: '', address: '', orderNumber: '', deliveryTime: '', serviceType: '' });
+      setCateringForm({ mealTypes: [], name: '', address: '', orderNumber: '', deliveryTime: '', endTime: '', serviceType: '' });
     }
     setCateringModal(dayId);
   }
@@ -80,10 +81,10 @@ export default function Catering({ project }) {
   async function saveCatering(e) {
     e.preventDefault();
     const dayId = cateringModal;
-    const { mealTypes, name, address, orderNumber, deliveryTime, serviceType } = cateringForm;
+    const { mealTypes, name, address, orderNumber, deliveryTime, endTime, serviceType } = cateringForm;
     if (!mealTypes.length) return;
     try {
-      const results = await api.saveCatering(project.id, dayId, { mealTypes, name, address, orderNumber, deliveryTime, serviceType, deleteMealTypes: [] });
+      const results = await api.saveCatering(project.id, dayId, { mealTypes, name, address, orderNumber, deliveryTime, endTime, serviceType, deleteMealTypes: [] });
       setDays(ds => ds.map(d => {
         if (d.id !== dayId) return d;
         const kept = (d.catering||[]).filter(c => !mealTypes.includes(c.meal_type));
@@ -186,6 +187,7 @@ export default function Catering({ project }) {
                 <option value="DELIVERY">Delivery</option>
                 <option value="PICKUP">Pick Up</option>
                 <option value="DINEIN">Dine-In</option>
+                <option value="CREWMEAL">Crew Meal</option>
               </select>
             </div>
             <form onSubmit={saveCatering}>
@@ -208,8 +210,9 @@ export default function Catering({ project }) {
               <div className="form-grid" style={{ marginBottom:12 }}>
                 <div className="field span2"><label>Name of Catering / Restaurant</label><input value={cateringForm.name} onChange={e => setCateringForm(f=>({...f,name:e.target.value}))} placeholder="Catering Co." /></div>
                 <div className="field span2"><label>Address</label><input value={cateringForm.address} onChange={e => setCateringForm(f=>({...f,address:e.target.value}))} placeholder="123 Main St" /></div>
-                <div className="field"><label>Order Number</label><input value={cateringForm.orderNumber} onChange={e => setCateringForm(f=>({...f,orderNumber:e.target.value}))} placeholder="#12345" /></div>
-                <div className="field"><label>Reservation/Delivery Time</label><input type="time" value={cateringForm.deliveryTime} onChange={e => setCateringForm(f=>({...f,deliveryTime:e.target.value}))} /></div>
+                <div className="field span2"><label>Order Number</label><input value={cateringForm.orderNumber} onChange={e => setCateringForm(f=>({...f,orderNumber:e.target.value}))} placeholder="#12345" /></div>
+                <div className="field"><label>Reservation/Delivery/Start Time</label><input type="time" value={cateringForm.deliveryTime} onChange={e => setCateringForm(f=>({...f,deliveryTime:e.target.value}))} /></div>
+                <div className="field"><label>End Time</label><input type="time" value={cateringForm.endTime} onChange={e => setCateringForm(f=>({...f,endTime:e.target.value}))} /></div>
               </div>
               <div className="btn-row" style={{ display:'flex', alignItems:'center' }}>
                 <button className="btn btn-primary" type="submit">Save Catering</button>

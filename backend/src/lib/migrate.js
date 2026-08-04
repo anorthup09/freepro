@@ -181,6 +181,20 @@ async function migrate() {
     )
   `;
 
+  // Small file attachments on a schedule event (base64 → bytea)
+  await sql`
+    CREATE TABLE IF NOT EXISTS event_attachments (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      event_id TEXT NOT NULL REFERENCES schedule_events(id) ON DELETE CASCADE,
+      filename TEXT NOT NULL,
+      mime TEXT,
+      size INT,
+      data BYTEA,
+      uploaded_by TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+
   await sql`
     CREATE TABLE IF NOT EXISTS crew_day_calls (
       id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
@@ -493,6 +507,7 @@ async function migrate() {
   // Meal service type: DELIVERY | PICKUP | DINEIN (null = not chosen yet). Keeps
   // is_delivery in sync (true only for DELIVERY) so the driving-stop logic still works.
   await sql`ALTER TABLE catering_orders ADD COLUMN IF NOT EXISTS service_type TEXT`;
+  await sql`ALTER TABLE catering_orders ADD COLUMN IF NOT EXISTS end_time TEXT`;
   // Backfill service_type from the old is_delivery flag on existing meals with data
   await sql`UPDATE catering_orders SET service_type = CASE WHEN is_delivery = false THEN 'PICKUP' ELSE 'DELIVERY' END
             WHERE service_type IS NULL AND (name IS NOT NULL OR address IS NOT NULL OR delivery_time IS NOT NULL OR order_number IS NOT NULL)`;

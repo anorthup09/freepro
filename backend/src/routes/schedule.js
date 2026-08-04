@@ -9,6 +9,8 @@ async function getDayFull(dayId) {
     sql`SELECT * FROM shoot_days WHERE id = ${dayId}`,
     sql`SELECT se.*, json_agg(DISTINCT jsonb_build_object('id',et.id,'type',et.type,'label',et.label)) FILTER (WHERE et.id IS NOT NULL) as tags,
            array_remove(array_agg(DISTINCT ec.crew_id), NULL) as crew_ids,
+           (SELECT COALESCE(json_agg(jsonb_build_object('id',ea.id,'filename',ea.filename,'mime',ea.mime,'size',ea.size) ORDER BY ea.created_at), '[]'::json)
+              FROM event_attachments ea WHERE ea.event_id = se.id) as attachments,
            l.name as location_name, l.address as location_address
     FROM schedule_events se
     LEFT JOIN event_tags et ON et.event_id = se.id
@@ -29,7 +31,7 @@ async function getDayFull(dayId) {
   if (!day) return null;
   return {
     ...day,
-    events: events.map(e => ({ ...e, tags: e.tags || [], crew_ids: e.crew_ids || [], location: e.location_name ? { name: e.location_name, address: e.location_address } : (e.adhoc_location ? { name: e.adhoc_location, address: e.adhoc_address || null, adhoc: true } : null) })),
+    events: events.map(e => ({ ...e, tags: e.tags || [], crew_ids: e.crew_ids || [], attachments: e.attachments || [], location: e.location_name ? { name: e.location_name, address: e.location_address } : (e.adhoc_location ? { name: e.adhoc_location, address: e.adhoc_address || null, adhoc: true } : null) })),
     crewCalls: crewCalls.map(c => ({
       ...c,
       crewAssignment: { id: c.crew_assignment_id, positionId: c.position_id, slotNumber: c.slot_number, position: { name: c.position_name }, crewMember: c.cm_id ? { id: c.cm_id, name: c.cm_name, phone: c.cm_phone } : null }
@@ -269,7 +271,7 @@ router.post('/:id/schedule/days/:dayId/events', requireAuth, requireRole('ADMIN'
       await Promise.all(crewIds.map(cid => sql`INSERT INTO event_crews (event_id, crew_id) VALUES (${ev.id}, ${cid}) ON CONFLICT DO NOTHING`));
     }
     const [loc] = ev.location_id ? await sql`SELECT id, name, address FROM locations WHERE id = ${ev.location_id}` : [null];
-    res.status(201).json({ ...ev, tags, crew_ids: crewIds, location: loc ? { name: loc.name, address: loc.address } : (ev.adhoc_location ? { name: ev.adhoc_location, address: ev.adhoc_address || null, adhoc: true } : null) });
+    res.status(201).json({ ...ev, tags, crew_ids: crewIds, attachments: [], location: loc ? { name: loc.name, address: loc.address } : (ev.adhoc_location ? { name: ev.adhoc_location, address: ev.adhoc_address || null, adhoc: true } : null) });
   } catch(e){next(e);}
 });
 
@@ -305,14 +307,42 @@ router.patch('/:id/schedule/events/:eventId', requireAuth, requireRole('ADMIN','
     }
     const tags = await sql`SELECT * FROM event_tags WHERE event_id = ${req.params.eventId}`;
     const crewRows = await sql`SELECT crew_id FROM event_crews WHERE event_id = ${req.params.eventId}`;
+    const attachments = await sql`SELECT id, filename, mime, size FROM event_attachments WHERE event_id = ${req.params.eventId} ORDER BY created_at`;
     const [loc] = ev.location_id ? await sql`SELECT id, name, address FROM locations WHERE id = ${ev.location_id}` : [null];
-    res.json({ ...ev, tags, crew_ids: crewRows.map(r => r.crew_id), location: loc ? { name: loc.name, address: loc.address } : null });
+    res.json({ ...ev, tags, crew_ids: crewRows.map(r => r.crew_id), attachments, location: loc ? { name: loc.name, address: loc.address } : null });
   } catch(e){next(e);}
 });
 
 // DELETE event
 router.delete('/:id/schedule/events/:eventId', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try { await sql`DELETE FROM schedule_events WHERE id = ${req.params.eventId}`; res.status(204).end(); } catch(e){next(e);}
+});
+
+// ── Event attachments (small files, base64 → bytea) ──
+router.post('/:id/schedule/events/:eventId/attachments', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try {
+    const { filename, mime, fileBase64 } = req.body;
+    if (!filename || !fileBase64) return res.status(400).json({ error: 'filename and file required' });
+    const buf = Buffer.from(fileBase64, 'base64');
+    if (buf.length > 10 * 1024 * 1024) return res.status(400).json({ error: 'File too large (10MB max)' });
+    const [a] = await sql`
+      INSERT INTO event_attachments (event_id, filename, mime, size, data, uploaded_by)
+      VALUES (${req.params.eventId}, ${filename}, ${mime || null}, ${buf.length}, ${buf}, ${req.user.name || req.user.email})
+      RETURNING id, filename, mime, size`;
+    res.status(201).json(a);
+  } catch(e){next(e);}
+});
+router.get('/schedule/attachments/:attId/file', requireAuth, async (req, res, next) => {
+  try {
+    const [f] = await sql`SELECT filename, mime, data FROM event_attachments WHERE id = ${req.params.attId}`;
+    if (!f) return res.status(404).json({ error: 'Attachment not found' });
+    res.setHeader('Content-Type', f.mime || 'application/octet-stream');
+    res.setHeader('Content-Disposition', `${req.query.inline ? 'inline' : 'attachment'}; filename="${f.filename.replace(/"/g, '')}"`);
+    res.send(f.data);
+  } catch(e){next(e);}
+});
+router.delete('/schedule/attachments/:attId', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try { await sql`DELETE FROM event_attachments WHERE id = ${req.params.attId}`; res.status(204).end(); } catch(e){next(e);}
 });
 
 // PUT crew calls for a day (bulk upsert)
@@ -356,10 +386,10 @@ router.patch('/:id/schedule/calls/:callId', requireAuth, requireRole('ADMIN','PR
 // POST (upsert) catering — mealTypes is array, same caterer info saved for each
 router.post('/:id/schedule/days/:dayId/catering', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const { mealTypes = [], name, address, orderNumber, deliveryTime, deleteMealTypes = [] } = req.body;
-    // serviceType is the source of truth (DELIVERY | PICKUP | DINEIN | null);
+    const { mealTypes = [], name, address, orderNumber, deliveryTime, endTime, deleteMealTypes = [] } = req.body;
+    // serviceType is the source of truth (DELIVERY | PICKUP | DINEIN | CREWMEAL | null);
     // is_delivery stays derived for the schedule's driving-stop logic.
-    const serviceType = ['DELIVERY','PICKUP','DINEIN'].includes(req.body.serviceType) ? req.body.serviceType : null;
+    const serviceType = ['DELIVERY','PICKUP','DINEIN','CREWMEAL'].includes(req.body.serviceType) ? req.body.serviceType : null;
     const isDelivery = serviceType ? serviceType === 'DELIVERY' : (req.body.isDelivery !== false);
     if (deleteMealTypes.length) {
       await sql`DELETE FROM catering_orders WHERE shoot_day_id = ${req.params.dayId} AND meal_type = ANY(${sql.array(deleteMealTypes)})`;
@@ -367,10 +397,10 @@ router.post('/:id/schedule/days/:dayId/catering', requireAuth, requireRole('ADMI
     const results = [];
     for (const mealType of mealTypes) {
       const [row] = await sql`
-        INSERT INTO catering_orders (id, shoot_day_id, meal_type, name, address, order_number, delivery_time, is_delivery, service_type)
-        VALUES (gen_random_uuid()::text, ${req.params.dayId}, ${mealType}, ${name||null}, ${address||null}, ${orderNumber||null}, ${deliveryTime||null}, ${isDelivery}, ${serviceType})
+        INSERT INTO catering_orders (id, shoot_day_id, meal_type, name, address, order_number, delivery_time, end_time, is_delivery, service_type)
+        VALUES (gen_random_uuid()::text, ${req.params.dayId}, ${mealType}, ${name||null}, ${address||null}, ${orderNumber||null}, ${deliveryTime||null}, ${endTime||null}, ${isDelivery}, ${serviceType})
         ON CONFLICT (shoot_day_id, meal_type) DO UPDATE SET
-          name=${name||null}, address=${address||null}, order_number=${orderNumber||null}, delivery_time=${deliveryTime||null}, is_delivery=${isDelivery}, service_type=${serviceType}
+          name=${name||null}, address=${address||null}, order_number=${orderNumber||null}, delivery_time=${deliveryTime||null}, end_time=${endTime||null}, is_delivery=${isDelivery}, service_type=${serviceType}
         RETURNING *`;
       results.push(row);
     }
