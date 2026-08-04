@@ -1601,7 +1601,10 @@ function ShotListShareView({ scenes: initialScenes, days: initialDays = [], brea
 
 // ── Client View ──────────────────────────────────────────────────────────────
 function ClientView({ data, onOpenShotList }) {
-  const { project, locations, clientContacts, keyTalent, crewAssignments, schedule, shotList = [], slDays = [], slBreaks = [] } = data;
+  const { project, locations: rawLocations, clientContacts, keyTalent, crewAssignments, schedule, shotList = [], slDays = [], slBreaks = [] } = data;
+  // Crew hotel and airport are internal logistics — clients don't need them on
+  // their PDF, so drop those location types (shoot locations still show).
+  const locations = (rawLocations || []).filter(l => l.type !== 'AIRPORT' && l.type !== 'CREW_HOTEL');
   const scheduleRef = useRef(null);
   return (
     <div className="share-view" style={{ position:'relative' }}>
