@@ -162,7 +162,7 @@ router.get('/finance/projects', ...finance, async (req, res, next) => {
       SELECT p.id, p.code, p.title, p.client, p.client_logo, p.status, p.start_date, p.end_date, p.pipeline, b.id as budget_id, b.status as budget_status,
              b.mgmt_fee_rate, b.total_cap_co, b.deposit, b.additional_deposit, b.deposit_due, b.final_inv_date, b.extra_deposits, b.media_rep, b.close_month
       FROM projects p LEFT JOIN budgets b ON b.project_id = p.id AND COALESCE(b.kind, 'main') = 'main'
-      WHERE p.status != 'ARCHIVED' AND p.parent_project_id IS NULL
+      WHERE p.parent_project_id IS NULL ${req.query.includeArchived === '1' ? sql`` : sql`AND p.status != 'ARCHIVED'`}
       ORDER BY p.code`;
     const lines = await sql`SELECT budget_id, qty, unit_cost, percent, is_travel, section_id FROM budget_lines`;
     const vcc = await sql`SELECT project_id, SUM(amount) as total FROM vcc_entries GROUP BY project_id`;

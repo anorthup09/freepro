@@ -156,13 +156,21 @@ export default function ProjectView() {
   const [projects, setProjects] = useState(null);
   const [q, setQ] = useState('');
   const [cq, setCq] = useState('');
+  const [showClosed, setShowClosed] = useState(false);
 
-  useEffect(() => { api.financeProjects().then(setProjects).catch(e => alert(e.message)); }, []);
+  // Archived projects are only fetched when the toggle is on.
+  useEffect(() => { api.financeProjects(showClosed).then(setProjects).catch(e => alert(e.message)); }, [showClosed]);
+
+  // Hide archived/closed projects unless the bottom toggle is on.
+  const visible = useMemo(() => {
+    const all = projects || [];
+    return showClosed ? all : all.filter(p => (p.budget_status || '') !== 'Closed' && p.status !== 'ARCHIVED');
+  }, [projects, showClosed]);
 
   // Clients running more than one project at once get a mini-hub tile
   const clients = useMemo(() => {
     const byClient = new Map();
-    for (const p of projects || []) {
+    for (const p of visible) {
       const name = (p.client || '').trim();
       if (!name) continue;
       const key = name.toLowerCase();
@@ -170,7 +178,7 @@ export default function ProjectView() {
       byClient.get(key).projects.push(p);
     }
     return [...byClient.values()].sort((a, b) => a.name.localeCompare(b.name));
-  }, [projects]);
+  }, [visible]);
 
   const shownClients = useMemo(() => {
     const s = cq.trim().toLowerCase();
@@ -178,11 +186,11 @@ export default function ProjectView() {
   }, [clients, cq]);
 
   const shown = useMemo(() => {
-    const list = [...(projects || [])].sort((a, b) => (a.code || '').localeCompare(b.code || ''));
+    const list = [...visible].sort((a, b) => (a.code || '').localeCompare(b.code || ''));
     const s = q.trim().toLowerCase();
     if (!s) return list;
     return list.filter(p => (p.code || '').toLowerCase().includes(s) || (p.title || '').toLowerCase().includes(s) || (p.client || '').toLowerCase().includes(s));
-  }, [projects, q]);
+  }, [visible, q]);
 
   return (
     <div style={{ minHeight:'100vh', background:'var(--bg)' }}>
@@ -236,6 +244,15 @@ export default function ProjectView() {
             </div>
           </>
         )}
+
+        {/* Show archived / closed projects — hidden by default */}
+        <div style={{ display:'flex', justifyContent:'center', marginTop:34 }}>
+          <label style={{ display:'inline-flex', alignItems:'center', gap:8, fontSize:12, color:'var(--muted)', cursor:'pointer', userSelect:'none' }}>
+            <input type="checkbox" checked={showClosed} onChange={e => setShowClosed(e.target.checked)}
+              style={{ accentColor:'var(--orange)', cursor:'pointer' }} />
+            Show archived &amp; closed projects
+          </label>
+        </div>
       </div>
     </div>
   );
@@ -258,7 +275,7 @@ export function ProjectViewDetail() {
 
   useEffect(() => {
     // Solutions gets a finance-free project feed; everyone else the full one.
-    (isSolutions ? api.solutionsProjects() : api.financeProjects()).then(list => {
+    (isSolutions ? api.solutionsProjects() : api.financeProjects(true)).then(list => {
       const p = list.find(x => x.id === pid);
       setProject(p || false);
       const prod = (p?.shoots || []);

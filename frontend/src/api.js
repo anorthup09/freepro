@@ -327,7 +327,7 @@ export const api = {
   contractEmailPrefill: (projectId, cid) => req('GET', `/projects/${projectId}/contracts/${cid}/email-prefill`),
 
   // ProFi — project finance
-  financeProjects: () => req('GET', '/finance/projects'),
+  financeProjects: (includeArchived) => req('GET', '/finance/projects' + (includeArchived ? '?includeArchived=1' : '')),
   solutionsProjects: () => req('GET', '/solutions/projects'),
   financeBundle: (pid) => req('GET', `/finance/${pid}`),
   createBudget: (pid) => req('POST', `/finance/${pid}/budget`),
