@@ -579,10 +579,12 @@ function ProducerView({ data, hideGear, onOpenShotList }) {
           <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
             {project.poc_name && (
               <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 14px', flex:1, minWidth:180 }}>
-                <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:4 }}>Main POC</div>
-                <div style={{ fontWeight:600, fontSize:13 }}>{shortName(project.poc_name)}</div>
-                {project.poc_phone && <div style={{ fontSize:12, color:'var(--tan)', marginTop:2 }}><Tel v={project.poc_phone} /></div>}
-                {project.poc_email && <div style={{ fontSize:11, color:'var(--muted)' }}><Mail v={project.poc_email} /></div>}
+                <div style={{ display:'flex', alignItems:'baseline', gap:14, flexWrap:'wrap' }}>
+                  <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em' }}>Main POC</div>
+                  <div style={{ fontWeight:600, fontSize:13 }}>{shortName(project.poc_name)}</div>
+                  {project.poc_phone && <div style={{ fontSize:12, color:'var(--tan)' }}><Tel v={project.poc_phone} /></div>}
+                  {project.poc_email && <div style={{ fontSize:11, color:'var(--muted)' }}><Mail v={project.poc_email} /></div>}
+                </div>
               </div>
             )}
             {gear?.gear_person_name && (
@@ -819,10 +821,12 @@ function CrewView({ data, shareToken, hideGear, onOpenShotList }) {
           <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
             {project.poc_name && (
               <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 14px', flex:1, minWidth:180 }}>
-                <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:4 }}>Main POC</div>
-                <div style={{ fontWeight:600, fontSize:13 }}>{shortName(project.poc_name)}</div>
-                {project.poc_phone && <div style={{ fontSize:12, color:'var(--tan)', marginTop:2 }}><Tel v={project.poc_phone} /></div>}
-                {project.poc_email && <div style={{ fontSize:11, color:'var(--muted)' }}><Mail v={project.poc_email} /></div>}
+                <div style={{ display:'flex', alignItems:'baseline', gap:14, flexWrap:'wrap' }}>
+                  <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em' }}>Main POC</div>
+                  <div style={{ fontWeight:600, fontSize:13 }}>{shortName(project.poc_name)}</div>
+                  {project.poc_phone && <div style={{ fontSize:12, color:'var(--tan)' }}><Tel v={project.poc_phone} /></div>}
+                  {project.poc_email && <div style={{ fontSize:11, color:'var(--muted)' }}><Mail v={project.poc_email} /></div>}
+                </div>
               </div>
             )}
             {gear?.gear_person_name && (
@@ -1636,11 +1640,13 @@ function ClientView({ data, onOpenShotList }) {
       {project.poc_name && (
         <section className="share-section">
           <div className="sec-lbl">Key Contact</div>
-          <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding:'14px 18px', maxWidth:340 }}>
-            <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', fontWeight:600, marginBottom:4 }}>Main POC</div>
-            <div style={{ fontSize:15, fontWeight:700, color:'var(--text)' }}>{project.poc_name}</div>
-            {project.poc_phone && <div style={{ fontSize:12, color:'var(--tan)', marginTop:2 }}><Tel v={project.poc_phone} /></div>}
-            {project.poc_email && <div style={{ fontSize:11, color:'var(--muted)' }}><Mail v={project.poc_email} /></div>}
+          <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding:'14px 18px' }}>
+            <div style={{ display:'flex', alignItems:'baseline', gap:16, flexWrap:'wrap' }}>
+              <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', fontWeight:600 }}>Main POC</div>
+              <div style={{ fontSize:15, fontWeight:700, color:'var(--text)' }}>{project.poc_name}</div>
+              {project.poc_phone && <div style={{ fontSize:12, color:'var(--tan)' }}><Tel v={project.poc_phone} /></div>}
+              {project.poc_email && <div style={{ fontSize:11, color:'var(--muted)' }}><Mail v={project.poc_email} /></div>}
+            </div>
           </div>
         </section>
       )}
