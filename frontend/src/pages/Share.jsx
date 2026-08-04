@@ -2174,10 +2174,10 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, talentC
   });
 
   const SYNTHETIC_META_SHARE = {
-    ct:  { color:'#4a9eff', bg:'rgba(74,158,255,0.08)',   notesKey:'call_time_notes',      tagsKey:'call_time_tags' },
+    ct:  { color:'#ff8c00', bg:'rgba(255,140,0,0.10)',    notesKey:'call_time_notes',      tagsKey:'call_time_tags' },
     sct: { color:'#ff8c00', bg:'rgba(255,140,0,0.10)',    notesKey:'shooting_call_notes',  tagsKey:'shooting_call_tags' },
     lt:  { color:'#4ade80', bg:'rgba(74,222,128,0.08)',   notesKey:'lunch_notes',          tagsKey:'lunch_tags' },
-    wt:  { color:'#a78bfa', bg:'rgba(167,139,250,0.08)', notesKey:'wrap_time_notes',      tagsKey:'wrap_time_tags' },
+    wt:  { color:'#ff8c00', bg:'rgba(255,140,0,0.10)',    notesKey:'wrap_time_notes',      tagsKey:'wrap_time_tags' },
   };
   const lunchCateringRaw = (day.catering || []).find(c => c.meal_type === 'LUNCH');
   const lunchCatering = lunchCateringRaw && (lunchCateringRaw.name || lunchCateringRaw.address || lunchCateringRaw.delivery_time) ? lunchCateringRaw : null;

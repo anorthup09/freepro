@@ -343,10 +343,10 @@ const TAG_COLOR_DEFS = [
 ];
 
 const SYNTHETIC_META = {
-  ct:  { color:'#4a9eff', bg:'rgba(74,158,255,0.08)',  notesKey:'callTimeNotes',      tagsKey:'callTimeTags',      locationKey:'callTimeLocationId' },
+  ct:  { color:'#ff8c00', bg:'rgba(255,140,0,0.10)',   notesKey:'callTimeNotes',      tagsKey:'callTimeTags',      locationKey:'callTimeLocationId' },
   sct: { color:'#ff8c00', bg:'rgba(255,140,0,0.10)',   notesKey:'shootingCallNotes',  tagsKey:'shootingCallTags',  locationKey:'shootingCallLocationId' },
   lt:  { color:'#4ade80', bg:'rgba(74,222,128,0.08)',  notesKey:'lunchNotes',         tagsKey:'lunchTags',         locationKey:'lunchLocationId' },
-  wt:  { color:'#a78bfa', bg:'rgba(167,139,250,0.08)', notesKey:'wrapTimeNotes',      tagsKey:'wrapTimeTags',      locationKey:'wrapTimeLocationId' },
+  wt:  { color:'#ff8c00', bg:'rgba(255,140,0,0.10)',   notesKey:'wrapTimeNotes',      tagsKey:'wrapTimeTags',      locationKey:'wrapTimeLocationId' },
 };
 
 export default function Schedule({ project, showCateringGrid, setShowCateringGrid, onCateringTabChange, showShotList, setShowShotList, onShotListTabChange, showScripts, setShowScripts, onScriptsTabChange, showTravel, setShowTravel, onTravelTabChange, focusDate, onFocusConsumed }) {
