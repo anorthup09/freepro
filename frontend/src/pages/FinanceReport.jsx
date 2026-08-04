@@ -51,8 +51,17 @@ export default function FinanceReport() {
     try { setReport(await api.financeReportVersion(batchId)); } catch (e) { alert(e.message); }
   }
 
+  // Gray button with an orange outline that fills orange on hover.
+  const csBtn = (disabled) => ({
+    background: 'var(--bg2)', border: '1px solid var(--orange)', color: 'var(--text)',
+    borderRadius: 6, fontSize: 12, fontWeight: 600, padding: '6px 12px',
+    cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.5 : 1, whiteSpace: 'nowrap',
+  });
+  const csOn = e => { if (e.currentTarget.disabled) return; e.currentTarget.style.background = 'var(--orange)'; e.currentTarget.style.color = '#fff'; };
+  const csOff = e => { e.currentTarget.style.background = 'var(--bg2)'; e.currentTarget.style.color = 'var(--text)'; };
+
   const controls = (
-    <div className="no-print" style={{ display:'flex', gap:8, alignItems:'center', flexWrap:'wrap' }}>
+    <div className="no-print" style={{ display:'flex', gap:8, alignItems:'center', flexWrap:'wrap', justifyContent:'flex-end', marginLeft:'auto' }}>
       {versions && versions.length > 0 && (
         <label style={{ display:'flex', alignItems:'center', gap:6 }} title="View a previous report version">
           <span style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', fontWeight:700 }}>Version</span>
@@ -62,9 +71,8 @@ export default function FinanceReport() {
           </select>
         </label>
       )}
-      <button className="btn btn-primary btn-sm" onClick={() => window.print()} disabled={!report}>Print / Save PDF</button>
-      <button className="btn btn-primary btn-sm" onClick={pullReport} disabled={pulling}
-        style={{ background:'#5ABF80', borderColor:'#5ABF80', color:'#08160E' }}>{pulling ? 'Pulling…' : 'Pull Report'}</button>
+      <button style={csBtn(!report)} onMouseEnter={csOn} onMouseLeave={csOff} onClick={() => window.print()} disabled={!report}>Print / Save PDF</button>
+      <button style={csBtn(pulling)} onMouseEnter={csOn} onMouseLeave={csOff} onClick={pullReport} disabled={pulling}>{pulling ? 'Pulling…' : 'Pull Report'}</button>
       <HomeButton />
     </div>
   );
