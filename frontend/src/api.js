@@ -260,6 +260,10 @@ export const api = {
   gearActivity: (pid) => req('GET', `/gear-requests/project/${pid}/activity`),
   addGearActivity: (pid, body) => req('POST', `/gear-requests/project/${pid}/activity`, { body }),
   updateProject: (id, data) => req('PATCH', `/projects/${id}`, data),
+  getGeneralNotes: (id) => req('GET', `/projects/${id}/general-notes`),
+  addGeneralNote: (id, data) => req('POST', `/projects/${id}/general-notes`, data),
+  updateGeneralNote: (nid, data) => req('PATCH', `/projects/general-notes/${nid}`, data),
+  deleteGeneralNote: (nid) => req('DELETE', `/projects/general-notes/${nid}`),
   deleteProject: (id) => req('DELETE', `/projects/${id}`),
 
   // Locations

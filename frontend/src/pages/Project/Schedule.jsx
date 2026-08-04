@@ -750,6 +750,12 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
 
   // Color coding: per-project tag color overrides (drive the --etag-* vars)
   const [showColorCoding, setShowColorCoding] = useState(false);
+  const [showGeneralNotes, setShowGeneralNotes] = useState(false);
+  const [generalNotes, setGeneralNotes] = useState([]);
+  useEffect(() => { api.getGeneralNotes(project.id).then(setGeneralNotes).catch(() => {}); }, [project.id]);
+  async function addGeneralNote() { try { const n = await api.addGeneralNote(project.id, {}); setGeneralNotes(l => [...l, n]); } catch (e) { alert(e.message); } }
+  async function saveGeneralNote(id, patch) { try { const n = await api.updateGeneralNote(id, patch); setGeneralNotes(l => l.map(x => x.id === id ? n : x)); } catch (e) { alert(e.message); } }
+  async function delGeneralNote(id) { try { await api.deleteGeneralNote(id); setGeneralNotes(l => l.filter(x => x.id !== id)); } catch (e) { alert(e.message); } }
   const [tagColors, setTagColors] = useState(project.schedule_tag_colors || {});
   const tagColorVars = {};
   TAG_COLOR_DEFS.forEach(t => { if (tagColors[t.key]) tagColorVars[t.cssVar] = tagColors[t.key]; });
@@ -870,6 +876,10 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
               </span>
               Color Coding
             </button>
+            <button onClick={() => setShowGeneralNotes(true)} title="Add general notes shown on the Producer & Crew views"
+              style={{ display:'inline-flex', alignItems:'center', gap:7, background:'var(--bg2)', border:'1px solid var(--border2)', borderRadius:6, padding:'4px 12px', fontSize:11, fontWeight:700, color:'var(--text)', cursor:'pointer', letterSpacing:'.05em', textTransform:'uppercase', whiteSpace:'nowrap' }}>
+              📝 General Notes
+            </button>
           </div>
         </div>
 
@@ -908,6 +918,31 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
               <button type="button" className="btn btn-ghost btn-sm" onClick={() => saveTagColors({})}>Reset all</button>
               <button type="button" className="btn btn-primary btn-sm" onClick={() => setShowColorCoding(false)}>Done</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showGeneralNotes && (
+        <div className="modal-bg" onClick={e => e.target === e.currentTarget && setShowGeneralNotes(false)}>
+          <div className="modal" style={{ maxWidth:520 }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:6 }}>
+              <div className="modal-title" style={{ margin:0 }}>General Notes</div>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={addGeneralNote}>+ Add Note</button>
+            </div>
+            <div style={{ fontSize:11, color:'var(--muted)', marginBottom:12 }}>These appear as tiles on the Producer &amp; Crew views, between Key Contacts and Crew.</div>
+            {generalNotes.length === 0 && <div style={{ fontSize:12, color:'var(--muted)', fontStyle:'italic' }}>No notes yet — add one.</div>}
+            <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+              {generalNotes.map(n => (
+                <div key={n.id} style={{ border:'1px solid var(--border)', borderRadius:8, padding:10 }}>
+                  <div style={{ display:'flex', gap:8, alignItems:'center', marginBottom:6 }}>
+                    <input defaultValue={n.title||''} placeholder="Title" onBlur={e => { if (e.target.value !== (n.title||'')) saveGeneralNote(n.id, { title: e.target.value }); }} style={{ flex:1, fontWeight:700 }} />
+                    <button type="button" onClick={() => delGeneralNote(n.id)} title="Delete note" style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:12 }}>✕</button>
+                  </div>
+                  <textarea defaultValue={n.note||''} placeholder="Note information…" onBlur={e => { if (e.target.value !== (n.note||'')) saveGeneralNote(n.id, { note: e.target.value }); }} style={{ width:'100%', minHeight:60, fontSize:12 }} />
+                </div>
+              ))}
+            </div>
+            <div className="btn-row" style={{ marginTop:12 }}><button type="button" className="btn btn-primary" onClick={() => setShowGeneralNotes(false)}>Done</button></div>
           </div>
         </div>
       )}

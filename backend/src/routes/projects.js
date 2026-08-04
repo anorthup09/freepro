@@ -371,6 +371,30 @@ router.delete('/:id', requireAuth, requireRole('ADMIN'), async (req, res, next) 
   } catch (err) { next(err); }
 });
 
+// ─── General Notes ───────────────────────────────────────────────────────────
+router.get('/:id/general-notes', requireAuth, async (req, res, next) => {
+  try { res.json(await sql`SELECT * FROM project_general_notes WHERE project_id = ${req.params.id} ORDER BY sort, created_at`); } catch(e){next(e);}
+});
+router.post('/:id/general-notes', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try {
+    const [n] = await sql`INSERT INTO project_general_notes (project_id, title, note) VALUES (${req.params.id}, ${req.body.title||''}, ${req.body.note||''}) RETURNING *`;
+    res.status(201).json(n);
+  } catch(e){next(e);}
+});
+router.patch('/general-notes/:nid', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try {
+    const [n] = await sql`UPDATE project_general_notes SET
+        title = ${req.body.title !== undefined ? req.body.title : sql`title`},
+        note = ${req.body.note !== undefined ? req.body.note : sql`note`}
+      WHERE id = ${req.params.nid} RETURNING *`;
+    if (!n) return res.status(404).json({ error: 'Note not found' });
+    res.json(n);
+  } catch(e){next(e);}
+});
+router.delete('/general-notes/:nid', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try { await sql`DELETE FROM project_general_notes WHERE id = ${req.params.nid}`; res.status(204).end(); } catch(e){next(e);}
+});
+
 // ─── Locations ───────────────────────────────────────────────────────────────
 router.get('/:id/locations', requireAuth, async (req, res, next) => {
   try { res.json(await sql`SELECT * FROM locations WHERE project_id = ${req.params.id}`); } catch(e){next(e);}

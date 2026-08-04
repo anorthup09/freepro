@@ -181,6 +181,18 @@ async function migrate() {
     )
   `;
 
+  // General notes for a project — authored on the Schedule tab, shown on the
+  // Producer/Crew share views as tiles.
+  await sql`
+    CREATE TABLE IF NOT EXISTS project_general_notes (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      title TEXT,
+      note TEXT,
+      sort INT DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`;
+
   // Small file attachments on a schedule event (base64 → bytea)
   await sql`
     CREATE TABLE IF NOT EXISTS event_attachments (

@@ -48,12 +48,13 @@ router.get('/:token', async (req, res, next) => {
       }
     }
 
-    const [locations, techSpecs, clientContacts, keyTalent, agencyContacts] = await Promise.all([
+    const [locations, techSpecs, clientContacts, keyTalent, agencyContacts, generalNotes] = await Promise.all([
       sql`SELECT * FROM locations WHERE project_id = ${projectId}`,
       sql`SELECT * FROM tech_specs WHERE project_id = ${projectId}`,
       sql`SELECT * FROM client_contacts WHERE project_id = ${projectId}`,
       sql`SELECT * FROM key_talent WHERE project_id = ${projectId}`,
       sql`SELECT * FROM agency_contacts WHERE project_id = ${projectId}`,
+      sql`SELECT id, title, note FROM project_general_notes WHERE project_id = ${projectId} ORDER BY sort, created_at`,
     ]);
 
     const crewAssignments = await sql`
@@ -211,6 +212,7 @@ router.get('/:token', async (req, res, next) => {
         clientContacts,
         agencyContacts,
         keyTalent,
+        generalNotes,
         crewAssignments: mappedCrew,
         schedule: daysWithData,
         flights,
@@ -259,6 +261,7 @@ router.get('/:token', async (req, res, next) => {
         clientContacts,
         agencyContacts,
         keyTalent,
+        generalNotes,
         crewAssignments: mappedCrew,
         schedule: filteredDays,
         flights: crewFlights,

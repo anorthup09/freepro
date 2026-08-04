@@ -106,6 +106,24 @@ const DELIV_ORDER = ['PRE_PRODUCED', 'ON_SITE', 'POST_SHOOT'];
 const delivCat = c => DELIV_CAT[c] || DELIV_CAT.POST_SHOOT;
 const delivGroupKey = c => (DELIV_CAT[c] ? c : 'POST_SHOOT');
 
+// General notes shown as tiles between Key Contacts and Crew.
+function GeneralNotesBlock({ notes }) {
+  if (!notes?.length) return null;
+  return (
+    <section className="share-section">
+      <div className="sec-lbl">General Notes</div>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(240px, 1fr))', gap:10 }}>
+        {notes.map(n => (
+          <div key={n.id} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 14px' }}>
+            {n.title && <div style={{ fontSize:12, fontWeight:700, color:'var(--text)', marginBottom:3 }}>{n.title}</div>}
+            {n.note && <div style={{ fontSize:12, color:'var(--muted)', whiteSpace:'pre-wrap' }}>{n.note}</div>}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 // Post-Production deliverables, grouped by designation with a pill first column.
 function DeliverablesBlock({ deliverables, gear }) {
   if (!deliverables?.length) return null;
@@ -568,7 +586,7 @@ function FlightsTable({ flights }) {
 
 // ── Producer View ────────────────────────────────────────────────────────────
 function ProducerView({ data, hideGear, onOpenShotList }) {
-  const { project, locations, techSpecs, clientContacts, agencyContacts = [], keyTalent, crewAssignments, schedule: rawSchedule, flights: allFlights, drives: allDrives = [], hotelBlocks: allHotelBlocks, rentalCars: allRentalCars, deliverables, gear, onlineRentals = [], shotList = [], slDays = [], slBreaks = [] } = data;
+  const { project, locations, techSpecs, clientContacts, agencyContacts = [], keyTalent, generalNotes = [], crewAssignments, schedule: rawSchedule, flights: allFlights, drives: allDrives = [], hotelBlocks: allHotelBlocks, rentalCars: allRentalCars, deliverables, gear, onlineRentals = [], shotList = [], slDays = [], slBreaks = [] } = data;
   const scheduleRef = useRef(null);
   const [tagFilter, setTagFilter] = useState(null);
   const [crewFilter, setCrewFilter] = useState(null); // project_crews id
@@ -643,6 +661,8 @@ function ProducerView({ data, hideGear, onOpenShotList }) {
           </div>
         </section>
       )}
+
+      <GeneralNotesBlock notes={generalNotes} />
 
       {crewAssignments?.length > 0 && (
         <section className="share-section">
@@ -798,7 +818,7 @@ function ProducerView({ data, hideGear, onOpenShotList }) {
 function CrewView({ data, shareToken, hideGear, onOpenShotList }) {
   // Crew get airport/hotel from their own flight & hotel blocks, so those
   // location types are dropped from the crew call sheet's Locations list below.
-  const { project, locations: rawLocations, techSpecs, clientContacts, agencyContacts = [], keyTalent, crewAssignments, schedule: rawSchedule, flights: allFlights, drives: allDrives = [], hotelBlocks: allHotelBlocks, rentalCars: allRentalCars, deliverables, gear, onlineRentals = [], shotList = [], slDays = [], slBreaks = [] } = data;
+  const { project, locations: rawLocations, techSpecs, clientContacts, agencyContacts = [], keyTalent, generalNotes = [], crewAssignments, schedule: rawSchedule, flights: allFlights, drives: allDrives = [], hotelBlocks: allHotelBlocks, rentalCars: allRentalCars, deliverables, gear, onlineRentals = [], shotList = [], slDays = [], slBreaks = [] } = data;
   const locations = (rawLocations || []).filter(l => l.type !== 'AIRPORT' && l.type !== 'CREW_HOTEL');
   const scheduleRef = useRef(null);
   const [tagFilter, setTagFilter] = useState(null);
@@ -866,6 +886,8 @@ function CrewView({ data, shareToken, hideGear, onOpenShotList }) {
           </div>
         </section>
       )}
+
+      <GeneralNotesBlock notes={generalNotes} />
 
       {crewAssignments?.length > 0 && (
         <section className="share-section">
