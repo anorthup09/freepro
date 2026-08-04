@@ -705,7 +705,7 @@ function ProducerView({ data, hideGear, onOpenShotList }) {
       {keyTalent?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Talent</div>
-          <ShareTable cols={['Name','Role','Phone','Email','Dietary']} colClasses={['','','nowrap','','']} rows={keyTalent.map(t => [t.name, t.role||'—', (t.phone ? <Tel v={t.phone} /> : '—'), (t.email ? <Mail v={t.email} /> : '—'), t.dietary_restrictions && t.dietary_restrictions !== 'N/A' ? `⚠️ ${t.dietary_restrictions}` : '—'])} />
+          <ShareTable cols={['Name','Video Title','Role','Phone','Email','Dietary']} colClasses={['','','','nowrap','','']} rows={keyTalent.map(t => [t.name, t.video_title||'—', t.role||'—', (t.phone ? <Tel v={t.phone} /> : '—'), (t.email ? <Mail v={t.email} /> : '—'), t.dietary_restrictions && t.dietary_restrictions !== 'N/A' ? `⚠️ ${t.dietary_restrictions}` : '—'])} />
         </section>
       )}
 
@@ -941,7 +941,7 @@ function CrewView({ data, shareToken, hideGear, onOpenShotList }) {
       {keyTalent?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Talent</div>
-          <ShareTable cols={['Name','Role','Phone','Email','Dietary']} colClasses={['','','nowrap','','']} rows={keyTalent.map(t => [t.name, t.role||'—', (t.phone ? <Tel v={t.phone} /> : '—'), (t.email ? <Mail v={t.email} /> : '—'), t.dietary_restrictions && t.dietary_restrictions !== 'N/A' ? `⚠️ ${t.dietary_restrictions}` : '—'])} />
+          <ShareTable cols={['Name','Video Title','Role','Phone','Email','Dietary']} colClasses={['','','','nowrap','','']} rows={keyTalent.map(t => [t.name, t.video_title||'—', t.role||'—', (t.phone ? <Tel v={t.phone} /> : '—'), (t.email ? <Mail v={t.email} /> : '—'), t.dietary_restrictions && t.dietary_restrictions !== 'N/A' ? `⚠️ ${t.dietary_restrictions}` : '—'])} />
         </section>
       )}
 
@@ -1742,7 +1742,7 @@ function ClientView({ data, onOpenShotList }) {
       {keyTalent?.length > 0 && (
         <section className="share-section">
           <div className="sec-lbl">Talent</div>
-          <ShareTable cols={['Name','Role','Phone','Email']} colClasses={['','','nowrap','']} rows={keyTalent.map(t => [t.name, t.role||'—', (t.phone ? <Tel v={t.phone} /> : '—'), (t.email ? <Mail v={t.email} /> : '—')])} />
+          <ShareTable cols={['Name','Video Title','Role','Phone','Email']} colClasses={['','','','nowrap','']} rows={keyTalent.map(t => [t.name, t.video_title||'—', t.role||'—', (t.phone ? <Tel v={t.phone} /> : '—'), (t.email ? <Mail v={t.email} /> : '—')])} />
         </section>
       )}
       <div ref={scheduleRef}>
