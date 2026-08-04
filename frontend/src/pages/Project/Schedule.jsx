@@ -1368,7 +1368,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                       return (
                         <div key={item._key} className="ev">
                           <div className="ev-time">✈ {legDisplayTime(item)}</div>
-                          <div className={`ev-body${inFlight ? ' ev-live' : ''}`} style={{ borderLeft:`2px solid ${fs.alert ? fs.color : 'var(--orange)'}`, position:'relative', ...(fs.alert ? { background:`${fs.color}11` } : {}) }}>
+                          <div className={`ev-body${inFlight ? ' ev-live' : ''}`} style={{ borderLeft:`2px solid ${fs.alert ? fs.color : '#4a9eff'}`, position:'relative', ...(fs.alert ? { background:`${fs.color}11` } : {}) }}>
                             {item._leg === 'depart' && (
                               <div style={{ position:'absolute', top:8, right:10, display:'inline-flex', alignItems:'center', gap:5, background:'rgba(0,0,0,0.2)', borderRadius:20, padding:'2px 10px' }}>
                                 {fs.dot && <div style={{ width:6, height:6, borderRadius:'50%', background:fs.dot }} />}

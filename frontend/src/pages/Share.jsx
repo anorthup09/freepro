@@ -2449,7 +2449,7 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, talentC
                 return (
                   <div key={`f-${item.id}-${item._leg}`} className="ev">
                     <div className="ev-time"><PlaneIcon className="ev-plane" /> {item._time}</div>
-                    <div className={`ev-body${inFlight ? ' ev-live' : ''}`} style={{ borderLeft:`2px solid ${fs.alert ? fs.color : 'var(--orange)'}`, ...(fs.alert ? { background: `${fs.color}11` } : {}) }}>
+                    <div className={`ev-body${inFlight ? ' ev-live' : ''}`} style={{ borderLeft:`2px solid ${fs.alert ? fs.color : '#4a9eff'}`, ...(fs.alert ? { background: `${fs.color}11` } : {}) }}>
                       {(item.origin || item.destination || item.airline || item.flight_number || item.confirmation) && (() => {
                         const fkey = `f-${item.id}-${item._leg}`;
                         return (
