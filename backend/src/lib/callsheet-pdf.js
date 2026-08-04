@@ -60,6 +60,23 @@ async function renderCallSheet({ project, allDays, renderDays }) {
 
   const Section = (label, node) => h(View, { wrap: false }, h(Text, { style: st.sectionLbl }, label), node);
 
+  // Apply the project's saved call-sheet column config (visibility, order, width)
+  // to a section's default column list. Config shape: { [sectionId]: [{key,width,visible}] }.
+  const cfg = project.callsheet_columns && typeof project.callsheet_columns === 'object' ? project.callsheet_columns : null;
+  const applyCfg = (sectionId, cols) => {
+    const saved = cfg && Array.isArray(cfg[sectionId]) ? cfg[sectionId] : null;
+    if (!saved) return cols;
+    const byKey = Object.fromEntries(cols.map(c => [c.key, c]));
+    const out = [];
+    for (const s of saved) {
+      const c = byKey[s.key];
+      if (!c || s.visible === false) continue;
+      out.push({ ...c, width: s.width || c.width });
+    }
+    for (const c of cols) if (!saved.some(s => s.key === c.key)) out.push(c);
+    return out;
+  };
+
   const DayPage = (day, key) => {
     const dayIndex = allDays.findIndex(d => d.id === day.id);
     const dayCount = allDays.length;
@@ -104,45 +121,45 @@ async function renderCallSheet({ project, allDays, renderDays }) {
         ) : h(View, { style: st.hRight }),
       ),
       // Locations (only those tagged in this day's schedule)
-      dayLocations.length ? Section('Locations', Table([
-        { label: 'Location', width: '42%', render: l => h(View, null,
+      dayLocations.length ? Section('Locations', Table(applyCfg('locations', [
+        { key: 'name', label: 'Location', width: '42%', render: l => h(View, null,
           h(Text, { style: st.strong }, l.name || ''),
           h(Text, { style: st.tiny }, LOC_LABELS[l.type] || 'Location'),
           l.arrival_notes ? h(Text, { style: st.noteLine }, h(Text, { style: st.strong }, 'Arrival: '), l.arrival_notes) : null,
           (l.type === 'PRIMARY_VENUE' && l.notes) ? h(Text, { style: st.noteLine }, h(Text, { style: st.strong }, 'Nearest Hospital: '), String(l.notes).replace(/^Nearest Hospital:\s*/i, '')) : null,
         ) },
-        { label: 'Address', width: '58%', render: l => h(Text, null, stripName(l.address, l.name)) },
-      ], dayLocations, 'loc')) : null,
+        { key: 'address', label: 'Address', width: '58%', render: l => h(Text, null, stripName(l.address, l.name)) },
+      ]), dayLocations, 'loc')) : null,
       // Talent
-      keyTalent.length ? Section('Talent', Table([
-        { label: 'Name', width: '24%', render: t => h(Text, { style: st.strong }, t.name || '') },
-        { label: 'Title / Role', width: '26%', render: t => h(Text, null, t.role || '') },
-        { label: 'Call', width: '12%', render: t => h(Text, null, t.call_time || '') },
-        { label: 'Phone', width: '18%', render: t => h(Text, null, t.phone || '') },
-        { label: 'Email', width: '20%', render: t => h(Text, null, t.email || '') },
-      ], keyTalent, 'tal')) : null,
+      keyTalent.length ? Section('Talent', Table(applyCfg('talent', [
+        { key: 'name', label: 'Name', width: '24%', render: t => h(Text, { style: st.strong }, t.name || '') },
+        { key: 'role', label: 'Title / Role', width: '26%', render: t => h(Text, null, t.role || '') },
+        { key: 'call_time', label: 'Call', width: '12%', render: t => h(Text, null, t.call_time || '') },
+        { key: 'phone', label: 'Phone', width: '18%', render: t => h(Text, null, t.phone || '') },
+        { key: 'email', label: 'Email', width: '20%', render: t => h(Text, null, t.email || '') },
+      ]), keyTalent, 'tal')) : null,
       // Client
-      clientContacts.length ? Section('Client', Table([
-        { label: 'Name', width: '26%', render: c => h(Text, { style: st.strong }, c.name || '') },
-        { label: 'Title', width: '28%', render: c => h(Text, null, c.title || '') },
-        { label: 'Phone', width: '18%', render: c => h(Text, null, c.phone || '') },
-        { label: 'Email', width: '28%', render: c => h(Text, null, c.email || '') },
-      ], clientContacts, 'cli')) : null,
+      clientContacts.length ? Section('Client', Table(applyCfg('client', [
+        { key: 'name', label: 'Name', width: '26%', render: c => h(Text, { style: st.strong }, c.name || '') },
+        { key: 'title', label: 'Title', width: '28%', render: c => h(Text, null, c.title || '') },
+        { key: 'phone', label: 'Phone', width: '18%', render: c => h(Text, null, c.phone || '') },
+        { key: 'email', label: 'Email', width: '28%', render: c => h(Text, null, c.email || '') },
+      ]), clientContacts, 'cli')) : null,
       // Production Crew
-      crew.length ? Section('Production Crew', Table([
-        { label: 'Title', width: '24%', render: a => h(Text, null, a.position_name || '') },
-        { label: 'Name', width: '22%', render: a => h(Text, { style: st.strong }, crewName(a)) },
-        { label: 'Call', width: '10%', render: a => h(Text, null, callFor(a)) },
-        { label: 'Phone', width: '18%', render: a => h(Text, null, a.cm_phone || '') },
-        { label: 'Email', width: '26%', render: a => h(Text, null, a.cm_email || '') },
-      ], crew, 'crw')) : null,
+      crew.length ? Section('Production Crew', Table(applyCfg('crew', [
+        { key: 'position_name', label: 'Title', width: '24%', render: a => h(Text, null, a.position_name || '') },
+        { key: 'name', label: 'Name', width: '22%', render: a => h(Text, { style: st.strong }, crewName(a)) },
+        { key: 'call', label: 'Call', width: '10%', render: a => h(Text, null, callFor(a)) },
+        { key: 'cm_phone', label: 'Phone', width: '18%', render: a => h(Text, null, a.cm_phone || '') },
+        { key: 'cm_email', label: 'Email', width: '26%', render: a => h(Text, null, a.cm_email || '') },
+      ]), crew, 'crw')) : null,
       // Schedule
-      events.length ? Section('Schedule', Table([
-        { label: 'Time', width: '16%', render: e => h(Text, null, [e.start_time, e.end_time].filter(Boolean).join(' – ')) },
-        { label: 'Event', width: '30%', render: e => h(Text, { style: st.strong }, e.title || '') },
-        { label: 'Notes', width: '34%', render: e => h(Text, null, e.detail || '') },
-        { label: 'Crew', width: '20%', render: e => h(Text, null, (e.crew_ids || []).map(cid => nameById[cid]).filter(Boolean).join(', ')) },
-      ], events, 'sch')) : null,
+      events.length ? Section('Schedule', Table(applyCfg('schedule', [
+        { key: 'time', label: 'Time', width: '16%', render: e => h(Text, null, [e.start_time, e.end_time].filter(Boolean).join(' – ')) },
+        { key: 'title', label: 'Event', width: '30%', render: e => h(Text, { style: st.strong }, e.title || '') },
+        { key: 'detail', label: 'Notes', width: '34%', render: e => h(Text, null, e.detail || '') },
+        { key: 'crew', label: 'Crew', width: '20%', render: e => h(Text, null, (e.crew_ids || []).map(cid => nameById[cid]).filter(Boolean).join(', ')) },
+      ]), events, 'sch')) : null,
     );
   };
 

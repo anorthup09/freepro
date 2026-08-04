@@ -749,6 +749,8 @@ async function migrate() {
 
   // Photo department toggle — projects without photo hide the Photo tag everywhere
   await sql`ALTER TABLE projects ADD COLUMN IF NOT EXISTS include_photo BOOLEAN DEFAULT true`;
+  // Per-project call-sheet column customization: { [sectionId]: [{key,label,width,visible}] }
+  await sql`ALTER TABLE projects ADD COLUMN IF NOT EXISTS callsheet_columns JSONB`;
 
   // Seed the Unbridled Media staff roster (idempotent; matches by name)
   const UNBRIDLED_ROSTER = [

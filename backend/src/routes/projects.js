@@ -324,6 +324,7 @@ router.patch('/:id', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, r
         client_logo = CASE WHEN ${d.clientLogo !== undefined} THEN ${d.clientLogo||null} ELSE client_logo END,
         include_photo = CASE WHEN ${d.includePhoto !== undefined} THEN ${d.includePhoto !== false} ELSE include_photo END,
         schedule_tag_colors = CASE WHEN ${d.scheduleTagColors !== undefined} THEN ${sql.json(d.scheduleTagColors || {})} ELSE schedule_tag_colors END,
+        callsheet_columns = CASE WHEN ${d.callsheetColumns !== undefined} THEN ${d.callsheetColumns ? JSON.stringify(d.callsheetColumns) : null}::jsonb ELSE callsheet_columns END,
         updated_at = NOW()
       WHERE id = ${req.params.id}`;
     // Mirror a project rename everywhere the old name was inherited:
