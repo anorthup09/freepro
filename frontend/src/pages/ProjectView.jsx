@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../App.jsx';
 import { api } from '../api.js';
 import FinanceProject from './FinanceProject.jsx';
@@ -156,7 +156,8 @@ export default function ProjectView() {
   const [projects, setProjects] = useState(null);
   const [q, setQ] = useState('');
   const [cq, setCq] = useState('');
-  const [showClosed, setShowClosed] = useState(false);
+  // Driven by ?closed=1 so the pill toggle can live in the global bottom footer.
+  const showClosed = new URLSearchParams(useLocation().search).get('closed') === '1';
 
   // Archived projects are only fetched when the toggle is on.
   useEffect(() => { api.financeProjects(showClosed).then(setProjects).catch(e => alert(e.message)); }, [showClosed]);
@@ -244,15 +245,6 @@ export default function ProjectView() {
             </div>
           </>
         )}
-
-        {/* Show archived / closed projects — hidden by default */}
-        <div style={{ display:'flex', justifyContent:'center', marginTop:34 }}>
-          <label style={{ display:'inline-flex', alignItems:'center', gap:8, fontSize:12, color:'var(--muted)', cursor:'pointer', userSelect:'none' }}>
-            <input type="checkbox" checked={showClosed} onChange={e => setShowClosed(e.target.checked)}
-              style={{ accentColor:'var(--orange)', cursor:'pointer' }} />
-            Show archived &amp; closed projects
-          </label>
-        </div>
       </div>
     </div>
   );

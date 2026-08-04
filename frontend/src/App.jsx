@@ -185,6 +185,11 @@ function SignOutFooter({ user, setUser }) {
   const m = loc.pathname.match(/^\/project-view\/([^/]+)$/);
   const pid = m && m[1] !== 'client' ? m[1] : null;
   const canDelete = pid && user?.role === 'ADMIN';
+  // Project View landing gets a pill toggle here to reveal archived/closed
+  // projects (state carried on the URL so the landing page can read it).
+  const onProjectLanding = loc.pathname === '/project-view';
+  const showClosed = new URLSearchParams(loc.search).get('closed') === '1';
+  const toggleClosed = () => nav('/project-view' + (showClosed ? '' : '?closed=1'));
 
   async function deleteProject() {
     if (!confirm('Permanently delete this project across ALL pages — Finance (budget & VCC), Pre-Production (FreePro shoots), and Post-Production (AvocadoPost) — plus all crew, schedule, gear, and call-sheet data.\n\nThis cannot be undone.')) return;
@@ -200,6 +205,16 @@ function SignOutFooter({ user, setUser }) {
       <button className="btn btn-ghost btn-sm" onClick={() => { localStorage.removeItem('fp_token'); setUser(null); }}>
         Sign out
       </button>
+      {onProjectLanding && (
+        <button type="button" onClick={toggleClosed} role="switch" aria-checked={showClosed}
+          title="Show archived & closed projects"
+          style={{ display:'inline-flex', alignItems:'center', gap:8, background: showClosed ? 'rgba(232,80,10,0.12)' : 'transparent', border:`1px solid ${showClosed ? 'var(--orange)' : 'var(--border)'}`, color: showClosed ? 'var(--orange)' : 'var(--muted)', borderRadius:999, fontSize:12, fontWeight:600, padding:'5px 12px 5px 10px', cursor:'pointer', whiteSpace:'nowrap' }}>
+          <span style={{ position:'relative', width:30, height:16, borderRadius:999, background: showClosed ? 'var(--orange)' : 'var(--border)', flexShrink:0, transition:'background .15s' }}>
+            <span style={{ position:'absolute', top:2, left: showClosed ? 16 : 2, width:12, height:12, borderRadius:'50%', background:'#fff', transition:'left .15s' }} />
+          </span>
+          Archived &amp; Closed
+        </button>
+      )}
       {canDelete && (
         <button onClick={deleteProject} disabled={deleting} title="Delete this project everywhere (Finance, Pre-Pro, Post-Pro)"
           style={{ background:'transparent', border:'1px solid #e05252', color:'#e05252', borderRadius:6, fontSize:12, fontWeight:700, padding:'6px 12px', cursor: deleting ? 'default' : 'pointer', whiteSpace:'nowrap', opacity: deleting ? 0.5 : 1 }}

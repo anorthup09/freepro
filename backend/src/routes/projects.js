@@ -356,6 +356,9 @@ router.delete('/:id', requireAuth, requireRole('ADMIN'), async (req, res, next) 
     // Post-production lives in AvocadoPost, matched by project code (its
     // deliverables/edits cascade off the page via page_id).
     if (proj?.code) await sql`DELETE FROM avo_project_pages WHERE code = ${proj.code}`;
+    // Drop any weekly finance-report snapshots so a deleted project stops
+    // appearing in saved report versions (finance_snapshots has no FK cascade).
+    await sql`DELETE FROM finance_snapshots WHERE project_id = ANY(${sql.array(allIds)})`;
     // These location references aren't ON DELETE CASCADE, so clear them first —
     // otherwise the project → locations cascade is blocked by schedule_events /
     // shoot_days rows still pointing at the locations being deleted.
