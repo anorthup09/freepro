@@ -1099,7 +1099,8 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
               : [];
             const cateringItems = (currentDay.catering || [])
               .filter(c => c.meal_type !== 'LUNCH' && (c.name || c.address || c.delivery_time))
-              .map(c => ({ _type:'catering', _sort: timeToMinutes(c.delivery_time) || 9997, _key:`cat-${c.id}`, ...c }));
+              // No start time: breakfast anchors to the top of the day, dinner to the bottom.
+              .map(c => ({ _type:'catering', _sort: c.delivery_time ? timeToMinutes(c.delivery_time) : (c.meal_type === 'BREAKFAST' ? -1 : c.meal_type === 'DINNER' ? 99999 : 9997), _key:`cat-${c.id}`, ...c }));
             const lunchCateringRaw = (currentDay.catering || []).find(c => c.meal_type === 'LUNCH');
             const lunchCatering = lunchCateringRaw && (lunchCateringRaw.name || lunchCateringRaw.address || lunchCateringRaw.delivery_time) ? lunchCateringRaw : null;
             // Shot list scenes: only show scenes whose shot list day matches this schedule day by date
