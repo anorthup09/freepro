@@ -1100,8 +1100,8 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
               return out;
             });
             // At the same time, call-time markers (General Call Time / Shooting
-            // Call) sort above any other tile in that slot.
-            const callRank = it => (it._type === 'synthetic' && (it._key === 'ct' || it._key === 'sct')) ? 0 : 1;
+            // Call / Talent Call) sort above any other tile in that slot.
+            const callRank = it => ((it._type === 'synthetic' && (it._key === 'ct' || it._key === 'sct')) || it._type === 'talentcall') ? 0 : 1;
             const items = [...syntheticItems, ...eventItems, ...flightItems, ...cateringItems, ...previewItems, ...sceneItems, ...talentItems, ...driveItems].sort((a, b) => (a._sort - b._sort) || (callRank(a) - callRank(b)));
 
             return (
