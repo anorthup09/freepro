@@ -5,6 +5,33 @@ import { displayName } from '../../utils/displayName.js';
 function fmt(dt) {
   return new Date(dt).toLocaleDateString('en-US', { month:'short', day:'numeric' });
 }
+
+// One connecting-flight (layover) segment in the Add Flight form. Presentational:
+// the parent owns the lookup + field state and passes handlers in.
+function ConnectSegment({ seg, label, onChange, onLookup, onRemove }) {
+  return (
+    <div style={{ border:'1px dashed var(--border2)', borderRadius:8, padding:10, marginTop:8 }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:6 }}>
+        <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.06em', color:'var(--muted)' }}>{label}</div>
+        <button type="button" onClick={onRemove} style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }}>✕ Remove</button>
+      </div>
+      <div style={{ display:'flex', gap:6, marginBottom:6 }}>
+        <input value={seg.lookupQuery} onChange={e => onChange({ lookupQuery:e.target.value })} placeholder="UA1234" style={{ flex:'0 0 110px', minWidth:0 }} />
+        <input type="date" value={seg.lookupDate} onChange={e => onChange({ lookupDate:e.target.value })} style={{ flex:1, minWidth:0 }} />
+        <button type="button" className="btn btn-ghost btn-sm" onClick={onLookup} disabled={seg.looking || !seg.lookupQuery} style={{ flexShrink:0 }}>{seg.looking ? '…' : 'Look up'}</button>
+      </div>
+      {seg.error && <div style={{ fontSize:11, color:'#e05252', marginBottom:6 }}>{seg.error}</div>}
+      <div className="form-grid">
+        <div className="field"><label>Airline</label><input value={seg.airline} onChange={e => onChange({ airline:e.target.value })} placeholder="United" /></div>
+        <div className="field"><label>Flight #</label><input value={seg.flightNumber} onChange={e => onChange({ flightNumber:e.target.value })} placeholder="UA1234" /></div>
+        <div className="field"><label>Origin</label><input value={seg.origin} onChange={e => onChange({ origin:e.target.value })} placeholder="DEN" /></div>
+        <div className="field"><label>Destination</label><input value={seg.destination} onChange={e => onChange({ destination:e.target.value })} placeholder="MCI" /></div>
+        <div className="field" style={{ minWidth:0 }}><label>Depart</label><input type="datetime-local" value={seg.departTime} onChange={e => onChange({ departTime:e.target.value })} style={{ width:'100%', minWidth:0, boxSizing:'border-box' }} /></div>
+        <div className="field" style={{ minWidth:0 }}><label>Arrive</label><input type="datetime-local" value={seg.arriveTime} onChange={e => onChange({ arriveTime:e.target.value })} style={{ width:'100%', minWidth:0, boxSizing:'border-box' }} /></div>
+      </div>
+    </div>
+  );
+}
 function fmtDT(dt) {
   return new Date(dt).toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' });
 }
@@ -256,6 +283,31 @@ export default function Travel({ project }) {
   const [returnLookupError, setReturnLookupError] = useState('');
   const [returnLegs, setReturnLegs] = useState(null);
   const [returnSelectedLegIdx, setReturnSelectedLegIdx] = useState(-1);
+  // Connecting flights (layovers) — extra segments on the same confirmation, one
+  // list for the outbound journey and one for the return journey.
+  const BLANK_SEG = { lookupQuery:'', lookupDate:'', looking:false, error:'', flightNumber:'', airline:'', origin:'', destination:'', departTime:'', arriveTime:'', departTz:'', arriveTz:'', departDisplay:'', arriveDisplay:'', status:'' };
+  const [outConnects, setOutConnects] = useState([]);
+  const [retConnects, setRetConnects] = useState([]);
+  const patchSeg = (setList, i, patch) => setList(list => list.map((s, k) => k === i ? { ...s, ...patch } : s));
+  async function lookupSeg(list, setList, i) {
+    const seg = list[i];
+    if (!seg.lookupQuery) return;
+    patchSeg(setList, i, { looking:true, error:'' });
+    try {
+      const data = await api.flightLookup(seg.lookupQuery, seg.lookupDate);
+      const legs = Array.isArray(data.legs) && data.legs.length ? data.legs : [data];
+      const leg = legs[0];
+      patchSeg(setList, i, {
+        looking:false,
+        flightNumber: leg.flightNumber || seg.lookupQuery.toUpperCase(),
+        airline: leg.airline || '', origin: leg.origin || '', destination: leg.destination || '',
+        departTime: localWall(leg.departTimeLocal) || safeIso(leg.departTime)?.slice(0,16) || '',
+        arriveTime: localWall(leg.arriveTimeLocal) || safeIso(leg.arriveTime)?.slice(0,16) || '',
+        departTz: tzOffsetOf(leg.departTimeLocal) || '', arriveTz: tzOffsetOf(leg.arriveTimeLocal) || '',
+        departDisplay: leg.departDisplay || '', arriveDisplay: leg.arriveDisplay || '', status: leg.status || '',
+      });
+    } catch (err) { patchSeg(setList, i, { looking:false, error: err.message || 'Flight not found' }); }
+  }
 
   // Edit modals
   const [editFlight, setEditFlight] = useState(null); // flight object being edited
@@ -463,6 +515,7 @@ export default function Travel({ project }) {
   function resetReturn() {
     setReturnForm(BLANK_RETURN); setReturnLookupQuery(''); setReturnLookupDate('');
     setReturnLookupError(''); setReturnLegs(null); setReturnSelectedLegIdx(-1);
+    setOutConnects([]); setRetConnects([]);
   }
 
   async function addFlight(e) {
@@ -484,6 +537,24 @@ export default function Travel({ project }) {
         cost: flightForm.cost || null,
       });
       const created = [f];
+      // Create a connecting-flight (layover) segment on the same confirmation.
+      const mkSeg = (seg, isReturn) => api.createFlight(project.id, {
+        passengerName: flightForm.passengerName || 'Unknown',
+        crewMemberId: flightForm.crewMemberId || null,
+        confirmation: flightForm.confirmation,
+        flightNumber: seg.flightNumber, airline: seg.airline, origin: seg.origin, destination: seg.destination,
+        isReturn,
+        departTime: wallToUtc(seg.departTime, seg.departTz) || null,
+        arriveTime: wallToUtc(seg.arriveTime, seg.arriveTz),
+        departDisplay: seg.departDisplay || wallDisplay(seg.departTime) || null,
+        arriveDisplay: seg.arriveDisplay || wallDisplay(seg.arriveTime) || null,
+        departTz: seg.departTz || null, arriveTz: seg.arriveTz || null,
+        status: seg.status || '', cost: null,
+      });
+      // Outbound connecting segments (layovers) on the same confirmation.
+      for (const seg of outConnects) {
+        if (seg.flightNumber || seg.origin) created.push(await mkSeg(seg, false));
+      }
       // Round trip: also book the return leg under the same confirmation / crew.
       if (flightForm.isReturn && (returnForm.flightNumber || returnForm.origin)) {
         const r = await api.createFlight(project.id, {
@@ -502,12 +573,17 @@ export default function Travel({ project }) {
           cost: null, // the whole booking's cost is tracked on the outbound flight
         });
         created.push(r);
+        // Return connecting segments (layovers) on the same confirmation.
+        for (const seg of retConnects) {
+          if (seg.flightNumber || seg.origin) created.push(await mkSeg(seg, true));
+        }
       }
       setFlights(prev => [...prev, ...created]);
       setShowFlight(false);
       setFlightLookupQuery(''); setFlightLookupDate(''); setFlightLookupError(''); setFlightLegs(null); setSelectedLegIdx(-1);
       setFlightForm({ crewMemberId:null, passengerName:'', flightNumber:'', airline:'', origin:'', destination:'', departTime:'', arriveTime:'', departTz:'', arriveTz:'', departDisplay:'', arriveDisplay:'', confirmation:'', isReturn:false, cost:'', status:'' });
       resetReturn();
+      setOutConnects([]); setRetConnects([]);
     } catch(err) { alert(err.message); }
   }
 
@@ -1142,6 +1218,17 @@ export default function Travel({ project }) {
                 <div className="field" style={{ minWidth:0 }}><label>Arrive <span style={{ color:'var(--muted)', fontSize:10 }}>(auto)</span></label><input type="datetime-local" value={flightForm.arriveTime} onChange={e => setFlightForm(f=>({...f,arriveTime:e.target.value}))} style={{ width:'100%', minWidth:0, boxSizing:'border-box' }} /></div>
 
                 <div className="field span2">
+                  {outConnects.map((seg, i) => (
+                    <ConnectSegment key={i} seg={seg} label={`Connecting Flight ${i + 1}`}
+                      onChange={patch => patchSeg(setOutConnects, i, patch)}
+                      onLookup={() => lookupSeg(outConnects, setOutConnects, i)}
+                      onRemove={() => setOutConnects(list => list.filter((_, k) => k !== i))} />
+                  ))}
+                  <button type="button" className="btn btn-ghost btn-sm" style={{ marginTop: outConnects.length ? 8 : 0 }}
+                    onClick={() => setOutConnects(list => [...list, { ...BLANK_SEG }])}>+ Add Connecting Flight</button>
+                </div>
+
+                <div className="field span2">
                   <button type="button" onClick={() => setFlightForm(f=>({...f, isReturn: !f.isReturn}))}
                     style={{ width:'100%', padding:'9px 12px', borderRadius:8, fontSize:12, fontWeight:700, cursor:'pointer', transition:'all .15s',
                       border:`1px solid ${flightForm.isReturn ? 'var(--orange)' : 'var(--border2)'}`,
@@ -1186,6 +1273,16 @@ export default function Travel({ project }) {
                     <div className="field"><label>Return Destination <span style={{ color:'var(--muted)', fontSize:10 }}>(auto)</span></label><input value={returnForm.destination} onChange={e => setReturnForm(f=>({...f,destination:e.target.value}))} placeholder="STL" /></div>
                     <div className="field" style={{ minWidth:0 }}><label>Return Depart <span style={{ color:'var(--muted)', fontSize:10 }}>(auto)</span></label><input type="datetime-local" value={returnForm.departTime} onChange={e => setReturnForm(f=>({...f,departTime:e.target.value}))} style={{ width:'100%', minWidth:0, boxSizing:'border-box' }} /></div>
                     <div className="field" style={{ minWidth:0 }}><label>Return Arrive <span style={{ color:'var(--muted)', fontSize:10 }}>(auto)</span></label><input type="datetime-local" value={returnForm.arriveTime} onChange={e => setReturnForm(f=>({...f,arriveTime:e.target.value}))} style={{ width:'100%', minWidth:0, boxSizing:'border-box' }} /></div>
+                    <div className="field span2">
+                      {retConnects.map((seg, i) => (
+                        <ConnectSegment key={i} seg={seg} label={`Return Connecting Flight ${i + 1}`}
+                          onChange={patch => patchSeg(setRetConnects, i, patch)}
+                          onLookup={() => lookupSeg(retConnects, setRetConnects, i)}
+                          onRemove={() => setRetConnects(list => list.filter((_, k) => k !== i))} />
+                      ))}
+                      <button type="button" className="btn btn-ghost btn-sm" style={{ marginTop: retConnects.length ? 8 : 0 }}
+                        onClick={() => setRetConnects(list => [...list, { ...BLANK_SEG }])}>+ Add Connecting Flight</button>
+                    </div>
                   </>
                 )}
               </div>
