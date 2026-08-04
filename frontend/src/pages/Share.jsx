@@ -2184,7 +2184,7 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, talentC
   const syntheticAllItems = tagFilter ? [] : [
     day.call_time          && { _type:'synthetic', _key:'ct',  _sort: timeToMins(day.call_time),           startTime: day.call_time,          title:'General Call Time', notes: day.call_time_notes,      tags: day.call_time_tags },
     day.shooting_call_time && { _type:'synthetic', _key:'sct', _sort: timeToMins(day.shooting_call_time),  startTime: day.shooting_call_time, title:'Shooting Call',     notes: day.shooting_call_notes,  tags: day.shooting_call_tags },
-    day.lunch_time         && { _type:'synthetic', _key:'lt',  _sort: timeToMins(day.lunch_time),          startTime: day.lunch_time,         endTime: day.lunch_end_time,  title:'Lunch',             notes: day.lunch_notes,          tags: day.lunch_tags },
+    day.lunch_time         && { _type:'synthetic', _key:'lt',  _sort: timeToMins(day.lunch_time),          startTime: day.lunch_time,         endTime: day.lunch_end_time || (day.catering||[]).find(c=>c.meal_type==='LUNCH')?.end_time || null,  title:'Lunch',             notes: day.lunch_notes,          tags: day.lunch_tags },
     day.wrap_time          && { _type:'synthetic', _key:'wt',  _sort: timeToMins(day.wrap_time),           startTime: day.wrap_time,          title:'Est. Wrap',         notes: day.wrap_time_notes,      tags: day.wrap_time_tags },
   ].filter(Boolean);
   // Talent views only see day-time tiles explicitly tagged for talent

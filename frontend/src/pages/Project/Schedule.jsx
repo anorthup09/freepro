@@ -1091,7 +1091,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
             const syntheticItems = [
               dayTimes.callTime         && { _type:'synthetic', _key:'ct',  _sort: timeToMinutes(dayTimes.callTime),         startTime: dayTimes.callTime,         title:'General Call Time', notes: dayTimes.callTimeNotes,     tags: dayTimes.callTimeTags||[] },
               dayTimes.shootingCallTime && { _type:'synthetic', _key:'sct', _sort: timeToMinutes(dayTimes.shootingCallTime), startTime: dayTimes.shootingCallTime, title:'Shooting Call',      notes: dayTimes.shootingCallNotes, tags: dayTimes.shootingCallTags||[] },
-              dayTimes.lunchTime        && { _type:'synthetic', _key:'lt',  _sort: timeToMinutes(dayTimes.lunchTime),        startTime: dayTimes.lunchTime,        endTime: dayTimes.lunchEndTime,  title:'Lunch',              notes: dayTimes.lunchNotes,        tags: dayTimes.lunchTags||[] },
+              dayTimes.lunchTime        && { _type:'synthetic', _key:'lt',  _sort: timeToMinutes(dayTimes.lunchTime),        startTime: dayTimes.lunchTime,        endTime: dayTimes.lunchEndTime || (currentDay.catering||[]).find(c=>c.meal_type==='LUNCH')?.end_time || null,  title:'Lunch',              notes: dayTimes.lunchNotes,        tags: dayTimes.lunchTags||[] },
               dayTimes.wrapTime         && { _type:'synthetic', _key:'wt',  _sort: timeToMinutes(dayTimes.wrapTime),         startTime: dayTimes.wrapTime,         title:'Est. Wrap',          notes: dayTimes.wrapTimeNotes,     tags: dayTimes.wrapTimeTags||[] },
             ].filter(Boolean);
             const previewItems = (showAddEvent && (eventForm.title || eventForm.startTime))
