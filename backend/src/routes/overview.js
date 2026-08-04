@@ -109,13 +109,15 @@ router.get('/project-overview/:pid', ...staff, async (req, res, next) => {
     const docs = await sql`
       SELECT id, kind, filename, mime, size, uploaded_by, created_at
       FROM project_docs WHERE project_id = ${project.id} ORDER BY kind, created_at DESC`;
+    const links = await sql`
+      SELECT * FROM project_links WHERE project_id = ${project.id} ORDER BY sort, created_at`;
     // Solutions and Crew roles never see finance figures — strip the budget from the payload.
     const isSolutions = ['AGENCY', 'CREW'].includes(req.user?.role);
     res.json({ project,
       budgetStatus: isSolutions ? null : (budget?.status || null),
       budgetAmount: isSolutions ? null : budgetAmount,
       budgetFee: isSolutions ? null : budgetFee,
-      closeMonth: budget?.close_month || null, shoots, edits, callNotes, tasks, docs });
+      closeMonth: budget?.close_month || null, shoots, edits, callNotes, tasks, docs, links });
   } catch (e) { next(e); }
 });
 
@@ -142,6 +144,23 @@ router.patch('/call-notes/:id', ...staff, async (req, res, next) => {
 router.delete('/call-notes/:id', ...staff, async (req, res, next) => {
   try {
     await sql`DELETE FROM project_call_notes WHERE id = ${req.params.id}`;
+    res.status(204).end();
+  } catch (e) { next(e); }
+});
+
+// ── Important Links ──
+router.post('/project-overview/:pid/links', ...staff, async (req, res, next) => {
+  try {
+    const [l] = await sql`
+      INSERT INTO project_links (project_id, title, url, created_by)
+      VALUES (${req.params.pid}, ${req.body.title || ''}, ${req.body.url || ''}, ${req.user.name || req.user.email})
+      RETURNING *`;
+    res.status(201).json(l);
+  } catch (e) { next(e); }
+});
+router.delete('/project-overview/links/:id', ...staff, async (req, res, next) => {
+  try {
+    await sql`DELETE FROM project_links WHERE id = ${req.params.id}`;
     res.status(204).end();
   } catch (e) { next(e); }
 });

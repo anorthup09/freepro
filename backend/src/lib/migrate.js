@@ -1433,7 +1433,17 @@ async function migrate() {
       created_at TIMESTAMPTZ DEFAULT NOW()
     )`;
 
-  // Project documents on the Overview cover page (creative briefs, VPPs)
+  // Important Links on the Overview cover page (title + URL)
+  await sql`
+    CREATE TABLE IF NOT EXISTS project_links (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      title TEXT,
+      url TEXT,
+      sort INT DEFAULT 0,
+      created_by TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`;
   await sql`
     CREATE TABLE IF NOT EXISTS project_docs (
       id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,

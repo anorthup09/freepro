@@ -156,6 +156,64 @@ function DocsTile({ pid, docs, setDocs }) {
   );
 }
 
+// ── Important Links: + pops out a title + URL form; saved links show a Link button ──
+function LinksTile({ pid, links, setLinks }) {
+  const [adding, setAdding] = useState(false);
+  const [title, setTitle] = useState('');
+  const [url, setUrl] = useState('');
+  const [saving, setSaving] = useState(false);
+  const normalize = u => (u && !/^https?:\/\//i.test(u) ? 'https://' + u : u);
+  function reset() { setTitle(''); setUrl(''); setAdding(false); }
+  async function save() {
+    if (!title.trim() && !url.trim()) return;
+    setSaving(true);
+    try {
+      const l = await api.addProjectLink(pid, { title: title.trim(), url: normalize(url.trim()) });
+      setLinks(ls => [...ls, l]);
+      reset();
+    } catch (e) { alert(e.message); }
+    setSaving(false);
+  }
+  const addPill = { background:'var(--bg)', border:'1px solid rgba(255,255,255,0.55)', color:'#e8e8e8', borderRadius:14, padding:'3px 12px', fontSize:10, fontWeight:800, cursor:'pointer' };
+  return (
+    <div className="pv-links" style={{ ...card, marginBottom:16 }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+        <div style={{ ...secHdr, marginBottom:0 }}>Important Links</div>
+        <button onClick={() => setAdding(a => !a)} style={addPill} title="Add a link">{adding ? '×' : '+'}</button>
+      </div>
+      {adding && (
+        <div style={{ display:'flex', flexDirection:'column', gap:6, marginBottom:12, background:'var(--bg)', border:'1px solid var(--border)', borderRadius:8, padding:10 }}>
+          <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Title (e.g. Brand Guidelines)"
+            style={{ fontSize:12 }} autoFocus />
+          <input value={url} onChange={e => setUrl(e.target.value)} placeholder="https://…"
+            onKeyDown={e => { if (e.key === 'Enter') save(); }} style={{ fontSize:12 }} />
+          <div style={{ display:'flex', justifyContent:'flex-end', gap:6 }}>
+            <button onClick={reset} className="btn btn-ghost btn-sm">Cancel</button>
+            <button onClick={save} disabled={saving} className="btn btn-primary btn-sm">{saving ? 'Saving…' : 'Save'}</button>
+          </div>
+        </div>
+      )}
+      {links.length === 0 && !adding && <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>No links yet — add briefs, folders, or references with the + button.</div>}
+      {links.map(l => (
+        <div key={l.id} style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 0', borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
+          <span style={{ flex:1, minWidth:0, fontSize:12, fontWeight:600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{l.title || l.url}</span>
+          {l.url && (
+            <a href={l.url} target="_blank" rel="noreferrer"
+              style={{ fontSize:10, fontWeight:800, color:'#4a9eff', border:'1px solid rgba(74,158,255,0.5)', borderRadius:12, padding:'3px 10px', textDecoration:'none', whiteSpace:'nowrap' }}>
+              Link ↗
+            </a>
+          )}
+          <button title="Delete link" onClick={async () => {
+            if (!confirm(`Delete "${l.title || l.url}"?`)) return;
+            try { await api.deleteProjectLink(l.id); setLinks(ls => ls.filter(x => x.id !== l.id)); }
+            catch (e) { alert(e.message); }
+          }} style={{ background:'none', border:'none', color:'var(--muted)', fontSize:12, cursor:'pointer', padding:'0 2px' }}>✕</button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // Initials chip for the task assignee (same look as budget tags)
 const CHIP_COLORS = ['#5ABF80', '#d66a9b', '#e6c229', '#e8955a', '#4a9eff', '#a78bfa', '#40A0A0', '#f08080'];
 const chipColor = n => { let h = 0; for (const c of n || '') h = (h * 31 + c.charCodeAt(0)) & 0xffffffff; return CHIP_COLORS[Math.abs(h) % CHIP_COLORS.length]; };
@@ -281,9 +339,10 @@ export default function ProjectOverview({ pid, onOpenFinance }) {
 
   if (err) return <div className="empty">{err}</div>;
   if (!data) return <div className="empty">Loading…</div>;
-  const { project, budgetStatus, budgetAmount, budgetFee, shoots, edits, callNotes, tasks, docs = [] } = data;
+  const { project, budgetStatus, budgetAmount, budgetFee, shoots, edits, callNotes, tasks, docs = [], links = [] } = data;
   const fmt$ = n => '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const setDocs = fn => setData(d => ({ ...d, docs: typeof fn === 'function' ? fn(d.docs || []) : fn }));
+  const setLinks = fn => setData(d => ({ ...d, links: typeof fn === 'function' ? fn(d.links || []) : fn }));
   const setTasks = fn => setData(d => ({ ...d, tasks: typeof fn === 'function' ? fn(d.tasks) : fn }));
   const setNotes = fn => setData(d => ({ ...d, callNotes: typeof fn === 'function' ? fn(d.callNotes) : fn }));
 
@@ -396,6 +455,7 @@ export default function ProjectOverview({ pid, onOpenFinance }) {
       {/* ── Right: docs tile above the elongated to-do column ── */}
       <div className="pv-right" style={{ gridColumn:2, gridRow:'1 / span 2' }}>
       <DocsTile pid={pid} docs={docs} setDocs={setDocs} />
+      <LinksTile pid={pid} links={links} setLinks={setLinks} />
       <div className="pv-todo" style={{ ...card, minHeight:420, display:'flex', flexDirection:'column' }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
           <div style={{ ...secHdr, marginBottom:0 }}>To-Do</div>
