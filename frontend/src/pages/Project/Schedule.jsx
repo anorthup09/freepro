@@ -323,7 +323,7 @@ const MEAL_COLORS = {
   LUNCH:     { color:'#4ade80', bg:'rgba(74,222,128,0.08)', emoji:'🥗', label:'Lunch' },
 };
 // Meal service type → label; falls back to the legacy is_delivery flag.
-const SERVICE_LABEL = { DELIVERY:'Delivery', PICKUP:'Pick Up', DINEIN:'Dine-In', CREWMEAL:'Crew Meal' };
+const SERVICE_LABEL = { DELIVERY:'Delivery', PICKUP:'Pick Up', DINEIN:'Dine-In', CREWMEAL:'Crew Meal', ONOWN:'On Own' };
 const svcLabel = c => c?.service_type ? SERVICE_LABEL[c.service_type] : (c && c.is_delivery === false ? 'Pick Up' : 'Delivery');
 
 const TAG_TYPES = ['VIDEO','PHOTO','AUDIO','ALL_CREW','TALENT','TRAVEL','GENERAL'];
@@ -959,7 +959,14 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                   { label:'Est. Wrap Time', field:'wrapTime' },
                 ].map(({ label, field }) => (
                   <div key={field} className="field" style={{ margin:0 }}>
-                    <label style={{ fontSize:10 }}>{label}</label>
+                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:3 }}>
+                      <label style={{ fontSize:10, margin:0 }}>{label}</label>
+                      {dayTimesForm[currentDay.id]?.[field] && (
+                        <button type="button" title={`Clear ${label}`}
+                          onClick={() => { setDayTimesForm(m => ({ ...m, [currentDay.id]: { ...m[currentDay.id], [field]: '' } })); saveDayTime(currentDay.id, field, ''); }}
+                          style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11, padding:0, lineHeight:1 }}>🗑</button>
+                      )}
+                    </div>
                     <input type="time"
                       value={dayTimesForm[currentDay.id]?.[field] || ''}
                       onChange={e => setDayTimesForm(m => ({ ...m, [currentDay.id]: { ...m[currentDay.id], [field]: e.target.value } }))}
@@ -1644,6 +1651,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                 <option value="PICKUP">Pick Up</option>
                 <option value="DINEIN">Dine-In</option>
                 <option value="CREWMEAL">Crew Meal</option>
+                <option value="ONOWN">On Own</option>
               </select>
             </div>
             <form onSubmit={saveCatering}>

@@ -23,7 +23,7 @@ const MEAL_COLORS = {
 };
 
 // Meal service type — DELIVERY | PICKUP | DINEIN
-const SERVICE_LABEL = { DELIVERY:'Delivery', PICKUP:'Pick Up', DINEIN:'Dine-In', CREWMEAL:'Crew Meal' };
+const SERVICE_LABEL = { DELIVERY:'Delivery', PICKUP:'Pick Up', DINEIN:'Dine-In', CREWMEAL:'Crew Meal', ONOWN:'On Own' };
 const svcOf = entry => entry?.service_type || (entry && entry.is_delivery === false ? 'PICKUP' : entry ? 'DELIVERY' : '');
 
 export default function Catering({ project }) {
@@ -188,6 +188,7 @@ export default function Catering({ project }) {
                 <option value="PICKUP">Pick Up</option>
                 <option value="DINEIN">Dine-In</option>
                 <option value="CREWMEAL">Crew Meal</option>
+                <option value="ONOWN">On Own</option>
               </select>
             </div>
             <form onSubmit={saveCatering}>

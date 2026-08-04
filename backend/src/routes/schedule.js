@@ -389,7 +389,7 @@ router.post('/:id/schedule/days/:dayId/catering', requireAuth, requireRole('ADMI
     const { mealTypes = [], name, address, orderNumber, deliveryTime, endTime, deleteMealTypes = [] } = req.body;
     // serviceType is the source of truth (DELIVERY | PICKUP | DINEIN | CREWMEAL | null);
     // is_delivery stays derived for the schedule's driving-stop logic.
-    const serviceType = ['DELIVERY','PICKUP','DINEIN','CREWMEAL'].includes(req.body.serviceType) ? req.body.serviceType : null;
+    const serviceType = ['DELIVERY','PICKUP','DINEIN','CREWMEAL','ONOWN'].includes(req.body.serviceType) ? req.body.serviceType : null;
     const isDelivery = serviceType ? serviceType === 'DELIVERY' : (req.body.isDelivery !== false);
     if (deleteMealTypes.length) {
       await sql`DELETE FROM catering_orders WHERE shoot_day_id = ${req.params.dayId} AND meal_type = ANY(${sql.array(deleteMealTypes)})`;

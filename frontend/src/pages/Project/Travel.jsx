@@ -1308,7 +1308,7 @@ export default function Travel({ project }) {
                     {crewOptions}
                   </select>
                 </div>
-                <div className="field span2"><label>Vendor</label><input value={carForm.vendor} onChange={e => setCarForm(f=>({...f,vendor:e.target.value}))} placeholder="Enterprise" required /></div>
+                <div className="field span2"><label>Renter</label><input value={carForm.vendor} onChange={e => setCarForm(f=>({...f,vendor:e.target.value}))} placeholder="Renter name" required /></div>
                 <div className="field"><label>Pickup Location</label>
                   <PlaceField value={carForm.pickupLocation} address={carForm.pickupAddress} placeholder="MCI Airport"
                     onChange={v => setCarForm(f=>({ ...f, pickupLocation: v.text, pickupAddress: v.address }))} /></div>
@@ -1427,7 +1427,7 @@ export default function Travel({ project }) {
             <div className="modal-title">Edit Rental Car — {editCar.vendor}</div>
             <form onSubmit={saveEditCar}>
               <div className="form-grid" style={{ marginBottom:12 }}>
-                <div className="field span2"><label>Vendor</label><input value={editCarForm.vendor} onChange={e => setEditCarForm(f=>({...f,vendor:e.target.value}))} placeholder="Enterprise" required /></div>
+                <div className="field span2"><label>Renter</label><input value={editCarForm.vendor} onChange={e => setEditCarForm(f=>({...f,vendor:e.target.value}))} placeholder="Renter name" required /></div>
                 <div className="field"><label>Pickup Location</label><input value={editCarForm.pickupLocation} onChange={e => setEditCarForm(f=>({...f,pickupLocation:e.target.value}))} /></div>
                 <div className="field"><label>Dropoff Location</label><input value={editCarForm.dropoffLocation} onChange={e => setEditCarForm(f=>({...f,dropoffLocation:e.target.value}))} /></div>
                 <div className="field"><label>Confirmation #</label><input value={editCarForm.confirmation} onChange={e => setEditCarForm(f=>({...f,confirmation:e.target.value}))} /></div>
