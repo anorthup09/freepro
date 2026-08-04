@@ -376,6 +376,27 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
   const [eventForm, setEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', roomSpace:'', isAlert:false, isFilming:false, tags:[], audience:[], crewIds:[], locationId:'', adhocLocation:'', adhocAddress:'' });
   const [editEventId, setEditEventId] = useState(null);
   const [editEventForm, setEditEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', roomSpace:'', isAlert:false, isFilming:false, tags:[], audience:[], crewIds:[], locationId:'', adhocLocation:'', adhocAddress:'' });
+  const [editEventAtts, setEditEventAtts] = useState([]);   // existing attachments on the event being edited
+  // Keep the day's event in sync so tiles show attachment changes immediately.
+  function syncEventAtts(eventId, atts) {
+    setDays(ds => ds.map(d => ({ ...d, events: (d.events || []).map(ev => ev.id === eventId ? { ...ev, attachments: atts } : ev) })));
+  }
+  async function pickEditEventFiles(e) {
+    const files = [...(e.target.files || [])];
+    e.target.value = '';
+    for (const file of files) {
+      if (file.size > 10 * 1024 * 1024) { alert(`${file.name} is over 10MB — pick a smaller file.`); continue; }
+      const b64 = await new Promise((ok, bad) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1]); r.onerror = bad; r.readAsDataURL(file); });
+      try {
+        const a = await api.addEventAttachment(project.id, editEventId, { filename: file.name, mime: file.type, fileBase64: b64, size: file.size });
+        setEditEventAtts(list => { const next = [...list, a]; syncEventAtts(editEventId, next); return next; });
+      } catch (er) { alert(er.message); }
+    }
+  }
+  async function delEditEventAtt(attId) {
+    try { await api.deleteEventAttachment(attId); setEditEventAtts(list => { const next = list.filter(a => a.id !== attId); syncEventAtts(editEventId, next); return next; }); }
+    catch (e) { alert(e.message); }
+  }
   const [dayCardCollapsed, setDayCardCollapsed] = useState(true);
 
   // Every Room/Space already used on this shoot's schedule — saved with the
@@ -791,6 +812,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
 
   function openEditEvent(ev) {
     setEditEventId(ev.id);
+    setEditEventAtts(ev.attachments || []);
     setEditEventForm({ startTime: ev.start_time || ev.startTime || '', endTime: ev.end_time || ev.endTime || '', title: ev.title || '', detail: ev.detail || '', roomSpace: ev.room_space || '', isAlert: ev.is_alert || ev.isAlert || false, isFilming: ev.is_filming || ev.isFilming || false, tags: ev.tags || [], audience: ev.audience || [], crewIds: ev.crew_ids || [], locationId: ev.location_id || '', adhocLocation: ev.adhoc_location || '', adhocAddress: ev.adhoc_address || '' });
   }
 
@@ -1798,7 +1820,24 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                   )}
                 </div>
               </div>
-              <div className="btn-row"><button className="btn btn-primary">Save</button><button type="button" className="btn btn-ghost" onClick={() => setEditEventId(null)}>Cancel</button></div>
+              {editEventAtts.length > 0 && (
+                <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:8 }}>
+                  {editEventAtts.map(att => (
+                    <span key={att.id} style={{ display:'inline-flex', alignItems:'center', gap:6, fontSize:11, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, padding:'3px 10px' }}>
+                      <button type="button" onClick={() => openAttachment(att)} title={`Open ${att.filename}`} style={{ background:'none', border:'none', color:'var(--tan)', cursor:'pointer', padding:0, fontSize:11 }}>📎 {att.filename}</button>
+                      <button type="button" onClick={() => delEditEventAtt(att.id)} title="Delete" style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11, padding:0 }}>✕</button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div className="btn-row" style={{ display:'flex', alignItems:'center', gap:8 }}>
+                <button className="btn btn-primary">Save</button>
+                <button type="button" className="btn btn-ghost" onClick={() => setEditEventId(null)}>Cancel</button>
+                <label className="btn btn-ghost btn-sm" style={{ marginLeft:'auto', cursor:'pointer', whiteSpace:'nowrap' }} title="Attach small files (10MB max)">
+                  + 📎 Attachment
+                  <input type="file" multiple onChange={pickEditEventFiles} style={{ display:'none' }} />
+                </label>
+              </div>
             </form>
           </div>
         </div>
