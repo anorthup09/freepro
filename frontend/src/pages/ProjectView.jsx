@@ -130,7 +130,7 @@ function MobileTabDock({ tabs, tab, setTab }) {
   );
 }
 
-function PVHeader({ showBack, rightExtra }) {
+function PVHeader({ showBack }) {
   const { user } = useAuth();
   const nav = useNavigate();
   // Solutions and Finance don't have the full Project View grid — send them back to their hub.
@@ -145,7 +145,6 @@ function PVHeader({ showBack, rightExtra }) {
       <div style={{ display:'flex', alignItems:'center', gap:12 }}>
         {showBack && <button className="btn btn-ghost btn-sm" onClick={() => nav(backTo)}>‹ Projects</button>}
         <HomeButton />
-        {rightExtra}
       </div>
     </div>
   );
@@ -256,25 +255,6 @@ export function ProjectViewDetail() {
   const [avoPageId, setAvoPageId] = useState('');
   const [preControls, setPreControls] = useState(null); // ?/Share lifted from the embedded Pre-Pro
   useEffect(() => { if (tab !== 'pre') setPreControls(null); }, [tab]);
-  const [deleting, setDeleting] = useState(false);
-
-  // Admin-only: permanently delete this project everywhere — Finance, Pre-Pro
-  // (incl. child shoot tiles), and Post-Pro (AvocadoPost).
-  async function deleteProject() {
-    if (!project) return;
-    if (!confirm(`Permanently delete "${project.code} — ${project.title}"?\n\nThis removes the project across ALL pages — Finance (budget & VCC), Pre-Production (FreePro shoots), and Post-Production (AvocadoPost) — plus all crew, schedule, gear, and call-sheet data. This cannot be undone.`)) return;
-    setDeleting(true);
-    try { await api.deleteProject(pid); nav('/project-view'); }
-    catch (e) { alert(e.message); setDeleting(false); }
-  }
-  const deleteBtn = user?.role === 'ADMIN' && project ? (
-    <button className="no-print" onClick={deleteProject} disabled={deleting} title="Delete this project everywhere (Finance, Pre-Pro, Post-Pro)"
-      style={{ background:'transparent', border:'1px solid #e05252', color:'#e05252', borderRadius:6, fontSize:12, fontWeight:700, padding:'6px 12px', cursor: deleting ? 'default' : 'pointer', whiteSpace:'nowrap', opacity: deleting ? 0.5 : 1 }}
-      onMouseEnter={e => { if (!e.currentTarget.disabled) { e.currentTarget.style.background = '#e05252'; e.currentTarget.style.color = '#fff'; } }}
-      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#e05252'; }}>
-      {deleting ? 'Deleting…' : 'Delete Project'}
-    </button>
-  ) : null;
 
   useEffect(() => {
     // Solutions gets a finance-free project feed; everyone else the full one.
@@ -313,7 +293,7 @@ export function ProjectViewDetail() {
 
   return (
     <div className="pvd-page" style={{ minHeight:'100vh', background:'var(--bg)' }}>
-      <PVHeader showBack rightExtra={deleteBtn} />
+      <PVHeader showBack />
       <div style={{ maxWidth:1250, margin:'0 auto', padding:'0 16px' }}>
         <div className="pvd-bar" style={{ display:'flex', flexDirection:'column', alignItems:'flex-start', gap:6, marginBottom:6 }}>
           <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:10, width:'100%' }}>

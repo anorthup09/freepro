@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import Login from './pages/Login.jsx';
 import Projects from './pages/Projects.jsx';
 import GearDashboard from './pages/GearDashboard.jsx';
@@ -178,13 +178,36 @@ function ThemeToggle() {
 // Centered Sign out at the bottom of every signed-in page (public shares excluded)
 function SignOutFooter({ user, setUser }) {
   const loc = useLocation();
+  const nav = useNavigate();
+  const [deleting, setDeleting] = useState(false);
+  // On a single project's Project View (/project-view/:pid, not the landing or
+  // /project-view/client/:client), admins get a Delete Project action here.
+  const m = loc.pathname.match(/^\/project-view\/([^/]+)$/);
+  const pid = m && m[1] !== 'client' ? m[1] : null;
+  const canDelete = pid && user?.role === 'ADMIN';
+
+  async function deleteProject() {
+    if (!confirm('Permanently delete this project across ALL pages — Finance (budget & VCC), Pre-Production (FreePro shoots), and Post-Production (AvocadoPost) — plus all crew, schedule, gear, and call-sheet data.\n\nThis cannot be undone.')) return;
+    setDeleting(true);
+    try { await api.deleteProject(pid); nav('/project-view'); }
+    catch (e) { alert(e.message); setDeleting(false); }
+  }
+
   if (!user || loc.pathname.startsWith('/share') || loc.pathname.startsWith('/gantt') || loc.pathname.startsWith('/avo-share') || loc.pathname === '/login') return null;
   return (
-    <div className="no-print signout-footer" style={{ display:'flex', justifyContent:'center', gap:10, padding:'26px 16px 34px', background:'var(--bg)' }}>
+    <div className="no-print signout-footer" style={{ display:'flex', justifyContent:'center', alignItems:'center', gap:10, padding:'26px 16px 34px', background:'var(--bg)' }}>
       <ThemeToggle />
       <button className="btn btn-ghost btn-sm" onClick={() => { localStorage.removeItem('fp_token'); setUser(null); }}>
         Sign out
       </button>
+      {canDelete && (
+        <button onClick={deleteProject} disabled={deleting} title="Delete this project everywhere (Finance, Pre-Pro, Post-Pro)"
+          style={{ background:'transparent', border:'1px solid #e05252', color:'#e05252', borderRadius:6, fontSize:12, fontWeight:700, padding:'6px 12px', cursor: deleting ? 'default' : 'pointer', whiteSpace:'nowrap', opacity: deleting ? 0.5 : 1 }}
+          onMouseEnter={e => { if (!e.currentTarget.disabled) { e.currentTarget.style.background = '#e05252'; e.currentTarget.style.color = '#fff'; } }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#e05252'; }}>
+          {deleting ? 'Deleting…' : 'Delete Project'}
+        </button>
+      )}
     </div>
   );
 }

@@ -356,6 +356,11 @@ router.delete('/:id', requireAuth, requireRole('ADMIN'), async (req, res, next) 
     // Post-production lives in AvocadoPost, matched by project code (its
     // deliverables/edits cascade off the page via page_id).
     if (proj?.code) await sql`DELETE FROM avo_project_pages WHERE code = ${proj.code}`;
+    // These location references aren't ON DELETE CASCADE, so clear them first —
+    // otherwise the project → locations cascade is blocked by schedule_events /
+    // shoot_days rows still pointing at the locations being deleted.
+    await sql`UPDATE schedule_events SET location_id = NULL WHERE shoot_day_id IN (SELECT id FROM shoot_days WHERE project_id = ANY(${sql.array(allIds)}))`;
+    await sql`UPDATE shoot_days SET call_time_location_id = NULL, shooting_call_location_id = NULL, lunch_location_id = NULL, wrap_time_location_id = NULL WHERE project_id = ANY(${sql.array(allIds)})`;
     // Delete the tile(s) + parent — budgets, schedule, crew, gear, locations,
     // call sheets, etc. all cascade via their project_id FK.
     await sql`DELETE FROM projects WHERE id = ANY(${sql.array(allIds)})`;
