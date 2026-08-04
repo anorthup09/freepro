@@ -988,7 +988,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
       {/* Day detail */}
       {currentDay && (
         <div>
-          <div className="card" style={{ marginBottom:16, background:'linear-gradient(to bottom, rgba(232,80,10,0.32), rgba(232,80,10,0) 62%), var(--bg2)' }}>
+          <div className="card" style={{ marginBottom:16 }}>
             <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', flexWrap:'wrap', gap:8, marginBottom: dayCardCollapsed ? 0 : 12 }}>
               <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:15, display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
                 Day {[...days].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).findIndex(d=>d.id===currentDay.id)+1} · {parseDay(currentDay.date).toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' })}
