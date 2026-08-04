@@ -96,15 +96,12 @@ function fmt(dt) {
 
 const STATUS_LABEL = { WAITING_ON_ASSETS:'Waiting on Assets', IN_PROGRESS:'In Progress', ROUGH_CUT:'Rough Cut', IN_REVIEW:'In Review', APPROVED:'Approved', DELIVERED:'Delivered' };
 
-// Deliverable designation → pill label + color; deliverables group by these.
-const DELIV_CAT = {
-  PRE_PRODUCED: { label:'Pre-Event', color:'#a78bfa' },
-  ON_SITE:      { label:'On-Site',   color:'#4ade80' },
-  POST_SHOOT:   { label:'Post-Event', color:'#4a9eff' },
-};
-const DELIV_ORDER = ['PRE_PRODUCED', 'ON_SITE', 'POST_SHOOT'];
-const delivCat = c => DELIV_CAT[c] || DELIV_CAT.POST_SHOOT;
-const delivGroupKey = c => (DELIV_CAT[c] ? c : 'POST_SHOOT');
+// Deliverable Type (tracker_type from the linked edit) → pill color; deliverables group by these.
+const DELIV_TYPE_COLOR = { 'Pre-Event':'#4a9eff', 'On-Site':'#e6c229', 'Post-Event':'#9DC183', 'Standard Edit':'#a78bfa' };
+const DELIV_TYPE_ORDER = ['Pre-Event', 'On-Site', 'Post-Event', 'Standard Edit'];
+const LEGACY_DELIV_TYPE = { PRE_PRODUCED:'Pre-Event', ON_SITE:'On-Site', POST_SHOOT:'Post-Event' };
+const delivTypeOf = d => d.tracker_type || LEGACY_DELIV_TYPE[d.category] || d.category || 'Other';
+const delivTypeColor = t => DELIV_TYPE_COLOR[t] || '#8a8f98';
 
 // General notes shown as tiles between Key Contacts and Crew.
 function GeneralNotesBlock({ notes }) {
@@ -124,11 +121,16 @@ function GeneralNotesBlock({ notes }) {
   );
 }
 
-// Post-Production deliverables, grouped by designation with a pill first column.
+// Post-Production deliverables, grouped by Type (tracker_type) with a pill first column.
 function DeliverablesBlock({ deliverables, gear }) {
   if (!deliverables?.length) return null;
-  const groups = DELIV_ORDER.map(cat => [cat, deliverables.filter(d => delivGroupKey(d.category) === cat)]).filter(([, rows]) => rows.length);
-  const pill = cat => { const c = delivCat(cat); return <span style={{ fontSize:9, fontWeight:800, textTransform:'uppercase', letterSpacing:'.05em', color:c.color, border:`1px solid ${c.color}`, background:`${c.color}18`, borderRadius:12, padding:'2px 8px', whiteSpace:'nowrap' }}>{c.label}</span>; };
+  const byType = {};
+  deliverables.forEach(d => { const t = delivTypeOf(d); (byType[t] ||= []).push(d); });
+  const orderedTypes = [
+    ...DELIV_TYPE_ORDER.filter(t => byType[t]),
+    ...Object.keys(byType).filter(t => !DELIV_TYPE_ORDER.includes(t)),
+  ];
+  const pill = t => { const c = delivTypeColor(t); return <span style={{ fontSize:9, fontWeight:800, textTransform:'uppercase', letterSpacing:'.05em', color:c, border:`1px solid ${c}`, background:`${c}18`, borderRadius:12, padding:'2px 8px', whiteSpace:'nowrap' }}>{t}</span>; };
   return (
     <section className="share-section">
       <div style={{ fontSize:16, fontWeight:700, color:'var(--text)', marginBottom:12, letterSpacing:'-0.01em' }}>Post-Production — Deliverables</div>
@@ -138,14 +140,14 @@ function DeliverablesBlock({ deliverables, gear }) {
           {gear.gear_person_phone && <span style={{ marginLeft:8 }}><Tel v={gear.gear_person_phone} /></span>}
         </div>
       )}
-      {groups.map(([cat, rows]) => (
-        <div key={cat} style={{ marginBottom:14 }}>
-          <div style={{ fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:'.06em', color: delivCat(cat).color, marginBottom:6 }}>{delivCat(cat).label}</div>
+      {orderedTypes.map(t => (
+        <div key={t} style={{ marginBottom:14 }}>
+          <div style={{ fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:'.06em', color: delivTypeColor(t), marginBottom:6 }}>{t}</div>
           <ShareTable
             cols={['Type','Deliverable','Status','Editor','Specs','Due']}
             colClasses={['','','','','','nowrap']}
-            rows={rows.map(d => [
-              pill(d.category),
+            rows={byType[t].map(d => [
+              pill(delivTypeOf(d)),
               d.title + (d.is_urgent ? ' ⚠' : ''),
               STATUS_LABEL[d.status] || d.status,
               d.editor_name || '—',
