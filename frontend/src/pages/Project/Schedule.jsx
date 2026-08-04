@@ -339,6 +339,7 @@ const TAG_COLOR_DEFS = [
   { key:'AUDIO',  cssVar:'--etag-a',  label:'Audio / All Crew', def:'#4ade80' },
   { key:'TALENT', cssVar:'--etag-t',  label:'Talent',          def:'#f87171' },
   { key:'TRAVEL', cssVar:'--etag-tr', label:'Travel',          def:'#4a9eff' },
+  { key:'GENERAL', cssVar:'--etag-g', label:'General',         def:'#8a8f98' },
 ];
 
 const SYNTHETIC_META = {

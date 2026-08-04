@@ -139,7 +139,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
 .etag.a  { --c: var(--etag-a, #4ade80); background: color-mix(in srgb, var(--c) 14%, transparent); color: var(--c); border: 1px solid color-mix(in srgb, var(--c) 38%, transparent); }
 .etag.t  { --c: var(--etag-t, #f87171); background: color-mix(in srgb, var(--c) 14%, transparent); color: var(--c); border: 1px solid color-mix(in srgb, var(--c) 38%, transparent); }
 .etag.tr { --c: var(--etag-tr, #4a9eff); background: color-mix(in srgb, var(--c) 14%, transparent); color: var(--c); border: 1px solid color-mix(in srgb, var(--c) 40%, transparent); }
-.etag.g  { --c: var(--muted, #8a8f98); background: color-mix(in srgb, var(--c) 14%, transparent); color: var(--c); border: 1px solid color-mix(in srgb, var(--c) 38%, transparent); }
+.etag.g  { --c: var(--etag-g, #8a8f98); background: color-mix(in srgb, var(--c) 14%, transparent); color: var(--c); border: 1px solid color-mix(in srgb, var(--c) 38%, transparent); }
 
 /* ── Stats ── */
 .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 20px 0; }
