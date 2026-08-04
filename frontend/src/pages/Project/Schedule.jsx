@@ -1335,7 +1335,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                       return (
                         <div key={item._key} className="ev">
                           <div className="ev-time">🚗 {fmtTime(item._time)}</div>
-                          <div className="ev-body" style={{ borderLeft:`2px solid ${dep ? '#4a9eff' : '#5ABF80'}` }}>
+                          <div className="ev-body" style={{ borderLeft:'2px solid #4a9eff' }}>
                             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:8 }}>
                               <div className="ev-title">{dep ? 'Drive Departure' : 'Approx. Drive Arrival'} — {item.driver || item.driver_name || 'Driver TBD'}</div>
                               {dep && est && <span style={{ fontSize:10, fontWeight:800, color:'#e6c229', whiteSpace:'nowrap', flexShrink:0 }}>~{est} drive</span>}
