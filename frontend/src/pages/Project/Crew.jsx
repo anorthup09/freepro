@@ -611,7 +611,7 @@ export default function Crew({ project, onProjectUpdate }) {
       )}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:6 }}>
         <div>
-          <div className="page-title">Crew</div>
+          <div className="page-title">Crew/Talent</div>
           <div className="page-sub">{assignments.length} position{assignments.length !== 1 ? 's' : ''} assigned</div>
         </div>
         <button className="btn btn-primary btn-sm" onClick={() => setShowAddSlot(true)}>+ Add Position</button>
