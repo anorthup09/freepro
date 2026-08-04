@@ -259,14 +259,16 @@ export function ProjectViewDetail() {
   const isSolutions = ['AGENCY', 'CREW'].includes(user?.role);
   const isFinance = user?.role === 'FINANCE';
   const [project, setProject] = useState(null);
-  // Keep the active tab in the URL (?tab=) so a browser refresh stays on the
-  // page you're on instead of resetting to Overview.
+  // Keep the active hub tab in the URL (?view=) so a browser refresh stays on the
+  // page you're on. We use `view` (not `tab`) so it doesn't collide with the
+  // embedded Pre-Pro page, which persists its own sub-tab as `?tab=`.
   const loc = useLocation();
-  const [tab, setTabRaw] = useState(() => new URLSearchParams(loc.search).get('tab') || 'overview');
+  const [tab, setTabRaw] = useState(() => new URLSearchParams(loc.search).get('view') || 'overview');
   const setTab = t => {
     setTabRaw(t);
     const sp = new URLSearchParams(window.location.search);
-    sp.set('tab', t);
+    sp.set('view', t);
+    sp.delete('tab');   // let the newly-shown section start at its own default sub-tab
     nav({ pathname: loc.pathname, search: sp.toString() }, { replace: true });
   };
   const [shootId, setShootId] = useState('');   // FreePro project id for Pre-Production
