@@ -2215,7 +2215,7 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, talentC
     ...(tagFilter ? [] : flightLegs.map(f => ({ _type:'flight', _sort: timeToMins(f._time), ...f }))),
     ...sceneItems,
     ...breakItems,
-  ].sort((a, b) => a._sort - b._sort);
+  ].sort((a, b) => (a._sort - b._sort) || (((a._type === 'synthetic' && (a._key === 'ct' || a._key === 'sct')) ? 0 : 1) - ((b._type === 'synthetic' && (b._key === 'ct' || b._key === 'sct')) ? 0 : 1)));
 
   // Live progression along the rail: everything before "now" is orange, the
   // current stop fades orange→gray, everything upcoming is gray.

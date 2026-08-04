@@ -1099,7 +1099,10 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                 out.push({ _type:'drive', _leg:'arrive', _sort: timeToMinutes(timeOf(d.arrive_time)), _key:`dr-a-${i}`, _time: timeOf(d.arrive_time), ...d });
               return out;
             });
-            const items = [...syntheticItems, ...eventItems, ...flightItems, ...cateringItems, ...previewItems, ...sceneItems, ...talentItems, ...driveItems].sort((a, b) => a._sort - b._sort);
+            // At the same time, call-time markers (General Call Time / Shooting
+            // Call) sort above any other tile in that slot.
+            const callRank = it => (it._type === 'synthetic' && (it._key === 'ct' || it._key === 'sct')) ? 0 : 1;
+            const items = [...syntheticItems, ...eventItems, ...flightItems, ...cateringItems, ...previewItems, ...sceneItems, ...talentItems, ...driveItems].sort((a, b) => (a._sort - b._sort) || (callRank(a) - callRank(b)));
 
             return (
               <>
