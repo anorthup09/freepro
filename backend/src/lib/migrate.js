@@ -17,7 +17,7 @@ async function migrate() {
         CREATE TYPE deliverable_status AS ENUM ('WAITING_ON_ASSETS','IN_PROGRESS','ROUGH_CUT','IN_REVIEW','APPROVED','DELIVERED');
       END IF;
       IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'event_tag_type') THEN
-        CREATE TYPE event_tag_type AS ENUM ('VIDEO','PHOTO','AUDIO','ALL_CREW','TALENT','TRAVEL','CUSTOM');
+        CREATE TYPE event_tag_type AS ENUM ('VIDEO','PHOTO','AUDIO','ALL_CREW','TALENT','TRAVEL','CUSTOM','GENERAL');
       END IF;
     END $$
   `;
@@ -1538,6 +1538,7 @@ async function migrate() {
   await sql`ALTER TABLE crew_members ADD COLUMN IF NOT EXISTS travel_local TEXT DEFAULT 'TRAVEL'`;
   await sql`ALTER TABLE key_talent ADD COLUMN IF NOT EXISTS travel_local TEXT DEFAULT 'TRAVEL'`;
   await sql`ALTER TYPE event_tag_type ADD VALUE IF NOT EXISTS 'TRAVEL'`;
+  await sql`ALTER TYPE event_tag_type ADD VALUE IF NOT EXISTS 'GENERAL'`;
   await sql`ALTER TABLE locations ADD COLUMN IF NOT EXISTS arrival_notes TEXT`;
 
   // Reclassify these people from Unbridled crew to contractor status

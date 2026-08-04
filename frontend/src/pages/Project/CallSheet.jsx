@@ -91,9 +91,13 @@ function SimpleTable({ cols, rows }) {
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead><tr>{cols.map(c => <th key={c.key} style={{ ...th, width: c.width }}>{c.label}</th>)}</tr></thead>
         <tbody>
-          {rows.map((r, i) => (
-            <tr key={i}>{cols.map(c => <td key={c.key} style={td}>{c.render ? c.render(r) : (r[c.key] || '')}</td>)}</tr>
-          ))}
+          {rows.map((r, i) => {
+            // General-tagged schedule events are neutral info — grayed out.
+            const gray = (r.tags || []).some(t => (t && (t.type || t)) === 'GENERAL');
+            return (
+              <tr key={i} style={gray ? { opacity: 0.5 } : undefined}>{cols.map(c => <td key={c.key} style={td}>{c.render ? c.render(r) : (r[c.key] || '')}</td>)}</tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

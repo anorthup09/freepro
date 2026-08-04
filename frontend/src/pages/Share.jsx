@@ -25,6 +25,8 @@ function HospLine({ loc }) {
 
 // Travel-tagged schedule events are stripped from a local person's call sheet.
 const eventIsTravel = e => (e.tags || []).some(t => (t?.type || t) === 'TRAVEL');
+// General = neutral info unrelated to crew/video/talent/travel — shown grayed out.
+const eventIsGeneral = e => (e.tags || []).some(t => (t?.type || t) === 'GENERAL');
 // Jump straight to what's happening now: the live event on today's schedule,
 // else one that started in the last hour, else the next one coming up
 function jumpToTime(schedule) {
@@ -2494,7 +2496,7 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, talentC
                 return (
                   <div key={item.id || i} id={item.id ? `ev-${item.id}` : undefined} className="ev">
                     <div className="ev-time">{fmtTime(item.start_time)}{item.end_time ? ` – ${fmtTime(item.end_time)}` : ''}</div>
-                    <div className={`ev-body${item.is_alert ? ' warn' : ''}${isLive(item.start_time, item.end_time) ? ' ev-live' : ''}`} style={!item.is_alert ? { borderLeft:'2px solid var(--orange)',  } : {}}>
+                    <div className={`ev-body${item.is_alert ? ' warn' : ''}${isLive(item.start_time, item.end_time) ? ' ev-live' : ''}`} style={eventIsGeneral(item) ? { borderLeft:'2px solid var(--border2)', opacity:0.55 } : (!item.is_alert ? { borderLeft:'2px solid var(--orange)',  } : {})}>
                       {loc?.address && (
                         <button className={`ev-locpin${openLoc[item.id || i] ? ' on' : ''}`}
                           onClick={e => { e.stopPropagation(); setOpenLoc(o => ({ ...o, [item.id || i]: !o[item.id || i] })); }}

@@ -54,7 +54,8 @@ async function renderCallSheet({ project, allDays, renderDays }) {
   const Table = (cols, rows, keyPrefix) => h(View, { style: st.table },
     h(View, { style: st.thRow }, cols.map((c, i) => h(Text, { key: 'th' + i, style: [st.th, { width: c.width }] }, c.label))),
     rows.map((r, ri) => h(View, { key: keyPrefix + ri, style: [st.tr, ri === rows.length - 1 ? { borderBottomWidth: 0 } : {}] },
-      cols.map((c, ci) => h(View, { key: ci, style: [st.td, { width: c.width }] }, c.render(r)))
+      // General-tagged schedule events are neutral info — grayed out.
+      cols.map((c, ci) => h(View, { key: ci, style: [st.td, { width: c.width }, r.general ? { color: '#999' } : null] }, c.render(r)))
     ))
   );
 

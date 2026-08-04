@@ -446,14 +446,19 @@ router.get('/:id/call-sheet.pdf', requireAuth, requireRole('ADMIN','PRODUCER'), 
     let events = [], crewCalls = [];
     if (dayIds.length) {
       [events, crewCalls] = await Promise.all([
-        sql`SELECT se.*, array_remove(array_agg(DISTINCT ec.crew_id), NULL) as crew_ids, l.name as location_name, l.address as location_address
-            FROM schedule_events se LEFT JOIN event_crews ec ON ec.event_id = se.id LEFT JOIN locations l ON l.id = se.location_id
+        sql`SELECT se.*, array_remove(array_agg(DISTINCT ec.crew_id), NULL) as crew_ids,
+                   array_remove(array_agg(DISTINCT et.type::text), NULL) as tag_types,
+                   l.name as location_name, l.address as location_address
+            FROM schedule_events se
+            LEFT JOIN event_crews ec ON ec.event_id = se.id
+            LEFT JOIN event_tags et ON et.event_id = se.id
+            LEFT JOIN locations l ON l.id = se.location_id
             WHERE se.shoot_day_id = ANY(${sql.array(dayIds)}) GROUP BY se.id, l.name, l.address ORDER BY se.start_time`,
         sql`SELECT * FROM crew_day_calls WHERE shoot_day_id = ANY(${sql.array(dayIds)})`,
       ]);
     }
     const evByDay = {}, callByDay = {};
-    for (const e of events) (evByDay[e.shoot_day_id] ||= []).push({ ...e, crew_ids: e.crew_ids || [] });
+    for (const e of events) (evByDay[e.shoot_day_id] ||= []).push({ ...e, crew_ids: e.crew_ids || [], general: (e.tag_types || []).includes('GENERAL') });
     for (const c of crewCalls) (callByDay[c.shoot_day_id] ||= []).push(c);
     const fullDays = days.map(d => ({ ...d, events: evByDay[d.id] || [], crewCalls: callByDay[d.id] || [] }));
     const sheetDays = fullDays.filter(d => d.call_time || d.shooting_call_time || d.wrap_time || (d.events || []).length || (d.crewCalls || []).length);

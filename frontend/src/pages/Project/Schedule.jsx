@@ -326,9 +326,11 @@ const MEAL_COLORS = {
 const SERVICE_LABEL = { DELIVERY:'Delivery', PICKUP:'Pick Up', DINEIN:'Dine-In' };
 const svcLabel = c => c?.service_type ? SERVICE_LABEL[c.service_type] : (c && c.is_delivery === false ? 'Pick Up' : 'Delivery');
 
-const TAG_TYPES = ['VIDEO','PHOTO','AUDIO','ALL_CREW','TALENT','TRAVEL'];
-const TAG_CLASS = { VIDEO:'v', PHOTO:'p', AUDIO:'a', ALL_CREW:'a', TALENT:'t', TRAVEL:'tr', CUSTOM:'v' };
-const TAG_LABEL = { VIDEO:'Video', PHOTO:'Photo', AUDIO:'Audio', ALL_CREW:'All Crew', TALENT:'Talent', TRAVEL:'Travel', CUSTOM:'Custom' };
+const TAG_TYPES = ['VIDEO','PHOTO','AUDIO','ALL_CREW','TALENT','TRAVEL','GENERAL'];
+const TAG_CLASS = { VIDEO:'v', PHOTO:'p', AUDIO:'a', ALL_CREW:'a', TALENT:'t', TRAVEL:'tr', GENERAL:'g', CUSTOM:'v' };
+const TAG_LABEL = { VIDEO:'Video', PHOTO:'Photo', AUDIO:'Audio', ALL_CREW:'All Crew', TALENT:'Talent', TRAVEL:'Travel', GENERAL:'General', CUSTOM:'Custom' };
+// An event tagged General is neutral info (not crew/video/talent/travel) — shown grayed out.
+const isGeneral = tags => (tags || []).some(t => (t && (t.type || t)) === 'GENERAL');
 // Color-coding legend: each tag maps to one CSS var + default hex; overrides
 // persist on the project and drive the --etag-* variables on the Schedule root.
 const TAG_COLOR_DEFS = [
@@ -1395,7 +1397,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                       <div key={item.id} className="ev">
                         <div className="ev-time">{fmtTime(item.start_time || item.startTime)}{(item.end_time || item.endTime) ? ` – ${fmtTime(item.end_time || item.endTime)}` : ''}</div>
                         <div className={`ev-body${(item.is_alert||item.isAlert) ? ' warn' : ''}${isLiveBlock(item.start_time || item.startTime, item.end_time || item.endTime) ? ' ev-live' : ''}`}
-                          style={{ cursor:'pointer', ...(!(item.is_alert||item.isAlert) ? { borderLeft:'2px solid var(--orange)',  } : {}) }}
+                          style={{ cursor:'pointer', ...(isGeneral(item.tags) ? { borderLeft:'2px solid var(--border2)', opacity:0.55 } : (!(item.is_alert||item.isAlert) ? { borderLeft:'2px solid var(--orange)',  } : {})) }}
                           onClick={() => openEditEvent(item)}>
                           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:8 }}>
                             <div className={`ev-title${(item.is_alert||item.isAlert) ? ' alert' : ''}`} style={{ flex:1, minWidth:0 }}>{(item.is_alert||item.isAlert) ? '⚠ ' : ''}{(item.is_filming||item.isFilming) ? '🎬 ' : ''}{item.title}</div>
@@ -1454,7 +1456,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
       {showAddEvent && (
         <div className="modal-bg" onClick={e => e.target === e.currentTarget && setShowAddEvent(false)}>
           <div className="modal">
-            <div className="modal-title">Add Event — Day {currentDay?.day_number || ''}</div>
+            <div className="modal-title">Add Event — Day {currentDay?.day_number || ''}{currentDay?.date ? ` · ${parseDay(currentDay.date).toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' })}` : ''}</div>
             <form onSubmit={addEvent}>
               <div className="form-grid" style={{ marginBottom:12 }}>
                 <div className="field span2" style={{ flexDirection:'row', alignItems:'center', gap:6 }}>
@@ -1501,7 +1503,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                         </button>
                       );
                     })()}
-                    {['VIDEO', ...(includePhoto ? ['PHOTO'] : []), 'TALENT', 'TRAVEL'].map(type => (
+                    {['VIDEO', ...(includePhoto ? ['PHOTO'] : []), 'TALENT', 'TRAVEL', 'GENERAL'].map(type => (
                       <button key={type} type="button"
                         className={`etag ${TAG_CLASS[type]}`}
                         style={{ cursor:'pointer', opacity: eventForm.tags.some(t=>t.type===type) ? 1 : 0.4, padding:'4px 10px' }}
@@ -1666,7 +1668,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                         </button>
                       );
                     })()}
-                    {['VIDEO', ...(includePhoto ? ['PHOTO'] : []), 'TALENT', 'TRAVEL'].map(type => (
+                    {['VIDEO', ...(includePhoto ? ['PHOTO'] : []), 'TALENT', 'TRAVEL', 'GENERAL'].map(type => (
                       <button key={type} type="button"
                         className={`etag ${TAG_CLASS[type]}`}
                         style={{ cursor:'pointer', opacity: editEventForm.tags.some(t=>t.type===type) ? 1 : 0.4, padding:'4px 10px' }}
