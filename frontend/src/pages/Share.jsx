@@ -96,6 +96,51 @@ function fmt(dt) {
 
 const STATUS_LABEL = { WAITING_ON_ASSETS:'Waiting on Assets', IN_PROGRESS:'In Progress', ROUGH_CUT:'Rough Cut', IN_REVIEW:'In Review', APPROVED:'Approved', DELIVERED:'Delivered' };
 
+// Deliverable designation → pill label + color; deliverables group by these.
+const DELIV_CAT = {
+  PRE_PRODUCED: { label:'Pre-Event', color:'#a78bfa' },
+  ON_SITE:      { label:'On-Site',   color:'#4ade80' },
+  POST_SHOOT:   { label:'Post-Event', color:'#4a9eff' },
+};
+const DELIV_ORDER = ['PRE_PRODUCED', 'ON_SITE', 'POST_SHOOT'];
+const delivCat = c => DELIV_CAT[c] || DELIV_CAT.POST_SHOOT;
+const delivGroupKey = c => (DELIV_CAT[c] ? c : 'POST_SHOOT');
+
+// Post-Production deliverables, grouped by designation with a pill first column.
+function DeliverablesBlock({ deliverables, gear }) {
+  if (!deliverables?.length) return null;
+  const groups = DELIV_ORDER.map(cat => [cat, deliverables.filter(d => delivGroupKey(d.category) === cat)]).filter(([, rows]) => rows.length);
+  const pill = cat => { const c = delivCat(cat); return <span style={{ fontSize:9, fontWeight:800, textTransform:'uppercase', letterSpacing:'.05em', color:c.color, border:`1px solid ${c.color}`, background:`${c.color}18`, borderRadius:12, padding:'2px 8px', whiteSpace:'nowrap' }}>{c.label}</span>; };
+  return (
+    <section className="share-section">
+      <div style={{ fontSize:16, fontWeight:700, color:'var(--text)', marginBottom:12, letterSpacing:'-0.01em' }}>Post-Production — Deliverables</div>
+      {gear?.gear_person_name && (
+        <div style={{ fontSize:12, color:'var(--muted)', marginBottom:8 }}>
+          DIT: <span style={{ color:'var(--text)', fontWeight:500 }}>{gear.gear_person_name}</span>
+          {gear.gear_person_phone && <span style={{ marginLeft:8 }}><Tel v={gear.gear_person_phone} /></span>}
+        </div>
+      )}
+      {groups.map(([cat, rows]) => (
+        <div key={cat} style={{ marginBottom:14 }}>
+          <div style={{ fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:'.06em', color: delivCat(cat).color, marginBottom:6 }}>{delivCat(cat).label}</div>
+          <ShareTable
+            cols={['Type','Deliverable','Status','Editor','Specs','Due']}
+            colClasses={['','','','','','nowrap']}
+            rows={rows.map(d => [
+              pill(d.category),
+              d.title + (d.is_urgent ? ' ⚠' : ''),
+              STATUS_LABEL[d.status] || d.status,
+              d.editor_name || '—',
+              [d.aspect_ratio, d.resolution].filter(Boolean).join(' · ') || '—',
+              d.due_date || '—',
+            ])}
+          />
+        </div>
+      ))}
+    </section>
+  );
+}
+
 function shortName(name) {
   if (!name) return name;
   const parts = name.trim().split(/\s+/);
@@ -712,27 +757,7 @@ function ProducerView({ data, hideGear, onOpenShotList }) {
       {!hideGear && <GearSection gear={gear} onlineRentals={onlineRentals} producerView />}
 
       {/* ── Post-Production ── */}
-      {deliverables?.length > 0 && (
-        <section className="share-section">
-          <div style={{ fontSize:16, fontWeight:700, color:'var(--text)', marginBottom:12, letterSpacing:'-0.01em' }}>Post-Production — Deliverables</div>
-          {gear?.gear_person_name && (
-            <div style={{ fontSize:12, color:'var(--muted)', marginBottom:8 }}>
-              DIT: <span style={{ color:'var(--text)', fontWeight:500 }}>{gear.gear_person_name}</span>
-              {gear.gear_person_phone && <span style={{ marginLeft:8 }}><Tel v={gear.gear_person_phone} /></span>}
-            </div>
-          )}
-          <ShareTable
-            cols={['Deliverable','Status','Editor','Specs','Due']}
-            rows={deliverables.map(d => [
-              d.title + (d.is_urgent ? ' ⚠' : ''),
-              STATUS_LABEL[d.status] || d.status,
-              d.editor_name || '—',
-              [d.aspect_ratio, d.resolution].filter(Boolean).join(' · ') || '—',
-              d.due_date || '—',
-            ])}
-          />
-        </section>
-      )}
+      <DeliverablesBlock deliverables={deliverables} gear={gear} />
 
       {/* ── Schedule (with integrated flights) at bottom ── */}
       <div ref={scheduleRef}>
@@ -947,27 +972,7 @@ function CrewView({ data, shareToken, hideGear, onOpenShotList }) {
 
       {!hideGear && <GearSection gear={gear} onlineRentals={onlineRentals} shareToken={shareToken} />}
 
-      {deliverables?.length > 0 && (
-        <section className="share-section">
-          <div style={{ fontSize:16, fontWeight:700, color:'var(--text)', marginBottom:12, letterSpacing:'-0.01em' }}>Post-Production — Deliverables</div>
-          {gear?.gear_person_name && (
-            <div style={{ fontSize:12, color:'var(--muted)', marginBottom:8 }}>
-              DIT: <span style={{ color:'var(--text)', fontWeight:500 }}>{gear.gear_person_name}</span>
-              {gear.gear_person_phone && <span style={{ marginLeft:8 }}><Tel v={gear.gear_person_phone} /></span>}
-            </div>
-          )}
-          <ShareTable
-            cols={['Deliverable','Status','Editor','Specs','Due']}
-            rows={deliverables.map(d => [
-              d.title + (d.is_urgent ? ' ⚠' : ''),
-              STATUS_LABEL[d.status] || d.status,
-              d.editor_name || '—',
-              [d.aspect_ratio, d.resolution].filter(Boolean).join(' · ') || '—',
-              d.due_date || '—',
-            ])}
-          />
-        </section>
-      )}
+      <DeliverablesBlock deliverables={deliverables} gear={gear} />
 
       <div ref={scheduleRef}>
         {sortedSchedule.length > 0 && (
