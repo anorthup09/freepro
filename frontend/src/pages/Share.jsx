@@ -2343,8 +2343,8 @@ function DaySection({ day, showCalls, flights, dayIndex, talentCallTime, talentC
                 const drv = prevAddr && prevAddr !== item.address ? driveTimes[`${prevAddr}||${item.address}`] : null;
                 return (
                   <div key={item._key} className="ev">
-                    <div className="ev-time">{item.delivery_time ? fmtTime(item.delivery_time) : '—'}</div>
-                    <div className={`ev-body${isLive(item.delivery_time, null) ? ' ev-live' : ''}`} style={{ borderLeft:`2px solid ${mm.color}`, background: `${mm.color}14` }}>
+                    <div className="ev-time">{item.delivery_time ? fmtTime(item.delivery_time) : '—'}{item.end_time ? ` – ${fmtTime(item.end_time)}` : ''}</div>
+                    <div className={`ev-body${isLive(item.delivery_time, item.end_time || null) ? ' ev-live' : ''}`} style={{ borderLeft:`2px solid ${mm.color}`, background: `${mm.color}14` }}>
                       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
                         <div className="ev-title">{mm.label}{isOut ? <span style={{ fontSize:9, fontWeight:800, color:'var(--muted)', border:'1px solid var(--border)', borderRadius:10, padding:'1px 7px', marginLeft:8, textTransform:'uppercase', letterSpacing:'0.05em', whiteSpace:'nowrap', display:'inline-block' }}>Reservation</span> : null}</div>
                         {cateringDetail && (

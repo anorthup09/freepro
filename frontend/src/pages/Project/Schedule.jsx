@@ -1370,8 +1370,8 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                       const drv = prevAddr && prevAddr !== item.address ? driveTimes[`${prevAddr}||${item.address}`] : null;
                       return (
                         <div key={item._key} className="ev">
-                          <div className="ev-time">{item.delivery_time ? fmtTime(item.delivery_time) : '—'}</div>
-                          <div className={`ev-body${isLiveBlock(item.delivery_time, null) ? ' ev-live' : ''}`} style={{ borderLeft:`2px solid ${mc.color}` }}>
+                          <div className="ev-time">{item.delivery_time ? fmtTime(item.delivery_time) : '—'}{item.end_time ? ` – ${fmtTime(item.end_time)}` : ''}</div>
+                          <div className={`ev-body${isLiveBlock(item.delivery_time, item.end_time || null) ? ' ev-live' : ''}`} style={{ borderLeft:`2px solid ${mc.color}` }}>
                             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
                               <div className="ev-title">{mc.label}<span style={{ fontSize:9, fontWeight:800, color:'var(--muted)', border:'1px solid var(--border)', borderRadius:10, padding:'1px 7px', marginLeft:8, textTransform:'uppercase', letterSpacing:'0.05em', whiteSpace:'nowrap', display:'inline-block' }}>{svcLabel(item)}</span></div>
                               <div style={{ textAlign:'right' }}>
