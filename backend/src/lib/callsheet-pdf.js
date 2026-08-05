@@ -91,10 +91,10 @@ async function renderCallSheet({ project, allDays, renderDays, talent = null }) 
   const DayPage = (day, key) => {
     const dayIndex = allDays.findIndex(d => d.id === day.id);
     const dayCount = allDays.length;
-    // Talent sheets show only schedule items that apply to them: general
-    // (no audience) items plus any the talent is explicitly tagged in.
+    // Talent sheets show only schedule items the talent is explicitly tagged in
+    // (matches the talent share view — general/untagged items are excluded).
     const events = [...(day.events || [])]
-      .filter(e => !talent || !(e.audience || []).length || (e.audience || []).includes(talent.name))
+      .filter(e => !talent || (e.audience || []).includes(talent.name))
       .sort((a, b) => String(a.start_time || '').localeCompare(String(b.start_time || '')));
     const taggedLocIds = new Set([
       ...(day.events || []).map(e => e.location_id),
