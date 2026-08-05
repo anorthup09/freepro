@@ -102,6 +102,9 @@ async function renderCallSheet({ project, allDays, renderDays, talent = null }) 
     ].filter(Boolean));
     const dayLocations = (project.locations || []).filter(l => taggedLocIds.has(l.id))
       .filter(l => !talent || l.type !== 'CREW_HOTEL'); // talent sheets omit hotel info
+    // Room/space per location, gathered from this day's (talent-filtered) events.
+    const roomsByLoc = {};
+    for (const e of events) if (e.location_id && e.room_space) (roomsByLoc[e.location_id] ||= new Set()).add(e.room_space);
     // Talent call sheet: only the selected talent in the Talent table, and only
     // the Field Producer in the Production Crew table (client stays in its section).
     const keyTalent = talent ? [talent] : (day.talent || project.keyTalent || []);
@@ -150,6 +153,7 @@ async function renderCallSheet({ project, allDays, renderDays, talent = null }) 
         { key: 'name', label: 'Location', width: '42%', render: l => h(View, null,
           h(Text, { style: st.strong }, l.name || ''),
           h(Text, { style: st.tiny }, LOC_LABELS[l.type] || 'Location'),
+          (talent && roomsByLoc[l.id]) ? h(Text, { style: st.noteLine }, h(Text, { style: st.strong }, 'Room/Space: '), [...roomsByLoc[l.id]].join(', ')) : null,
           l.arrival_notes ? h(Text, { style: st.noteLine }, h(Text, { style: st.strong }, 'Arrival: '), l.arrival_notes) : null,
           (l.type === 'PRIMARY_VENUE' && l.notes) ? h(Text, { style: st.noteLine }, h(Text, { style: st.strong }, 'Nearest Hospital: '), String(l.notes).replace(/^Nearest Hospital:\s*/i, '')) : null,
         ) },
