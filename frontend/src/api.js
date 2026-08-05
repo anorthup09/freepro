@@ -264,6 +264,8 @@ export const api = {
   addGeneralNote: (id, data) => req('POST', `/projects/${id}/general-notes`, data),
   updateGeneralNote: (nid, data) => req('PATCH', `/projects/general-notes/${nid}`, data),
   deleteGeneralNote: (nid) => req('DELETE', `/projects/general-notes/${nid}`),
+  getNoteTopics: () => req('GET', '/projects/note-topics'),
+  addNoteTopic: (label) => req('POST', '/projects/note-topics', { label }),
   deleteProject: (id) => req('DELETE', `/projects/${id}`),
 
   // Locations

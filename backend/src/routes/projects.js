@@ -268,6 +268,23 @@ router.get('/logos', requireAuth, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// ─── Global General-Note topics (shared default topics across all projects) ──
+// Defined before /:id so the path isn't swallowed by the project lookup.
+router.get('/note-topics', requireAuth, async (req, res, next) => {
+  try { res.json(await sql`SELECT * FROM general_note_topics ORDER BY sort, label`); } catch(e){next(e);}
+});
+router.post('/note-topics', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try {
+    const label = (req.body.label || '').trim();
+    if (!label) return res.status(400).json({ error: 'Topic label required' });
+    const [t] = await sql`
+      INSERT INTO general_note_topics (label) VALUES (${label})
+      ON CONFLICT (label) DO UPDATE SET label = EXCLUDED.label
+      RETURNING *`;
+    res.status(201).json(t);
+  } catch(e){next(e);}
+});
+
 // GET /api/projects/:id
 router.get('/:id', requireAuth, async (req, res, next) => {
   try {

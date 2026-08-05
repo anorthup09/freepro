@@ -193,6 +193,18 @@ async function migrate() {
       created_at TIMESTAMPTZ DEFAULT NOW()
     )`;
 
+  // Global default topics for General Notes, reusable across every project.
+  await sql`
+    CREATE TABLE IF NOT EXISTS general_note_topics (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      label TEXT NOT NULL UNIQUE,
+      sort INT DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`;
+  for (const [i, label] of ['Attire', 'Security/Building Access', 'Badge Pickup'].entries()) {
+    await sql`INSERT INTO general_note_topics (label, sort) VALUES (${label}, ${i}) ON CONFLICT (label) DO NOTHING`;
+  }
+
   // Small file attachments on a schedule event (base64 → bytea)
   await sql`
     CREATE TABLE IF NOT EXISTS event_attachments (

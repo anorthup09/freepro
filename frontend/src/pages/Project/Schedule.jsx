@@ -752,10 +752,18 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
   const [showColorCoding, setShowColorCoding] = useState(false);
   const [showGeneralNotes, setShowGeneralNotes] = useState(false);
   const [generalNotes, setGeneralNotes] = useState([]);
+  const [noteTopics, setNoteTopics] = useState([]);
   useEffect(() => { api.getGeneralNotes(project.id).then(setGeneralNotes).catch(() => {}); }, [project.id]);
-  async function addGeneralNote() { try { const n = await api.addGeneralNote(project.id, {}); setGeneralNotes(l => [...l, n]); } catch (e) { alert(e.message); } }
+  useEffect(() => { api.getNoteTopics().then(setNoteTopics).catch(() => {}); }, []);
+  async function addGeneralNote(title) { try { const n = await api.addGeneralNote(project.id, title ? { title } : {}); setGeneralNotes(l => [...l, n]); } catch (e) { alert(e.message); } }
   async function saveGeneralNote(id, patch) { try { const n = await api.updateGeneralNote(id, patch); setGeneralNotes(l => l.map(x => x.id === id ? n : x)); } catch (e) { alert(e.message); } }
   async function delGeneralNote(id) { try { await api.deleteGeneralNote(id); setGeneralNotes(l => l.filter(x => x.id !== id)); } catch (e) { alert(e.message); } }
+  async function addNoteTopic(label) {
+    const l = (label || '').trim();
+    if (!l) return alert('Add a title first, then save it as a default topic.');
+    if (noteTopics.some(t => t.label.toLowerCase() === l.toLowerCase())) return;
+    try { const t = await api.addNoteTopic(l); setNoteTopics(list => [...list, t]); } catch (e) { alert(e.message); }
+  }
   const [tagColors, setTagColors] = useState(project.schedule_tag_colors || {});
   const tagColorVars = {};
   TAG_COLOR_DEFS.forEach(t => { if (tagColors[t.key]) tagColorVars[t.cssVar] = tagColors[t.key]; });
@@ -929,13 +937,29 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
               <div className="modal-title" style={{ margin:0 }}>General Notes</div>
               <button type="button" className="btn btn-ghost btn-sm" onClick={addGeneralNote}>+ Add Note</button>
             </div>
-            <div style={{ fontSize:11, color:'var(--muted)', marginBottom:12 }}>These appear as tiles on the Producer &amp; Crew views, between Key Contacts and Crew.</div>
+            <div style={{ fontSize:11, color:'var(--muted)', marginBottom:10 }}>These appear as tiles on the Producer &amp; Crew views, between Key Contacts and Crew.</div>
+            {noteTopics.length > 0 && (
+              <div style={{ marginBottom:12 }}>
+                <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', fontWeight:700, marginBottom:6 }}>Quick add a topic</div>
+                <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+                  {noteTopics.map(t => (
+                    <button key={t.id} type="button" onClick={() => addGeneralNote(t.label)}
+                      style={{ background:'var(--bg3)', border:'1px solid var(--border2)', color:'var(--tan)', borderRadius:14, padding:'4px 12px', fontSize:11, fontWeight:600, cursor:'pointer' }}>
+                      + {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             {generalNotes.length === 0 && <div style={{ fontSize:12, color:'var(--muted)', fontStyle:'italic' }}>No notes yet — add one.</div>}
             <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
               {generalNotes.map(n => (
                 <div key={n.id} style={{ border:'1px solid var(--border)', borderRadius:8, padding:10 }}>
                   <div style={{ display:'flex', gap:8, alignItems:'center', marginBottom:6 }}>
                     <input defaultValue={n.title||''} placeholder="Title" onBlur={e => { if (e.target.value !== (n.title||'')) saveGeneralNote(n.id, { title: e.target.value }); }} style={{ flex:1, fontWeight:700 }} />
+                    <button type="button" onClick={e => addNoteTopic(e.currentTarget.closest('div').querySelector('input').value)}
+                      title="Save this title as a default topic reusable on all projects"
+                      style={{ background:'none', border:'1px solid var(--border2)', color:'var(--muted)', borderRadius:12, cursor:'pointer', fontSize:10, fontWeight:700, padding:'3px 9px', whiteSpace:'nowrap' }}>+ Add Default Topic</button>
                     <button type="button" onClick={() => delGeneralNote(n.id)} title="Delete note" style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:12 }}>✕</button>
                   </div>
                   <textarea defaultValue={n.note||''} placeholder="Note information…" onBlur={e => { if (e.target.value !== (n.note||'')) saveGeneralNote(n.id, { note: e.target.value }); }} style={{ width:'100%', minHeight:60, fontSize:12 }} />
