@@ -747,7 +747,19 @@ function DaySynopsisCard({ day, onDelete, onAddScene, scenes, scheduleDays, onDa
 }
 
 // ── Scene Block ───────────────────────────────────────────────────────────────
-function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded, onShotDelete, onDeleteScene, onStartTimeChange, onShotsReorder, onSceneUpdate, onAddBreak, isFirstScene, shootingCall, columns = [], onColumnsChange }) {
+function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded, onShotDelete, onDeleteScene, onStartTimeChange, onShotsReorder, onSceneUpdate, onAddBreak, isFirstScene, shootingCall, columns = [], onColumnsChange, colW = {}, onColW }) {
+  // Drag a built-in column header's right edge to resize it (per-project preference).
+  function startColResize(e, key) {
+    e.preventDefault(); e.stopPropagation();
+    const th = e.currentTarget.parentElement;
+    const startX = e.clientX;
+    const startW = th.getBoundingClientRect().width;
+    function move(ev) { onColW?.(key, Math.max(48, Math.round(startW + (ev.clientX - startX)))); }
+    function up() { document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up); }
+    document.addEventListener('mousemove', move);
+    document.addEventListener('mouseup', up);
+  }
+  const rezHandle = key => <span onMouseDown={e => startColResize(e, key)} title="Drag to resize" style={{ position:'absolute', top:0, right:0, width:8, height:'100%', cursor:'col-resize', userSelect:'none' }} />;
   const st = SCENE_TYPE_STYLES[scene.scene_type] || SCENE_TYPE_STYLES.interior;
   const effectiveStart = fmt12(isFirstScene && shootingCall ? shootingCall : (scene.est_start_time || '')) || '';
   const [startTime, setStartTime] = useState(effectiveStart);
@@ -954,19 +966,20 @@ function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded,
             <th style={{ width:28 }} />
             <th style={{ padding:'8px 6px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:40 }}>Shot</th>
             <th style={{ width:20 }} />
-            <th style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left' }}>Description</th>
-            <th style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:180 }}>Script</th>
-            <th style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:180 }}>Notes</th>
-            <th style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:150 }}>Location</th>
-            <th className="sl-col-hide" style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:80 }}>Talent</th>
-            <th style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:60 }}>Allocation</th>
-            <th style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:92 }}>
+            <th style={{ position:'relative', padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width: colW.description || undefined }}>Description{rezHandle('description')}</th>
+            <th style={{ position:'relative', padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width: colW.script || 180 }}>Script{rezHandle('script')}</th>
+            <th style={{ position:'relative', padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width: colW.notes || 180 }}>Notes{rezHandle('notes')}</th>
+            <th style={{ position:'relative', padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width: colW.location || 150 }}>Location{rezHandle('location')}</th>
+            <th className="sl-col-hide" style={{ position:'relative', padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width: colW.talent || 80 }}>Talent{rezHandle('talent')}</th>
+            <th style={{ position:'relative', padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width: colW.allocation || 60 }}>Allocation{rezHandle('allocation')}</th>
+            <th style={{ position:'relative', padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width: colW.est_time || 92 }}>
               <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
                 Est. Start Time
                 <button title="Add a custom column to every shot in this shot list"
                   onClick={e => { const r = e.currentTarget.getBoundingClientRect(); setColDraft(''); setColMenu({ mode:'add', x:r.left, y:r.bottom }); }}
                   style={{ background:'rgba(255,255,255,0.06)', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:5, width:16, height:16, lineHeight:1, fontSize:12, fontWeight:800, cursor:'pointer', display:'inline-flex', alignItems:'center', justifyContent:'center', padding:0 }}>+</button>
               </span>
+              {rezHandle('est_time')}
             </th>
             {(columns || []).map(col => (
               <th key={col.id} draggable
@@ -1259,6 +1272,14 @@ export default function ShotList({ project, onScenesChange, onCurrentDayChange, 
   const [scenes, setScenes] = useState([]);
   const [talent, setTalent] = useState([]);
   const [days, setDays] = useState([]);
+  // Built-in shot column widths — a per-project, per-browser preference.
+  const colwKey = `sl_colw_${project.id}`;
+  const [colW, setColW] = useState(() => { try { return JSON.parse(localStorage.getItem(colwKey) || '{}'); } catch { return {}; } });
+  const changeColW = useCallback((key, w) => setColW(prev => {
+    const next = { ...prev, [key]: w };
+    try { localStorage.setItem(colwKey, JSON.stringify(next)); } catch {}
+    return next;
+  }), [colwKey]);
   const [showAddScene, setShowAddScene] = useState(false);
   const [sceneForm, setSceneForm] = useState({ name: '', description: '', sceneType: 'interior', dayId: '', estStartTime: '' });
   const [dayForm, setDayForm] = useState({ date: '', callTime: '', shootingCall: '', lunchTime: '', estWrap: '' });
@@ -1716,7 +1737,7 @@ export default function ShotList({ project, onScenesChange, onCurrentDayChange, 
                 onShotUpdate={handleShotUpdate} onShotAdded={handleShotAdded} onShotDelete={handleShotDelete}
                 onDeleteScene={deleteScene} onStartTimeChange={handleStartTimeChange}
                 onShotsReorder={handleShotsReorder} onSceneUpdate={handleSceneUpdate} onAddBreak={handleSceneBreakAdd}
-                columns={columns} onColumnsChange={saveColumns}
+                columns={columns} onColumnsChange={saveColumns} colW={colW} onColW={changeColW}
                 isFirstScene={items.filter(i => i._type === 'scene').indexOf(item) === 0}
                 shootingCall={items.filter(i => i._type === 'scene').indexOf(item) === 0 ? (fmt12(day.shooting_call) || '') : undefined} />
             ) : (
@@ -1754,7 +1775,7 @@ export default function ShotList({ project, onScenesChange, onCurrentDayChange, 
                 onShotUpdate={handleShotUpdate} onShotAdded={handleShotAdded} onShotDelete={handleShotDelete}
                 onDeleteScene={deleteScene} onStartTimeChange={handleStartTimeChange}
                 onShotsReorder={handleShotsReorder} onSceneUpdate={handleSceneUpdate} onAddBreak={handleSceneBreakAdd}
-                columns={columns} onColumnsChange={saveColumns}
+                columns={columns} onColumnsChange={saveColumns} colW={colW} onColW={changeColW}
                 isFirstScene={ui === 0} />
             ))}
           </div>
