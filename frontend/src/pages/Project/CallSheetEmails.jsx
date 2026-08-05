@@ -5,6 +5,7 @@ import { api } from '../../api.js';
 const KEY_PRODUCTION_POSITIONS = ['Director', 'Executive Producer', 'Field Producer', 'Producer', 'Line Producer'];
 const card = { background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, padding:'16px 18px' };
 const secHdr = { fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.07em', marginBottom:8 };
+const csLongDate = d => d ? new Date(String(d).slice(0, 10) + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : '';
 
 function Row({ checked, onToggle, name, sub, noEmail, onPreview }) {
   return (
@@ -29,6 +30,10 @@ export default function CallSheetEmails() {
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
   const [preview, setPreview] = useState(null);   // { name, url }
+  const [sheetMode, setSheetMode] = useState('full');  // 'full' (webpage) | 'daily' (per-day PDF)
+  const [csDays, setCsDays] = useState([]);
+  const [selectedDayId, setSelectedDayId] = useState('');
+  const sheetDays = (csDays || []).filter(d => d.call_time || d.shooting_call_time || d.wrap_time || (d.events || []).length || (d.crewCalls || []).length);
 
   // kind: 'crew' opens the shared crew view filtered to this person via ?for=;
   // 'client' opens the client call sheet; 'talent' opens that talent's sheet.
@@ -43,6 +48,18 @@ export default function CallSheetEmails() {
   }
 
   useEffect(() => { api.getProject(id).then(setProject).catch(e => alert(e.message)); }, [id]);
+  useEffect(() => { api.getSchedule(id).then(setCsDays).catch(() => {}); }, [id]);
+
+  // Review the selected day's (or all-days') server-rendered call sheet PDF in the modal.
+  async function reviewDayPdf() {
+    const dayId = selectedDayId || null;
+    try {
+      const blob = await api.downloadCallSheet(id, dayId);
+      const url = URL.createObjectURL(blob);
+      const label = dayId ? `Day ${sheetDays.findIndex(d => d.id === dayId) + 1}` : `All days (${sheetDays.length})`;
+      setPreview({ name: label, kind: 'pdf', url });
+    } catch (e) { alert('Could not generate PDF: ' + e.message); }
+  }
 
   const groups = useMemo(() => {
     if (!project) return null;
@@ -145,11 +162,32 @@ export default function CallSheetEmails() {
 
             <div className="cse-grid" style={{ display:'grid', gridTemplateColumns:'320px 1fr', gap:16, alignItems:'start' }}>
               <div style={card}>
-                <div style={{ ...secHdr, marginBottom:12 }}>Recipients {selected.length > 0 && <span style={{ color:'var(--orange)' }}>({selected.length})</span>}</div>
-                {section('Producers', groups.producers, '#5ABF80', 'crew')}
-                {section('Crew', groups.crew, 'var(--orange)', 'crew')}
-                {section('Client', groups.clients, '#4a9eff', 'client')}
-                {section('Talent', groups.talent, '#e6c229', 'talent')}
+                <div style={{ ...secHdr, marginBottom:10 }}>Recipients {selected.length > 0 && <span style={{ color:'var(--orange)' }}>({selected.length})</span>}</div>
+                {/* Full webpage vs. per-day PDF */}
+                <div style={{ display:'inline-flex', border:'1px solid var(--border2)', borderRadius:16, overflow:'hidden', marginBottom: sheetMode === 'daily' ? 8 : 12 }}>
+                  {[['full','Full Schedule'],['daily','Daily Call Sheet']].map(([mode, label]) => (
+                    <button key={mode} onClick={() => setSheetMode(mode)}
+                      style={{ background: sheetMode === mode ? 'var(--orange)' : 'transparent', color: sheetMode === mode ? '#0b0b0b' : 'var(--muted)', border:'none', fontSize:10, fontWeight:800, padding:'5px 14px', cursor:'pointer' }}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                {sheetMode === 'daily' && (
+                  <div style={{ display:'flex', gap:6, marginBottom:12, flexWrap:'wrap' }}>
+                    <select value={selectedDayId} onChange={e => setSelectedDayId(e.target.value)} style={{ flex:1, minWidth:0, fontSize:12 }}>
+                      <option value="">All days ({sheetDays.length})</option>
+                      {sheetDays.map((d, i) => <option key={d.id} value={d.id}>Day {i + 1} — {csLongDate(d.date)}</option>)}
+                    </select>
+                    <button onClick={reviewDayPdf} disabled={sheetDays.length === 0}
+                      style={{ background:'rgba(232,80,10,0.16)', border:'1px solid var(--orange)', color:'var(--orange)', borderRadius:12, fontSize:10, fontWeight:800, padding:'4px 12px', cursor: sheetDays.length ? 'pointer' : 'default', opacity: sheetDays.length ? 1 : 0.5, whiteSpace:'nowrap' }}>
+                      Review PDF
+                    </button>
+                  </div>
+                )}
+                {section('Producers', groups.producers, '#5ABF80', sheetMode === 'full' ? 'crew' : null)}
+                {section('Crew', groups.crew, 'var(--orange)', sheetMode === 'full' ? 'crew' : null)}
+                {section('Client', groups.clients, '#4a9eff', sheetMode === 'full' ? 'client' : null)}
+                {section('Talent', groups.talent, '#e6c229', sheetMode === 'full' ? 'talent' : null)}
               </div>
 
               <div style={card}>
@@ -190,7 +228,7 @@ export default function CallSheetEmails() {
             style={{ position:'fixed', inset:0, zIndex:130, background:'rgba(0,0,0,0.8)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
             <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, width:'100%', maxWidth:1000, height:'90vh', display:'flex', flexDirection:'column', overflow:'hidden' }}>
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, padding:'10px 16px', borderBottom:'1px solid var(--border)' }}>
-                <div style={{ fontSize:12, fontWeight:800 }}>{preview.kind === 'client' ? 'Client call sheet' : `Call sheet — ${preview.name}`} <span style={{ color:'var(--muted)', fontWeight:400 }}>{preview.kind === 'client' ? '(client view)' : '(their events only)'}</span></div>
+                <div style={{ fontSize:12, fontWeight:800 }}>{preview.kind === 'pdf' ? `Call sheet — ${preview.name}` : preview.kind === 'client' ? 'Client call sheet' : `Call sheet — ${preview.name}`} <span style={{ color:'var(--muted)', fontWeight:400 }}>{preview.kind === 'pdf' ? '(PDF)' : preview.kind === 'client' ? '(client view)' : '(their events only)'}</span></div>
                 <div style={{ display:'flex', gap:8 }}>
                   <a href={preview.url} target="_blank" rel="noreferrer" className="btn btn-ghost btn-sm" style={{ textDecoration:'none' }}>Open in Tab ↗</a>
                   <button className="btn btn-ghost btn-sm" onClick={() => setPreview(null)}>✕</button>
