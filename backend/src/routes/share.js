@@ -230,10 +230,18 @@ router.get('/:token', async (req, res, next) => {
         slBreaks: shotListBreaks,
       };
     } else if (viewType === 'crew') {
+      // The person-tagging system stores real crew/talent NAMES in audience (never
+      // a literal 'crew'), so match names — otherwise every person-tagged event
+      // silently drops off the crew call sheet. Untagged = everyone.
+      const audienceNames = new Set([
+        ...mappedCrew.map(a => ([a.cm_pref_first, a.cm_pref_last].filter(Boolean).join(' ').trim()) || a.cm_name || a.name),
+        ...(keyTalent || []).map(t => t.name),
+      ].filter(Boolean));
+      const forCrew = aud => !aud || aud.length === 0 || aud.includes('crew') || aud.includes('ALL_CREW') || aud.some(n => audienceNames.has(n));
       const filteredDays = daysWithData.map(day => ({
         ...day,
-        events: day.events.filter(e => !e.audience || e.audience.length === 0 || e.audience.includes('crew')),
-        crewCalls: day.crewCalls.filter(c => !c.audience || c.audience.length === 0 || c.audience.includes('crew')),
+        events: day.events.filter(e => forCrew(e.audience)),
+        crewCalls: day.crewCalls.filter(c => forCrew(c.audience)),
       }));
       const safe2 = async (q) => { try { return await q; } catch(e) { console.error('share query failed:', e.message); return []; } };
       const [crewFlights, crewHotels, crewCars, crewDeliverables, crewGear, crewOnlineRentals, crewShotList, crewSlDays, crewSlBreaks, crewDrives] = await Promise.all([
