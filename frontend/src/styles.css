@@ -937,6 +937,35 @@ body { padding-top: env(safe-area-inset-top, 0px); }
 }
 .home-glass:active { transform: translateY(0) scale(0.95); }
 
+/* Orange-tinted glass button, same reactive feel as .home-glass — used for "+ Event" */
+.evt-glass {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 32px; padding: 0 15px; border-radius: 11px;
+  color: var(--orange); text-decoration: none; flex-shrink: 0;
+  font-size: 12px; font-weight: 800; letter-spacing: .03em; cursor: pointer;
+  font-family: inherit;
+  background: linear-gradient(150deg, rgba(232,80,10,0.30) 0%, rgba(232,80,10,0.10) 45%, rgba(232,80,10,0.20) 100%);
+  border: 1px solid rgba(232,80,10,0.45);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.20),
+    inset 0 -1px 1px rgba(0,0,0,0.25),
+    0 4px 14px rgba(0,0,0,0.35);
+  backdrop-filter: blur(14px) saturate(170%);
+  -webkit-backdrop-filter: blur(14px) saturate(170%);
+  transition: transform .15s ease, background .2s ease, border-color .2s ease, box-shadow .2s ease;
+}
+.evt-glass:hover {
+  transform: translateY(-1px);
+  color: #ffa657;
+  background: linear-gradient(150deg, rgba(232,80,10,0.42) 0%, rgba(232,80,10,0.16) 45%, rgba(232,80,10,0.28) 100%);
+  border-color: rgba(232,80,10,0.62);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.28),
+    inset 0 -1px 1px rgba(0,0,0,0.25),
+    0 6px 18px rgba(0,0,0,0.4);
+}
+.evt-glass:active { transform: translateY(0) scale(0.96); }
+
 /* While the Project View nav is expanded on the Finance tab, it swaps in for
    the Budget/VCC dock at the bottom right */
 /* Both section docks hide while the phase-nav pill is expanded */

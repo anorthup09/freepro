@@ -748,6 +748,9 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
   const [quickSlate, setQuickSlate] = useState(false);
   const includePhoto = project.include_photo !== false;
 
+  // Hover-reveal clusters: calendar icon (dates) and gear icon (settings)
+  const [datesOpen, setDatesOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   // Color coding: per-project tag color overrides (drive the --etag-* vars)
   const [showColorCoding, setShowColorCoding] = useState(false);
   const [showGeneralNotes, setShowGeneralNotes] = useState(false);
@@ -878,21 +881,31 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
             <div className="page-title">Schedule</div>
             <div className="page-sub">{parseDay(project.start_date||project.startDate).toLocaleDateString()} – {parseDay(project.end_date||project.endDate).toLocaleDateString()}</div>
           </div>
-          <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:8, flexShrink:0 }}>
-            <button onClick={() => setQuickSlate(true)}
-              style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', background:'rgba(255,140,0,0.12)', border:'1px solid rgba(255,140,0,0.45)', borderRadius:6, padding:'4px 14px', fontSize:11, fontWeight:700, color:'var(--orange)', cursor:'pointer', letterSpacing:'.05em', textTransform:'uppercase', whiteSpace:'nowrap' }}>
-              Slate
-            </button>
-            <button onClick={() => setShowColorCoding(true)} title="View and customize the timeline tag colors"
-              style={{ display:'inline-flex', alignItems:'center', gap:7, background:'var(--bg2)', border:'1px solid var(--border2)', borderRadius:6, padding:'4px 12px', fontSize:11, fontWeight:700, color:'var(--text)', cursor:'pointer', letterSpacing:'.05em', textTransform:'uppercase', whiteSpace:'nowrap' }}>
-              <span style={{ display:'inline-flex', gap:2 }}>
-                {TAG_COLOR_DEFS.map(t => <span key={t.key} style={{ width:8, height:8, borderRadius:'50%', background: tagColors[t.key] || t.def }} />)}
-              </span>
-              Color Coding
-            </button>
-            <button onClick={() => setShowGeneralNotes(true)} title="Add general notes shown on the Producer & Crew views"
-              style={{ display:'inline-flex', alignItems:'center', gap:7, background:'var(--bg2)', border:'1px solid var(--border2)', borderRadius:6, padding:'4px 12px', fontSize:11, fontWeight:700, color:'var(--text)', cursor:'pointer', letterSpacing:'.05em', textTransform:'uppercase', whiteSpace:'nowrap' }}>
-              📝 General Notes
+          {/* Settings gear — hovering reveals Color Coding / General Notes / Slate to the left */}
+          <div style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0 }}
+            onMouseEnter={() => setSettingsOpen(true)} onMouseLeave={() => setSettingsOpen(false)}>
+            {settingsOpen && (() => {
+              const btn = { display:'inline-flex', alignItems:'center', gap:7, background:'var(--bg2)', border:'1px solid var(--border2)', borderRadius:6, padding:'5px 12px', fontSize:11, fontWeight:700, color:'var(--text)', cursor:'pointer', letterSpacing:'.05em', textTransform:'uppercase', whiteSpace:'nowrap' };
+              return (
+                <>
+                  <button onClick={() => setShowColorCoding(true)} title="View and customize the timeline tag colors" style={btn}>
+                    <span style={{ display:'inline-flex', gap:2 }}>
+                      {TAG_COLOR_DEFS.map(t => <span key={t.key} style={{ width:8, height:8, borderRadius:'50%', background: tagColors[t.key] || t.def }} />)}
+                    </span>
+                    Color Coding
+                  </button>
+                  <button onClick={() => setShowGeneralNotes(true)} title="Add general notes shown on the Producer & Crew views" style={btn}>
+                    General Notes
+                  </button>
+                  <button onClick={() => setQuickSlate(true)} title="Open the slate for this day" style={btn}>
+                    Slate
+                  </button>
+                </>
+              );
+            })()}
+            <button title="Schedule settings" onClick={() => setSettingsOpen(o => !o)}
+              style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:32, height:32, background:'var(--bg2)', border:'1px solid var(--border2)', borderRadius:8, color: settingsOpen ? 'var(--orange)' : 'var(--muted)', cursor:'pointer', padding:0 }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
             </button>
           </div>
         </div>
@@ -1002,28 +1015,71 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
         />
       )}
 
-      {/* Day tabs + view toggles on one line */}
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, flexWrap:'wrap', marginBottom:18 }}>
-        {days.length > 0 ? (
-          <div className="day-tabs" style={{ marginBottom:0, flex:'1 1 auto', minWidth:0 }}>
-            {[...days].sort((a,b) => (a.date||'').localeCompare(b.date||'')).map((d, i) => (
-              <button key={d.id} className={`day-tab${d.id === activeDay ? ' on' : ''}`} onClick={() => { setActiveDay(d.id); }}>
-                {parseDay(d.date).toLocaleDateString('en-US', { month:'short', day:'numeric' })}
-              </button>
-            ))}
-          </div>
-        ) : <div />}
-      </div>
+      {/* Dates wrapped into a calendar button — hovering reveals the day tabs to the right */}
+      {days.length > 0 && (
+        <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:18, minWidth:0 }}
+          onMouseEnter={() => setDatesOpen(true)} onMouseLeave={() => setDatesOpen(false)}>
+          <button title="Shoot days" onClick={() => setDatesOpen(o => !o)}
+            style={{ display:'inline-flex', alignItems:'center', gap:7, background:'var(--bg2)', border:'1px solid var(--border2)', borderRadius:8, color: datesOpen ? 'var(--orange)' : 'var(--text)', cursor:'pointer', padding:'0 11px', height:32, flexShrink:0 }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+            <span style={{ fontSize:12, fontWeight:700, whiteSpace:'nowrap' }}>
+              {currentDay ? parseDay(currentDay.date).toLocaleDateString('en-US', { month:'short', day:'numeric' }) : 'Dates'}
+            </span>
+          </button>
+          {datesOpen && (
+            <div className="day-tabs" style={{ marginBottom:0, flex:'1 1 auto', minWidth:0 }}>
+              {[...days].sort((a,b) => (a.date||'').localeCompare(b.date||'')).map((d, i) => (
+                <button key={d.id} className={`day-tab${d.id === activeDay ? ' on' : ''}`} onClick={() => { setActiveDay(d.id); }}>
+                  {parseDay(d.date).toLocaleDateString('en-US', { month:'short', day:'numeric' })}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Day detail */}
       {currentDay && (
         <div>
           <div className="card" style={{ marginBottom:16 }}>
-            <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', flexWrap:'wrap', gap:8, marginBottom: dayCardCollapsed ? 0 : 12 }}>
-              <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:15, display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
-                Day {[...days].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).findIndex(d=>d.id===currentDay.id)+1} · {parseDay(currentDay.date).toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' })}
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:8, marginBottom: dayCardCollapsed ? 0 : 12 }}>
+              <div style={{ display:'flex', alignItems:'center', gap:12, flexWrap:'wrap', minWidth:0 }}>
+                <span style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:15, whiteSpace:'nowrap' }}>
+                  Day {[...days].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).findIndex(d=>d.id===currentDay.id)+1} · {parseDay(currentDay.date).toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' })}
+                </span>
+                {/* Location settings (weather location) — right of the day/date */}
+                <WeatherLocationPicker
+                  key={currentDay.id}
+                  day={currentDay}
+                  projectCity={project.city}
+                  onSelect={sel => saveWeatherLocation(sel)}
+                  onClear={() => saveWeatherLocation(null)}
+                />
+                {currentDay.weather_location_name && days.length > 1 && (
+                  <button type="button" title="Apply this location to every day"
+                    style={{ fontSize:9, padding:'3px 8px', borderRadius:10, border:'1px solid var(--border2)', background:'var(--bg3)', color:'var(--muted)', cursor:'pointer', fontWeight:600, whiteSpace:'nowrap' }}
+                    onClick={applyWeatherLocationToAll}>
+                    Apply to All
+                  </button>
+                )}
               </div>
-              <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap', justifyContent:'flex-end' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap', justifyContent:'flex-end' }}>
+                {/* Weather info next to the day-type dropdown */}
+                {(() => {
+                  const w = weatherByDay[currentDay.id]
+                    || (currentDay.weather_high != null ? { high: currentDay.weather_high, low: currentDay.weather_low, precip: currentDay.weather_precip, code: null } : null);
+                  if (!w) {
+                    const daysOut = (parseDay(currentDay.date) - new Date()) / 86400000;
+                    if (daysOut > 15) return <span style={{ fontSize:11, color:'var(--muted)', fontWeight:400 }}>Weather available ~16 days before shoot</span>;
+                    return null;
+                  }
+                  return (
+                    <span style={{ fontSize:12, fontWeight:400, color:'var(--tan)', display:'flex', alignItems:'center', gap:5 }}>
+                      {wmoLabel(w.code) && <span style={{ color:'var(--muted)', fontSize:11 }}>{wmoLabel(w.code)}</span>} {w.high}° / {w.low}°
+                      {w.precip > 0 && <span style={{ color:'var(--muted)', fontSize:11 }}>· {w.precip}% precip</span>}
+                    </span>
+                  );
+                })()}
                 <select
                   value={currentDay.day_type || 'SHOOT'}
                   onChange={e => saveDayType(currentDay.id, e.target.value)}
@@ -1228,43 +1284,8 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
 
             return (
               <>
-                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, flexWrap:'wrap' }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:12, minWidth:0, flexWrap:'wrap' }}>
-                    <div className="sec-lbl" style={{ margin:0 }}>Timeline</div>
-                    <WeatherLocationPicker
-                      key={currentDay.id}
-                      day={currentDay}
-                      projectCity={project.city}
-                      onSelect={sel => saveWeatherLocation(sel)}
-                      onClear={() => saveWeatherLocation(null)}
-                    />
-                    {currentDay.weather_location_name && days.length > 1 && (
-                      <button type="button" title="Apply this location to every day"
-                        style={{ fontSize:9, padding:'3px 8px', borderRadius:10, border:'1px solid var(--border2)', background:'var(--bg3)', color:'var(--muted)', cursor:'pointer', fontWeight:600, whiteSpace:'nowrap' }}
-                        onClick={applyWeatherLocationToAll}>
-                        Apply to All
-                      </button>
-                    )}
-                  </div>
-                  <div style={{ display:'flex', alignItems:'center', gap:12, flexShrink:0 }}>
-                    {(() => {
-                      const w = weatherByDay[currentDay.id]
-                        || (currentDay.weather_high != null ? { high: currentDay.weather_high, low: currentDay.weather_low, precip: currentDay.weather_precip, code: null } : null);
-                      if (!w) {
-                        // Forecasts only exist ~16 days out — say so instead of showing nothing
-                        const daysOut = (parseDay(currentDay.date) - new Date()) / 86400000;
-                        if (daysOut > 15) return <span style={{ fontSize:11, color:'var(--muted)', fontWeight:400 }}>🌡️ Weather available ~16 days before shoot</span>;
-                        return null;
-                      }
-                      return (
-                        <span style={{ fontSize:12, fontWeight:400, color:'var(--tan)', display:'flex', alignItems:'center', gap:5 }}>
-                          {wmoIcon(w.code)}{wmoLabel(w.code) && <span style={{ color:'var(--muted)', fontSize:11 }}>{wmoLabel(w.code)}</span>} {w.high}° / {w.low}°
-                          {w.precip > 0 && <span style={{ color:'var(--muted)', fontSize:11 }}>· {w.precip}% precip</span>}
-                        </span>
-                      );
-                    })()}
-                    <button className="btn btn-ghost btn-sm" onClick={() => setShowAddEvent(true)}>+ Add Event</button>
-                  </div>
+                <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
+                  <button className="evt-glass" onClick={() => setShowAddEvent(true)}>+ Event</button>
                 </div>
                 <div style={{ marginTop:10 }}>
                   {items.length === 0 && <div className="empty">No events yet for this day.</div>}
