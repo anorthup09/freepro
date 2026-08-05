@@ -33,6 +33,8 @@ export default function CallSheetEmails() {
   const [sheetMode, setSheetMode] = useState('full');  // 'full' (webpage) | 'daily' (per-day PDF)
   const [csDays, setCsDays] = useState([]);
   const [selectedDayId, setSelectedDayId] = useState('');
+  const [talentCalls, setTalentCalls] = useState([]);   // [{ shoot_day_id, call_time, call_location, name, role }]
+  const [me, setMe] = useState(null);
   const sheetDays = (csDays || []).filter(d => d.call_time || d.shooting_call_time || d.wrap_time || (d.events || []).length || (d.crewCalls || []).length);
 
   // kind: 'crew' opens the shared crew view filtered to this person via ?for=;
@@ -49,6 +51,8 @@ export default function CallSheetEmails() {
 
   useEffect(() => { api.getProject(id).then(setProject).catch(e => alert(e.message)); }, [id]);
   useEffect(() => { api.getSchedule(id).then(setCsDays).catch(() => {}); }, [id]);
+  useEffect(() => { api.getProjectTalentCalls(id).then(setTalentCalls).catch(() => {}); }, [id]);
+  useEffect(() => { api.me().then(setMe).catch(() => {}); }, []);
 
   // Review the selected day's (or all-days') server-rendered call sheet PDF in the modal.
   async function reviewDayPdf() {
@@ -80,7 +84,7 @@ export default function CallSheetEmails() {
   const poc = useMemo(() => {
     if (!project?.poc_crew_member_id) return null;
     const a = (project.crewAssignments || []).find(x => x.cm_id === project.poc_crew_member_id || x.crew_member_id === project.poc_crew_member_id);
-    return a ? { name: a.cm_name || a.name, email: a.cm_email || a.email } : null;
+    return a ? { name: a.cm_name || a.name, email: a.cm_email || a.email, phone: a.cm_phone || a.phone } : null;
   }, [project]);
 
   const toggle = email => setSel(s => ({ ...s, [email]: !s[email] }));
@@ -98,6 +102,54 @@ export default function CallSheetEmails() {
       setSubject(d.subject); setBody(d.body);
     } catch (e) { alert(e.message); }
     setDrafting(null);
+  }
+
+  const fmt12 = t => {
+    if (!t) return '';
+    const [h, m] = String(t).split(':').map(Number);
+    const ap = h >= 12 ? 'PM' : 'AM';
+    return `${(h % 12) || 12}:${String(m || 0).padStart(2, '0')} ${ap}`;
+  };
+
+  // Talent-only template based on the standard talent call email. Personalizes
+  // call time / date / shooting location from the one selected talent's day-call;
+  // [Name] stays a placeholder so the body's greeting still renders live.
+  function talentTemplate() {
+    if (!project || !groups) return;
+    const selTalent = groups.talent.filter(t => t.email && sel[t.email]);
+    const one = selTalent.length === 1 ? selTalent[0] : null;
+    let call = null;
+    if (one) {
+      const rows = talentCalls.filter(r => r.name === one.name && r.call_time)
+        .sort((a, b) => String(a.call_time).localeCompare(String(b.call_time)));
+      call = rows[0] || null;
+    }
+    const projName = project.title || '[Project]';
+    let dateStr = '';
+    if (call) {
+      const d = csDays.find(x => x.id === call.shoot_day_id);
+      if (d?.date) dateStr = ` (${new Date(d.date.slice(0, 10) + 'T12:00:00').toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' })})`;
+    }
+    const callTime = call?.call_time ? fmt12(call.call_time) : '[call time]';
+    const location = call?.call_location ? `at ${call.call_location}` : '[shooting location]';
+    const pocLine = poc
+      ? `${poc.name}${poc.email ? ` at ${poc.email}` : ''}${poc.phone ? ` / ${poc.phone}` : ''}`
+      : '[contact name] at [email] / [phone]';
+    const sender = me?.name || '[Your Name]';
+    setSubject(`${projName} - ${one ? one.name : '[Talent Name]'}`);
+    setBody(
+`Hi [Name],
+
+We are super excited to be working with you on this upcoming ${projName}${dateStr}. Your call time is ${callTime}. We will be shooting ${location}.
+
+I have attached your call sheet.
+
+For wardrobe, please avoid wearing any loud patterns, stripes, polka dots, or commercial logos. Solid colors with minimal designs are preferred. Be thoughtful in your shoe, sock, and belt choices; there may be shots where your entire outfit is on camera.
+
+If you have any questions or concerns, please reach out to ${pocLine}.
+
+Thank you,
+${sender}`);
   }
 
   const nameOf = useMemo(() => {
@@ -194,7 +246,12 @@ export default function CallSheetEmails() {
                 <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, flexWrap:'wrap', marginBottom:12 }}>
                   <div style={{ ...secHdr, marginBottom:0 }}>Email</div>
                   <div style={{ display:'flex', alignItems:'center', gap:6, flexWrap:'wrap' }}>
-                    <span style={{ fontSize:10, color:'#e6c229', fontWeight:800 }}>✨ Draft with AI:</span>
+                    <button onClick={talentTemplate} title="Fill a talent call email template (personalizes to the selected talent's call time & location)"
+                      style={{ background:'rgba(232,80,10,0.16)', border:'1px solid var(--orange)', color:'var(--orange)', borderRadius:16, padding:'4px 12px', fontSize:10, fontWeight:800, cursor:'pointer' }}>
+                      Talent Template
+                    </button>
+                    <span style={{ width:1, height:16, background:'var(--border)' }} />
+                    <span style={{ fontSize:10, color:'#e6c229', fontWeight:800 }}>Draft with AI:</span>
                     {['short', 'medium', 'long'].map(len => (
                       <button key={len} onClick={() => draft(len)} disabled={!!drafting}
                         style={{ background:'rgba(230,194,41,0.15)', border:'1px solid #e6c229', color:'#e6c229', borderRadius:16, padding:'4px 12px', fontSize:10, fontWeight:800, cursor:'pointer', opacity: drafting && drafting !== len ? 0.4 : 1, textTransform:'capitalize' }}>
