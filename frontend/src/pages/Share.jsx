@@ -852,7 +852,7 @@ function ProducerView({ data, hideGear, onOpenShotList, shareToken, pw }) {
           ? { ...day, events: (day.events || []).filter(e => !(e.crew_ids || []).length || e.crew_ids.includes(crewFilter)) }
           : day
         ).map((day, i) => (
-          <DaySection key={day.id} day={day} showCalls flights={flights} drives={drives} dayIndex={i} tagFilter={tagFilter} personFilter={personFilter} cateringDetail="full" shotList={shotList} slDays={slDays} slBreaks={slBreaks} onOpenShotList={onOpenShotList} crewAssignments={crewAssignments} includePhoto={project.include_photo !== false} projectCity={[project.city, project.state].filter(Boolean).join(', ')} headerGradient shareToken={shareToken} pw={pw} />
+          <DaySection key={day.id} day={day} showCalls flights={flights} drives={drives} dayIndex={i} tagFilter={tagFilter} personFilter={personFilter} cateringDetail="full" shotList={shotList} slDays={slDays} slBreaks={slBreaks} onOpenShotList={onOpenShotList} crewAssignments={crewAssignments} includePhoto={project.include_photo !== false} projectCity={[project.city, project.state].filter(Boolean).join(', ')} headerGradient shareToken={shareToken} pw={pw} showTalentCalls />
         ))}
       </div>
     </div>
@@ -2163,7 +2163,7 @@ function CateringBadge({ catering, detail }) {
   );
 }
 
-function DaySection({ day, showCalls, flights, drives, dayIndex, talentCallTime, talentCallLocation, hideCallWrap, tagFilter, personFilter, cateringDetail, shotList, slDays, slBreaks, onOpenShotList, crewAssignments, projectCity, talentMode, includePhoto, headerGradient, shareToken, pw }) {
+function DaySection({ day, showCalls, flights, drives, dayIndex, talentCallTime, talentCallLocation, hideCallWrap, tagFilter, personFilter, cateringDetail, shotList, slDays, slBreaks, onOpenShotList, crewAssignments, projectCity, talentMode, includePhoto, headerGradient, shareToken, pw, showTalentCalls }) {
   const attUrl = attId => `${window.location.origin}/api/share/${shareToken}/attachments/${attId}/file?inline=1${pw ? `&pw=${encodeURIComponent(pw)}` : ''}`;
   const [clapEvent, setClapEvent] = useState(null);
   const crewByPosition = (posName) => {
@@ -2277,15 +2277,21 @@ function DaySection({ day, showCalls, flights, drives, dayIndex, talentCallTime,
   // a schedule item
   const breakItems = [];
 
+  // Talent call-time tiles (producer view only) — "Talent Call — Name"
+  const talentCallItems = (!showTalentCalls || talentMode || tagFilter) ? [] : (day.talentCalls || [])
+    .filter(c => c.call_time)
+    .map((c, i) => ({ _type:'talentcall', _sort: timeToMins(c.call_time), _key:`tc-${day.id}-${i}`, ...c }));
+
   const allItems = [
     ...syntheticDayItems,
     ...cateringItems,
+    ...talentCallItems,
     ...filteredDay.events.map(e => ({ _type:'event', _sort: timeToMins(e.start_time), ...e })),
     ...(tagFilter ? [] : flightLegs.map(f => ({ _type:'flight', _sort: timeToMins(f._time), ...f }))),
     ...(tagFilter ? [] : driveLegs.map(d => ({ _type:'drive', _sort: timeToMins(d._time), _key:`dr-${d.id}-${d._leg}`, ...d }))),
     ...sceneItems,
     ...breakItems,
-  ].sort((a, b) => (a._sort - b._sort) || (((a._type === 'synthetic' && (a._key === 'ct' || a._key === 'sct')) ? 0 : 1) - ((b._type === 'synthetic' && (b._key === 'ct' || b._key === 'sct')) ? 0 : 1)));
+  ].sort((a, b) => { const rank = it => (it._type === 'talentcall' || (it._type === 'synthetic' && (it._key === 'ct' || it._key === 'sct'))) ? 0 : 1; return (a._sort - b._sort) || (rank(a) - rank(b)); });
 
   // Live progression along the rail: everything before "now" is orange, the
   // current stop fades orange→gray, everything upcoming is gray.
@@ -2421,6 +2427,19 @@ function DaySection({ day, showCalls, flights, drives, dayIndex, talentCallTime,
                           </div>
                         )}
                       </div>
+                    </div>
+                  </div>
+                );
+              })() : item._type === 'talentcall' ? (() => {
+                return (
+                  <div key={item._key} className="ev">
+                    <div className="ev-time">{fmtTime(item.call_time)}</div>
+                    <div className={`ev-body${isLive(item.call_time, null) ? ' ev-live' : ''}`} style={{ borderLeft:'2px solid #a78bfa' }}>
+                      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', gap:8 }}>
+                        <div className="ev-title">Talent Call — {item.name}</div>
+                        <span style={{ fontSize:9, fontWeight:800, color:'#a78bfa', border:'1px solid #a78bfa', borderRadius:10, padding:'1px 8px', whiteSpace:'nowrap', flexShrink:0 }}>Talent</span>
+                      </div>
+                      {item.call_location && <div className="ev-detail">{item.call_location}</div>}
                     </div>
                   </div>
                 );

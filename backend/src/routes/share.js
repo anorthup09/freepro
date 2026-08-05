@@ -110,6 +110,16 @@ router.get('/:token', async (req, res, next) => {
     const cateringByDay = {};
     allCatering.forEach(c => { (cateringByDay[c.shoot_day_id] = cateringByDay[c.shoot_day_id] || []).push(c); });
 
+    // Talent call times per day (with the talent's name) — surfaced as schedule
+    // tiles on the producer view.
+    const talentDayCalls = dayIds.length ? await sql`
+      SELECT tdc.shoot_day_id, tdc.call_time, tdc.call_location, kt.name
+      FROM talent_day_calls tdc JOIN key_talent kt ON kt.id = tdc.talent_id
+      WHERE tdc.shoot_day_id = ANY(${sql.array(dayIds)}) AND tdc.call_time IS NOT NULL
+      ORDER BY tdc.call_time` : [];
+    const talentCallsByDay = {};
+    for (const tc of talentDayCalls) (talentCallsByDay[tc.shoot_day_id] ||= []).push(tc);
+
     const daysWithData = await Promise.all(shootDays.map(async day => {
       const events = await sql`
         SELECT se.*, l.name as location_name, l.address as location_address,
@@ -155,6 +165,7 @@ router.get('/:token', async (req, res, next) => {
         ...dayOut,
         totalDays,
         catering: cateringByDay[day.id] || [],
+        talentCalls: talentCallsByDay[day.id] || [],
         // On a per-crew link, other crews' events are hidden entirely; untagged
         // events (shared moments like load-in or lunch) always show
         events: events
