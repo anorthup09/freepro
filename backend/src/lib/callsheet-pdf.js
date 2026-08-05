@@ -64,6 +64,10 @@ async function renderCallSheet({ project, allDays, renderDays, talent = null }) 
     schedTime: { fontSize: 7, fontVariantNumeric: 'tabular-nums' },
     locLink: { fontSize: 7.5, color: C.orange, textDecoration: 'underline' },
     schedNote: { fontSize: 7, marginTop: 1.5 },
+    infoTiles: { flexDirection: 'row', gap: 8, marginTop: 8 },
+    infoTile: { flex: 1, borderWidth: 1, borderColor: C.border, borderRadius: 6, padding: 8, backgroundColor: C.boxBg },
+    infoTileLbl: { fontSize: 7, fontFamily: 'Helvetica-Bold', color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 },
+    infoTileBody: { fontSize: 8.5, color: C.text, lineHeight: 1.35 },
     strong: { fontFamily: 'Helvetica-Bold' },
     tiny: { fontSize: 7.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.4, marginTop: 1, fontFamily: 'Helvetica-Bold' },
     noteLine: { fontSize: 8.5, marginTop: 2 },
@@ -118,7 +122,12 @@ async function renderCallSheet({ project, allDays, renderDays, talent = null }) 
       ...(day.events || []).map(e => e.location_id),
       day.call_time_location_id, day.shooting_call_location_id, day.lunch_location_id, day.wrap_time_location_id,
     ].filter(Boolean));
-    const dayLocations = (project.locations || []).filter(l => taggedLocIds.has(l.id))
+    // Talent sheets: if the talent's day-call selected specific shoot locations,
+    // show only those; otherwise fall back to the day's tagged locations.
+    const talentLocIds = talent ? (talent.locIdsByDay?.[day.id] || []) : [];
+    const dayLocations = (talent && talentLocIds.length
+        ? (project.locations || []).filter(l => talentLocIds.includes(l.id))
+        : (project.locations || []).filter(l => taggedLocIds.has(l.id)))
       .filter(l => !talent || l.type !== 'CREW_HOTEL'); // talent sheets omit hotel info
     // Room/space per location, gathered from this day's (talent-filtered) events.
     const roomsByLoc = {};
@@ -172,6 +181,17 @@ async function renderCallSheet({ project, allDays, renderDays, talent = null }) 
           wxBits.map((w, i) => h(Text, { key: i, style: st.wx }, w)),
         ) : h(View, { style: st.hRight }),
       ),
+      // Talent sheets: wardrobe & arrival info tiles across the top
+      (talent && (talent.wardrobe || talent.arrival)) ? h(View, { style: st.infoTiles },
+        talent.wardrobe ? h(View, { style: st.infoTile },
+          h(Text, { style: st.infoTileLbl }, 'Wardrobe'),
+          h(Text, { style: st.infoTileBody }, talent.wardrobe),
+        ) : null,
+        talent.arrival ? h(View, { style: st.infoTile },
+          h(Text, { style: st.infoTileLbl }, 'Arrival'),
+          h(Text, { style: st.infoTileBody }, talent.arrival),
+        ) : null,
+      ) : null,
       // Locations (only those tagged in this day's schedule)
       dayLocations.length ? Section('Locations', Table(applyCfg('locations', [
         { key: 'name', label: 'Location', width: '42%', render: l => h(View, null,

@@ -60,6 +60,36 @@ function TravelLocalSwitch({ value, onChange }) {
 
 const CREW_UNIT_COLORS = ['#5ABF80', '#4a9eff', '#e6c229', '#d66a9b', '#a78bfa', '#40A0A0'];
 
+// Multi-select of the project's Locations (Shoot Locations) for a talent day-call.
+function LocationMultiSelect({ locations, value = [], onChange }) {
+  const [open, setOpen] = useState(false);
+  const sel = new Set(value);
+  const summary = value.length === 0
+    ? 'Shoot locations…'
+    : value.map(id => (locations.find(l => l.id === id) || {}).name).filter(Boolean).join(', ');
+  return (
+    <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
+      <button type="button" onClick={() => setOpen(o => !o)}
+        style={{ width: '100%', textAlign: 'left', background: 'var(--bg3)', border: '1px solid var(--border2)', borderRadius: 6, padding: '6px 8px', fontSize: 12, cursor: 'pointer', color: value.length ? 'var(--text)' : 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        {summary}
+      </button>
+      {open && (
+        <div onMouseLeave={() => setOpen(false)}
+          style={{ position: 'absolute', zIndex: 60, top: 'calc(100% + 4px)', left: 0, right: 0, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8, maxHeight: 190, overflow: 'auto', padding: 6, boxShadow: '0 10px 28px rgba(0,0,0,0.4)' }}>
+          {locations.length === 0 && <div style={{ fontSize: 11, color: 'var(--muted)', padding: 6 }}>No locations on the Locations tab yet.</div>}
+          {locations.map(l => (
+            <label key={l.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 6px', fontSize: 12, cursor: 'pointer' }}>
+              <input type="checkbox" checked={sel.has(l.id)} style={{ width: 'auto', cursor: 'pointer' }}
+                onChange={() => onChange(sel.has(l.id) ? value.filter(x => x !== l.id) : [...value, l.id])} />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.name}</span>
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Crew({ project, onProjectUpdate }) {
   const [assignments, setAssignments] = useState([]);
   const [crews, setCrews] = useState(project.crews || []);
@@ -84,6 +114,7 @@ export default function Crew({ project, onProjectUpdate }) {
   const [editTalent, setEditTalent] = useState(null);
   const [editTalentForm, setEditTalentForm] = useState({ name:'', role:'', videoTitle:'', phone:'', email:'', notes:'', dietaryRestrictions:'', callTime:'', wardrobeNotes:'', arrivalNotes:'', travelLocal:'TRAVEL' });
   const [talentDays, setTalentDays] = useState([]);
+  const [locations, setLocations] = useState([]);
   const [addTalentDayCalls, setAddTalentDayCalls] = useState({});
   const [talentDayCallsForm, setTalentDayCallsForm] = useState({});
   const [crewDays, setCrewDays] = useState([]);
@@ -104,6 +135,7 @@ export default function Crew({ project, onProjectUpdate }) {
       api.getFlights(project.id),
     ]).then(([a, p, r, f]) => { setAssignments(a); setPositions(p); setRoster(r); setFlights(f); });
     api.getContracts(project.id).then(setContracts).catch(() => {});
+    api.getLocations(project.id).then(setLocations).catch(() => {});
   }, [project.id]);
   useEffect(() => { if (project.crews) setCrews(project.crews); }, [project.crews]);
 
@@ -438,8 +470,8 @@ export default function Crew({ project, onProjectUpdate }) {
     try {
       const t = await api.createTalent(project.id, talentForm);
       const dayCalls = Object.entries(addTalentDayCalls)
-        .filter(([, v]) => v && (v.time || v.location))
-        .map(([shootDayId, v]) => ({ shootDayId, callTime: v.time || null, callLocation: v.location || null }));
+        .filter(([, v]) => v && (v.time || v.location || (v.locationIds || []).length))
+        .map(([shootDayId, v]) => ({ shootDayId, callTime: v.time || null, callLocation: v.location || null, locationIds: v.locationIds || [] }));
       if (dayCalls.length) await api.saveTalentDayCalls(project.id, t.id, dayCalls).catch(() => {});
       if (onProjectUpdate) onProjectUpdate(p => ({ ...p, keyTalent: [...(p.keyTalent||[]), t] }));
       setShowTalentModal(false);
@@ -451,8 +483,8 @@ export default function Crew({ project, onProjectUpdate }) {
     e.preventDefault();
     try {
       const dayCalls = Object.entries(talentDayCallsForm)
-        .filter(([, v]) => v && (v.time || v.location))
-        .map(([shootDayId, v]) => ({ shootDayId, callTime: v.time || null, callLocation: v.location || null }));
+        .filter(([, v]) => v && (v.time || v.location || (v.locationIds || []).length))
+        .map(([shootDayId, v]) => ({ shootDayId, callTime: v.time || null, callLocation: v.location || null, locationIds: v.locationIds || [] }));
       const [t] = await Promise.all([
         api.updateTalent(project.id, editTalent.id, editTalentForm),
         api.saveTalentDayCalls(project.id, editTalent.id, dayCalls),
@@ -860,7 +892,7 @@ export default function Crew({ project, onProjectUpdate }) {
                           ]).then(([days, calls]) => {
                             setTalentDays(days);
                             const m = {};
-                            calls.forEach(c => { m[c.shoot_day_id] = { time: c.call_time || '', location: c.call_location || '' }; });
+                            calls.forEach(c => { m[c.shoot_day_id] = { time: c.call_time || '', location: c.call_location || '', locationIds: c.location_ids || [] }; });
                             setTalentDayCallsForm(m);
                           }).catch(() => {});
                         }}>Edit</button>
@@ -1344,19 +1376,20 @@ export default function Crew({ project, onProjectUpdate }) {
               {talentDays.length > 0 && (
                 <div style={{ marginBottom:12 }}>
                   <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)', marginBottom:8 }}>Call Times by Day</div>
-                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'6px 12px' }}>
+                  <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
                     {talentDays.map((day, i) => {
                       const dateLabel = day.date ? new Date(day.date.slice(0,10)+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '';
+                      const v = talentDayCallsForm[day.id] || {};
+                      const upd = patch => setTalentDayCallsForm(m => ({ ...m, [day.id]: { ...(m[day.id] || {}), ...patch } }));
                       return (
-                        <React.Fragment key={day.id}>
-                          <div style={{ display:'flex', alignItems:'center', fontSize:12, color:'var(--text)', fontWeight:500 }}>
+                        <div key={day.id} style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
+                          <div style={{ width:110, flexShrink:0, fontSize:12, color:'var(--text)', fontWeight:500 }}>
                             Day {i+1}{dateLabel ? ` — ${dateLabel}` : ''}
                           </div>
-                          <span style={{ display:'flex', gap:6, minWidth:0 }}>
-                            <input type="time" value={(talentDayCallsForm[day.id] || {}).time || ''} onChange={e => setTalentDayCallsForm(m => ({ ...m, [day.id]: { ...(m[day.id] || {}), time: e.target.value } }))} style={{ flex:'0 0 auto', width:110 }} />
-                            <input value={(talentDayCallsForm[day.id] || {}).location || ''} placeholder="Call location…" onChange={e => setTalentDayCallsForm(m => ({ ...m, [day.id]: { ...(m[day.id] || {}), location: e.target.value } }))} style={{ flex:1, minWidth:0 }} />
-                          </span>
-                        </React.Fragment>
+                          <input type="time" value={v.time || ''} onChange={e => upd({ time: e.target.value })} style={{ flex:'0 0 auto', width:110 }} />
+                          <LocationMultiSelect locations={locations} value={v.locationIds || []} onChange={ids => upd({ locationIds: ids })} />
+                          <input value={v.location || ''} placeholder="Room…" onChange={e => upd({ location: e.target.value })} style={{ flex:'0 0 130px', minWidth:0 }} />
+                        </div>
                       );
                     })}
                   </div>
@@ -1393,19 +1426,20 @@ export default function Crew({ project, onProjectUpdate }) {
               {talentDays.length > 0 && (
                 <div style={{ marginBottom:12 }}>
                   <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)', marginBottom:8 }}>Call Times by Day</div>
-                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'6px 12px' }}>
+                  <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
                     {talentDays.map((day, i) => {
                       const dateLabel = day.date ? new Date(day.date.slice(0,10)+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '';
+                      const v = addTalentDayCalls[day.id] || {};
+                      const upd = patch => setAddTalentDayCalls(m => ({ ...m, [day.id]: { ...(m[day.id] || {}), ...patch } }));
                       return (
-                        <React.Fragment key={day.id}>
-                          <div style={{ display:'flex', alignItems:'center', fontSize:12, color:'var(--text)', fontWeight:500 }}>
+                        <div key={day.id} style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
+                          <div style={{ width:110, flexShrink:0, fontSize:12, color:'var(--text)', fontWeight:500 }}>
                             Day {i+1}{dateLabel ? ` — ${dateLabel}` : ''}
                           </div>
-                          <span style={{ display:'flex', gap:6, minWidth:0 }}>
-                            <input type="time" value={(addTalentDayCalls[day.id] || {}).time || ''} onChange={e => setAddTalentDayCalls(m => ({ ...m, [day.id]: { ...(m[day.id] || {}), time: e.target.value } }))} style={{ flex:'0 0 auto', width:110 }} />
-                            <input value={(addTalentDayCalls[day.id] || {}).location || ''} placeholder="Call location…" onChange={e => setAddTalentDayCalls(m => ({ ...m, [day.id]: { ...(m[day.id] || {}), location: e.target.value } }))} style={{ flex:1, minWidth:0 }} />
-                          </span>
-                        </React.Fragment>
+                          <input type="time" value={v.time || ''} onChange={e => upd({ time: e.target.value })} style={{ flex:'0 0 auto', width:110 }} />
+                          <LocationMultiSelect locations={locations} value={v.locationIds || []} onChange={ids => upd({ locationIds: ids })} />
+                          <input value={v.location || ''} placeholder="Room…" onChange={e => upd({ location: e.target.value })} style={{ flex:'0 0 130px', minWidth:0 }} />
+                        </div>
                       );
                     })}
                   </div>

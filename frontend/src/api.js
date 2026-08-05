@@ -269,6 +269,7 @@ export const api = {
   deleteProject: (id) => req('DELETE', `/projects/${id}`),
 
   // Locations
+  getLocations: (projectId) => req('GET', `/projects/${projectId}/locations`),
   createLocation: (projectId, data) => req('POST', `/projects/${projectId}/locations`, data),
   updateLocation: (projectId, id, data) => req('PATCH', `/projects/${projectId}/locations/${id}`, data),
   deleteLocation: (projectId, id) => req('DELETE', `/projects/${projectId}/locations/${id}`),

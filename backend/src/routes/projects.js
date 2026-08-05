@@ -496,7 +496,7 @@ router.get('/:id/call-sheet.pdf', requireAuth, requireRole('ADMIN','PRODUCER'), 
             LEFT JOIN locations l ON l.id = se.location_id
             WHERE se.shoot_day_id = ANY(${sql.array(dayIds)}) GROUP BY se.id, l.name, l.address ORDER BY se.start_time`,
         sql`SELECT * FROM crew_day_calls WHERE shoot_day_id = ANY(${sql.array(dayIds)})`,
-        sql`SELECT talent_id, shoot_day_id, call_time, call_location FROM talent_day_calls WHERE shoot_day_id = ANY(${sql.array(dayIds)})`,
+        sql`SELECT talent_id, shoot_day_id, call_time, call_location, location_ids FROM talent_day_calls WHERE shoot_day_id = ANY(${sql.array(dayIds)})`,
       ]);
     }
     const evByDay = {}, callByDay = {};
@@ -519,9 +519,9 @@ router.get('/:id/call-sheet.pdf', requireAuth, requireRole('ADMIN','PRODUCER'), 
     if (req.query.talent) {
       const t = keyTalent.find(x => x.id === req.query.talent);
       if (t) {
-        const callByDay = {}, callLocByDay = {};
-        for (const tc of talentCalls) if (tc.talent_id === t.id) { callByDay[tc.shoot_day_id] = tc.call_time; callLocByDay[tc.shoot_day_id] = tc.call_location; }
-        talentSel = { id: t.id, name: t.name, role: t.role, phone: t.phone, email: t.email, call_time: '', callByDay, callLocByDay };
+        const callByDay = {}, callLocByDay = {}, locIdsByDay = {};
+        for (const tc of talentCalls) if (tc.talent_id === t.id) { callByDay[tc.shoot_day_id] = tc.call_time; callLocByDay[tc.shoot_day_id] = tc.call_location; locIdsByDay[tc.shoot_day_id] = tc.location_ids || []; }
+        talentSel = { id: t.id, name: t.name, role: t.role, phone: t.phone, email: t.email, call_time: '', callByDay, callLocByDay, locIdsByDay, wardrobe: t.wardrobe_notes || '', arrival: t.arrival_notes || '' };
       }
     }
     let renderDays = req.query.day ? sheetDays.filter(d => d.id === req.query.day) : sheetDays;
@@ -625,13 +625,13 @@ router.get('/:id/talent/:tid/day-calls', requireAuth, async (req, res, next) => 
 });
 router.put('/:id/talent/:tid/day-calls', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const calls = req.body; // [{ shootDayId, callTime, callLocation }]
+    const calls = req.body; // [{ shootDayId, callTime, callLocation, locationIds }]
     await sql`DELETE FROM talent_day_calls WHERE talent_id = ${req.params.tid}`;
     if (calls.length) {
       await Promise.all(calls.map(c => sql`
-        INSERT INTO talent_day_calls (id, talent_id, shoot_day_id, call_time, call_location)
-        VALUES (gen_random_uuid()::text, ${req.params.tid}, ${c.shootDayId}, ${c.callTime||null}, ${c.callLocation||null})
-        ON CONFLICT (talent_id, shoot_day_id) DO UPDATE SET call_time = EXCLUDED.call_time, call_location = EXCLUDED.call_location`));
+        INSERT INTO talent_day_calls (id, talent_id, shoot_day_id, call_time, call_location, location_ids)
+        VALUES (gen_random_uuid()::text, ${req.params.tid}, ${c.shootDayId}, ${c.callTime||null}, ${c.callLocation||null}, ${sql.array(c.locationIds || [])})
+        ON CONFLICT (talent_id, shoot_day_id) DO UPDATE SET call_time = EXCLUDED.call_time, call_location = EXCLUDED.call_location, location_ids = EXCLUDED.location_ids`));
     }
     res.json(await sql`SELECT * FROM talent_day_calls WHERE talent_id = ${req.params.tid} ORDER BY shoot_day_id`);
   } catch(e){next(e);}

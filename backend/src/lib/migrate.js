@@ -568,6 +568,9 @@ async function migrate() {
     )
   `;
   await sql`ALTER TABLE talent_day_calls ADD COLUMN IF NOT EXISTS call_location TEXT`;
+  // Selected shoot locations (Locations tab ids) for a talent's day — drives which
+  // locations appear on that talent's call sheet PDF.
+  await sql`ALTER TABLE talent_day_calls ADD COLUMN IF NOT EXISTS location_ids TEXT[] DEFAULT '{}'`;
 
   // Contacts saved from the Add Invoice form — reusable across the platform
   await sql`
