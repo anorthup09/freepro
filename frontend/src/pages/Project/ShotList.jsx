@@ -715,8 +715,9 @@ function DaySynopsisCard({ day, onDelete, onAddScene, scenes, scheduleDays, onDa
 
   return (
     <div style={{ marginBottom: 16, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, overflow: 'hidden' }}>
-      <div style={{ padding: '6px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+      <div style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+        {/* Left: day info */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flexShrink: 0 }}>
           <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)', letterSpacing: '.04em', whiteSpace: 'nowrap' }}>
             DAY {day.day_number}
           </div>
@@ -731,34 +732,36 @@ function DaySynopsisCard({ day, onDelete, onAddScene, scenes, scheduleDays, onDa
             </div>
           )}
         </div>
-        {totalShots === 0 && (
-          <div onClick={() => onToggleHidePublic?.(day.id, !day.hide_public)}
-            title={day.hide_public ? 'Hidden from public views — tap to show' : 'Shown on public views — tap to hide'}
-            style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', userSelect: 'none', flexShrink: 0 }}>
-            <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: day.hide_public ? 'var(--muted)' : 'rgba(74,222,128,0.9)', whiteSpace: 'nowrap' }}>
-              {day.hide_public ? 'Hidden from Public' : 'Public'}
-            </span>
-            <span style={{ width: 32, height: 18, borderRadius: 100, flexShrink: 0, position: 'relative', transition: 'background 0.2s, border-color 0.2s', background: day.hide_public ? 'rgba(255,255,255,0.08)' : 'rgba(74,222,128,0.35)', border: `1px solid ${day.hide_public ? 'rgba(255,255,255,0.18)' : 'rgba(74,222,128,0.7)'}` }}>
-              <span style={{ position: 'absolute', top: 2, left: day.hide_public ? 2 : 16, width: 12, height: 12, borderRadius: '50%', background: day.hide_public ? 'rgba(255,255,255,0.45)' : '#4ade80', transition: 'left 0.2s, background 0.2s' }} />
-            </span>
-          </div>
-        )}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: '1 1 100%' }}>
-          <button className="btn btn-primary btn-sm" style={{ fontSize: 11, whiteSpace: 'nowrap', padding: '2px 9px', minHeight: 0, height: 22, lineHeight: '18px' }} onClick={() => onAddScene?.(day.id)}>+ Add Scene</button>
-        </div>
-      </div>
-      <div style={{ padding: '0 16px 10px' }}>
-        <div style={{ maxWidth: 460 }}>
-        <ShineBorder radius={10}>
-          <div className="sl-day-tiles" style={{ background: 'rgba(10,10,8,0.92)', borderRadius: 8, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', overflow: 'hidden' }}>
-            {tiles.map((t, i) => (
-              <div key={t.label} onClick={onOpenSchedule} title="Edit on the Schedule" style={{ padding: '3px 12px 4px', borderRight: i < 3 ? '1px solid rgba(255,255,255,0.07)' : 'none', textAlign: 'center', cursor: onOpenSchedule ? 'pointer' : 'default' }}>
-                <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '.12em' }}>{t.label}</div>
-                <div style={{ fontSize: 12, fontWeight: 800, color: t.val ? 'var(--text)' : 'rgba(255,255,255,0.2)', fontVariantNumeric: 'tabular-nums', lineHeight: 1.2 }}>{t.val || '—'}</div>
+        {/* Middle: schedule time tiles */}
+        <div style={{ flex: '1 1 280px', display: 'flex', justifyContent: 'center', minWidth: 0 }}>
+          <div style={{ width: '100%', maxWidth: 440 }}>
+            <ShineBorder radius={10}>
+              <div className="sl-day-tiles" style={{ background: 'rgba(10,10,8,0.92)', borderRadius: 8, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', overflow: 'hidden' }}>
+                {tiles.map((t, i) => (
+                  <div key={t.label} onClick={onOpenSchedule} title="Edit on the Schedule" style={{ padding: '3px 12px 4px', borderRight: i < 3 ? '1px solid rgba(255,255,255,0.07)' : 'none', textAlign: 'center', cursor: onOpenSchedule ? 'pointer' : 'default' }}>
+                    <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '.12em' }}>{t.label}</div>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: t.val ? 'var(--text)' : 'rgba(255,255,255,0.2)', fontVariantNumeric: 'tabular-nums', lineHeight: 1.2 }}>{t.val || '—'}</div>
+                  </div>
+                ))}
               </div>
-            ))}
+            </ShineBorder>
           </div>
-        </ShineBorder>
+        </div>
+        {/* Right: + Add Scene, then the public toggle */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+          <button className="btn btn-primary btn-sm" style={{ fontSize: 11, whiteSpace: 'nowrap', padding: '2px 9px', minHeight: 0, height: 22, lineHeight: '18px' }} onClick={() => onAddScene?.(day.id)}>+ Add Scene</button>
+          {totalShots === 0 && (
+            <div onClick={() => onToggleHidePublic?.(day.id, !day.hide_public)}
+              title={day.hide_public ? 'Hidden from public views — tap to show' : 'Shown on public views — tap to hide'}
+              style={{ display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', userSelect: 'none', flexShrink: 0 }}>
+              <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: day.hide_public ? 'var(--muted)' : 'rgba(74,222,128,0.9)', whiteSpace: 'nowrap' }}>
+                {day.hide_public ? 'Hidden from Public' : 'Public'}
+              </span>
+              <span style={{ width: 32, height: 18, borderRadius: 100, flexShrink: 0, position: 'relative', transition: 'background 0.2s, border-color 0.2s', background: day.hide_public ? 'rgba(255,255,255,0.08)' : 'rgba(74,222,128,0.35)', border: `1px solid ${day.hide_public ? 'rgba(255,255,255,0.18)' : 'rgba(74,222,128,0.7)'}` }}>
+                <span style={{ position: 'absolute', top: 2, left: day.hide_public ? 2 : 16, width: 12, height: 12, borderRadius: '50%', background: day.hide_public ? 'rgba(255,255,255,0.45)' : '#4ade80', transition: 'left 0.2s, background 0.2s' }} />
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </div>
