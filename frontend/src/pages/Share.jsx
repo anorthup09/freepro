@@ -2195,6 +2195,12 @@ function DaySection({ day, showCalls, flights, drives, dayIndex, talentCallTime,
   };
 
   const personOk = e => !personFilter || !(e.audience || []).length || (e.audience || []).some(n => String(n).toLowerCase() === personFilter.toLowerCase());
+  // Crew members that can be tagged to an event (by display name, via audience).
+  const crewDisplay = a => [a.cm_pref_first, a.cm_pref_last].filter(Boolean).join(' ').trim()
+    || a.cm_name || (a.crewMember && [a.crewMember.preferredFirstName, a.crewMember.preferredLastName].filter(Boolean).join(' ').trim())
+    || (a.crewMember && a.crewMember.name) || a.name || '';
+  const crewNameSet = new Set((crewAssignments || []).map(crewDisplay).filter(Boolean));
+  const taggedCrewNames = e => (e.audience || []).filter(n => crewNameSet.has(n));
   const filteredDay = {
     ...day,
     events: day.events.filter(e => personOk(e) && (!tagFilter || (e.tags || []).some(t => t.type === tagFilter || t.type === 'ALL_CREW'))),
@@ -2422,7 +2428,6 @@ function DaySection({ day, showCalls, flights, drives, dayIndex, talentCallTime,
                 );
               })() : item._type === 'synthetic' ? (() => {
                 const sm = SYNTHETIC_META_SHARE[item._key];
-                const itemTags = (Array.isArray(item.tags) ? item.tags : []).filter(t => includePhoto !== false || t !== 'PHOTO');
                 const isLunch = item._key === 'lt';
                 return (
                   <div key={item._key} className="ev">
@@ -2432,11 +2437,6 @@ function DaySection({ day, showCalls, flights, drives, dayIndex, talentCallTime,
                         <div style={{ flex:1 }}>
                           <div className="ev-title">{item.title}</div>
                           {item.notes && <div className="ev-detail">{item.notes}</div>}
-                          {itemTags.length > 0 && (
-                            <div className="ev-tags" style={{ marginTop:4 }}>
-                              {itemTags.map(t => <span key={t} className={`etag ${t === 'VIDEO' ? 'etag-video' : 'etag-photo'}`}>{t === 'VIDEO' ? '🎬 Video' : '📷 Photo'}</span>)}
-                            </div>
-                          )}
                         </div>
                         {isLunch && lunchCatering && cateringDetail && (
                           <div style={{ textAlign:'right', marginLeft:8, flexShrink:0 }}>
@@ -2642,10 +2642,17 @@ function DaySection({ day, showCalls, flights, drives, dayIndex, talentCallTime,
                         <div style={{ display:'flex', justifyContent:'flex-end', marginTop:6 }}>
                           <button onClick={e => { e.stopPropagation(); setClapEvent(item); }}
                             style={{ display:'inline-flex', alignItems:'center', gap:5, background:'rgba(255,140,0,0.12)', border:'1px solid rgba(255,140,0,0.4)', borderRadius:6, padding:'2px 9px', fontSize:10, fontWeight:700, color:'var(--orange)', cursor:'pointer', letterSpacing:'.05em', textTransform:'uppercase' }}>
-                            🎬 Slate
+                            Slate
                           </button>
                         </div>
                       )}
+                      {(() => { const names = taggedCrewNames(item); return names.length ? (
+                        <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginTop:8, paddingTop:8, borderTop:'1px solid var(--border)' }}>
+                          {names.map(n => (
+                            <span key={n} style={{ fontSize:10, fontWeight:700, color:'var(--tan)', background:'var(--bg3)', border:'1px solid var(--border2)', borderRadius:100, padding:'2px 10px', whiteSpace:'nowrap' }}>{n}</span>
+                          ))}
+                        </div>
+                      ) : null; })()}
                     </div>
                   </div>
                 );
