@@ -764,6 +764,12 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
     if (noteTopics.some(t => t.label.toLowerCase() === l.toLowerCase())) return;
     try { const t = await api.addNoteTopic(l); setNoteTopics(list => [...list, t]); } catch (e) { alert(e.message); }
   }
+  // Individual crew members that can be tagged to an event (audience names),
+  // mirroring the producer/crew share views — used to render tagged names on tiles.
+  const crewNameSet = new Set((project.crewAssignments || [])
+    .map(a => (a.crewMember && displayName(a.crewMember)) || a.cm_name || a.name)
+    .filter(Boolean));
+  const taggedCrewNames = item => (item.audience || []).filter(n => crewNameSet.has(n));
   const [tagColors, setTagColors] = useState(project.schedule_tag_colors || {});
   const tagColorVars = {};
   TAG_COLOR_DEFS.forEach(t => { if (tagColors[t.key]) tagColorVars[t.cssVar] = tagColors[t.key]; });
@@ -1567,11 +1573,18 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                               {(item.is_filming||item.isFilming) && (
                                 <button onClick={e => { e.stopPropagation(); setClapEvent(item); }}
                                   style={{ display:'inline-flex', alignItems:'center', gap:5, background:'rgba(255,140,0,0.12)', border:'1px solid rgba(255,140,0,0.4)', borderRadius:6, padding:'2px 9px', fontSize:10, fontWeight:700, color:'var(--orange)', cursor:'pointer', letterSpacing:'.05em', textTransform:'uppercase', flexShrink:0 }}>
-                                  🎬 Slate
+                                  Slate
                                 </button>
                               )}
                             </div>
                           )}
+                          {(() => { const names = taggedCrewNames(item); return names.length ? (
+                            <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginTop:8, paddingTop:8, borderTop:'1px solid var(--border)' }}>
+                              {names.map(n => (
+                                <span key={n} style={{ fontSize:10, fontWeight:700, color:'var(--tan)', background:'rgba(255,255,255,0.05)', border:'1px solid var(--border2)', borderRadius:100, padding:'2px 10px', whiteSpace:'nowrap' }}>{n}</span>
+                              ))}
+                            </div>
+                          ) : null; })()}
                         </div>
                       </div>
                     ))}
