@@ -49,6 +49,17 @@ export default function CallSheetEmails() {
     } catch (e) { alert(e.message); }
   }
 
+  // Talent "Review" opens the server-rendered talent call sheet PDF (the same
+  // one built in the Share dropdown), not the talent web view.
+  async function previewTalentPdf(t) {
+    if (!t.id) return;
+    try {
+      const blob = await api.downloadTalentCallSheet(id, t.id);
+      const url = URL.createObjectURL(blob);
+      setPreview({ name: t.name, kind: 'pdf', url });
+    } catch (e) { alert('Could not generate talent call sheet: ' + e.message); }
+  }
+
   useEffect(() => { api.getProject(id).then(setProject).catch(e => alert(e.message)); }, [id]);
   useEffect(() => { api.getSchedule(id).then(setCsDays).catch(() => {}); }, [id]);
   useEffect(() => { api.getProjectTalentCalls(id).then(setTalentCalls).catch(() => {}); }, [id]);
@@ -77,14 +88,17 @@ export default function CallSheetEmails() {
       producers: uniqCrew.filter(c => KEY_PRODUCTION_POSITIONS.includes(c.sub)),
       crew: uniqCrew.filter(c => !KEY_PRODUCTION_POSITIONS.includes(c.sub)),
       clients: (project.clientContacts || []).map(c => ({ name: c.name, email: c.email, sub: c.title })),
-      talent: (project.keyTalent || []).map(t => ({ name: t.name, email: t.email, sub: t.role })),
+      talent: (project.keyTalent || []).map(t => ({ id: t.id, name: t.name, email: t.email, sub: t.role })),
     };
   }, [project]);
 
   const poc = useMemo(() => {
     if (!project?.poc_crew_member_id) return null;
     const a = (project.crewAssignments || []).find(x => x.cm_id === project.poc_crew_member_id || x.crew_member_id === project.poc_crew_member_id);
-    return a ? { name: a.cm_name || a.name, email: a.cm_email || a.email, phone: a.cm_phone || a.phone } : null;
+    return a ? {
+      name: [a.cm_pref_first, a.cm_pref_last].filter(Boolean).join(' ').trim() || a.cm_name || a.name,
+      email: a.cm_email || a.email, phone: a.cm_phone || a.phone,
+    } : null;
   }, [project]);
 
   const toggle = email => setSel(s => ({ ...s, [email]: !s[email] }));
@@ -189,7 +203,7 @@ ${sender}`);
       {list.length === 0 && <div style={{ fontSize:10, color:'var(--muted)', fontStyle:'italic', padding:'4px 2px' }}>None on this project.</div>}
       {list.map((p, i) => (
         <Row key={i} name={p.name} sub={p.sub} noEmail={!p.email}
-          onPreview={previewKind ? () => previewFor(p.name, previewKind) : undefined}
+          onPreview={previewKind ? () => (previewKind === 'talent' ? previewTalentPdf(p) : previewFor(p.name, previewKind)) : undefined}
           checked={!!(p.email && sel[p.email])} onToggle={() => p.email && toggle(p.email)} />
       ))}
     </div>
@@ -239,7 +253,7 @@ ${sender}`);
                 {section('Producers', groups.producers, '#5ABF80', sheetMode === 'full' ? 'crew' : null)}
                 {section('Crew', groups.crew, 'var(--orange)', sheetMode === 'full' ? 'crew' : null)}
                 {section('Client', groups.clients, '#4a9eff', sheetMode === 'full' ? 'client' : null)}
-                {section('Talent', groups.talent, '#e6c229', sheetMode === 'full' ? 'talent' : null)}
+                {section('Talent', groups.talent, '#e6c229', 'talent')}
               </div>
 
               <div style={card}>
