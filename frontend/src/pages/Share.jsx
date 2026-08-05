@@ -9,6 +9,17 @@ import Clapboard from '../components/Clapboard.jsx';
 
 const isMobileNow = () => typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches;
 
+// Per-project schedule color coding → --sc-* CSS vars (mirrors the internal
+// Schedule; defaults live in styles.css so unset categories fall back).
+const SC_VAR_BY_KEY = { FILMING: '--sc-filming', MEALS: '--sc-meals', TRAVEL: '--sc-travel', TALENT: '--sc-talent', GENERAL: '--sc-general' };
+function scColorVars(project) {
+  const c = project?.schedule_tag_colors;
+  const o = typeof c === 'string' ? (() => { try { return JSON.parse(c); } catch { return {}; } })() : (c || {});
+  const vars = {};
+  for (const k in SC_VAR_BY_KEY) if (o[k]) vars[SC_VAR_BY_KEY[k]] = o[k];
+  return vars;
+}
+
 // Nearest-hospital text auto-sourced onto shoot locations (stored in notes).
 const hospitalText = loc => (loc && loc.type === 'PRIMARY_VENUE' && loc.notes)
   ? String(loc.notes).replace(/^Nearest Hospital:\s*/i, '') : null;
@@ -2127,9 +2138,9 @@ function DietaryCell({ value }) {
 }
 
 const MEAL_META = {
-  BREAKFAST: { emoji:'🍳', label:'Breakfast', color:'#4ade80' },
-  LUNCH:     { emoji:'🥗', label:'Lunch',     color:'#4ade80' },
-  DINNER:    { emoji:'🍽️', label:'Dinner',    color:'#4ade80' },
+  BREAKFAST: { emoji:'🍳', label:'Breakfast', color:'var(--sc-meals)' },
+  LUNCH:     { emoji:'🥗', label:'Lunch',     color:'var(--sc-meals)' },
+  DINNER:    { emoji:'🍽️', label:'Dinner',    color:'var(--sc-meals)' },
 };
 
 // Catering service type → pill label (matches the Catering/Meals tab).
@@ -2236,10 +2247,10 @@ function DaySection({ day, showCalls, flights, drives, dayIndex, talentCallTime,
   });
 
   const SYNTHETIC_META_SHARE = {
-    ct:  { color:'#ff8c00', bg:'rgba(255,140,0,0.10)',    notesKey:'call_time_notes',      tagsKey:'call_time_tags' },
-    sct: { color:'#ff8c00', bg:'rgba(255,140,0,0.10)',    notesKey:'shooting_call_notes',  tagsKey:'shooting_call_tags' },
-    lt:  { color:'#4ade80', bg:'rgba(74,222,128,0.08)',   notesKey:'lunch_notes',          tagsKey:'lunch_tags' },
-    wt:  { color:'#ff8c00', bg:'rgba(255,140,0,0.10)',    notesKey:'wrap_time_notes',      tagsKey:'wrap_time_tags' },
+    ct:  { color:'var(--sc-filming)', bg:'rgba(255,140,0,0.10)',    notesKey:'call_time_notes',      tagsKey:'call_time_tags' },
+    sct: { color:'var(--sc-filming)', bg:'rgba(255,140,0,0.10)',    notesKey:'shooting_call_notes',  tagsKey:'shooting_call_tags' },
+    lt:  { color:'var(--sc-meals)',   bg:'rgba(74,222,128,0.08)',   notesKey:'lunch_notes',          tagsKey:'lunch_tags' },
+    wt:  { color:'var(--sc-filming)', bg:'rgba(255,140,0,0.10)',    notesKey:'wrap_time_notes',      tagsKey:'wrap_time_tags' },
   };
   const lunchCateringRaw = (day.catering || []).find(c => c.meal_type === 'LUNCH');
   const lunchCatering = lunchCateringRaw && (lunchCateringRaw.name || lunchCateringRaw.address || lunchCateringRaw.delivery_time) ? lunchCateringRaw : null;
@@ -2434,10 +2445,10 @@ function DaySection({ day, showCalls, flights, drives, dayIndex, talentCallTime,
                 return (
                   <div key={item._key} className="ev">
                     <div className="ev-time">{fmtTime(item.call_time)}</div>
-                    <div className={`ev-body${isLive(item.call_time, null) ? ' ev-live' : ''}`} style={{ borderLeft:'2px solid #a78bfa' }}>
+                    <div className={`ev-body${isLive(item.call_time, null) ? ' ev-live' : ''}`} style={{ borderLeft:'2px solid var(--sc-talent)' }}>
                       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', gap:8 }}>
                         <div className="ev-title">Talent Call — {item.name}</div>
-                        <span style={{ fontSize:9, fontWeight:800, color:'#a78bfa', border:'1px solid #a78bfa', borderRadius:10, padding:'1px 8px', whiteSpace:'nowrap', flexShrink:0 }}>Talent</span>
+                        <span style={{ fontSize:9, fontWeight:800, color:'var(--sc-talent)', border:'1px solid var(--sc-talent)', borderRadius:10, padding:'1px 8px', whiteSpace:'nowrap', flexShrink:0 }}>Talent</span>
                       </div>
                       {item.call_location && <div className="ev-detail">{item.call_location}</div>}
                     </div>
@@ -2474,7 +2485,7 @@ function DaySection({ day, showCalls, flights, drives, dayIndex, talentCallTime,
                 return (
                   <div key={item._key} className="ev">
                     <div className="ev-time">🚗 {fmtTime(item._time)}</div>
-                    <div className="ev-body" style={{ borderLeft:'2px solid #4a9eff' }}>
+                    <div className="ev-body" style={{ borderLeft:'2px solid var(--sc-travel)' }}>
                       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:8 }}>
                         <div className="ev-title">{dep ? 'Drive Departure' : 'Approx. Drive Arrival'} — {item.driver || item.driver_name || 'Driver TBD'}</div>
                         {dep && est && <span style={{ fontSize:10, fontWeight:800, color:'#e6c229', whiteSpace:'nowrap', flexShrink:0 }}>~{est} drive</span>}
@@ -2544,7 +2555,7 @@ function DaySection({ day, showCalls, flights, drives, dayIndex, talentCallTime,
                 return (
                   <div key={`f-${item.id}-${item._leg}`} className="ev">
                     <div className="ev-time"><PlaneIcon className="ev-plane" /> {item._time}</div>
-                    <div className={`ev-body${inFlight ? ' ev-live' : ''}`} style={{ borderLeft:`2px solid ${fs.alert ? fs.color : '#4a9eff'}`, ...(fs.alert ? { background: `${fs.color}11` } : {}) }}>
+                    <div className={`ev-body${inFlight ? ' ev-live' : ''}`} style={{ borderLeft:`2px solid ${fs.alert ? fs.color : 'var(--sc-travel)'}`, ...(fs.alert ? { background: `${fs.color}11` } : {}) }}>
                       {(item.origin || item.destination || item.airline || item.flight_number || item.confirmation) && (() => {
                         const fkey = `f-${item.id}-${item._leg}`;
                         return (
@@ -2597,7 +2608,7 @@ function DaySection({ day, showCalls, flights, drives, dayIndex, talentCallTime,
                 return (
                   <div key={item.id || i} id={item.id ? `ev-${item.id}` : undefined} className="ev">
                     <div className="ev-time">{fmtTime(item.start_time)}{item.end_time ? ` – ${fmtTime(item.end_time)}` : ''}</div>
-                    <div className={`ev-body${item.is_alert ? ' warn' : ''}${isLive(item.start_time, item.end_time) ? ' ev-live' : ''}`} style={eventIsGeneral(item) ? { borderLeft:'2px solid var(--border2)', opacity:0.55 } : (!item.is_alert ? { borderLeft:'2px solid var(--orange)',  } : {})}>
+                    <div className={`ev-body${item.is_alert ? ' warn' : ''}${isLive(item.start_time, item.end_time) ? ' ev-live' : ''}`} style={eventIsGeneral(item) ? { borderLeft:'2px solid var(--sc-general)', opacity:0.55 } : (!item.is_alert ? { borderLeft:'2px solid var(--sc-filming)',  } : {})}>
                       {loc?.address && (
                         <button className={`ev-locpin${openLoc[item.id || i] ? ' on' : ''}`}
                           onClick={e => { e.stopPropagation(); setOpenLoc(o => ({ ...o, [item.id || i]: !o[item.id || i] })); }}
@@ -3055,7 +3066,7 @@ export default function Share() {
           style={{ background:'var(--bg3)', border:'1px solid var(--border2)', color:'var(--tan)', borderRadius:6, padding:'5px 12px', fontSize:12, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}
         >PDF</button>
       </nav>
-      <div className="wrap">
+      <div className="wrap" style={scColorVars(data.project)}>
         {hasQuestions && sharePage === 'questions' ? (
           <QuestionsView shareToken={token} pw={resolvedPw} canAnswer={view_type === 'producer'} project={data.project} />
         ) : hasExtraDocs && sharePage === 'extra-docs' ? (
