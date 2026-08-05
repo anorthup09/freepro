@@ -23,6 +23,74 @@ function HospLine({ loc }) {
   );
 }
 
+// Dates a location is used on, derived from the schedule (events + day-level
+// call/lunch/wrap location refs). Compact "Aug 6" or "Aug 6 – Aug 8".
+function locationDatesLabel(locId, schedule) {
+  if (!locId || !schedule) return '';
+  const dates = new Set();
+  for (const day of schedule) {
+    const used = (day.events || []).some(e => e.location_id === locId)
+      || [day.call_time_location_id, day.shooting_call_location_id, day.lunch_location_id, day.wrap_time_location_id].includes(locId);
+    if (used && day.date) dates.add(String(day.date).slice(0, 10));
+  }
+  const sorted = [...dates].sort();
+  if (!sorted.length) return '';
+  const f = d => new Date(d + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return sorted.length === 1 ? f(sorted[0]) : `${f(sorted[0])} – ${f(sorted[sorted.length - 1])}`;
+}
+
+// Locations as compact lines: Type | Name | Address | Dates | + Map, with the
+// nearest hospital indented under shoot locations. Shared by producer & crew.
+function LocationsSection({ locations, schedule }) {
+  if (!locations?.length) return null;
+  const col = { type: '0 0 116px', name: '1 1 150px', addr: '2 1 220px', dates: '0 0 110px' };
+  const mapBtn = { flex: '0 0 auto', display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(232,80,10,0.14)', border: '1px solid var(--orange)', color: 'var(--orange)', borderRadius: 8, padding: '3px 11px', fontSize: 11, fontWeight: 800, textDecoration: 'none', whiteSpace: 'nowrap' };
+  const hdr = { fontSize: 9, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--muted)' };
+  return (
+    <section className="share-section">
+      <div className="sec-lbl">Locations</div>
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        <div className="loc-line-hdr" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0 0 6px', borderBottom: '1px solid var(--border2)' }}>
+          <span style={{ ...hdr, flex: col.type }}>Type</span>
+          <span style={{ ...hdr, flex: col.name }}>Location</span>
+          <span style={{ ...hdr, flex: col.addr }}>Address</span>
+          <span style={{ ...hdr, flex: col.dates }}>Dates</span>
+          <span style={{ ...hdr, flex: '0 0 auto', width: 64, textAlign: 'right' }}>Map</span>
+        </div>
+        {locations.map(l => {
+          const hosp = hospitalText(l);
+          const typeLabel = l.type ? (LOCATION_TYPE_LABEL[l.type] || l.type) : 'Location';
+          const dates = locationDatesLabel(l.id, schedule);
+          return (
+            <div key={l.id} style={{ borderBottom: '1px solid var(--border)', padding: '9px 0' }}>
+              <div className="loc-line" style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
+                <span style={{ flex: col.type, fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.07em', fontWeight: 700 }}>{typeLabel}</span>
+                <span style={{ flex: col.name, minWidth: 0, fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{l.name}</span>
+                <span style={{ flex: col.addr, minWidth: 0, fontSize: 12, color: 'var(--muted)' }}>{l.address || '—'}</span>
+                <span style={{ flex: col.dates, fontSize: 12, color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>{dates || '—'}</span>
+                {l.address
+                  ? <a href={mapsUrl(l.address)} target="_blank" rel="noreferrer" style={mapBtn}>+ Map</a>
+                  : <span style={{ flex: '0 0 auto', width: 64 }} />}
+              </div>
+              {hosp && (
+                <div style={{ marginLeft: 20, marginTop: 4, fontSize: 11, color: 'var(--muted)' }}>
+                  <span style={{ fontWeight: 700, color: 'var(--tan)' }}>Nearest Hospital: </span>{hosp}
+                </div>
+              )}
+              {l.arrival_notes && (
+                <div style={{ marginLeft: 20, marginTop: 4, fontSize: 11, color: 'var(--muted)', whiteSpace: 'pre-wrap' }}>
+                  <span style={{ fontWeight: 700, color: 'var(--tan)' }}>Arrival: </span>{l.arrival_notes}
+                </div>
+              )}
+              {l.space_map && <img src={l.space_map} alt={`Space map for ${l.name}`} style={{ maxWidth: '100%', maxHeight: 320, borderRadius: 6, marginTop: 8, marginLeft: 20, display: 'block' }} />}
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 // Travel-tagged schedule events are stripped from a local person's call sheet.
 const eventIsTravel = e => (e.tags || []).some(t => (t?.type || t) === 'TRAVEL');
 // General = neutral info unrelated to crew/video/talent/travel — shown grayed out.
@@ -126,7 +194,7 @@ function GeneralNotesBlock({ notes }) {
 }
 
 // Post-Production deliverables, grouped by Type (tracker_type) with a pill first column.
-function DeliverablesBlock({ deliverables, gear }) {
+function DeliverablesBlock({ deliverables, gear, frameRate }) {
   if (!deliverables?.length) return null;
   const byType = {};
   deliverables.forEach(d => { const t = delivTypeOf(d); (byType[t] ||= []).push(d); });
@@ -155,7 +223,7 @@ function DeliverablesBlock({ deliverables, gear }) {
               d.title + (d.is_urgent ? ' ⚠' : ''),
               STATUS_LABEL[d.status] || d.status,
               d.editor_name || '—',
-              [d.aspect_ratio, d.resolution].filter(Boolean).join(' · ') || '—',
+              [d.aspect_ratio, d.resolution, frameRate ? `${frameRate} fps` : null].filter(Boolean).join(' · ') || '—',
               d.due_date || '—',
             ])}
           />
@@ -726,44 +794,7 @@ function ProducerView({ data, hideGear, onOpenShotList, shareToken, pw }) {
         </section>
       )}
 
-      {locations?.length > 0 && (
-        <section className="share-section">
-          <div className="sec-lbl">Locations</div>
-          <div className="loc-grid">
-            {locations.map(l => (
-              <div key={l.id} className="loc" style={{ alignItems:'stretch' }}>
-                <div className="loc-ico">{l.emoji || '📍'}</div>
-                <div style={{ flex:1, minWidth:0 }}>
-                  <div className="loc-name">
-                    {l.type && <span style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', fontWeight:600 }}>{LOCATION_TYPE_LABEL[l.type] || l.type} — </span>}
-                    {l.name}
-                  </div>
-                  {l.address
-                    ? <a href={mapsUrl(l.address)} target="_blank" rel="noreferrer" className="loc-addr" style={{ color:'var(--tan)', textDecoration:'underline', display:'block' }}>{l.address}</a>
-                    : null}
-                  {l.arrival_notes && <div style={{ fontSize:11, color:'var(--muted)', marginTop:5, whiteSpace:'pre-wrap' }}><span style={{ fontWeight:700, color:'var(--tan)' }}>Arrival: </span>{l.arrival_notes}</div>}
-                  <HospLine loc={l} />
-                  {l.space_map && <img src={l.space_map} alt={`Space map for ${l.name}`} style={{ maxWidth:'100%', maxHeight:320, borderRadius:6, marginTop:8, display:'block' }} />}
-                </div>
-                {l.address && (
-                  <a href={mapsUrl(l.address)} target="_blank" rel="noreferrer"
-                    style={{ position:'relative', display:'block', flex:'0 0 42%', maxWidth:240, minWidth:110, minHeight:96, borderRadius:8, overflow:'hidden', border:'1px solid var(--border)', alignSelf:'stretch' }}>
-                    <iframe
-                      title={`Map — ${l.name}`}
-                      src={`https://maps.google.com/maps?q=${encodeURIComponent(l.address)}&z=14&output=embed`}
-                      style={{ width:'100%', height:'100%', border:0, pointerEvents:'none', display:'block', position:'absolute', inset:0 }}
-                      loading="lazy"
-                    />
-                    <span style={{ position:'absolute', bottom:6, right:6, background:'rgba(10,10,8,0.85)', color:'var(--tan)', fontSize:9, fontWeight:700, borderRadius:5, padding:'3px 7px', border:'1px solid var(--border2)' }}>
-                      Maps ↗
-                    </span>
-                  </a>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
+      <LocationsSection locations={locations} schedule={schedule} />
 
       {clientContacts?.length > 0 && (
         <section className="share-section">
@@ -789,7 +820,7 @@ function ProducerView({ data, hideGear, onOpenShotList, shareToken, pw }) {
       {!hideGear && <GearSection gear={gear} onlineRentals={onlineRentals} producerView />}
 
       {/* ── Post-Production ── */}
-      <DeliverablesBlock deliverables={deliverables} gear={gear} />
+      <DeliverablesBlock deliverables={deliverables} gear={gear} frameRate={techSpecs?.frame_rate} />
 
       {/* ── Schedule (with integrated flights) at bottom ── */}
       <div ref={scheduleRef}>
@@ -944,44 +975,7 @@ function CrewView({ data, shareToken, hideGear, onOpenShotList, pw }) {
         </section>
       )}
 
-      {locations?.length > 0 && (
-        <section className="share-section">
-          <div className="sec-lbl">Locations</div>
-          <div className="loc-grid">
-            {locations.map(l => (
-              <div key={l.id} className="loc" style={{ alignItems:'stretch' }}>
-                <div className="loc-ico">{l.emoji || '📍'}</div>
-                <div style={{ flex:1, minWidth:0 }}>
-                  <div className="loc-name">
-                    {l.type && <span style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', fontWeight:600 }}>{LOCATION_TYPE_LABEL[l.type] || l.type} — </span>}
-                    {l.name}
-                  </div>
-                  {l.address
-                    ? <a href={mapsUrl(l.address)} target="_blank" rel="noreferrer" className="loc-addr" style={{ color:'var(--tan)', textDecoration:'underline', display:'block' }}>{l.address}</a>
-                    : null}
-                  {l.arrival_notes && <div style={{ fontSize:11, color:'var(--muted)', marginTop:5, whiteSpace:'pre-wrap' }}><span style={{ fontWeight:700, color:'var(--tan)' }}>Arrival: </span>{l.arrival_notes}</div>}
-                  <HospLine loc={l} />
-                  {l.space_map && <img src={l.space_map} alt={`Space map for ${l.name}`} style={{ maxWidth:'100%', maxHeight:320, borderRadius:6, marginTop:8, display:'block' }} />}
-                </div>
-                {l.address && (
-                  <a href={mapsUrl(l.address)} target="_blank" rel="noreferrer"
-                    style={{ position:'relative', display:'block', flex:'0 0 42%', maxWidth:240, minWidth:110, minHeight:96, borderRadius:8, overflow:'hidden', border:'1px solid var(--border)', alignSelf:'stretch' }}>
-                    <iframe
-                      title={`Map — ${l.name}`}
-                      src={`https://maps.google.com/maps?q=${encodeURIComponent(l.address)}&z=14&output=embed`}
-                      style={{ width:'100%', height:'100%', border:0, pointerEvents:'none', display:'block', position:'absolute', inset:0 }}
-                      loading="lazy"
-                    />
-                    <span style={{ position:'absolute', bottom:6, right:6, background:'rgba(10,10,8,0.85)', color:'var(--tan)', fontSize:9, fontWeight:700, borderRadius:5, padding:'3px 7px', border:'1px solid var(--border2)' }}>
-                      Maps ↗
-                    </span>
-                  </a>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
+      <LocationsSection locations={locations} schedule={schedule} />
 
       {clientContacts?.length > 0 && (
         <section className="share-section">
@@ -1006,7 +1000,7 @@ function CrewView({ data, shareToken, hideGear, onOpenShotList, pw }) {
 
       {!hideGear && <GearSection gear={gear} onlineRentals={onlineRentals} shareToken={shareToken} />}
 
-      <DeliverablesBlock deliverables={deliverables} gear={gear} />
+      <DeliverablesBlock deliverables={deliverables} gear={gear} frameRate={techSpecs?.frame_rate} />
 
       <div ref={scheduleRef}>
         {sortedSchedule.length > 0 && (
