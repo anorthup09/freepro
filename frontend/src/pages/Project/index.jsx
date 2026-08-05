@@ -133,18 +133,42 @@ function DropdownTab({ label, subtabs, tab, setTab, dropUp, icon, excludeActive 
 
 const FRONTEND_BASE = window.location.origin;
 
+const csLongDate = d => d ? new Date(String(d).slice(0, 10) + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : '';
+
 export function ShareDropdown({ projectId, showShotList, crews = [] }) {
   const navigate = useNavigate();
   const [shares, setShares] = useState([]);
   const [open, setOpen] = useState(false);
   const [toast, setToast] = useState('');
-  const [openSec, setOpenSec] = useState({ copy: false, pdf: false, crewCopy: false, crewPdf: false });
+  const [openSec, setOpenSec] = useState({ copy: false, pdf: false, crewCopy: false, crewPdf: false, callsheet: false });
   const toggleSec = k => setOpenSec(s => ({ ...s, [k]: !s[k] }));
+  const [csDays, setCsDays] = useState([]);
+  const [csDownloading, setCsDownloading] = useState(false);
   const ref = useRef(null);
 
   useEffect(() => {
     api.getShares(projectId).then(setShares).catch(() => {});
+    api.getSchedule(projectId).then(setCsDays).catch(() => {});
   }, [projectId]);
+
+  // Days that actually have a call sheet (call times / schedule), matching the Call Sheet page.
+  const sheetDays = (csDays || []).filter(d => d.call_time || d.shooting_call_time || d.wrap_time || (d.events || []).length || (d.crewCalls || []).length);
+
+  async function downloadCallSheet(dayId) {
+    if (csDownloading) return;
+    setCsDownloading(true);
+    try {
+      const blob = await api.downloadCallSheet(projectId, dayId);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const idx = dayId ? sheetDays.findIndex(d => d.id === dayId) + 1 : 0;
+      a.href = url; a.download = `call-sheet${dayId ? `-day${idx}` : ''}.pdf`;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      setOpen(false);
+    } catch (e) { alert('Could not generate PDF: ' + e.message); }
+    finally { setCsDownloading(false); }
+  }
 
   useEffect(() => {
     function handleClick(e) {
@@ -244,6 +268,25 @@ export function ShareDropdown({ projectId, showShotList, crews = [] }) {
             )}
             <div className="share-menu-item" onClick={() => openPdf('client')}>Client PDF</div>
           </>}
+          {/* ── Daily Call Sheets (PDF) (collapsible) ── */}
+          <div className="share-menu-item" onClick={() => toggleSec('callsheet')}
+            style={{ borderTop:'1px solid var(--border)', margin:'4px 0 0', padding:'6px 14px', fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', cursor:'pointer', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+            <span>Daily Call Sheets (PDF)</span><span>{openSec.callsheet ? '▾' : '▸'}</span>
+          </div>
+          {openSec.callsheet && (
+            sheetDays.length === 0
+              ? <div className="share-menu-item" style={{ color:'var(--muted)', fontStyle:'italic' }}>No call sheet days yet</div>
+              : <>
+                  <div className="share-menu-item" style={{ fontWeight:700 }} onClick={() => downloadCallSheet(null)}>
+                    {csDownloading ? 'Generating…' : `All days (${sheetDays.length})`}
+                  </div>
+                  {sheetDays.map((d, i) => (
+                    <div key={d.id} className="share-menu-item" style={{ paddingLeft:26 }} onClick={() => downloadCallSheet(d.id)}>
+                      Day {i + 1} — {csLongDate(d.date)}
+                    </div>
+                  ))}
+                </>
+          )}
           <div style={{ borderTop:'1px solid var(--border)', margin:'4px 0' }} />
           {showShotList && (
             <div className="share-menu-item" onClick={async () => {

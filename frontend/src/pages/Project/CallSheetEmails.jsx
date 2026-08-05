@@ -138,10 +138,6 @@ export default function CallSheetEmails() {
                 <div className="page-title">Send Call Sheet Emails</div>
                 <div className="page-sub">{project.code} — {project.title}</div>
               </div>
-              <button className="btn btn-primary btn-sm" title="Open the print-ready call sheet, then download all days or any single day as a PDF"
-                onClick={() => window.open(`/projects/${id}/call-sheet`, '_blank')}>
-                📄 Full Call Sheet (PDF)
-              </button>
             </div>
             <div style={{ fontSize:11, color:'var(--muted)', margin:'6px 0 18px' }}>
               Emails send from the Main POC's inbox{poc ? ` — ${poc.name}${poc.email ? ` (${poc.email})` : ''}` : ' — set a Main POC on the project Overview'}.
