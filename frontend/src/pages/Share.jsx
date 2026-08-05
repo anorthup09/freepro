@@ -187,6 +187,12 @@ function fmtDT(dt) {
   if (!dt) return '—';
   return new Date(dt).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
 }
+// Calendar-date fields (rental car pickup/dropoff): format from the date part at
+// local noon so the timezone can't shift the displayed day backward.
+function fmtDayOnly(dt) {
+  if (!dt) return '—';
+  return new Date(String(dt).slice(0, 10) + 'T12:00:00').toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+}
 function fmtTime(str) {
   if (!str) return '';
   if (/AM|PM/i.test(str)) return str;
@@ -714,8 +720,8 @@ function ProducerView({ data, hideGear, onOpenShotList, shareToken, pw }) {
         <section className="share-section">
           <div className="sec-lbl">Rental Cars</div>
           <ShareTable
-            cols={['Vendor','Pick-up','Drop-off','Pick-up Date','Drop-off Date','Confirmation']}
-            rows={rentalCars.map(r => [r.vendor, r.pickup_location||'—', r.dropoff_location||'—', fmtDT(r.pickup_date), fmtDT(r.dropoff_date), r.confirmation||'—'])}
+            cols={['Company','Crew','Pick-up','Drop-off','Pick-up Date','Drop-off Date','Confirmation']}
+            rows={rentalCars.map(r => [r.vendor, r.crew_name||'—', r.pickup_location||'—', r.dropoff_location||'—', fmtDayOnly(r.pickup_date), fmtDayOnly(r.dropoff_date), r.confirmation||'—'])}
           />
         </section>
       )}
@@ -932,8 +938,8 @@ function CrewView({ data, shareToken, hideGear, onOpenShotList, pw }) {
         <section className="share-section">
           <div className="sec-lbl">Rental Cars</div>
           <ShareTable
-            cols={['Vendor','Pick-up','Drop-off','Pick-up Date','Drop-off Date','Confirmation']}
-            rows={rentalCars.map(r => [r.vendor, r.pickup_location||'—', r.dropoff_location||'—', fmtDT(r.pickup_date), fmtDT(r.dropoff_date), r.confirmation||'—'])}
+            cols={['Company','Crew','Pick-up','Drop-off','Pick-up Date','Drop-off Date','Confirmation']}
+            rows={rentalCars.map(r => [r.vendor, r.crew_name||'—', r.pickup_location||'—', r.dropoff_location||'—', fmtDayOnly(r.pickup_date), fmtDayOnly(r.dropoff_date), r.confirmation||'—'])}
           />
         </section>
       )}

@@ -6,6 +6,13 @@ function fmt(dt) {
   return new Date(dt).toLocaleDateString('en-US', { month:'short', day:'numeric' });
 }
 
+// Date-only fields (rental car pickup/dropoff) are stored as a calendar date;
+// format from the date part at local noon so the timezone can't shift the day.
+function fmtDay(dt) {
+  if (!dt) return '';
+  return new Date(String(dt).slice(0, 10) + 'T12:00:00').toLocaleDateString('en-US', { month:'short', day:'numeric' });
+}
+
 // One connecting-flight (layover) segment in the Add Flight form. Presentational:
 // the parent owns the lookup + field state and passes handlers in.
 function ConnectSegment({ seg, label, onChange, onLookup, onRemove }) {
@@ -649,8 +656,9 @@ export default function Travel({ project }) {
     try {
       const payload = {
         ...carForm,
-        pickupDate: carForm.pickupDate ? new Date(carForm.pickupDate).toISOString() : null,
-        dropoffDate: carForm.dropoffDate ? new Date(carForm.dropoffDate).toISOString() : null,
+        // Anchor at noon UTC so the stored calendar date is stable across timezones.
+        pickupDate: carForm.pickupDate ? carForm.pickupDate + 'T12:00:00Z' : null,
+        dropoffDate: carForm.dropoffDate ? carForm.dropoffDate + 'T12:00:00Z' : null,
         cost: carForm.cost || null,
       };
       if (carEditId) {
@@ -981,10 +989,11 @@ export default function Travel({ project }) {
         <div key={c.id} className="frow" style={{ flexWrap:'wrap' }}>
           <div className="fname">{c.vendor}</div>
           {c.pickup_location && <div className="froute"><span>{c.pickup_location}</span>{c.dropoff_location && <><span className="farrow">→</span><span>{c.dropoff_location}</span></>}</div>}
-          {c.pickup_date && <div className="ftimes">{fmt(c.pickup_date)}{c.dropoff_date && ` – ${fmt(c.dropoff_date)}`}</div>}
+          {c.pickup_date && <div className="ftimes">{fmtDay(c.pickup_date)}{c.dropoff_date && ` – ${fmtDay(c.dropoff_date)}`}</div>}
           {c.confirmation && <span style={{ fontSize:10, color:'var(--muted)' }}>{c.confirmation}</span>}
           {c.cost && <span style={{ fontSize:10, color:'var(--green)', fontWeight:600 }}>{fmtCost(c.cost)}</span>}
           {c.notes && <span style={{ fontSize:10, color:'var(--muted)' }}>{c.notes}</span>}
+          {c.crew_name && <span style={{ fontSize:10, color:'var(--tan)', fontWeight:600, marginLeft:'auto' }}>👤 {c.crew_name}</span>}
           <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11, marginLeft:'auto' }} onClick={() => openEditCar(c)}>Edit</button>
           <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11 }} onClick={() => removeCar(c.id)}>✕</button>
         </div>
@@ -1332,7 +1341,7 @@ export default function Travel({ project }) {
                     {crewOptions}
                   </select>
                 </div>
-                <div className="field span2"><label>Renter</label><input value={carForm.vendor} onChange={e => setCarForm(f=>({...f,vendor:e.target.value}))} placeholder="Renter name" required /></div>
+                <div className="field span2"><label>Car Rental Company</label><input value={carForm.vendor} onChange={e => setCarForm(f=>({...f,vendor:e.target.value}))} placeholder="Enterprise, Hertz, National…" required /></div>
                 <div className="field"><label>Pickup Location</label>
                   <PlaceField value={carForm.pickupLocation} address={carForm.pickupAddress} placeholder="MCI Airport"
                     onChange={v => setCarForm(f=>({ ...f, pickupLocation: v.text, pickupAddress: v.address }))} /></div>

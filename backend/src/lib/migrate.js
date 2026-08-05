@@ -435,6 +435,7 @@ async function migrate() {
       created_at TIMESTAMPTZ DEFAULT NOW()
     )
   `;
+  await sql`ALTER TABLE rental_cars ADD COLUMN IF NOT EXISTS crew_member_id TEXT`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS agency_contacts (

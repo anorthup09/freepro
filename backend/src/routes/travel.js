@@ -189,19 +189,29 @@ async function feedCarLocation(projectId, { vendor, pickupLocation, pickupAddres
   } catch (e) { console.error('rental car location feed failed:', e.message); }
 }
 
+const carWithCrew = id => sql`
+  SELECT rc.*, COALESCE(NULLIF(TRIM(CONCAT(cm.preferred_first_name, ' ', cm.preferred_last_name)), ''), cm.name) as crew_name
+  FROM rental_cars rc LEFT JOIN crew_members cm ON cm.id = rc.crew_member_id WHERE rc.id = ${id}`;
+
 router.get('/:id/travel/rental-cars', requireAuth, async (req, res, next) => {
-  try { res.json(await sql`SELECT * FROM rental_cars WHERE project_id = ${req.params.id} ORDER BY created_at`); } catch(e){next(e);}
+  try {
+    res.json(await sql`
+      SELECT rc.*, COALESCE(NULLIF(TRIM(CONCAT(cm.preferred_first_name, ' ', cm.preferred_last_name)), ''), cm.name) as crew_name
+      FROM rental_cars rc LEFT JOIN crew_members cm ON cm.id = rc.crew_member_id
+      WHERE rc.project_id = ${req.params.id} ORDER BY rc.created_at`);
+  } catch(e){next(e);}
 });
 
 router.post('/:id/travel/rental-cars', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const { vendor, pickupLocation, dropoffLocation, pickupDate, dropoffDate, confirmation, cost, notes } = req.body;
+    const { vendor, pickupLocation, dropoffLocation, pickupDate, dropoffDate, confirmation, cost, notes, crewMemberId } = req.body;
     const [c] = await sql`
-      INSERT INTO rental_cars (id, project_id, vendor, pickup_location, dropoff_location, pickup_date, dropoff_date, confirmation, cost, notes)
-      VALUES (gen_random_uuid()::text, ${req.params.id}, ${vendor}, ${pickupLocation||null}, ${dropoffLocation||null}, ${pickupDate||null}, ${dropoffDate||null}, ${confirmation||null}, ${cost||null}, ${notes||null})
+      INSERT INTO rental_cars (id, project_id, vendor, pickup_location, dropoff_location, pickup_date, dropoff_date, confirmation, cost, notes, crew_member_id)
+      VALUES (gen_random_uuid()::text, ${req.params.id}, ${vendor}, ${pickupLocation||null}, ${dropoffLocation||null}, ${pickupDate||null}, ${dropoffDate||null}, ${confirmation||null}, ${cost||null}, ${notes||null}, ${crewMemberId||null})
       RETURNING *`;
     await feedCarLocation(req.params.id, req.body);
-    res.status(201).json(c);
+    const [full] = await carWithCrew(c.id);
+    res.status(201).json(full);
   } catch(e){next(e);}
 });
 
@@ -217,14 +227,16 @@ router.patch('/:id/travel/rental-cars/:cid', requireAuth, requireRole('ADMIN','P
         dropoff_date = ${d.dropoffDate !== undefined ? (d.dropoffDate || null) : sql`dropoff_date`},
         confirmation = ${d.confirmation !== undefined ? (d.confirmation || null) : sql`confirmation`},
         cost = ${d.cost != null ? d.cost : sql`cost`},
-        notes = ${d.notes !== undefined ? (d.notes || null) : sql`notes`}
+        notes = ${d.notes !== undefined ? (d.notes || null) : sql`notes`},
+        crew_member_id = ${d.crewMemberId !== undefined ? (d.crewMemberId || null) : sql`crew_member_id`}
       WHERE id = ${req.params.cid}
       RETURNING *`;
     if (c) await feedCarLocation(req.params.id, {
       vendor: c.vendor, pickupLocation: c.pickup_location, pickupAddress: d.pickupAddress,
       dropoffLocation: c.dropoff_location, dropoffAddress: d.dropoffAddress,
     });
-    res.json(c);
+    const [full] = c ? await carWithCrew(c.id) : [null];
+    res.json(full || c);
   } catch(e){next(e);}
 });
 
