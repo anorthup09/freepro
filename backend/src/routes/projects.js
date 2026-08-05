@@ -496,7 +496,7 @@ router.get('/:id/call-sheet.pdf', requireAuth, requireRole('ADMIN','PRODUCER'), 
             LEFT JOIN locations l ON l.id = se.location_id
             WHERE se.shoot_day_id = ANY(${sql.array(dayIds)}) GROUP BY se.id, l.name, l.address ORDER BY se.start_time`,
         sql`SELECT * FROM crew_day_calls WHERE shoot_day_id = ANY(${sql.array(dayIds)})`,
-        sql`SELECT talent_id, shoot_day_id FROM talent_day_calls WHERE shoot_day_id = ANY(${sql.array(dayIds)})`,
+        sql`SELECT talent_id, shoot_day_id, call_time FROM talent_day_calls WHERE shoot_day_id = ANY(${sql.array(dayIds)})`,
       ]);
     }
     const evByDay = {}, callByDay = {};
@@ -512,15 +512,29 @@ router.get('/:id/call-sheet.pdf', requireAuth, requireRole('ADMIN','PRODUCER'), 
       talent: anyTalentScheduled ? keyTalent.filter(t => talentByDay[d.id]?.has(t.id)) : keyTalent,
     }));
     const sheetDays = fullDays.filter(d => d.call_time || d.shooting_call_time || d.wrap_time || (d.events || []).length || (d.crewCalls || []).length);
-    const renderDays = req.query.day ? sheetDays.filter(d => d.id === req.query.day) : sheetDays;
+
+    // Talent call sheet: one talent's own sheet — their call time in the header,
+    // only their days (falling back to all if they have no per-day calls).
+    let talentSel = null;
+    if (req.query.talent) {
+      const t = keyTalent.find(x => x.id === req.query.talent);
+      if (t) {
+        const callByDay = {};
+        for (const tc of talentCalls) if (tc.talent_id === t.id) callByDay[tc.shoot_day_id] = tc.call_time;
+        talentSel = { id: t.id, name: t.name, role: t.role, phone: t.phone, email: t.email, call_time: '', callByDay };
+      }
+    }
+    let renderDays = req.query.day ? sheetDays.filter(d => d.id === req.query.day) : sheetDays;
+    if (talentSel && Object.keys(talentSel.callByDay).length) renderDays = renderDays.filter(d => talentSel.callByDay[d.id]);
     if (!renderDays.length) return res.status(404).json({ error: 'No call-sheet days to render yet — add call times or a schedule.' });
 
     const projectForPdf = { ...project, locations, techSpecs: techSpecsRows[0] || null, clientContacts, keyTalent, crewAssignments };
     const { renderCallSheet } = require('../lib/callsheet-pdf');
-    const buf = await renderCallSheet({ project: projectForPdf, allDays: sheetDays, renderDays });
+    const buf = await renderCallSheet({ project: projectForPdf, allDays: sheetDays, renderDays, talent: talentSel });
     const base = String(project.code || 'call-sheet').replace(/[^\w.-]+/g, '_');
+    const suffix = talentSel ? '_' + String(talentSel.name || 'talent').replace(/[^\w.-]+/g, '_') : (req.query.day ? '_day' : '');
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${base}${req.query.day ? '_day' : ''}_call_sheet.pdf"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${base}${suffix}_call_sheet.pdf"`);
     res.send(buf);
   } catch(e){next(e);}
 });

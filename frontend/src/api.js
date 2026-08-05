@@ -283,6 +283,14 @@ export const api = {
     if (!r.ok) { let m = 'PDF generation failed'; try { m = (await r.json()).error || m; } catch { /* non-JSON */ } throw new Error(m); }
     return await r.blob();
   },
+  // One talent's own call sheet PDF (blob) — same layout as the crew call sheet.
+  downloadTalentCallSheet: async (projectId, talentId) => {
+    const t = localStorage.getItem('fp_token');
+    const url = `${BASE}/projects/${projectId}/call-sheet.pdf?talent=${encodeURIComponent(talentId)}`;
+    const r = await fetch(url, { headers: t ? { Authorization: `Bearer ${t}` } : {} });
+    if (!r.ok) { let m = 'PDF generation failed'; try { m = (await r.json()).error || m; } catch { /* non-JSON */ } throw new Error(m); }
+    return await r.blob();
+  },
 
   // Tech specs
   saveTechSpecs: (projectId, data) => req('PUT', `/projects/${projectId}/tech-specs`, data),

@@ -11,6 +11,14 @@ const fmtLongDate = d => {
   const dt = new Date(iso + 'T12:00:00');
   return isNaN(dt) ? '' : dt.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 };
+const fmt12 = t => {
+  if (!t) return '';
+  if (/am|pm/i.test(String(t))) return String(t);
+  const m = String(t).match(/^(\d{1,2}):(\d{2})/);
+  if (!m) return String(t);
+  let h = +m[1]; const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12;
+  return `${h}:${m[2]} ${ap}`;
+};
 const LOC_LABELS = { PRIMARY_VENUE: 'Shooting Location', CREW_HOTEL: 'Hotel', SECONDARY: 'Location', AIRPORT: 'Airport', OTHER: 'Location' };
 const stripName = (addr, name) => {
   if (!addr) return '';
@@ -21,7 +29,7 @@ const stripName = (addr, name) => {
 
 const C = { orange: '#E8500A', text: '#111', muted: '#555', tan: '#333', border: '#c9c9c9', line: '#e2e2e2', headBg: '#f4f4f4', boxBg: '#fafafa' };
 
-async function renderCallSheet({ project, allDays, renderDays }) {
+async function renderCallSheet({ project, allDays, renderDays, talent = null }) {
   const { Document, Page, Text, View, StyleSheet, renderToBuffer } = await import('@react-pdf/renderer');
 
   const st = StyleSheet.create({
@@ -35,6 +43,8 @@ async function renderCallSheet({ project, allDays, renderDays }) {
     sub: { fontSize: 9, color: C.muted, lineHeight: 1.2, marginBottom: 3 },
     date: { fontSize: 10, fontFamily: 'Helvetica-Bold', lineHeight: 1.2 },
     specs: { fontSize: 8, color: C.muted, lineHeight: 1.2, marginTop: 4 },
+    talentCallLbl: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: C.muted, textTransform: 'uppercase', letterSpacing: 0.8, textAlign: 'center' },
+    talentCallVal: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: C.text, textAlign: 'center', marginTop: 2 },
     timeRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 1.5 },
     timeLbl: { fontSize: 8, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.4, fontFamily: 'Helvetica-Bold' },
     timeVal: { fontSize: 10, fontFamily: 'Helvetica-Bold' },
@@ -87,9 +97,13 @@ async function renderCallSheet({ project, allDays, renderDays }) {
       day.call_time_location_id, day.shooting_call_location_id, day.lunch_location_id, day.wrap_time_location_id,
     ].filter(Boolean));
     const dayLocations = (project.locations || []).filter(l => taggedLocIds.has(l.id));
-    const keyTalent = day.talent || project.keyTalent || [];
+    // Talent call sheet: only the selected talent in the Talent table, and only
+    // the Field Producer in the Production Crew table (client stays in its section).
+    const keyTalent = talent ? [talent] : (day.talent || project.keyTalent || []);
     const clientContacts = project.clientContacts || [];
-    const crew = (project.crewAssignments || []).filter(a => crewName(a));
+    const crew = (project.crewAssignments || []).filter(a => crewName(a))
+      .filter(a => !talent || /field producer/i.test(a.position_name || ''));
+    const talentCall = talent ? fmt12(talent.callByDay?.[day.id] || day.call_time || '') : null;
     const nameById = {};
     for (const a of crew) if (a.cm_id) nameById[a.cm_id] = crewName(a);
     const callFor = a => (day.crewCalls || []).find(c => c.crew_assignment_id === a.id)?.call_time || day.call_time || '';
@@ -112,10 +126,15 @@ async function renderCallSheet({ project, allDays, renderDays }) {
           h(Text, { style: st.date }, fmtLongDate(day.date)),
           specBits.length ? h(Text, { style: st.specs }, h(Text, { style: { color: C.tan, fontFamily: 'Helvetica-Bold' } }, 'Tech Specs: '), specBits.join(' · ')) : null,
         ),
-        h(View, { style: st.hMid },
-          timeRow('Crew Call', day.call_time), timeRow('Shooting Call', day.shooting_call_time),
-          timeRow('Lunch', day.lunch_time), timeRow('Wrap', day.wrap_time),
-        ),
+        talent
+          ? h(View, { style: [st.hMid, { justifyContent: 'center' }] },
+              h(Text, { style: st.talentCallLbl }, 'Talent Call Time'),
+              h(Text, { style: st.talentCallVal }, talentCall || 'TBD'),
+            )
+          : h(View, { style: st.hMid },
+              timeRow('Crew Call', day.call_time), timeRow('Shooting Call', day.shooting_call_time),
+              timeRow('Lunch', day.lunch_time), timeRow('Wrap', day.wrap_time),
+            ),
         wxBits.length ? h(View, { style: st.hRight },
           h(Text, { style: st.wxHead }, 'Weather'),
           wxBits.map((w, i) => h(Text, { key: i, style: st.wx }, w)),

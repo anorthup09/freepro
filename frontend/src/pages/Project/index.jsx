@@ -170,6 +170,16 @@ export function ShareDropdown({ projectId, showShotList, crews = [] }) {
     finally { setCsDownloading(false); }
   }
 
+  async function openTalentCallSheet(talentId) {
+    try {
+      const blob = await api.downloadTalentCallSheet(projectId, talentId);
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+      setOpen(false);
+    } catch (e) { alert('Could not generate PDF: ' + e.message); }
+  }
+
   useEffect(() => {
     function handleClick(e) {
       if (ref.current && !ref.current.contains(e.target)) setOpen(false);
@@ -303,7 +313,7 @@ export function ShareDropdown({ projectId, showShotList, crews = [] }) {
               talentList.length === 0
                 ? <div className="share-menu-item" style={{ paddingLeft:34, color:'var(--muted)', fontStyle:'italic' }}>No talent added yet</div>
                 : talentList.map(t => (
-                    <div key={t.id} className="share-menu-item" style={{ paddingLeft:34 }} onClick={() => openPdf('talent', t.name)}>{t.name}</div>
+                    <div key={t.id} className="share-menu-item" style={{ paddingLeft:34 }} onClick={() => openTalentCallSheet(t.id)}>{t.name}</div>
                   ))
             )}
           </>}
