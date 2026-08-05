@@ -496,7 +496,7 @@ router.get('/:id/call-sheet.pdf', requireAuth, requireRole('ADMIN','PRODUCER'), 
             LEFT JOIN locations l ON l.id = se.location_id
             WHERE se.shoot_day_id = ANY(${sql.array(dayIds)}) GROUP BY se.id, l.name, l.address ORDER BY se.start_time`,
         sql`SELECT * FROM crew_day_calls WHERE shoot_day_id = ANY(${sql.array(dayIds)})`,
-        sql`SELECT talent_id, shoot_day_id, call_time FROM talent_day_calls WHERE shoot_day_id = ANY(${sql.array(dayIds)})`,
+        sql`SELECT talent_id, shoot_day_id, call_time, call_location FROM talent_day_calls WHERE shoot_day_id = ANY(${sql.array(dayIds)})`,
       ]);
     }
     const evByDay = {}, callByDay = {};
@@ -519,9 +519,9 @@ router.get('/:id/call-sheet.pdf', requireAuth, requireRole('ADMIN','PRODUCER'), 
     if (req.query.talent) {
       const t = keyTalent.find(x => x.id === req.query.talent);
       if (t) {
-        const callByDay = {};
-        for (const tc of talentCalls) if (tc.talent_id === t.id) callByDay[tc.shoot_day_id] = tc.call_time;
-        talentSel = { id: t.id, name: t.name, role: t.role, phone: t.phone, email: t.email, call_time: '', callByDay };
+        const callByDay = {}, callLocByDay = {};
+        for (const tc of talentCalls) if (tc.talent_id === t.id) { callByDay[tc.shoot_day_id] = tc.call_time; callLocByDay[tc.shoot_day_id] = tc.call_location; }
+        talentSel = { id: t.id, name: t.name, role: t.role, phone: t.phone, email: t.email, call_time: '', callByDay, callLocByDay };
       }
     }
     let renderDays = req.query.day ? sheetDays.filter(d => d.id === req.query.day) : sheetDays;

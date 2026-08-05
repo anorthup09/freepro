@@ -92,10 +92,16 @@ async function renderCallSheet({ project, allDays, renderDays, talent = null }) 
     const dayIndex = allDays.findIndex(d => d.id === day.id);
     const dayCount = allDays.length;
     // Talent sheets show only schedule items the talent is explicitly tagged in
-    // (matches the talent share view — general/untagged items are excluded).
-    const events = [...(day.events || [])]
-      .filter(e => !talent || (e.audience || []).includes(talent.name))
-      .sort((a, b) => String(a.start_time || '').localeCompare(String(b.start_time || '')));
+    // (matches the talent share view — general/untagged items are excluded),
+    // plus a "Talent Call" row at the talent's call time.
+    const events = (() => {
+      const list = [...(day.events || [])].filter(e => !talent || (e.audience || []).includes(talent.name));
+      if (talent) {
+        const ct = talent.callByDay?.[day.id] || day.call_time || '';
+        if (ct) list.push({ id: '__talentcall', start_time: ct, end_time: null, title: 'Talent Call', detail: talent.callLocByDay?.[day.id] || '', crew_ids: [], audience: [talent.name] });
+      }
+      return list.sort((a, b) => String(a.start_time || '').localeCompare(String(b.start_time || '')));
+    })();
     const taggedLocIds = new Set([
       ...(day.events || []).map(e => e.location_id),
       day.call_time_location_id, day.shooting_call_location_id, day.lunch_location_id, day.wrap_time_location_id,
@@ -192,13 +198,21 @@ async function renderCallSheet({ project, allDays, renderDays, talent = null }) 
         { key: 'cm_phone', label: 'Phone', width: '18%', render: a => h(Text, null, a.cm_phone || '') },
         { key: 'cm_email', label: 'Email', width: '26%', render: a => h(Text, null, a.cm_email || '') },
       ]), crew, 'crw')) : null,
-      // Schedule
-      events.length ? Section('Schedule', Table(applyCfg('schedule', [
-        { key: 'time', label: 'Time', width: '16%', render: e => h(Text, null, [e.start_time, e.end_time].filter(Boolean).map(x => talent ? fmt12(x) : x).join(' – ')) },
-        { key: 'title', label: 'Event', width: '30%', render: e => h(Text, { style: st.strong }, e.title || '') },
-        { key: 'detail', label: 'Notes', width: '34%', render: e => h(Text, null, e.detail || '') },
-        { key: 'crew', label: 'Crew', width: '20%', render: e => h(Text, null, (e.crew_ids || []).map(cid => nameById[cid]).filter(Boolean).join(', ')) },
-      ]), events, 'sch')) : null,
+      // Schedule — talent sheets drop the Crew column and give Event/Notes the room.
+      events.length ? Section('Schedule', Table(
+        talent
+          ? [
+              { key: 'time', label: 'Time', width: '18%', render: e => h(Text, null, [e.start_time, e.end_time].filter(Boolean).map(x => fmt12(x)).join(' – ')) },
+              { key: 'title', label: 'Event', width: '38%', render: e => h(Text, { style: st.strong }, e.title || '') },
+              { key: 'detail', label: 'Notes', width: '44%', render: e => h(Text, null, e.detail || '') },
+            ]
+          : applyCfg('schedule', [
+              { key: 'time', label: 'Time', width: '16%', render: e => h(Text, null, [e.start_time, e.end_time].filter(Boolean).join(' – ')) },
+              { key: 'title', label: 'Event', width: '30%', render: e => h(Text, { style: st.strong }, e.title || '') },
+              { key: 'detail', label: 'Notes', width: '34%', render: e => h(Text, null, e.detail || '') },
+              { key: 'crew', label: 'Crew', width: '20%', render: e => h(Text, null, (e.crew_ids || []).map(cid => nameById[cid]).filter(Boolean).join(', ')) },
+            ]),
+        events, 'sch')) : null,
     );
   };
 
