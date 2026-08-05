@@ -348,9 +348,9 @@ function WeatherLocationPicker({ day, projectCity, onSelect, onClear }) {
 }
 
 const MEAL_COLORS = {
-  BREAKFAST: { color:'#4ade80', bg:'rgba(74,222,128,0.08)', emoji:'🍳', label:'Breakfast' },
-  DINNER:    { color:'#4ade80', bg:'rgba(74,222,128,0.08)', emoji:'🍽️', label:'Dinner' },
-  LUNCH:     { color:'#4ade80', bg:'rgba(74,222,128,0.08)', emoji:'🥗', label:'Lunch' },
+  BREAKFAST: { color:'var(--sc-meals)', bg:'rgba(74,222,128,0.08)', emoji:'🍳', label:'Breakfast' },
+  DINNER:    { color:'var(--sc-meals)', bg:'rgba(74,222,128,0.08)', emoji:'🍽️', label:'Dinner' },
+  LUNCH:     { color:'var(--sc-meals)', bg:'rgba(74,222,128,0.08)', emoji:'🥗', label:'Lunch' },
 };
 // Meal service type → label; falls back to the legacy is_delivery flag.
 const SERVICE_LABEL = { DELIVERY:'Delivery', PICKUP:'Pick Up', DINEIN:'Dine-In', CREWMEAL:'Crew Meal', ONOWN:'On Own' };
@@ -363,20 +363,22 @@ const TAG_LABEL = { VIDEO:'Video', PHOTO:'Photo', AUDIO:'Audio', ALL_CREW:'All C
 const isGeneral = tags => (tags || []).some(t => (t && (t.type || t)) === 'GENERAL');
 // Color-coding legend: each tag maps to one CSS var + default hex; overrides
 // persist on the project and drive the --etag-* variables on the Schedule root.
+// Color-coding legend: the timeline tile categories that carry a color. Each maps
+// to a CSS var + default hex; overrides persist on the project (schedule_tag_colors)
+// and drive the --sc-* variables on the Schedule root.
 const TAG_COLOR_DEFS = [
-  { key:'VIDEO',  cssVar:'--etag-v',  label:'Video',           def:'#a78bfa' },
-  { key:'PHOTO',  cssVar:'--etag-p',  label:'Photo',           def:'#fbbf24' },
-  { key:'AUDIO',  cssVar:'--etag-a',  label:'Audio / All Crew', def:'#4ade80' },
-  { key:'TALENT', cssVar:'--etag-t',  label:'Talent',          def:'#f87171' },
-  { key:'TRAVEL', cssVar:'--etag-tr', label:'Travel',          def:'#4a9eff' },
-  { key:'GENERAL', cssVar:'--etag-g', label:'General',         def:'#8a8f98' },
+  { key:'FILMING', cssVar:'--sc-filming', label:'Filming & Call Times', def:'#ff8c00' },
+  { key:'MEALS',   cssVar:'--sc-meals',   label:'Meals',   def:'#4ade80' },
+  { key:'TRAVEL',  cssVar:'--sc-travel',  label:'Travel',  def:'#4a9eff' },
+  { key:'TALENT',  cssVar:'--sc-talent',  label:'Talent',  def:'#a78bfa' },
+  { key:'GENERAL', cssVar:'--sc-general', label:'General', def:'#8a8f98' },
 ];
 
 const SYNTHETIC_META = {
-  ct:  { color:'#ff8c00', bg:'rgba(255,140,0,0.10)',   notesKey:'callTimeNotes',      tagsKey:'callTimeTags',      locationKey:'callTimeLocationId' },
-  sct: { color:'#ff8c00', bg:'rgba(255,140,0,0.10)',   notesKey:'shootingCallNotes',  tagsKey:'shootingCallTags',  locationKey:'shootingCallLocationId' },
-  lt:  { color:'#4ade80', bg:'rgba(74,222,128,0.08)',  notesKey:'lunchNotes',         tagsKey:'lunchTags',         locationKey:'lunchLocationId' },
-  wt:  { color:'#ff8c00', bg:'rgba(255,140,0,0.10)',   notesKey:'wrapTimeNotes',      tagsKey:'wrapTimeTags',      locationKey:'wrapTimeLocationId' },
+  ct:  { color:'var(--sc-filming)', bg:'rgba(255,140,0,0.10)',   notesKey:'callTimeNotes',      tagsKey:'callTimeTags',      locationKey:'callTimeLocationId' },
+  sct: { color:'var(--sc-filming)', bg:'rgba(255,140,0,0.10)',   notesKey:'shootingCallNotes',  tagsKey:'shootingCallTags',  locationKey:'shootingCallLocationId' },
+  lt:  { color:'var(--sc-meals)',   bg:'rgba(74,222,128,0.08)',  notesKey:'lunchNotes',         tagsKey:'lunchTags',         locationKey:'lunchLocationId' },
+  wt:  { color:'var(--sc-filming)', bg:'rgba(255,140,0,0.10)',   notesKey:'wrapTimeNotes',      tagsKey:'wrapTimeTags',      locationKey:'wrapTimeLocationId' },
 };
 
 export default function Schedule({ project, showCateringGrid, setShowCateringGrid, onCateringTabChange, showShotList, setShowShotList, onShotListTabChange, showScripts, setShowScripts, onScriptsTabChange, showTravel, setShowTravel, onTravelTabChange, focusDate, onFocusConsumed }) {
@@ -917,14 +919,17 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
           <div className="modal" style={{ maxWidth:440 }}>
             <div className="modal-title">Color Coding</div>
             <div style={{ fontSize:11, color:'var(--muted)', marginBottom:14, lineHeight:1.5 }}>
-              The colors used for the timeline tags. Tap a swatch to recolor a category — it applies across this project's schedule.
+              The colors used for the timeline tiles. Tap a swatch to recolor a category — it applies across this project's schedule.
             </div>
             <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
               {TAG_COLOR_DEFS.map(t => {
                 const color = tagColors[t.key] || t.def;
                 return (
                   <div key={t.key} style={{ display:'flex', alignItems:'center', gap:12 }}>
-                    <span className={`etag ${TAG_CLASS[t.key]}`} style={{ minWidth:70, textAlign:'center' }}>{t.label}</span>
+                    <span style={{ display:'inline-flex', alignItems:'center', gap:8, minWidth:70 }}>
+                      <span style={{ width:12, height:12, borderRadius:3, background:color, flexShrink:0 }} />
+                      <span style={{ fontSize:12, fontWeight:700, color:'var(--text)' }}>{t.label}</span>
+                    </span>
                     <div style={{ flex:1 }} />
                     <input type="color" value={color}
                       onChange={e => saveTagColors({ ...tagColors, [t.key]: e.target.value })}
@@ -1477,7 +1482,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                       return (
                         <div key={item._key} className="ev">
                           <div className="ev-time">🚗 {fmtTime(item._time)}</div>
-                          <div className="ev-body" style={{ borderLeft:'2px solid #4a9eff' }}>
+                          <div className="ev-body" style={{ borderLeft:'2px solid var(--sc-travel)' }}>
                             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:8 }}>
                               <div className="ev-title">{dep ? 'Drive Departure' : 'Approx. Drive Arrival'} — {item.driver || item.driver_name || 'Driver TBD'}</div>
                               {dep && est && <span style={{ fontSize:10, fontWeight:800, color:'#e6c229', whiteSpace:'nowrap', flexShrink:0 }}>~{est} drive</span>}
@@ -1493,7 +1498,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                     })() : item._type === 'talentcall' ? (
                       <div key={item._key} className="ev">
                         <div className="ev-time">{fmtTime(item.call_time)}</div>
-                        <div className="ev-body" style={{ borderLeft:'2px solid #a78bfa' }}>
+                        <div className="ev-body" style={{ borderLeft:'2px solid var(--sc-talent)' }}>
                           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:8 }}>
                             <div className="ev-title">Talent Call — {item.name}</div>
                             <span className="etag t" style={{ flexShrink:0 }}>Talent</span>
@@ -1538,7 +1543,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                       return (
                         <div key={item._key} className="ev">
                           <div className="ev-time">✈ {legDisplayTime(item)}</div>
-                          <div className={`ev-body${inFlight ? ' ev-live' : ''}`} style={{ borderLeft:`2px solid ${fs.alert ? fs.color : '#4a9eff'}`, position:'relative', ...(fs.alert ? { background:`${fs.color}11` } : {}) }}>
+                          <div className={`ev-body${inFlight ? ' ev-live' : ''}`} style={{ borderLeft:`2px solid ${fs.alert ? fs.color : 'var(--sc-travel)'}`, position:'relative', ...(fs.alert ? { background:`${fs.color}11` } : {}) }}>
                             {item._leg === 'depart' && (
                               <div style={{ position:'absolute', top:8, right:10, display:'inline-flex', alignItems:'center', gap:5, background:'rgba(0,0,0,0.2)', borderRadius:20, padding:'2px 10px' }}>
                                 {fs.dot && <div style={{ width:6, height:6, borderRadius:'50%', background:fs.dot }} />}
@@ -1571,7 +1576,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                       <div key={item.id} className="ev">
                         <div className="ev-time">{fmtTime(item.start_time || item.startTime)}{(item.end_time || item.endTime) ? ` – ${fmtTime(item.end_time || item.endTime)}` : ''}</div>
                         <div className={`ev-body${(item.is_alert||item.isAlert) ? ' warn' : ''}${isLiveBlock(item.start_time || item.startTime, item.end_time || item.endTime) ? ' ev-live' : ''}`}
-                          style={{ cursor:'pointer', ...(isGeneral(item.tags) ? { borderLeft:'2px solid var(--border2)', opacity:0.55 } : (!(item.is_alert||item.isAlert) ? { borderLeft:'2px solid var(--orange)',  } : {})) }}
+                          style={{ cursor:'pointer', ...(isGeneral(item.tags) ? { borderLeft:'2px solid var(--sc-general)', opacity:0.55 } : (!(item.is_alert||item.isAlert) ? { borderLeft:'2px solid var(--sc-filming)',  } : {})) }}
                           onClick={() => openEditEvent(item)}>
                           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:8 }}>
                             <div className={`ev-title${(item.is_alert||item.isAlert) ? ' alert' : ''}`} style={{ flex:1, minWidth:0 }}>{(item.is_alert||item.isAlert) ? '⚠ ' : ''}{(item.is_filming||item.isFilming) ? '🎬 ' : ''}{item.title}</div>

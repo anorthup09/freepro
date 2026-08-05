@@ -8,6 +8,8 @@
   --amber-bg: #1E160A; --amber-border: #3A2A0E; --amber-text: #C89A3A;
   --red-bg: #1F0E0E; --red-border: #3A1A1A; --red-text: #E08080;
   --purple-bg: #16141F; --purple-border: #2A2440; --purple-text: #9A8AE0;
+  /* Schedule timeline color coding (customizable per project via the Color Coding modal) */
+  --sc-filming: #ff8c00; --sc-meals: #4ade80; --sc-travel: #4a9eff; --sc-talent: #a78bfa; --sc-general: #8a8f98;
 }
 /* Light view — toggled from the Sign-out bar; variable-driven so surfaces flip. */
 :root[data-theme="light"] {
