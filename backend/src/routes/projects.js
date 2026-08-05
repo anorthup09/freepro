@@ -637,6 +637,61 @@ router.put('/:id/talent/:tid/day-calls', requireAuth, requireRole('ADMIN','PRODU
   } catch(e){next(e);}
 });
 
+// ─── Per-crew call-time overrides ──────────────────────────────────────────────
+// Each override is a real schedule event ("NAME - Call Time") linked to the crew
+// assignment, so it shows as a schedule tile (with editable location + notes),
+// flows into the producer/crew share views and the daily crew call sheet PDF, and
+// stays in sync with the add/edit crew form.
+function crewCallTitle(name) { return `${name} - Call Time`; }
+async function crewAssignmentName(projectId, aid) {
+  const [a] = await sql`
+    SELECT COALESCE(NULLIF(TRIM(CONCAT(cm.preferred_first_name, ' ', cm.preferred_last_name)), ''), cm.name, p.name) as display_name
+    FROM crew_assignments ca JOIN positions p ON p.id = ca.position_id
+    LEFT JOIN crew_members cm ON cm.id = ca.crew_member_id
+    WHERE ca.id = ${aid} AND ca.project_id = ${projectId}`;
+  return a ? a.display_name : null;
+}
+router.get('/:id/crew/:aid/day-calls', requireAuth, async (req, res, next) => {
+  try {
+    res.json(await sql`
+      SELECT se.shoot_day_id, se.start_time as call_time
+      FROM schedule_events se JOIN shoot_days sd ON sd.id = se.shoot_day_id
+      WHERE sd.project_id = ${req.params.id} AND se.crew_assignment_id = ${req.params.aid}
+      ORDER BY se.shoot_day_id`);
+  } catch(e){next(e);}
+});
+router.put('/:id/crew/:aid/day-calls', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
+  try {
+    const calls = req.body; // [{ shootDayId, callTime }]
+    const name = await crewAssignmentName(req.params.id, req.params.aid);
+    if (!name) return res.status(404).json({ error: 'Crew assignment not found' });
+    const title = crewCallTitle(name);
+    const want = new Map();
+    for (const c of (calls || [])) if (c.shootDayId && c.callTime) want.set(c.shootDayId, c.callTime);
+    const existing = await sql`SELECT id, shoot_day_id, title FROM schedule_events WHERE crew_assignment_id = ${req.params.aid}`;
+    const byDay = new Map(existing.map(e => [e.shoot_day_id, e]));
+    // Upsert a tile per day that has an override; only touch time/title so any
+    // location/notes added on the schedule survive re-saves.
+    for (const [dayId, time] of want) {
+      const ev = byDay.get(dayId);
+      if (ev) {
+        await sql`UPDATE schedule_events SET start_time = ${time}, title = ${title} WHERE id = ${ev.id}`;
+      } else {
+        await sql`
+          INSERT INTO schedule_events (id, shoot_day_id, start_time, title, audience, crew_assignment_id)
+          VALUES (gen_random_uuid()::text, ${dayId}, ${time}, ${title}, ${sql.array(['crew', name])}, ${req.params.aid})`;
+      }
+    }
+    // Remove tiles for days that no longer have an override.
+    for (const e of existing) if (!want.has(e.shoot_day_id)) await sql`DELETE FROM schedule_events WHERE id = ${e.id}`;
+    res.json(await sql`
+      SELECT se.shoot_day_id, se.start_time as call_time
+      FROM schedule_events se JOIN shoot_days sd ON sd.id = se.shoot_day_id
+      WHERE sd.project_id = ${req.params.id} AND se.crew_assignment_id = ${req.params.aid}
+      ORDER BY se.shoot_day_id`);
+  } catch(e){next(e);}
+});
+
 // ─── Shares ──────────────────────────────────────────────────────────────────
 router.get('/:id/shares', requireAuth, async (req, res, next) => {
   try { res.json(await sql`SELECT * FROM project_shares WHERE project_id = ${req.params.id} ORDER BY created_at`); } catch(e){next(e);}

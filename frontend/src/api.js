@@ -314,6 +314,8 @@ export const api = {
   getProjectTalentCalls: (projectId) => req('GET', `/projects/${projectId}/talent-day-calls`),
   getTalentDayCalls: (projectId, talentId) => req('GET', `/projects/${projectId}/talent/${talentId}/day-calls`),
   saveTalentDayCalls: (projectId, talentId, calls) => req('PUT', `/projects/${projectId}/talent/${talentId}/day-calls`, calls),
+  getCrewDayCalls: (projectId, aid) => req('GET', `/projects/${projectId}/crew/${aid}/day-calls`),
+  saveCrewDayCalls: (projectId, aid, calls) => req('PUT', `/projects/${projectId}/crew/${aid}/day-calls`, calls),
 
   // Crew roster
   getCrew: () => req('GET', '/crew'),

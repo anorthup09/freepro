@@ -86,6 +86,8 @@ export default function Crew({ project, onProjectUpdate }) {
   const [talentDays, setTalentDays] = useState([]);
   const [addTalentDayCalls, setAddTalentDayCalls] = useState({});
   const [talentDayCallsForm, setTalentDayCallsForm] = useState({});
+  const [crewDays, setCrewDays] = useState([]);
+  const [crewDayCallsForm, setCrewDayCallsForm] = useState({});
   const [contracts, setContracts] = useState([]);
   const [contractScope, setContractScope] = useState('');
   const [contractLink, setContractLink] = useState('');
@@ -387,6 +389,14 @@ export default function Crew({ project, onProjectUpdate }) {
       setContractSent('');
     }
     setEditId(a.id);
+    // Per-day call-time overrides — load shoot days + this crew member's overrides.
+    setCrewDayCallsForm({});
+    api.getSchedule(project.id).then(setCrewDays).catch(() => {});
+    api.getCrewDayCalls(project.id, a.id).then(calls => {
+      const m = {};
+      calls.forEach(c => { m[c.shoot_day_id] = (c.call_time || '').slice(0,5); });
+      setCrewDayCallsForm(m);
+    }).catch(() => {});
   }
 
   async function saveEdit(e) {
@@ -403,6 +413,10 @@ export default function Crew({ project, onProjectUpdate }) {
         gearDays: isContractorMember(editForm.crewMemberId) === true && editForm.gearDays !== '' ? Number(editForm.gearDays) : null,
       };
       const updated = await api.updateCrewSlot(project.id, editId, payload);
+      const dayCalls = Object.entries(crewDayCallsForm)
+        .filter(([, time]) => time)
+        .map(([shootDayId, time]) => ({ shootDayId, callTime: time }));
+      await api.saveCrewDayCalls(project.id, editId, dayCalls).catch(() => {});
       setAssignments(prev => prev.map(a => a.id === editId ? updated : a));
       setEditId(null);
     } catch(e) { alert(e.message); }
@@ -1277,6 +1291,30 @@ export default function Crew({ project, onProjectUpdate }) {
                   </>
                 )}
               </div>
+              {crewDays.length > 0 && (
+                <div style={{ marginBottom:12, borderTop:'1px solid var(--border)', paddingTop:12 }}>
+                  <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)', marginBottom:4 }}>Call Time Override by Day</div>
+                  <div style={{ fontSize:10, color:'var(--muted)', marginBottom:8 }}>Sets a "NAME - Call Time" tile on that day's schedule. Add location &amp; notes on the schedule.</div>
+                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'6px 12px' }}>
+                    {crewDays.map((day, i) => {
+                      const dateLabel = day.date ? new Date(day.date.slice(0,10)+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '';
+                      return (
+                        <React.Fragment key={day.id}>
+                          <div style={{ display:'flex', alignItems:'center', fontSize:12, color:'var(--text)', fontWeight:500 }}>
+                            Day {i+1}{dateLabel ? ` — ${dateLabel}` : ''}
+                          </div>
+                          <span style={{ display:'flex', gap:6, alignItems:'center', minWidth:0 }}>
+                            <input type="time" value={crewDayCallsForm[day.id] || ''} onChange={e => setCrewDayCallsForm(m => ({ ...m, [day.id]: e.target.value }))} style={{ flex:'0 0 auto', width:130 }} />
+                            {crewDayCallsForm[day.id] && (
+                              <button type="button" className="btn btn-ghost btn-sm" title="Clear override" onClick={() => setCrewDayCallsForm(m => ({ ...m, [day.id]: '' }))} style={{ fontSize:11 }}>Clear</button>
+                            )}
+                          </span>
+                        </React.Fragment>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
               <div className="btn-row"><button className="btn btn-primary">Save</button><button type="button" className="btn btn-ghost" onClick={() => setEditId(null)}>Cancel</button></div>
             </form>
           </div>
