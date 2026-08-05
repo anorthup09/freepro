@@ -56,6 +56,7 @@ async function renderCallSheet({ project, allDays, renderDays, talent = null }) 
     th: { fontSize: 7.5, fontFamily: 'Helvetica-Bold', color: C.muted, textTransform: 'uppercase', letterSpacing: 0.4, paddingVertical: 4, paddingHorizontal: 7 },
     tr: { flexDirection: 'row', borderBottomWidth: 0.5, borderBottomColor: C.line },
     td: { fontSize: 9, paddingVertical: 4, paddingHorizontal: 7 },
+    timeCell: { fontSize: 8.5, fontVariantNumeric: 'tabular-nums' },
     strong: { fontFamily: 'Helvetica-Bold' },
     tiny: { fontSize: 7.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.4, marginTop: 1, fontFamily: 'Helvetica-Bold' },
     noteLine: { fontSize: 8.5, marginTop: 2 },
@@ -100,7 +101,9 @@ async function renderCallSheet({ project, allDays, renderDays, talent = null }) 
         const ct = talent.callByDay?.[day.id] || day.call_time || '';
         if (ct) list.push({ id: '__talentcall', start_time: ct, end_time: null, title: 'Talent Call', detail: talent.callLocByDay?.[day.id] || '', crew_ids: [], audience: [talent.name] });
       }
-      return list.sort((a, b) => String(a.start_time || '').localeCompare(String(b.start_time || '')));
+      // Tie-breaker: at the same time, call-time items sort above everything else.
+      const callRank = e => (e.id === '__talentcall' || e.is_shooting_call || /(^|\s)call\b/i.test(e.title || '')) ? 0 : 1;
+      return list.sort((a, b) => String(a.start_time || '').localeCompare(String(b.start_time || '')) || (callRank(a) - callRank(b)));
     })();
     const taggedLocIds = new Set([
       ...(day.events || []).map(e => e.location_id),
@@ -123,6 +126,9 @@ async function renderCallSheet({ project, allDays, renderDays, talent = null }) 
     // Crew members that can be tagged to an event (by name, via the event audience).
     const crewNameSet = new Set((project.crewAssignments || []).map(a => crewName(a)).filter(Boolean));
     const taggedCrew = e => (e.audience || []).filter(n => crewNameSet.has(n)).join(', ');
+    // Time range as one non-breaking token so the Time column never wraps.
+    const NBSP = String.fromCharCode(160);
+    const schedTime = e => [e.start_time, e.end_time].filter(Boolean).map(x => fmt12(x)).join(NBSP + String.fromCharCode(8211) + NBSP).replace(/ /g, NBSP);
     const callFor = a => (day.crewCalls || []).find(c => c.crew_assignment_id === a.id)?.call_time || day.call_time || '';
     const specBits = [project.techSpecs?.aspect_ratio, project.techSpecs?.resolution, project.techSpecs?.frame_rate ? `${project.techSpecs.frame_rate} fps` : null].filter(Boolean);
     const wxBits = [
@@ -205,15 +211,15 @@ async function renderCallSheet({ project, allDays, renderDays, talent = null }) 
       events.length ? Section('Schedule', Table(
         talent
           ? [
-              { key: 'time', label: 'Time', width: '18%', render: e => h(Text, null, [e.start_time, e.end_time].filter(Boolean).map(x => fmt12(x)).join(' – ')) },
-              { key: 'title', label: 'Event', width: '38%', render: e => h(Text, { style: st.strong }, e.title || '') },
-              { key: 'detail', label: 'Notes', width: '44%', render: e => h(Text, null, e.detail || '') },
+              { key: 'time', label: 'Time', width: '24%', render: e => h(Text, { style: st.timeCell }, schedTime(e)) },
+              { key: 'title', label: 'Event', width: '36%', render: e => h(Text, { style: st.strong }, e.title || '') },
+              { key: 'detail', label: 'Notes', width: '40%', render: e => h(Text, null, e.detail || '') },
             ]
           : applyCfg('schedule', [
-              { key: 'time', label: 'Time', width: '16%', render: e => h(Text, null, [e.start_time, e.end_time].filter(Boolean).map(x => fmt12(x)).join(' – ')) },
-              { key: 'title', label: 'Event', width: '30%', render: e => h(Text, { style: st.strong }, e.title || '') },
-              { key: 'detail', label: 'Notes', width: '34%', render: e => h(Text, null, e.detail || '') },
-              { key: 'crew', label: 'Crew', width: '20%', render: e => h(Text, null, taggedCrew(e)) },
+              { key: 'time', label: 'Time', width: '22%', render: e => h(Text, { style: st.timeCell }, schedTime(e)) },
+              { key: 'title', label: 'Event', width: '28%', render: e => h(Text, { style: st.strong }, e.title || '') },
+              { key: 'detail', label: 'Notes', width: '32%', render: e => h(Text, null, e.detail || '') },
+              { key: 'crew', label: 'Crew', width: '18%', render: e => h(Text, null, taggedCrew(e)) },
             ]),
         events, 'sch')) : null,
     );
