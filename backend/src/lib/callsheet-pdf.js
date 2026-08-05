@@ -19,6 +19,7 @@ const fmt12 = t => {
   let h = +m[1]; const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12;
   return `${h}:${m[2]} ${ap}`;
 };
+const mapsUrl = a => 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(a || '');
 const LOC_LABELS = { PRIMARY_VENUE: 'Shooting Location', CREW_HOTEL: 'Hotel', SECONDARY: 'Location', AIRPORT: 'Airport', OTHER: 'Location' };
 const stripName = (addr, name) => {
   if (!addr) return '';
@@ -30,7 +31,7 @@ const stripName = (addr, name) => {
 const C = { orange: '#E8500A', text: '#111', muted: '#555', tan: '#333', border: '#c9c9c9', line: '#e2e2e2', headBg: '#f4f4f4', boxBg: '#fafafa' };
 
 async function renderCallSheet({ project, allDays, renderDays, talent = null }) {
-  const { Document, Page, Text, View, StyleSheet, renderToBuffer } = await import('@react-pdf/renderer');
+  const { Document, Page, Text, View, Link, StyleSheet, renderToBuffer } = await import('@react-pdf/renderer');
 
   const st = StyleSheet.create({
     page: { paddingVertical: 30, paddingHorizontal: 34, fontFamily: 'Helvetica', fontSize: 9, color: C.text, lineHeight: 1.3 },
@@ -57,20 +58,27 @@ async function renderCallSheet({ project, allDays, renderDays, talent = null }) 
     tr: { flexDirection: 'row', borderBottomWidth: 0.5, borderBottomColor: C.line },
     td: { fontSize: 9, paddingVertical: 4, paddingHorizontal: 7 },
     timeCell: { fontSize: 8.5, fontVariantNumeric: 'tabular-nums' },
+    // Smaller cells for the schedule so the extra Location column fits.
+    schedTh: { fontSize: 6.5, fontFamily: 'Helvetica-Bold', color: C.muted, textTransform: 'uppercase', letterSpacing: 0.3, paddingVertical: 3, paddingHorizontal: 5 },
+    schedTd: { fontSize: 7.5, paddingVertical: 3, paddingHorizontal: 5 },
+    schedTime: { fontSize: 7, fontVariantNumeric: 'tabular-nums' },
+    locLink: { fontSize: 7.5, color: C.orange, textDecoration: 'underline' },
     strong: { fontFamily: 'Helvetica-Bold' },
     tiny: { fontSize: 7.5, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.4, marginTop: 1, fontFamily: 'Helvetica-Bold' },
     noteLine: { fontSize: 8.5, marginTop: 2 },
   });
 
-  const Table = (cols, rows, keyPrefix) => h(View, { style: st.table },
-    h(View, { style: st.thRow }, cols.map((c, i) => h(Text, { key: 'th' + i, style: [st.th, { width: c.width }] }, c.label))),
-    rows.map((r, ri) => h(View, { key: keyPrefix + ri, style: [st.tr, ri === rows.length - 1 ? { borderBottomWidth: 0 } : {}] },
+  const Table = (cols, rows, keyPrefix, opts = {}) => h(View, { style: st.table },
+    h(View, { style: st.thRow }, cols.map((c, i) => h(Text, { key: 'th' + i, style: [opts.th || st.th, { width: c.width }] }, c.label))),
+    rows.map((r, ri) => h(View, { key: keyPrefix + ri, wrap: false, style: [st.tr, ri === rows.length - 1 ? { borderBottomWidth: 0 } : {}] },
       // General-tagged schedule events are neutral info — grayed out.
-      cols.map((c, ci) => h(View, { key: ci, style: [st.td, { width: c.width }, r.general ? { color: '#999' } : null] }, c.render(r)))
+      cols.map((c, ci) => h(View, { key: ci, style: [opts.td || st.td, { width: c.width }, r.general ? { color: '#999' } : null] }, c.render(r)))
     ))
   );
 
-  const Section = (label, node) => h(View, { wrap: false }, h(Text, { style: st.sectionLbl }, label), node);
+  // Sections don't page-break as a block by default; allowWrap lets a long table
+  // (the schedule) start right under the previous section and flow across pages.
+  const Section = (label, node, allowWrap) => h(View, allowWrap ? {} : { wrap: false }, h(Text, { style: st.sectionLbl }, label), node);
 
   // Apply the project's saved call-sheet column config (visibility, order, width)
   // to a section's default column list. Config shape: { [sectionId]: [{key,width,visible}] }.
@@ -207,21 +215,24 @@ async function renderCallSheet({ project, allDays, renderDays, talent = null }) 
         { key: 'cm_phone', label: 'Phone', width: '18%', render: a => h(Text, null, a.cm_phone || '') },
         { key: 'cm_email', label: 'Email', width: '26%', render: a => h(Text, null, a.cm_email || '') },
       ]), crew, 'crw')) : null,
-      // Schedule — talent sheets drop the Crew column and give Event/Notes the room.
+      // Schedule — flows right under Crew (no forced page break); smaller text to
+      // fit the extra Location column, whose name links to the address.
       events.length ? Section('Schedule', Table(
         talent
           ? [
-              { key: 'time', label: 'Time', width: '24%', render: e => h(Text, { style: st.timeCell }, schedTime(e)) },
-              { key: 'title', label: 'Event', width: '36%', render: e => h(Text, { style: st.strong }, e.title || '') },
-              { key: 'detail', label: 'Notes', width: '40%', render: e => h(Text, null, e.detail || '') },
+              { key: 'time', label: 'Time', width: '20%', render: e => h(Text, { style: st.schedTime }, schedTime(e)) },
+              { key: 'title', label: 'Event', width: '22%', render: e => h(Text, { style: st.strong }, e.title || '') },
+              { key: 'location', label: 'Location', width: '20%', render: e => e.location_name ? h(Link, { style: st.locLink, src: mapsUrl(e.location_address || e.location_name) }, e.location_name) : h(Text, null, '') },
+              { key: 'detail', label: 'Notes', width: '38%', render: e => h(Text, null, e.detail || '') },
             ]
-          : applyCfg('schedule', [
-              { key: 'time', label: 'Time', width: '22%', render: e => h(Text, { style: st.timeCell }, schedTime(e)) },
-              { key: 'title', label: 'Event', width: '28%', render: e => h(Text, { style: st.strong }, e.title || '') },
-              { key: 'detail', label: 'Notes', width: '32%', render: e => h(Text, null, e.detail || '') },
+          : [
+              { key: 'time', label: 'Time', width: '16%', render: e => h(Text, { style: st.schedTime }, schedTime(e)) },
+              { key: 'title', label: 'Event', width: '22%', render: e => h(Text, { style: st.strong }, e.title || '') },
+              { key: 'location', label: 'Location', width: '20%', render: e => e.location_name ? h(Link, { style: st.locLink, src: mapsUrl(e.location_address || e.location_name) }, e.location_name) : h(Text, null, '') },
+              { key: 'detail', label: 'Notes', width: '24%', render: e => h(Text, null, e.detail || '') },
               { key: 'crew', label: 'Crew', width: '18%', render: e => h(Text, null, taggedCrew(e)) },
-            ]),
-        events, 'sch')) : null,
+            ],
+        events, 'sch', { th: st.schedTh, td: st.schedTd }), true) : null,
     );
   };
 
