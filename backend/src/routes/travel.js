@@ -170,24 +170,10 @@ router.delete('/:id/travel/drives/:did', requireAuth, requireRole('ADMIN','PRODU
 });
 
 // ─── Rental Cars ─────────────────────────────────────────────────────────────
-// Rental car pickup spots land on the Locations tab automatically (upsert by
-// name so edits refresh the address instead of duplicating)
-async function feedCarLocation(projectId, { vendor, pickupLocation, pickupAddress, dropoffLocation, dropoffAddress }) {
-  try {
-    if (!pickupLocation) return;
-    const name = `${vendor || 'Rental Car'} — Pickup`;
-    const address = pickupAddress || pickupLocation;
-    const notes = dropoffLocation && dropoffLocation !== pickupLocation
-      ? `Dropoff: ${dropoffAddress || dropoffLocation}` : null;
-    const [existing] = await sql`SELECT id FROM locations WHERE project_id = ${projectId} AND name = ${name}`;
-    if (existing) {
-      await sql`UPDATE locations SET address = ${address}, notes = ${notes} WHERE id = ${existing.id}`;
-    } else {
-      await sql`INSERT INTO locations (id, project_id, name, address, type, emoji, notes)
-        VALUES (gen_random_uuid()::text, ${projectId}, ${name}, ${address}, ${'OTHER'}::location_type, ${'🚗'}, ${notes})`;
-    }
-  } catch (e) { console.error('rental car location feed failed:', e.message); }
-}
+// Rental cars have their own dedicated section on the producer/crew views, so
+// they are NOT mirrored onto the Locations tab — the pickup field is a free-text
+// vendor label (e.g. "Avis"), never a mappable address, so auto-created location
+// cards only duplicated and showed the wrong address.
 
 const carWithCrew = id => sql`
   SELECT rc.*, COALESCE(NULLIF(TRIM(CONCAT(cm.preferred_first_name, ' ', cm.preferred_last_name)), ''), cm.name) as crew_name
@@ -209,7 +195,6 @@ router.post('/:id/travel/rental-cars', requireAuth, requireRole('ADMIN','PRODUCE
       INSERT INTO rental_cars (id, project_id, vendor, pickup_location, dropoff_location, pickup_date, dropoff_date, confirmation, cost, notes, crew_member_id)
       VALUES (gen_random_uuid()::text, ${req.params.id}, ${vendor}, ${pickupLocation||null}, ${dropoffLocation||null}, ${pickupDate||null}, ${dropoffDate||null}, ${confirmation||null}, ${cost||null}, ${notes||null}, ${crewMemberId||null})
       RETURNING *`;
-    await feedCarLocation(req.params.id, req.body);
     const [full] = await carWithCrew(c.id);
     res.status(201).json(full);
   } catch(e){next(e);}
@@ -231,10 +216,6 @@ router.patch('/:id/travel/rental-cars/:cid', requireAuth, requireRole('ADMIN','P
         crew_member_id = ${d.crewMemberId !== undefined ? (d.crewMemberId || null) : sql`crew_member_id`}
       WHERE id = ${req.params.cid}
       RETURNING *`;
-    if (c) await feedCarLocation(req.params.id, {
-      vendor: c.vendor, pickupLocation: c.pickup_location, pickupAddress: d.pickupAddress,
-      dropoffLocation: c.dropoff_location, dropoffAddress: d.dropoffAddress,
-    });
     const [full] = c ? await carWithCrew(c.id) : [null];
     res.json(full || c);
   } catch(e){next(e);}

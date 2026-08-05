@@ -640,6 +640,23 @@ async function migrate() {
   await sql`ALTER TABLE projects ADD COLUMN IF NOT EXISTS share_password TEXT`;
   await sql`ALTER TABLE locations ADD COLUMN IF NOT EXISTS space_map TEXT`;
 
+  // One-time cleanup: earlier builds auto-mirrored rental cars onto the Locations
+  // tab (emoji '🚗', name "<vendor> — Pickup", address = a free-text vendor label).
+  // That duplicated on vendor rename and showed the wrong address, so drop them —
+  // rental cars have their own section on the producer/crew views.
+  try {
+    const junk = await sql`SELECT id FROM locations WHERE emoji = '🚗' AND name LIKE ${'% — Pickup'}`;
+    if (junk.length) {
+      const ids = junk.map(r => r.id);
+      await sql`UPDATE schedule_events SET location_id = NULL WHERE location_id = ANY(${sql.array(ids)})`;
+      await sql`UPDATE shoot_days SET call_time_location_id = NULL WHERE call_time_location_id = ANY(${sql.array(ids)})`;
+      await sql`UPDATE shoot_days SET shooting_call_location_id = NULL WHERE shooting_call_location_id = ANY(${sql.array(ids)})`;
+      await sql`UPDATE shoot_days SET lunch_location_id = NULL WHERE lunch_location_id = ANY(${sql.array(ids)})`;
+      await sql`UPDATE shoot_days SET wrap_time_location_id = NULL WHERE wrap_time_location_id = ANY(${sql.array(ids)})`;
+      await sql`DELETE FROM locations WHERE id = ANY(${sql.array(ids)})`;
+    }
+  } catch (e) { console.error('rental car location cleanup failed:', e.message); }
+
   await sql`
     CREATE TABLE IF NOT EXISTS project_questions (
       id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
