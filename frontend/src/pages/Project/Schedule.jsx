@@ -1766,7 +1766,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                 <button className="btn btn-primary">Add Event</button>
                 <button type="button" className="btn btn-ghost" onClick={() => { setShowAddEvent(false); setEventFiles([]); }}>Cancel</button>
                 <label className="btn btn-ghost btn-sm" style={{ marginLeft:'auto', cursor:'pointer', whiteSpace:'nowrap' }} title="Attach small files (10MB max)">
-                  + 📎 Attachment
+                  <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a5 5 0 0 1-7.07-7.07l9.19-9.19a3.5 3.5 0 0 1 4.95 4.95l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>Attachment</span>
                   <input type="file" multiple onChange={pickEventFiles} style={{ display:'none' }} />
                 </label>
               </div>
@@ -1951,7 +1951,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                 <button className="btn btn-primary">Save</button>
                 <button type="button" className="btn btn-ghost" onClick={() => setEditEventId(null)}>Cancel</button>
                 <label className="btn btn-ghost btn-sm" style={{ marginLeft:'auto', cursor:'pointer', whiteSpace:'nowrap' }} title="Attach small files (10MB max)">
-                  + 📎 Attachment
+                  <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a5 5 0 0 1-7.07-7.07l9.19-9.19a3.5 3.5 0 0 1 4.95 4.95l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>Attachment</span>
                   <input type="file" multiple onChange={pickEditEventFiles} style={{ display:'none' }} />
                 </label>
               </div>

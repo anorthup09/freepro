@@ -733,9 +733,11 @@ function ProducerView({ data, hideGear, onOpenShotList, shareToken, pw }) {
             )}
             {gear?.gear_person_name && (
               <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 14px', flex:1, minWidth:180 }}>
-                <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:4 }}>Gear Contact</div>
-                <div style={{ fontWeight:600, fontSize:13 }}>{shortName(gear.gear_person_name)}</div>
-                {gear.gear_person_phone && <div style={{ fontSize:12, color:'var(--tan)', marginTop:2 }}><Tel v={gear.gear_person_phone} /></div>}
+                <div style={{ display:'flex', alignItems:'baseline', gap:14, flexWrap:'wrap' }}>
+                  <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em' }}>Gear Contact</div>
+                  <div style={{ fontWeight:600, fontSize:13 }}>{shortName(gear.gear_person_name)}</div>
+                  {gear.gear_person_phone && <div style={{ fontSize:12, color:'var(--tan)' }}><Tel v={gear.gear_person_phone} /></div>}
+                </div>
               </div>
             )}
           </div>
@@ -921,9 +923,11 @@ function CrewView({ data, shareToken, hideGear, onOpenShotList, pw }) {
             )}
             {gear?.gear_person_name && (
               <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 14px', flex:1, minWidth:180 }}>
-                <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:4 }}>Gear Contact</div>
-                <div style={{ fontWeight:600, fontSize:13 }}>{shortName(gear.gear_person_name)}</div>
-                {gear.gear_person_phone && <div style={{ fontSize:12, color:'var(--tan)', marginTop:2 }}><Tel v={gear.gear_person_phone} /></div>}
+                <div style={{ display:'flex', alignItems:'baseline', gap:14, flexWrap:'wrap' }}>
+                  <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em' }}>Gear Contact</div>
+                  <div style={{ fontWeight:600, fontSize:13 }}>{shortName(gear.gear_person_name)}</div>
+                  {gear.gear_person_phone && <div style={{ fontSize:12, color:'var(--tan)' }}><Tel v={gear.gear_person_phone} /></div>}
+                </div>
               </div>
             )}
           </div>
