@@ -738,8 +738,9 @@ function DaySynopsisCard({ day, onDelete, onAddScene, scenes, scheduleDays, onDa
         </div>
       </div>
       <div style={{ padding: '0 16px 10px' }}>
+        <div style={{ maxWidth: 460 }}>
         <ShineBorder radius={10}>
-          <div className="sl-day-tiles" style={{ background: 'rgba(10,10,8,0.92)', borderRadius: 8, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', overflow: 'hidden' }}>
+          <div className="sl-day-tiles" style={{ background: 'rgba(10,10,8,0.92)', borderRadius: 8, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', overflow: 'hidden' }}>
             {tiles.map((t, i) => (
               <div key={t.label} onClick={onOpenSchedule} title="Edit on the Schedule" style={{ padding: '3px 12px 4px', borderRight: i < 3 ? '1px solid rgba(255,255,255,0.07)' : 'none', textAlign: 'center', cursor: onOpenSchedule ? 'pointer' : 'default' }}>
                 <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '.12em' }}>{t.label}</div>
@@ -748,6 +749,7 @@ function DaySynopsisCard({ day, onDelete, onAddScene, scenes, scheduleDays, onDa
             ))}
           </div>
         </ShineBorder>
+        </div>
       </div>
     </div>
   );
@@ -912,9 +914,9 @@ function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded,
   }
 
   return (
-    <div style={{ background:'var(--bg2)', border:`1px solid ${st.border}`, borderRadius:10, overflow:'hidden', marginBottom:16 }}>
+    <div style={{ background:'var(--bg2)', border:`1px solid ${st.border}`, borderRadius:10, overflow:'visible', marginBottom:16 }}>
       {/* Scene header */}
-      <div className="sl-scene-head" style={{ padding:'12px 20px', background: st.bg, borderBottom:`1px solid ${st.border}`, display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap' }}>
+      <div className="sl-scene-head" style={{ padding:'12px 20px', background: st.bg, borderBottom:`1px solid ${st.border}`, borderTopLeftRadius:10, borderTopRightRadius:10, display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap' }}>
         <div style={{ display:'flex', alignItems:'center', gap:10, flex:1, minWidth:0 }}>
           {/* Settings gear — show/hide columns (top-left of the scene card) */}
           <span style={{ position:'relative', flexShrink:0 }}>
@@ -924,7 +926,7 @@ function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded,
             </button>
             {colMenuOpen && (
               <div onMouseLeave={() => setColMenuOpen(false)}
-                style={{ position:'absolute', left:0, top:'calc(100% + 6px)', zIndex:80, width:190, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, boxShadow:'0 10px 28px rgba(0,0,0,0.35)', padding:'8px 10px', textAlign:'left', textTransform:'none', letterSpacing:'normal' }}>
+                style={{ position:'absolute', left:0, top:'calc(100% + 6px)', zIndex:80, width:190, maxHeight:260, overflowY:'auto', background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, boxShadow:'0 10px 28px rgba(0,0,0,0.35)', padding:'8px 10px', textAlign:'left', textTransform:'none', letterSpacing:'normal' }}>
                 <div style={{ fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'.06em', color:'var(--tan)', marginBottom:6 }}>Columns</div>
                 {BUILTIN_COLS.map(([key, label]) => (
                   <label key={key} style={{ display:'flex', alignItems:'center', gap:8, padding:'4px 0', fontSize:12, fontWeight:400, color:'var(--text)', cursor:'pointer' }}>
@@ -1742,6 +1744,11 @@ export default function ShotList({ project, onScenesChange, onCurrentDayChange, 
       {days.map((day, dayIdx) => {
         const dayScenes = scenes.filter(s => s.day_id === day.id);
         const dayBreaks = breaks.filter(b => b.day_id === day.id);
+        // Shooting call feeds the first scene's est. start — pull it from the
+        // matching schedule day (falling back to the shot list day's own value).
+        const isoKey = slDayDateToISO(day.date);
+        const schedDay = isoKey ? scheduleDays.find(sd => sd.date && String(sd.date).slice(0, 10) === isoKey) : null;
+        const dayShootingCall = schedDay?.shooting_call_time || day.shooting_call || '';
         // Scenes ordered by sort_order (stable insertion order)
         // Sort scenes by sort_order; assign each a time-based sort key falling back to sort_order
         const sortedScenes = [...dayScenes].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
@@ -1775,7 +1782,7 @@ export default function ShotList({ project, onScenesChange, onCurrentDayChange, 
                 onShotsReorder={handleShotsReorder} onSceneUpdate={handleSceneUpdate} onAddBreak={handleSceneBreakAdd}
                 columns={columns} onColumnsChange={saveColumns} colW={colW} onColW={changeColW} colHidden={colHidden} onToggleCol={toggleColHidden}
                 isFirstScene={items.filter(i => i._type === 'scene').indexOf(item) === 0}
-                shootingCall={items.filter(i => i._type === 'scene').indexOf(item) === 0 ? (fmt12(day.shooting_call) || '') : undefined} />
+                shootingCall={items.filter(i => i._type === 'scene').indexOf(item) === 0 ? (fmt12(dayShootingCall) || '') : undefined} />
             ) : (
               <div key={item.data.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', margin:'8px 0', padding:'10px 16px', background:'rgba(234,179,8,0.08)', border:'1px solid rgba(234,179,8,0.3)', borderRadius:8 }}>
                 <div style={{ display:'flex', alignItems:'center', gap:10 }}>
