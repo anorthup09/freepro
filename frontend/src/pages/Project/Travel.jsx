@@ -988,7 +988,7 @@ export default function Travel({ project }) {
       {cars.map(c => (
         <div key={c.id} className="frow" style={{ flexWrap:'wrap' }}>
           <div className="fname">{c.vendor}</div>
-          {c.crew_name && <span style={{ fontSize:10, color:'var(--tan)', fontWeight:600 }}>👤 {c.crew_name}</span>}
+          {c.crew_name && <span style={{ fontSize:10, color:'var(--tan)', fontWeight:600 }}>{c.crew_name}</span>}
           {c.pickup_location && <div className="froute"><span>{c.pickup_location}</span>{c.dropoff_location && <><span className="farrow">→</span><span>{c.dropoff_location}</span></>}</div>}
           {c.pickup_date && <div className="ftimes">{fmtDay(c.pickup_date)}{c.dropoff_date && ` – ${fmtDay(c.dropoff_date)}`}</div>}
           {c.confirmation && <span style={{ fontSize:10, color:'var(--muted)' }}>{c.confirmation}</span>}

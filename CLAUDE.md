@@ -8,6 +8,11 @@ mirror to `claude/video-shoot-backend-f33oxv`.
 Deploy: `cd frontend && npm run build && cp -r dist/* ../backend/public/`,
 commit, push both branches.
 
+## No emojis (standing instruction)
+
+Do not add emojis anywhere in the UI (buttons, labels, tiles, PDFs, etc.).
+Use text or SVG icons instead.
+
 ## Feature walkthrough PDF (standing instruction)
 
 Every new user-facing function added from 2026-07-08 onward gets documented

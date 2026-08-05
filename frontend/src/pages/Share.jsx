@@ -3059,7 +3059,7 @@ export default function Share() {
           <div style={{ display:'flex', justifyContent:'center', marginTop:28, paddingBottom:8 }}>
             <button onClick={() => { const next = shareTheme === 'light' ? 'dark' : 'light'; setShareTheme(next); localStorage.setItem('fp_share_theme', next); }}
               style={{ background:'var(--bg3)', border:'1px solid var(--border2)', color:'var(--muted)', borderRadius:16, padding:'6px 16px', fontSize:11, fontWeight:700, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>
-              {shareTheme === 'light' ? '🌙 Switch to dark view' : '☀️ Switch to light view'}
+              {shareTheme === 'light' ? 'Switch to dark view' : 'Switch to light view'}
             </button>
           </div>
         )}
