@@ -184,13 +184,13 @@ async function renderCallSheet({ project, allDays, renderDays, talent = null }) 
       crew.length ? Section('Production Crew', Table(applyCfg('crew', [
         { key: 'position_name', label: 'Title', width: '24%', render: a => h(Text, null, a.position_name || '') },
         { key: 'name', label: 'Name', width: '22%', render: a => h(Text, { style: st.strong }, crewName(a)) },
-        { key: 'call', label: 'Call', width: '10%', render: a => h(Text, null, callFor(a)) },
+        { key: 'call', label: 'Call', width: '10%', render: a => h(Text, null, talent ? fmt12(callFor(a)) : callFor(a)) },
         { key: 'cm_phone', label: 'Phone', width: '18%', render: a => h(Text, null, a.cm_phone || '') },
         { key: 'cm_email', label: 'Email', width: '26%', render: a => h(Text, null, a.cm_email || '') },
       ]), crew, 'crw')) : null,
       // Schedule
       events.length ? Section('Schedule', Table(applyCfg('schedule', [
-        { key: 'time', label: 'Time', width: '16%', render: e => h(Text, null, [e.start_time, e.end_time].filter(Boolean).join(' – ')) },
+        { key: 'time', label: 'Time', width: '16%', render: e => h(Text, null, [e.start_time, e.end_time].filter(Boolean).map(x => talent ? fmt12(x) : x).join(' – ')) },
         { key: 'title', label: 'Event', width: '30%', render: e => h(Text, { style: st.strong }, e.title || '') },
         { key: 'detail', label: 'Notes', width: '34%', render: e => h(Text, null, e.detail || '') },
         { key: 'crew', label: 'Crew', width: '20%', render: e => h(Text, null, (e.crew_ids || []).map(cid => nameById[cid]).filter(Boolean).join(', ')) },
