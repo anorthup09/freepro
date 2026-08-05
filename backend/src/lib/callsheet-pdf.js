@@ -91,12 +91,17 @@ async function renderCallSheet({ project, allDays, renderDays, talent = null }) 
   const DayPage = (day, key) => {
     const dayIndex = allDays.findIndex(d => d.id === day.id);
     const dayCount = allDays.length;
-    const events = [...(day.events || [])].sort((a, b) => String(a.start_time || '').localeCompare(String(b.start_time || '')));
+    // Talent sheets show only schedule items that apply to them: general
+    // (no audience) items plus any the talent is explicitly tagged in.
+    const events = [...(day.events || [])]
+      .filter(e => !talent || !(e.audience || []).length || (e.audience || []).includes(talent.name))
+      .sort((a, b) => String(a.start_time || '').localeCompare(String(b.start_time || '')));
     const taggedLocIds = new Set([
       ...(day.events || []).map(e => e.location_id),
       day.call_time_location_id, day.shooting_call_location_id, day.lunch_location_id, day.wrap_time_location_id,
     ].filter(Boolean));
-    const dayLocations = (project.locations || []).filter(l => taggedLocIds.has(l.id));
+    const dayLocations = (project.locations || []).filter(l => taggedLocIds.has(l.id))
+      .filter(l => !talent || l.type !== 'CREW_HOTEL'); // talent sheets omit hotel info
     // Talent call sheet: only the selected talent in the Talent table, and only
     // the Field Producer in the Production Crew table (client stays in its section).
     const keyTalent = talent ? [talent] : (day.talent || project.keyTalent || []);
@@ -150,14 +155,24 @@ async function renderCallSheet({ project, allDays, renderDays, talent = null }) 
         ) },
         { key: 'address', label: 'Address', width: '58%', render: l => h(Text, null, stripName(l.address, l.name)) },
       ]), dayLocations, 'loc')) : null,
-      // Talent
-      keyTalent.length ? Section('Talent', Table(applyCfg('talent', [
-        { key: 'name', label: 'Name', width: '24%', render: t => h(Text, { style: st.strong }, t.name || '') },
-        { key: 'role', label: 'Title / Role', width: '26%', render: t => h(Text, null, t.role || '') },
-        { key: 'call_time', label: 'Call', width: '12%', render: t => h(Text, null, t.call_time || '') },
-        { key: 'phone', label: 'Phone', width: '18%', render: t => h(Text, null, t.phone || '') },
-        { key: 'email', label: 'Email', width: '20%', render: t => h(Text, null, t.email || '') },
-      ]), keyTalent, 'tal')) : null,
+      // Talent — talent sheets drop the Call column (it's the big header) and
+      // give email room; the crew sheet keeps the full, configurable set.
+      keyTalent.length ? Section('Talent', Table(
+        talent
+          ? [
+              { key: 'name', label: 'Name', width: '20%', render: t => h(Text, { style: st.strong }, t.name || '') },
+              { key: 'role', label: 'Title / Role', width: '20%', render: t => h(Text, null, t.role || '') },
+              { key: 'phone', label: 'Phone', width: '22%', render: t => h(Text, null, t.phone || '') },
+              { key: 'email', label: 'Email', width: '38%', render: t => h(Text, null, t.email || '') },
+            ]
+          : applyCfg('talent', [
+              { key: 'name', label: 'Name', width: '24%', render: t => h(Text, { style: st.strong }, t.name || '') },
+              { key: 'role', label: 'Title / Role', width: '26%', render: t => h(Text, null, t.role || '') },
+              { key: 'call_time', label: 'Call', width: '12%', render: t => h(Text, null, t.call_time || '') },
+              { key: 'phone', label: 'Phone', width: '18%', render: t => h(Text, null, t.phone || '') },
+              { key: 'email', label: 'Email', width: '20%', render: t => h(Text, null, t.email || '') },
+            ]),
+        keyTalent, 'tal')) : null,
       // Client
       clientContacts.length ? Section('Client', Table(applyCfg('client', [
         { key: 'name', label: 'Name', width: '26%', render: c => h(Text, { style: st.strong }, c.name || '') },
