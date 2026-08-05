@@ -363,6 +363,20 @@ textarea { resize: vertical; min-height: 70px; }
 .share-view { padding-bottom: 40px; }
 .share-header { margin-bottom: 24px; }
 .share-section { margin-bottom: 24px; }
+/* Day-header gradient outline (producer/crew): a fading orange border, transparent
+   interior. Bleeds slightly wider than the content on desktop; contained on mobile
+   so the rounded corners stay on-screen instead of clipping to a stray edge line. */
+.day-hdr-grad {
+  border: 1.5px solid transparent;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin: 0 -14px 4px;
+  background: linear-gradient(var(--bg), var(--bg)) padding-box,
+              linear-gradient(to bottom, rgba(232,80,10,0.85), rgba(232,80,10,0)) border-box;
+}
+@media (max-width: 640px) {
+  .day-hdr-grad { margin: 0 0 6px; padding: 11px 12px; border-radius: 8px; }
+}
 .share-table { width: 100%; border-collapse: collapse; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
 .share-table th { text-align: left; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; padding: 8px 12px; font-weight: 400; background: var(--bg3); border-bottom: 1px solid var(--border); }
 .share-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 12px; }

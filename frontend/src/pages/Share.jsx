@@ -2329,7 +2329,7 @@ function DaySection({ day, showCalls, flights, drives, dayIndex, talentCallTime,
 
   return (
     <section className="share-section">
-      <div style={headerGradient ? { border:'1.5px solid transparent', borderRadius:8, padding:'12px 14px', margin:'0 -14px 4px', background:'linear-gradient(var(--bg), var(--bg)) padding-box, linear-gradient(to bottom, rgba(232,80,10,0.85), rgba(232,80,10,0)) border-box' } : undefined}>
+      <div className={headerGradient ? 'day-hdr-grad' : undefined}>
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
         <div>
           <div className="sec-lbl" style={{ margin:0 }}>
