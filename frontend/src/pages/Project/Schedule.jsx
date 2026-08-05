@@ -182,6 +182,36 @@ function wmoLabel(code) {
   return 'Thunderstorms';
 }
 
+// Split a location address into a street line and a "City, State ZIP" line,
+// dropping a leading duplicate of the location name and the trailing country.
+function addrLines(address, name) {
+  if (!address) return { line1: '', line2: '' };
+  let a = String(address).trim();
+  if (name) {
+    const n = String(name).trim();
+    if (n && a.toLowerCase().startsWith(n.toLowerCase())) a = a.slice(n.length).replace(/^[\s,]+/, '');
+  }
+  a = a.replace(/,?\s*(United States of America|United States|USA|US)\s*$/i, '').trim();
+  const parts = a.split(',').map(x => x.trim()).filter(Boolean);
+  if (parts.length < 2) return { line1: a, line2: '' };
+  const zipRe = /\b\d{5}(-\d{4})?\b/;
+  const zipIdx = parts.findIndex(p => zipRe.test(p));
+  if (zipIdx === -1) return { line1: parts[0], line2: parts.slice(1).join(', ') };
+  const zip = parts[zipIdx].match(zipRe)[0];
+  const zipRest = parts[zipIdx].replace(zipRe, '').trim();
+  let state, stateIdx;
+  if (zipRest) { state = zipRest; stateIdx = zipIdx; }
+  else { state = zipIdx > 0 ? parts[zipIdx - 1] : ''; stateIdx = zipIdx - 1; }
+  let cityIdx = stateIdx - 1;
+  while (cityIdx >= 0 && /county/i.test(parts[cityIdx])) cityIdx--;
+  const city = cityIdx >= 0 ? parts[cityIdx] : '';
+  const streetEnd = cityIdx >= 0 ? cityIdx : (stateIdx >= 0 ? stateIdx : zipIdx);
+  const before = parts.slice(0, streetEnd);
+  const line1 = (before.length >= 2 && /^\d/.test(before[0])) ? `${before[0]} ${before[1]}` : (before.join(', ') || parts[0]);
+  const line2 = [city, [state, zip].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+  return { line1, line2 };
+}
+
 function flightStatusLabel(f) {
   // Live status from the flight API (refreshed server-side) wins over time math
   const st = (f.status || '').toUpperCase().replace(/[\s_-]/g, '');
@@ -875,41 +905,9 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
           ✓ Saved
         </div>
       )}
-      <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:14, flexWrap:'wrap', gap:10 }}>
-        <div className="sched-head" style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:10, flex:'1 1 100%' }}>
-          <div>
-            <div className="page-title">Schedule</div>
-            <div className="page-sub">{parseDay(project.start_date||project.startDate).toLocaleDateString()} – {parseDay(project.end_date||project.endDate).toLocaleDateString()}</div>
-          </div>
-          {/* Settings gear — hovering reveals Color Coding / General Notes / Slate to the left */}
-          <div style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0 }}
-            onMouseEnter={() => setSettingsOpen(true)} onMouseLeave={() => setSettingsOpen(false)}>
-            {settingsOpen && (() => {
-              const btn = { display:'inline-flex', alignItems:'center', gap:7, background:'var(--bg2)', border:'1px solid var(--border2)', borderRadius:6, padding:'5px 12px', fontSize:11, fontWeight:700, color:'var(--text)', cursor:'pointer', letterSpacing:'.05em', textTransform:'uppercase', whiteSpace:'nowrap' };
-              return (
-                <>
-                  <button onClick={() => setShowColorCoding(true)} title="View and customize the timeline tag colors" style={btn}>
-                    <span style={{ display:'inline-flex', gap:2 }}>
-                      {TAG_COLOR_DEFS.map(t => <span key={t.key} style={{ width:8, height:8, borderRadius:'50%', background: tagColors[t.key] || t.def }} />)}
-                    </span>
-                    Color Coding
-                  </button>
-                  <button onClick={() => setShowGeneralNotes(true)} title="Add general notes shown on the Producer & Crew views" style={btn}>
-                    General Notes
-                  </button>
-                  <button onClick={() => setQuickSlate(true)} title="Open the slate for this day" style={btn}>
-                    Slate
-                  </button>
-                </>
-              );
-            })()}
-            <button title="Schedule settings" onClick={() => setSettingsOpen(o => !o)}
-              style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:32, height:32, background:'var(--bg2)', border:'1px solid var(--border2)', borderRadius:8, color: settingsOpen ? 'var(--orange)' : 'var(--muted)', cursor:'pointer', padding:0 }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-            </button>
-          </div>
-        </div>
-
+      <div style={{ display:'flex', alignItems:'baseline', gap:12, marginBottom:14, flexWrap:'wrap' }}>
+        <div className="page-title" style={{ margin:0 }}>Schedule</div>
+        <div className="page-sub" style={{ margin:0 }}>{parseDay(project.start_date||project.startDate).toLocaleDateString()} – {parseDay(project.end_date||project.endDate).toLocaleDateString()}</div>
       </div>
 
       {days.length === 0 && <div className="empty">No shoot days yet — add a day to start building the schedule.</div>}
@@ -1015,26 +1013,58 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
         />
       )}
 
-      {/* Dates wrapped into a calendar button — hovering reveals the day tabs to the right */}
+      {/* Toolbar: + Event, the calendar dates button, and the settings gear on one plane */}
       {days.length > 0 && (
-        <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:18, minWidth:0 }}
-          onMouseEnter={() => setDatesOpen(true)} onMouseLeave={() => setDatesOpen(false)}>
-          <button title="Shoot days" onClick={() => setDatesOpen(o => !o)}
-            style={{ display:'inline-flex', alignItems:'center', gap:7, background:'var(--bg2)', border:'1px solid var(--border2)', borderRadius:8, color: datesOpen ? 'var(--orange)' : 'var(--text)', cursor:'pointer', padding:'0 11px', height:32, flexShrink:0 }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-            <span style={{ fontSize:12, fontWeight:700, whiteSpace:'nowrap' }}>
-              {currentDay ? parseDay(currentDay.date).toLocaleDateString('en-US', { month:'short', day:'numeric' }) : 'Dates'}
-            </span>
-          </button>
-          {datesOpen && (
-            <div className="day-tabs" style={{ marginBottom:0, flex:'1 1 auto', minWidth:0 }}>
-              {[...days].sort((a,b) => (a.date||'').localeCompare(b.date||'')).map((d, i) => (
-                <button key={d.id} className={`day-tab${d.id === activeDay ? ' on' : ''}`} onClick={() => { setActiveDay(d.id); }}>
-                  {parseDay(d.date).toLocaleDateString('en-US', { month:'short', day:'numeric' })}
-                </button>
-              ))}
-            </div>
-          )}
+        <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:18, flexWrap:'wrap' }}>
+          <button className="evt-glass" onClick={() => currentDay && setShowAddEvent(true)}>+ Event</button>
+          {/* Dates wrapped into a calendar button — hovering reveals the day tabs to the right, each grows on hover */}
+          <div style={{ display:'flex', alignItems:'center', gap:10, minWidth:0 }}
+            onMouseEnter={() => setDatesOpen(true)} onMouseLeave={() => setDatesOpen(false)}>
+            <button title="Shoot days" onClick={() => setDatesOpen(o => !o)}
+              style={{ display:'inline-flex', alignItems:'center', gap:7, background:'var(--bg2)', border:'1px solid var(--border2)', borderRadius:8, color: datesOpen ? 'var(--orange)' : 'var(--text)', cursor:'pointer', padding:'0 11px', height:32, flexShrink:0 }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+              <span style={{ fontSize:12, fontWeight:700, whiteSpace:'nowrap' }}>
+                {currentDay ? parseDay(currentDay.date).toLocaleDateString('en-US', { month:'short', day:'numeric' }) : 'Dates'}
+              </span>
+            </button>
+            {datesOpen && (
+              <div className="day-tabs sched-daterow" style={{ marginBottom:0, minWidth:0 }}>
+                {[...days].sort((a,b) => (a.date||'').localeCompare(b.date||'')).map((d, i) => (
+                  <button key={d.id} className={`day-tab${d.id === activeDay ? ' on' : ''}`} onClick={() => { setActiveDay(d.id); }}>
+                    {parseDay(d.date).toLocaleDateString('en-US', { month:'short', day:'numeric' })}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <div style={{ flex:'1 1 auto' }} />
+          {/* Settings gear — same plane; hovering reveals Color Coding / General Notes / Slate to the left */}
+          <div style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0 }}
+            onMouseEnter={() => setSettingsOpen(true)} onMouseLeave={() => setSettingsOpen(false)}>
+            {settingsOpen && (() => {
+              const btn = { display:'inline-flex', alignItems:'center', gap:7, background:'var(--bg2)', border:'1px solid var(--border2)', borderRadius:6, padding:'5px 12px', fontSize:11, fontWeight:700, color:'var(--text)', cursor:'pointer', letterSpacing:'.05em', textTransform:'uppercase', whiteSpace:'nowrap' };
+              return (
+                <>
+                  <button onClick={() => setShowColorCoding(true)} title="View and customize the timeline tag colors" style={btn}>
+                    <span style={{ display:'inline-flex', gap:2 }}>
+                      {TAG_COLOR_DEFS.map(t => <span key={t.key} style={{ width:8, height:8, borderRadius:'50%', background: tagColors[t.key] || t.def }} />)}
+                    </span>
+                    Color Coding
+                  </button>
+                  <button onClick={() => setShowGeneralNotes(true)} title="Add general notes shown on the Producer & Crew views" style={btn}>
+                    General Notes
+                  </button>
+                  <button onClick={() => setQuickSlate(true)} title="Open the slate for this day" style={btn}>
+                    Slate
+                  </button>
+                </>
+              );
+            })()}
+            <button title="Schedule settings" onClick={() => setSettingsOpen(o => !o)}
+              style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:32, height:32, background:'var(--bg2)', border:'1px solid var(--border2)', borderRadius:8, color: settingsOpen ? 'var(--orange)' : 'var(--muted)', cursor:'pointer', padding:0 }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </button>
+          </div>
         </div>
       )}
 
@@ -1284,10 +1314,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
 
             return (
               <>
-                <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
-                  <button className="evt-glass" onClick={() => setShowAddEvent(true)}>+ Event</button>
-                </div>
-                <div style={{ marginTop:10 }}>
+                <div style={{ marginTop:2 }}>
                   {items.length === 0 && <div className="empty">No events yet for this day.</div>}
                   <div className="tl">
                     {items.map((item, _ii) => item._type === 'synthetic' ? (() => {
@@ -1571,32 +1598,29 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                                     <span style={{ fontWeight:400, color:'var(--muted)', fontSize:11 }}>Room/Space: </span>{item.room_space}
                                   </div>
                                 )}
-                                {item.location && <span style={{ fontSize:10, color:'var(--tan)', fontWeight:600, overflowWrap:'anywhere' }}>📍 {item.location.name}</span>}
+                                {item.location && <span style={{ fontSize:10, color:'var(--tan)', fontWeight:600, overflowWrap:'anywhere' }}>{item.location.name}</span>}
                               </div>
                               {item.location?.address && (() => {
                                 const prevAddr = items.slice(0, _ii).reverse().map(stopAddr).find(Boolean);
                                 const t = prevAddr && prevAddr !== item.location.address
                                   ? driveTimes[`${prevAddr}||${item.location.address}`] : null;
+                                const { line1, line2 } = addrLines(item.location.address, item.location.name);
                                 return (
-                                  <div style={{ marginLeft:'auto', maxWidth:'60%', display:'flex', flexDirection:'column', alignItems:'flex-end', gap:2 }}>
-                                    <div style={{ fontSize:10, color:'var(--muted)', textAlign:'right', overflowWrap:'anywhere' }}>{item.location.address}</div>
-                                    {t && <div style={{ fontSize:10, color:'var(--muted)', whiteSpace:'nowrap' }}>🚗 {t} from prev</div>}
+                                  <div style={{ marginLeft:'auto', maxWidth:'60%', display:'flex', flexDirection:'column', alignItems:'flex-end', gap:1 }}>
+                                    {line1 && <div style={{ fontSize:10, color:'var(--muted)', textAlign:'right', overflowWrap:'anywhere' }}>{line1}</div>}
+                                    {line2 && <div style={{ fontSize:10, color:'var(--muted)', textAlign:'right', overflowWrap:'anywhere' }}>{line2}</div>}
+                                    {t && <div style={{ fontSize:10, color:'var(--muted)', whiteSpace:'nowrap' }}>{t} from prev</div>}
                                   </div>
                                 );
                               })()}
                             </div>
                           )}
-                          {(item.tags?.length > 0 || item.is_filming || item.isFilming) && (
-                            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-end', gap:8, marginTop:6 }}>
-                              <div className="ev-tags" style={{ marginTop:0 }}>
-                                {(item.tags||[]).filter(t => includePhoto || t.type !== 'PHOTO').map(t => <span key={t.id} className={`etag ${TAG_CLASS[t.type]}`}>{TAG_LABEL[t.type]}</span>)}{(item.crew_ids||[]).map(id => { const c = (project.crews||[]).find(x=>x.id===id); if (!c) return null; const col = c.color || '#5ABF80'; return <span key={id} style={{ fontSize:9, fontWeight:800, color:col, border:`1px solid ${col}`, borderRadius:10, padding:'1px 7px' }}>{c.name}</span>; })}
-                              </div>
-                              {(item.is_filming||item.isFilming) && (
-                                <button onClick={e => { e.stopPropagation(); setClapEvent(item); }}
-                                  style={{ display:'inline-flex', alignItems:'center', gap:5, background:'rgba(255,140,0,0.12)', border:'1px solid rgba(255,140,0,0.4)', borderRadius:6, padding:'2px 9px', fontSize:10, fontWeight:700, color:'var(--orange)', cursor:'pointer', letterSpacing:'.05em', textTransform:'uppercase', flexShrink:0 }}>
-                                  Slate
-                                </button>
-                              )}
+                          {(item.is_filming||item.isFilming) && (
+                            <div style={{ display:'flex', justifyContent:'flex-end', marginTop:6 }}>
+                              <button onClick={e => { e.stopPropagation(); setClapEvent(item); }}
+                                style={{ display:'inline-flex', alignItems:'center', gap:5, background:'rgba(255,140,0,0.12)', border:'1px solid rgba(255,140,0,0.4)', borderRadius:6, padding:'2px 9px', fontSize:10, fontWeight:700, color:'var(--orange)', cursor:'pointer', letterSpacing:'.05em', textTransform:'uppercase', flexShrink:0 }}>
+                                Slate
+                              </button>
                             </div>
                           )}
                           {(() => { const names = taggedCrewNames(item); return names.length ? (

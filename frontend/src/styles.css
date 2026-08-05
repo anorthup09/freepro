@@ -966,6 +966,10 @@ body { padding-top: env(safe-area-inset-top, 0px); }
 }
 .evt-glass:active { transform: translateY(0) scale(0.96); }
 
+/* Revealed date tabs on the Schedule toolbar grow slightly on hover */
+.sched-daterow .day-tab { transition: transform .12s ease; }
+.sched-daterow .day-tab:hover { transform: scale(1.1); }
+
 /* While the Project View nav is expanded on the Finance tab, it swaps in for
    the Budget/VCC dock at the bottom right */
 /* Both section docks hide while the phase-nav pill is expanded */
