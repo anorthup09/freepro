@@ -120,6 +120,9 @@ async function renderCallSheet({ project, allDays, renderDays, talent = null }) 
     const talentCall = talent ? fmt12(talent.callByDay?.[day.id] || day.call_time || '') : null;
     const nameById = {};
     for (const a of crew) if (a.cm_id) nameById[a.cm_id] = crewName(a);
+    // Crew members that can be tagged to an event (by name, via the event audience).
+    const crewNameSet = new Set((project.crewAssignments || []).map(a => crewName(a)).filter(Boolean));
+    const taggedCrew = e => (e.audience || []).filter(n => crewNameSet.has(n)).join(', ');
     const callFor = a => (day.crewCalls || []).find(c => c.crew_assignment_id === a.id)?.call_time || day.call_time || '';
     const specBits = [project.techSpecs?.aspect_ratio, project.techSpecs?.resolution, project.techSpecs?.frame_rate ? `${project.techSpecs.frame_rate} fps` : null].filter(Boolean);
     const wxBits = [
@@ -128,7 +131,7 @@ async function renderCallSheet({ project, allDays, renderDays, talent = null }) 
       day.weather_sunrise ? `Sunrise ${day.weather_sunrise}` : null,
       day.weather_sunset ? `Sunset ${day.weather_sunset}` : null,
     ].filter(Boolean);
-    const timeRow = (lbl, val) => val ? h(View, { style: st.timeRow }, h(Text, { style: st.timeLbl }, lbl), h(Text, { style: st.timeVal }, val)) : null;
+    const timeRow = (lbl, val) => val ? h(View, { style: st.timeRow }, h(Text, { style: st.timeLbl }, lbl), h(Text, { style: st.timeVal }, fmt12(val))) : null;
 
     return h(Page, { key, size: 'LETTER', style: st.page },
       // Header
@@ -178,7 +181,7 @@ async function renderCallSheet({ project, allDays, renderDays, talent = null }) 
           : applyCfg('talent', [
               { key: 'name', label: 'Name', width: '24%', render: t => h(Text, { style: st.strong }, t.name || '') },
               { key: 'role', label: 'Title / Role', width: '26%', render: t => h(Text, null, t.role || '') },
-              { key: 'call_time', label: 'Call', width: '12%', render: t => h(Text, null, t.call_time || '') },
+              { key: 'call_time', label: 'Call', width: '12%', render: t => h(Text, null, fmt12(t.call_time || '')) },
               { key: 'phone', label: 'Phone', width: '18%', render: t => h(Text, null, t.phone || '') },
               { key: 'email', label: 'Email', width: '20%', render: t => h(Text, null, t.email || '') },
             ]),
@@ -194,7 +197,7 @@ async function renderCallSheet({ project, allDays, renderDays, talent = null }) 
       crew.length ? Section('Production Crew', Table(applyCfg('crew', [
         { key: 'position_name', label: 'Title', width: '24%', render: a => h(Text, null, a.position_name || '') },
         { key: 'name', label: 'Name', width: '22%', render: a => h(Text, { style: st.strong }, crewName(a)) },
-        { key: 'call', label: 'Call', width: '10%', render: a => h(Text, null, talent ? fmt12(callFor(a)) : callFor(a)) },
+        { key: 'call', label: 'Call', width: '10%', render: a => h(Text, null, fmt12(callFor(a))) },
         { key: 'cm_phone', label: 'Phone', width: '18%', render: a => h(Text, null, a.cm_phone || '') },
         { key: 'cm_email', label: 'Email', width: '26%', render: a => h(Text, null, a.cm_email || '') },
       ]), crew, 'crw')) : null,
@@ -207,10 +210,10 @@ async function renderCallSheet({ project, allDays, renderDays, talent = null }) 
               { key: 'detail', label: 'Notes', width: '44%', render: e => h(Text, null, e.detail || '') },
             ]
           : applyCfg('schedule', [
-              { key: 'time', label: 'Time', width: '16%', render: e => h(Text, null, [e.start_time, e.end_time].filter(Boolean).join(' – ')) },
+              { key: 'time', label: 'Time', width: '16%', render: e => h(Text, null, [e.start_time, e.end_time].filter(Boolean).map(x => fmt12(x)).join(' – ')) },
               { key: 'title', label: 'Event', width: '30%', render: e => h(Text, { style: st.strong }, e.title || '') },
               { key: 'detail', label: 'Notes', width: '34%', render: e => h(Text, null, e.detail || '') },
-              { key: 'crew', label: 'Crew', width: '20%', render: e => h(Text, null, (e.crew_ids || []).map(cid => nameById[cid]).filter(Boolean).join(', ')) },
+              { key: 'crew', label: 'Crew', width: '20%', render: e => h(Text, null, taggedCrew(e)) },
             ]),
         events, 'sch')) : null,
     );
