@@ -377,6 +377,9 @@ textarea { resize: vertical; min-height: 70px; }
 @media (max-width: 640px) {
   .day-hdr-grad { margin: 0 0 6px; padding: 11px 12px; border-radius: 8px; }
 }
+/* Shot-list column resize grip — subtle until hovered/dragged. */
+.sl-rez { opacity: 0.5; transition: opacity .12s, border-color .12s; }
+.sl-rez:hover { opacity: 1; border-right-color: var(--orange) !important; }
 .share-table { width: 100%; border-collapse: collapse; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
 .share-table th { text-align: left; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; padding: 8px 12px; font-weight: 400; background: var(--bg3); border-bottom: 1px solid var(--border); }
 .share-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 12px; }

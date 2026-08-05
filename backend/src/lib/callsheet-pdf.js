@@ -87,7 +87,7 @@ async function renderCallSheet({ project, allDays, renderDays }) {
       day.call_time_location_id, day.shooting_call_location_id, day.lunch_location_id, day.wrap_time_location_id,
     ].filter(Boolean));
     const dayLocations = (project.locations || []).filter(l => taggedLocIds.has(l.id));
-    const keyTalent = project.keyTalent || [];
+    const keyTalent = day.talent || project.keyTalent || [];
     const clientContacts = project.clientContacts || [];
     const crew = (project.crewAssignments || []).filter(a => crewName(a));
     const nameById = {};

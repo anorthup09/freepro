@@ -146,7 +146,7 @@ function CustomFieldInput({ value, onSave }) {
 }
 
 function ShotRow({ shot, index, sceneNumber, projectId, onUpdate, onDelete, accentColor, allExpanded, talent, columns = [],
-                   dragHandleProps, isDragOver, sceneStartTime, allShots }) {
+                   dragHandleProps, isDragOver, sceneStartTime, allShots, colHidden = {} }) {
   const captured = shot.status === 'captured';
   const [desc, setDesc] = useState(shot.description || '');
   const [movement, setMovement] = useState(shot.movement || '');
@@ -286,35 +286,35 @@ function ShotRow({ shot, index, sceneNumber, projectId, onUpdate, onDelete, acce
           </button>
         </td>
         {/* Description */}
-        <td style={{ padding:'6px 8px' }} onClick={e => e.stopPropagation()}>
+        {!colHidden.description && <td style={{ padding:'6px 8px' }} onClick={e => e.stopPropagation()}>
           <input value={desc} onChange={e => setDesc(e.target.value)}
             onBlur={() => { if (desc !== (shot.description || '')) save('description', desc); }}
             placeholder="Shot description…"
             style={{ width:'100%', background:'transparent', border:'none', outline:'none', color: captured ? 'var(--muted)' : 'var(--text)', fontSize:13, fontFamily:'inherit', padding:0 }} />
-        </td>
+        </td>}
         {/* Script */}
-        <td style={{ padding:'6px 8px', width:180 }} onClick={e => e.stopPropagation()}>
+        {!colHidden.script && <td style={{ padding:'6px 8px' }} onClick={e => e.stopPropagation()}>
           <input value={script} onChange={e => setScript(e.target.value)}
             onBlur={() => { if (script !== (shot.script || '')) save('script', script); }}
             placeholder="Script / dialogue…"
             style={{ width:'100%', background:'transparent', border:'none', outline:'none', color: captured ? 'var(--muted)' : 'var(--text)', fontSize:13, fontFamily:'inherit', padding:0 }} />
-        </td>
+        </td>}
         {/* Notes */}
-        <td style={{ padding:'6px 8px', width:180 }} onClick={e => e.stopPropagation()}>
+        {!colHidden.notes && <td style={{ padding:'6px 8px' }} onClick={e => e.stopPropagation()}>
           <input value={notes} onChange={e => setNotes(e.target.value)}
             onBlur={() => { if (notes !== (shot.notes || '')) save('notes', notes); }}
             placeholder="Notes…"
             style={{ width:'100%', background:'transparent', border:'none', outline:'none', color: captured ? 'var(--muted)' : 'var(--text)', fontSize:13, fontFamily:'inherit', padding:0 }} />
-        </td>
+        </td>}
         {/* Location */}
-        <td style={{ padding:'6px 8px', width:150 }} onClick={e => e.stopPropagation()}>
+        {!colHidden.location && <td style={{ padding:'6px 8px' }} onClick={e => e.stopPropagation()}>
           <input value={location} onChange={e => setLocation(e.target.value)}
             onBlur={() => { if (location !== (shot.location || '')) save('location', location); }}
             placeholder="Location…"
             style={{ width:'100%', background:'transparent', border:'none', outline:'none', color: captured ? 'var(--muted)' : 'var(--text)', fontSize:13, fontFamily:'inherit', padding:0 }} />
-        </td>
+        </td>}
         {/* Talent */}
-        <td className="sl-col-hide" style={{ padding:'6px 8px', width:80 }} ref={talentRef}>
+        {!colHidden.talent && <td className="sl-col-hide" style={{ padding:'6px 8px' }} ref={talentRef}>
           {(shot.talent_tags || []).length > 0 ? (
             <div style={{ position:'relative' }}>
               <button onClick={() => setTalentOpen(o => !o)}
@@ -333,18 +333,20 @@ function ShotRow({ shot, index, sceneNumber, projectId, onUpdate, onDelete, acce
           ) : (
             <span style={{ fontSize:12, color:'var(--muted)', opacity:0.4 }}>—</span>
           )}
-        </td>
+        </td>}
         {/* Allocation (read-only, derived from breakdown) */}
-        <td style={{ padding:'6px 8px', width:60 }}>
+        {!colHidden.allocation && <td style={{ padding:'6px 8px' }}>
           <span style={{ fontSize:13, color: captured ? 'var(--muted)' : 'var(--text)', fontVariantNumeric:'tabular-nums' }}>{displayMinutes}<span style={{ fontSize:10, color:'var(--muted)', marginLeft:2 }}>m</span></span>
-        </td>
+        </td>}
         {/* Est. Time */}
-        <td style={{ padding:'6px 8px', width:72 }}>
+        {!colHidden.est_time && <td style={{ padding:'6px 8px' }}>
           {(() => {
             const t = calcShotEstTime(sceneStartTime, allShots || [], index);
             return t ? <span style={{ fontSize:12, color: captured ? 'var(--muted)' : 'var(--muted)', fontVariantNumeric:'tabular-nums', fontWeight:600 }}>{t}</span> : <span style={{ color:'var(--muted)', opacity:0.3, fontSize:12 }}>—</span>;
           })()}
-        </td>
+        </td>}
+        {/* Controls column (matches the header settings/+ cell) */}
+        <td />
         {/* Custom columns */}
         {columns.map(col => (
           <td key={col.id} style={{ padding:'6px 8px', width:120 }} onClick={e => e.stopPropagation()}>
@@ -479,7 +481,7 @@ function ShotRow({ shot, index, sceneNumber, projectId, onUpdate, onDelete, acce
         </div>, document.body)}
       {isOpen && !(open && isMobileNow()) && (
         <tr style={{ borderBottom:'1px solid var(--border)', background:'rgba(255,255,255,0.025)' }}>
-          <td colSpan={11 + (columns?.length || 0)} className="sl-detail-cell" style={{ padding:'12px 14px 16px 76px' }}>
+          <td colSpan={6 + (7 - ['description','script','notes','location','talent','allocation','est_time'].filter(k => colHidden[k]).length) + (columns?.length || 0)} className="sl-detail-cell" style={{ padding:'12px 14px 16px 76px' }}>
             <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:8 }}>
               <RefPhotoButton projectId={projectId} shotId={shot.id} />
             </div>
@@ -601,7 +603,7 @@ function ShotRow({ shot, index, sceneNumber, projectId, onUpdate, onDelete, acce
 }
 
 // ── New Shot Row ──────────────────────────────────────────────────────────────
-function NewShotRow({ sceneNumber, nextIndex, projectId, sceneId, onAdded, accentColor, columns = [] }) {
+function NewShotRow({ sceneNumber, nextIndex, projectId, sceneId, onAdded, accentColor, columns = [], colHidden = {} }) {
   const [desc, setDesc] = useState('');
   const [movement, setMovement] = useState('');
   const [saving, setSaving] = useState(false);
@@ -637,18 +639,19 @@ function NewShotRow({ sceneNumber, nextIndex, projectId, sceneId, onAdded, accen
         {shotLabel(sceneNumber, nextIndex)}
       </td>
       <td style={{ width:20 }} />
-      <td style={{ padding:'6px 8px' }}>
+      {!colHidden.description && <td style={{ padding:'6px 8px' }}>
         <input ref={descRef} value={desc} onChange={e => setDesc(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), submit())}
           onBlur={submit} placeholder="Add a shot…"
           style={{ width:'100%', background:'transparent', border:'none', outline:'none', color:'var(--text)', fontSize:13, fontFamily:'inherit', padding:0 }} />
-      </td>
-      <td style={{ width:180 }} />
-      <td style={{ width:180 }} />
-      <td style={{ width:150 }} />
-      <td className="sl-col-hide" style={{ width:80 }} />
-      <td style={{ padding:'6px 8px', width:60 }} />
-      <td style={{ width:72 }} />
+      </td>}
+      {!colHidden.script && <td />}
+      {!colHidden.notes && <td />}
+      {!colHidden.location && <td />}
+      {!colHidden.talent && <td className="sl-col-hide" />}
+      {!colHidden.allocation && <td />}
+      {!colHidden.est_time && <td />}
+      <td />
       {columns.map(col => <td key={col.id} style={{ width:120 }} />)}
       <td style={{ width:28 }} />
     </tr>
@@ -747,7 +750,8 @@ function DaySynopsisCard({ day, onDelete, onAddScene, scenes, scheduleDays, onDa
 }
 
 // ── Scene Block ───────────────────────────────────────────────────────────────
-function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded, onShotDelete, onDeleteScene, onStartTimeChange, onShotsReorder, onSceneUpdate, onAddBreak, isFirstScene, shootingCall, columns = [], onColumnsChange, colW = {}, onColW }) {
+function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded, onShotDelete, onDeleteScene, onStartTimeChange, onShotsReorder, onSceneUpdate, onAddBreak, isFirstScene, shootingCall, columns = [], onColumnsChange, colW = {}, onColW, colHidden = {}, onToggleCol }) {
+  const [colMenuOpen, setColMenuOpen] = useState(false);
   // Drag a built-in column header's right edge to resize it (per-project preference).
   function startColResize(e, key) {
     e.preventDefault(); e.stopPropagation();
@@ -759,7 +763,10 @@ function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded,
     document.addEventListener('mousemove', move);
     document.addEventListener('mouseup', up);
   }
-  const rezHandle = key => <span onMouseDown={e => startColResize(e, key)} title="Drag to resize" style={{ position:'absolute', top:0, right:0, width:8, height:'100%', cursor:'col-resize', userSelect:'none' }} />;
+  // Visible grip on the column's right edge; drag to resize.
+  const rezHandle = key => <span onMouseDown={e => startColResize(e, key)} className="sl-rez" title="Drag to resize"
+    style={{ position:'absolute', top:4, bottom:4, right:0, width:5, cursor:'col-resize', userSelect:'none', borderRight:'2px solid var(--border2)' }} />;
+  const BUILTIN_COLS = [['description','Description'],['script','Script'],['notes','Notes'],['location','Location'],['talent','Talent'],['allocation','Allocation'],['est_time','Est. Start Time']];
   const st = SCENE_TYPE_STYLES[scene.scene_type] || SCENE_TYPE_STYLES.interior;
   const effectiveStart = fmt12(isFirstScene && shootingCall ? shootingCall : (scene.est_start_time || '')) || '';
   const [startTime, setStartTime] = useState(effectiveStart);
@@ -966,20 +973,36 @@ function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded,
             <th style={{ width:28 }} />
             <th style={{ padding:'8px 6px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:40 }}>Shot</th>
             <th style={{ width:20 }} />
-            <th style={{ position:'relative', padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width: colW.description || undefined }}>Description{rezHandle('description')}</th>
-            <th style={{ position:'relative', padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width: colW.script || 180 }}>Script{rezHandle('script')}</th>
-            <th style={{ position:'relative', padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width: colW.notes || 180 }}>Notes{rezHandle('notes')}</th>
-            <th style={{ position:'relative', padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width: colW.location || 150 }}>Location{rezHandle('location')}</th>
-            <th className="sl-col-hide" style={{ position:'relative', padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width: colW.talent || 80 }}>Talent{rezHandle('talent')}</th>
-            <th style={{ position:'relative', padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width: colW.allocation || 60 }}>Allocation{rezHandle('allocation')}</th>
-            <th style={{ position:'relative', padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width: colW.est_time || 92 }}>
-              <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
-                Est. Start Time
+            {!colHidden.description && <th style={{ position:'relative', padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width: colW.description || undefined }}>Description{rezHandle('description')}</th>}
+            {!colHidden.script && <th style={{ position:'relative', padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width: colW.script || 180 }}>Script{rezHandle('script')}</th>}
+            {!colHidden.notes && <th style={{ position:'relative', padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width: colW.notes || 180 }}>Notes{rezHandle('notes')}</th>}
+            {!colHidden.location && <th style={{ position:'relative', padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width: colW.location || 150 }}>Location{rezHandle('location')}</th>}
+            {!colHidden.talent && <th className="sl-col-hide" style={{ position:'relative', padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width: colW.talent || 80 }}>Talent{rezHandle('talent')}</th>}
+            {!colHidden.allocation && <th style={{ position:'relative', padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width: colW.allocation || 60 }}>Allocation{rezHandle('allocation')}</th>}
+            {!colHidden.est_time && <th style={{ position:'relative', padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width: colW.est_time || 92 }}>Est. Start Time{rezHandle('est_time')}</th>}
+            {/* Column controls: settings (show/hide) + add custom column */}
+            <th style={{ position:'relative', padding:'8px 8px', textAlign:'right', width:56, whiteSpace:'nowrap' }}>
+              <span style={{ display:'inline-flex', alignItems:'center', gap:6, position:'relative' }}>
+                <button title="Show / hide columns" onClick={() => setColMenuOpen(o => !o)}
+                  style={{ background:'rgba(255,255,255,0.06)', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:5, width:18, height:18, cursor:'pointer', display:'inline-flex', alignItems:'center', justifyContent:'center', padding:0 }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                </button>
                 <button title="Add a custom column to every shot in this shot list"
                   onClick={e => { const r = e.currentTarget.getBoundingClientRect(); setColDraft(''); setColMenu({ mode:'add', x:r.left, y:r.bottom }); }}
-                  style={{ background:'rgba(255,255,255,0.06)', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:5, width:16, height:16, lineHeight:1, fontSize:12, fontWeight:800, cursor:'pointer', display:'inline-flex', alignItems:'center', justifyContent:'center', padding:0 }}>+</button>
+                  style={{ background:'rgba(255,255,255,0.06)', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:5, width:18, height:18, lineHeight:1, fontSize:13, fontWeight:800, cursor:'pointer', display:'inline-flex', alignItems:'center', justifyContent:'center', padding:0 }}>+</button>
+                {colMenuOpen && (
+                  <div onMouseLeave={() => setColMenuOpen(false)}
+                    style={{ position:'absolute', right:0, top:'calc(100% + 6px)', zIndex:80, width:190, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, boxShadow:'0 10px 28px rgba(0,0,0,0.35)', padding:'8px 10px', textAlign:'left', textTransform:'none', letterSpacing:'normal' }}>
+                    <div style={{ fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'.06em', color:'var(--tan)', marginBottom:6 }}>Columns</div>
+                    {BUILTIN_COLS.map(([key, label]) => (
+                      <label key={key} style={{ display:'flex', alignItems:'center', gap:8, padding:'4px 0', fontSize:12, fontWeight:400, color:'var(--text)', cursor:'pointer' }}>
+                        <input type="checkbox" checked={!colHidden[key]} onChange={() => onToggleCol?.(key)} style={{ width:'auto', cursor:'pointer' }} />
+                        {label}
+                      </label>
+                    ))}
+                  </div>
+                )}
               </span>
-              {rezHandle('est_time')}
             </th>
             {(columns || []).map(col => (
               <th key={col.id} draggable
@@ -1000,7 +1023,7 @@ function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded,
           {scene.shots.map((shot, i) => (
             <ShotRow key={shot.id} shot={shot} index={i} sceneNumber={scene.scene_number}
               projectId={projectId} onUpdate={onShotUpdate} onDelete={onShotDelete}
-              accentColor={st.badgeText} allExpanded={allExpanded} talent={talent} columns={columns}
+              accentColor={st.badgeText} allExpanded={allExpanded} talent={talent} columns={columns} colHidden={colHidden}
               sceneStartTime={startTime} allShots={scene.shots}
               isDragOver={dragOverIndex === i}
               dragHandleProps={{
@@ -1015,7 +1038,7 @@ function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded,
           <NewShotRow
             key={`new-${scene.id}`}
             sceneNumber={scene.scene_number} nextIndex={scene.shots.length}
-            projectId={projectId} sceneId={scene.id} columns={columns}
+            projectId={projectId} sceneId={scene.id} columns={columns} colHidden={colHidden}
             onAdded={shot => onShotAdded(scene.id, shot)} accentColor={st.badgeText} />
         </tbody>
       </table>
@@ -1280,6 +1303,14 @@ export default function ShotList({ project, onScenesChange, onCurrentDayChange, 
     try { localStorage.setItem(colwKey, JSON.stringify(next)); } catch {}
     return next;
   }), [colwKey]);
+  // Hidden built-in columns — a per-project, per-browser preference.
+  const colhideKey = `sl_colhide_${project.id}`;
+  const [colHidden, setColHidden] = useState(() => { try { return JSON.parse(localStorage.getItem(colhideKey) || '{}'); } catch { return {}; } });
+  const toggleColHidden = useCallback((key) => setColHidden(prev => {
+    const next = { ...prev, [key]: !prev[key] };
+    try { localStorage.setItem(colhideKey, JSON.stringify(next)); } catch {}
+    return next;
+  }), [colhideKey]);
   const [showAddScene, setShowAddScene] = useState(false);
   const [sceneForm, setSceneForm] = useState({ name: '', description: '', sceneType: 'interior', dayId: '', estStartTime: '' });
   const [dayForm, setDayForm] = useState({ date: '', callTime: '', shootingCall: '', lunchTime: '', estWrap: '' });
@@ -1737,7 +1768,7 @@ export default function ShotList({ project, onScenesChange, onCurrentDayChange, 
                 onShotUpdate={handleShotUpdate} onShotAdded={handleShotAdded} onShotDelete={handleShotDelete}
                 onDeleteScene={deleteScene} onStartTimeChange={handleStartTimeChange}
                 onShotsReorder={handleShotsReorder} onSceneUpdate={handleSceneUpdate} onAddBreak={handleSceneBreakAdd}
-                columns={columns} onColumnsChange={saveColumns} colW={colW} onColW={changeColW}
+                columns={columns} onColumnsChange={saveColumns} colW={colW} onColW={changeColW} colHidden={colHidden} onToggleCol={toggleColHidden}
                 isFirstScene={items.filter(i => i._type === 'scene').indexOf(item) === 0}
                 shootingCall={items.filter(i => i._type === 'scene').indexOf(item) === 0 ? (fmt12(day.shooting_call) || '') : undefined} />
             ) : (
@@ -1775,7 +1806,7 @@ export default function ShotList({ project, onScenesChange, onCurrentDayChange, 
                 onShotUpdate={handleShotUpdate} onShotAdded={handleShotAdded} onShotDelete={handleShotDelete}
                 onDeleteScene={deleteScene} onStartTimeChange={handleStartTimeChange}
                 onShotsReorder={handleShotsReorder} onSceneUpdate={handleSceneUpdate} onAddBreak={handleSceneBreakAdd}
-                columns={columns} onColumnsChange={saveColumns} colW={colW} onColW={changeColW}
+                columns={columns} onColumnsChange={saveColumns} colW={colW} onColW={changeColW} colHidden={colHidden} onToggleCol={toggleColHidden}
                 isFirstScene={ui === 0} />
             ))}
           </div>

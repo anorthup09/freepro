@@ -484,9 +484,9 @@ router.get('/:id/call-sheet.pdf', requireAuth, requireRole('ADMIN','PRODUCER'), 
     ]);
     if (!project) return res.status(404).json({ error: 'Project not found' });
     const dayIds = days.map(d => d.id);
-    let events = [], crewCalls = [];
+    let events = [], crewCalls = [], talentCalls = [];
     if (dayIds.length) {
-      [events, crewCalls] = await Promise.all([
+      [events, crewCalls, talentCalls] = await Promise.all([
         sql`SELECT se.*, array_remove(array_agg(DISTINCT ec.crew_id), NULL) as crew_ids,
                    array_remove(array_agg(DISTINCT et.type::text), NULL) as tag_types,
                    l.name as location_name, l.address as location_address
@@ -496,12 +496,21 @@ router.get('/:id/call-sheet.pdf', requireAuth, requireRole('ADMIN','PRODUCER'), 
             LEFT JOIN locations l ON l.id = se.location_id
             WHERE se.shoot_day_id = ANY(${sql.array(dayIds)}) GROUP BY se.id, l.name, l.address ORDER BY se.start_time`,
         sql`SELECT * FROM crew_day_calls WHERE shoot_day_id = ANY(${sql.array(dayIds)})`,
+        sql`SELECT talent_id, shoot_day_id FROM talent_day_calls WHERE shoot_day_id = ANY(${sql.array(dayIds)})`,
       ]);
     }
     const evByDay = {}, callByDay = {};
     for (const e of events) (evByDay[e.shoot_day_id] ||= []).push({ ...e, crew_ids: e.crew_ids || [], general: (e.tag_types || []).includes('GENERAL') });
     for (const c of crewCalls) (callByDay[c.shoot_day_id] ||= []).push(c);
-    const fullDays = days.map(d => ({ ...d, events: evByDay[d.id] || [], crewCalls: callByDay[d.id] || [] }));
+    // Per-day talent: only those called that day. If the project never schedules
+    // talent by day, fall back to showing all talent on every day.
+    const talentByDay = {};
+    for (const t of talentCalls) (talentByDay[t.shoot_day_id] ||= new Set()).add(t.talent_id);
+    const anyTalentScheduled = talentCalls.length > 0;
+    const fullDays = days.map(d => ({
+      ...d, events: evByDay[d.id] || [], crewCalls: callByDay[d.id] || [],
+      talent: anyTalentScheduled ? keyTalent.filter(t => talentByDay[d.id]?.has(t.id)) : keyTalent,
+    }));
     const sheetDays = fullDays.filter(d => d.call_time || d.shooting_call_time || d.wrap_time || (d.events || []).length || (d.crewCalls || []).length);
     const renderDays = req.query.day ? sheetDays.filter(d => d.id === req.query.day) : sheetDays;
     if (!renderDays.length) return res.status(404).json({ error: 'No call-sheet days to render yet — add call times or a schedule.' });

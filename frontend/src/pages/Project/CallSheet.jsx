@@ -243,11 +243,11 @@ function DaySheet({ project, techSpecs, locations, keyTalent, clientContacts, cr
     <div style={{ maxWidth: 900, margin: '0 auto 26px', paddingTop: isFirst ? 0 : '0.4in', pageBreakAfter: isLast ? 'auto' : 'always' }}>
       {/* ── Header: general info (left) · timing (middle) · weather (right) ── */}
       <div style={{ ...box, borderTop: '3px solid var(--orange)', padding: '11px 15px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
-        <div style={{ flex: '1 1 auto', minWidth: 0 }}>
-          <div style={{ fontSize: 8.5, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--orange)' }}>Shoot Day {dayIndex + 1} of {dayCount}</div>
-          <div style={{ fontSize: 16, fontWeight: 800, lineHeight: 1.12, margin: '1px 0' }}>{project.title}</div>
-          <div style={{ fontSize: 10, color: 'var(--muted)' }}>{project.code}{project.client ? ` · ${project.client}` : ''}</div>
-          <div style={{ fontSize: 10.5, fontWeight: 700, marginTop: 2 }}>{fmtLongDate(day.date)}</div>
+        <div style={{ flex: '1 1 auto', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div style={{ fontSize: 8.5, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--orange)', lineHeight: 1.3 }}>Shoot Day {dayIndex + 1} of {dayCount}</div>
+          <div style={{ fontSize: 16, fontWeight: 800, lineHeight: 1.2, overflowWrap: 'anywhere' }}>{project.title}</div>
+          <div style={{ fontSize: 10, color: 'var(--muted)', lineHeight: 1.3 }}>{project.code}{project.client ? ` · ${project.client}` : ''}</div>
+          <div style={{ fontSize: 10.5, fontWeight: 700, lineHeight: 1.3 }}>{fmtLongDate(day.date)}</div>
           {specBits.length > 0 && <div style={{ fontSize: 9, color: 'var(--muted)', marginTop: 3 }}><b style={{ color: 'var(--tan)' }}>Tech Specs:</b> {specBits.join(' · ')}</div>}
         </div>
         <div style={{ flex: '0 0 auto', width: 150 }}>
