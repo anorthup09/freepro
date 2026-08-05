@@ -671,6 +671,16 @@ function fmt12(t) {
   return `${h}:${String(min).padStart(2, '0')} ${period}`;
 }
 
+// "9:30 AM" or "09:30" -> "09:30" for a <input type="time"> (empty if unparseable)
+function to24h(t) {
+  if (!t) return '';
+  const m = String(t).match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)?$/i);
+  if (!m) return '';
+  let h = parseInt(m[1]); const min = m[2]; const ap = m[3];
+  if (ap) { const pm = ap.toUpperCase() === 'PM'; if (pm && h < 12) h += 12; if (!pm && h === 12) h = 0; }
+  return `${String(h).padStart(2, '0')}:${min}`;
+}
+
 // "FRI, AUG 7, 2026" or ISO text -> "2026-08-07" (null if unparseable)
 function slDayDateToISO(str) {
   if (!str) return null;
@@ -756,7 +766,7 @@ function DaySynopsisCard({ day, onDelete, onAddScene, scenes, scheduleDays, onDa
 }
 
 // ── Scene Block ───────────────────────────────────────────────────────────────
-function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded, onShotDelete, onDeleteScene, onStartTimeChange, onShotsReorder, onSceneUpdate, onAddBreak, isFirstScene, shootingCall, columns = [], onColumnsChange, colW = {}, onColW, colHidden = {}, onToggleCol }) {
+function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded, onShotDelete, onDeleteScene, onStartTimeChange, onShotsReorder, onSceneUpdate, onAddBreak, isFirstScene, columns = [], onColumnsChange, colW = {}, onColW, colHidden = {}, onToggleCol }) {
   const [colMenuOpen, setColMenuOpen] = useState(false);
   // Drag a built-in column header's right edge to resize it (per-project preference).
   function startColResize(e, key) {
@@ -774,7 +784,7 @@ function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded,
     style={{ position:'absolute', top:4, bottom:4, right:0, width:5, cursor:'col-resize', userSelect:'none', borderRight:'2px solid var(--border2)' }} />;
   const BUILTIN_COLS = [['description','Description'],['script','Script'],['notes','Notes'],['location','Location'],['talent','Talent'],['allocation','Allocation'],['est_time','Est. Start Time']];
   const st = SCENE_TYPE_STYLES[scene.scene_type] || SCENE_TYPE_STYLES.interior;
-  const effectiveStart = fmt12(isFirstScene && shootingCall ? shootingCall : (scene.est_start_time || '')) || '';
+  const effectiveStart = fmt12(scene.est_start_time || '') || '';
   const [startTime, setStartTime] = useState(effectiveStart);
   const [allExpanded, setAllExpanded] = useState(false);
   const [dragOverIndex, setDragOverIndex] = useState(null);
@@ -787,25 +797,13 @@ function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded,
 
   // Scene Edit modal
   const [showEditModal, setShowEditModal] = useState(false);
-  const [editForm, setEditForm] = useState({ name: scene.name, description: scene.description || '', sceneType: scene.scene_type || 'interior', dayId: scene.day_id || '' });
+  const [editForm, setEditForm] = useState({ name: scene.name, description: scene.description || '', sceneType: scene.scene_type || 'interior', dayId: scene.day_id || '', estStartTime: scene.est_start_time || '' });
 
+  // Est. start time is set on the Add/Edit scene form; keep the header in sync
+  // when it changes externally (form save or cascade).
   useEffect(() => {
-    if (isFirstScene && shootingCall) {
-      const normalized = fmt12(shootingCall) || shootingCall;
-      if (normalized !== startTime) {
-        setStartTime(normalized);
-        api.updateScene(projectId, scene.id, { estStartTime: normalized }).catch(() => {});
-        onStartTimeChange(scene.id, normalized);
-      }
-    }
-  }, [shootingCall]);
-
-  // Sync start time when cascade updates scene.est_start_time externally
-  useEffect(() => {
-    if (!isFirstScene) {
-      const normalized = fmt12(scene.est_start_time || '') || '';
-      if (normalized !== startTime) setStartTime(normalized);
-    }
+    const normalized = fmt12(scene.est_start_time || '') || '';
+    if (normalized !== startTime) setStartTime(normalized);
   }, [scene.est_start_time]);
 
   async function saveStartTime(val) {
@@ -832,8 +830,10 @@ function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded,
         description: editForm.description,
         sceneType: editForm.sceneType,
         dayId: editForm.dayId || null,
+        estStartTime: editForm.estStartTime || null,
       });
       onSceneUpdate(scene.id, updated);
+      onStartTimeChange(scene.id, editForm.estStartTime || '');
       setShowEditModal(false);
     } catch(err) { alert(err.message); }
   }
@@ -980,7 +980,7 @@ function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded,
             <span style={{ fontSize:12, fontVariantNumeric:'tabular-nums', color: startTime ? 'var(--text)' : 'var(--muted)', opacity: startTime ? 1 : 0.4, fontWeight:600 }}>{startTime || '—'}</span>
           </div>
           <button className="btn btn-ghost btn-sm" style={{ color:'var(--text)', fontSize:11 }} onClick={() => {
-            setEditForm({ name: scene.name, description: scene.description || '', sceneType: scene.scene_type || 'interior', dayId: scene.day_id || '' });
+            setEditForm({ name: scene.name, description: scene.description || '', sceneType: scene.scene_type || 'interior', dayId: scene.day_id || '', estStartTime: scene.est_start_time || '' });
             setShowEditModal(true);
           }}>Edit</button>
           <button className="btn btn-ghost btn-sm" style={{ color:'var(--muted)', fontSize:11 }} onClick={() => {
@@ -1141,6 +1141,10 @@ function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded,
                   </select>
                 </div>
               )}
+              <div className="field">
+                <label>Est. Start Time</label>
+                <input type="time" value={to24h(editForm.estStartTime)} onChange={e => setEditForm(f => ({...f, estStartTime: e.target.value}))} />
+              </div>
               <div style={{ display:'flex', gap:8, marginTop:16 }}>
                 <button type="submit" className="btn btn-primary btn-sm">Save</button>
                 <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowEditModal(false)}>Cancel</button>
@@ -1728,6 +1732,10 @@ export default function ShotList({ project, onScenesChange, onCurrentDayChange, 
                   ))}
                 </div>
               </div>
+              <div className="field">
+                <label>Est. Start Time</label>
+                <input type="time" value={to24h(sceneForm.estStartTime)} onChange={e => setSceneForm(f => ({...f, estStartTime: e.target.value}))} />
+              </div>
             </div>
             <div style={{ display:'flex', gap:8 }}>
               <button type="submit" className="btn btn-primary btn-sm">Add Scene</button>
@@ -1744,11 +1752,6 @@ export default function ShotList({ project, onScenesChange, onCurrentDayChange, 
       {days.map((day, dayIdx) => {
         const dayScenes = scenes.filter(s => s.day_id === day.id);
         const dayBreaks = breaks.filter(b => b.day_id === day.id);
-        // Shooting call feeds the first scene's est. start — pull it from the
-        // matching schedule day (falling back to the shot list day's own value).
-        const isoKey = slDayDateToISO(day.date);
-        const schedDay = isoKey ? scheduleDays.find(sd => sd.date && String(sd.date).slice(0, 10) === isoKey) : null;
-        const dayShootingCall = schedDay?.shooting_call_time || day.shooting_call || '';
         // Scenes ordered by sort_order (stable insertion order)
         // Sort scenes by sort_order; assign each a time-based sort key falling back to sort_order
         const sortedScenes = [...dayScenes].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
@@ -1781,8 +1784,7 @@ export default function ShotList({ project, onScenesChange, onCurrentDayChange, 
                 onDeleteScene={deleteScene} onStartTimeChange={handleStartTimeChange}
                 onShotsReorder={handleShotsReorder} onSceneUpdate={handleSceneUpdate} onAddBreak={handleSceneBreakAdd}
                 columns={columns} onColumnsChange={saveColumns} colW={colW} onColW={changeColW} colHidden={colHidden} onToggleCol={toggleColHidden}
-                isFirstScene={items.filter(i => i._type === 'scene').indexOf(item) === 0}
-                shootingCall={items.filter(i => i._type === 'scene').indexOf(item) === 0 ? (fmt12(dayShootingCall) || '') : undefined} />
+                isFirstScene={items.filter(i => i._type === 'scene').indexOf(item) === 0} />
             ) : (
               <div key={item.data.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', margin:'8px 0', padding:'10px 16px', background:'rgba(234,179,8,0.08)', border:'1px solid rgba(234,179,8,0.3)', borderRadius:8 }}>
                 <div style={{ display:'flex', alignItems:'center', gap:10 }}>
