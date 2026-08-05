@@ -2914,6 +2914,9 @@ export default function Share() {
   const initialPage = searchParams.get('tab') || 'callsheet';
   const [sharePage, setSharePage] = useState(initialPage);
   const [resolvedPw, setResolvedPw] = useState(null);
+  // Light/dark view for the share page (stamps data-theme on <html>).
+  const [shareTheme, setShareTheme] = useState(() => localStorage.getItem('fp_share_theme') || localStorage.getItem('fp_theme') || 'dark');
+  useEffect(() => { document.documentElement.setAttribute('data-theme', shareTheme); }, [shareTheme]);
 
   async function fetchShare(pw) {
     try {
@@ -3051,6 +3054,14 @@ export default function Share() {
             {view_type === 'client'   && <ClientView   data={data} onOpenShotList={data.project.show_shot_list ? () => setSharePage('shot-list') : null} />}
             {view_type === 'talent'   && <TalentView   data={data} />}
           </>
+        )}
+        {!isPdf && (view_type === 'producer' || view_type === 'crew' || view_type === 'client') && (
+          <div style={{ display:'flex', justifyContent:'center', marginTop:28, paddingBottom:8 }}>
+            <button onClick={() => { const next = shareTheme === 'light' ? 'dark' : 'light'; setShareTheme(next); localStorage.setItem('fp_share_theme', next); }}
+              style={{ background:'var(--bg3)', border:'1px solid var(--border2)', color:'var(--muted)', borderRadius:16, padding:'6px 16px', fontSize:11, fontWeight:700, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>
+              {shareTheme === 'light' ? '🌙 Switch to dark view' : '☀️ Switch to light view'}
+            </button>
+          </div>
         )}
       </div>
       {!isPdf && <ShareGlassDock items={[
