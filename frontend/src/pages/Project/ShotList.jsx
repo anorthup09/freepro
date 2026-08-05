@@ -682,11 +682,15 @@ function slDayDateToISO(str) {
 }
 
 function DaySynopsisCard({ day, onDelete, onAddScene, scenes, scheduleDays, onDateSelect, onOpenSchedule, onToggleHidePublic }) {
+  // Feed the header times straight from the matching schedule day (by date), so
+  // Call/Shooting/Lunch/Wrap always mirror the Schedule tab.
+  const isoKey = slDayDateToISO(day.date);
+  const sched = isoKey ? (scheduleDays || []).find(sd => sd.date && String(sd.date).slice(0, 10) === isoKey) : null;
   const tiles = [
-    { label: 'Call Time', val: fmt12(day.call_time) },
-    { label: 'Shooting Call', val: fmt12(day.shooting_call) },
-    { label: 'Lunch', val: fmt12(day.lunch_time) },
-    { label: 'Est. Wrap', val: fmt12(day.est_wrap) },
+    { label: 'Call Time', val: fmt12(sched?.call_time || day.call_time) },
+    { label: 'Shooting Call', val: fmt12(sched?.shooting_call_time || day.shooting_call) },
+    { label: 'Lunch', val: fmt12(sched?.lunch_time || day.lunch_time) },
+    { label: 'Est. Wrap', val: fmt12(sched?.wrap_time || day.est_wrap) },
   ];
   const dayScenes = scenes || [];
   const totalShots = dayScenes.reduce((s, sc) => s + sc.shots.length, 0);
@@ -912,6 +916,25 @@ function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded,
       {/* Scene header */}
       <div className="sl-scene-head" style={{ padding:'12px 20px', background: st.bg, borderBottom:`1px solid ${st.border}`, display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap' }}>
         <div style={{ display:'flex', alignItems:'center', gap:10, flex:1, minWidth:0 }}>
+          {/* Settings gear — show/hide columns (top-left of the scene card) */}
+          <span style={{ position:'relative', flexShrink:0 }}>
+            <button title="Show / hide columns" onClick={() => setColMenuOpen(o => !o)}
+              style={{ background:'rgba(255,255,255,0.06)', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:5, width:22, height:22, cursor:'pointer', display:'inline-flex', alignItems:'center', justifyContent:'center', padding:0 }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </button>
+            {colMenuOpen && (
+              <div onMouseLeave={() => setColMenuOpen(false)}
+                style={{ position:'absolute', left:0, top:'calc(100% + 6px)', zIndex:80, width:190, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, boxShadow:'0 10px 28px rgba(0,0,0,0.35)', padding:'8px 10px', textAlign:'left', textTransform:'none', letterSpacing:'normal' }}>
+                <div style={{ fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'.06em', color:'var(--tan)', marginBottom:6 }}>Columns</div>
+                {BUILTIN_COLS.map(([key, label]) => (
+                  <label key={key} style={{ display:'flex', alignItems:'center', gap:8, padding:'4px 0', fontSize:12, fontWeight:400, color:'var(--text)', cursor:'pointer' }}>
+                    <input type="checkbox" checked={!colHidden[key]} onChange={() => onToggleCol?.(key)} style={{ width:'auto', cursor:'pointer' }} />
+                    {label}
+                  </label>
+                ))}
+              </div>
+            )}
+          </span>
           {/* INT/EXT toggle badge */}
           <button onClick={toggleSceneType}
             title="Click to toggle INT/EXT"
@@ -980,29 +1003,11 @@ function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded,
             {!colHidden.talent && <th className="sl-col-hide" style={{ position:'relative', padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width: colW.talent || 80 }}>Talent{rezHandle('talent')}</th>}
             {!colHidden.allocation && <th style={{ position:'relative', padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width: colW.allocation || 60 }}>Allocation{rezHandle('allocation')}</th>}
             {!colHidden.est_time && <th style={{ position:'relative', padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width: colW.est_time || 92 }}>Est. Start Time{rezHandle('est_time')}</th>}
-            {/* Column controls: settings (show/hide) + add custom column */}
-            <th style={{ position:'relative', padding:'8px 8px', textAlign:'right', width:56, whiteSpace:'nowrap' }}>
-              <span style={{ display:'inline-flex', alignItems:'center', gap:6, position:'relative' }}>
-                <button title="Show / hide columns" onClick={() => setColMenuOpen(o => !o)}
-                  style={{ background:'rgba(255,255,255,0.06)', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:5, width:18, height:18, cursor:'pointer', display:'inline-flex', alignItems:'center', justifyContent:'center', padding:0 }}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                </button>
-                <button title="Add a custom column to every shot in this shot list"
-                  onClick={e => { const r = e.currentTarget.getBoundingClientRect(); setColDraft(''); setColMenu({ mode:'add', x:r.left, y:r.bottom }); }}
-                  style={{ background:'rgba(255,255,255,0.06)', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:5, width:18, height:18, lineHeight:1, fontSize:13, fontWeight:800, cursor:'pointer', display:'inline-flex', alignItems:'center', justifyContent:'center', padding:0 }}>+</button>
-                {colMenuOpen && (
-                  <div onMouseLeave={() => setColMenuOpen(false)}
-                    style={{ position:'absolute', right:0, top:'calc(100% + 6px)', zIndex:80, width:190, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, boxShadow:'0 10px 28px rgba(0,0,0,0.35)', padding:'8px 10px', textAlign:'left', textTransform:'none', letterSpacing:'normal' }}>
-                    <div style={{ fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'.06em', color:'var(--tan)', marginBottom:6 }}>Columns</div>
-                    {BUILTIN_COLS.map(([key, label]) => (
-                      <label key={key} style={{ display:'flex', alignItems:'center', gap:8, padding:'4px 0', fontSize:12, fontWeight:400, color:'var(--text)', cursor:'pointer' }}>
-                        <input type="checkbox" checked={!colHidden[key]} onChange={() => onToggleCol?.(key)} style={{ width:'auto', cursor:'pointer' }} />
-                        {label}
-                      </label>
-                    ))}
-                  </div>
-                )}
-              </span>
+            {/* Column controls: add custom column (settings gear lives top-left of the card) */}
+            <th style={{ position:'relative', padding:'8px 8px', textAlign:'right', width:32, whiteSpace:'nowrap' }}>
+              <button title="Add a custom column to every shot in this shot list"
+                onClick={e => { const r = e.currentTarget.getBoundingClientRect(); setColDraft(''); setColMenu({ mode:'add', x:r.left, y:r.bottom }); }}
+                style={{ background:'rgba(255,255,255,0.06)', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:5, width:18, height:18, lineHeight:1, fontSize:13, fontWeight:800, cursor:'pointer', display:'inline-flex', alignItems:'center', justifyContent:'center', padding:0 }}>+</button>
             </th>
             {(columns || []).map(col => (
               <th key={col.id} draggable
