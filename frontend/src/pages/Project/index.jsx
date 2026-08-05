@@ -140,15 +140,17 @@ export function ShareDropdown({ projectId, showShotList, crews = [] }) {
   const [shares, setShares] = useState([]);
   const [open, setOpen] = useState(false);
   const [toast, setToast] = useState('');
-  const [openSec, setOpenSec] = useState({ copy: false, pdf: false, crewCopy: false, crewPdf: false, callsheet: false });
+  const [openSec, setOpenSec] = useState({ links: false, crewCopy: false, pdfs: false, fullpdf: false, crewPdf: false, dailycrew: false, talentpdf: false });
   const toggleSec = k => setOpenSec(s => ({ ...s, [k]: !s[k] }));
   const [csDays, setCsDays] = useState([]);
+  const [talentList, setTalentList] = useState([]);
   const [csDownloading, setCsDownloading] = useState(false);
   const ref = useRef(null);
 
   useEffect(() => {
     api.getShares(projectId).then(setShares).catch(() => {});
     api.getSchedule(projectId).then(setCsDays).catch(() => {});
+    api.getTalent(projectId).then(setTalentList).catch(() => {});
   }, [projectId]);
 
   // Days that actually have a call sheet (call times / schedule), matching the Call Sheet page.
@@ -159,12 +161,10 @@ export function ShareDropdown({ projectId, showShotList, crews = [] }) {
     setCsDownloading(true);
     try {
       const blob = await api.downloadCallSheet(projectId, dayId);
+      // Preview in a new tab (inline PDF) — the viewer can save from there.
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      const idx = dayId ? sheetDays.findIndex(d => d.id === dayId) + 1 : 0;
-      a.href = url; a.download = `call-sheet${dayId ? `-day${idx}` : ''}.pdf`;
-      document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      window.open(url, '_blank');
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
       setOpen(false);
     } catch (e) { alert('Could not generate PDF: ' + e.message); }
     finally { setCsDownloading(false); }
@@ -218,14 +218,18 @@ export function ShareDropdown({ projectId, showShotList, crews = [] }) {
         <div className="share-menu">
           <div className="share-menu-item" onClick={() => { setOpen(false); navigate(`/projects/${projectId}/emails`); }}
             style={{ border:'1px solid rgba(255,255,255,0.5)', borderRadius:5, margin:'6px 8px 2px', padding:'6px 10px', color:'var(--text)' }}>
-            ✉ Send Call Sheet Emails
+            Send Call Sheet Emails
           </div>
-          {/* ── Copy Link (collapsible) ── */}
-          <div className="share-menu-item" onClick={() => toggleSec('copy')}
+          <div className="share-menu-item" onClick={() => { setOpen(false); navigate(`/projects/${projectId}/talent-callsheets`); }}
+            style={{ border:'1px solid rgba(255,255,255,0.5)', borderRadius:5, margin:'2px 8px 4px', padding:'6px 10px', color:'var(--text)' }}>
+            Talent
+          </div>
+          {/* ── Full Schedule Links (collapsible) ── */}
+          <div className="share-menu-item" onClick={() => toggleSec('links')}
             style={{ borderTop:'1px solid var(--border)', margin:'4px 0 0', padding:'6px 14px', fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', cursor:'pointer', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-            <span>Copy Link</span><span>{openSec.copy ? '▾' : '▸'}</span>
+            <span>Full Schedule Links</span><span>{openSec.links ? '▾' : '▸'}</span>
           </div>
-          {openSec.copy && <>
+          {openSec.links && <>
             <div className="share-menu-item" onClick={() => handleOption('producer')}>Producer View</div>
             {crews.length > 0 ? (
               <>
@@ -244,59 +248,74 @@ export function ShareDropdown({ projectId, showShotList, crews = [] }) {
             )}
             <div className="share-menu-item" onClick={() => handleOption('client')}>Client View</div>
           </>}
-          {/* ── Download PDF (collapsible) ── */}
-          <div className="share-menu-item" onClick={() => toggleSec('pdf')}
+          {/* ── PDFs (collapsible) ── */}
+          <div className="share-menu-item" onClick={() => toggleSec('pdfs')}
             style={{ borderTop:'1px solid var(--border)', margin:'4px 0 0', padding:'6px 14px', fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', cursor:'pointer', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-            <span>Download PDF</span><span>{openSec.pdf ? '▾' : '▸'}</span>
+            <span>PDFs</span><span>{openSec.pdfs ? '▾' : '▸'}</span>
           </div>
-          {openSec.pdf && <>
-            <div className="share-menu-item" onClick={() => openPdf('producer')}>Producer PDF</div>
-            {crews.length > 0 ? (
-              <>
-                <div className="share-menu-item" onClick={() => toggleSec('crewPdf')} style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                  <span>Crew PDF</span><span style={{ color:'var(--muted)' }}>{openSec.crewPdf ? '▾' : '▸'}</span>
-                </div>
-                {openSec.crewPdf && <>
-                  <div className="share-menu-item" onClick={() => openPdf('crew')} style={{ paddingLeft:26 }}>All Crews</div>
-                  {crews.map(c => (
-                    <div key={c.id} className="share-menu-item" onClick={() => openPdf('crew', null, c.id)} style={{ paddingLeft:26, color: c.color || undefined }}>{c.name}</div>
-                  ))}
-                </>}
-              </>
-            ) : (
-              <div className="share-menu-item" onClick={() => openPdf('crew')}>Crew PDF</div>
-            )}
-            <div className="share-menu-item" onClick={() => openPdf('client')}>Client PDF</div>
-          </>}
-          {/* ── Daily Call Sheets (PDF) (collapsible) ── */}
-          <div className="share-menu-item" onClick={() => toggleSec('callsheet')}
-            style={{ borderTop:'1px solid var(--border)', margin:'4px 0 0', padding:'6px 14px', fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em', cursor:'pointer', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-            <span>Daily Call Sheets (PDF)</span><span>{openSec.callsheet ? '▾' : '▸'}</span>
-          </div>
-          {openSec.callsheet && (
-            sheetDays.length === 0
-              ? <div className="share-menu-item" style={{ color:'var(--muted)', fontStyle:'italic' }}>No call sheet days yet</div>
-              : <>
-                  <div className="share-menu-item" style={{ fontWeight:700 }} onClick={() => downloadCallSheet(null)}>
-                    {csDownloading ? 'Generating…' : `All days (${sheetDays.length})`}
+          {openSec.pdfs && <>
+            {/* Full Schedule PDFs */}
+            <div className="share-menu-item" onClick={() => toggleSec('fullpdf')} style={{ paddingLeft:20, fontWeight:600, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+              <span>Full Schedule PDFs</span><span style={{ color:'var(--muted)' }}>{openSec.fullpdf ? '▾' : '▸'}</span>
+            </div>
+            {openSec.fullpdf && <>
+              <div className="share-menu-item" onClick={() => openPdf('producer')} style={{ paddingLeft:34 }}>Producer PDF</div>
+              {crews.length > 0 ? (
+                <>
+                  <div className="share-menu-item" onClick={() => toggleSec('crewPdf')} style={{ paddingLeft:34, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                    <span>Crew PDF</span><span style={{ color:'var(--muted)' }}>{openSec.crewPdf ? '▾' : '▸'}</span>
                   </div>
-                  {sheetDays.map((d, i) => (
-                    <div key={d.id} className="share-menu-item" style={{ paddingLeft:26 }} onClick={() => downloadCallSheet(d.id)}>
-                      Day {i + 1} — {csLongDate(d.date)}
-                    </div>
-                  ))}
+                  {openSec.crewPdf && <>
+                    <div className="share-menu-item" onClick={() => openPdf('crew')} style={{ paddingLeft:48 }}>All Crews</div>
+                    {crews.map(c => (
+                      <div key={c.id} className="share-menu-item" onClick={() => openPdf('crew', null, c.id)} style={{ paddingLeft:48, color: c.color || undefined }}>{c.name}</div>
+                    ))}
+                  </>}
                 </>
-          )}
-          <div style={{ borderTop:'1px solid var(--border)', margin:'4px 0' }} />
-          {showShotList && (
+              ) : (
+                <div className="share-menu-item" onClick={() => openPdf('crew')} style={{ paddingLeft:34 }}>Crew PDF</div>
+              )}
+              <div className="share-menu-item" onClick={() => openPdf('client')} style={{ paddingLeft:34 }}>Client PDF</div>
+            </>}
+            {/* Daily Crew PDFs */}
+            <div className="share-menu-item" onClick={() => toggleSec('dailycrew')} style={{ paddingLeft:20, fontWeight:600, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+              <span>Daily Crew PDFs</span><span style={{ color:'var(--muted)' }}>{openSec.dailycrew ? '▾' : '▸'}</span>
+            </div>
+            {openSec.dailycrew && (
+              sheetDays.length === 0
+                ? <div className="share-menu-item" style={{ paddingLeft:34, color:'var(--muted)', fontStyle:'italic' }}>No call sheet days yet</div>
+                : <>
+                    <div className="share-menu-item" style={{ paddingLeft:34, fontWeight:700 }} onClick={() => downloadCallSheet(null)}>
+                      {csDownloading ? 'Generating…' : `All days (${sheetDays.length})`}
+                    </div>
+                    {sheetDays.map((d, i) => (
+                      <div key={d.id} className="share-menu-item" style={{ paddingLeft:48 }} onClick={() => downloadCallSheet(d.id)}>
+                        Day {i + 1} — {csLongDate(d.date)}
+                      </div>
+                    ))}
+                  </>
+            )}
+            {/* Talent */}
+            <div className="share-menu-item" onClick={() => toggleSec('talentpdf')} style={{ paddingLeft:20, fontWeight:600, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+              <span>Talent</span><span style={{ color:'var(--muted)' }}>{openSec.talentpdf ? '▾' : '▸'}</span>
+            </div>
+            {openSec.talentpdf && (
+              talentList.length === 0
+                ? <div className="share-menu-item" style={{ paddingLeft:34, color:'var(--muted)', fontStyle:'italic' }}>No talent added yet</div>
+                : talentList.map(t => (
+                    <div key={t.id} className="share-menu-item" style={{ paddingLeft:34 }} onClick={() => openPdf('talent', t.name)}>{t.name}</div>
+                  ))
+            )}
+          </>}
+          {showShotList && <>
+            <div style={{ borderTop:'1px solid var(--border)', margin:'4px 0' }} />
             <div className="share-menu-item" onClick={async () => {
               const share = await ensureShare('producer');
               const url = `${FRONTEND_BASE}/share/${share.token}?tab=shot-list&pdf=1`;
               window.open(url, '_blank');
               setOpen(false);
             }} style={{ border:'1px solid rgba(255,255,255,0.5)', borderRadius:5, margin:'4px 8px', padding:'6px 10px', color:'var(--text)' }}>Shot List PDF</div>
-          )}
-          <div className="share-menu-item" onClick={() => { setOpen(false); navigate(`/projects/${projectId}/talent-callsheets`); }} style={{ border:'1px solid rgba(255,255,255,0.5)', borderRadius:5, margin:'4px 8px', padding:'6px 10px', color:'var(--text)' }}>Talent</div>
+          </>}
         </div>
       )}
       {toast && <div className="share-toast">{toast}</div>}
