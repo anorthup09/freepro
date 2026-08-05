@@ -217,12 +217,15 @@ router.patch('/:id/shot-list/shots/:shotId', requireAuth, requireRole('ADMIN','P
     const { description, distance, movement, priority, estMinutes, status,
             angle, lens, frameRate, coverage, talentTags, specialEquipment, audioNotes,
             setupMinutes, takesCount, takeMinutes, bufferMinutes, sortOrder,
-            customKey, customValue } = req.body;
+            customKey, customValue, script, notes, location } = req.body;
     const [shot] = await sql`
       UPDATE shot_list_shots SET
         custom = ${customKey !== undefined
           ? sql`jsonb_set(COALESCE(custom, '{}'::jsonb), ${sql.array([String(customKey)])}, ${sql.json(customValue ?? '')}, true)`
           : sql`custom`},
+        script = ${script !== undefined ? (script||null) : sql`script`},
+        notes = ${notes !== undefined ? (notes||null) : sql`notes`},
+        location = ${location !== undefined ? (location||null) : sql`location`},
         description = COALESCE(${description??null}, description),
         distance = ${distance !== undefined ? (distance||null) : sql`distance`},
         movement = ${movement !== undefined ? (movement||null) : sql`movement`},

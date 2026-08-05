@@ -150,6 +150,9 @@ function ShotRow({ shot, index, sceneNumber, projectId, onUpdate, onDelete, acce
   const captured = shot.status === 'captured';
   const [desc, setDesc] = useState(shot.description || '');
   const [movement, setMovement] = useState(shot.movement || '');
+  const [script, setScript] = useState(shot.script || '');
+  const [notes, setNotes] = useState(shot.notes || '');
+  const [location, setLocation] = useState(shot.location || '');
   const [open, setOpen] = useState(false);
   const [talentOpen, setTalentOpen] = useState(false);
   const talentRef = useRef(null);
@@ -184,6 +187,9 @@ function ShotRow({ shot, index, sceneNumber, projectId, onUpdate, onDelete, acce
 
   useEffect(() => { setDesc(shot.description || ''); }, [shot.description]);
   useEffect(() => { setMovement(shot.movement || ''); }, [shot.movement]);
+  useEffect(() => { setScript(shot.script || ''); }, [shot.script]);
+  useEffect(() => { setNotes(shot.notes || ''); }, [shot.notes]);
+  useEffect(() => { setLocation(shot.location || ''); }, [shot.location]);
   useEffect(() => {
     setDetail({
       angle: shot.angle || '',
@@ -286,13 +292,26 @@ function ShotRow({ shot, index, sceneNumber, projectId, onUpdate, onDelete, acce
             placeholder="Shot description…"
             style={{ width:'100%', background:'transparent', border:'none', outline:'none', color: captured ? 'var(--muted)' : 'var(--text)', fontSize:13, fontFamily:'inherit', padding:0 }} />
         </td>
-        {/* Movement */}
-        <td className="sl-col-hide" style={{ padding:'6px 8px', width:130 }}>
-          <select value={movement} onChange={e => { setMovement(e.target.value); save('movement', e.target.value); }}
-            style={{ background:'transparent', border:'none', outline:'none', color: movement ? (captured ? 'var(--muted)' : 'var(--text)') : 'var(--muted)', fontSize:13, fontFamily:'inherit', cursor:'pointer', padding:0, width:'100%' }}>
-            <option value="">— Movement —</option>
-            {MOVEMENTS.map(m => <option key={m} value={m}>{m}</option>)}
-          </select>
+        {/* Script */}
+        <td style={{ padding:'6px 8px', width:180 }} onClick={e => e.stopPropagation()}>
+          <input value={script} onChange={e => setScript(e.target.value)}
+            onBlur={() => { if (script !== (shot.script || '')) save('script', script); }}
+            placeholder="Script / dialogue…"
+            style={{ width:'100%', background:'transparent', border:'none', outline:'none', color: captured ? 'var(--muted)' : 'var(--text)', fontSize:13, fontFamily:'inherit', padding:0 }} />
+        </td>
+        {/* Notes */}
+        <td style={{ padding:'6px 8px', width:180 }} onClick={e => e.stopPropagation()}>
+          <input value={notes} onChange={e => setNotes(e.target.value)}
+            onBlur={() => { if (notes !== (shot.notes || '')) save('notes', notes); }}
+            placeholder="Notes…"
+            style={{ width:'100%', background:'transparent', border:'none', outline:'none', color: captured ? 'var(--muted)' : 'var(--text)', fontSize:13, fontFamily:'inherit', padding:0 }} />
+        </td>
+        {/* Location */}
+        <td style={{ padding:'6px 8px', width:150 }} onClick={e => e.stopPropagation()}>
+          <input value={location} onChange={e => setLocation(e.target.value)}
+            onBlur={() => { if (location !== (shot.location || '')) save('location', location); }}
+            placeholder="Location…"
+            style={{ width:'100%', background:'transparent', border:'none', outline:'none', color: captured ? 'var(--muted)' : 'var(--text)', fontSize:13, fontFamily:'inherit', padding:0 }} />
         </td>
         {/* Talent */}
         <td className="sl-col-hide" style={{ padding:'6px 8px', width:80 }} ref={talentRef}>
@@ -381,6 +400,18 @@ function ShotRow({ shot, index, sceneNumber, projectId, onUpdate, onDelete, acce
                 <label style={{ fontSize:10 }}>Audio</label>
                 <input value={detail.audioNotes} onChange={e => setDetail(f => ({...f, audioNotes: e.target.value}))} placeholder="e.g. Lav mic, Boom, No audio" />
               </div>
+              <div className="field" style={{ margin:0 }}>
+                <label style={{ fontSize:10 }}>Location</label>
+                <input value={location} onChange={e => setLocation(e.target.value)} onBlur={() => { if (location !== (shot.location || '')) save('location', location); }} placeholder="Where it's shot…" />
+              </div>
+              <div className="field" style={{ margin:0, gridColumn:'span 2' }}>
+                <label style={{ fontSize:10 }}>Script</label>
+                <input value={script} onChange={e => setScript(e.target.value)} onBlur={() => { if (script !== (shot.script || '')) save('script', script); }} placeholder="Script / dialogue…" />
+              </div>
+              <div className="field" style={{ margin:0, gridColumn:'span 2' }}>
+                <label style={{ fontSize:10 }}>Notes</label>
+                <input value={notes} onChange={e => setNotes(e.target.value)} onBlur={() => { if (notes !== (shot.notes || '')) save('notes', notes); }} placeholder="Notes…" />
+              </div>
               {columns.map(col => (
                 <div className="field" style={{ margin:0 }} key={col.id}>
                   <label style={{ fontSize:10 }}>{col.label}</label>
@@ -448,7 +479,7 @@ function ShotRow({ shot, index, sceneNumber, projectId, onUpdate, onDelete, acce
         </div>, document.body)}
       {isOpen && !(open && isMobileNow()) && (
         <tr style={{ borderBottom:'1px solid var(--border)', background:'rgba(255,255,255,0.025)' }}>
-          <td colSpan={9 + (columns?.length || 0)} className="sl-detail-cell" style={{ padding:'12px 14px 16px 76px' }}>
+          <td colSpan={11 + (columns?.length || 0)} className="sl-detail-cell" style={{ padding:'12px 14px 16px 76px' }}>
             <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:8 }}>
               <RefPhotoButton projectId={projectId} shotId={shot.id} />
             </div>
@@ -486,6 +517,18 @@ function ShotRow({ shot, index, sceneNumber, projectId, onUpdate, onDelete, acce
               <div className="field" style={{ margin:0, gridColumn:'span 2' }}>
                 <label style={{ fontSize:10 }}>Audio</label>
                 <input value={detail.audioNotes} onChange={e => setDetail(f => ({...f, audioNotes: e.target.value}))} placeholder="e.g. Lav mic, Boom, No audio" />
+              </div>
+              <div className="field" style={{ margin:0 }}>
+                <label style={{ fontSize:10 }}>Location</label>
+                <input value={location} onChange={e => setLocation(e.target.value)} onBlur={() => { if (location !== (shot.location || '')) save('location', location); }} placeholder="Where it's shot…" />
+              </div>
+              <div className="field" style={{ margin:0, gridColumn:'span 2' }}>
+                <label style={{ fontSize:10 }}>Script</label>
+                <input value={script} onChange={e => setScript(e.target.value)} onBlur={() => { if (script !== (shot.script || '')) save('script', script); }} placeholder="Script / dialogue…" />
+              </div>
+              <div className="field" style={{ margin:0, gridColumn:'span 2' }}>
+                <label style={{ fontSize:10 }}>Notes</label>
+                <input value={notes} onChange={e => setNotes(e.target.value)} onBlur={() => { if (notes !== (shot.notes || '')) save('notes', notes); }} placeholder="Notes…" />
               </div>
               {columns.map(col => (
                 <div className="field" style={{ margin:0 }} key={col.id}>
@@ -600,13 +643,9 @@ function NewShotRow({ sceneNumber, nextIndex, projectId, sceneId, onAdded, accen
           onBlur={submit} placeholder="Add a shot…"
           style={{ width:'100%', background:'transparent', border:'none', outline:'none', color:'var(--text)', fontSize:13, fontFamily:'inherit', padding:0 }} />
       </td>
-      <td className="sl-col-hide" style={{ padding:'6px 8px', width:130 }}>
-        <select value={movement} onChange={e => setMovement(e.target.value)}
-          style={{ background:'transparent', border:'none', outline:'none', color: movement ? 'var(--text)' : 'var(--muted)', fontSize:13, fontFamily:'inherit', cursor:'pointer', padding:0, width:'100%' }}>
-          <option value="">— Movement —</option>
-          {MOVEMENTS.map(m => <option key={m} value={m}>{m}</option>)}
-        </select>
-      </td>
+      <td style={{ width:180 }} />
+      <td style={{ width:180 }} />
+      <td style={{ width:150 }} />
       <td className="sl-col-hide" style={{ width:80 }} />
       <td style={{ padding:'6px 8px', width:60 }} />
       <td style={{ width:72 }} />
@@ -916,7 +955,9 @@ function SceneBlock({ scene, projectId, talent, days, onShotUpdate, onShotAdded,
             <th style={{ padding:'8px 6px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:40 }}>Shot</th>
             <th style={{ width:20 }} />
             <th style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left' }}>Description</th>
-            <th className="sl-col-hide" style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:130 }}>Movement</th>
+            <th style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:180 }}>Script</th>
+            <th style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:180 }}>Notes</th>
+            <th style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:150 }}>Location</th>
             <th className="sl-col-hide" style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:80 }}>Talent</th>
             <th style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:60 }}>Allocation</th>
             <th style={{ padding:'8px 8px', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--muted)', textAlign:'left', width:92 }}>

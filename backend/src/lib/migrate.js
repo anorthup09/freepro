@@ -695,6 +695,9 @@ async function migrate() {
   await sql`ALTER TABLE shot_list_shots ADD COLUMN IF NOT EXISTS takes_count INTEGER DEFAULT 1`;
   await sql`ALTER TABLE shot_list_shots ADD COLUMN IF NOT EXISTS take_minutes INTEGER DEFAULT 0`;
   await sql`ALTER TABLE shot_list_shots ADD COLUMN IF NOT EXISTS buffer_minutes INTEGER DEFAULT 2`;
+  await sql`ALTER TABLE shot_list_shots ADD COLUMN IF NOT EXISTS script TEXT`;
+  await sql`ALTER TABLE shot_list_shots ADD COLUMN IF NOT EXISTS notes TEXT`;
+  await sql`ALTER TABLE shot_list_shots ADD COLUMN IF NOT EXISTS location TEXT`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS shot_list_scenes (
