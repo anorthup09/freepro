@@ -405,9 +405,9 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
       setTimeout(() => URL.revokeObjectURL(url), 15000);
     } catch (e) { alert(e.message); }
   }
-  const [eventForm, setEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', roomSpace:'', isAlert:false, isFilming:false, tags:[], audience:[], crewIds:[], locationId:'', adhocLocation:'', adhocAddress:'', colorTag:'' });
+  const [eventForm, setEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', roomSpace:'', isAlert:false, isFilming:false, tags:[], audience:[], crewIds:[], locationId:'', adhocLocation:'', adhocAddress:'', colorTag:'', groupTag:'' });
   const [editEventId, setEditEventId] = useState(null);
-  const [editEventForm, setEditEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', roomSpace:'', isAlert:false, isFilming:false, tags:[], audience:[], crewIds:[], locationId:'', adhocLocation:'', adhocAddress:'', colorTag:'' });
+  const [editEventForm, setEditEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', roomSpace:'', isAlert:false, isFilming:false, tags:[], audience:[], crewIds:[], locationId:'', adhocLocation:'', adhocAddress:'', colorTag:'', groupTag:'' });
   const [editEventAtts, setEditEventAtts] = useState([]);   // existing attachments on the event being edited
   // Keep the day's event in sync so tiles show attachment changes immediately.
   function syncEventAtts(eventId, atts) {
@@ -783,6 +783,8 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
   // Hover-reveal clusters: calendar icon (dates) and gear icon (settings)
   const [datesOpen, setDatesOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [groupFilter, setGroupFilter] = useState(null);   // group id to filter the schedule by
+  const [groupFilterOpen, setGroupFilterOpen] = useState(false);
   // Color coding: per-project tag color overrides (drive the --etag-* vars)
   const [showColorCoding, setShowColorCoding] = useState(false);
   const [showGeneralNotes, setShowGeneralNotes] = useState(false);
@@ -831,6 +833,25 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
   function removeCustomColor(id) {
     saveTagColors({ ...tagColors, _custom: customColors.filter(c => c.id !== id) });
   }
+  // Group tags: user-defined groups (label + color) that color the RIGHT edge of a tile.
+  const groups = Array.isArray(tagColors._groups) ? tagColors._groups : [];
+  const colorForGroup = id => (groups.find(g => g.id === id) || {}).color || null;
+  const labelForGroup = id => (groups.find(g => g.id === id) || {}).label || '';
+  function addGroup() {
+    const label = window.prompt('Group name (e.g. Recap Group, Social Group)');
+    if (!label || !label.trim()) return null;
+    const id = 'g' + Date.now().toString(36);
+    const palette = ['#e6c229', '#d66a9b', '#4a9eff', '#5ABF80', '#a78bfa', '#40A0A0', '#ff8c00', '#f87171'];
+    const color = palette[groups.length % palette.length];
+    saveTagColors({ ...tagColors, _groups: [...groups, { id, label: label.trim(), color }] });
+    return id;
+  }
+  function updateGroup(id, patch) {
+    saveTagColors({ ...tagColors, _groups: groups.map(g => g.id === id ? { ...g, ...patch } : g) });
+  }
+  function removeGroup(id) {
+    saveTagColors({ ...tagColors, _groups: groups.filter(g => g.id !== id) });
+  }
   const crewByPosition = (posName) => {
     const a = (project.crewAssignments || []).find(x => (x.position?.name || x.position_name || '').toLowerCase() === posName && x.crewMember);
     return a ? displayName(a.crewMember) : '';
@@ -849,7 +870,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
       ev.attachments = uploaded;
       setDays(ds => ds.map(d => d.id === activeDay ? { ...d, events: [...d.events, ev].sort((a,b) => (a.start_time||'').localeCompare(b.start_time||'')) } : d));
       setShowAddEvent(false);
-      setEventForm({ startTime:'', endTime:'', title:'', detail:'', roomSpace:'', isAlert:false, isFilming:false, tags:[], audience:[], crewIds:[], locationId:'', adhocLocation:'', adhocAddress:'', colorTag:'' });
+      setEventForm({ startTime:'', endTime:'', title:'', detail:'', roomSpace:'', isAlert:false, isFilming:false, tags:[], audience:[], crewIds:[], locationId:'', adhocLocation:'', adhocAddress:'', colorTag:'', groupTag:'' });
       setEventFiles([]);
     } catch(e) {
       if (e.message?.includes('not found') || e.message?.includes('foreign key') || e.message?.includes('fkey')) {
@@ -886,7 +907,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
   function openEditEvent(ev) {
     setEditEventId(ev.id);
     setEditEventAtts(ev.attachments || []);
-    setEditEventForm({ startTime: ev.start_time || ev.startTime || '', endTime: ev.end_time || ev.endTime || '', title: ev.title || '', detail: ev.detail || '', roomSpace: ev.room_space || '', isAlert: ev.is_alert || ev.isAlert || false, isFilming: ev.is_filming || ev.isFilming || false, tags: ev.tags || [], audience: ev.audience || [], crewIds: ev.crew_ids || [], locationId: ev.location_id || '', adhocLocation: ev.adhoc_location || '', adhocAddress: ev.adhoc_address || '', colorTag: ev.color_tag || '' });
+    setEditEventForm({ startTime: ev.start_time || ev.startTime || '', endTime: ev.end_time || ev.endTime || '', title: ev.title || '', detail: ev.detail || '', roomSpace: ev.room_space || '', isAlert: ev.is_alert || ev.isAlert || false, isFilming: ev.is_filming || ev.isFilming || false, tags: ev.tags || [], audience: ev.audience || [], crewIds: ev.crew_ids || [], locationId: ev.location_id || '', adhocLocation: ev.adhoc_location || '', adhocAddress: ev.adhoc_address || '', colorTag: ev.color_tag || '', groupTag: ev.group_tag || '' });
   }
 
   function toggleEditTag(type) {
@@ -979,6 +1000,28 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
               ))}
             </div>
             <button type="button" className="btn btn-ghost btn-sm" onClick={addCustomColor} style={{ marginTop:10 }}>+ Add Color</button>
+            {/* Group tags — grouping colors shown on the right edge of tiles */}
+            <div style={{ fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'.06em', color:'var(--tan)', margin:'16px 0 8px' }}>Group Tags</div>
+            {groups.length === 0 && <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic', marginBottom:6 }}>No groups yet — add one (e.g. Recap Group, Interview Group).</div>}
+            <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+              {groups.map(g => (
+                <div key={g.id} style={{ display:'flex', alignItems:'center', gap:12 }}>
+                  <span style={{ display:'inline-flex', alignItems:'center', gap:8, minWidth:70, flex:'0 0 auto' }}>
+                    <span style={{ width:12, height:12, borderRadius:3, background:g.color, flexShrink:0 }} />
+                    <input value={g.label || ''} placeholder="Group name" onChange={e => updateGroup(g.id, { label: e.target.value })}
+                      style={{ fontSize:12, fontWeight:700, width:130, padding:'3px 6px' }} />
+                  </span>
+                  <div style={{ flex:1 }} />
+                  <input type="color" value={g.color}
+                    onChange={e => updateGroup(g.id, { color: e.target.value })}
+                    style={{ width:38, height:28, padding:0, border:'1px solid var(--border)', borderRadius:6, background:'transparent', cursor:'pointer' }} />
+                  <span style={{ fontSize:11, color:'var(--muted)', fontVariantNumeric:'tabular-nums', width:64 }}>{g.color}</span>
+                  <button type="button" title="Remove group" onClick={() => removeGroup(g.id)}
+                    style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:12, padding:2 }}>✕</button>
+                </div>
+              ))}
+            </div>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={addGroup} style={{ marginTop:10 }}>+ Add Group</button>
             <div className="btn-row" style={{ marginTop:16, justifyContent:'space-between' }}>
               <button type="button" className="btn btn-ghost btn-sm" onClick={() => saveTagColors({})}>Reset all</button>
               <button type="button" className="btn btn-primary btn-sm" onClick={() => setShowColorCoding(false)}>Done</button>
@@ -1275,6 +1318,29 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
             )}
           </div>
           <div style={{ flex:'1 1 auto' }} />
+          {/* Group filter — left of the gear; filters the schedule to one group */}
+          {groups.length > 0 && (
+            <div style={{ position:'relative', flexShrink:0 }}>
+              <button title="Filter by group" onClick={() => setGroupFilterOpen(o => !o)}
+                style={{ display:'inline-flex', alignItems:'center', gap:6, height:32, padding:'0 10px', background:'var(--bg2)', border:`1px solid ${groupFilter ? colorForGroup(groupFilter) : 'var(--border2)'}`, borderRadius:8, color: groupFilter ? colorForGroup(groupFilter) : 'var(--muted)', cursor:'pointer' }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
+                {groupFilter && <span style={{ fontSize:11, fontWeight:700, whiteSpace:'nowrap' }}>{labelForGroup(groupFilter)}</span>}
+              </button>
+              {groupFilterOpen && (
+                <div onMouseLeave={() => setGroupFilterOpen(false)}
+                  style={{ position:'absolute', right:0, top:'calc(100% + 6px)', zIndex:80, minWidth:180, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, boxShadow:'0 10px 28px rgba(0,0,0,0.35)', padding:6 }}>
+                  <button type="button" onClick={() => { setGroupFilter(null); setGroupFilterOpen(false); }}
+                    style={{ display:'flex', width:'100%', alignItems:'center', gap:8, padding:'6px 8px', background: !groupFilter ? 'var(--bg4)' : 'transparent', border:'none', borderRadius:6, color:'var(--text)', fontSize:12, cursor:'pointer', textAlign:'left' }}>All groups</button>
+                  {groups.map(g => (
+                    <button key={g.id} type="button" onClick={() => { setGroupFilter(g.id); setGroupFilterOpen(false); }}
+                      style={{ display:'flex', width:'100%', alignItems:'center', gap:8, padding:'6px 8px', background: groupFilter === g.id ? 'var(--bg4)' : 'transparent', border:'none', borderRadius:6, color:'var(--text)', fontSize:12, cursor:'pointer', textAlign:'left' }}>
+                      <span style={{ width:10, height:10, borderRadius:'50%', background:g.color, flexShrink:0 }} />{g.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
           {/* Settings gear — same plane; hovering reveals Color Coding / General Notes / Slate to the left */}
           <div style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0 }}
             onMouseEnter={() => setSettingsOpen(true)} onMouseLeave={() => setSettingsOpen(false)}>
@@ -1353,7 +1419,8 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
             // At the same time, call-time markers (General Call Time / Shooting
             // Call / Talent Call) sort above any other tile in that slot.
             const callRank = it => ((it._type === 'synthetic' && (it._key === 'ct' || it._key === 'sct')) || it._type === 'talentcall') ? 0 : 1;
-            const items = [...syntheticItems, ...eventItems, ...flightItems, ...cateringItems, ...previewItems, ...sceneItems, ...talentItems, ...driveItems].sort((a, b) => (a._sort - b._sort) || (callRank(a) - callRank(b)));
+            const eventItemsF = groupFilter ? eventItems.filter(e => e.group_tag === groupFilter) : eventItems;
+            const items = [...syntheticItems, ...eventItemsF, ...flightItems, ...cateringItems, ...previewItems, ...sceneItems, ...talentItems, ...driveItems].sort((a, b) => (a._sort - b._sort) || (callRank(a) - callRank(b)));
 
             return (
               <>
@@ -1614,7 +1681,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                       <div key={item.id} className="ev">
                         <div className="ev-time">{fmtTime(item.start_time || item.startTime)}{(item.end_time || item.endTime) ? ` – ${fmtTime(item.end_time || item.endTime)}` : ''}</div>
                         <div className={`ev-body${(item.is_alert||item.isAlert) ? ' warn' : ''}${isLiveBlock(item.start_time || item.startTime, item.end_time || item.endTime) ? ' ev-live' : ''}`}
-                          style={{ cursor:'pointer', ...((item.color_tag && colorForTag(item.color_tag) && !(item.is_alert||item.isAlert)) ? { borderLeft:`2px solid ${colorForTag(item.color_tag)}` } : (isGeneral(item.tags) ? { borderLeft:'2px solid var(--sc-general)', opacity:0.55 } : (!(item.is_alert||item.isAlert) ? { borderLeft:'2px solid var(--sc-filming)',  } : {}))) }}
+                          style={{ cursor:'pointer', ...((item.color_tag && colorForTag(item.color_tag) && !(item.is_alert||item.isAlert)) ? { borderLeft:`2px solid ${colorForTag(item.color_tag)}` } : (isGeneral(item.tags) ? { borderLeft:'2px solid var(--sc-general)', opacity:0.55 } : (!(item.is_alert||item.isAlert) ? { borderLeft:'2px solid var(--sc-filming)',  } : {}))), ...(item.group_tag && colorForGroup(item.group_tag) ? { borderRight:`3px solid ${colorForGroup(item.group_tag)}` } : {}) }}
                           onClick={() => openEditEvent(item)}>
                           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:8 }}>
                             <div className={`ev-title${(item.is_alert||item.isAlert) ? ' alert' : ''}`} style={{ flex:1, minWidth:0 }}>{(item.is_alert||item.isAlert) ? '⚠ ' : ''}{(item.is_filming||item.isFilming) ? '🎬 ' : ''}{item.title}</div>
@@ -1717,7 +1784,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                 </div>
                 <div className="field"><label>Room / Space</label><RoomSpaceField value={eventForm.roomSpace} options={usedRooms} onChange={v => setEventForm(f=>({...f,roomSpace:v}))} /></div>
                 <div className="field span2">
-                  <label>Tags</label>
+                  <label>Crew/Talent Tags</label>
                   <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:4 }}>
                     {(() => {
                       const core = includePhoto ? ['VIDEO','PHOTO'] : ['VIDEO'];
@@ -1735,7 +1802,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                         </button>
                       );
                     })()}
-                    {['VIDEO', ...(includePhoto ? ['PHOTO'] : []), 'TALENT', 'TRAVEL', 'GENERAL'].map(type => (
+                    {['VIDEO', ...(includePhoto ? ['PHOTO'] : []), 'TALENT'].map(type => (
                       <button key={type} type="button"
                         className={`etag ${TAG_CLASS[type]}`}
                         style={{ cursor:'pointer', opacity: eventForm.tags.some(t=>t.type===type) ? 1 : 0.4, padding:'4px 10px' }}
@@ -1795,7 +1862,24 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                   )}
                 </div>
                 <div className="field span2">
-                  <label>Color</label>
+                  <label>Group Tags</label>
+                  <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:4 }}>
+                    {groups.map(g => {
+                      const sel = eventForm.groupTag === g.id;
+                      return (
+                        <button key={g.id} type="button" onClick={() => setEventForm(f=>({...f,groupTag: sel ? '' : g.id}))}
+                          style={{ display:'inline-flex', alignItems:'center', gap:6, fontSize:11, padding:'3px 10px', borderRadius:12, border:`1px solid ${g.color}`, background: sel ? g.color : 'transparent', color: sel ? '#0b0b0b' : g.color, cursor:'pointer', fontWeight:700 }}>
+                          <span style={{ width:9, height:9, borderRadius:'50%', background:g.color, flexShrink:0 }} />
+                          {g.label}
+                        </button>
+                      );
+                    })}
+                    <button type="button" onClick={() => { const id = addGroup(); if (id) setEventForm(f=>({...f,groupTag:id})); }}
+                      style={{ fontSize:11, padding:'3px 10px', borderRadius:12, border:'1px dashed var(--border2)', background:'transparent', color:'var(--muted)', cursor:'pointer', fontWeight:600 }}>+ Add Group</button>
+                  </div>
+                </div>
+                <div className="field span2">
+                  <label>Event Tag</label>
                   <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:4 }}>
                     <button type="button" onClick={() => setEventForm(f=>({...f,colorTag:''}))}
                       style={{ fontSize:11, padding:'3px 10px', borderRadius:12, border:'1px solid var(--border2)', background: !eventForm.colorTag ? 'var(--bg4)' : 'transparent', color:'var(--muted)', cursor:'pointer', fontWeight:600 }}>Default</button>
@@ -1919,7 +2003,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                 </div>
                 <div className="field"><label>Room / Space</label><RoomSpaceField value={editEventForm.roomSpace} options={usedRooms} onChange={v => setEditEventForm(f=>({...f,roomSpace:v}))} /></div>
                 <div className="field span2">
-                  <label>Tags</label>
+                  <label>Crew/Talent Tags</label>
                   <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:4 }}>
                     {(() => {
                       const core = includePhoto ? ['VIDEO','PHOTO'] : ['VIDEO'];
@@ -1937,7 +2021,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                         </button>
                       );
                     })()}
-                    {['VIDEO', ...(includePhoto ? ['PHOTO'] : []), 'TALENT', 'TRAVEL', 'GENERAL'].map(type => (
+                    {['VIDEO', ...(includePhoto ? ['PHOTO'] : []), 'TALENT'].map(type => (
                       <button key={type} type="button"
                         className={`etag ${TAG_CLASS[type]}`}
                         style={{ cursor:'pointer', opacity: editEventForm.tags.some(t=>t.type===type) ? 1 : 0.4, padding:'4px 10px' }}
@@ -1997,7 +2081,24 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                   )}
                 </div>
                 <div className="field span2">
-                  <label>Color</label>
+                  <label>Group Tags</label>
+                  <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:4 }}>
+                    {groups.map(g => {
+                      const sel = editEventForm.groupTag === g.id;
+                      return (
+                        <button key={g.id} type="button" onClick={() => setEditEventForm(f=>({...f,groupTag: sel ? '' : g.id}))}
+                          style={{ display:'inline-flex', alignItems:'center', gap:6, fontSize:11, padding:'3px 10px', borderRadius:12, border:`1px solid ${g.color}`, background: sel ? g.color : 'transparent', color: sel ? '#0b0b0b' : g.color, cursor:'pointer', fontWeight:700 }}>
+                          <span style={{ width:9, height:9, borderRadius:'50%', background:g.color, flexShrink:0 }} />
+                          {g.label}
+                        </button>
+                      );
+                    })}
+                    <button type="button" onClick={() => { const id = addGroup(); if (id) setEditEventForm(f=>({...f,groupTag:id})); }}
+                      style={{ fontSize:11, padding:'3px 10px', borderRadius:12, border:'1px dashed var(--border2)', background:'transparent', color:'var(--muted)', cursor:'pointer', fontWeight:600 }}>+ Add Group</button>
+                  </div>
+                </div>
+                <div className="field span2">
+                  <label>Event Tag</label>
                   <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:4 }}>
                     <button type="button" onClick={() => setEditEventForm(f=>({...f,colorTag:''}))}
                       style={{ fontSize:11, padding:'3px 10px', borderRadius:12, border:'1px solid var(--border2)', background: !editEventForm.colorTag ? 'var(--bg4)' : 'transparent', color:'var(--muted)', cursor:'pointer', fontWeight:600 }}>Default</button>
