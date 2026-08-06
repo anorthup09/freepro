@@ -2429,12 +2429,20 @@ function DaySection({ day, showCalls, flights, drives, dayIndex, talentCallTime,
   // Real-time fill of the live event's connector line toward the next tile:
   // orange grows from the current dot downward based on how far "now" is between
   // this event's start and its end time (priority) or the next tile's start.
-  const liveStartMins = (progressIdx >= 0 && progressIdx < allItems.length) ? (allItems[progressIdx]?._sort ?? null) : null;
+  let liveStartMins = (progressIdx >= 0 && progressIdx < allItems.length) ? (allItems[progressIdx]?._sort ?? null) : null;
   let liveEndMins = null;
   if (progressIdx >= 0 && progressIdx < allItems.length) {
     const it = allItems[progressIdx];
-    const endT = it.end_time || it.endTime || null;
-    liveEndMins = endT ? timeToMins(endT) : (allItems[progressIdx + 1]?._sort ?? null);
+    if (it._type === 'flight' && it._leg === 'depart') {
+      // In-air progress: local departure time → local arrival time.
+      liveStartMins = timeToMins(flightTime(it, 'depart'));
+      let arrM = timeToMins(flightTime(it, 'arrive'));
+      if (arrM != null && liveStartMins != null && arrM <= liveStartMins) arrM += 1440; // arrives next day / across TZ
+      liveEndMins = arrM;
+    } else {
+      const endT = it.end_time || it.endTime || null;
+      liveEndMins = endT ? timeToMins(endT) : (allItems[progressIdx + 1]?._sort ?? null);
+    }
   }
   const liveProgressPct = (liveStartMins != null && liveEndMins != null && liveEndMins > liveStartMins)
     ? Math.max(0, Math.min(100, Math.round(((nowMins - liveStartMins) / (liveEndMins - liveStartMins)) * 100)))
