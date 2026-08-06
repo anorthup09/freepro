@@ -1005,12 +1005,18 @@ export default function AvoEdit() {
                     </div>
                   </div>
                   <div style={{ flex:1, minWidth:120 }}>
-                    <span style={lbl}>Approved</span>
-                    <button onClick={() => { const next = !e.approved; save({ approved: next }); if (next) maybeMailNotice("The approval email to the lead editor"); }}
-                      style={{ background: e.approved ? 'rgba(90,191,128,0.15)' : 'transparent', border:`1px solid ${e.approved ? '#5ABF80' : 'var(--border)'}`,
-                        color: e.approved ? '#5ABF80' : 'var(--muted)', borderRadius:20, padding:'4px 14px', fontSize:11, fontWeight:800, cursor:'pointer' }}>
-                      {e.approved ? '✓ Approved' : 'Not Approved'}
-                    </button>
+                    <div style={{ display:'inline-flex', border:'1px solid var(--border)', borderRadius:20, overflow:'hidden' }}>
+                      <button type="button" title="Approved"
+                        onClick={() => { const patch = e.approved ? (e.delivered ? { delivered:false } : { approved:false }) : { approved:true }; save(patch); if (patch.approved) maybeMailNotice("The approval email to the lead editor"); }}
+                        style={{ background: e.approved ? 'rgba(90,191,128,0.18)' : 'transparent', color: e.approved ? '#5ABF80' : 'var(--muted)', border:'none', padding:'5px 15px', fontSize:11, fontWeight:800, cursor:'pointer' }}>
+                        {e.approved ? '✓ Approved' : 'Approved'}
+                      </button>
+                      <button type="button" title="Delivered"
+                        onClick={() => save(e.delivered ? { delivered:false } : { approved:true, delivered:true })}
+                        style={{ background: e.delivered ? 'rgba(74,158,255,0.20)' : 'transparent', color: e.delivered ? '#4a9eff' : 'var(--muted)', border:'none', borderLeft:'1px solid var(--border)', padding:'5px 15px', fontSize:11, fontWeight:800, cursor:'pointer' }}>
+                        {e.delivered ? '✓ Delivered' : 'Delivered'}
+                      </button>
+                    </div>
                   </div>
                 </div>
                 <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
