@@ -36,7 +36,9 @@ async function itemsFor(cm, today) {
         WHERE ca.crew_member_id = ${cm.id} AND pr.status != 'ARCHIVED'
           AND ca.start_date::date <= ${today} AND COALESCE(ca.end_date, ca.start_date)::date >= ${today}`;
       for (const s of shoots) {
-        items.push({ kind: 'shoot', title: `On shoot — ${s.code} ${s.title}`, subtitle: `${s.position_name}${s.city ? ` · ${s.city}, ${s.state}` : ''}`, link: `/projects/${s.id}` });
+        const { city, state } = await resolveShootLocation(s.id, s.city, s.state);
+        const loc = [city, state].filter(Boolean).join(', ');
+        items.push({ kind: 'shoot', title: `On shoot — ${s.code} ${s.title}`, subtitle: `${s.position_name}${loc ? ` · ${loc}` : ''}`, link: `/projects/${s.id}` });
       }
       // PTO today
       const pto = await sql`
@@ -158,10 +160,17 @@ router.get('/team', requireAuth, async (req, res, next) => {
       SELECT member_id, pto_type, title FROM pto_requests
       WHERE status != 'CLOSED' AND start_date <= ${today} AND end_date >= ${today}`;
     const shoots = await sql`
-      SELECT ca.crew_member_id, pr.code, pr.title, pr.city, pr.state
+      SELECT ca.crew_member_id, pr.id as project_id, pr.code, pr.title, pr.city, pr.state
       FROM crew_assignments ca JOIN projects pr ON pr.id = ca.project_id
       WHERE pr.status != 'ARCHIVED'
         AND ca.start_date::date <= ${today} AND COALESCE(ca.end_date, ca.start_date)::date >= ${today}`;
+    // Resolve each shoot project's real location once (from the schedule), keyed by project id
+    const shootLocByProject = {};
+    await Promise.all([...new Set(shoots.map(s => s.project_id))].map(async pid => {
+      const s = shoots.find(x => x.project_id === pid);
+      const { city, state } = await resolveShootLocation(pid, s.city, s.state);
+      shootLocByProject[pid] = [city, state].filter(Boolean).join(', ');
+    }));
     const HIDDEN = ['anna parnigoni', 'ariel lynch', 'allison boon', 'brandon emery', 'cole seifert', 'dylan patterson', 'melinda love'];
     const visible = members.filter(m => !HIDDEN.includes((m.name || '').trim().toLowerCase()));
     const DENVER = ['anabelle', 'fabrizio'];
@@ -172,7 +181,7 @@ router.get('/team', requireAuth, async (req, res, next) => {
       const p = pto.find(x => x.member_id === m.id && x.pto_type !== 'STL/DEN Only');
       if (p) return { id: m.id, name: m.name, status: 'out', location: homeOffice, detail: p.pto_type };
       const s = shoots.find(x => x.crew_member_id === m.id);
-      if (s) return { id: m.id, name: m.name, status: 'shoot', location: s.city ? `${s.city}, ${s.state}` : 'On location', detail: s.code };
+      if (s) return { id: m.id, name: m.name, status: 'shoot', location: shootLocByProject[s.project_id] || 'On location', detail: s.code };
       const stlOnly = pto.find(x => x.member_id === m.id && x.pto_type === 'STL/DEN Only');
       return { id: m.id, name: m.name, status: 'office', location: homeOffice, detail: stlOnly ? 'STL/DEN only' : 'In office' };
     }));
