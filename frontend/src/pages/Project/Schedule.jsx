@@ -1436,8 +1436,8 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                           <div className="ev-time">{fmtTime(item.startTime)}{item.endTime ? ` – ${fmtTime(item.endTime)}` : ''}</div>
                           <div className={`ev-body${isLiveBlock(item.startTime, item.endTime) ? ' ev-live' : ''}`} style={{ borderLeft:`2px solid ${sm.color}`, cursor:'pointer' }}
                             onClick={() => setEditingSyntheticKey(isEditing ? null : item._key)}>
-                            <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between' }}>
-                              <div style={{ flex:1 }}>
+                            <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:8 }}>
+                              <div style={{ flex:1, minWidth:0 }}>
                                 <div className="ev-title">{item.title}</div>
                                 {item.notes && !isEditing && <div className="ev-detail">{item.notes}</div>}
                                 {item.tags?.length > 0 && !isEditing && (
@@ -1446,13 +1446,13 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                                   </div>
                                 )}
                               </div>
-                              <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:2, marginLeft:8, flexShrink:0 }}>
+                              <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:2, marginLeft:8, minWidth:0, flexShrink:1, maxWidth:'55%' }}>
                                 {!isEditing && dt[sm.locationKey] && (() => {
                                   const loc = (project.locations||[]).find(l => l.id === dt[sm.locationKey]);
                                   return loc ? (
-                                    <div style={{ textAlign:'right', marginBottom:4 }}>
-                                      <div style={{ fontSize:10, color:'var(--tan)', fontWeight:600 }}>📍 {loc.name}</div>
-                                      {loc.address && <div style={{ fontSize:10, color:'var(--muted)' }}>{loc.address}</div>}
+                                    <div style={{ textAlign:'right', marginBottom:4, minWidth:0 }}>
+                                      <div style={{ fontSize:10, color:'var(--tan)', fontWeight:600, overflowWrap:'anywhere' }}>{loc.name}</div>
+                                      {loc.address && <div style={{ fontSize:10, color:'var(--muted)', overflowWrap:'anywhere' }}>{loc.address}</div>}
                                     </div>
                                   ) : null;
                                 })()}
