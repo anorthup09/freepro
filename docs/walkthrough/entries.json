@@ -647,5 +647,110 @@
       "Use the $ button at the top-right of the hub to jump to the full Project Finance list."
     ],
     "screenshot": "finance-project-hub.png"
+  },
+  {
+    "title": "Crew call-time override — per day, on the schedule",
+    "page": "FreePro — Production",
+    "what": "Add/Edit Crew now lets you override a crew member's call time for a specific day. Each override drops a \"NAME — Call Time\" tile onto that day's schedule with an optional location and notes, and it carries all the way through to the producer and crew online views and the Daily Crew Call Sheet PDF.",
+    "where": "FreePro → project → Logistics → Crew/Talent → Add/Edit a crew member → Call-Time Overrides",
+    "how": [
+      "Open the project, go to Logistics → Crew/Talent, and Add or Edit a crew member.",
+      "In the call-time override section every shoot day is listed — type a call time on any day you need to differ from the default.",
+      "Optionally set a location and notes for that day's override.",
+      "Save — a \"NAME — Call Time\" tile appears on that day's schedule.",
+      "Open the producer/crew share view or the Daily Crew Call Sheet PDF to confirm the override flows through."
+    ],
+    "screenshot": "crew-calltime-override.png"
+  },
+  {
+    "title": "Talent call sheet email — a ready template per talent",
+    "page": "FreePro — Production",
+    "what": "Send Call Sheet Emails includes a talent-only template that personalizes the call time, date, location, wardrobe, and point-of-contact for the selected talent. The sign-off uses the field producer's preferred name rather than their full legal name.",
+    "where": "FreePro → project → Share → Send Call Sheet Emails → Talent",
+    "how": [
+      "Open the project's Send Call Sheet Emails panel.",
+      "Choose a talent recipient — the email body auto-fills with that talent's call time, date, and location.",
+      "Review the wardrobe note and point-of-contact, which pull from the talent's details.",
+      "Send — the talent receives a personalized call sheet email signed by the field producer's preferred name."
+    ],
+    "screenshot": "talent-callsheet-email.png"
+  },
+  {
+    "title": "Person tagging — crew & talent names on every tile",
+    "page": "FreePro — Production",
+    "what": "Tag individual crew and talent to a schedule event and their names show at the bottom of the event tile — on the internal schedule and on the producer, crew, and talent views. This replaces the old Video/Photo tag chips with the actual people involved.",
+    "where": "FreePro → project → Schedule → Add/Edit Event → Crew/Talent Tags",
+    "how": [
+      "Open the Schedule and Add or Edit an event.",
+      "Under Crew/Talent Tags, pick the crew members and talent involved in that event.",
+      "Save — their names appear as pills at the bottom of the tile.",
+      "The same names carry through to the producer, crew, and talent share views."
+    ],
+    "screenshot": "person-tagging.png"
+  },
+  {
+    "title": "Schedule color coding — by category",
+    "page": "FreePro — Production",
+    "what": "Timeline tiles are color-coded by category — Filming, Meals, Travel, Talent, and General. The colors are customizable in the Color Coding key and apply consistently across the internal schedule and the producer/crew/talent share views.",
+    "where": "FreePro → project → Schedule → settings gear → Color Coding",
+    "how": [
+      "Open the Schedule and hover/tap the settings gear, then choose Color Coding.",
+      "See each category (Filming, Meals, Travel, Talent, General) with its color swatch.",
+      "Click a swatch to change that category's color.",
+      "Tiles on the schedule and every share view update to match."
+    ],
+    "screenshot": "schedule-color-coding.png"
+  },
+  {
+    "title": "Event Tag — set a tile's color, add your own",
+    "page": "FreePro — Production",
+    "what": "Give a single event its own color (Event Tag) that sets the whole tile's color everywhere it appears. You can add your own custom colors to the Color Coding key. The Event Tag picker sits behind an expander on the event form so it stays out of the way until you need it.",
+    "where": "FreePro → project → Schedule → Add/Edit Event → Event Tag",
+    "how": [
+      "Open the Schedule and Add or Edit an event.",
+      "Tap Event Tag to expand the color options (it shows the current pick when collapsed).",
+      "Choose a color — or add a new one via + Add Color in the settings gear → Color Coding key.",
+      "Save — the tile takes that color across the schedule and share views."
+    ],
+    "screenshot": "event-tag.png"
+  },
+  {
+    "title": "Group Tags — group events, filter to one",
+    "page": "FreePro — Production",
+    "what": "Create your own groups (for example Recap, Social, or Interview), each with its own color that paints the right edge of the tile. Manage groups in the Color Coding key, and use the filter (funnel) button to narrow the schedule to just one group's events.",
+    "where": "FreePro → project → Schedule → Add/Edit Event → Group Tags; filter via the funnel button",
+    "how": [
+      "Open the Schedule and Add or Edit an event.",
+      "Under Group Tags, pick a group or + Add Group to create one (name + color).",
+      "Save — the tile's right edge shows the group color.",
+      "Use the funnel button (left of the gear) to filter the schedule to a single group."
+    ],
+    "screenshot": "group-tags.png"
+  },
+  {
+    "title": "Slate on filming events — opt-in",
+    "page": "FreePro — Production",
+    "what": "When you mark an event as Filming, a Slate toggle appears next to it. Turn it on and the tile shows a Slate button that opens the digital slate for that event; leave it off and there's no slate. Events default to no slate.",
+    "where": "FreePro → project → Schedule → Add/Edit Event → Filming → Slate",
+    "how": [
+      "Open the Schedule and Add or Edit an event.",
+      "Turn on Filming — a Slate toggle appears beside it.",
+      "Turn on Slate if this event should carry a slate.",
+      "Save — the tile shows a Slate button; open it to fill the slate. If Slate is off, no button appears."
+    ],
+    "screenshot": "event-slate.png"
+  },
+  {
+    "title": "Shot list — Est. Start Time and a tidier day header",
+    "page": "FreePro — Production",
+    "what": "Scene forms have an Est. Start Time input that cascades to later scenes on save. Each day header shows compact Call/Shooting/Lunch/Wrap tiles pulled from the schedule, a scrollable column-picker menu, and the Public toggle plus + Add Scene tucked into the top/bottom-right for a cleaner, single-line look.",
+    "where": "FreePro → project → Shot List",
+    "how": [
+      "Open the Shot List for a project.",
+      "Add or Edit a scene and set its Est. Start Time — later scenes shift on save.",
+      "Read the day's Call/Shooting/Lunch/Wrap times in the compact header tiles (fed from the schedule).",
+      "Use the column menu to show/hide columns (it scrolls), the Public toggle to share a day, and + Add Scene to add rows."
+    ],
+    "screenshot": "shotlist-updates.png"
   }
 ]
