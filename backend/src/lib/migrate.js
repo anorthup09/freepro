@@ -1204,6 +1204,9 @@ async function migrate() {
   await sql`ALTER TABLE edits ADD COLUMN IF NOT EXISTS custom_milestones JSONB DEFAULT '[]'::jsonb`;
   // Archived edits are hidden from the pipeline & Gantt but never deleted
   await sql`ALTER TABLE edits ADD COLUMN IF NOT EXISTS archived BOOLEAN DEFAULT FALSE`;
+  // Delivered: the final step after Approved (edit is grayed out on the grid and
+  // mirrors DELIVERED onto its deliverable).
+  await sql`ALTER TABLE edits ADD COLUMN IF NOT EXISTS delivered BOOLEAN DEFAULT FALSE`;
   // Gear request departments: items picked from the asset inventory
   await sql`ALTER TABLE gear_items ADD COLUMN IF NOT EXISTS qty INTEGER DEFAULT 1`;
   await sql`ALTER TABLE gear_items ADD COLUMN IF NOT EXISTS contractor_name TEXT`;

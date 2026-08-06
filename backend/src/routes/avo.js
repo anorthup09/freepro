@@ -98,7 +98,7 @@ async function syncToDeliverable(e) {
     COLOR_AUDIO: 'ROUGH_CUT', FINAL_COMP: 'ROUGH_CUT',
     APPROVED: 'APPROVED',
   };
-  const status = e.workflow_status ? (wfMap[e.workflow_status] || 'IN_PROGRESS') : 'WAITING_ON_ASSETS';
+  const status = e.delivered ? 'DELIVERED' : (e.workflow_status ? (wfMap[e.workflow_status] || 'IN_PROGRESS') : 'WAITING_ON_ASSETS');
   const editor = e.lead_editor_name_resolved || e.lead_editor_name || null;
   await sql`
     UPDATE deliverables SET
@@ -418,6 +418,8 @@ router.patch('/edits/:id', ...staff, async (req, res, next) => {
     else if (d.status !== undefined && editStatuses.includes(d.status)) {
       ws = d.status === 'CLOSED' ? 'APPROVED' : d.status === 'COMING_SOON' ? null : (before.workflow_status || 'IN_PROGRESS');
     } else ws = before.workflow_status;
+    // Delivered is the step past Approved, so it implies an approved lifecycle.
+    if (d.delivered === true) ws = 'APPROVED';
     const derivedLane = laneFromWorkflow(ws);
     const derivedApproved = ws === 'APPROVED';
     // Per-task assignee overrides (empty value = back to the lead editor)
@@ -467,6 +469,7 @@ router.patch('/edits/:id', ...staff, async (req, res, next) => {
         end_date = ${d.endDate !== undefined ? (d.endDate || null) : sql`end_date`},
         version = ${d.version !== undefined ? Math.max(0.1, Math.round((Number(d.version) || 1) * 10) / 10) : sql`version`},
         approved = ${derivedApproved},
+        delivered = ${d.delivered !== undefined ? (d.delivered === true) : sql`delivered`},
         tracker_type = ${d.trackerType !== undefined ? (d.trackerType || null) : sql`tracker_type`},
         style = ${d.style !== undefined ? (d.style || null) : sql`style`},
         notes = ${d.notes !== undefined ? (d.notes || null) : sql`notes`},
