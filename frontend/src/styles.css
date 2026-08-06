@@ -451,6 +451,11 @@ textarea { resize: vertical; min-height: 70px; }
   .modal { padding: 16px; border-radius: 8px; }
   .modal-bg { padding: 16px; align-items: center; }
   .modal { border-radius: 12px; max-height: 85vh; overflow-y: auto; }
+  /* Hard guarantee: every modal form field stacks and controls fill the width
+     on phones, so labels/inputs never overlap in a cramped 2-column grid. */
+  .modal .form-grid { grid-template-columns: 1fr !important; }
+  .modal .field { grid-column: 1 / -1 !important; min-width: 0; overflow: hidden; }
+  .modal .field input, .modal .field select, .modal .field textarea { width: 100%; box-sizing: border-box; }
 
   /* Project page header actions: stack on small screens */
   .proj-actions { flex-wrap: wrap; gap: 6px; }
