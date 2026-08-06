@@ -2654,18 +2654,19 @@ function DaySection({ day, showCalls, flights, drives, dayIndex, talentCallTime,
                             </div>
                           )}
                         </div>
+                        {shareToken && (item.attachments || []).length > 0 && (
+                          <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginTop:8 }}>
+                            {item.attachments.map(att => (
+                              <a key={att.id} href={attUrl(att.id)} target="_blank" rel="noopener noreferrer"
+                                 onClick={e => e.stopPropagation()}
+                                 style={{ display:'inline-flex', alignItems:'center', gap:6, background:'var(--bg3)', border:'1px solid var(--border2)', borderRadius:6, padding:'3px 9px', fontSize:11, fontWeight:600, color:'var(--tan)', textDecoration:'none', maxWidth:'100%' }}>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink:0 }}><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                                <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{att.filename}</span>
+                              </a>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                      {shareToken && (item.attachments || []).length > 0 && (
-                        <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginTop:8 }}>
-                          {item.attachments.map(att => (
-                            <a key={att.id} href={attUrl(att.id)} target="_blank" rel="noopener noreferrer"
-                               onClick={e => e.stopPropagation()}
-                               style={{ display:'inline-flex', alignItems:'center', gap:5, background:'var(--bg3)', border:'1px solid var(--border2)', borderRadius:6, padding:'3px 9px', fontSize:11, fontWeight:600, color:'var(--tan)', textDecoration:'none', maxWidth:'100%' }}>
-                              📎 <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{att.filename}</span>
-                            </a>
-                          ))}
-                        </div>
-                      )}
                       {item.is_filming && crewAssignments && (
                         <div style={{ display:'flex', justifyContent:'flex-end', marginTop:6 }}>
                           <button onClick={e => { e.stopPropagation(); setClapEvent(item); }}
@@ -2953,24 +2954,41 @@ export default function Share() {
   const [shareTheme, setShareTheme] = useState(() => localStorage.getItem('fp_share_theme') || localStorage.getItem('fp_theme') || 'dark');
   useEffect(() => { document.documentElement.setAttribute('data-theme', shareTheme); }, [shareTheme]);
 
+  const pwStoreKey = `fp_share_pw_${token}`;
   async function fetchShare(pw) {
     try {
       const d = await api.getPublicShare(token, pw || undefined);
       if (d._status === 401 && d.passwordRequired) {
         setPasswordRequired(true);
         if (pw) setPwError('Incorrect password. Please try again.');
+        // A remembered password that no longer works (e.g. it was changed) must
+        // not loop — clear it so the gate is shown.
+        try { localStorage.removeItem(pwStoreKey); } catch {}
       } else if (d.error) {
         setError(d.error);
       } else {
         setPasswordRequired(false);
         setPwError('');
         setData(d);
-        if (pw) setResolvedPw(pw);
+        if (pw) {
+          setResolvedPw(pw);
+          // Remember the password on this device for the rest of the day, so a
+          // user (on their browser) only enters it once per day per link.
+          try { localStorage.setItem(pwStoreKey, JSON.stringify({ pw, day: new Date().toDateString() })); } catch {}
+        }
       }
     } catch { setError('Failed to load share'); }
   }
 
-  useEffect(() => { fetchShare(null); }, [token]);
+  useEffect(() => {
+    // If this device entered the password earlier today, reuse it silently.
+    let remembered = null;
+    try {
+      const raw = localStorage.getItem(pwStoreKey);
+      if (raw) { const o = JSON.parse(raw); if (o && o.pw && o.day === new Date().toDateString()) remembered = o.pw; }
+    } catch {}
+    fetchShare(remembered);
+  }, [token]);
 
   useEffect(() => {
     if (isPdf && data) {
