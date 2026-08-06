@@ -569,18 +569,18 @@ export default function Project({ idOverride, onControls }) {
           <Link to="/projects" className="logo">Free<em>Pro</em></Link>
           <span style={{ fontSize:9, color:'var(--muted)', letterSpacing:'0.06em', paddingLeft:1 }}>Powered by Unbridled Media</span>
         </div>
-        {/* Right cluster: ? and Share sit together (? left of Share), then home */}
+        {/* Right cluster: Share, logo, then ? sits directly left of the home button */}
         <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:10 }}>
+          {!glassVisible && !isAgency && !isCrew && <ShareDropdown projectId={id} showShotList={showShotList} crews={project?.crews || []} />}
+          <Link to="/" title="Back to the Unbridled Media hub" style={{ display:'flex', alignItems:'center' }}>
+            <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height:18, filter:'brightness(0) invert(1)', opacity:0.9 }} />
+          </Link>
           {!isAgency && !isCrew && <button
             className={`q-btn${tab === 'questions' ? ' on' : ''}${hasUnanswered && tab !== 'questions' ? ' glow' : ''}`}
             onClick={() => setTab('questions')}
             title={hasUnanswered ? 'Questions — unanswered waiting' : 'Questions'}
             aria-label="Questions"
           >?</button>}
-          {!glassVisible && !isAgency && !isCrew && <ShareDropdown projectId={id} showShotList={showShotList} crews={project?.crews || []} />}
-          <Link to="/" title="Back to the Unbridled Media hub" style={{ display:'flex', alignItems:'center' }}>
-            <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height:18, filter:'brightness(0) invert(1)', opacity:0.9 }} />
-          </Link>
           <HomeButton />
         </div>
       </nav>
