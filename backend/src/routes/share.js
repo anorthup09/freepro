@@ -120,6 +120,11 @@ router.get('/:token', async (req, res, next) => {
     const talentCallsByDay = {};
     for (const tc of talentDayCalls) (talentCallsByDay[tc.shoot_day_id] ||= []).push(tc);
 
+    // Resolve schedule tile location refs (meal, call, etc.) to name/address so
+    // the producer/crew views can show the location, not just the ID.
+    const locById = {};
+    for (const l of locations) locById[l.id] = { name: l.name, address: l.address || null };
+
     const daysWithData = await Promise.all(shootDays.map(async day => {
       const events = await sql`
         SELECT se.*, l.name as location_name, l.address as location_address,
@@ -166,6 +171,7 @@ router.get('/:token', async (req, res, next) => {
         totalDays,
         catering: cateringByDay[day.id] || [],
         talentCalls: talentCallsByDay[day.id] || [],
+        lunch_location: locById[dayOut.lunch_location_id] || null,
         // On a per-crew link, other crews' events are hidden entirely; untagged
         // events (shared moments like load-in or lunch) always show
         events: events

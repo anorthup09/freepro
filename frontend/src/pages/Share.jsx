@@ -2479,17 +2479,25 @@ function DaySection({ day, showCalls, flights, drives, dayIndex, talentCallTime,
                   <div key={item._key} className="ev">
                     <div className="ev-time">{fmtTime(item.startTime)}{item.endTime ? ` – ${fmtTime(item.endTime)}` : ''}</div>
                     <div className={`ev-body${isLive(item.startTime, item.endTime) ? ' ev-live' : ''}`} style={{ borderLeft:`2px solid ${sm.color}` }}>
-                      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
-                        <div style={{ flex:1 }}>
+                      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:8 }}>
+                        <div style={{ flex:1, minWidth:0 }}>
                           <div className="ev-title">{item.title}</div>
                           {item.notes && <div className="ev-detail">{item.notes}</div>}
                         </div>
-                        {isLunch && lunchCatering && cateringDetail && (
-                          <div style={{ textAlign:'right', marginLeft:8, flexShrink:0 }}>
-                            <div style={{ fontSize:12, fontWeight:600, color:'var(--text)' }}>{lunchCatering.name}</div>
-                            {cateringDetail === 'full' && lunchCatering.address && <div style={{ fontSize:10, color:'var(--muted)' }}>{lunchCatering.address}</div>}
-                            {cateringDetail === 'full' && lunchCatering.order_number && <div style={{ fontSize:10, color:'var(--muted)' }}>Order #{lunchCatering.order_number}</div>}
-                            {cateringDetail === 'full' && lunchCatering.delivery_time && <div style={{ fontSize:10, color:'#4ade80' }}>🚚 {fmtTime(lunchCatering.delivery_time)}</div>}
+                        {isLunch && (lunchCatering || day.lunch_location) && (
+                          <div style={{ textAlign:'right', marginLeft:8, flexShrink:0, minWidth:0, maxWidth:'55%' }}>
+                            {day.lunch_location && (
+                              <div style={{ marginBottom: lunchCatering ? 4 : 0 }}>
+                                <div style={{ fontSize:12, fontWeight:600, color:'var(--tan)', overflowWrap:'anywhere' }}>{day.lunch_location.name}</div>
+                                {day.lunch_location.address && <div style={{ fontSize:10, color:'var(--muted)', overflowWrap:'anywhere' }}>{day.lunch_location.address}</div>}
+                              </div>
+                            )}
+                            {lunchCatering && cateringDetail && (<>
+                              <div style={{ fontSize:12, fontWeight:600, color:'var(--text)', overflowWrap:'anywhere' }}>{lunchCatering.name}</div>
+                              {cateringDetail === 'full' && lunchCatering.address && <div style={{ fontSize:10, color:'var(--muted)', overflowWrap:'anywhere' }}>{lunchCatering.address}</div>}
+                              {cateringDetail === 'full' && lunchCatering.order_number && <div style={{ fontSize:10, color:'var(--muted)' }}>Order #{lunchCatering.order_number}</div>}
+                              {cateringDetail === 'full' && lunchCatering.delivery_time && <div style={{ fontSize:10, color:'#4ade80' }}>{fmtTime(lunchCatering.delivery_time)}</div>}
+                            </>)}
                           </div>
                         )}
                       </div>
