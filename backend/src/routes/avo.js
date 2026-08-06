@@ -145,7 +145,7 @@ router.get('/edits', ...staff, async (req, res, next) => {
       LEFT JOIN projects p ON p.id = e.project_id
       LEFT JOIN LATERAL (
         SELECT body, author, created_at FROM edit_activity
-        WHERE edit_id = e.id AND kind IN ('rfr', 'sent') ORDER BY created_at DESC LIMIT 1
+        WHERE edit_id = e.id AND kind IN ('rfr', 'sent', 'comment') ORDER BY created_at DESC LIMIT 1
       ) la ON TRUE
       ORDER BY e.end_date NULLS LAST, e.created_at`;
     await attachCurrentEditor(rows);
@@ -1065,7 +1065,7 @@ router.get('/projects/:id', ...staff, async (req, res, next) => {
       FROM edits e
       LEFT JOIN LATERAL (
         SELECT body, created_at FROM edit_activity
-        WHERE edit_id = e.id AND kind IN ('rfr', 'sent') ORDER BY created_at DESC LIMIT 1
+        WHERE edit_id = e.id AND kind IN ('rfr', 'sent', 'comment') ORDER BY created_at DESC LIMIT 1
       ) la ON TRUE
       WHERE (e.project_code = ${page.code} OR e.project_code LIKE ${page.code + '-%'}) AND e.archived IS NOT TRUE
       ORDER BY e.tracker_sort NULLS LAST, e.end_date NULLS LAST, e.created_at`;
@@ -1407,7 +1407,7 @@ shareRouter.get('/', async (req, res, next) => {
       FROM edits e
       LEFT JOIN LATERAL (
         SELECT body, created_at FROM edit_activity
-        WHERE edit_id = e.id AND kind IN ('rfr', 'sent') ORDER BY created_at DESC LIMIT 1
+        WHERE edit_id = e.id AND kind IN ('rfr', 'sent', 'comment') ORDER BY created_at DESC LIMIT 1
       ) la ON TRUE
       WHERE (e.project_code = ${page.code} OR e.project_code LIKE ${page.code + '-%'}) AND e.archived IS NOT TRUE
       ORDER BY e.tracker_sort NULLS LAST, e.end_date NULLS LAST, e.created_at`;

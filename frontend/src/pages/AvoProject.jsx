@@ -46,6 +46,24 @@ function Cell({ value, onSave, placeholder, style, readOnly, multiline }) {
   );
 }
 
+// Inline "Latest Comment" cell: shows the latest comment; click to add a new one.
+function CommentCell({ latest, onPost }) {
+  const [adding, setAdding] = useState(false);
+  const [v, setV] = useState('');
+  if (adding) return (
+    <input autoFocus value={v} placeholder="Add a comment…" onChange={e => setV(e.target.value)}
+      onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') { setV(''); setAdding(false); } }}
+      onBlur={() => { const t = v.trim(); if (t) onPost(t); setV(''); setAdding(false); }}
+      style={{ ...cellInput }} />
+  );
+  return (
+    <span onClick={() => setAdding(true)} title={latest || 'Add a comment'}
+      style={{ fontSize:11, cursor:'text', color: latest ? 'var(--text)' : 'var(--muted)', display:'inline-block', maxWidth:'100%', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+      {latest ? (latest.length > 40 ? latest.slice(0, 40) + '…' : latest) : '+ Comment'}
+    </span>
+  );
+}
+
 const pillBtn = () => ({ background:'var(--bg)', border:'1px solid rgba(255,255,255,0.55)', color:'#e8e8e8', borderRadius:14, padding:'3px 12px', fontSize:10, fontWeight:800, cursor:'pointer' });
 
 /*
@@ -388,6 +406,11 @@ function VideoTracker({ edits, setEdits, config, onConfig, code, readOnly, onOpe
     try { const full = await A.updateAvoEdit(id, data); setEdits(es => es.map(x => x.id === id ? { ...x, ...full } : x)); }
     catch (e) { alert(e.message); }
   }
+  async function postComment(id, text) {
+    const t = (text || '').trim(); if (!t) return;
+    try { await A.avoComment(id, t); setEdits(es => es.map(x => x.id === id ? { ...x, latest_comment: t } : x)); }
+    catch (e) { alert(e.message); }
+  }
   const [addForm, setAddForm] = useState(null);   // BLANK form when the pop-out is open
   const [savingAdd, setSavingAdd] = useState(false);
   // Deep-link from the Deliverables page (?add=1) opens the add form straight away
@@ -479,9 +502,11 @@ function VideoTracker({ edits, setEdits, config, onConfig, code, readOnly, onOpe
         {e.review_link && <a href={e.review_link} target="_blank" rel="noreferrer" title="Open review link" onClick={ev => ev.stopPropagation()} style={{ color:'#4a9eff', fontSize:12, flexShrink:0, textDecoration:'none' }}>▶</a>}
       </span>
     ) },
-    { key:'latest_comment', label:'Latest Comment', minWidth:150, render: e => e.latest_comment
-      ? <span style={{ fontSize:11 }} title={e.latest_comment}>{e.latest_comment.slice(0, 40)}{e.latest_comment.length > 40 ? '…' : ''}</span>
-      : <span style={{ color:'var(--muted)', fontSize:11 }}>—</span> },
+    { key:'latest_comment', label:'Latest Comment', minWidth:170, render: e => readOnly
+      ? (e.latest_comment
+          ? <span style={{ fontSize:11 }} title={e.latest_comment}>{e.latest_comment.slice(0, 40)}{e.latest_comment.length > 40 ? '…' : ''}</span>
+          : <span style={{ color:'var(--muted)', fontSize:11 }}>—</span>)
+      : <CommentCell latest={e.latest_comment} onPost={txt => postComment(e.id, txt)} /> },
     { key:'status', label:'Status', render: e => {
       const st = statusMeta(e);
       return (
