@@ -405,9 +405,9 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
       setTimeout(() => URL.revokeObjectURL(url), 15000);
     } catch (e) { alert(e.message); }
   }
-  const [eventForm, setEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', roomSpace:'', isAlert:false, isFilming:false, tags:[], audience:[], crewIds:[], locationId:'', adhocLocation:'', adhocAddress:'' });
+  const [eventForm, setEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', roomSpace:'', isAlert:false, isFilming:false, tags:[], audience:[], crewIds:[], locationId:'', adhocLocation:'', adhocAddress:'', colorTag:'' });
   const [editEventId, setEditEventId] = useState(null);
-  const [editEventForm, setEditEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', roomSpace:'', isAlert:false, isFilming:false, tags:[], audience:[], crewIds:[], locationId:'', adhocLocation:'', adhocAddress:'' });
+  const [editEventForm, setEditEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', roomSpace:'', isAlert:false, isFilming:false, tags:[], audience:[], crewIds:[], locationId:'', adhocLocation:'', adhocAddress:'', colorTag:'' });
   const [editEventAtts, setEditEventAtts] = useState([]);   // existing attachments on the event being edited
   // Keep the day's event in sync so tiles show attachment changes immediately.
   function syncEventAtts(eventId, atts) {
@@ -808,10 +808,28 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
   const [tagColors, setTagColors] = useState(project.schedule_tag_colors || {});
   const tagColorVars = {};
   TAG_COLOR_DEFS.forEach(t => { if (tagColors[t.key]) tagColorVars[t.cssVar] = tagColors[t.key]; });
+  // All selectable color options (fixed categories + custom colors) and a resolver
+  // from a color-tag key to its hex — used for per-event tile color overrides.
+  const customColors = Array.isArray(tagColors._custom) ? tagColors._custom : [];
+  const colorOptions = [
+    ...TAG_COLOR_DEFS.map(d => ({ key: d.key, label: d.label, color: tagColors[d.key] || d.def })),
+    ...customColors.map(c => ({ key: c.id, label: c.label || 'Custom', color: c.color })),
+  ];
+  const colorForTag = key => (colorOptions.find(o => o.key === key) || {}).color || null;
   async function saveTagColors(next) {
     setTagColors(next);
     try { await api.updateProject(project.id, { scheduleTagColors: next }); }
     catch (e) { alert(e.message); }
+  }
+  function addCustomColor() {
+    const id = 'c' + Date.now().toString(36);
+    saveTagColors({ ...tagColors, _custom: [...customColors, { id, label: 'New Color', color: '#e6c229' }] });
+  }
+  function updateCustomColor(id, patch) {
+    saveTagColors({ ...tagColors, _custom: customColors.map(c => c.id === id ? { ...c, ...patch } : c) });
+  }
+  function removeCustomColor(id) {
+    saveTagColors({ ...tagColors, _custom: customColors.filter(c => c.id !== id) });
   }
   const crewByPosition = (posName) => {
     const a = (project.crewAssignments || []).find(x => (x.position?.name || x.position_name || '').toLowerCase() === posName && x.crewMember);
@@ -831,7 +849,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
       ev.attachments = uploaded;
       setDays(ds => ds.map(d => d.id === activeDay ? { ...d, events: [...d.events, ev].sort((a,b) => (a.start_time||'').localeCompare(b.start_time||'')) } : d));
       setShowAddEvent(false);
-      setEventForm({ startTime:'', endTime:'', title:'', detail:'', isAlert:false, isFilming:false, tags:[], audience:[], crewIds:[] });
+      setEventForm({ startTime:'', endTime:'', title:'', detail:'', roomSpace:'', isAlert:false, isFilming:false, tags:[], audience:[], crewIds:[], locationId:'', adhocLocation:'', adhocAddress:'', colorTag:'' });
       setEventFiles([]);
     } catch(e) {
       if (e.message?.includes('not found') || e.message?.includes('foreign key') || e.message?.includes('fkey')) {
@@ -868,7 +886,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
   function openEditEvent(ev) {
     setEditEventId(ev.id);
     setEditEventAtts(ev.attachments || []);
-    setEditEventForm({ startTime: ev.start_time || ev.startTime || '', endTime: ev.end_time || ev.endTime || '', title: ev.title || '', detail: ev.detail || '', roomSpace: ev.room_space || '', isAlert: ev.is_alert || ev.isAlert || false, isFilming: ev.is_filming || ev.isFilming || false, tags: ev.tags || [], audience: ev.audience || [], crewIds: ev.crew_ids || [], locationId: ev.location_id || '', adhocLocation: ev.adhoc_location || '', adhocAddress: ev.adhoc_address || '' });
+    setEditEventForm({ startTime: ev.start_time || ev.startTime || '', endTime: ev.end_time || ev.endTime || '', title: ev.title || '', detail: ev.detail || '', roomSpace: ev.room_space || '', isAlert: ev.is_alert || ev.isAlert || false, isFilming: ev.is_filming || ev.isFilming || false, tags: ev.tags || [], audience: ev.audience || [], crewIds: ev.crew_ids || [], locationId: ev.location_id || '', adhocLocation: ev.adhoc_location || '', adhocAddress: ev.adhoc_address || '', colorTag: ev.color_tag || '' });
   }
 
   function toggleEditTag(type) {
@@ -943,7 +961,24 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                   </div>
                 );
               })}
+              {customColors.map(c => (
+                <div key={c.id} style={{ display:'flex', alignItems:'center', gap:12 }}>
+                  <span style={{ display:'inline-flex', alignItems:'center', gap:8, minWidth:70, flex:'0 0 auto' }}>
+                    <span style={{ width:12, height:12, borderRadius:3, background:c.color, flexShrink:0 }} />
+                    <input value={c.label || ''} placeholder="Name" onChange={e => updateCustomColor(c.id, { label: e.target.value })}
+                      style={{ fontSize:12, fontWeight:700, width:120, padding:'3px 6px' }} />
+                  </span>
+                  <div style={{ flex:1 }} />
+                  <input type="color" value={c.color}
+                    onChange={e => updateCustomColor(c.id, { color: e.target.value })}
+                    style={{ width:38, height:28, padding:0, border:'1px solid var(--border)', borderRadius:6, background:'transparent', cursor:'pointer' }} />
+                  <span style={{ fontSize:11, color:'var(--muted)', fontVariantNumeric:'tabular-nums', width:64 }}>{c.color}</span>
+                  <button type="button" title="Remove color" onClick={() => removeCustomColor(c.id)}
+                    style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:12, padding:2 }}>✕</button>
+                </div>
+              ))}
             </div>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={addCustomColor} style={{ marginTop:10 }}>+ Add Color</button>
             <div className="btn-row" style={{ marginTop:16, justifyContent:'space-between' }}>
               <button type="button" className="btn btn-ghost btn-sm" onClick={() => saveTagColors({})}>Reset all</button>
               <button type="button" className="btn btn-primary btn-sm" onClick={() => setShowColorCoding(false)}>Done</button>
@@ -1576,7 +1611,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                       <div key={item.id} className="ev">
                         <div className="ev-time">{fmtTime(item.start_time || item.startTime)}{(item.end_time || item.endTime) ? ` – ${fmtTime(item.end_time || item.endTime)}` : ''}</div>
                         <div className={`ev-body${(item.is_alert||item.isAlert) ? ' warn' : ''}${isLiveBlock(item.start_time || item.startTime, item.end_time || item.endTime) ? ' ev-live' : ''}`}
-                          style={{ cursor:'pointer', ...(isGeneral(item.tags) ? { borderLeft:'2px solid var(--sc-general)', opacity:0.55 } : (!(item.is_alert||item.isAlert) ? { borderLeft:'2px solid var(--sc-filming)',  } : {})) }}
+                          style={{ cursor:'pointer', ...((item.color_tag && colorForTag(item.color_tag) && !(item.is_alert||item.isAlert)) ? { borderLeft:`2px solid ${colorForTag(item.color_tag)}` } : (isGeneral(item.tags) ? { borderLeft:'2px solid var(--sc-general)', opacity:0.55 } : (!(item.is_alert||item.isAlert) ? { borderLeft:'2px solid var(--sc-filming)',  } : {}))) }}
                           onClick={() => openEditEvent(item)}>
                           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:8 }}>
                             <div className={`ev-title${(item.is_alert||item.isAlert) ? ' alert' : ''}`} style={{ flex:1, minWidth:0 }}>{(item.is_alert||item.isAlert) ? '⚠ ' : ''}{(item.is_filming||item.isFilming) ? '🎬 ' : ''}{item.title}</div>
@@ -1755,6 +1790,23 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                       })}
                     </div>
                   )}
+                </div>
+                <div className="field span2">
+                  <label>Color</label>
+                  <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:4 }}>
+                    <button type="button" onClick={() => setEventForm(f=>({...f,colorTag:''}))}
+                      style={{ fontSize:11, padding:'3px 10px', borderRadius:12, border:'1px solid var(--border2)', background: !eventForm.colorTag ? 'var(--bg4)' : 'transparent', color:'var(--muted)', cursor:'pointer', fontWeight:600 }}>Default</button>
+                    {colorOptions.map(o => {
+                      const sel = eventForm.colorTag === o.key;
+                      return (
+                        <button key={o.key} type="button" onClick={() => setEventForm(f=>({...f,colorTag: sel ? '' : o.key}))}
+                          style={{ display:'inline-flex', alignItems:'center', gap:6, fontSize:11, padding:'3px 10px', borderRadius:12, border:`1px solid ${o.color}`, background: sel ? o.color : 'transparent', color: sel ? '#0b0b0b' : o.color, cursor:'pointer', fontWeight:700 }}>
+                          <span style={{ width:9, height:9, borderRadius:'50%', background:o.color, flexShrink:0 }} />
+                          {o.label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
               {eventFiles.length > 0 && (
@@ -1940,6 +1992,23 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                       })}
                     </div>
                   )}
+                </div>
+                <div className="field span2">
+                  <label>Color</label>
+                  <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:4 }}>
+                    <button type="button" onClick={() => setEditEventForm(f=>({...f,colorTag:''}))}
+                      style={{ fontSize:11, padding:'3px 10px', borderRadius:12, border:'1px solid var(--border2)', background: !editEventForm.colorTag ? 'var(--bg4)' : 'transparent', color:'var(--muted)', cursor:'pointer', fontWeight:600 }}>Default</button>
+                    {colorOptions.map(o => {
+                      const sel = editEventForm.colorTag === o.key;
+                      return (
+                        <button key={o.key} type="button" onClick={() => setEditEventForm(f=>({...f,colorTag: sel ? '' : o.key}))}
+                          style={{ display:'inline-flex', alignItems:'center', gap:6, fontSize:11, padding:'3px 10px', borderRadius:12, border:`1px solid ${o.color}`, background: sel ? o.color : 'transparent', color: sel ? '#0b0b0b' : o.color, cursor:'pointer', fontWeight:700 }}>
+                          <span style={{ width:9, height:9, borderRadius:'50%', background:o.color, flexShrink:0 }} />
+                          {o.label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
               {editEventAtts.length > 0 && (

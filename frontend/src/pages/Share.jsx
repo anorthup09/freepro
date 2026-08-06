@@ -12,12 +12,24 @@ const isMobileNow = () => typeof window !== 'undefined' && window.matchMedia('(m
 // Per-project schedule color coding → --sc-* CSS vars (mirrors the internal
 // Schedule; defaults live in styles.css so unset categories fall back).
 const SC_VAR_BY_KEY = { FILMING: '--sc-filming', MEALS: '--sc-meals', TRAVEL: '--sc-travel', TALENT: '--sc-talent', GENERAL: '--sc-general' };
-function scColorVars(project) {
+const SC_DEFAULTS = { FILMING: '#ff8c00', MEALS: '#4ade80', TRAVEL: '#4a9eff', TALENT: '#a78bfa', GENERAL: '#8a8f98' };
+function scParse(project) {
   const c = project?.schedule_tag_colors;
-  const o = typeof c === 'string' ? (() => { try { return JSON.parse(c); } catch { return {}; } })() : (c || {});
+  return typeof c === 'string' ? (() => { try { return JSON.parse(c); } catch { return {}; } })() : (c || {});
+}
+function scColorVars(project) {
+  const o = scParse(project);
   const vars = {};
   for (const k in SC_VAR_BY_KEY) if (o[k]) vars[SC_VAR_BY_KEY[k]] = o[k];
   return vars;
+}
+// Resolve a per-event color-tag key (fixed category or custom id) to its hex.
+function colorForTag(key, project) {
+  if (!key) return null;
+  const o = scParse(project);
+  if (SC_DEFAULTS[key]) return o[key] || SC_DEFAULTS[key];
+  const custom = (o._custom || []).find(x => x.id === key);
+  return custom ? custom.color : null;
 }
 
 // Nearest-hospital text auto-sourced onto shoot locations (stored in notes).
@@ -863,7 +875,7 @@ function ProducerView({ data, hideGear, onOpenShotList, shareToken, pw }) {
           ? { ...day, events: (day.events || []).filter(e => !(e.crew_ids || []).length || e.crew_ids.includes(crewFilter)) }
           : day
         ).map((day, i) => (
-          <DaySection key={day.id} day={day} showCalls flights={flights} drives={drives} dayIndex={i} tagFilter={tagFilter} personFilter={personFilter} cateringDetail="full" shotList={shotList} slDays={slDays} slBreaks={slBreaks} onOpenShotList={onOpenShotList} crewAssignments={crewAssignments} includePhoto={project.include_photo !== false} projectCity={[project.city, project.state].filter(Boolean).join(', ')} headerGradient shareToken={shareToken} pw={pw} showTalentCalls />
+          <DaySection key={day.id} day={day} showCalls flights={flights} drives={drives} dayIndex={i} tagFilter={tagFilter} personFilter={personFilter} cateringDetail="full" shotList={shotList} slDays={slDays} slBreaks={slBreaks} onOpenShotList={onOpenShotList} crewAssignments={crewAssignments} includePhoto={project.include_photo !== false} projectCity={[project.city, project.state].filter(Boolean).join(', ')} headerGradient shareToken={shareToken} pw={pw} showTalentCalls colorFor={k => colorForTag(k, project)} />
         ))}
       </div>
     </div>
@@ -1035,7 +1047,7 @@ function CrewView({ data, shareToken, hideGear, onOpenShotList, pw }) {
           return [day.call_time_tags, day.shooting_call_tags, day.lunch_tags, day.wrap_time_tags]
             .some(tags => Array.isArray(tags) && (tags.includes(tagFilter) || tags.includes('ALL_CREW')));
         }).map((day, i) => (
-          <DaySection key={day.id} day={day} showCalls flights={flights} drives={drives} dayIndex={i} tagFilter={tagFilter} personFilter={personFilter} cateringDetail="name" shotList={shotList} slDays={slDays} slBreaks={slBreaks} onOpenShotList={onOpenShotList} crewAssignments={crewAssignments} includePhoto={project.include_photo !== false} projectCity={[project.city, project.state].filter(Boolean).join(', ')} headerGradient shareToken={shareToken} pw={pw} />
+          <DaySection key={day.id} day={day} showCalls flights={flights} drives={drives} dayIndex={i} tagFilter={tagFilter} personFilter={personFilter} cateringDetail="name" shotList={shotList} slDays={slDays} slBreaks={slBreaks} onOpenShotList={onOpenShotList} crewAssignments={crewAssignments} includePhoto={project.include_photo !== false} projectCity={[project.city, project.state].filter(Boolean).join(', ')} headerGradient shareToken={shareToken} pw={pw} colorFor={k => colorForTag(k, project)} />
         ))}
       </div>
     </div>
@@ -2174,7 +2186,7 @@ function CateringBadge({ catering, detail }) {
   );
 }
 
-function DaySection({ day, showCalls, flights, drives, dayIndex, talentCallTime, talentCallLocation, hideCallWrap, tagFilter, personFilter, cateringDetail, shotList, slDays, slBreaks, onOpenShotList, crewAssignments, projectCity, talentMode, includePhoto, headerGradient, shareToken, pw, showTalentCalls }) {
+function DaySection({ day, showCalls, flights, drives, dayIndex, talentCallTime, talentCallLocation, hideCallWrap, tagFilter, personFilter, cateringDetail, shotList, slDays, slBreaks, onOpenShotList, crewAssignments, projectCity, talentMode, includePhoto, headerGradient, shareToken, pw, showTalentCalls, colorFor }) {
   const attUrl = attId => `${window.location.origin}/api/share/${shareToken}/attachments/${attId}/file?inline=1${pw ? `&pw=${encodeURIComponent(pw)}` : ''}`;
   const [clapEvent, setClapEvent] = useState(null);
   const crewByPosition = (posName) => {
@@ -2608,7 +2620,7 @@ function DaySection({ day, showCalls, flights, drives, dayIndex, talentCallTime,
                 return (
                   <div key={item.id || i} id={item.id ? `ev-${item.id}` : undefined} className="ev">
                     <div className="ev-time">{fmtTime(item.start_time)}{item.end_time ? ` – ${fmtTime(item.end_time)}` : ''}</div>
-                    <div className={`ev-body${item.is_alert ? ' warn' : ''}${isLive(item.start_time, item.end_time) ? ' ev-live' : ''}`} style={eventIsGeneral(item) ? { borderLeft:'2px solid var(--sc-general)', opacity:0.55 } : (!item.is_alert ? { borderLeft:'2px solid var(--sc-filming)',  } : {})}>
+                    <div className={`ev-body${item.is_alert ? ' warn' : ''}${isLive(item.start_time, item.end_time) ? ' ev-live' : ''}`} style={(item.color_tag && colorFor && colorFor(item.color_tag) && !item.is_alert) ? { borderLeft:`2px solid ${colorFor(item.color_tag)}` } : (eventIsGeneral(item) ? { borderLeft:'2px solid var(--sc-general)', opacity:0.55 } : (!item.is_alert ? { borderLeft:'2px solid var(--sc-filming)',  } : {}))}>
                       {loc?.address && (
                         <button className={`ev-locpin${openLoc[item.id || i] ? ' on' : ''}`}
                           onClick={e => { e.stopPropagation(); setOpenLoc(o => ({ ...o, [item.id || i]: !o[item.id || i] })); }}
