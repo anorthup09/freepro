@@ -10,6 +10,16 @@ import { AvoForm, BLANK_DELIVERABLE_FORM } from './Project/Deliverables.jsx';
 import ContractSendModal from '../components/ContractSendModal.jsx';
 import RfrModal from '../components/RfrModal.jsx';
 
+// Delivered is the final step past Approved (stored as a boolean). On the grids
+// it reads as its own status, so it overrides the workflow-status label and is
+// offered as an extra option in the status dropdowns.
+const DELIVERED_META = ['DELIVERED', 'Delivered', '#4a9eff'];
+const STATUS_OPTS_D = [...DELIVERABLE_STATUSES, DELIVERED_META];
+const statusMeta = e => e.delivered ? DELIVERED_META : DELIV_STATUS(e.workflow_status);
+const statusValue = e => e.delivered ? 'DELIVERED' : (e.workflow_status || '');
+// Route a status <select> change through approved/delivered so the pill and grid stay in sync.
+const statusPatch = v => v === 'DELIVERED' ? { approved: true, delivered: true } : { workflowStatus: v, delivered: false };
+
 const th = { padding:'7px 10px', fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', textAlign:'left', whiteSpace:'nowrap', borderBottom:'1px solid var(--border)', borderRight:'1px solid var(--border)' };
 const td = { padding:'4px 6px', verticalAlign:'middle', borderBottom:'1px solid var(--border)', borderRight:'1px solid var(--border)' };
 const cellInput = { background:'transparent', border:'1px solid transparent', fontSize:12, width:'100%', padding:'5px 6px', borderRadius:5 };
@@ -473,7 +483,7 @@ function VideoTracker({ edits, setEdits, config, onConfig, code, readOnly, onOpe
       ? <span style={{ fontSize:11 }} title={e.latest_comment}>{e.latest_comment.slice(0, 40)}{e.latest_comment.length > 40 ? '…' : ''}</span>
       : <span style={{ color:'var(--muted)', fontSize:11 }}>—</span> },
     { key:'status', label:'Status', render: e => {
-      const st = DELIV_STATUS(e.workflow_status);
+      const st = statusMeta(e);
       return (
         <span style={{ display:'inline-flex', alignItems:'center', gap:5, flexWrap:'wrap' }}>
           {e.focus && <span title="Focus" style={{ background:`${FOCUS_COLOR}22`, border:`1px solid ${FOCUS_COLOR}`, color:FOCUS_COLOR, borderRadius:12, padding:'2px 7px', fontSize:8, fontWeight:800 }}>FOCUS</span>}
@@ -1504,10 +1514,10 @@ function EditModal({ edit, statusOf, onSave, onClose, A = api, customCols = [] }
             </div>
             <div style={{ flex:'1 1 130px' }}>
               <div style={hdr}>Status</div>
-              <select value={e.workflow_status || ''} onChange={ev => save({ workflowStatus: ev.target.value })}
+              <select value={statusValue(e)} onChange={ev => save(statusPatch(ev.target.value))}
                 style={{ width:'100%', fontSize:11, fontWeight:700, padding:'5px 8px', borderRadius:8, background:'var(--bg)', border:'1px solid var(--border)', color:'var(--text)' }}>
                 <option value="">Upcoming (not started)</option>
-                {DELIVERABLE_STATUSES.map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+                {STATUS_OPTS_D.map(([k, label]) => <option key={k} value={k}>{label}</option>)}
               </select>
             </div>
             <div style={{ flex:'0 0 auto' }}>
@@ -1724,21 +1734,21 @@ function DeliverableOverview({ edits, onSave, onOpenEdit, onStatus, readOnly, A 
             </thead>
             <tbody>
               {list.map(e => {
-                const cur = DELIV_STATUS(e.workflow_status);   // null → Upcoming
+                const cur = statusMeta(e);   // null → Upcoming
                 const nm = nextMilestone(e);
                 const busy = busyId === e.id;
                 return (
-                  <tr key={e.id}>
+                  <tr key={e.id} style={{ opacity: e.delivered ? 0.55 : 1 }}>
                     <td style={{ ...cell, fontWeight:700 }}>
                       <span onClick={() => onOpenEdit?.(e)} style={{ cursor: onOpenEdit ? 'pointer' : 'default' }}>{e.title || 'Untitled'}</span>
                     </td>
                     <td style={cell}>
-                      <select value={e.workflow_status || ''} disabled={readOnly}
-                        onChange={ev => onSave(e.id, { workflowStatus: ev.target.value })}
+                      <select value={statusValue(e)} disabled={readOnly}
+                        onChange={ev => onSave(e.id, statusPatch(ev.target.value))}
                         style={{ fontSize:11, fontWeight:800, padding:'4px 10px', borderRadius:12, cursor: readOnly ? 'default' : 'pointer', appearance:'none',
                           background: cur ? `${cur[2]}22` : 'transparent', border:`1px solid ${cur ? cur[2] : 'var(--border)'}`, color: cur ? cur[2] : 'var(--muted)' }}>
                         <option value="" style={{ color:'var(--text)', background:'var(--bg2)' }}>Upcoming</option>
-                        {DELIVERABLE_STATUSES.map(([k, label]) => <option key={k} value={k} style={{ color:'var(--text)', background:'var(--bg2)' }}>{label}</option>)}
+                        {STATUS_OPTS_D.map(([k, label]) => <option key={k} value={k} style={{ color:'var(--text)', background:'var(--bg2)' }}>{label}</option>)}
                       </select>
                     </td>
                     <td style={{ ...cell, whiteSpace:'nowrap' }}>{e.current_editor || e.lead_editor || '—'}</td>
@@ -1762,12 +1772,16 @@ function DeliverableOverview({ edits, onSave, onOpenEdit, onStatus, readOnly, A 
                           style={{ background:'#e6c2291f', border:'1px solid #e6c229', color:'#e6c229', borderRadius:20, padding:'5px 12px', fontSize:10.5, fontWeight:800, cursor: busy ? 'default' : 'pointer', whiteSpace:'nowrap', opacity: busy ? 0.5 : 1 }}>RFR</button>
                         <button disabled={busy} onClick={() => sendClient(e)}
                           style={{ background:'#4a9eff1f', border:'1px solid #4a9eff', color:'#4a9eff', borderRadius:20, padding:'5px 12px', fontSize:10.5, fontWeight:800, cursor: busy ? 'default' : 'pointer', whiteSpace:'nowrap', opacity: busy ? 0.5 : 1 }}>Sent to Client</button>
-                        <button disabled={readOnly} title={e.approved ? 'Click to remove approval' : 'Mark this edit approved'}
-                          onClick={() => onSave(e.id, { approved: !e.approved })}
-                          style={e.approved
-                            ? { background:AVO, border:`1px solid ${AVO}`, color:'#0b0b0b', borderRadius:20, padding:'5px 12px', fontSize:10.5, fontWeight:800, cursor: readOnly ? 'default' : 'pointer', whiteSpace:'nowrap' }
-                            : { background:'transparent', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:20, padding:'5px 12px', fontSize:10.5, fontWeight:800, cursor: readOnly ? 'default' : 'pointer', whiteSpace:'nowrap' }}>
-                          {e.approved ? '✓ Approved' : 'Approve'}</button>
+                        <span style={{ display:'inline-flex', border:'1px solid var(--border)', borderRadius:20, overflow:'hidden' }}>
+                          <button disabled={readOnly} title="Approved"
+                            onClick={() => onSave(e.id, e.approved ? (e.delivered ? { delivered:false } : { approved:false }) : { approved:true })}
+                            style={{ background: e.approved ? AVO : 'transparent', color: e.approved ? '#0b0b0b' : 'var(--muted)', border:'none', padding:'5px 12px', fontSize:10.5, fontWeight:800, cursor: readOnly ? 'default' : 'pointer', whiteSpace:'nowrap' }}>
+                            {e.approved ? '✓ Approved' : 'Approve'}</button>
+                          <button disabled={readOnly} title="Delivered"
+                            onClick={() => onSave(e.id, e.delivered ? { delivered:false } : { approved:true, delivered:true })}
+                            style={{ background: e.delivered ? '#4a9eff' : 'transparent', color: e.delivered ? '#0b0b0b' : 'var(--muted)', border:'none', borderLeft:'1px solid var(--border)', padding:'5px 12px', fontSize:10.5, fontWeight:800, cursor: readOnly ? 'default' : 'pointer', whiteSpace:'nowrap' }}>
+                            {e.delivered ? '✓ Delivered' : 'Deliver'}</button>
+                        </span>
                       </div>
                     </td>
                   </tr>
