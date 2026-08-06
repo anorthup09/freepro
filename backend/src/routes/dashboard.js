@@ -200,6 +200,27 @@ function cityFromAddress(addr) {
 // and bare punctuation from empty form fields all get rejected
 const realCity = c => { const s = String(c || '').trim(); return s && /[A-Za-z]/.test(s) ? s : null; };
 
+// The shoot's real location comes from the schedule: the day's weather location
+// first, then a located venue's address, then the project record. Shared by the
+// greeting and the on-trip banner so both show the same "where are we" answer.
+async function resolveShootLocation(projectId, fallbackCity, fallbackState) {
+  let city = null, state = null;
+  const [wd] = await sql`
+    SELECT weather_location_name FROM shoot_days
+    WHERE project_id = ${projectId} AND weather_location_name IS NOT NULL
+    ORDER BY date LIMIT 1`;
+  if (realCity(wd?.weather_location_name)) city = realCity(wd.weather_location_name);
+  if (!city) {
+    const locs = await sql`
+      SELECT address FROM locations
+      WHERE project_id = ${projectId} AND address IS NOT NULL
+      ORDER BY (type = 'PRIMARY_VENUE') DESC, name LIMIT 6`;
+    for (const l of locs) { const c = realCity(cityFromAddress(l.address)); if (c) { city = c; break; } }
+  }
+  if (!city) { city = realCity(fallbackCity); state = realCity(fallbackState); }
+  return { city, state };
+}
+
 async function greetingContext(user) {
   const today = bizToday();
   const cm = await myCrewMember(user.email);
@@ -215,22 +236,7 @@ async function greetingContext(user) {
         AND ca.start_date::date <= ${bizToday(10)}
       ORDER BY ca.start_date LIMIT 1`;
     if (trip) {
-      // The shoot's real location comes from the schedule: the day's weather
-      // location first, then a located venue's address, then the project record
-      let city = null, state = null;
-      const [wd] = await sql`
-        SELECT weather_location_name FROM shoot_days
-        WHERE project_id = ${trip.project_id} AND weather_location_name IS NOT NULL
-        ORDER BY date LIMIT 1`;
-      if (realCity(wd?.weather_location_name)) city = realCity(wd.weather_location_name);
-      if (!city) {
-        const locs = await sql`
-          SELECT address FROM locations
-          WHERE project_id = ${trip.project_id} AND address IS NOT NULL
-          ORDER BY (type = 'PRIMARY_VENUE') DESC, name LIMIT 6`;
-        for (const l of locs) { const c = realCity(cityFromAddress(l.address)); if (c) { city = c; break; } }
-      }
-      if (!city) { city = realCity(trip.city); state = realCity(trip.state); }
+      const { city, state } = await resolveShootLocation(trip.project_id, trip.city, trip.state);
       ctx.trip = { city, state, title: trip.title, startsToday: iso(trip.start_date) <= today };
     }
     const [pto] = await sql`
@@ -384,7 +390,8 @@ router.get('/on-trip', requireAuth, async (req, res, next) => {
         VALUES (gen_random_uuid()::text, ${trip.id}, gen_random_uuid()::text, ${viewType})
         RETURNING token`;
     }
-    res.json({ project: { id: trip.id, code: trip.code, title: trip.title, city: trip.city, state: trip.state }, token: share.token, viewType });
+    const { city, state } = await resolveShootLocation(trip.id, trip.city, trip.state);
+    res.json({ project: { id: trip.id, code: trip.code, title: trip.title, city, state }, token: share.token, viewType });
   } catch (e) { next(e); }
 });
 
