@@ -636,6 +636,9 @@ async function migrate() {
   await sql`ALTER TABLE key_talent ADD COLUMN IF NOT EXISTS video_title TEXT`;
   await sql`ALTER TABLE tech_specs ADD COLUMN IF NOT EXISTS broll_frame_rate TEXT`;
   await sql`ALTER TABLE schedule_events ADD COLUMN IF NOT EXISTS room_space TEXT`;
+  // Per-event color tag: a color-coding category key (fixed or custom) that
+  // overrides the tile's default color across the schedule + share views.
+  await sql`ALTER TABLE schedule_events ADD COLUMN IF NOT EXISTS color_tag TEXT`;
   // Per-crew call-time override tiles ("NAME - Call Time") are schedule events
   // linked back to the crew assignment so they can be synced/removed from the
   // add/edit crew form. Cascade-delete when the assignment goes away.
