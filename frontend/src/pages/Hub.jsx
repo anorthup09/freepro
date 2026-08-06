@@ -84,7 +84,13 @@ export function TripPrompt() {
       padding:'12px 18px', margin:'0 auto 16px', maxWidth:620 }}>
       <div style={{ fontSize:13, minWidth:0 }}>
         <span style={{ fontWeight:800 }}>🎬 You're on the road — {trip.project.code} {trip.project.title}</span>
-        {trip.project.city && <span style={{ color:'var(--muted)' }}> · {[trip.project.city, trip.project.state].filter(Boolean).join(', ')}</span>}
+        {(() => {
+          const loc = [trip.project.city, trip.project.state]
+            .map(s => String(s || '').trim())
+            .filter(s => s && /[A-Za-z]/.test(s))
+            .join(', ');
+          return loc ? <span style={{ color:'var(--muted)' }}> · {loc}</span> : null;
+        })()}
       </div>
       <div style={{ display:'flex', alignItems:'center', gap:10, flexShrink:0 }}>
         <a href={`/share/${trip.token}`}

@@ -183,19 +183,28 @@ router.get('/team', requireAuth, async (req, res, next) => {
 
 const DENVER_FIRSTS = ['anabelle', 'fabrizio'];
 
-// Best-effort city from a full address ("…, Denver, Colorado, 80203, USA" → Denver)
-function cityFromAddress(addr) {
-  if (!addr) return null;
+// Best-effort {city, state} from a full address. Handles the common shapes:
+//   "111 W Harbor Dr, San Diego, California 92101"  → San Diego / California
+//   "…, Denver, Colorado, 80203, USA"               → Denver / Colorado
+//   "Kansas City MO 64105"                          → Kansas City / MO
+function parseCityState(addr) {
+  if (!addr) return { city: null, state: null };
   const parts = String(addr).split(',').map(x => x.trim()).filter(Boolean)
     .filter(x => !/^united states$/i.test(x) && !/^usa$/i.test(x) && !/^\d{5}(-\d{4})?$/.test(x) && !/^\d+$/.test(x));
-  if (!parts.length) return null;
-  const last = parts[parts.length - 1];
-  // "KC 64105" / "Kansas City MO 64105" — city is the alpha run before state/zip
-  const m = last.match(/^([A-Za-z. ]+?)\s+(?:[A-Z]{2}\s+)?\d{5}/) || last.match(/^([A-Za-z. ]+?)\s+[A-Z]{2}$/);
-  if (m) return m[1].trim();
-  // last segment is the state ("MO" / "Colorado") — city is the segment before it
-  return parts.length >= 2 ? parts[parts.length - 2] : null;
+  if (!parts.length) return { city: null, state: null };
+  // Strip a trailing ZIP off the last segment ("California 92101" → "California")
+  let last = parts[parts.length - 1].replace(/\s+\d{5}(-\d{4})?$/, '').trim();
+  // "San Diego CA" / "Kansas City MO" — city + 2-letter state in one segment
+  let m = last.match(/^(.+?)\s+([A-Z]{2})$/);
+  if (m) return { city: m[1].trim(), state: m[2] };
+  // Otherwise the last segment is the state; the city is the segment before it
+  const state = /[A-Za-z]/.test(last) ? last : null;
+  let city = parts.length >= 2 ? parts[parts.length - 2].replace(/\s+\d.*$/, '').trim() : null;
+  // A leading street number means we grabbed a street line, not a city
+  if (city && /^\d/.test(city)) city = null;
+  return { city: city || null, state };
 }
+function cityFromAddress(addr) { return parseCityState(addr).city; }
 // A usable city has to contain letters — placeholder dashes ("—", "–", "- -")
 // and bare punctuation from empty form fields all get rejected
 const realCity = c => { const s = String(c || '').trim(); return s && /[A-Za-z]/.test(s) ? s : null; };
@@ -205,18 +214,29 @@ const realCity = c => { const s = String(c || '').trim(); return s && /[A-Za-z]/
 // greeting and the on-trip banner so both show the same "where are we" answer.
 async function resolveShootLocation(projectId, fallbackCity, fallbackState) {
   let city = null, state = null;
+  // 1) The day's weather location — often already "City, State"
   const [wd] = await sql`
     SELECT weather_location_name FROM shoot_days
     WHERE project_id = ${projectId} AND weather_location_name IS NOT NULL
     ORDER BY date LIMIT 1`;
-  if (realCity(wd?.weather_location_name)) city = realCity(wd.weather_location_name);
+  const wname = realCity(wd?.weather_location_name);
+  if (wname) {
+    const cs = wname.split(',').map(x => x.trim()).filter(Boolean);
+    city = cs[0] || wname;
+    state = cs[1] || null;
+  }
+  // 2) A located venue's address (primary venue first)
   if (!city) {
     const locs = await sql`
       SELECT address FROM locations
       WHERE project_id = ${projectId} AND address IS NOT NULL
       ORDER BY (type = 'PRIMARY_VENUE') DESC, name LIMIT 6`;
-    for (const l of locs) { const c = realCity(cityFromAddress(l.address)); if (c) { city = c; break; } }
+    for (const l of locs) {
+      const cs = parseCityState(l.address);
+      if (realCity(cs.city)) { city = realCity(cs.city); state = realCity(cs.state); break; }
+    }
   }
+  // 3) The project record itself
   if (!city) { city = realCity(fallbackCity); state = realCity(fallbackState); }
   return { city, state };
 }
