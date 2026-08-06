@@ -68,50 +68,60 @@ function locationDatesLabel(locId, schedule) {
   return sorted.length === 1 ? f(sorted[0]) : `${f(sorted[0])} – ${f(sorted[sorted.length - 1])}`;
 }
 
-// Locations as compact lines: Type | Name | Address | Dates | + Map, with the
-// nearest hospital indented under shoot locations. Shared by producer & crew.
+// Strip a leading location name off its address so we don't repeat it, e.g.
+// "Rady Shell, 222 Marina Park Way, …" → "222 Marina Park Way, …"
+function addrWithoutName(address, name) {
+  if (!address) return '';
+  let a = String(address).trim();
+  const n = String(name || '').trim();
+  if (n && a.toLowerCase().startsWith(n.toLowerCase())) {
+    a = a.slice(n.length).replace(/^[\s,]+/, '');
+  }
+  return a;
+}
+
+// Locations as compact stacked blocks: Type + Name, then Map + Dates, then the
+// address (with the repeated name stripped). Nearest hospital sits underneath
+// shoot locations. Shared by producer & crew.
 function LocationsSection({ locations, schedule }) {
   if (!locations?.length) return null;
-  const col = { type: '0 0 116px', name: '1 1 150px', addr: '2 1 220px', dates: '0 0 110px' };
   const mapBtn = { flex: '0 0 auto', display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(232,80,10,0.14)', border: '1px solid var(--orange)', color: 'var(--orange)', borderRadius: 8, padding: '3px 11px', fontSize: 11, fontWeight: 800, textDecoration: 'none', whiteSpace: 'nowrap' };
-  const hdr = { fontSize: 9, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--muted)' };
   return (
     <section className="share-section">
       <div className="sec-lbl">Locations</div>
       <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <div className="loc-line-hdr" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0 0 6px', borderBottom: '1px solid var(--border2)' }}>
-          <span style={{ ...hdr, flex: col.type }}>Type</span>
-          <span style={{ ...hdr, flex: col.name }}>Location</span>
-          <span style={{ ...hdr, flex: col.addr }}>Address</span>
-          <span style={{ ...hdr, flex: col.dates }}>Dates</span>
-          <span style={{ ...hdr, flex: '0 0 auto', width: 64, textAlign: 'right' }}>Map</span>
-        </div>
         {locations.map(l => {
           const hosp = hospitalText(l);
           const typeLabel = l.type ? (LOCATION_TYPE_LABEL[l.type] || l.type) : 'Location';
           const dates = locationDatesLabel(l.id, schedule);
+          const addr = addrWithoutName(l.address, l.name);
           return (
-            <div key={l.id} style={{ borderBottom: '1px solid var(--border)', padding: '9px 0' }}>
-              <div className="loc-line" style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
-                <span style={{ flex: col.type, fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.07em', fontWeight: 700 }}>{typeLabel}</span>
-                <span style={{ flex: col.name, minWidth: 0, fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{l.name}</span>
-                <span style={{ flex: col.addr, minWidth: 0, fontSize: 12, color: 'var(--muted)' }}>{l.address || '—'}</span>
-                <span style={{ flex: col.dates, fontSize: 12, color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>{dates || '—'}</span>
-                {l.address
-                  ? <a href={mapsUrl(l.address)} target="_blank" rel="noreferrer" style={mapBtn}>+ Map</a>
-                  : <span style={{ flex: '0 0 auto', width: 64 }} />}
+            <div key={l.id} style={{ borderBottom: '1px solid var(--border)', padding: '11px 0' }}>
+              {/* Line 1 — type + name */}
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.07em', fontWeight: 700, flexShrink: 0 }}>{typeLabel}</span>
+                <span style={{ minWidth: 0, fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{l.name}</span>
               </div>
+              {/* Line 2 — map + dates */}
+              {(l.address || dates) && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6, flexWrap: 'wrap' }}>
+                  {l.address && <a href={mapsUrl(l.address)} target="_blank" rel="noreferrer" style={mapBtn}>+ Map</a>}
+                  {dates && <span style={{ fontSize: 12, color: 'var(--muted)', fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>{dates}</span>}
+                </div>
+              )}
+              {/* Line 3 — address, with the repeated name removed */}
+              {addr && <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6 }}>{addr}</div>}
               {hosp && (
-                <div style={{ marginLeft: 20, marginTop: 4, fontSize: 11, color: 'var(--muted)' }}>
+                <div style={{ marginTop: 6, fontSize: 11, color: 'var(--muted)' }}>
                   <span style={{ fontWeight: 700, color: 'var(--tan)' }}>Nearest Hospital: </span>{hosp}
                 </div>
               )}
               {l.arrival_notes && (
-                <div style={{ marginLeft: 20, marginTop: 4, fontSize: 11, color: 'var(--muted)', whiteSpace: 'pre-wrap' }}>
+                <div style={{ marginTop: 4, fontSize: 11, color: 'var(--muted)', whiteSpace: 'pre-wrap' }}>
                   <span style={{ fontWeight: 700, color: 'var(--tan)' }}>Arrival: </span>{l.arrival_notes}
                 </div>
               )}
-              {l.space_map && <img src={l.space_map} alt={`Space map for ${l.name}`} style={{ maxWidth: '100%', maxHeight: 320, borderRadius: 6, marginTop: 8, marginLeft: 20, display: 'block' }} />}
+              {l.space_map && <img src={l.space_map} alt={`Space map for ${l.name}`} style={{ maxWidth: '100%', maxHeight: 320, borderRadius: 6, marginTop: 8, display: 'block' }} />}
             </div>
           );
         })}
