@@ -2263,10 +2263,12 @@ function DaySection({ day, showCalls, flights, drives, dayIndex, talentCallTime,
   };
   const simpleTile = (item) => {
     const addr = item.location?.address;
+    // No .ev-time label and no bottom gap — the time lives inside the body so the
+    // tiles stack flush against each other within the day.
     return (
-      <div className="ev" style={{ paddingBottom: 6 }}>
-        <div className="ev-time">{simpleTimeOf(item) || '—'}</div>
-        <div className="ev-body" style={{ borderLeft:`2px solid ${simpleColorOf(item)}`, display:'flex', alignItems:'center', gap:10, padding:'8px 12px' }}>
+      <div className="ev" style={{ paddingBottom: 0 }}>
+        <div className="ev-body" style={{ borderLeft:`2px solid ${simpleColorOf(item)}`, borderRadius:8, display:'flex', alignItems:'center', gap:10, padding:'8px 12px' }}>
+          <span style={{ fontSize:11, fontWeight:700, color:'var(--muted)', fontVariantNumeric:'tabular-nums', whiteSpace:'nowrap', flexShrink:0 }}>{simpleTimeOf(item) || '—'}</span>
           <div style={{ flex:1, minWidth:0 }}>
             <div className="ev-title" style={{ whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{simpleTitleOf(item)}</div>
             {item.room_space && <div style={{ fontSize:11, color:'var(--muted)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{item.room_space}</div>}
