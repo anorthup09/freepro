@@ -31,6 +31,12 @@ function colorForTag(key, project) {
   const custom = (o._custom || []).find(x => x.id === key);
   return custom ? custom.color : null;
 }
+// Resolve a per-event group-tag id to its hex (groups color the tile's right edge).
+function groupColorFor(key, project) {
+  if (!key) return null;
+  const g = (scParse(project)._groups || []).find(x => x.id === key);
+  return g ? g.color : null;
+}
 
 // Nearest-hospital text auto-sourced onto shoot locations (stored in notes).
 const hospitalText = loc => (loc && loc.type === 'PRIMARY_VENUE' && loc.notes)
@@ -875,7 +881,7 @@ function ProducerView({ data, hideGear, onOpenShotList, shareToken, pw }) {
           ? { ...day, events: (day.events || []).filter(e => !(e.crew_ids || []).length || e.crew_ids.includes(crewFilter)) }
           : day
         ).map((day, i) => (
-          <DaySection key={day.id} day={day} showCalls flights={flights} drives={drives} dayIndex={i} tagFilter={tagFilter} personFilter={personFilter} cateringDetail="full" shotList={shotList} slDays={slDays} slBreaks={slBreaks} onOpenShotList={onOpenShotList} crewAssignments={crewAssignments} includePhoto={project.include_photo !== false} projectCity={[project.city, project.state].filter(Boolean).join(', ')} headerGradient shareToken={shareToken} pw={pw} showTalentCalls colorFor={k => colorForTag(k, project)} />
+          <DaySection key={day.id} day={day} showCalls flights={flights} drives={drives} dayIndex={i} tagFilter={tagFilter} personFilter={personFilter} cateringDetail="full" shotList={shotList} slDays={slDays} slBreaks={slBreaks} onOpenShotList={onOpenShotList} crewAssignments={crewAssignments} includePhoto={project.include_photo !== false} projectCity={[project.city, project.state].filter(Boolean).join(', ')} headerGradient shareToken={shareToken} pw={pw} showTalentCalls colorFor={k => colorForTag(k, project)} groupColorForFn={k => groupColorFor(k, project)} />
         ))}
       </div>
     </div>
@@ -1047,7 +1053,7 @@ function CrewView({ data, shareToken, hideGear, onOpenShotList, pw }) {
           return [day.call_time_tags, day.shooting_call_tags, day.lunch_tags, day.wrap_time_tags]
             .some(tags => Array.isArray(tags) && (tags.includes(tagFilter) || tags.includes('ALL_CREW')));
         }).map((day, i) => (
-          <DaySection key={day.id} day={day} showCalls flights={flights} drives={drives} dayIndex={i} tagFilter={tagFilter} personFilter={personFilter} cateringDetail="name" shotList={shotList} slDays={slDays} slBreaks={slBreaks} onOpenShotList={onOpenShotList} crewAssignments={crewAssignments} includePhoto={project.include_photo !== false} projectCity={[project.city, project.state].filter(Boolean).join(', ')} headerGradient shareToken={shareToken} pw={pw} colorFor={k => colorForTag(k, project)} />
+          <DaySection key={day.id} day={day} showCalls flights={flights} drives={drives} dayIndex={i} tagFilter={tagFilter} personFilter={personFilter} cateringDetail="name" shotList={shotList} slDays={slDays} slBreaks={slBreaks} onOpenShotList={onOpenShotList} crewAssignments={crewAssignments} includePhoto={project.include_photo !== false} projectCity={[project.city, project.state].filter(Boolean).join(', ')} headerGradient shareToken={shareToken} pw={pw} colorFor={k => colorForTag(k, project)} groupColorForFn={k => groupColorFor(k, project)} />
         ))}
       </div>
     </div>
@@ -2186,7 +2192,7 @@ function CateringBadge({ catering, detail }) {
   );
 }
 
-function DaySection({ day, showCalls, flights, drives, dayIndex, talentCallTime, talentCallLocation, hideCallWrap, tagFilter, personFilter, cateringDetail, shotList, slDays, slBreaks, onOpenShotList, crewAssignments, projectCity, talentMode, includePhoto, headerGradient, shareToken, pw, showTalentCalls, colorFor }) {
+function DaySection({ day, showCalls, flights, drives, dayIndex, talentCallTime, talentCallLocation, hideCallWrap, tagFilter, personFilter, cateringDetail, shotList, slDays, slBreaks, onOpenShotList, crewAssignments, projectCity, talentMode, includePhoto, headerGradient, shareToken, pw, showTalentCalls, colorFor, groupColorForFn }) {
   const attUrl = attId => `${window.location.origin}/api/share/${shareToken}/attachments/${attId}/file?inline=1${pw ? `&pw=${encodeURIComponent(pw)}` : ''}`;
   const [clapEvent, setClapEvent] = useState(null);
   const crewByPosition = (posName) => {
@@ -2620,7 +2626,7 @@ function DaySection({ day, showCalls, flights, drives, dayIndex, talentCallTime,
                 return (
                   <div key={item.id || i} id={item.id ? `ev-${item.id}` : undefined} className="ev">
                     <div className="ev-time">{fmtTime(item.start_time)}{item.end_time ? ` – ${fmtTime(item.end_time)}` : ''}</div>
-                    <div className={`ev-body${item.is_alert ? ' warn' : ''}${isLive(item.start_time, item.end_time) ? ' ev-live' : ''}`} style={(item.color_tag && colorFor && colorFor(item.color_tag) && !item.is_alert) ? { borderLeft:`2px solid ${colorFor(item.color_tag)}` } : (eventIsGeneral(item) ? { borderLeft:'2px solid var(--sc-general)', opacity:0.55 } : (!item.is_alert ? { borderLeft:'2px solid var(--sc-filming)',  } : {}))}>
+                    <div className={`ev-body${item.is_alert ? ' warn' : ''}${isLive(item.start_time, item.end_time) ? ' ev-live' : ''}`} style={{ ...((item.color_tag && colorFor && colorFor(item.color_tag) && !item.is_alert) ? { borderLeft:`2px solid ${colorFor(item.color_tag)}` } : (eventIsGeneral(item) ? { borderLeft:'2px solid var(--sc-general)', opacity:0.55 } : (!item.is_alert ? { borderLeft:'2px solid var(--sc-filming)',  } : {}))), ...(item.group_tag && groupColorForFn && groupColorForFn(item.group_tag) ? { borderRight:`3px solid ${groupColorForFn(item.group_tag)}` } : {}) }}>
                       {loc?.address && (
                         <button className={`ev-locpin${openLoc[item.id || i] ? ' on' : ''}`}
                           onClick={e => { e.stopPropagation(); setOpenLoc(o => ({ ...o, [item.id || i]: !o[item.id || i] })); }}
