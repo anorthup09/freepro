@@ -1057,12 +1057,19 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
       {currentDay && (
         <div>
           <div className="card" style={{ marginBottom:16 }}>
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:8, marginBottom: dayCardCollapsed ? 0 : 12 }}>
-              <div style={{ display:'flex', alignItems:'center', gap:12, flexWrap:'wrap', minWidth:0 }}>
-                <span style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:15, whiteSpace:'nowrap' }}>
+            <div className="dch" style={{ marginBottom: dayCardCollapsed ? 0 : 12 }}>
+              {/* Row 1: day + date on the left, Expand/Collapse pinned top-right */}
+              <div className="dch-row1">
+                <span style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:15 }}>
                   Day {[...days].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).findIndex(d=>d.id===currentDay.id)+1} · {parseDay(currentDay.date).toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' })}
                 </span>
-                {/* Location settings (weather location) — right of the day/date */}
+                <button className="btn btn-ghost btn-sm" onClick={() => setDayCardCollapsed(c => !c)}
+                  style={{ color:'var(--muted)', fontSize:11, padding:'1px 8px', lineHeight:1.3, minHeight:0, height:22, flexShrink:0 }}>
+                  {dayCardCollapsed ? '▸ Expand' : '▾ Collapse'}
+                </button>
+              </div>
+              {/* Row 2: location settings (centered on mobile) */}
+              <div className="dch-loc">
                 <WeatherLocationPicker
                   key={currentDay.id}
                   day={currentDay}
@@ -1078,8 +1085,8 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                   </button>
                 )}
               </div>
-              <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap', justifyContent:'flex-end' }}>
-                {/* Weather info next to the day-type dropdown */}
+              {/* Row 3: weather + day type (centered on mobile) */}
+              <div className="dch-meta">
                 {(() => {
                   const w = weatherByDay[currentDay.id]
                     || (currentDay.weather_high != null ? { high: currentDay.weather_high, low: currentDay.weather_low, precip: currentDay.weather_precip, code: null } : null);
@@ -1102,10 +1109,6 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                 >
                   {DAY_TYPES.map(dt => <option key={dt.value} value={dt.value}>{dt.label}</option>)}
                 </select>
-                <button className="btn btn-ghost btn-sm" onClick={() => setDayCardCollapsed(c => !c)}
-                  style={{ color:'var(--muted)', fontSize:11, padding:'1px 8px', lineHeight:1.3, minHeight:0, height:22 }}>
-                  {dayCardCollapsed ? '▸ Expand' : '▾ Collapse'}
-                </button>
               </div>
             </div>
             {!dayCardCollapsed && <>
