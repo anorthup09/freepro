@@ -393,10 +393,14 @@ async function resolveShare(token, pw, req) {
     // Logged-in users (any role above PENDING) bypass the share password,
     // same as the main share GET
     let authed = false;
+    // Bearer header for XHR calls; ?auth= query token for plain new-tab file
+    // links (a browser navigation can't set the Authorization header).
     const h = req?.headers?.authorization;
-    if (h?.startsWith('Bearer ')) {
+    const headerTok = h?.startsWith('Bearer ') ? h.slice(7) : null;
+    const bearer = headerTok || req?.query?.auth || null;
+    if (bearer) {
       try {
-        const u = jwt.verify(h.slice(7), process.env.JWT_SECRET);
+        const u = jwt.verify(bearer, process.env.JWT_SECRET);
         authed = !!u.role && u.role !== 'PENDING';
       } catch { /* invalid token — fall through to password check */ }
     }

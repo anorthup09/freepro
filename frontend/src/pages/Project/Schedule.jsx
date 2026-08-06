@@ -1770,10 +1770,13 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                     Filming
                   </button>
                   {eventForm.isFilming && (
-                    <button type="button" onClick={() => setEventForm(f=>({...f,hasSlate:!f.hasSlate}))}
-                      style={{ padding:'5px 14px', borderRadius:6, border: eventForm.hasSlate ? '1.5px solid var(--orange)' : '1px solid var(--border)', background: eventForm.hasSlate ? 'rgba(255,140,0,0.15)' : 'transparent', color: eventForm.hasSlate ? 'var(--orange)' : 'var(--muted)', fontSize:12, fontWeight:700, cursor:'pointer', letterSpacing:'.04em', textTransform:'uppercase' }}>
-                      Slate
-                    </button>
+                    <div onClick={() => setEventForm(f=>({...f,hasSlate:!f.hasSlate}))} title="Toggle a slate on this event"
+                      style={{ display:'inline-flex', alignItems:'center', gap:8, cursor:'pointer', userSelect:'none', marginLeft:4 }}>
+                      <span style={{ fontSize:12, fontWeight:700, letterSpacing:'.04em', textTransform:'uppercase', color: eventForm.hasSlate ? 'var(--orange)' : 'var(--muted)' }}>Slate</span>
+                      <span style={{ position:'relative', width:38, height:22, borderRadius:11, background: eventForm.hasSlate ? 'var(--orange)' : 'var(--border2)', transition:'background .15s ease', flexShrink:0 }}>
+                        <span style={{ position:'absolute', top:2, left: eventForm.hasSlate ? 18 : 2, width:18, height:18, borderRadius:'50%', background:'#fff', transition:'left .15s ease', boxShadow:'0 1px 3px rgba(0,0,0,0.4)' }} />
+                      </span>
+                    </div>
                   )}
                 </div>
                 <div className="field"><label>Start Time</label><input type="time" value={eventForm.startTime} onChange={e => setEventForm(f=>({...f,startTime:e.target.value}))} required /></div>
@@ -2005,10 +2008,13 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                     Filming
                   </button>
                   {editEventForm.isFilming && (
-                    <button type="button" onClick={() => setEditEventForm(f=>({...f,hasSlate:!f.hasSlate}))}
-                      style={{ padding:'5px 14px', borderRadius:6, border: editEventForm.hasSlate ? '1.5px solid var(--orange)' : '1px solid var(--border)', background: editEventForm.hasSlate ? 'rgba(255,140,0,0.15)' : 'transparent', color: editEventForm.hasSlate ? 'var(--orange)' : 'var(--muted)', fontSize:12, fontWeight:700, cursor:'pointer', letterSpacing:'.04em', textTransform:'uppercase' }}>
-                      Slate
-                    </button>
+                    <div onClick={() => setEditEventForm(f=>({...f,hasSlate:!f.hasSlate}))} title="Toggle a slate on this event"
+                      style={{ display:'inline-flex', alignItems:'center', gap:8, cursor:'pointer', userSelect:'none', marginLeft:4 }}>
+                      <span style={{ fontSize:12, fontWeight:700, letterSpacing:'.04em', textTransform:'uppercase', color: editEventForm.hasSlate ? 'var(--orange)' : 'var(--muted)' }}>Slate</span>
+                      <span style={{ position:'relative', width:38, height:22, borderRadius:11, background: editEventForm.hasSlate ? 'var(--orange)' : 'var(--border2)', transition:'background .15s ease', flexShrink:0 }}>
+                        <span style={{ position:'absolute', top:2, left: editEventForm.hasSlate ? 18 : 2, width:18, height:18, borderRadius:'50%', background:'#fff', transition:'left .15s ease', boxShadow:'0 1px 3px rgba(0,0,0,0.4)' }} />
+                      </span>
+                    </div>
                   )}
                 </div>
                 <div className="field"><label>Start Time</label><input type="time" value={editEventForm.startTime} onChange={e => setEditEventForm(f=>({...f,startTime:e.target.value}))} required /></div>

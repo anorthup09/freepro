@@ -233,8 +233,9 @@ function GeneralNotesBlock({ notes }) {
 }
 
 // Post-Production deliverables, grouped by Type (tracker_type) with a pill first column.
-function DeliverablesBlock({ deliverables, gear, frameRate }) {
+function DeliverablesBlock({ deliverables, gear, frameRate, crewAssignments }) {
   if (!deliverables?.length) return null;
+  const postSup = (crewAssignments || []).find(a => a.crewMember && /post[\s-]*production\s*supervisor/i.test(a.position?.name || ''));
   const byType = {};
   deliverables.forEach(d => { const t = delivTypeOf(d); (byType[t] ||= []).push(d); });
   const orderedTypes = [
@@ -245,6 +246,12 @@ function DeliverablesBlock({ deliverables, gear, frameRate }) {
   return (
     <section className="share-section">
       <div style={{ fontSize:16, fontWeight:700, color:'var(--text)', marginBottom:12, letterSpacing:'-0.01em' }}>Post-Production — Deliverables</div>
+      {postSup && (
+        <div style={{ fontSize:12, color:'var(--muted)', marginBottom:8 }}>
+          Post-Production Supervisor: <span style={{ color:'var(--text)', fontWeight:500 }}>{displayName(postSup.crewMember)}</span>
+          {postSup.crewMember.phone && <span style={{ marginLeft:8 }}><Tel v={postSup.crewMember.phone} /></span>}
+        </div>
+      )}
       {gear?.gear_person_name && (
         <div style={{ fontSize:12, color:'var(--muted)', marginBottom:8 }}>
           DIT: <span style={{ color:'var(--text)', fontWeight:500 }}>{gear.gear_person_name}</span>
@@ -861,7 +868,7 @@ function ProducerView({ data, hideGear, onOpenShotList, shareToken, pw }) {
       {!hideGear && <GearSection gear={gear} onlineRentals={onlineRentals} producerView />}
 
       {/* ── Post-Production ── */}
-      <DeliverablesBlock deliverables={deliverables} gear={gear} frameRate={techSpecs?.frame_rate} />
+      <DeliverablesBlock deliverables={deliverables} gear={gear} frameRate={techSpecs?.frame_rate} crewAssignments={crewAssignments} />
 
       {/* ── Schedule (with integrated flights) at bottom ── */}
       <div ref={scheduleRef}>
@@ -1043,7 +1050,7 @@ function CrewView({ data, shareToken, hideGear, onOpenShotList, pw }) {
 
       {!hideGear && <GearSection gear={gear} onlineRentals={onlineRentals} shareToken={shareToken} />}
 
-      <DeliverablesBlock deliverables={deliverables} gear={gear} frameRate={techSpecs?.frame_rate} />
+      <DeliverablesBlock deliverables={deliverables} gear={gear} frameRate={techSpecs?.frame_rate} crewAssignments={crewAssignments} />
 
       <div ref={scheduleRef}>
         {sortedSchedule.length > 0 && (
@@ -2167,7 +2174,13 @@ function CateringBadge({ catering, detail }) {
 }
 
 function DaySection({ day, showCalls, flights, drives, dayIndex, talentCallTime, talentCallLocation, hideCallWrap, tagFilter, personFilter, cateringDetail, shotList, slDays, slBreaks, onOpenShotList, crewAssignments, projectCity, talentMode, includePhoto, headerGradient, shareToken, pw, showTalentCalls, colorFor, groupColorForFn }) {
-  const attUrl = attId => `${window.location.origin}/api/share/${shareToken}/attachments/${attId}/file?inline=1${pw ? `&pw=${encodeURIComponent(pw)}` : ''}`;
+  const attUrl = attId => {
+    // A new-tab GET can't send the Authorization header, so a logged-in user who
+    // bypassed the share password has no pw to send — pass their app token in the
+    // query instead so the file endpoint can authorize them.
+    const t = (() => { try { return localStorage.getItem('fp_token'); } catch { return null; } })();
+    return `${window.location.origin}/api/share/${shareToken}/attachments/${attId}/file?inline=1${pw ? `&pw=${encodeURIComponent(pw)}` : ''}${t ? `&auth=${encodeURIComponent(t)}` : ''}`;
+  };
   const [clapEvent, setClapEvent] = useState(null);
   const crewByPosition = (posName) => {
     const a = (crewAssignments || []).find(x => (x.position?.name || '').toLowerCase() === posName && x.crewMember);
@@ -2351,9 +2364,9 @@ function DaySection({ day, showCalls, flights, drives, dayIndex, talentCallTime,
       <div className={headerGradient ? 'day-hdr-grad' : undefined}>
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
         <div>
-          <div className="sec-lbl" style={{ margin:0 }}>
+          <div className="sec-lbl" style={{ margin:0, color:'var(--text)', fontWeight:800 }}>
             Day {dayIndex != null ? dayIndex + 1 : day.day_number} — {new Date(day.date.slice ? day.date.slice(0,10) + 'T12:00:00' : day.date).toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' })}
-            {(day.weather_location_name || projectCity) && <span style={{ color:'var(--muted)', fontWeight:500, textTransform:'none', letterSpacing:'normal' }}> · {day.weather_location_name || projectCity}</span>}
+            {(day.weather_location_name || projectCity) && <span style={{ color:'var(--text)', fontWeight:700, textTransform:'none', letterSpacing:'normal' }}> · {day.weather_location_name || projectCity}</span>}
           </div>
           <div style={{ fontSize:11, color:'var(--muted)', marginTop:2 }}>
             {weatherStr || 'Weather coming soon'}
@@ -2667,7 +2680,7 @@ function DaySection({ day, showCalls, flights, drives, dayIndex, talentCallTime,
                           </div>
                         )}
                       </div>
-                      {item.is_filming && crewAssignments && (
+                      {item.is_filming && item.has_slate && crewAssignments && (
                         <div style={{ display:'flex', justifyContent:'flex-end', marginTop:6 }}>
                           <button onClick={e => { e.stopPropagation(); setClapEvent(item); }}
                             style={{ display:'inline-flex', alignItems:'center', gap:5, background:'rgba(255,140,0,0.12)', border:'1px solid rgba(255,140,0,0.4)', borderRadius:6, padding:'2px 9px', fontSize:10, fontWeight:700, color:'var(--orange)', cursor:'pointer', letterSpacing:'.05em', textTransform:'uppercase' }}>
