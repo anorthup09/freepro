@@ -1053,61 +1053,6 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
         />
       )}
 
-      {/* Toolbar: + Event, the calendar dates button, and the settings gear on one plane */}
-      {days.length > 0 && (
-        <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:18, flexWrap:'wrap' }}>
-          <button className="evt-glass" onClick={() => currentDay && setShowAddEvent(true)}>+ Event</button>
-          {/* Dates wrapped into a calendar button — hovering reveals the day tabs to the right, each grows on hover */}
-          <div style={{ display:'flex', alignItems:'center', gap:10, minWidth:0 }}
-            onMouseEnter={() => setDatesOpen(true)} onMouseLeave={() => setDatesOpen(false)}>
-            <button title="Shoot days" onClick={() => setDatesOpen(o => !o)}
-              style={{ display:'inline-flex', alignItems:'center', gap:7, background:'var(--bg2)', border:'1px solid var(--border2)', borderRadius:8, color: datesOpen ? 'var(--orange)' : 'var(--text)', cursor:'pointer', padding:'0 11px', height:32, flexShrink:0 }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-              <span style={{ fontSize:12, fontWeight:700, whiteSpace:'nowrap' }}>
-                {currentDay ? parseDay(currentDay.date).toLocaleDateString('en-US', { month:'short', day:'numeric' }) : 'Dates'}
-              </span>
-            </button>
-            {datesOpen && (
-              <div className="day-tabs sched-daterow" style={{ marginBottom:0, minWidth:0 }}>
-                {[...days].sort((a,b) => (a.date||'').localeCompare(b.date||'')).map((d, i) => (
-                  <button key={d.id} className={`day-tab${d.id === activeDay ? ' on' : ''}`} onClick={() => { setActiveDay(d.id); }}>
-                    {parseDay(d.date).toLocaleDateString('en-US', { month:'short', day:'numeric' })}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-          <div style={{ flex:'1 1 auto' }} />
-          {/* Settings gear — same plane; hovering reveals Color Coding / General Notes / Slate to the left */}
-          <div style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0 }}
-            onMouseEnter={() => setSettingsOpen(true)} onMouseLeave={() => setSettingsOpen(false)}>
-            {settingsOpen && (() => {
-              const btn = { display:'inline-flex', alignItems:'center', gap:7, background:'var(--bg2)', border:'1px solid var(--border2)', borderRadius:6, padding:'5px 12px', fontSize:11, fontWeight:700, color:'var(--text)', cursor:'pointer', letterSpacing:'.05em', textTransform:'uppercase', whiteSpace:'nowrap' };
-              return (
-                <>
-                  <button onClick={() => setShowColorCoding(true)} title="View and customize the timeline tag colors" style={btn}>
-                    <span style={{ display:'inline-flex', gap:2 }}>
-                      {TAG_COLOR_DEFS.map(t => <span key={t.key} style={{ width:8, height:8, borderRadius:'50%', background: tagColors[t.key] || t.def }} />)}
-                    </span>
-                    Color Coding
-                  </button>
-                  <button onClick={() => setShowGeneralNotes(true)} title="Add general notes shown on the Producer & Crew views" style={btn}>
-                    General Notes
-                  </button>
-                  <button onClick={() => setQuickSlate(true)} title="Open the slate for this day" style={btn}>
-                    Slate
-                  </button>
-                </>
-              );
-            })()}
-            <button title="Schedule settings" onClick={() => setSettingsOpen(o => !o)}
-              style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:32, height:32, background:'var(--bg2)', border:'1px solid var(--border2)', borderRadius:8, color: settingsOpen ? 'var(--orange)' : 'var(--muted)', cursor:'pointer', padding:0 }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Day detail */}
       {currentDay && (
         <div>
@@ -1301,6 +1246,61 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
               </div>
             </>
           )}
+
+      {/* Toolbar: + Event, the calendar dates button, and the settings gear on one plane */}
+      {days.length > 0 && (
+        <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:18, flexWrap:'wrap' }}>
+          <button className="evt-glass" onClick={() => currentDay && setShowAddEvent(true)}>+ Event</button>
+          {/* Dates wrapped into a calendar button — hovering reveals the day tabs to the right, each grows on hover */}
+          <div style={{ display:'flex', alignItems:'center', gap:10, minWidth:0 }}
+            onMouseEnter={() => setDatesOpen(true)} onMouseLeave={() => setDatesOpen(false)}>
+            <button title="Shoot days" onClick={() => setDatesOpen(o => !o)}
+              style={{ display:'inline-flex', alignItems:'center', gap:7, background:'var(--bg2)', border:'1px solid var(--border2)', borderRadius:8, color: datesOpen ? 'var(--orange)' : 'var(--text)', cursor:'pointer', padding:'0 11px', height:32, flexShrink:0 }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+              <span style={{ fontSize:12, fontWeight:700, whiteSpace:'nowrap' }}>
+                {currentDay ? parseDay(currentDay.date).toLocaleDateString('en-US', { month:'short', day:'numeric' }) : 'Dates'}
+              </span>
+            </button>
+            {datesOpen && (
+              <div className="day-tabs sched-daterow" style={{ marginBottom:0, minWidth:0 }}>
+                {[...days].sort((a,b) => (a.date||'').localeCompare(b.date||'')).map((d, i) => (
+                  <button key={d.id} className={`day-tab${d.id === activeDay ? ' on' : ''}`} onClick={() => { setActiveDay(d.id); }}>
+                    {parseDay(d.date).toLocaleDateString('en-US', { month:'short', day:'numeric' })}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <div style={{ flex:'1 1 auto' }} />
+          {/* Settings gear — same plane; hovering reveals Color Coding / General Notes / Slate to the left */}
+          <div style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0 }}
+            onMouseEnter={() => setSettingsOpen(true)} onMouseLeave={() => setSettingsOpen(false)}>
+            {settingsOpen && (() => {
+              const btn = { display:'inline-flex', alignItems:'center', gap:7, background:'var(--bg2)', border:'1px solid var(--border2)', borderRadius:6, padding:'5px 12px', fontSize:11, fontWeight:700, color:'var(--text)', cursor:'pointer', letterSpacing:'.05em', textTransform:'uppercase', whiteSpace:'nowrap' };
+              return (
+                <>
+                  <button onClick={() => setShowColorCoding(true)} title="View and customize the timeline tag colors" style={btn}>
+                    <span style={{ display:'inline-flex', gap:2 }}>
+                      {TAG_COLOR_DEFS.map(t => <span key={t.key} style={{ width:8, height:8, borderRadius:'50%', background: tagColors[t.key] || t.def }} />)}
+                    </span>
+                    Color Coding
+                  </button>
+                  <button onClick={() => setShowGeneralNotes(true)} title="Add general notes shown on the Producer & Crew views" style={btn}>
+                    General Notes
+                  </button>
+                  <button onClick={() => setQuickSlate(true)} title="Open the slate for this day" style={btn}>
+                    Slate
+                  </button>
+                </>
+              );
+            })()}
+            <button title="Schedule settings" onClick={() => setSettingsOpen(o => !o)}
+              style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:32, height:32, background:'var(--bg2)', border:'1px solid var(--border2)', borderRadius:8, color: settingsOpen ? 'var(--orange)' : 'var(--muted)', cursor:'pointer', padding:0 }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </button>
+          </div>
+        </div>
+      )}
 
           {/* Merged timeline: events + flight legs sorted by time */}
           {(() => {
