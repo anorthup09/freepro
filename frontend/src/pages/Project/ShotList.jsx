@@ -728,21 +728,21 @@ function DaySynopsisCard({ day, onDelete, onAddScene, scenes, scheduleDays, onDa
   return (
     <div style={{ marginBottom: 16, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, overflow: 'hidden' }}>
       <div style={{ padding: '8px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {/* Row 1: day + date on the left; shots count + public toggle top-right */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)', letterSpacing: '.04em', whiteSpace: 'nowrap' }}>
+        {/* Row 1: day + date on the left; shots count + public toggle stacked top-right (no wrap; text downscaled so it fits on phones) */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, flexWrap: 'nowrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--text)', letterSpacing: '.03em', whiteSpace: 'nowrap' }}>
               DAY {day.day_number}
             </div>
             {day.date && (
-              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text)', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 6, padding: '2px 8px', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text)', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 6, padding: '2px 7px', whiteSpace: 'nowrap' }}>
                 {displayDayDate(day.date)}
               </span>
             )}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
             {totalShots > 0 && (
-              <div style={{ fontSize: 11, color: 'var(--muted)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+              <div style={{ fontSize: 9.5, color: 'var(--muted)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
                 <span style={{ color: 'var(--text)', fontWeight: 700 }}>{totalShots}</span> shots · <span style={{ color: 'var(--text)', fontWeight: 700 }}>{capturedShots}</span> captured · <span style={{ color: 'var(--text)', fontWeight: 700 }}>{remaining}</span> remaining
               </div>
             )}
