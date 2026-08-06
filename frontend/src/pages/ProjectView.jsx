@@ -130,11 +130,7 @@ function MobileTabDock({ tabs, tab, setTab }) {
   );
 }
 
-function PVHeader({ showBack }) {
-  const { user } = useAuth();
-  const nav = useNavigate();
-  // Solutions and Finance don't have the full Project View grid — send them back to their hub.
-  const backTo = ['AGENCY', 'CREW', 'FINANCE'].includes(user?.role) ? '/' : '/project-view';
+function PVHeader({ preControls, tab }) {
   return (
     <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 26px', flexWrap:'wrap', gap:10 }}>
       <div style={{ display:'flex', alignItems:'center', gap:14 }}>
@@ -143,7 +139,14 @@ function PVHeader({ showBack }) {
         </Link>
       </div>
       <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-        {showBack && <button className="btn btn-ghost btn-sm" onClick={() => nav(backTo)}>‹ Projects</button>}
+        {tab === 'pre' && preControls && !preControls.isAgency && !preControls.isCrew && (
+          <button
+            className={`q-btn${preControls.tab === 'questions' ? ' on' : ''}${preControls.hasUnanswered && preControls.tab !== 'questions' ? ' glow' : ''}`}
+            onClick={() => preControls.setTab('questions')}
+            title={preControls.hasUnanswered ? 'Questions — unanswered waiting' : 'Questions'}
+            aria-label="Questions"
+          >?</button>
+        )}
         <HomeButton />
       </div>
     </div>
@@ -313,7 +316,7 @@ export function ProjectViewDetail() {
 
   return (
     <div className="pvd-page" style={{ minHeight:'100vh', background:'var(--bg)' }}>
-      <PVHeader showBack />
+      <PVHeader preControls={preControls} tab={tab} />
       <div style={{ maxWidth:1250, margin:'0 auto', padding:'0 16px' }}>
         <div className="pvd-bar" style={{ display:'flex', flexDirection:'column', alignItems:'flex-start', gap:6, marginBottom:6 }}>
           <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:10, width:'100%' }}>
@@ -325,15 +328,9 @@ export function ProjectViewDetail() {
                 <div style={{ fontSize:13, fontWeight:800 }}>{project.code} — {project.title}</div>
               </div>
             )}
-            {/* ? and Share lifted up from the embedded Pre-Pro — top-right */}
+            {/* Share lifted up from the embedded Pre-Pro — top-right (? moved to the top bar, left of Home) */}
             {tab === 'pre' && preControls && !preControls.isAgency && !preControls.isCrew && (
               <div style={{ display:'flex', alignItems:'center', gap:10, flexShrink:0 }}>
-                <button
-                  className={`q-btn${preControls.tab === 'questions' ? ' on' : ''}${preControls.hasUnanswered && preControls.tab !== 'questions' ? ' glow' : ''}`}
-                  onClick={() => preControls.setTab('questions')}
-                  title={preControls.hasUnanswered ? 'Questions — unanswered waiting' : 'Questions'}
-                  aria-label="Questions"
-                >?</button>
                 <ShareDropdown projectId={preControls.projectId} showShotList={preControls.showShotList} crews={preControls.crews} />
               </div>
             )}
