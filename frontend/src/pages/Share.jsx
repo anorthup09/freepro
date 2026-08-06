@@ -2426,6 +2426,19 @@ function DaySection({ day, showCalls, flights, drives, dayIndex, talentCallTime,
   else if (dayISOcmp > todayISOcmp) progressIdx = -1;                    // day not here yet
   else { const nm = now.getHours() * 60 + now.getMinutes(); progressIdx = -1; allItems.forEach((it, k) => { if ((it._sort ?? 99999) <= nm) progressIdx = k; }); }
   const railStatus = i => (i < progressIdx ? 'past' : i === progressIdx ? 'live' : 'upcoming');
+  // Real-time fill of the live event's connector line toward the next tile:
+  // orange grows from the current dot downward based on how far "now" is between
+  // this event's start and its end time (priority) or the next tile's start.
+  const liveStartMins = (progressIdx >= 0 && progressIdx < allItems.length) ? (allItems[progressIdx]?._sort ?? null) : null;
+  let liveEndMins = null;
+  if (progressIdx >= 0 && progressIdx < allItems.length) {
+    const it = allItems[progressIdx];
+    const endT = it.end_time || it.endTime || null;
+    liveEndMins = endT ? timeToMins(endT) : (allItems[progressIdx + 1]?._sort ?? null);
+  }
+  const liveProgressPct = (liveStartMins != null && liveEndMins != null && liveEndMins > liveStartMins)
+    ? Math.max(0, Math.min(100, Math.round(((nowMins - liveStartMins) / (liveEndMins - liveStartMins)) * 100)))
+    : null;
 
   // Compute driving times between consecutive located stops: events with a
   // location plus non-delivery (reservation) catering addresses
@@ -2809,10 +2822,14 @@ function DaySection({ day, showCalls, flights, drives, dayIndex, talentCallTime,
                 const keyId = item._key || item.id || i;
                 const isExp = expandedKeys.has(keyId);
                 const rendered = (simple && !isExp) ? simpleTile(item) : tile;
+                const mergedStyle = { ...(rendered.props?.style || {}) };
+                if (simple) mergedStyle.cursor = 'pointer';
+                if (railStatus(i) === 'live' && liveProgressPct != null) mergedStyle['--rail-progress'] = `${liveProgressPct}%`;
                 const railTile = React.isValidElement(rendered)
                   ? React.cloneElement(rendered, {
                       className: `${rendered.props.className || 'ev'} ev-${railStatus(i)}${i === allItems.length - 1 ? ' ev-last' : ''}`,
-                      ...(simple ? { onClick: () => toggleExpanded(keyId), style: { ...(rendered.props.style || {}), cursor:'pointer' } } : {}),
+                      style: mergedStyle,
+                      ...(simple ? { onClick: () => toggleExpanded(keyId) } : {}),
                     })
                   : rendered;
                 return (

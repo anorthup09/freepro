@@ -216,7 +216,10 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
 .ev-past::before { border-color: var(--orange); }
 .ev-past::after { background: var(--orange); }
 .ev-live::before { background: var(--orange); border-color: var(--orange); box-shadow: 0 0 0 3px var(--bg), 0 0 0 7px rgba(232,80,10,0.30); }
-.ev-live::after { background: linear-gradient(var(--orange), var(--border2)); }
+/* Live connector fills toward the next tile in real time: orange down to
+   --rail-progress (set per-minute from the event's elapsed time), gray below.
+   Falls back to a half-fill when the event has no measurable end/next time. */
+.ev-live::after { background: linear-gradient(to bottom, var(--orange) var(--rail-progress, 50%), var(--border2) var(--rail-progress, 50%)); }
 .ev-upcoming::before { border-color: var(--muted); }
 .ev-upcoming::after { background: var(--border2); }
 .ev-time { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; display: flex; align-items: center; gap: 5px; margin-bottom: 5px; font-variant-numeric: tabular-nums; }
