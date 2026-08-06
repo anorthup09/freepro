@@ -317,23 +317,23 @@ export default function Deliverables({ project }) {
             <th className="dv-hide-m"></th>
           </tr></thead>
           <tbody>
-            {items.length === 0 && (
+            {items.filter(i => !i.avo_archived).length === 0 && (
               <tr><td colSpan={6} className="empty">No deliverables yet.</td></tr>
             )}
             {[...TYPE_GROUPS, ['No Type Yet', 'var(--muted)']].map(([t, color]) => {
+              // Edits marked Dead on the post-production grid are dropped from the pre-pro tracker.
               const catItems = t === 'No Type Yet'
-                ? items.filter(i => !TYPE_GROUPS.some(([g]) => g === typeOf(i)))
-                : items.filter(i => typeOf(i) === t);
+                ? items.filter(i => !i.avo_archived && !TYPE_GROUPS.some(([g]) => g === typeOf(i)))
+                : items.filter(i => !i.avo_archived && typeOf(i) === t);
               if (catItems.length === 0) return null;
               return (
                 <React.Fragment key={t}>
                   <tr><td colSpan={6} style={{ padding:'8px 12px', fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'.12em', color, background:'rgba(255,255,255,0.04)' }}>{t}</td></tr>
                   {catItems.map(item => (
-              <tr key={item.id} style={{ cursor:'pointer', opacity: item.avo_archived ? 0.5 : 1 }} title={item.avo_archived ? 'Marked Dead on the post-production grid' : "Open this deliverable's edit form"}
+              <tr key={item.id} style={{ cursor:'pointer' }} title="Open this deliverable's edit form"
                 onClick={() => window.matchMedia('(max-width: 640px)').matches ? setDetailItem(item) : openEdit(item)}>
                 <td>
-                  <div style={{ fontWeight:500 }}>{item.isUrgent && <span style={{ color:'var(--orange)' }}>⚠ </span>}{item.title}
-                    {item.avo_archived && <span style={{ marginLeft:8, fontSize:9, fontWeight:800, textTransform:'uppercase', letterSpacing:'.05em', color:'var(--muted)', border:'1px solid var(--border2)', borderRadius:10, padding:'1px 7px', verticalAlign:'middle' }}>Dead</span>}</div>
+                  <div style={{ fontWeight:500 }}>{item.isUrgent && <span style={{ color:'var(--orange)' }}>⚠ </span>}{item.title}</div>
                   {item.description && <div style={{ fontSize:10, color:'var(--muted)' }}>{item.description}</div>}
                   {(item.music_ref || item.musicRef) && <div className="dv-hide-m" style={{ fontSize:10, color:'var(--purple-text)', marginTop:2 }}>♪ {item.music_ref || item.musicRef}</div>}
                 </td>
