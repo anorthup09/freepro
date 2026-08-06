@@ -710,12 +710,34 @@ function FlightsTable({ flights }) {
   );
 }
 
+// Simple / Extended schedule view toggle — a small right-aligned pill.
+function ScheduleViewToggle({ value, onChange }) {
+  return (
+    <div style={{ display:'inline-flex', border:'1px solid var(--border2)', borderRadius:20, overflow:'hidden', flexShrink:0 }}>
+      {['simple','extended'].map(v => (
+        <button key={v} type="button" onClick={() => onChange(v)}
+          style={{ padding:'5px 14px', fontSize:11, fontWeight:700, border:'none', cursor:'pointer', textTransform:'capitalize', fontFamily:"'DM Sans',sans-serif",
+            background: value === v ? 'var(--orange)' : 'transparent', color: value === v ? '#0b0b0b' : 'var(--muted)', transition:'background .15s ease' }}>
+          {v}
+        </button>
+      ))}
+    </div>
+  );
+}
+// Persisted schedule-view preference (simple | extended), shared across views.
+function useScheduleView() {
+  const [view, setView] = useState(() => { try { return localStorage.getItem('fp_sched_view') || 'extended'; } catch { return 'extended'; } });
+  const set = v => { setView(v); try { localStorage.setItem('fp_sched_view', v); } catch {} };
+  return [view, set];
+}
+
 // ── Producer View ────────────────────────────────────────────────────────────
 function ProducerView({ data, hideGear, onOpenShotList, shareToken, pw }) {
   const { project, locations, techSpecs, clientContacts, agencyContacts = [], keyTalent, generalNotes = [], crewAssignments, schedule: rawSchedule, flights: allFlights, drives: allDrives = [], hotelBlocks: allHotelBlocks, rentalCars: allRentalCars, deliverables, gear, onlineRentals = [], shotList = [], slDays = [], slBreaks = [] } = data;
   const scheduleRef = useRef(null);
   const [tagFilter, setTagFilter] = useState(null);
   const [crewFilter, setCrewFilter] = useState(null); // project_crews id
+  const [scheduleView, setScheduleView] = useScheduleView();
   const personFilter = new URLSearchParams(window.location.search).get('for') || null;
   // Local crew don't travel — their personal call sheet hides all travel info
   const isLocalPerson = !!personFilter && (crewAssignments || []).some(a => {
@@ -871,10 +893,10 @@ function ProducerView({ data, hideGear, onOpenShotList, shareToken, pw }) {
       <DeliverablesBlock deliverables={deliverables} gear={gear} frameRate={techSpecs?.frame_rate} crewAssignments={crewAssignments} />
 
       {/* ── Schedule (with integrated flights) at bottom ── */}
-      <div ref={scheduleRef}>
+      <div ref={scheduleRef} id="sched-top">
         {(schedule||[]).length > 0 && (
           <div style={{ display:'flex', alignItems:'center', gap:8, margin:'24px 0 8px' }}>
-            <div style={{ fontSize:16, fontWeight:700, color:'var(--text)', letterSpacing:'-0.01em', flex:1 }}>Schedule<span style={{ fontSize:10, fontWeight:400, color:'var(--muted)', fontStyle:'italic', marginLeft:8, letterSpacing:0 }}>swipe left to add reminders</span></div>
+            <div style={{ fontSize:16, fontWeight:700, color:'var(--text)', letterSpacing:'-0.01em', flex:1 }}>Schedule</div>
             {['VIDEO', ...(project.include_photo !== false ? ['PHOTO'] : [])].map(tag => (
               <button key={tag} onClick={() => setTagFilter(f => f === tag ? null : tag)}
                 style={{ fontSize:11, fontWeight:700, padding:'5px 16px', borderRadius:100, border: tagFilter === tag ? 'none' : '1px solid rgba(255,255,255,0.12)', background: tagFilter === tag ? 'var(--orange)' : 'rgba(255,255,255,0.06)', color: tagFilter === tag ? '#fff' : 'rgba(255,255,255,0.5)', cursor:'pointer', letterSpacing:'.06em', transition:'all 0.15s' }}>
@@ -889,6 +911,12 @@ function ProducerView({ data, hideGear, onOpenShotList, shareToken, pw }) {
             ))}
           </div>
         )}
+        {(schedule||[]).length > 0 && (
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, margin:'0 0 12px', flexWrap:'wrap' }}>
+            <span style={{ fontSize:10, fontWeight:400, color:'var(--muted)', fontStyle:'italic' }}>swipe left to add reminders</span>
+            <ScheduleViewToggle value={scheduleView} onChange={setScheduleView} />
+          </div>
+        )}
         {[...(schedule||[])].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).filter(day => {
           if (!tagFilter) return true;
           if (day.events.some(e => (e.tags || []).some(t => t.type === tagFilter || t.type === 'ALL_CREW'))) return true;
@@ -898,7 +926,7 @@ function ProducerView({ data, hideGear, onOpenShotList, shareToken, pw }) {
           ? { ...day, events: (day.events || []).filter(e => !(e.crew_ids || []).length || e.crew_ids.includes(crewFilter)) }
           : day
         ).map((day, i) => (
-          <DaySection key={day.id} day={day} showCalls flights={flights} drives={drives} dayIndex={i} tagFilter={tagFilter} personFilter={personFilter} cateringDetail="full" shotList={shotList} slDays={slDays} slBreaks={slBreaks} onOpenShotList={onOpenShotList} crewAssignments={crewAssignments} includePhoto={project.include_photo !== false} projectCity={[project.city, project.state].filter(Boolean).join(', ')} headerGradient shareToken={shareToken} pw={pw} showTalentCalls colorFor={k => colorForTag(k, project)} groupColorForFn={k => groupColorFor(k, project)} />
+          <DaySection key={day.id} day={day} showCalls flights={flights} drives={drives} dayIndex={i} tagFilter={tagFilter} personFilter={personFilter} cateringDetail="full" simple={scheduleView === 'simple'} shotList={shotList} slDays={slDays} slBreaks={slBreaks} onOpenShotList={onOpenShotList} crewAssignments={crewAssignments} includePhoto={project.include_photo !== false} projectCity={[project.city, project.state].filter(Boolean).join(', ')} headerGradient shareToken={shareToken} pw={pw} showTalentCalls colorFor={k => colorForTag(k, project)} groupColorForFn={k => groupColorFor(k, project)} />
         ))}
       </div>
     </div>
@@ -913,6 +941,7 @@ function CrewView({ data, shareToken, hideGear, onOpenShotList, pw }) {
   const locations = (rawLocations || []).filter(l => l.type !== 'AIRPORT' && l.type !== 'CREW_HOTEL');
   const scheduleRef = useRef(null);
   const [tagFilter, setTagFilter] = useState(null);
+  const [scheduleView, setScheduleView] = useScheduleView();
   const personFilter = new URLSearchParams(window.location.search).get('for') || null;
   // Local crew don't travel — their personal call sheet hides all travel info
   const isLocalPerson = !!personFilter && (crewAssignments || []).some(a => {
@@ -1052,10 +1081,10 @@ function CrewView({ data, shareToken, hideGear, onOpenShotList, pw }) {
 
       <DeliverablesBlock deliverables={deliverables} gear={gear} frameRate={techSpecs?.frame_rate} crewAssignments={crewAssignments} />
 
-      <div ref={scheduleRef}>
+      <div ref={scheduleRef} id="sched-top">
         {sortedSchedule.length > 0 && (
           <div style={{ display:'flex', alignItems:'center', gap:8, margin:'24px 0 8px' }}>
-            <div style={{ fontSize:16, fontWeight:700, color:'var(--text)', letterSpacing:'-0.01em', flex:1 }}>Schedule<span style={{ fontSize:10, fontWeight:400, color:'var(--muted)', fontStyle:'italic', marginLeft:8, letterSpacing:0 }}>swipe left to add reminders</span></div>
+            <div style={{ fontSize:16, fontWeight:700, color:'var(--text)', letterSpacing:'-0.01em', flex:1 }}>Schedule</div>
             {['VIDEO', ...(project.include_photo !== false ? ['PHOTO'] : [])].map(tag => (
               <button key={tag} onClick={() => setTagFilter(f => f === tag ? null : tag)}
                 style={{ fontSize:11, fontWeight:700, padding:'5px 16px', borderRadius:100, border: tagFilter === tag ? 'none' : '1px solid rgba(255,255,255,0.12)', background: tagFilter === tag ? 'var(--orange)' : 'rgba(255,255,255,0.06)', color: tagFilter === tag ? '#fff' : 'rgba(255,255,255,0.5)', cursor:'pointer', letterSpacing:'.06em', transition:'all 0.15s' }}>
@@ -1064,13 +1093,19 @@ function CrewView({ data, shareToken, hideGear, onOpenShotList, pw }) {
             ))}
           </div>
         )}
+        {sortedSchedule.length > 0 && (
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, margin:'0 0 12px', flexWrap:'wrap' }}>
+            <span style={{ fontSize:10, fontWeight:400, color:'var(--muted)', fontStyle:'italic' }}>swipe left to add reminders</span>
+            <ScheduleViewToggle value={scheduleView} onChange={setScheduleView} />
+          </div>
+        )}
         {sortedSchedule.filter(day => {
           if (!tagFilter) return true;
           if (day.events.some(e => (e.tags || []).some(t => t.type === tagFilter || t.type === 'ALL_CREW'))) return true;
           return [day.call_time_tags, day.shooting_call_tags, day.lunch_tags, day.wrap_time_tags]
             .some(tags => Array.isArray(tags) && (tags.includes(tagFilter) || tags.includes('ALL_CREW')));
         }).map((day, i) => (
-          <DaySection key={day.id} day={day} showCalls flights={flights} drives={drives} dayIndex={i} tagFilter={tagFilter} personFilter={personFilter} cateringDetail="name" shotList={shotList} slDays={slDays} slBreaks={slBreaks} onOpenShotList={onOpenShotList} crewAssignments={crewAssignments} includePhoto={project.include_photo !== false} projectCity={[project.city, project.state].filter(Boolean).join(', ')} headerGradient shareToken={shareToken} pw={pw} colorFor={k => colorForTag(k, project)} groupColorForFn={k => groupColorFor(k, project)} />
+          <DaySection key={day.id} day={day} showCalls flights={flights} drives={drives} dayIndex={i} tagFilter={tagFilter} personFilter={personFilter} cateringDetail="name" simple={scheduleView === 'simple'} shotList={shotList} slDays={slDays} slBreaks={slBreaks} onOpenShotList={onOpenShotList} crewAssignments={crewAssignments} includePhoto={project.include_photo !== false} projectCity={[project.city, project.state].filter(Boolean).join(', ')} headerGradient shareToken={shareToken} pw={pw} colorFor={k => colorForTag(k, project)} groupColorForFn={k => groupColorFor(k, project)} />
         ))}
       </div>
     </div>
@@ -1697,6 +1732,7 @@ function ClientView({ data, onOpenShotList }) {
   // their PDF, so drop those location types (shoot locations still show).
   const locations = (rawLocations || []).filter(l => l.type !== 'AIRPORT' && l.type !== 'CREW_HOTEL');
   const scheduleRef = useRef(null);
+  const [scheduleView, setScheduleView] = useScheduleView();
   return (
     <div className="share-view" style={{ position:'relative' }}>
       <div className="share-header">
@@ -1792,12 +1828,18 @@ function ClientView({ data, onOpenShotList }) {
           <ShareTable cols={['Name','Video Title','Role','Phone','Email']} colClasses={['','','','nowrap','']} rows={keyTalent.map(t => [t.name, t.video_title||'—', t.role||'—', (t.phone ? <Tel v={t.phone} /> : '—'), (t.email ? <Mail v={t.email} /> : '—')])} />
         </section>
       )}
-      <div ref={scheduleRef}>
+      <div ref={scheduleRef} id="sched-top">
       {(schedule||[]).length > 0 && (
-        <div style={{ fontSize:16, fontWeight:700, color:'var(--text)', margin:'24px 0 8px', letterSpacing:'-0.01em' }}>Schedule<span style={{ fontSize:10, fontWeight:400, color:'var(--muted)', fontStyle:'italic', marginLeft:8, letterSpacing:0 }}>swipe left to add reminders</span></div>
+        <div style={{ fontSize:16, fontWeight:700, color:'var(--text)', margin:'24px 0 8px', letterSpacing:'-0.01em' }}>Schedule</div>
+      )}
+      {(schedule||[]).length > 0 && (
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, margin:'0 0 12px', flexWrap:'wrap' }}>
+          <span style={{ fontSize:10, fontWeight:400, color:'var(--muted)', fontStyle:'italic' }}>swipe left to add reminders</span>
+          <ScheduleViewToggle value={scheduleView} onChange={setScheduleView} />
+        </div>
       )}
       {[...(schedule||[])].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map((day, i) => (
-        <DaySection key={day.id} day={day} showCalls={false} dayIndex={i} cateringDetail="name" shotList={shotList} slDays={slDays} slBreaks={slBreaks} onOpenShotList={onOpenShotList} includePhoto={project.include_photo !== false} projectCity={[project.city, project.state].filter(Boolean).join(', ')} />
+        <DaySection key={day.id} day={day} showCalls={false} dayIndex={i} cateringDetail="name" simple={scheduleView === 'simple'} shotList={shotList} slDays={slDays} slBreaks={slBreaks} onOpenShotList={onOpenShotList} includePhoto={project.include_photo !== false} projectCity={[project.city, project.state].filter(Boolean).join(', ')} />
       ))}
       </div>
     </div>
@@ -1988,7 +2030,7 @@ const DOCK_ICONS = {
   pdf:       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9V3h12v6"/><rect x="4" y="9" width="16" height="8" rx="2"/><path d="M7 17h10v4H7z"/></svg>,
 };
 
-function ShareGlassDock({ items }) {
+function ShareGlassDock({ items, onScrollTop }) {
   const [shrunk, setShrunk] = useState(false);
   const btnRefs = useRef({});
   const [bubble, setBubble] = useState(null);   // sliding highlight behind the active icon
@@ -2049,6 +2091,17 @@ function ShareGlassDock({ items }) {
           }}>{it.label}</span>
         </button>
       ))}
+      {onScrollTop && (
+        <button onClick={onScrollTop} aria-label="Scroll to top of schedule" title="Top of schedule"
+          style={{
+            display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0,
+            background:'transparent', border:'none', cursor:'pointer',
+            borderLeft:'1px solid rgba(255,255,255,0.14)', marginLeft:4, paddingLeft:10, paddingRight:4,
+            color:'rgba(255,255,255,0.7)', alignSelf:'stretch',
+          }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M6 15l6-6 6 6"/></svg>
+        </button>
+      )}
     </div>
   );
 }
@@ -2173,7 +2226,11 @@ function CateringBadge({ catering, detail }) {
   );
 }
 
-function DaySection({ day, showCalls, flights, drives, dayIndex, talentCallTime, talentCallLocation, hideCallWrap, tagFilter, personFilter, cateringDetail, shotList, slDays, slBreaks, onOpenShotList, crewAssignments, projectCity, talentMode, includePhoto, headerGradient, shareToken, pw, showTalentCalls, colorFor, groupColorForFn }) {
+function DaySection({ day, showCalls, flights, drives, dayIndex, talentCallTime, talentCallLocation, hideCallWrap, tagFilter, personFilter, cateringDetail, simple, shotList, slDays, slBreaks, onOpenShotList, crewAssignments, projectCity, talentMode, includePhoto, headerGradient, shareToken, pw, showTalentCalls, colorFor, groupColorForFn }) {
+  // Simple view: each tile collapses to time + name + room/space (+ a map pin);
+  // tapping a tile expands it to the full extended tile.
+  const [expandedKeys, setExpandedKeys] = useState(() => new Set());
+  const toggleExpanded = k => setExpandedKeys(s => { const n = new Set(s); n.has(k) ? n.delete(k) : n.add(k); return n; });
   const attUrl = attId => {
     // A new-tab GET can't send the Authorization header, so a logged-in user who
     // bypassed the share password has no pw to send — pass their app token in the
@@ -2185,6 +2242,44 @@ function DaySection({ day, showCalls, flights, drives, dayIndex, talentCallTime,
   const crewByPosition = (posName) => {
     const a = (crewAssignments || []).find(x => (x.position?.name || '').toLowerCase() === posName && x.crewMember);
     return a ? displayName(a.crewMember) : '';
+  };
+  // ── Simple-view compact tile helpers ──
+  const simpleTimeOf = it => fmtTime(it.start_time || it.startTime || it.est_start_time || it.delivery_time || it._time || it.call_time) || '';
+  const simpleTitleOf = it => {
+    if (it._type === 'flight') return `${it._leg === 'depart' ? 'Departure' : 'Arrival'} — ${it.crew_name || it.passenger_name || ''}`;
+    if (it._type === 'catering') { const mm = MEAL_META[it.meal_type] || MEAL_META.BREAKFAST; return `${mm.label}${it.name ? ` — ${it.name}` : ''}`; }
+    if (it._type === 'talentcall') return `Talent Call — ${it.name}`;
+    if (it._type === 'drive') return `${it._leg === 'depart' ? 'Drive Departure' : 'Approx. Drive Arrival'} — ${it.driver || it.driver_name || 'Driver TBD'}`;
+    return it.title || 'Event';
+  };
+  const simpleColorOf = it => {
+    if (it._type === 'flight' || it._type === 'drive') return 'var(--sc-travel)';
+    if (it._type === 'talentcall') return 'var(--sc-talent)';
+    if (it._type === 'catering') return (MEAL_META[it.meal_type] || MEAL_META.BREAKFAST).color;
+    if (it._type === 'synthetic') return (SYNTHETIC_META_SHARE[it._key] || {}).color || 'var(--sc-meals)';
+    if (it.color_tag && colorFor) { const c = colorFor(it.color_tag); if (c) return c; }
+    if (it.group_tag && groupColorForFn) { const g = groupColorForFn(it.group_tag); if (g) return g; }
+    return 'var(--orange)';
+  };
+  const simpleTile = (item) => {
+    const addr = item.location?.address;
+    return (
+      <div className="ev" style={{ paddingBottom: 6 }}>
+        <div className="ev-time">{simpleTimeOf(item) || '—'}</div>
+        <div className="ev-body" style={{ borderLeft:`2px solid ${simpleColorOf(item)}`, display:'flex', alignItems:'center', gap:10, padding:'8px 12px' }}>
+          <div style={{ flex:1, minWidth:0 }}>
+            <div className="ev-title" style={{ whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{simpleTitleOf(item)}</div>
+            {item.room_space && <div style={{ fontSize:11, color:'var(--muted)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{item.room_space}</div>}
+          </div>
+          {addr && (
+            <a href={mapsUrl(addr)} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
+               className="ev-locpin" style={{ position:'static', flexShrink:0 }} title="Open in Maps">
+              <PinIcon className="pin-ico" /><span className="pin-pm">+</span>
+            </a>
+          )}
+        </div>
+      </div>
+    );
   };
   // Days that have already passed start collapsed so today's schedule leads
   const [open, setOpen] = useState(() => {
@@ -2699,9 +2794,15 @@ function DaySection({ day, showCalls, flights, drives, dayIndex, talentCallTime,
                   </div>
                 );
               })();
-                const railTile = React.isValidElement(tile)
-                  ? React.cloneElement(tile, { className: `${tile.props.className || 'ev'} ev-${railStatus(i)}${i === allItems.length - 1 ? ' ev-last' : ''}` })
-                  : tile;
+                const keyId = item._key || item.id || i;
+                const isExp = expandedKeys.has(keyId);
+                const rendered = (simple && !isExp) ? simpleTile(item) : tile;
+                const railTile = React.isValidElement(rendered)
+                  ? React.cloneElement(rendered, {
+                      className: `${rendered.props.className || 'ev'} ev-${railStatus(i)}${i === allItems.length - 1 ? ' ev-last' : ''}`,
+                      ...(simple ? { onClick: () => toggleExpanded(keyId), style: { ...(rendered.props.style || {}), cursor:'pointer' } } : {}),
+                    })
+                  : rendered;
                 return (
                   <SwipeReminder key={`sw-${item._key || item.id || i}`} item={item} dayStr={dayStr}>
                     {railTile}
@@ -3137,7 +3238,7 @@ export default function Share() {
         ...(hasScripts ? [{ key:'scripts', label:'Script', active: sharePage === 'scripts', onClick: () => { setSharePage('scripts'); window.scrollTo({ top:0, behavior:'smooth' }); } }] : []),
         ...(hasExtraDocs ? [{ key:'extra-docs', label:'Docs', active: sharePage === 'extra-docs', onClick: () => { setSharePage('extra-docs'); window.scrollTo({ top:0, behavior:'smooth' }); } }] : []),
         ...(hasQuestions ? [{ key:'questions', label:'Questions', active: sharePage === 'questions', onClick: () => { setSharePage('questions'); window.scrollTo({ top:0, behavior:'smooth' }); } }] : []),
-      ]} />}
+      ]} onScrollTop={sharePage === 'callsheet' ? () => { const el = document.getElementById('sched-top'); if (el) el.scrollIntoView({ behavior:'smooth', block:'start' }); else window.scrollTo({ top:0, behavior:'smooth' }); } : undefined} />}
     </>
   );
 }
