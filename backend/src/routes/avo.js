@@ -543,7 +543,7 @@ router.patch('/edits/:id', ...staff, async (req, res, next) => {
       await logAct(e.id, 'log', who, m ? `set PM to ${m.n}` : 'cleared PM');
     }
     if (d.archived !== undefined && (d.archived === true) !== !!before.archived) {
-      await logAct(e.id, 'log', who, d.archived ? 'archived this edit (removed from the pipeline)' : 'restored this edit to the pipeline');
+      await logAct(e.id, 'log', who, d.archived ? 'marked this edit Dead (removed from the pipeline)' : 'revived this edit to the pipeline');
     }
     const [full] = await FULL_EDIT(e.id);
     await syncToDeliverable(full);

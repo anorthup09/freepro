@@ -29,7 +29,7 @@ function V1ApprovalModal({ edit, onClose, onApproved }) {
           <div style={{ textAlign:'center' }}>
             <div style={{ color:'#e6c229', display:'flex', justifyContent:'center' }}><GongIcon size={40} /></div>
             <div style={{ fontSize:16, fontWeight:800, margin:'8px 0 4px' }}>V1 approval recorded!</div>
-            <div style={{ fontSize:12, color:'var(--muted)', lineHeight:1.5 }}>The team gets the gong next time they log in — and can send confetti congrats. This edit is now marked <b style={{ color:'var(--text)' }}>Approved</b> and archived.</div>
+            <div style={{ fontSize:12, color:'var(--muted)', lineHeight:1.5 }}>The team gets the gong next time they log in — and can send confetti congrats. This edit is now marked <b style={{ color:'var(--text)' }}>Approved</b> and Dead.</div>
             <button className="btn btn-primary btn-sm" style={{ marginTop:16 }} onClick={onClose}>Done</button>
           </div>
         ) : (
@@ -544,7 +544,7 @@ export default function AvoEdit() {
 
   async function archiveEdit() {
     const next = !e.archived;
-    if (next && !confirm('Archive this edit? It leaves the pipeline but is not deleted — restore it any time from the Archived section.')) return;
+    if (next && !confirm('Mark this edit Dead? It leaves the pipeline but is not deleted — revive it any time from the Dead section.')) return;
     await save({ archived: next });
     if (next) nav(projectPageId ? `/avo/project/${projectPageId}` : '/avo');
   }
@@ -1112,9 +1112,9 @@ export default function AvoEdit() {
                     Sent to Client
                   </button>
                   <button disabled={busy} onClick={archiveEdit}
-                    title={e.archived ? 'Restore this edit to the pipeline' : 'Archive this edit — removes it from the pipeline without deleting it'}
+                    title={e.archived ? 'Revive this edit to the pipeline' : 'Mark this edit Dead — removes it from the pipeline without deleting it'}
                     style={{ marginLeft:'auto', background:'#141414', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:20, padding:'6px 16px', fontSize:11, fontWeight:800, cursor:'pointer' }}>
-                    {e.archived ? '⤺ Unarchive' : '⧉ Archive'}
+                    {e.archived ? '⤺ Revive' : '⧉ Dead'}
                   </button>
                 </div>
               </div>}
