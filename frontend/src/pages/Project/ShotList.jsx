@@ -713,12 +713,24 @@ function DaySynopsisCard({ day, onDelete, onAddScene, scenes, scheduleDays, onDa
     return d.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric', timeZone:'UTC' }).toUpperCase();
   }
 
+  const publicToggle = (
+    <div onClick={() => onToggleHidePublic?.(day.id, !day.hide_public)}
+      title={day.hide_public ? 'Hidden from public views — tap to show' : 'Shown on public views — tap to hide'}
+      style={{ display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', userSelect: 'none', flexShrink: 0 }}>
+      <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: day.hide_public ? 'var(--muted)' : 'rgba(74,222,128,0.9)', whiteSpace: 'nowrap' }}>
+        {day.hide_public ? 'Hidden from Public' : 'Public'}
+      </span>
+      <span style={{ width: 32, height: 18, borderRadius: 100, flexShrink: 0, position: 'relative', transition: 'background 0.2s, border-color 0.2s', background: day.hide_public ? 'rgba(255,255,255,0.08)' : 'rgba(74,222,128,0.35)', border: `1px solid ${day.hide_public ? 'rgba(255,255,255,0.18)' : 'rgba(74,222,128,0.7)'}` }}>
+        <span style={{ position: 'absolute', top: 2, left: day.hide_public ? 2 : 16, width: 12, height: 12, borderRadius: '50%', background: day.hide_public ? 'rgba(255,255,255,0.45)' : '#4ade80', transition: 'left 0.2s, background 0.2s' }} />
+      </span>
+    </div>
+  );
   return (
     <div style={{ marginBottom: 16, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, overflow: 'hidden' }}>
-      <div style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-        {/* Left: day info — shots count sits directly under Day # / Date */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0, flexShrink: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div style={{ padding: '8px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {/* Row 1: day + date on the left; shots count + public toggle top-right */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', minWidth: 0 }}>
             <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)', letterSpacing: '.04em', whiteSpace: 'nowrap' }}>
               DAY {day.day_number}
             </div>
@@ -728,14 +740,17 @@ function DaySynopsisCard({ day, onDelete, onAddScene, scenes, scheduleDays, onDa
               </span>
             )}
           </div>
-          {totalShots > 0 && (
-            <div style={{ fontSize: 11, color: 'var(--muted)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-              <span style={{ color: 'var(--text)', fontWeight: 700 }}>{totalShots}</span> shots · <span style={{ color: 'var(--text)', fontWeight: 700 }}>{capturedShots}</span> captured · <span style={{ color: 'var(--text)', fontWeight: 700 }}>{remaining}</span> remaining
-            </div>
-          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            {totalShots > 0 && (
+              <div style={{ fontSize: 11, color: 'var(--muted)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                <span style={{ color: 'var(--text)', fontWeight: 700 }}>{totalShots}</span> shots · <span style={{ color: 'var(--text)', fontWeight: 700 }}>{capturedShots}</span> captured · <span style={{ color: 'var(--text)', fontWeight: 700 }}>{remaining}</span> remaining
+              </div>
+            )}
+            {publicToggle}
+          </div>
         </div>
-        {/* Middle: schedule time tiles */}
-        <div style={{ flex: '1 1 280px', display: 'flex', justifyContent: 'center', minWidth: 0 }}>
+        {/* Row 2: schedule time tiles, centered */}
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
           <div style={{ width: '100%', maxWidth: 440 }}>
             <ShineBorder radius={10}>
               <div className="sl-day-tiles" style={{ background: 'rgba(10,10,8,0.92)', borderRadius: 8, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', overflow: 'hidden' }}>
@@ -749,21 +764,12 @@ function DaySynopsisCard({ day, onDelete, onAddScene, scenes, scheduleDays, onDa
             </ShineBorder>
           </div>
         </div>
-        {/* Right: + Add Scene, then the public toggle */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-          <button className="btn btn-primary btn-sm" style={{ fontSize: 11, whiteSpace: 'nowrap', padding: '2px 9px', minHeight: 0, height: 22, lineHeight: '18px' }} onClick={() => onAddScene?.(day.id)}>+ Add Scene</button>
-          {totalShots === 0 && (
-            <div onClick={() => onToggleHidePublic?.(day.id, !day.hide_public)}
-              title={day.hide_public ? 'Hidden from public views — tap to show' : 'Shown on public views — tap to hide'}
-              style={{ display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', userSelect: 'none', flexShrink: 0 }}>
-              <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: day.hide_public ? 'var(--muted)' : 'rgba(74,222,128,0.9)', whiteSpace: 'nowrap' }}>
-                {day.hide_public ? 'Hidden from Public' : 'Public'}
-              </span>
-              <span style={{ width: 32, height: 18, borderRadius: 100, flexShrink: 0, position: 'relative', transition: 'background 0.2s, border-color 0.2s', background: day.hide_public ? 'rgba(255,255,255,0.08)' : 'rgba(74,222,128,0.35)', border: `1px solid ${day.hide_public ? 'rgba(255,255,255,0.18)' : 'rgba(74,222,128,0.7)'}` }}>
-                <span style={{ position: 'absolute', top: 2, left: day.hide_public ? 2 : 16, width: 12, height: 12, borderRadius: '50%', background: day.hide_public ? 'rgba(255,255,255,0.45)' : '#4ade80', transition: 'left 0.2s, background 0.2s' }} />
-              </span>
-            </div>
-          )}
+        {/* Row 3: + Add Scene, glass style like the home button, bottom-right */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <button className="home-glass" onClick={() => onAddScene?.(day.id)}
+            style={{ width: 'auto', height: 32, padding: '0 14px', gap: 6, fontSize: 12, fontWeight: 800, borderRadius: 11, letterSpacing: '.02em' }}>
+            + Add Scene
+          </button>
         </div>
       </div>
     </div>
