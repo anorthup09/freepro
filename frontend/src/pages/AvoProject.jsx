@@ -487,9 +487,18 @@ function VideoTracker({ edits, setEdits, config, onConfig, code, readOnly, onOpe
       return (
         <span style={{ display:'inline-flex', alignItems:'center', gap:5, flexWrap:'wrap' }}>
           {e.focus && <span title="Focus" style={{ background:`${FOCUS_COLOR}22`, border:`1px solid ${FOCUS_COLOR}`, color:FOCUS_COLOR, borderRadius:12, padding:'2px 7px', fontSize:8, fontWeight:800 }}>FOCUS</span>}
-          {st
-            ? <span style={{ background:`${st[2]}22`, border:`1px solid ${st[2]}`, color:st[2], borderRadius:12, padding:'2px 10px', fontSize:9, fontWeight:800, whiteSpace:'nowrap' }}>{st[1]}</span>
-            : <span style={{ color:'var(--muted)', fontSize:9, fontWeight:700 }}>Upcoming</span>}
+          {readOnly
+            ? (st
+                ? <span style={{ background:`${st[2]}22`, border:`1px solid ${st[2]}`, color:st[2], borderRadius:12, padding:'2px 10px', fontSize:9, fontWeight:800, whiteSpace:'nowrap' }}>{st[1]}</span>
+                : <span style={{ color:'var(--muted)', fontSize:9, fontWeight:700 }}>Upcoming</span>)
+            : (
+              <select value={statusValue(e)} onChange={ev => saveEdit(e.id, statusPatch(ev.target.value))}
+                style={{ fontSize:9, fontWeight:800, padding:'3px 8px', borderRadius:12, appearance:'none', cursor:'pointer', whiteSpace:'nowrap',
+                  background: st ? `${st[2]}22` : 'transparent', border:`1px solid ${st ? st[2] : 'var(--border)'}`, color: st ? st[2] : 'var(--muted)' }}>
+                <option value="" style={{ color:'var(--text)', background:'var(--bg2)' }}>Upcoming</option>
+                {STATUS_OPTS_D.map(([k, label]) => <option key={k} value={k} style={{ color:'var(--text)', background:'var(--bg2)' }}>{label}</option>)}
+              </select>
+            )}
         </span>
       );
     } },

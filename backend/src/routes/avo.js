@@ -1351,7 +1351,7 @@ const SHARE_ACTOR = 'Client/Crew (shared link)';
 
 // Fields safe to expose on (and accept from) the shared link — never financial.
 const CLIENT_EDIT_COLS = ['id', 'title', 'description', 'category', 'tracker_type', 'tracker_color',
-  'tracker_sort', 'status', 'version', 'approved', 'review_link', 'start_date', 'end_date',
+  'tracker_sort', 'status', 'version', 'approved', 'delivered', 'review_link', 'start_date', 'end_date',
   'aspect_ratio', 'resolution', 'frame_rate', 'drive', 'asset_ref', 'music_ref', 'video_assets', 'notes',
   'creative', 'workflow_status', 'color_assignee', 'audio_assignee', 'custom_milestones', 'milestones', 'milestone_skips', 'milestone_assignees'];
 function clientEdit(e) {
@@ -1398,7 +1398,7 @@ shareRouter.get('/', async (req, res, next) => {
     const title = pr?.title || page.title;
     const edits = await sql`
       SELECT e.id, e.title, e.description, e.category, e.tracker_type, e.tracker_color, e.tracker_sort,
-             e.status, e.version, e.approved, e.review_link, e.start_date, e.end_date, e.lead_editor_id, e.extra,
+             e.status, e.workflow_status, e.version, e.approved, e.delivered, e.review_link, e.start_date, e.end_date, e.lead_editor_id, e.extra,
              e.aspect_ratio, e.resolution, e.frame_rate, e.drive, e.asset_ref, e.music_ref, e.video_assets, e.notes,
              e.milestones, e.milestone_skips, e.milestone_assignees,
              la.body as latest_comment, la.created_at as latest_comment_at,
@@ -1511,13 +1511,14 @@ shareRouter.patch('/edits/:eid', async (req, res, next) => {
         end_date = ${d.endDate !== undefined ? (d.endDate || null) : sql`end_date`},
         status = ${d.status !== undefined && editStatuses.includes(d.status) ? d.status : sql`status`},
         version = ${d.version !== undefined ? Math.max(0.1, Math.round((Number(d.version) || 1) * 10) / 10) : sql`version`},
-        approved = ${d.approved !== undefined ? (d.approved === true) : sql`approved`},
+        approved = ${d.delivered === true ? true : (d.approved !== undefined ? (d.approved === true) : sql`approved`)},
+        delivered = ${d.delivered !== undefined ? (d.delivered === true) : sql`delivered`},
         tracker_type = ${d.trackerType !== undefined ? (d.trackerType || null) : sql`tracker_type`},
         tracker_color = ${d.trackerColor !== undefined ? (d.trackerColor || null) : sql`tracker_color`},
         tracker_sort = ${d.trackerSort !== undefined ? (Number(d.trackerSort) || 0) : sql`tracker_sort`},
         notes = ${d.notes !== undefined ? (d.notes || null) : sql`notes`},
         video_assets = ${d.videoAssets !== undefined ? (d.videoAssets || null) : sql`video_assets`},
-        workflow_status = ${d.workflowStatus !== undefined ? (d.workflowStatus || null) : sql`workflow_status`},
+        workflow_status = ${d.delivered === true ? 'APPROVED' : (d.workflowStatus !== undefined ? (d.workflowStatus || null) : sql`workflow_status`)},
         extra = ${extra !== undefined ? sql`COALESCE(extra, '{}'::jsonb) || ${sql.json(extra)}` : sql`extra`},
         milestones = ${milestones !== undefined ? sql.json(milestones) : sql`milestones`},
         milestone_skips = ${Array.isArray(d.milestoneSkips) ? sql.json(d.milestoneSkips) : sql`milestone_skips`},
