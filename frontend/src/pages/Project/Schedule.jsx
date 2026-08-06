@@ -778,6 +778,8 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
   // Clapboard slate for filming events
   const [clapEvent, setClapEvent] = useState(null);
   const [quickSlate, setQuickSlate] = useState(false);
+  const [eventTagOpen, setEventTagOpen] = useState(false);
+  const [editEventTagOpen, setEditEventTagOpen] = useState(false);
   const includePhoto = project.include_photo !== false;
 
   // Hover-reveal clusters: calendar icon (dates) and gear icon (settings)
@@ -801,12 +803,15 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
     if (noteTopics.some(t => t.label.toLowerCase() === l.toLowerCase())) return;
     try { const t = await api.addNoteTopic(l); setNoteTopics(list => [...list, t]); } catch (e) { alert(e.message); }
   }
-  // Individual crew members that can be tagged to an event (audience names),
-  // mirroring the producer/crew share views — used to render tagged names on tiles.
-  const crewNameSet = new Set((project.crewAssignments || [])
-    .map(a => (a.crewMember && displayName(a.crewMember)) || a.cm_name || a.name)
-    .filter(Boolean));
-  const taggedCrewNames = item => (item.audience || []).filter(n => crewNameSet.has(n));
+  // Individual crew members AND key talent that can be tagged to an event
+  // (audience names), mirroring the producer/crew share views — used to render
+  // tagged names on tiles. Talent were previously dropped because the set only
+  // held crew names.
+  const taggableNameSet = new Set([
+    ...(project.crewAssignments || []).map(a => (a.crewMember && displayName(a.crewMember)) || a.cm_name || a.name),
+    ...(keyTalent || []).map(t => t.name),
+  ].filter(Boolean));
+  const taggedCrewNames = item => (item.audience || []).filter(n => taggableNameSet.has(n));
   const [tagColors, setTagColors] = useState(project.schedule_tag_colors || {});
   const tagColorVars = {};
   TAG_COLOR_DEFS.forEach(t => { if (tagColors[t.key]) tagColorVars[t.cssVar] = tagColors[t.key]; });
@@ -906,6 +911,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
 
   function openEditEvent(ev) {
     setEditEventId(ev.id);
+    setEditEventTagOpen(false);
     setEditEventAtts(ev.attachments || []);
     setEditEventForm({ startTime: ev.start_time || ev.startTime || '', endTime: ev.end_time || ev.endTime || '', title: ev.title || '', detail: ev.detail || '', roomSpace: ev.room_space || '', isAlert: ev.is_alert || ev.isAlert || false, isFilming: ev.is_filming || ev.isFilming || false, hasSlate: ev.has_slate || ev.hasSlate || false, tags: ev.tags || [], audience: ev.audience || [], crewIds: ev.crew_ids || [], locationId: ev.location_id || '', adhocLocation: ev.adhoc_location || '', adhocAddress: ev.adhoc_address || '', colorTag: ev.color_tag || '', groupTag: ev.group_tag || '' });
   }
@@ -1296,7 +1302,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
       {/* Toolbar: + Event, the calendar dates button, and the settings gear on one plane */}
       {days.length > 0 && (
         <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:18, flexWrap:'wrap' }}>
-          <button className="evt-glass" onClick={() => currentDay && setShowAddEvent(true)}>+ Event</button>
+          <button className="evt-glass" onClick={() => currentDay && (setEventTagOpen(false), setShowAddEvent(true))}>+ Event</button>
           {/* Dates wrapped into a calendar button — hovering reveals the day tabs to the right, each grows on hover */}
           <div style={{ display:'flex', alignItems:'center', gap:10, minWidth:0 }}
             onMouseEnter={() => setDatesOpen(true)} onMouseLeave={() => setDatesOpen(false)}>
@@ -1885,21 +1891,31 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                   </div>
                 </div>
                 <div className="field span2">
-                  <label>Event Tag</label>
-                  <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:4 }}>
-                    <button type="button" onClick={() => setEventForm(f=>({...f,colorTag:''}))}
-                      style={{ fontSize:11, padding:'3px 10px', borderRadius:12, border:'1px solid var(--border2)', background: !eventForm.colorTag ? 'var(--bg4)' : 'transparent', color:'var(--muted)', cursor:'pointer', fontWeight:600 }}>Default</button>
-                    {colorOptions.map(o => {
-                      const sel = eventForm.colorTag === o.key;
-                      return (
-                        <button key={o.key} type="button" onClick={() => setEventForm(f=>({...f,colorTag: sel ? '' : o.key}))}
-                          style={{ display:'inline-flex', alignItems:'center', gap:6, fontSize:11, padding:'3px 10px', borderRadius:12, border:`1px solid ${o.color}`, background: sel ? o.color : 'transparent', color: sel ? '#0b0b0b' : o.color, cursor:'pointer', fontWeight:700 }}>
-                          <span style={{ width:9, height:9, borderRadius:'50%', background:o.color, flexShrink:0 }} />
-                          {o.label}
-                        </button>
-                      );
-                    })}
+                  <div onClick={() => setEventTagOpen(o=>!o)} style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer' }}>
+                    <label style={{ margin:0, cursor:'pointer' }}>Event Tag</label>
+                    {(() => { const o = colorOptions.find(x => x.key === eventForm.colorTag); return (
+                      <span style={{ display:'inline-flex', alignItems:'center', gap:6, fontSize:11, fontWeight:600, color: o ? o.color : 'var(--muted)' }}>
+                        {o && <span style={{ width:9, height:9, borderRadius:'50%', background:o.color, flexShrink:0 }} />}{o ? o.label : 'Default'}
+                      </span>
+                    ); })()}
+                    <span style={{ marginLeft:'auto', color:'var(--muted)', fontSize:11 }}>{eventTagOpen ? '▾' : '▸'}</span>
                   </div>
+                  {eventTagOpen && (
+                    <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:6 }}>
+                      <button type="button" onClick={() => setEventForm(f=>({...f,colorTag:''}))}
+                        style={{ fontSize:11, padding:'3px 10px', borderRadius:12, border:'1px solid var(--border2)', background: !eventForm.colorTag ? 'var(--bg4)' : 'transparent', color:'var(--muted)', cursor:'pointer', fontWeight:600 }}>Default</button>
+                      {colorOptions.map(o => {
+                        const sel = eventForm.colorTag === o.key;
+                        return (
+                          <button key={o.key} type="button" onClick={() => setEventForm(f=>({...f,colorTag: sel ? '' : o.key}))}
+                            style={{ display:'inline-flex', alignItems:'center', gap:6, fontSize:11, padding:'3px 10px', borderRadius:12, border:`1px solid ${o.color}`, background: sel ? o.color : 'transparent', color: sel ? '#0b0b0b' : o.color, cursor:'pointer', fontWeight:700 }}>
+                            <span style={{ width:9, height:9, borderRadius:'50%', background:o.color, flexShrink:0 }} />
+                            {o.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               </div>
               {eventFiles.length > 0 && (
@@ -2110,21 +2126,31 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                   </div>
                 </div>
                 <div className="field span2">
-                  <label>Event Tag</label>
-                  <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:4 }}>
-                    <button type="button" onClick={() => setEditEventForm(f=>({...f,colorTag:''}))}
-                      style={{ fontSize:11, padding:'3px 10px', borderRadius:12, border:'1px solid var(--border2)', background: !editEventForm.colorTag ? 'var(--bg4)' : 'transparent', color:'var(--muted)', cursor:'pointer', fontWeight:600 }}>Default</button>
-                    {colorOptions.map(o => {
-                      const sel = editEventForm.colorTag === o.key;
-                      return (
-                        <button key={o.key} type="button" onClick={() => setEditEventForm(f=>({...f,colorTag: sel ? '' : o.key}))}
-                          style={{ display:'inline-flex', alignItems:'center', gap:6, fontSize:11, padding:'3px 10px', borderRadius:12, border:`1px solid ${o.color}`, background: sel ? o.color : 'transparent', color: sel ? '#0b0b0b' : o.color, cursor:'pointer', fontWeight:700 }}>
-                          <span style={{ width:9, height:9, borderRadius:'50%', background:o.color, flexShrink:0 }} />
-                          {o.label}
-                        </button>
-                      );
-                    })}
+                  <div onClick={() => setEditEventTagOpen(o=>!o)} style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer' }}>
+                    <label style={{ margin:0, cursor:'pointer' }}>Event Tag</label>
+                    {(() => { const o = colorOptions.find(x => x.key === editEventForm.colorTag); return (
+                      <span style={{ display:'inline-flex', alignItems:'center', gap:6, fontSize:11, fontWeight:600, color: o ? o.color : 'var(--muted)' }}>
+                        {o && <span style={{ width:9, height:9, borderRadius:'50%', background:o.color, flexShrink:0 }} />}{o ? o.label : 'Default'}
+                      </span>
+                    ); })()}
+                    <span style={{ marginLeft:'auto', color:'var(--muted)', fontSize:11 }}>{editEventTagOpen ? '▾' : '▸'}</span>
                   </div>
+                  {editEventTagOpen && (
+                    <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:6 }}>
+                      <button type="button" onClick={() => setEditEventForm(f=>({...f,colorTag:''}))}
+                        style={{ fontSize:11, padding:'3px 10px', borderRadius:12, border:'1px solid var(--border2)', background: !editEventForm.colorTag ? 'var(--bg4)' : 'transparent', color:'var(--muted)', cursor:'pointer', fontWeight:600 }}>Default</button>
+                      {colorOptions.map(o => {
+                        const sel = editEventForm.colorTag === o.key;
+                        return (
+                          <button key={o.key} type="button" onClick={() => setEditEventForm(f=>({...f,colorTag: sel ? '' : o.key}))}
+                            style={{ display:'inline-flex', alignItems:'center', gap:6, fontSize:11, padding:'3px 10px', borderRadius:12, border:`1px solid ${o.color}`, background: sel ? o.color : 'transparent', color: sel ? '#0b0b0b' : o.color, cursor:'pointer', fontWeight:700 }}>
+                            <span style={{ width:9, height:9, borderRadius:'50%', background:o.color, flexShrink:0 }} />
+                            {o.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               </div>
               {editEventAtts.length > 0 && (
