@@ -641,6 +641,8 @@ async function migrate() {
   await sql`ALTER TABLE schedule_events ADD COLUMN IF NOT EXISTS color_tag TEXT`;
   // Per-event group tag: a project-defined group id (e.g. "Recap Group") that colors the RIGHT edge of the tile and drives the group filter.
   await sql`ALTER TABLE schedule_events ADD COLUMN IF NOT EXISTS group_tag TEXT`;
+  // Filming events can optionally carry a slate — only then does the Slate button appear on the tile.
+  await sql`ALTER TABLE schedule_events ADD COLUMN IF NOT EXISTS has_slate BOOLEAN DEFAULT FALSE`;
   // Per-crew call-time override tiles ("NAME - Call Time") are schedule events
   // linked back to the crew assignment so they can be synced/removed from the
   // add/edit crew form. Cascade-delete when the assignment goes away.

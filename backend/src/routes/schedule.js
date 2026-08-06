@@ -253,7 +253,7 @@ router.delete('/:id/schedule/days/:dayId', requireAuth, requireRole('ADMIN','PRO
 // POST event
 router.post('/:id/schedule/days/:dayId/events', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, res, next) => {
   try {
-    const { startTime, endTime, title, detail, roomSpace, locationId, adhocLocation, adhocAddress, isAlert, alertMessage, isFilming, isShootingCall, isLunch, tags=[], audience=[], crewIds=[], colorTag, groupTag } = req.body;
+    const { startTime, endTime, title, detail, roomSpace, locationId, adhocLocation, adhocAddress, isAlert, alertMessage, isFilming, hasSlate, isShootingCall, isLunch, tags=[], audience=[], crewIds=[], colorTag, groupTag } = req.body;
     const [dayExists] = await sql`SELECT id FROM shoot_days WHERE id = ${req.params.dayId}`;
     if (!dayExists) {
       const existing = await sql`SELECT id, day_number FROM shoot_days WHERE project_id = ${req.params.id}`;
@@ -261,8 +261,8 @@ router.post('/:id/schedule/days/:dayId/events', requireAuth, requireRole('ADMIN'
       return res.status(404).json({ error: 'Shoot day not found — the schedule will refresh, please try again.' });
     }
     const [ev] = await sql`
-      INSERT INTO schedule_events (id, shoot_day_id, start_time, end_time, title, detail, room_space, location_id, adhoc_location, adhoc_address, is_alert, alert_message, is_filming, is_shooting_call, is_lunch, audience, color_tag, group_tag)
-      VALUES (gen_random_uuid()::text, ${req.params.dayId}, ${startTime}, ${endTime||null}, ${title}, ${detail||null}, ${roomSpace||null}, ${locationId||null}, ${locationId ? null : (adhocLocation||null)}, ${locationId ? null : (adhocAddress||null)}, ${isAlert||false}, ${alertMessage||null}, ${isFilming||false}, ${isShootingCall||false}, ${isLunch||false}, ${sql.array(audience)}, ${colorTag||null}, ${groupTag||null})
+      INSERT INTO schedule_events (id, shoot_day_id, start_time, end_time, title, detail, room_space, location_id, adhoc_location, adhoc_address, is_alert, alert_message, is_filming, has_slate, is_shooting_call, is_lunch, audience, color_tag, group_tag)
+      VALUES (gen_random_uuid()::text, ${req.params.dayId}, ${startTime}, ${endTime||null}, ${title}, ${detail||null}, ${roomSpace||null}, ${locationId||null}, ${locationId ? null : (adhocLocation||null)}, ${locationId ? null : (adhocAddress||null)}, ${isAlert||false}, ${alertMessage||null}, ${isFilming||false}, ${(isFilming && hasSlate)||false}, ${isShootingCall||false}, ${isLunch||false}, ${sql.array(audience)}, ${colorTag||null}, ${groupTag||null})
       RETURNING *`;
     if (tags.length) {
       await Promise.all(tags.map(t => sql`INSERT INTO event_tags (id, event_id, type, label) VALUES (gen_random_uuid()::text, ${ev.id}, ${t.type}::event_tag_type, ${t.label||null})`));
@@ -285,6 +285,7 @@ router.patch('/:id/schedule/events/:eventId', requireAuth, requireRole('ADMIN','
         start_time=COALESCE(${d.startTime??null},start_time), end_time=COALESCE(${d.endTime??null},end_time),
         is_alert=COALESCE(${d.isAlert??null},is_alert),
         is_filming=COALESCE(${d.isFilming??null},is_filming),
+        has_slate=${d.isFilming === false ? false : (d.hasSlate !== undefined ? (d.hasSlate || false) : sql`has_slate`)},
         is_shooting_call=COALESCE(${d.isShootingCall??null},is_shooting_call),
         is_lunch=COALESCE(${d.isLunch??null},is_lunch),
         room_space=${d.roomSpace !== undefined ? (d.roomSpace || null) : sql`room_space`},

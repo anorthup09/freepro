@@ -405,9 +405,9 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
       setTimeout(() => URL.revokeObjectURL(url), 15000);
     } catch (e) { alert(e.message); }
   }
-  const [eventForm, setEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', roomSpace:'', isAlert:false, isFilming:false, tags:[], audience:[], crewIds:[], locationId:'', adhocLocation:'', adhocAddress:'', colorTag:'', groupTag:'' });
+  const [eventForm, setEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', roomSpace:'', isAlert:false, isFilming:false, hasSlate:false, tags:[], audience:[], crewIds:[], locationId:'', adhocLocation:'', adhocAddress:'', colorTag:'', groupTag:'' });
   const [editEventId, setEditEventId] = useState(null);
-  const [editEventForm, setEditEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', roomSpace:'', isAlert:false, isFilming:false, tags:[], audience:[], crewIds:[], locationId:'', adhocLocation:'', adhocAddress:'', colorTag:'', groupTag:'' });
+  const [editEventForm, setEditEventForm] = useState({ startTime:'', endTime:'', title:'', detail:'', roomSpace:'', isAlert:false, isFilming:false, hasSlate:false, tags:[], audience:[], crewIds:[], locationId:'', adhocLocation:'', adhocAddress:'', colorTag:'', groupTag:'' });
   const [editEventAtts, setEditEventAtts] = useState([]);   // existing attachments on the event being edited
   // Keep the day's event in sync so tiles show attachment changes immediately.
   function syncEventAtts(eventId, atts) {
@@ -870,7 +870,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
       ev.attachments = uploaded;
       setDays(ds => ds.map(d => d.id === activeDay ? { ...d, events: [...d.events, ev].sort((a,b) => (a.start_time||'').localeCompare(b.start_time||'')) } : d));
       setShowAddEvent(false);
-      setEventForm({ startTime:'', endTime:'', title:'', detail:'', roomSpace:'', isAlert:false, isFilming:false, tags:[], audience:[], crewIds:[], locationId:'', adhocLocation:'', adhocAddress:'', colorTag:'', groupTag:'' });
+      setEventForm({ startTime:'', endTime:'', title:'', detail:'', roomSpace:'', isAlert:false, isFilming:false, hasSlate:false, tags:[], audience:[], crewIds:[], locationId:'', adhocLocation:'', adhocAddress:'', colorTag:'', groupTag:'' });
       setEventFiles([]);
     } catch(e) {
       if (e.message?.includes('not found') || e.message?.includes('foreign key') || e.message?.includes('fkey')) {
@@ -907,7 +907,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
   function openEditEvent(ev) {
     setEditEventId(ev.id);
     setEditEventAtts(ev.attachments || []);
-    setEditEventForm({ startTime: ev.start_time || ev.startTime || '', endTime: ev.end_time || ev.endTime || '', title: ev.title || '', detail: ev.detail || '', roomSpace: ev.room_space || '', isAlert: ev.is_alert || ev.isAlert || false, isFilming: ev.is_filming || ev.isFilming || false, tags: ev.tags || [], audience: ev.audience || [], crewIds: ev.crew_ids || [], locationId: ev.location_id || '', adhocLocation: ev.adhoc_location || '', adhocAddress: ev.adhoc_address || '', colorTag: ev.color_tag || '', groupTag: ev.group_tag || '' });
+    setEditEventForm({ startTime: ev.start_time || ev.startTime || '', endTime: ev.end_time || ev.endTime || '', title: ev.title || '', detail: ev.detail || '', roomSpace: ev.room_space || '', isAlert: ev.is_alert || ev.isAlert || false, isFilming: ev.is_filming || ev.isFilming || false, hasSlate: ev.has_slate || ev.hasSlate || false, tags: ev.tags || [], audience: ev.audience || [], crewIds: ev.crew_ids || [], locationId: ev.location_id || '', adhocLocation: ev.adhoc_location || '', adhocAddress: ev.adhoc_address || '', colorTag: ev.color_tag || '', groupTag: ev.group_tag || '' });
   }
 
   function toggleEditTag(type) {
@@ -1725,7 +1725,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                               })()}
                             </div>
                           )}
-                          {(item.is_filming||item.isFilming) && (
+                          {(item.is_filming||item.isFilming) && (item.has_slate||item.hasSlate) && (
                             <div style={{ display:'flex', justifyContent:'flex-end', marginTop:6 }}>
                               <button onClick={e => { e.stopPropagation(); setClapEvent(item); }}
                                 style={{ display:'inline-flex', alignItems:'center', gap:5, background:'rgba(255,140,0,0.12)', border:'1px solid rgba(255,140,0,0.4)', borderRadius:6, padding:'2px 9px', fontSize:10, fontWeight:700, color:'var(--orange)', cursor:'pointer', letterSpacing:'.05em', textTransform:'uppercase', flexShrink:0 }}>
@@ -1759,10 +1759,16 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
             <form onSubmit={addEvent}>
               <div className="form-grid" style={{ marginBottom:12 }}>
                 <div className="field span2" style={{ flexDirection:'row', alignItems:'center', gap:6 }}>
-                  <button type="button" onClick={() => setEventForm(f=>({...f,isFilming:!f.isFilming}))}
+                  <button type="button" onClick={() => setEventForm(f=>({...f,isFilming:!f.isFilming, hasSlate: f.isFilming ? false : f.hasSlate}))}
                     style={{ padding:'5px 14px', borderRadius:6, border: eventForm.isFilming ? '1.5px solid var(--orange)' : '1px solid var(--border)', background: eventForm.isFilming ? 'rgba(255,140,0,0.15)' : 'transparent', color: eventForm.isFilming ? 'var(--orange)' : 'var(--muted)', fontSize:12, fontWeight:700, cursor:'pointer', letterSpacing:'.04em', textTransform:'uppercase' }}>
                     Filming
                   </button>
+                  {eventForm.isFilming && (
+                    <button type="button" onClick={() => setEventForm(f=>({...f,hasSlate:!f.hasSlate}))}
+                      style={{ padding:'5px 14px', borderRadius:6, border: eventForm.hasSlate ? '1.5px solid var(--orange)' : '1px solid var(--border)', background: eventForm.hasSlate ? 'rgba(255,140,0,0.15)' : 'transparent', color: eventForm.hasSlate ? 'var(--orange)' : 'var(--muted)', fontSize:12, fontWeight:700, cursor:'pointer', letterSpacing:'.04em', textTransform:'uppercase' }}>
+                      Slate
+                    </button>
+                  )}
                 </div>
                 <div className="field"><label>Start Time</label><input type="time" value={eventForm.startTime} onChange={e => setEventForm(f=>({...f,startTime:e.target.value}))} required /></div>
                 <div className="field"><label>End Time</label><input type="time" value={eventForm.endTime} onChange={e => setEventForm(f=>({...f,endTime:e.target.value}))} /></div>
@@ -1978,10 +1984,16 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
             <form onSubmit={saveEditEvent}>
               <div className="form-grid" style={{ marginBottom:12 }}>
                 <div className="field span2" style={{ flexDirection:'row', alignItems:'center', gap:6 }}>
-                  <button type="button" onClick={() => setEditEventForm(f=>({...f,isFilming:!f.isFilming}))}
+                  <button type="button" onClick={() => setEditEventForm(f=>({...f,isFilming:!f.isFilming, hasSlate: f.isFilming ? false : f.hasSlate}))}
                     style={{ padding:'5px 14px', borderRadius:6, border: editEventForm.isFilming ? '1.5px solid var(--orange)' : '1px solid var(--border)', background: editEventForm.isFilming ? 'rgba(255,140,0,0.15)' : 'transparent', color: editEventForm.isFilming ? 'var(--orange)' : 'var(--muted)', fontSize:12, fontWeight:700, cursor:'pointer', letterSpacing:'.04em', textTransform:'uppercase' }}>
                     Filming
                   </button>
+                  {editEventForm.isFilming && (
+                    <button type="button" onClick={() => setEditEventForm(f=>({...f,hasSlate:!f.hasSlate}))}
+                      style={{ padding:'5px 14px', borderRadius:6, border: editEventForm.hasSlate ? '1.5px solid var(--orange)' : '1px solid var(--border)', background: editEventForm.hasSlate ? 'rgba(255,140,0,0.15)' : 'transparent', color: editEventForm.hasSlate ? 'var(--orange)' : 'var(--muted)', fontSize:12, fontWeight:700, cursor:'pointer', letterSpacing:'.04em', textTransform:'uppercase' }}>
+                      Slate
+                    </button>
+                  )}
                 </div>
                 <div className="field"><label>Start Time</label><input type="time" value={editEventForm.startTime} onChange={e => setEditEventForm(f=>({...f,startTime:e.target.value}))} required /></div>
                 <div className="field"><label>End Time</label><input type="time" value={editEventForm.endTime} onChange={e => setEditEventForm(f=>({...f,endTime:e.target.value}))} /></div>
