@@ -371,7 +371,7 @@ export default function Avo() {
                     </thead>
                     <tbody>
                       {group.map(e => (
-                        <tr key={e.id} onClick={() => nav(`/avo/${e.id}`)} style={{ borderTop:'1px solid rgba(255,255,255,0.04)', cursor:'pointer' }}>
+                        <tr key={e.id} onClick={() => nav(`/avo/${e.id}`)} style={{ borderTop:'1px solid rgba(255,255,255,0.04)', cursor:'pointer', opacity: e.delivered ? 0.5 : 1 }}>
                           <td style={{ ...td, fontWeight:700 }}>
                             <span style={{ display:'inline-flex', alignItems:'center', gap:7, flexWrap:'wrap' }}>
                               {e.title}
@@ -399,13 +399,18 @@ export default function Avo() {
                           <td style={{ ...td, whiteSpace:'nowrap' }}>{fmtD(e.start_date)}</td>
                           <td style={{ ...td, whiteSpace:'nowrap', color: e.status !== 'CLOSED' && overdue(e.end_date) ? '#e05252' : 'var(--text)', fontWeight: overdue(e.end_date) ? 700 : 400 }}>{fmtD(e.end_date)}</td>
                           <td style={{ ...td, textAlign:'center' }} onClick={ev => ev.stopPropagation()}>
-                            <button title={e.approved ? 'Click to remove approval' : 'Mark this edit approved'}
-                              onClick={ev => act(ev, e.id, () => api.updateAvoEdit(e.id, { approved: !e.approved }))}
-                              style={e.approved
-                                ? { background:AVO, border:`1px solid ${AVO}`, color:'#0b0b0b', borderRadius:12, padding:'3px 12px', fontSize:9, fontWeight:800, cursor:'pointer', whiteSpace:'nowrap' }
-                                : { background:'transparent', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:12, padding:'3px 12px', fontSize:9, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap' }}>
-                              {e.approved ? '✓ Approved' : 'Approve'}
-                            </button>
+                            <span style={{ display:'inline-flex', border:'1px solid var(--border)', borderRadius:12, overflow:'hidden' }}>
+                              <button title={e.approved ? 'Approved — click to step back' : 'Mark this edit approved'}
+                                onClick={ev => act(ev, e.id, () => api.updateAvoEdit(e.id, e.approved ? (e.delivered ? { delivered:false } : { approved:false }) : { approved:true }))}
+                                style={{ background: e.approved ? AVO : 'transparent', color: e.approved ? '#0b0b0b' : 'var(--muted)', border:'none', padding:'3px 11px', fontSize:9, fontWeight:800, cursor:'pointer', whiteSpace:'nowrap' }}>
+                                {e.approved ? '✓ Approved' : 'Approve'}
+                              </button>
+                              <button title={e.delivered ? 'Delivered — click to step back' : 'Mark this edit delivered'}
+                                onClick={ev => act(ev, e.id, () => api.updateAvoEdit(e.id, e.delivered ? { delivered:false } : { approved:true, delivered:true }))}
+                                style={{ background: e.delivered ? '#4a9eff' : 'transparent', color: e.delivered ? '#0b0b0b' : 'var(--muted)', border:'none', borderLeft:'1px solid var(--border)', padding:'3px 11px', fontSize:9, fontWeight:800, cursor:'pointer', whiteSpace:'nowrap' }}>
+                                {e.delivered ? '✓ Delivered' : 'Deliver'}
+                              </button>
+                            </span>
                           </td>
                         </tr>
                       ))}

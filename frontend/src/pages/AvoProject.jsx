@@ -1531,12 +1531,19 @@ function EditModal({ edit, statusOf, onSave, onClose, A = api, customCols = [] }
               </div>
             </div>
             <div>
-              <div style={hdr}>Approved</div>
-              <button onClick={() => save({ approved: !e.approved })}
-                style={{ background: e.approved ? 'rgba(90,191,128,0.15)' : 'transparent', border:`1px solid ${e.approved ? '#5ABF80' : 'var(--border)'}`,
-                  color: e.approved ? '#5ABF80' : 'var(--muted)', borderRadius:20, padding:'5px 16px', fontSize:11, fontWeight:800, cursor:'pointer' }}>
-                {e.approved ? '✓ Approved' : 'Not Approved'}
-              </button>
+              <div style={hdr}>Status</div>
+              <div style={{ display:'inline-flex', border:'1px solid var(--border)', borderRadius:20, overflow:'hidden' }}>
+                <button type="button" title="Approved" onClick={() => save(e.approved ? (e.delivered ? { delivered:false } : { approved:false }) : { approved:true })}
+                  style={{ padding:'5px 15px', fontSize:11, fontWeight:800, border:'none', cursor:'pointer',
+                    background: e.approved ? 'rgba(90,191,128,0.18)' : 'transparent', color: e.approved ? '#5ABF80' : 'var(--muted)' }}>
+                  {e.approved ? '✓ Approved' : 'Approved'}
+                </button>
+                <button type="button" title="Delivered" onClick={() => save(e.delivered ? { delivered:false } : { approved:true, delivered:true })}
+                  style={{ padding:'5px 15px', fontSize:11, fontWeight:800, border:'none', borderLeft:'1px solid var(--border)', cursor:'pointer',
+                    background: e.delivered ? 'rgba(74,158,255,0.20)' : 'transparent', color: e.delivered ? '#4a9eff' : 'var(--muted)' }}>
+                  {e.delivered ? '✓ Delivered' : 'Delivered'}
+                </button>
+              </div>
             </div>
           </div>
           <div style={{ marginBottom:12 }}>
