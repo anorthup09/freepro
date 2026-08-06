@@ -2101,8 +2101,7 @@ export function AvoShareView() {
     <div style={{ minHeight:'100vh', background:'var(--bg)' }}>
       <div style={{ display:'flex', alignItems:'center', gap:14, padding:'18px 26px', borderBottom:'1px solid var(--border)' }}>
         <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height:20, filter:'brightness(0) invert(1)', opacity:0.95 }} />
-        <span style={{ fontSize:12, color:AVO, fontWeight:700, letterSpacing:'0.04em' }}>🥑 AvocadoPost</span>
-        {data && <span style={{ fontSize:11, color:'var(--muted)' }}>· {data.code}{data.title ? ` — ${data.title}` : ''}</span>}
+        {data && <span style={{ fontSize:11, color:'var(--muted)' }}>{data.code}{data.title ? ` — ${data.title}` : ''}</span>}
       </div>
       {inner}
     </div>
