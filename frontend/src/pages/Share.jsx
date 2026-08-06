@@ -805,6 +805,7 @@ function ProducerView({ data, hideGear, onOpenShotList, shareToken, pw }) {
                   <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em' }}>Gear Contact</div>
                   <div style={{ fontWeight:600, fontSize:13 }}>{shortName(gear.gear_person_name)}</div>
                   {gear.gear_person_phone && <div style={{ fontSize:12, color:'var(--tan)' }}><Tel v={gear.gear_person_phone} /></div>}
+                  {gear.gear_person_email && <div style={{ fontSize:11, color:'var(--muted)' }}><Mail v={gear.gear_person_email} /></div>}
                 </div>
               </div>
             )}
@@ -1002,6 +1003,7 @@ function CrewView({ data, shareToken, hideGear, onOpenShotList, pw }) {
                   <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.08em' }}>Gear Contact</div>
                   <div style={{ fontWeight:600, fontSize:13 }}>{shortName(gear.gear_person_name)}</div>
                   {gear.gear_person_phone && <div style={{ fontSize:12, color:'var(--tan)' }}><Tel v={gear.gear_person_phone} /></div>}
+                  {gear.gear_person_email && <div style={{ fontSize:11, color:'var(--muted)' }}><Mail v={gear.gear_person_email} /></div>}
                 </div>
               </div>
             )}
