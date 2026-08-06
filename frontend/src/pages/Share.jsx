@@ -2034,6 +2034,7 @@ const DOCK_ICONS = {
 
 function ShareGlassDock({ items, onScrollTop }) {
   const [shrunk, setShrunk] = useState(false);
+  const [inSchedule, setInSchedule] = useState(false);
   const btnRefs = useRef({});
   const [bubble, setBubble] = useState(null);   // sliding highlight behind the active icon
   const activeKey = (items.find(it => it.active) || {}).key;
@@ -2052,7 +2053,14 @@ function ShareGlassDock({ items, onScrollTop }) {
     let raf = null;
     const onScroll = () => {
       if (raf) return;
-      raf = requestAnimationFrame(() => { setShrunk(window.innerWidth <= 700 && window.scrollY > 60); raf = null; });
+      raf = requestAnimationFrame(() => {
+        setShrunk(window.innerWidth <= 700 && window.scrollY > 60);
+        // Reveal the scroll-to-top control only once the schedule heading has
+        // scrolled up past the top of the viewport (i.e. we're in the schedule).
+        const el = document.getElementById('sched-top');
+        setInSchedule(!!el && el.getBoundingClientRect().top <= 80);
+        raf = null;
+      });
     };
     window.addEventListener('scroll', onScroll, { passive: true });
     onScroll();
@@ -2093,7 +2101,7 @@ function ShareGlassDock({ items, onScrollTop }) {
           }}>{it.label}</span>
         </button>
       ))}
-      {onScrollTop && (
+      {onScrollTop && inSchedule && (
         <button onClick={onScrollTop} aria-label="Scroll to top of schedule" title="Top of schedule"
           style={{
             display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0,
