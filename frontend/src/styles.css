@@ -1007,9 +1007,10 @@ body { padding-top: env(safe-area-inset-top, 0px); }
 }
 .evt-glass:active { transform: translateY(0) scale(0.96); }
 
-/* Revealed date tabs on the Schedule toolbar grow slightly on hover */
-.sched-daterow .day-tab { transition: transform .12s ease; }
-.sched-daterow .day-tab:hover { transform: scale(1.1); }
+/* Revealed date tabs on the Schedule toolbar — stable highlight on hover
+   (no scale transform, which enlarged the tab and overlapped its neighbours) */
+.sched-daterow .day-tab { transition: background .12s ease, border-color .12s ease, color .12s ease; }
+.sched-daterow .day-tab:hover { background: var(--bg3); border-color: var(--border2); color: var(--text); }
 
 /* Day-detail card header: title + Expand on the top row, location + weather/day-type
    below. On phones the lower two rows center. */
