@@ -20,12 +20,12 @@ const fmtD = d => d ? new Date(String(d).slice(0, 10) + 'T12:00:00').toLocaleDat
 
 function TeamHeader() {
   return (
-    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 26px', flexWrap:'wrap', gap:10 }}>
-      <Link to="/" style={{ display:'flex', alignItems:'center' }} title="Back to the Unbridled Media hub">
+    <div style={{ display:'grid', gridTemplateColumns:'1fr auto 1fr', alignItems:'center', padding:'18px 26px', gap:10 }}>
+      <Link to="/" style={{ display:'flex', alignItems:'center', justifySelf:'start' }} title="Back to the Unbridled Media hub">
         <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height:20, filter:'brightness(0) invert(1)', opacity:0.95 }} />
       </Link>
-      <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-        <Link to="/crew-calendar" className="btn btn-ghost btn-sm" style={{ textDecoration:'none' }}>Crew Calendar</Link>
+      <Link to="/crew-calendar" className="evt-glass" style={{ justifySelf:'center', textDecoration:'none' }}>Crew Calendar</Link>
+      <div style={{ justifySelf:'end' }}>
         <HomeButton />
       </div>
     </div>
@@ -43,6 +43,8 @@ function MemberSelect({ roster, value, onChange, placeholder = '— Select —' 
 }
 
 const BLANK = { memberId:'', ptoType:'', title:'', startDate:'', endDate:'', onShoots:'', compNotes:'', managerId:'', notify:'' };
+const EVT_BLANK = { name:'', startDate:'', endDate:'', location:'', people:[] };
+const EVT = '#E8500A';
 
 export default function Team() {
   const [rows, setRows] = useState(null);
@@ -51,11 +53,15 @@ export default function Team() {
   const [saving, setSaving] = useState(false);
   const [closedOpen, setClosedOpen] = useState(false);
   const [myView, setMyView] = useState(false);   // pipeline: only my requests (assignee or supervisor)
+  const [events, setEvents] = useState(null);
+  const [ef, setEf] = useState(EVT_BLANK);
+  const [evtOpen, setEvtOpen] = useState(false);   // Misc. Event form expanded
+  const [evtSaving, setEvtSaving] = useState(false);
   // Open on the OOO Pipeline when linked with ?view=pipeline (e.g. from the
   // Crew Calendar PTO/OOO blocks); otherwise default to the request form.
   const [view, setView] = useState(() => {
     const v = new URLSearchParams(window.location.search).get('view');
-    return ['roster', 'form', 'pipeline'].includes(v) ? v : 'form';
+    return ['roster', 'form', 'pipeline', 'events'].includes(v) ? v : 'form';
   });
   const { user } = useAuth();
 
@@ -66,6 +72,7 @@ export default function Team() {
 
   useEffect(() => {
     api.ptoList().then(setRows).catch(e => alert(e.message));
+    api.eventsList().then(setEvents).catch(() => setEvents([]));
     api.getCrew().then(cs => setRoster(cs.filter(m => (m.company || '').toLowerCase().includes('unbridled')))).catch(() => setRoster([]));
   }, []);
 
@@ -113,6 +120,24 @@ export default function Team() {
     catch (e) { alert(e.message); }
   }
 
+  const canSubmitEvt = ef.name.trim() && ef.startDate && ef.endDate;
+  async function submitEvent() {
+    if (!canSubmitEvt || evtSaving) return;
+    setEvtSaving(true);
+    try {
+      const row = await api.createEvent(ef);
+      setEvents(es => [...(es || []), row]);
+      setEf(EVT_BLANK);
+      setEvtOpen(false);
+    } catch (e) { alert(e.message); }
+    setEvtSaving(false);
+  }
+  async function removeEvent(id, name) {
+    if (!confirm(`Delete "${name}"?`)) return;
+    try { await api.deleteEvent(id); setEvents(es => es.filter(e => e.id !== id)); }
+    catch (e) { alert(e.message); }
+  }
+
   const th = { padding:'7px 10px', fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', textAlign:'left', whiteSpace:'nowrap' };
   const td = { padding:'7px 10px', fontSize:12, verticalAlign:'middle' };
 
@@ -129,6 +154,9 @@ export default function Team() {
           )},
           { key:'pipeline', label:'OOO Pipeline', color:BLUE, icon:(
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 6h16M4 12h16M4 18h10"/><circle cx="19" cy="18" r="2.2"/></svg>
+          )},
+          { key:'events', label:'Event Pipeline', color:EVT, icon:(
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l2.4 5.4 5.9.5-4.5 3.9 1.4 5.8L12 20l-5.6 3.1 1.4-5.8-4.5-3.9 5.9-.5z"/></svg>
           )},
         ]} />
         {view === 'roster' && <div style={{ maxWidth:760, margin:'12px auto 0' }}><RosterLookup /></div>}
@@ -298,6 +326,120 @@ export default function Team() {
         }); })()}
         <div style={{ fontSize:10, color:'var(--muted)' }}>
           Approving a request moves it to the PTO/WFH Calendar; once the end date passes it closes automatically. All requests appear on the Crew Calendar.
+        </div>
+        </div>
+        )}
+
+        {/* ── Event Pipeline ── */}
+        {view === 'events' && (
+        <div style={{ marginTop:16 }}>
+        <div style={{ maxWidth:680, margin:'0 auto' }}>
+          {/* Condensed Misc. Event form — expands on click */}
+          <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderTop:`3px solid ${EVT}`, borderRadius:12, marginBottom:26, overflow:'hidden' }}>
+            <div onClick={() => setEvtOpen(o => !o)}
+              style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, padding:'14px 18px', cursor:'pointer' }}>
+              <div style={{ fontSize:13, fontWeight:800, color:'var(--text)' }}>Add a Misc. Event
+                <span style={{ fontSize:11, fontWeight:500, color:'var(--muted)', marginLeft:8 }}>golf tournaments, retreats, office visits…</span>
+              </div>
+              <span aria-hidden style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:26, height:26, borderRadius:8, border:'1px solid var(--border)', color:EVT, fontSize:13, fontWeight:800 }}>
+                {evtOpen ? '–' : '+'}
+              </span>
+            </div>
+            {evtOpen && (
+              <div style={{ padding:'0 18px 18px' }}>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(230px, 1fr))', gap:14 }}>
+                  <div style={{ gridColumn:'1 / -1' }}>
+                    <span style={lbl}>Name of Event *</span>
+                    <input value={ef.name} onChange={e => setEf(v => ({ ...v, name: e.target.value }))} placeholder="e.g. Company Retreat" />
+                  </div>
+                  <div>
+                    <span style={lbl}>Start Date *</span>
+                    <input type="date" value={ef.startDate} onChange={e => setEf(v => ({ ...v, startDate: e.target.value }))} />
+                  </div>
+                  <div>
+                    <span style={lbl}>End Date *</span>
+                    <input type="date" value={ef.endDate} onChange={e => setEf(v => ({ ...v, endDate: e.target.value }))} />
+                  </div>
+                  <div style={{ gridColumn:'1 / -1' }}>
+                    <span style={lbl}>Location</span>
+                    <input value={ef.location} onChange={e => setEf(v => ({ ...v, location: e.target.value }))} placeholder="e.g. Denver office" />
+                  </div>
+                  <div style={{ gridColumn:'1 / -1' }}>
+                    <span style={lbl}>People</span>
+                    <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+                      {[...selectable].sort((a, b) => displayOf(a).localeCompare(displayOf(b))).map(m => {
+                        const on = ef.people.includes(m.id);
+                        return (
+                          <button key={m.id} type="button"
+                            onClick={() => setEf(v => ({ ...v, people: on ? v.people.filter(id => id !== m.id) : [...v.people, m.id] }))}
+                            style={{
+                              background: on ? `${EVT}2e` : 'transparent', border:`1px solid ${on ? EVT : 'var(--border)'}`,
+                              color: on ? EVT : 'var(--muted)', borderRadius:14, padding:'4px 12px', fontSize:11, fontWeight:700, cursor:'pointer',
+                            }}>
+                            {on ? '✓ ' : ''}{displayOf(m)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+                <div style={{ display:'flex', justifyContent:'flex-end', marginTop:16 }}>
+                  <button disabled={!canSubmitEvt || evtSaving} onClick={submitEvent}
+                    style={{ background: canSubmitEvt ? EVT : 'var(--border)', border:'none', color: canSubmitEvt ? '#0b0b0b' : 'var(--muted)', borderRadius:8, padding:'9px 26px', fontSize:13, fontWeight:800, cursor: canSubmitEvt ? 'pointer' : 'default' }}>
+                    {evtSaving ? 'Adding…' : 'Add Event'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Event list */}
+        {!events && <div className="empty">Loading…</div>}
+        {events && (
+          <div style={{ marginBottom:14 }}>
+            <div style={{ display:'inline-flex', alignItems:'center', gap:8, marginBottom:8 }}>
+              <span style={{ background:`${EVT}22`, border:`1px solid ${EVT}`, color:EVT, borderRadius:14, padding:'3px 12px', fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.06em' }}>Events</span>
+              <span style={{ fontSize:11, color:'var(--muted)' }}>{events.length}</span>
+            </div>
+            {events.length === 0 && <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic', padding:'2px 4px 6px' }}>No events yet.</div>}
+            {events.length > 0 && (
+              <div className="budget-tbl-wrap" style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10 }}>
+                <table style={{ width:'100%', borderCollapse:'collapse', minWidth:720 }}>
+                  <thead>
+                    <tr>
+                      <th style={th}>Event</th><th style={th}>Start</th><th style={th}>End</th>
+                      <th style={th}>Location</th><th style={th}>People</th><th style={{ ...th, width:34 }}></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {events.map(e => (
+                      <tr key={e.id} style={{ borderTop:'1px solid rgba(255,255,255,0.04)' }}>
+                        <td style={{ ...td, fontWeight:700 }}>{e.name}</td>
+                        <td style={{ ...td, whiteSpace:'nowrap' }}>{fmtD(e.start_date)}</td>
+                        <td style={{ ...td, whiteSpace:'nowrap' }}>{fmtD(e.end_date)}</td>
+                        <td style={td}>{e.location || '—'}</td>
+                        <td style={td}>
+                          <div style={{ display:'flex', gap:4, flexWrap:'wrap' }}>
+                            {(e.peopleNames || []).length ? e.peopleNames.map(n => (
+                              <span key={n} style={{ fontSize:10, fontWeight:700, color:EVT, background:`${EVT}1a`, border:`1px solid ${EVT}`, borderRadius:100, padding:'1px 9px', whiteSpace:'nowrap' }}>{n}</span>
+                            )) : <span style={{ color:'var(--muted)' }}>—</span>}
+                          </div>
+                        </td>
+                        <td style={{ ...td, textAlign:'center' }}>
+                          <button title="Delete event" onClick={() => removeEvent(e.id, e.name)}
+                            style={{ background:'none', border:'none', color:'var(--muted)', fontSize:12, cursor:'pointer' }}>✕</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+        <div style={{ fontSize:10, color:'var(--muted)' }}>
+          Events act as out-of-office and appear on the Crew Calendar for every tagged person.
         </div>
         </div>
         )}

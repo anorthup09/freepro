@@ -1833,6 +1833,20 @@ async function migrate() {
       created_at TIMESTAMPTZ DEFAULT NOW()
     )`;
 
+  // Misc. work events (golf tournaments, retreats, Denver office visits, …).
+  // Function as out-of-office and feed the Crew Calendar per tagged person.
+  await sql`
+    CREATE TABLE IF NOT EXISTS misc_events (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      name TEXT NOT NULL,
+      start_date DATE,
+      end_date DATE,
+      location TEXT,
+      people JSONB NOT NULL DEFAULT '[]',
+      created_by TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`;
+
   // One-time ClickUp PTO/OOO import (idempotent)
   try { await require('./seedPto')(); } catch (e) { console.error('PTO seed failed:', e.message); }
 

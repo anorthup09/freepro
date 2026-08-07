@@ -245,11 +245,31 @@ router.get('/crew-calendar', requireAuth, async (req, res, next) => {
              p.pto_type as project_code, p.status as project_status
       FROM pto_requests p JOIN crew_members cm ON cm.id = p.member_id
       WHERE p.status != 'CLOSED' AND p.start_date IS NOT NULL`;
+    // Misc. work events (retreats, golf, office visits) block the calendar per
+    // tagged person, functioning as an out-of-office.
+    const events = await sql`SELECT id, name, start_date, end_date, location, people FROM misc_events WHERE start_date IS NOT NULL`;
+    const evtIds = [...new Set(events.flatMap(e => (Array.isArray(e.people) ? e.people : []).map(String)))];
+    const evtNames = evtIds.length ? Object.fromEntries((await sql`
+      SELECT id, COALESCE(NULLIF(TRIM(CONCAT(preferred_first_name, ' ', preferred_last_name)), ''), name) as n
+      FROM crew_members WHERE id = ANY(${evtIds}) AND company ILIKE '%unbridled%'`).map(m => [m.id, m.n])) : {};
+    const eventRows = [];
+    for (const e of events) {
+      for (const pid of (Array.isArray(e.people) ? e.people : []).map(String)) {
+        if (!evtNames[pid]) continue;
+        eventRows.push({
+          id: `evt-${e.id}-${pid}`, kind: 'event', start_date: e.start_date, end_date: e.end_date,
+          crew_member_id: pid, member_name: evtNames[pid],
+          position_name: e.location ? `${e.name} (${e.location})` : e.name,
+          project_id: e.id, project_title: e.name, project_code: 'Event', project_status: 'EVENT',
+        });
+      }
+    }
     res.json([
       ...shootRows,
       ...editRows.map(r => ({ ...r, kind: 'edit' })),
       ...milestoneRows,
       ...ptoRows.map(r => ({ ...r, kind: 'pto', position_name: r.project_status === 'REVIEW' ? `${r.position_name} (pending)` : r.position_name })),
+      ...eventRows,
     ]);
   } catch (err) { next(err); }
 });

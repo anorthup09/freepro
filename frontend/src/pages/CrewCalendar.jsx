@@ -125,10 +125,10 @@ export default function CrewCalendar() {
                       const from = Math.max(0, idxOf(a.start_date));
                       const to = Math.min(totalDays - 1, idxOf(a.end_date || a.start_date));
                       if (to < from) return null;
-                      const c = a.kind === 'pto' ? '#4a9eff' : colorFor(a.project_code);
+                      const c = a.kind === 'pto' ? '#4a9eff' : a.kind === 'event' ? '#E8500A' : colorFor(a.project_code);
                       const isEdit = a.kind === 'edit';
                       return (
-                        <a key={a.id} href={a.kind === 'pto' ? '/team?view=pipeline' : isEdit ? `/avo/${a.project_id}` : `/projects/${a.project_id}`}
+                        <a key={a.id} href={a.kind === 'pto' ? '/team?view=pipeline' : a.kind === 'event' ? '/team?view=events' : isEdit ? `/avo/${a.project_id}` : `/projects/${a.project_id}`}
                           title={`${a.project_code || ''} · ${a.project_title || ''} — ${a.position_name}`}
                           style={{
                             position: 'absolute', top: 8 + (laneOf[a.id] || 0) * 28, height: 24, zIndex: 1,
@@ -138,7 +138,7 @@ export default function CrewCalendar() {
                             display: 'flex', alignItems: 'center', padding: '0 6px', overflow: 'hidden',
                             fontSize: 9, fontWeight: 700, color: c, whiteSpace: 'nowrap', textDecoration: 'none',
                           }}>
-                          {isEdit ? '✂ ' : ''}{a.project_code} · {a.position_name}
+                          {isEdit ? '✂ ' : a.kind === 'event' ? '★ ' : ''}{a.project_code} · {a.position_name}
                         </a>
                       );
                     })}

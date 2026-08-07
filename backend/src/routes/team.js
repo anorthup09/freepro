@@ -172,4 +172,60 @@ router.delete('/pto/:id', requireAuth, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// ── Misc. work events (golf tournaments, retreats, office visits, …) ──────────
+// Tagged people are crew_member ids; the calendar resolves them to names.
+const asIdArray = v => Array.isArray(v) ? v.filter(Boolean).map(String) : [];
+
+async function eventsList() {
+  const rows = await sql`SELECT id, name, start_date, end_date, location, people, created_at FROM misc_events ORDER BY start_date NULLS LAST, created_at`;
+  const ids = [...new Set(rows.flatMap(r => asIdArray(r.people)))];
+  const names = ids.length
+    ? Object.fromEntries((await sql`SELECT id, ${sql.unsafe(PREF)} as n FROM crew_members cm WHERE id = ANY(${ids})`).map(m => [m.id, m.n]))
+    : {};
+  return rows.map(r => ({ ...r, people: asIdArray(r.people), peopleNames: asIdArray(r.people).map(id => names[id]).filter(Boolean) }));
+}
+
+router.get('/events', requireAuth, async (req, res, next) => {
+  try { res.json(await eventsList()); } catch (e) { next(e); }
+});
+
+router.post('/events', requireAuth, async (req, res, next) => {
+  try {
+    const { name, startDate, endDate, location, people } = req.body || {};
+    if (!name?.trim() || !startDate || !endDate) {
+      return res.status(400).json({ error: 'Event name, start date, and end date are required' });
+    }
+    const [row] = await sql`
+      INSERT INTO misc_events (name, start_date, end_date, location, people, created_by)
+      VALUES (${name.trim()}, ${startDate}, ${endDate}, ${location || null}, ${JSON.stringify(asIdArray(people))}, ${req.user.name || req.user.email})
+      RETURNING id`;
+    const all = await eventsList();
+    res.status(201).json(all.find(r => r.id === row.id));
+  } catch (e) { next(e); }
+});
+
+router.patch('/events/:id', requireAuth, async (req, res, next) => {
+  try {
+    const d = req.body || {};
+    const [row] = await sql`
+      UPDATE misc_events SET
+        name = ${d.name !== undefined ? d.name : sql`name`},
+        start_date = ${d.startDate !== undefined ? d.startDate : sql`start_date`},
+        end_date = ${d.endDate !== undefined ? d.endDate : sql`end_date`},
+        location = ${d.location !== undefined ? d.location : sql`location`},
+        people = ${d.people !== undefined ? JSON.stringify(asIdArray(d.people)) : sql`people`}
+      WHERE id = ${req.params.id} RETURNING id`;
+    if (!row) return res.status(404).json({ error: 'Event not found' });
+    const all = await eventsList();
+    res.json(all.find(r => r.id === row.id));
+  } catch (e) { next(e); }
+});
+
+router.delete('/events/:id', requireAuth, async (req, res, next) => {
+  try {
+    await sql`DELETE FROM misc_events WHERE id = ${req.params.id}`;
+    res.status(204).end();
+  } catch (e) { next(e); }
+});
+
 module.exports = router;
