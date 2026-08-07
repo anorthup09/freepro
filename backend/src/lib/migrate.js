@@ -1883,6 +1883,8 @@ async function migrate() {
 
   // One-time ClickUp PTO/OOO import (idempotent)
   try { await require('./seedPto')(); } catch (e) { console.error('PTO seed failed:', e.message); }
+  // One-time post-mortem debrief import (idempotent, matched by project code)
+  try { await require('./seedDebriefs')(); } catch (e) { console.error('Debrief seed failed:', e.message); }
 
   // Foodie recs — team restaurant recommendations with ratings, photos, and a map
   await sql`

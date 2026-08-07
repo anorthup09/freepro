@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App.jsx';
 import { api } from '../api.js';
@@ -231,13 +231,19 @@ function DebriefTile({ pid }) {
   const [kind, setKind] = useState('start');
   const [text, setText] = useState('');
   const [saving, setSaving] = useState(false);
+  const taRef = useRef(null);
 
   useEffect(() => { api.projectDebrief(pid).then(setEntries).catch(() => setEntries([])); }, [pid]);
 
+  const grow = el => { if (!el) return; el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 240) + 'px'; };
   async function add() {
     if (!text.trim() || saving) return;
     setSaving(true);
-    try { const e = await api.addDebrief(pid, { kind, text: text.trim() }); setEntries(es => [e, ...(es || [])]); setText(''); }
+    try {
+      const e = await api.addDebrief(pid, { kind, text: text.trim() });
+      setEntries(es => [e, ...(es || [])]); setText('');
+      if (taRef.current) taRef.current.style.height = 'auto';
+    }
     catch (e) { alert(e.message); }
     setSaving(false);
   }
@@ -265,11 +271,14 @@ function DebriefTile({ pid }) {
           </button>
         ))}
       </div>
-      <div style={{ display:'flex', gap:6, marginBottom:12 }}>
-        <input value={text} onChange={e => setText(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') add(); }}
-          placeholder={`Add a ${debriefMeta(kind).label.toLowerCase()}…`} style={{ flex:1, fontSize:12 }} />
+      <div style={{ display:'flex', gap:6, marginBottom:12, alignItems:'flex-start' }}>
+        <textarea ref={taRef} value={text} rows={1}
+          onChange={e => { setText(e.target.value); grow(e.target); }}
+          onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); add(); } }}
+          placeholder={`Add a ${debriefMeta(kind).label.toLowerCase()}…  (⌘/Ctrl+Enter)`}
+          style={{ flex:1, fontSize:12, resize:'none', minHeight:34, lineHeight:1.45, overflow:'hidden' }} />
         <button onClick={add} disabled={!text.trim() || saving}
-          style={{ background: text.trim() ? debriefMeta(kind).color : 'var(--border)', border:'none', color: text.trim() ? '#0b0b0b' : 'var(--muted)', borderRadius:8, padding:'0 14px', fontSize:12, fontWeight:800, cursor: text.trim() ? 'pointer' : 'default' }}>Add</button>
+          style={{ background: text.trim() ? debriefMeta(kind).color : 'var(--border)', border:'none', color: text.trim() ? '#0b0b0b' : 'var(--muted)', borderRadius:8, padding:'8px 14px', fontSize:12, fontWeight:800, cursor: text.trim() ? 'pointer' : 'default', flexShrink:0 }}>Add</button>
       </div>
       {!entries && <div style={{ fontSize:11, color:'var(--muted)' }}>Loading…</div>}
       {entries && entries.length === 0 && <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>Nothing yet — start compiling the debrief.</div>}
@@ -540,6 +549,7 @@ export default function ProjectOverview({ pid, onOpenFinance }) {
       <div className="pv-right" style={{ gridColumn:2, gridRow:'1 / span 2' }}>
       <DocsTile pid={pid} docs={docs} setDocs={setDocs} />
       <LinksTile pid={pid} links={links} setLinks={setLinks} />
+      <DebriefTile pid={pid} />
       <div className="pv-todo" style={{ ...card, minHeight:420, display:'flex', flexDirection:'column' }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
           <div style={{ ...secHdr, marginBottom:0 }}>To-Do</div>
@@ -562,7 +572,6 @@ export default function ProjectOverview({ pid, onOpenFinance }) {
             }} />
         ))}
       </div>
-      <DebriefTile pid={pid} />
       </div>
     </div>
   );
