@@ -214,6 +214,88 @@ function LinksTile({ pid, links, setLinks }) {
   );
 }
 
+// Debrief: quick Start / Stop / Continue / Note capture compiled over the
+// project, with a link to the full debrief. Author + date recorded server-side.
+const DEBRIEF_KINDS = [
+  { key: 'start', label: 'Start', color: '#5ABF80' },
+  { key: 'stop', label: 'Stop', color: '#e05252' },
+  { key: 'continue', label: 'Continue', color: '#4a9eff' },
+  { key: 'note', label: 'Note', color: '#e6c229' },
+];
+const debriefMeta = k => DEBRIEF_KINDS.find(x => x.key === k) || DEBRIEF_KINDS[3];
+const fmtDebriefDate = d => d ? new Date(d).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' }) : '';
+
+function DebriefTile({ pid }) {
+  const nav = useNavigate();
+  const [entries, setEntries] = useState(null);
+  const [kind, setKind] = useState('start');
+  const [text, setText] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => { api.projectDebrief(pid).then(setEntries).catch(() => setEntries([])); }, [pid]);
+
+  async function add() {
+    if (!text.trim() || saving) return;
+    setSaving(true);
+    try { const e = await api.addDebrief(pid, { kind, text: text.trim() }); setEntries(es => [e, ...(es || [])]); setText(''); }
+    catch (e) { alert(e.message); }
+    setSaving(false);
+  }
+  async function remove(id) {
+    try { await api.deleteDebrief(id); setEntries(es => es.filter(x => x.id !== id)); }
+    catch (e) { alert(e.message); }
+  }
+
+  return (
+    <div className="pv-debrief" style={{ ...card, marginBottom:16 }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
+        <div style={{ ...secHdr, marginBottom:0 }}>Debrief</div>
+        <button onClick={() => nav(`/projects/${pid}/debrief`)}
+          style={{ background:'var(--bg)', border:'1px solid rgba(255,255,255,0.55)', color:'#e8e8e8', borderRadius:14, padding:'3px 12px', fontSize:10, fontWeight:800, cursor:'pointer' }}>
+          Full Debrief →
+        </button>
+      </div>
+      <div style={{ fontSize:10, color:'var(--muted)', marginBottom:8 }}>Capture Start / Stop / Continue as you go — it compiles here and rolls up in the Debrief report.</div>
+      <div style={{ display:'flex', flexWrap:'wrap', gap:4, marginBottom:6 }}>
+        {DEBRIEF_KINDS.map(k => (
+          <button key={k.key} onClick={() => setKind(k.key)}
+            style={{ background: kind === k.key ? `${k.color}2e` : 'transparent', border:`1px solid ${kind === k.key ? k.color : 'var(--border)'}`,
+              color: kind === k.key ? k.color : 'var(--muted)', borderRadius:12, padding:'3px 11px', fontSize:10, fontWeight:800, cursor:'pointer' }}>
+            {k.label}
+          </button>
+        ))}
+      </div>
+      <div style={{ display:'flex', gap:6, marginBottom:12 }}>
+        <input value={text} onChange={e => setText(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') add(); }}
+          placeholder={`Add a ${debriefMeta(kind).label.toLowerCase()}…`} style={{ flex:1, fontSize:12 }} />
+        <button onClick={add} disabled={!text.trim() || saving}
+          style={{ background: text.trim() ? debriefMeta(kind).color : 'var(--border)', border:'none', color: text.trim() ? '#0b0b0b' : 'var(--muted)', borderRadius:8, padding:'0 14px', fontSize:12, fontWeight:800, cursor: text.trim() ? 'pointer' : 'default' }}>Add</button>
+      </div>
+      {!entries && <div style={{ fontSize:11, color:'var(--muted)' }}>Loading…</div>}
+      {entries && entries.length === 0 && <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>Nothing yet — start compiling the debrief.</div>}
+      {entries && entries.slice(0, 6).map(e => {
+        const m = debriefMeta(e.kind);
+        return (
+          <div key={e.id} style={{ display:'flex', gap:8, alignItems:'flex-start', padding:'7px 0', borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
+            <span style={{ fontSize:9, fontWeight:800, color:m.color, background:`${m.color}1a`, border:`1px solid ${m.color}`, borderRadius:10, padding:'1px 7px', textTransform:'uppercase', letterSpacing:'0.04em', flexShrink:0, marginTop:1 }}>{m.label}</span>
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ fontSize:12, color:'var(--text)', overflowWrap:'anywhere' }}>{e.text}</div>
+              <div style={{ fontSize:9.5, color:'var(--muted)', marginTop:2 }}>{e.author_name || 'Someone'} · {fmtDebriefDate(e.created_at)}</div>
+            </div>
+            <button title="Delete" onClick={() => remove(e.id)} style={{ background:'none', border:'none', color:'var(--muted)', fontSize:12, cursor:'pointer', paddingTop:4 }}>✕</button>
+          </div>
+        );
+      })}
+      {entries && entries.length > 6 && (
+        <button onClick={() => nav(`/projects/${pid}/debrief`)}
+          style={{ marginTop:8, background:'none', border:'none', color:'var(--muted)', fontSize:11, fontWeight:700, cursor:'pointer' }}>
+          + {entries.length - 6} more — view full debrief →
+        </button>
+      )}
+    </div>
+  );
+}
+
 // Initials chip for the task assignee (same look as budget tags)
 const CHIP_COLORS = ['#5ABF80', '#d66a9b', '#e6c229', '#e8955a', '#4a9eff', '#a78bfa', '#40A0A0', '#f08080'];
 const chipColor = n => { let h = 0; for (const c of n || '') h = (h * 31 + c.charCodeAt(0)) & 0xffffffff; return CHIP_COLORS[Math.abs(h) % CHIP_COLORS.length]; };
@@ -480,6 +562,7 @@ export default function ProjectOverview({ pid, onOpenFinance }) {
             }} />
         ))}
       </div>
+      <DebriefTile pid={pid} />
       </div>
     </div>
   );

@@ -84,6 +84,8 @@ import VendorContractReport from './pages/VendorContractReport.jsx';
 import HardDrivesReport from './pages/HardDrivesReport.jsx';
 import DaysOffReport from './pages/DaysOffReport.jsx';
 import SubscriptionsReport from './pages/SubscriptionsReport.jsx';
+import DebriefReport from './pages/DebriefReport.jsx';
+import DebriefPage from './pages/DebriefPage.jsx';
 import ResourceLibrary from './pages/ResourceLibrary.jsx';
 
 export const AuthContext = createContext(null);
@@ -282,6 +284,7 @@ export default function App() {
         <Route path="/finance/:pid" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/crew-views" /> : <FinanceProject />) : <Navigate to="/login" />} />
         <Route path="/crew-views" element={user ? <CrewViews /> : <Navigate to="/login" />} />
         <Route path="/projects/:id" element={user ? (user.role === 'FINANCE' ? <Navigate to="/" /> : <Project />) : <Navigate to="/login" />} />
+        <Route path="/projects/:id/debrief" element={user ? (user.role === 'FINANCE' ? <Navigate to="/" /> : <DebriefPage />) : <Navigate to="/login" />} />
         <Route path="/projects/:id/talent-callsheets" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/crew-views" /> : <TalentCallSheets />) : <Navigate to="/login" />} />
         <Route path="/projects/:id/emails" element={user ? <CallSheetEmails /> : <Navigate to="/login" />} />
         <Route path="/projects/:id/call-sheet" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/crew-views" /> : <CallSheet />) : <Navigate to="/login" />} />
@@ -292,6 +295,7 @@ export default function App() {
         <Route path="/reports/drives" element={user ? <HardDrivesReport /> : <Navigate to="/login" />} />
         <Route path="/reports/days-off" element={user ? (user.role === 'ADMIN' ? <DaysOffReport /> : <Navigate to="/reports" />) : <Navigate to="/login" />} />
         <Route path="/reports/subscriptions" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/reports" /> : <SubscriptionsReport />) : <Navigate to="/login" />} />
+        <Route path="/reports/debrief" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/reports" /> : <DebriefReport />) : <Navigate to="/login" />} />
         <Route path="/reports/music-resources" element={user ? <ResourceLibrary kind="music" title="Music Resources" sub="The team's music library — licensing platforms, go-to tracks, and playlists" accent="#e6c229" placeholderTitle="Musicbed / track name / playlist…" placeholderCat="Licensing Platform, Playlists, Tracks…" /> : <Navigate to="/login" />} />
         <Route path="/reports/video-references" element={user ? <ResourceLibrary kind="video" title="Video References" sub="Reference and inspiration videos — style frames, past work, and examples to point clients at" accent="#a78bfa" placeholderTitle="Video name or what it's a reference for…" placeholderCat="Style Reference, Past Work, Inspiration…" /> : <Navigate to="/login" />} />
         <Route path="/reports/vcc" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/" /> : <VccReport />) : <Navigate to="/login" />} />

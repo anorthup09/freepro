@@ -66,6 +66,11 @@ const REPORTS = [
     accent: '#d66a9b', to: '/reports/days-off',
   },
   {
+    title: 'Debriefs',
+    desc: 'Start / Stop / Continue debriefs across every project, rolled up by client and year.',
+    accent: '#E8500A', to: '/reports/debrief',
+  },
+  {
     title: 'Weekly Finance Report',
     desc: 'Snapshot report of budgets and close months for the finance team.',
     accent: '#4a9eff', to: '/finance/report',
@@ -86,6 +91,7 @@ const I = {
   postpro: <svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4L8.12 15.88"/><path d="M14.47 14.48L20 20"/><path d="M8.12 8.12L12 12"/></svg>,
   travel: <svg viewBox="0 0 24 24"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg>,
   vendors: <svg viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="M8 13h8M8 17h5"/></svg>,
+  projects: <svg viewBox="0 0 24 24"><path d="M3 5h18M3 12h18M3 19h12"/><circle cx="19" cy="19" r="2.2"/></svg>,
 };
 
 // Ordered categories; each lists its reports (by route) in display order.
@@ -96,6 +102,7 @@ const CATEGORIES = [
   { key: 'postpro',  label: 'Post-Pro',  icon: I.postpro,  tos: ['/reports/music-resources', '/reports/video-references', '/reports/subscriptions'] },
   { key: 'travel',   label: 'Travel',    icon: I.travel,   tos: ['/reports/foodie'] },
   { key: 'vendors',  label: 'Vendors',   icon: I.vendors,  tos: ['/reports/vendor-contracts', '/reports/invoices'] },
+  { key: 'projects', label: 'Projects',  icon: I.projects, tos: ['/reports/debrief'] },
 ];
 
 // List order fades gray (top) → Unbridled orange (bottom).

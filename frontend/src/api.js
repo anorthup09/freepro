@@ -75,6 +75,13 @@ export const api = {
   hubShareDisable: () => req('DELETE', '/hub-share'),
   hubShareAuth: (token, password) => req('POST', '/hub-share/authenticate', { token, password }),
 
+  // Project debriefs (Start / Stop / Continue / Note)
+  projectDebrief: (pid) => req('GET', `/projects/${pid}/debrief`),
+  addDebrief: (pid, data) => req('POST', `/projects/${pid}/debrief`, data),
+  updateDebrief: (id, data) => req('PATCH', `/debrief/${id}`, data),
+  deleteDebrief: (id) => req('DELETE', `/debrief/${id}`),
+  debriefReport: () => req('GET', '/debrief/report'),
+
   // Subscriptions register (post-pro tools/logins) — no passwords stored
   subscriptions: () => req('GET', '/subscriptions'),
   createSubscription: (data) => req('POST', '/subscriptions', data),

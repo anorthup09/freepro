@@ -1866,6 +1866,20 @@ async function migrate() {
       created_at TIMESTAMPTZ DEFAULT NOW()
     )`;
 
+  // Project debriefs — Start / Stop / Continue / Note entries compiled over a
+  // project's life, rolled up by client across years in the Debrief report.
+  await sql`
+    CREATE TABLE IF NOT EXISTS project_debriefs (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      project_id TEXT NOT NULL,
+      kind TEXT NOT NULL,
+      text TEXT NOT NULL,
+      author_name TEXT,
+      author_email TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_project_debriefs_project ON project_debriefs(project_id)`;
+
   // One-time ClickUp PTO/OOO import (idempotent)
   try { await require('./seedPto')(); } catch (e) { console.error('PTO seed failed:', e.message); }
 
