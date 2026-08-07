@@ -2781,7 +2781,7 @@ function DaySection({ day, showCalls, flights, drives, dayIndex, talentCallTime,
                                   <span style={{ fontWeight:400, color:'var(--muted)', fontSize:11 }}>Room/Space: </span>{item.room_space}
                                 </div>
                               )}
-                              {loc && <div style={{ fontSize:11, fontWeight:600, color:'var(--text)' }}>{loc.name}</div>}
+                              {loc && /[a-z]/i.test(loc.name || '') && <div style={{ fontSize:11, fontWeight:600, color:'var(--text)' }}>{loc.name}</div>}
                               {driveTime && (
                                 <a href={directionsUrl(prevAddr, thisAddr)} target="_blank" rel="noopener noreferrer"
                                    onClick={e => e.stopPropagation()}

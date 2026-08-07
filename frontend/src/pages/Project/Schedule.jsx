@@ -189,7 +189,9 @@ function addrLines(address, name) {
   let a = String(address).trim();
   if (name) {
     const n = String(name).trim();
-    if (n && a.toLowerCase().startsWith(n.toLowerCase())) a = a.slice(n.length).replace(/^[\s,]+/, '');
+    // Only strip a real venue name (must contain a letter) — a numeric-only
+    // "name" like "530" is the street number and must stay on the address line.
+    if (n && /[a-z]/i.test(n) && a.toLowerCase().startsWith(n.toLowerCase())) a = a.slice(n.length).replace(/^[\s,]+/, '');
   }
   a = a.replace(/,?\s*(United States of America|United States|USA|US)\s*$/i, '').trim();
   const parts = a.split(',').map(x => x.trim()).filter(Boolean);
@@ -1724,7 +1726,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                                     <span style={{ fontWeight:400, color:'var(--muted)', fontSize:11 }}>Room/Space: </span>{item.room_space}
                                   </div>
                                 )}
-                                {item.location && <span style={{ fontSize:10, color:'var(--tan)', fontWeight:600, overflowWrap:'anywhere' }}>{item.location.name}</span>}
+                                {item.location && /[a-z]/i.test(item.location.name || '') && <span style={{ fontSize:10, color:'var(--tan)', fontWeight:600, overflowWrap:'anywhere' }}>{item.location.name}</span>}
                               </div>
                               {item.location?.address && (() => {
                                 const prevAddr = items.slice(0, _ii).reverse().map(stopAddr).find(Boolean);
