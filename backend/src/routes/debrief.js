@@ -55,40 +55,47 @@ router.delete('/debrief/:entryId', requireAuth, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-// GET /api/debrief/report — every debrief grouped by client, then project (year).
+// GET /api/debrief/report — auto-populated with every client; each expands to
+// its programs, then projects (by year), then Start/Stop/Continue/Notes.
 router.get('/debrief/report', requireAuth, async (req, res, next) => {
   try {
-    const rows = await sql`
-      SELECT d.id, d.project_id, d.kind, d.text, d.author_name, d.created_at,
-             p.code, p.title, p.client, p.start_date, p.created_at as project_created
-      FROM project_debriefs d
-      JOIN projects p ON p.id = d.project_id
-      ORDER BY d.created_at`;
-    // Group: client -> project -> entries
+    // All clients come from the full project roster (not just those with debriefs).
+    const projects = await sql`
+      SELECT id, code, title, client, program, start_date, created_at
+      FROM projects WHERE COALESCE(NULLIF(TRIM(client), ''), '') <> ''`;
+    const entries = await sql`
+      SELECT id, project_id, kind, text, author_name, created_at
+      FROM project_debriefs ORDER BY created_at`;
+    const byProject = new Map();
+    for (const e of entries) {
+      if (!byProject.has(e.project_id)) byProject.set(e.project_id, []);
+      byProject.get(e.project_id).push({ id: e.id, kind: e.kind, text: e.text, author_name: e.author_name, created_at: e.created_at });
+    }
+    // client -> list of projects that carry debriefs
     const clients = new Map();
-    for (const r of rows) {
-      const client = r.client || 'Unassigned';
-      if (!clients.has(client)) clients.set(client, new Map());
-      const projs = clients.get(client);
-      if (!projs.has(r.project_id)) {
-        const when = r.start_date || r.project_created;
-        projs.set(r.project_id, {
-          id: r.project_id, code: r.code, title: r.title,
-          year: when ? new Date(when).getFullYear() : null,
-          entries: [],
-        });
-      }
-      projs.get(r.project_id).entries.push({
-        id: r.id, kind: r.kind, text: r.text, author_name: r.author_name, created_at: r.created_at,
+    for (const p of projects) {
+      const client = p.client.trim();
+      if (!clients.has(client)) clients.set(client, []);
+      const es = byProject.get(p.id) || [];
+      if (!es.length) continue;                      // list only projects with debriefs under a client
+      const when = p.start_date || p.created_at;
+      clients.get(client).push({
+        id: p.id, code: p.code, title: p.title, program: p.program || null,
+        year: when ? new Date(when).getFullYear() : null, entries: es,
       });
     }
-    const report = [...clients.entries()]
-      .map(([client, projs]) => ({
+    const report = [...clients.entries()].map(([client, projs]) => {
+      // Group each client's projects by program (untagged under null).
+      const programs = new Map();
+      for (const pr of projs) { const key = pr.program || ''; if (!programs.has(key)) programs.set(key, []); programs.get(key).push(pr); }
+      return {
         client,
-        count: [...projs.values()].reduce((a, p) => a + p.entries.length, 0),
-        projects: [...projs.values()].sort((a, b) => (b.year || 0) - (a.year || 0) || String(b.code).localeCompare(String(a.code))),
-      }))
-      .sort((a, b) => a.client.localeCompare(b.client));
+        count: projs.reduce((a, p) => a + p.entries.length, 0),
+        programs: [...programs.entries()]
+          .map(([program, ps]) => ({ program: program || null, projects: ps.sort((a, b) => (b.year || 0) - (a.year || 0) || String(b.code).localeCompare(String(a.code))) }))
+          .sort((a, b) => (a.program ? 0 : 1) - (b.program ? 0 : 1) || String(a.program || '').localeCompare(String(b.program || ''))),
+      };
+    }).sort((a, b) => b.count - a.count || a.client.localeCompare(b.client));
     res.json(report);
   } catch (e) { next(e); }
 });

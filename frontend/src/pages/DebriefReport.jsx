@@ -4,8 +4,8 @@ import { useAuth } from '../App.jsx';
 import { api } from '../api.js';
 import HomeButton from '../components/HomeButton.jsx';
 
-// Debrief report — every project's Start / Stop / Continue / Notes, rolled up by
-// client and then by project across years, so a program can be reviewed over time.
+// Debrief report — auto-populated with every client as a gradient tile. Open one
+// to review its programs and projects (by year) of Start / Stop / Continue / Notes.
 const KINDS = [
   { key: 'start', label: 'Start', color: '#5ABF80' },
   { key: 'stop', label: 'Stop', color: '#e05252' },
@@ -13,6 +13,14 @@ const KINDS = [
   { key: 'note', label: 'Notes', color: '#e6c229' },
 ];
 const fmtDate = d => d ? new Date(d).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' }) : '';
+
+// Gray → Unbridled orange down the list, matching the Reports tiles.
+const GRAY = [122, 117, 101], ORANGE = [232, 80, 10];
+const gradientAccent = (i, n) => {
+  const t = n <= 1 ? 1 : i / (n - 1);
+  const c = GRAY.map((g, k) => Math.round(g + (ORANGE[k] - g) * t));
+  return `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
+};
 
 function KindBlock({ meta, entries }) {
   if (!entries.length) return null;
@@ -36,7 +44,7 @@ function ProjectCard({ p, nav }) {
   return (
     <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
       <div onClick={() => setOpen(o => !o)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', cursor: 'pointer' }}>
-        <span style={{ fontSize: 11, color: 'var(--muted)', width: 20 }}>{open ? '▾' : '▸'}</span>
+        <span style={{ fontSize: 11, color: 'var(--muted)', width: 16 }}>{open ? '▾' : '▸'}</span>
         <span style={{ fontSize: 12.5, fontWeight: 700, flex: 1, minWidth: 0 }}>{p.code} — {p.title}</span>
         {p.year && <span style={{ fontSize: 11, fontWeight: 800, color: '#E8500A' }}>{p.year}</span>}
         <span style={{ fontSize: 10, color: 'var(--muted)' }}>{p.entries.length}</span>
@@ -44,8 +52,41 @@ function ProjectCard({ p, nav }) {
           style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--muted)', borderRadius: 12, padding: '2px 10px', fontSize: 10, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>Open →</button>
       </div>
       {open && (
-        <div style={{ padding: '0 16px 14px 44px' }}>
+        <div style={{ padding: '0 16px 14px 40px' }}>
           {KINDS.map(k => <KindBlock key={k.key} meta={k} entries={p.entries.filter(e => e.kind === k.key)} />)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ClientTile({ c, accent, nav }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderLeft: `4px solid ${accent}`, borderRadius: 9, overflow: 'hidden', transition: 'transform .15s ease' }}>
+      <div onClick={() => setOpen(o => !o)}
+        style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', cursor: 'pointer' }}>
+        <span style={{ fontSize: 14, fontWeight: 800, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.client}</span>
+        <span style={{ fontSize: 10, color: 'var(--muted)', whiteSpace: 'nowrap' }}>
+          {c.programs.length ? `${c.programs.reduce((a, g) => a + g.projects.length, 0)} proj · ${c.count} notes` : 'No debriefs yet'}
+        </span>
+        <span style={{ fontSize: 12, fontWeight: 800, color: accent, whiteSpace: 'nowrap' }}>{open ? 'Close ▾' : 'Open →'}</span>
+      </div>
+      {open && (
+        <div style={{ padding: '0 14px 14px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {c.programs.length === 0 && <div style={{ fontSize: 11, color: 'var(--muted)', fontStyle: 'italic' }}>No debriefs recorded for this client yet.</div>}
+          {c.programs.map((g, gi) => (
+            <div key={gi}>
+              {g.program && (
+                <div style={{ fontSize: 11, fontWeight: 800, color: '#E8500A', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '4px 0 8px' }}>
+                  {g.program} <span style={{ color: 'var(--muted)', fontWeight: 600, textTransform: 'none', letterSpacing: 0 }}>· program</span>
+                </div>
+              )}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {g.projects.map(p => <ProjectCard key={p.id} p={p} nav={nav} />)}
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -57,13 +98,13 @@ export default function DebriefReport() {
   const nav = useNavigate();
   const [data, setData] = useState(null);
   const [q, setQ] = useState('');
-  const [openClient, setOpenClient] = useState(null);
 
   useEffect(() => { api.debriefReport().then(setData).catch(e => alert(e.message)); }, []);
 
   const shown = (data || []).filter(c => !q.trim()
     || c.client.toLowerCase().includes(q.trim().toLowerCase())
-    || c.projects.some(p => `${p.code} ${p.title}`.toLowerCase().includes(q.trim().toLowerCase())));
+    || c.programs.some(g => (g.program || '').toLowerCase().includes(q.trim().toLowerCase())
+      || g.projects.some(p => `${p.code} ${p.title}`.toLowerCase().includes(q.trim().toLowerCase()))));
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
@@ -81,37 +122,20 @@ export default function DebriefReport() {
         </div>
       </div>
 
-      <div style={{ maxWidth: 900, margin: '0 auto', padding: '10px 16px 60px' }}>
+      <div style={{ maxWidth: 720, margin: '0 auto', padding: '10px 16px 60px' }}>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
           <div>
             <div className="page-title">Debriefs</div>
-            <div className="page-sub">Start / Stop / Continue across every project, by client and year{data && <span> · {data.length} {data.length === 1 ? 'client' : 'clients'}</span>}</div>
+            <div className="page-sub">Start / Stop / Continue by client, program, and year{data && <span> · {data.length} {data.length === 1 ? 'client' : 'clients'}</span>}</div>
           </div>
-          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search client or project…"
-            style={{ fontSize: 12, padding: '7px 12px', borderRadius: 10, background: 'var(--bg2)', color: 'var(--text)', border: '1px solid var(--border)', minWidth: 220 }} />
+          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search client, program, project…"
+            style={{ fontSize: 12, padding: '7px 12px', borderRadius: 10, background: 'var(--bg2)', color: 'var(--text)', border: '1px solid var(--border)', minWidth: 240 }} />
         </div>
 
-        <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 9 }}>
           {!data && <div className="empty">Loading…</div>}
-          {data && shown.length === 0 && <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>{q ? 'No matches.' : 'No debriefs yet — add Start / Stop / Continue notes from any project overview.'}</div>}
-          {shown.map(c => {
-            const isOpen = openClient === c.client || !!q.trim();
-            return (
-              <div key={c.client} style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-                <div onClick={() => setOpenClient(o => o === c.client ? null : c.client)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '13px 16px', cursor: 'pointer' }}>
-                  <span style={{ fontSize: 12, color: 'var(--muted)', width: 20 }}>{isOpen ? '▾' : '▸'}</span>
-                  <span style={{ fontSize: 14, fontWeight: 800, flex: 1, minWidth: 0 }}>{c.client}</span>
-                  <span style={{ fontSize: 10, color: 'var(--muted)' }}>{c.projects.length} {c.projects.length === 1 ? 'project' : 'projects'} · {c.count} notes</span>
-                </div>
-                {isOpen && (
-                  <div style={{ padding: '0 14px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {c.projects.map(p => <ProjectCard key={p.id} p={p} nav={nav} />)}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+          {data && shown.length === 0 && <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>{q ? 'No matches.' : 'No clients yet.'}</div>}
+          {shown.map((c, i) => <ClientTile key={c.client} c={c} accent={gradientAccent(i, shown.length)} nav={nav} />)}
         </div>
       </div>
     </div>

@@ -100,9 +100,9 @@ const CATEGORIES = [
   { key: 'gear',     label: 'Gear',      icon: I.gear,     tos: ['/reports/gear', '/reports/drives'] },
   { key: 'people',   label: 'People',    icon: I.people,   tos: ['/reports/days-off', '/reports/media-moments', '/reports/ways-of-being'] },
   { key: 'postpro',  label: 'Post-Pro',  icon: I.postpro,  tos: ['/reports/music-resources', '/reports/video-references', '/reports/subscriptions'] },
+  { key: 'projects', label: 'Projects',  icon: I.projects, tos: ['/reports/debrief'] },
   { key: 'travel',   label: 'Travel',    icon: I.travel,   tos: ['/reports/foodie'] },
   { key: 'vendors',  label: 'Vendors',   icon: I.vendors,  tos: ['/reports/vendor-contracts', '/reports/invoices'] },
-  { key: 'projects', label: 'Projects',  icon: I.projects, tos: ['/reports/debrief'] },
 ];
 
 // List order fades gray (top) → Unbridled orange (bottom).

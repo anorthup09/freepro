@@ -349,6 +349,7 @@ router.patch('/:id', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, r
         code = COALESCE(${d.code??null}, code),
         title = COALESCE(${d.title??null}, title),
         client = COALESCE(${d.client??null}, client),
+        program = CASE WHEN ${d.program !== undefined} THEN ${d.program || null} ELSE program END,
         city = COALESCE(${d.city??null}, city),
         state = COALESCE(${d.state??null}, state),
         start_date = CASE WHEN ${d.startDate !== undefined} THEN ${d.startDate||null} ELSE start_date END,

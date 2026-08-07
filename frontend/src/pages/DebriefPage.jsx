@@ -52,11 +52,18 @@ export default function DebriefPage() {
   const nav = useNavigate();
   const [project, setProject] = useState(null);
   const [entries, setEntries] = useState(null);
+  const [program, setProgram] = useState('');
 
   useEffect(() => {
-    api.getProject(id).then(setProject).catch(() => setProject(null));
+    api.getProject(id).then(p => { setProject(p); setProgram(p?.program || ''); }).catch(() => setProject(null));
     api.projectDebrief(id).then(setEntries).catch(() => setEntries([]));
   }, [id]);
+
+  async function saveProgram() {
+    if ((project?.program || '') === program.trim()) return;
+    try { await api.updateProject(id, { program: program.trim() }); setProject(p => ({ ...p, program: program.trim() })); }
+    catch (e) { alert(e.message); }
+  }
 
   async function add(kind, text) {
     try { const e = await api.addDebrief(id, { kind, text }); setEntries(es => [e, ...(es || [])]); }
@@ -86,6 +93,13 @@ export default function DebriefPage() {
       <div style={{ maxWidth: 1250, margin: '0 auto', padding: '10px 16px 60px' }}>
         <div className="page-title">{project ? `${project.code} — ${project.title}` : 'Project Debrief'}</div>
         <div className="page-sub">{project?.client ? `${project.client} · ` : ''}Start / Stop / Continue and notes for consideration</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
+          <span style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Program</span>
+          <input value={program} onChange={e => setProgram(e.target.value)} onBlur={saveProgram}
+            onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+            placeholder="Optional — e.g. LPL Focus (groups this project in the Debrief report)"
+            style={{ fontSize: 12, padding: '6px 10px', borderRadius: 8, background: 'var(--bg2)', color: 'var(--text)', border: '1px solid var(--border)', maxWidth: 420, width: '100%' }} />
+        </div>
 
         <div style={{ marginTop: 18, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14 }}>
           {KINDS.map(k => (

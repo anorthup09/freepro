@@ -648,6 +648,7 @@ async function migrate() {
   // add/edit crew form. Cascade-delete when the assignment goes away.
   await sql`ALTER TABLE schedule_events ADD COLUMN IF NOT EXISTS crew_assignment_id TEXT REFERENCES crew_assignments(id) ON DELETE CASCADE`;
   await sql`ALTER TABLE projects ADD COLUMN IF NOT EXISTS share_password TEXT`;
+  await sql`ALTER TABLE projects ADD COLUMN IF NOT EXISTS program TEXT`;
   await sql`ALTER TABLE locations ADD COLUMN IF NOT EXISTS space_map TEXT`;
 
   // One-time cleanup: earlier builds auto-mirrored rental cars onto the Locations
