@@ -187,6 +187,26 @@ const DEBRIEFS = [
       'Jimmy (contractor) assessment: did not have camera ready/prepped for the first day (losing time). Flew drone without permissions. Unable to use gimbal. Required a lot of hand-holding. Shots were fine after the first day (most of the first day was unusable). Generally overshot with some good shots but not much recap coverage. Shot his preferred scenes and would not take direction from producer - Anabelle had to become very direct/strict. Generally unreliable, not autonomous, not communicative. Bad attitude/mood, bad for morale. Not in sync with team for card dumps, bottlenecking post, and gave attitude when told to dump cards. Not responsible for prepping, batteries, card dumps, etc. Last day he pulled out last-second and did not tell anyone until shooting time, spending the day on his drone and not helping the team. He was a nice guy.',
     ],
   },
+  {
+    code: '02.PJPFC0023', program: 'Franchisee Conference', client: 'Papa Johns',
+    title: 'Papa Johns Franchisee Conference 2023', startDate: '2023-04-01', city: '', state: '',
+    continue: [
+      'Incredible teamwork to get a lot of work done in a short amount of time.',
+      'Staffing multiple editors to enhance workflow and turnaround time.',
+      'Quick turnaround from client.',
+      'Fast approvals! 3-4 days before program operation.',
+    ],
+    start: [
+      'Timeline management: bring Media in earlier during VPP development, so Media can intake, process, and forecast editors instead of "drinking from the firehose" once the VPP is complete.',
+      'Master Video Document: use a single Google Sheet / live Excel holding all the information, instead of multiple sheets flying around between client, Solutions, and Media.',
+      'Delineation between Media & Motion videos: motion pieces stay with Creative; all other videos within the Media SOW. Less confusing for client, Solutions, and Media.',
+      'Role clarity: fewer "cooks in the kitchen" - present a united front to the client, behaving as one video production department (motion & media), not two companies.',
+    ],
+    note: [
+      'Production Manager (Madison) focus: asset intake, management, and transfer to Media to optimize workflow; collaborate with Media on pre-production strategy as it relates to creative direction. Media represents the video-production main POC for Production & Post-Production for the client, allowing the Video Producer (Media) to be the key decision-maker for execution based on VPP and CD direction. This streamlines communication so the Production Manager can focus on the above and assist the Producer in production/post.',
+      'Debrief participants: Alex Northup, Jeremy Elman, Madison Jolly.',
+    ],
+  },
 ];
 
 async function findProject(code) {
