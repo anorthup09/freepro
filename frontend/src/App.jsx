@@ -86,6 +86,7 @@ import DaysOffReport from './pages/DaysOffReport.jsx';
 import SubscriptionsReport from './pages/SubscriptionsReport.jsx';
 import DebriefReport from './pages/DebriefReport.jsx';
 import DebriefPage from './pages/DebriefPage.jsx';
+import InternationalTravel from './pages/InternationalTravel.jsx';
 import ResourceLibrary from './pages/ResourceLibrary.jsx';
 
 export const AuthContext = createContext(null);
@@ -290,6 +291,7 @@ export default function App() {
         <Route path="/projects/:id/call-sheet" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/crew-views" /> : <CallSheet />) : <Navigate to="/login" />} />
         <Route path="/reports" element={user ? (user.role === 'AGENCY' ? <Navigate to="/" /> : <Reports />) : <Navigate to="/login" />} />
         <Route path="/reports/foodie" element={user ? <FoodieRecs /> : <Navigate to="/login" />} />
+        <Route path="/reports/international-travel" element={user ? <InternationalTravel /> : <Navigate to="/login" />} />
         <Route path="/reports/gear" element={user ? <GearReport /> : <Navigate to="/login" />} />
         <Route path="/reports/vendor-contracts" element={user ? <VendorContractReport /> : <Navigate to="/login" />} />
         <Route path="/reports/drives" element={user ? <HardDrivesReport /> : <Navigate to="/login" />} />

@@ -61,6 +61,11 @@ const REPORTS = [
     accent: '#f0653c', to: '/reports/foodie',
   },
   {
+    title: 'International Travel Requirements',
+    desc: 'Tips for international travel — budgeting, scheduling, visas, and Carnet import/export.',
+    accent: '#4a9eff', to: '/reports/international-travel',
+  },
+  {
     title: 'Team Days Off',
     desc: 'Days off per person from the PTO/OOO tracker — PTO and OOO totals side by side.',
     accent: '#d66a9b', to: '/reports/days-off',
@@ -101,7 +106,7 @@ const CATEGORIES = [
   { key: 'people',   label: 'People',    icon: I.people,   tos: ['/reports/days-off', '/reports/media-moments', '/reports/ways-of-being'] },
   { key: 'postpro',  label: 'Post-Pro',  icon: I.postpro,  tos: ['/reports/music-resources', '/reports/video-references', '/reports/subscriptions'] },
   { key: 'projects', label: 'Projects',  icon: I.projects, tos: ['/reports/debrief'] },
-  { key: 'travel',   label: 'Travel',    icon: I.travel,   tos: ['/reports/foodie'] },
+  { key: 'travel',   label: 'Travel',    icon: I.travel,   tos: ['/reports/foodie', '/reports/international-travel'] },
   { key: 'vendors',  label: 'Vendors',   icon: I.vendors,  tos: ['/reports/vendor-contracts', '/reports/invoices'] },
 ];
 
@@ -115,7 +120,7 @@ const gradientAccent = (i, n) => {
 };
 
 // Crew only see non-financial resources (no VCCs, invoices, or finance rollups).
-const CREW_SAFE = new Set(['/reports/foodie', '/reports/music-resources', '/reports/video-references', '/reports/drives', '/reports/gear']);
+const CREW_SAFE = new Set(['/reports/foodie', '/reports/international-travel', '/reports/music-resources', '/reports/video-references', '/reports/drives', '/reports/gear']);
 // Admin-only reports (hidden from everyone else, even producers/finance).
 const ADMIN_ONLY = new Set(['/reports/days-off']);
 
