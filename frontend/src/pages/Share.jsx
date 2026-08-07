@@ -153,7 +153,9 @@ function jumpToTime(schedule) {
     || [...evs].reverse().find(e => nowMins >= timeToMins(e.start_time) && nowMins - timeToMins(e.start_time) <= 60)
     || evs.find(e => timeToMins(e.start_time) >= nowMins);
   if (!target) { alert('No events around the current time today.'); return; }
-  document.getElementById(`ev-${target.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  const el = document.getElementById(`ev-${target.id}`);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  else document.getElementById('sched-top')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 const stripTravelEvents = schedule => (schedule || []).map(day => ({ ...day, events: (day.events || []).filter(e => !eventIsTravel(e)) }));
@@ -2276,7 +2278,7 @@ function DaySection({ day, showCalls, flights, drives, dayIndex, talentCallTime,
     // No .ev-time label and no bottom gap — the time lives inside the body so the
     // tiles stack flush against each other within the day.
     return (
-      <div className="ev" style={{ paddingBottom: 0 }}>
+      <div className="ev" id={item.id ? `ev-${item.id}` : undefined} style={{ paddingBottom: 0 }}>
         <div className="ev-body" style={{ borderLeft:`2px solid ${simpleColorOf(item)}`, borderRadius:8, display:'flex', alignItems:'center', gap:10, padding:'8px 12px' }}>
           <span style={{ fontSize:11, fontWeight:700, color:'var(--muted)', fontVariantNumeric:'tabular-nums', whiteSpace:'nowrap', flexShrink:0 }}>{simpleTimeOf(item) || '—'}</span>
           <div style={{ flex:1, minWidth:0 }}>
