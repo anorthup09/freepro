@@ -212,4 +212,28 @@ async function seedDebriefs() {
   if (added) console.log(`Debrief seed: imported ${added} entries across ${projects} projects.`);
 }
 
+// Diagnostics: for each doc, whether a project matched (and its real code/client)
+// plus how many debrief entries currently exist on it. Admin-only surface.
+seedDebriefs.diagnose = async () => {
+  const out = [];
+  for (const d of DEBRIEFS) {
+    const proj = await findProject(d.code);
+    const expected = ['start', 'stop', 'continue', 'note'].reduce((a, k) => a + (d[k] || []).length, 0);
+    let matched = null, existing = 0;
+    if (proj) {
+      const [full] = await sql`SELECT code, client, program FROM projects WHERE id = ${proj.id}`;
+      matched = { id: proj.id, code: full?.code, client: full?.client, program: full?.program };
+      const [c] = await sql`SELECT COUNT(*)::int AS n FROM project_debriefs WHERE project_id = ${proj.id}`;
+      existing = c?.n || 0;
+    }
+    out.push({ docCode: d.code, program: d.program, expected, matched, existing });
+  }
+  // A slim project roster so mismatched codes can be corrected.
+  const projects = await sql`
+    SELECT code, client FROM projects
+    WHERE COALESCE(NULLIF(TRIM(client), ''), '') <> ''
+    ORDER BY client, code`;
+  return { docs: out, projects };
+};
+
 module.exports = seedDebriefs;

@@ -81,6 +81,11 @@ export const api = {
   updateDebrief: (id, data) => req('PATCH', `/debrief/${id}`, data),
   deleteDebrief: (id) => req('DELETE', `/debrief/${id}`),
   debriefReport: () => req('GET', '/debrief/report'),
+  debriefSeedStatus: (run) => req('GET', `/debrief/seed-status${run ? '?run=1' : ''}`),
+
+  // Editable resource docs (e.g. International Travel Requirements)
+  resourceDoc: (key) => req('GET', `/resources/docs/${key}`),
+  saveResourceDoc: (key, data) => req('PUT', `/resources/docs/${key}`, { data }),
 
   // Subscriptions register (post-pro tools/logins) — no passwords stored
   subscriptions: () => req('GET', '/subscriptions'),

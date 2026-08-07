@@ -1848,6 +1848,16 @@ async function migrate() {
       created_at TIMESTAMPTZ DEFAULT NOW()
     )`;
 
+  // Editable resource docs (e.g. International Travel Requirements) — JSON body,
+  // edited by producers/admin. Defaults live in code until first save.
+  await sql`
+    CREATE TABLE IF NOT EXISTS resource_docs (
+      key TEXT PRIMARY KEY,
+      data JSONB NOT NULL DEFAULT '{}',
+      updated_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_by TEXT
+    )`;
+
   // Subscriptions register (post-pro tools/logins). Passwords are NOT stored —
   // the app only tracks type, name, website, and login handle. Types are saved
   // for reuse in the picker.

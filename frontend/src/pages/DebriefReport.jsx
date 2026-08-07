@@ -93,6 +93,44 @@ function ClientTile({ c, accent, nav }) {
   );
 }
 
+function ImportStatus() {
+  const [open, setOpen] = useState(false);
+  const [st, setSt] = useState(null);
+  const [busy, setBusy] = useState(false);
+  async function load(run) {
+    setBusy(true);
+    try { setSt(await api.debriefSeedStatus(run)); } catch (e) { alert(e.message); }
+    setBusy(false);
+  }
+  return (
+    <div style={{ marginTop: 12, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 14px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <button onClick={() => { const n = !open; setOpen(n); if (n && !st) load(false); }}
+          style={{ background: 'none', border: 'none', color: 'var(--muted)', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}>
+          {open ? '▾' : '▸'} Post-mortem import status (admin)
+        </button>
+        {open && <button onClick={() => load(true)} disabled={busy} className="btn btn-ghost btn-sm" style={{ marginLeft: 'auto' }}>{busy ? '…' : 'Re-run import'}</button>}
+      </div>
+      {open && st && (
+        <div style={{ marginTop: 10, fontSize: 11.5, color: 'var(--muted)' }}>
+          {st.docs.map(d => (
+            <div key={d.docCode} style={{ padding: '3px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+              <b style={{ color: 'var(--text)' }}>{d.docCode}</b> ({d.expected} entries) →{' '}
+              {d.matched
+                ? <span style={{ color: '#5ABF80' }}>matched {d.matched.code} · {d.matched.client || 'no client'} · {d.existing} on file</span>
+                : <span style={{ color: '#e05252' }}>no project matched</span>}
+            </div>
+          ))}
+          <div style={{ marginTop: 8, color: 'var(--text)', fontWeight: 700 }}>All project codes:</div>
+          <div style={{ maxHeight: 160, overflowY: 'auto', fontSize: 10.5, lineHeight: 1.5 }}>
+            {st.projects.map((p, i) => <div key={i}>{p.code} — {p.client}</div>)}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function DebriefReport() {
   const { user } = useAuth();
   const nav = useNavigate();
@@ -113,7 +151,7 @@ export default function DebriefReport() {
           <Link to="/" style={{ display: 'flex', alignItems: 'center' }} title="Back to the Unbridled Media hub">
             <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height: 20, filter: 'brightness(0) invert(1)', opacity: 0.95 }} />
           </Link>
-          <span style={{ fontSize: 12, color: '#e6c229', fontWeight: 700, letterSpacing: '0.04em' }}>Reports</span>
+          <span style={{ fontSize: 12, color: '#e6c229', fontWeight: 700, letterSpacing: '0.04em' }}>Reports & Resources</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <span style={{ fontSize: 11, color: 'var(--muted)' }}>{user?.name}</span>
@@ -131,6 +169,8 @@ export default function DebriefReport() {
           <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search client, program, project…"
             style={{ fontSize: 12, padding: '7px 12px', borderRadius: 10, background: 'var(--bg2)', color: 'var(--text)', border: '1px solid var(--border)', minWidth: 240 }} />
         </div>
+
+        {user?.role === 'ADMIN' && <ImportStatus />}
 
         <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 9 }}>
           {!data && <div className="empty">Loading…</div>}

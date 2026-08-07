@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const sql = require('../lib/db');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, requireRole } = require('../middleware/auth');
+const seedDebriefs = require('../lib/seedDebriefs');
 
 // Project debriefs — Start / Stop / Continue / Note, authored + dated, compiled
 // over a project's life and rolled up by client across years for the report.
@@ -97,6 +98,17 @@ router.get('/debrief/report', requireAuth, async (req, res, next) => {
       };
     }).sort((a, b) => b.count - a.count || a.client.localeCompare(b.client));
     res.json(report);
+  } catch (e) { next(e); }
+});
+
+// GET /api/debrief/seed-status — admin diagnostic for the post-mortem import.
+// ?run=1 re-runs the (idempotent) seed first, then reports what matched.
+router.get('/debrief/seed-status', requireAuth, requireRole('ADMIN'), async (req, res, next) => {
+  try {
+    let added = null;
+    if (req.query.run) { try { await seedDebriefs(); added = true; } catch (e) { added = `error: ${e.message}`; } }
+    const diag = await seedDebriefs.diagnose();
+    res.json({ ran: added, ...diag });
   } catch (e) { next(e); }
 });
 
