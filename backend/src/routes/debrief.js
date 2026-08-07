@@ -96,7 +96,7 @@ router.get('/debrief/report', requireAuth, async (req, res, next) => {
           .map(([program, ps]) => ({ program: program || null, projects: ps.sort((a, b) => (b.year || 0) - (a.year || 0) || String(b.code).localeCompare(String(a.code))) }))
           .sort((a, b) => (a.program ? 0 : 1) - (b.program ? 0 : 1) || String(a.program || '').localeCompare(String(b.program || ''))),
       };
-    }).sort((a, b) => b.count - a.count || a.client.localeCompare(b.client));
+    }).sort((a, b) => a.client.localeCompare(b.client));
     res.json(report);
   } catch (e) { next(e); }
 });
