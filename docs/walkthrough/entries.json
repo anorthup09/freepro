@@ -752,5 +752,64 @@
       "Use the column menu to show/hide columns (it scrolls), the Public toggle to share a day, and + Add Scene to add rows."
     ],
     "screenshot": "shotlist-updates.png"
+  },
+  {
+    "title": "Dead edits — the post-production grid is the single source of truth",
+    "page": "AvocadoPost — Post-Production",
+    "what": "The old Archive action is now Dead, with a Revive option to bring an edit back. Marking an edit Dead on the post-production grid mirrors everywhere: the edit is pulled out of the pre-production Deliverables tracker and hidden from the producer and crew schedule/deliverable views, so the post-production grid stays the one place that decides which deliverables exist. Dead edits collect in their own section where they can be revived.",
+    "where": "AvocadoPost → project video tracker → an edit's menu → Dead / Revive",
+    "how": [
+      "Open a project's post-production video tracker.",
+      "Use an edit's Dead action to retire it (replaces the old Archive).",
+      "Confirm it disappears from the pre-production Deliverables tracker and the producer/crew views automatically.",
+      "Find retired edits in the Dead section and click Revive to restore one."
+    ],
+    "screenshot": "dead-edits-mirror.png"
+  },
+  {
+    "title": "Schedule — Simple / Extended view toggle",
+    "page": "FreePro — Production",
+    "what": "A Simple/Extended pill sits above Day 1, right-aligned on the same line as the reminders hint. Simple view strips each tile down to just start time, event name, and room/space, stacked tightly so each tile touches the next within a day; map buttons stay, while location/name tags, drive times, flight status, and notes are hidden. Tap any tile to expand it back to full detail. Extended view is the full tile you already know.",
+    "where": "FreePro → project → Schedule → Simple / Extended toggle above Day 1",
+    "how": [
+      "Open a project's Schedule.",
+      "Use the Simple / Extended pill toggle above Day 1 (top-right of that line).",
+      "In Simple view, scan just start time, event name, and room/space.",
+      "Tap any tile to expand it to full detail without leaving Simple view."
+    ],
+    "screenshot": "schedule-simple-view.png"
+  },
+  {
+    "title": "Schedule — jump-to-top button",
+    "page": "FreePro — Production",
+    "what": "While scrolling a long schedule, a caret button appears on the right of the bottom nav that snaps you back to the top of the schedule in one tap.",
+    "where": "FreePro → project → Schedule → caret button on the bottom nav",
+    "how": [
+      "Open a project's Schedule and scroll down.",
+      "Tap the up-caret button on the right side of the bottom nav to jump back to the top."
+    ],
+    "screenshot": "schedule-scroll-top.png"
+  },
+  {
+    "title": "Schedule — opens on the day-of for a live project",
+    "page": "FreePro — Production",
+    "what": "When a project is live, tapping Schedule in the nav lands you on today's day automatically instead of Day 1, so the current shooting day is what you see first.",
+    "where": "FreePro → live project → Schedule",
+    "how": [
+      "Open a project that is currently live and tap Schedule in the nav.",
+      "The schedule opens focused on today's day; switch days manually as usual if you need another."
+    ],
+    "screenshot": "schedule-default-day-of.png"
+  },
+  {
+    "title": "Public views — daily password & attachments on tiles",
+    "page": "Platform & Admin",
+    "what": "On password-protected producer, crew, and client share links, a viewer (by device/IP) only has to enter the password once per day instead of on every visit. Tile attachments now pull through to those public views too, so files added to a schedule event are openable from the shared link.",
+    "where": "Producer / Crew / Client share links",
+    "how": [
+      "Open a password-protected share link and enter the password once — you won't be asked again that day on the same device.",
+      "On any event tile with attachments, click an attachment to open it directly from the public view."
+    ],
+    "screenshot": "share-daily-password-attachments.png"
   }
 ]
