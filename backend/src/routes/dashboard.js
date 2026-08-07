@@ -276,6 +276,19 @@ async function greetingContext(user) {
     if (pto) ctx.pto = { type: pto.pto_type, startsIn: Math.round((new Date(iso(pto.start_date)) - new Date(today)) / 86400000) };
     const [fact] = await sql`SELECT prompt, answer FROM fun_facts WHERE member_email = ${(user.email || '').toLowerCase()} ORDER BY created_at DESC LIMIT 1`;
     if (fact) ctx.funFact = { prompt: fact.prompt, answer: fact.answer };
+    // Upcoming/current Misc. Event this person is tagged on — its city feeds the greeting.
+    const evs = await sql`
+      SELECT name, location, start_date, people FROM misc_events
+      WHERE start_date IS NOT NULL AND COALESCE(end_date, start_date)::date >= ${today}
+        AND start_date::date <= ${bizToday(14)}
+      ORDER BY start_date`;
+    const evPeople = p => { let a = p; if (typeof a === 'string') { try { a = JSON.parse(a || '[]'); } catch { a = []; } } return Array.isArray(a) ? a.map(String) : []; };
+    const ev = evs.find(e => evPeople(e.people).includes(String(cm.id)));
+    if (ev) ctx.event = {
+      name: ev.name, location: ev.location || '',
+      startsToday: iso(ev.start_date) <= today,
+      startsIn: Math.max(0, Math.round((new Date(iso(ev.start_date)) - new Date(today)) / 86400000)),
+    };
   }
   return ctx;
 }
@@ -359,6 +372,9 @@ function fallbackGreeting(ctx, key = '') {
   if (ctx.trip) return ctx.trip.startsToday
     ? `Hey ${ctx.first}, have fun in ${ctx.trip.city || 'the field'} — go make something great 🎬`
     : `Hey ${ctx.first}, ${ctx.trip.city || 'a shoot'} is calling — pack the good snacks`;
+  if (ctx.event) return ctx.event.startsToday
+    ? `Hey ${ctx.first}, ${ctx.event.name}${ctx.event.location ? ' in ' + ctx.event.location : ''} today — soak it up`
+    : `Hey ${ctx.first}, ${ctx.event.name}${ctx.event.location ? ' in ' + ctx.event.location : ''} ${ctx.event.startsIn <= 1 ? 'is basically here' : `in ${ctx.event.startsIn} days`} — get hyped`;
   if (ctx.pto) return ctx.pto.startsIn <= 1
     ? `Hey ${ctx.first}, PTO starts basically now. Don't let the door hit ya 🏝️`
     : `Hey ${ctx.first}, PTO in ${ctx.pto.startsIn} days — you can make it`;
@@ -375,6 +391,7 @@ async function aiGreeting(ctx) {
     const facts = [
       `Name: ${ctx.first}`, `Day: ${ctx.weekday}, ${ctx.date}`, `Home office: ${ctx.homeOffice}`,
       ctx.trip ? `Upcoming/current travel gig: ${ctx.trip.title} in ${ctx.trip.city || 'the field'}${ctx.trip.state ? ', ' + ctx.trip.state : ''}${ctx.trip.startsToday ? ' (on it now)' : ' (soon)'}` : null,
+      ctx.event ? `Upcoming work event: ${ctx.event.name}${ctx.event.location ? ' in ' + ctx.event.location : ''}${ctx.event.startsToday ? ' (happening now)' : ` (in ${ctx.event.startsIn} day(s))`}` : null,
       ctx.pto ? `PTO (${ctx.pto.type}) starts in ${ctx.pto.startsIn} day(s)` : null,
       ctx.funFact ? `Their fun fact — Q: ${ctx.funFact.prompt} A: ${ctx.funFact.answer}` : null,
     ].filter(Boolean).join('\n');

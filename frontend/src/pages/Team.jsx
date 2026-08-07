@@ -42,6 +42,52 @@ function MemberSelect({ roster, value, onChange, placeholder = '— Select —' 
   );
 }
 
+// City search backed by Google (falls back to OSM) — the resolved city feeds
+// into people's custom Hub greetings.
+function CityField({ value, onChange }) {
+  const [sugs, setSugs] = useState([]);
+  const [open, setOpen] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const timer = useRef(null);
+  const onType = v => {
+    onChange(v);
+    clearTimeout(timer.current);
+    if (v.trim().length < 3) { setSugs([]); setSearching(false); return; }
+    setSearching(true);
+    timer.current = setTimeout(async () => {
+      try { const r = await api.placeSearch(v.trim()); setSugs(r || []); setOpen(true); }
+      catch { setSugs([]); }
+      setSearching(false);
+    }, 350);
+  };
+  // Prefer a clean "City, ST" from the formatted address; fall back to the name.
+  const cityFrom = sg => {
+    const parts = String(sg.address || '').split(',').map(s => s.trim()).filter(Boolean);
+    const st = parts.find(p => /\b[A-Z]{2}\b/.test(p) && !/\d/.test(p));
+    const city = sg.name || parts[0] || '';
+    const stAbbr = st ? (st.match(/\b[A-Z]{2}\b/) || [])[0] : '';
+    return stAbbr ? `${city}, ${stAbbr}` : city;
+  };
+  return (
+    <div style={{ position:'relative' }}>
+      <input value={value} placeholder="Search a city…" onChange={e => onType(e.target.value)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)} />
+      {searching && <div style={{ fontSize:10, color:'var(--muted)', marginTop:3 }}>searching…</div>}
+      {open && sugs.length > 0 && (
+        <div style={{ position:'absolute', top:'100%', left:0, right:0, zIndex:120, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:6, maxHeight:200, overflowY:'auto' }}>
+          {sugs.map((sg, i) => (
+            <div key={i} onMouseDown={() => { onChange(cityFrom(sg)); setOpen(false); setSugs([]); }}
+              style={{ padding:'7px 12px', cursor:'pointer', borderBottom:'1px solid var(--border)', fontSize:12 }}>
+              <div style={{ fontWeight:600 }}>{sg.name}</div>
+              <div style={{ color:'var(--muted)', fontSize:10.5 }}>{sg.address}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 const BLANK = { memberId:'', ptoType:'', title:'', startDate:'', endDate:'', onShoots:'', compNotes:'', managerId:'', notify:'' };
 const EVT_BLANK = { name:'', startDate:'', endDate:'', location:'', people:[] };
 const EVT = '#E8500A';
@@ -377,8 +423,8 @@ export default function Team() {
                     <input type="date" value={ef.endDate} onChange={e => setEf(v => ({ ...v, endDate: e.target.value }))} />
                   </div>
                   <div style={{ gridColumn:'1 / -1' }}>
-                    <span style={lbl}>Location</span>
-                    <input value={ef.location} onChange={e => setEf(v => ({ ...v, location: e.target.value }))} placeholder="e.g. Denver office" />
+                    <span style={lbl}>Location <span style={{ textTransform:'none', letterSpacing:0, fontWeight:400 }}>— search a city (feeds custom greetings)</span></span>
+                    <CityField value={ef.location} onChange={v => setEf(x => ({ ...x, location: v }))} />
                   </div>
                   <div style={{ gridColumn:'1 / -1' }}>
                     <span style={lbl}>People</span>
