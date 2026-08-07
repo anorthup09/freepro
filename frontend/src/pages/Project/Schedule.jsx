@@ -1693,7 +1693,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                     })() : (
                       <div key={item.id} className="ev">
                         <div className="ev-time">{fmtTime(item.start_time || item.startTime)}{(item.end_time || item.endTime) ? ` – ${fmtTime(item.end_time || item.endTime)}` : ''}</div>
-                        <div className={`ev-body${(item.is_alert||item.isAlert) ? ' warn' : ''}${isLiveBlock(item.start_time || item.startTime, item.end_time || item.endTime) ? ' ev-live' : ''}`}
+                        <div className={`ev-body${(item.is_alert||item.isAlert) ? ' warn' : ''}${(item.is_filming||item.isFilming) ? ' filming' : ''}${isLiveBlock(item.start_time || item.startTime, item.end_time || item.endTime) ? ' ev-live' : ''}`}
                           style={{ cursor:'pointer', ...((item.color_tag && colorForTag(item.color_tag) && !(item.is_alert||item.isAlert)) ? { borderLeft:`2px solid ${colorForTag(item.color_tag)}` } : (isGeneral(item.tags) ? { borderLeft:'2px solid var(--sc-general)', opacity:0.55 } : (!(item.is_alert||item.isAlert) ? { borderLeft:'2px solid var(--sc-filming)',  } : {}))), ...(item.group_tag && colorForGroup(item.group_tag) ? { borderRight:`3px solid ${colorForGroup(item.group_tag)}` } : {}) }}
                           onClick={() => openEditEvent(item)}>
                           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:8 }}>

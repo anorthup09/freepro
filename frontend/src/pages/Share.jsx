@@ -2284,7 +2284,7 @@ function DaySection({ day, showCalls, flights, drives, dayIndex, talentCallTime,
     // tiles stack flush against each other within the day.
     return (
       <div className="ev" id={item.id ? `ev-${item.id}` : undefined} style={{ paddingBottom: 0 }}>
-        <div className="ev-body" style={{ borderLeft:`2px solid ${simpleColorOf(item)}`, borderRadius:8, display:'flex', alignItems:'center', gap:10, padding:'8px 12px' }}>
+        <div className={`ev-body${item.is_filming ? ' filming' : ''}`} style={{ borderLeft:`2px solid ${simpleColorOf(item)}`, borderRadius:8, display:'flex', alignItems:'center', gap:10, padding:'8px 12px' }}>
           <span style={{ fontSize:11, fontWeight:700, color:'var(--muted)', fontVariantNumeric:'tabular-nums', whiteSpace:'nowrap', flexShrink:0 }}>{simpleTimeOf(item) || '—'}</span>
           <div style={{ flex:1, minWidth:0 }}>
             <div className="ev-title" style={{ whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{simpleTitleOf(item)}</div>
@@ -2757,7 +2757,7 @@ function DaySection({ day, showCalls, flights, drives, dayIndex, talentCallTime,
                 return (
                   <div key={item.id || i} id={item.id ? `ev-${item.id}` : undefined} className="ev">
                     <div className="ev-time">{fmtTime(item.start_time)}{item.end_time ? ` – ${fmtTime(item.end_time)}` : ''}</div>
-                    <div className={`ev-body${item.is_alert ? ' warn' : ''}${isLive(item.start_time, item.end_time) ? ' ev-live' : ''}`} style={{ ...((item.color_tag && colorFor && colorFor(item.color_tag) && !item.is_alert) ? { borderLeft:`2px solid ${colorFor(item.color_tag)}` } : (eventIsGeneral(item) ? { borderLeft:'2px solid var(--sc-general)', opacity:0.55 } : (!item.is_alert ? { borderLeft:'2px solid var(--sc-filming)',  } : {}))), ...(item.group_tag && groupColorForFn && groupColorForFn(item.group_tag) ? { borderRight:`3px solid ${groupColorForFn(item.group_tag)}` } : {}) }}>
+                    <div className={`ev-body${item.is_alert ? ' warn' : ''}${item.is_filming ? ' filming' : ''}${isLive(item.start_time, item.end_time) ? ' ev-live' : ''}`} style={{ ...((item.color_tag && colorFor && colorFor(item.color_tag) && !item.is_alert) ? { borderLeft:`2px solid ${colorFor(item.color_tag)}` } : (eventIsGeneral(item) ? { borderLeft:'2px solid var(--sc-general)', opacity:0.55 } : (!item.is_alert ? { borderLeft:'2px solid var(--sc-filming)',  } : {}))), ...(item.group_tag && groupColorForFn && groupColorForFn(item.group_tag) ? { borderRight:`3px solid ${groupColorForFn(item.group_tag)}` } : {}) }}>
                       {loc?.address && (
                         <button className={`ev-locpin${openLoc[item.id || i] ? ' on' : ''}`}
                           onClick={e => { e.stopPropagation(); setOpenLoc(o => ({ ...o, [item.id || i]: !o[item.id || i] })); }}
