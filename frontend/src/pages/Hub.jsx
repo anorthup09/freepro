@@ -258,6 +258,7 @@ function MediaMomentOrbit() {
   return (
     <div className="mm-wrap">
       <div className="mm-banner">
+        {fact.image?.type === 'photo' && <div className="mm-photo" style={{ backgroundImage:`url("${fact.image.value}")` }} aria-hidden />}
         <div className="mm-b-main">
           <div className="mm-kicker">{isWob ? 'WAYS OF BEING' : 'MEDIAMOMENT'}</div>
           {fact.prompt && <div className="mm-prompt">{fact.prompt}</div>}
@@ -1357,6 +1358,8 @@ const HUB_CSS = `
   animation:mmCardIn .7s cubic-bezier(.22,.61,.36,1) both}
 .mm-banner::after{content:'';position:absolute;right:-46px;top:-46px;width:190px;height:190px;border-radius:50%;
   background:radial-gradient(circle, rgba(232,80,10,0.13), transparent 70%);pointer-events:none}
+.mm-photo{position:absolute;top:0;right:0;bottom:0;width:48%;z-index:0;background-size:cover;background-position:center;opacity:.5;pointer-events:none;
+  -webkit-mask-image:linear-gradient(90deg, transparent, #000 58%);mask-image:linear-gradient(90deg, transparent, #000 58%)}
 .mm-b-main{position:relative;z-index:1;min-width:0}
 .mm-kicker{font-size:9px;font-weight:900;letter-spacing:.18em;color:var(--orange)}
 .mm-prompt{font-size:10.5px;font-weight:700;color:var(--muted);margin-top:4px;line-height:1.3}
