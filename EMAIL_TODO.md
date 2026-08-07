@@ -125,3 +125,8 @@ permission on each address (Outlook 365: shared mailbox or alias).
       link (/reset-password/:token). Dormant until SMTP; until then admins
       can reset passwords manually.
 - **Call sheet email sending (FreePro → Send Call Sheet Emails page)** — the page, recipient picker (producers/crew/client/talent), and AI draft are live; the "Send Emails" button is waiting on email. Requirement: send directly from the Main POC's inbox (per-user Gmail/Outlook OAuth, not a shared SMTP identity). Until then the page hands off via "Open in Mail App" with recipients in BCC.
+- **"You've been added to an Event!" email (Team → Event Pipeline)** — when
+  someone is tagged on a Misc. Event (create, or newly added on edit), they get
+  an email with the event name, dates, and location. Wired via `sendMail` in
+  `backend/src/routes/team.js` (`emailAddedToEvent`); queues to the Outbox and
+  no-ops until SMTP is connected.

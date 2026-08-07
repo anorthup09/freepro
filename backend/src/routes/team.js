@@ -181,7 +181,11 @@ router.delete('/pto/:id', requireAuth, async (req, res, next) => {
 
 // ── Misc. work events (golf tournaments, retreats, office visits, …) ──────────
 // Tagged people are crew_member ids; the calendar resolves them to names.
-const asIdArray = v => Array.isArray(v) ? v.filter(Boolean).map(String) : [];
+const asIdArray = v => {
+  let a = v;
+  if (typeof a === 'string') { try { a = JSON.parse(a || '[]'); } catch { a = []; } }
+  return Array.isArray(a) ? a.filter(Boolean).map(String) : [];
+};
 
 async function eventsList() {
   const rows = await sql`SELECT id, name, start_date, end_date, location, people, created_at FROM misc_events ORDER BY start_date NULLS LAST, created_at`;
@@ -190,6 +194,29 @@ async function eventsList() {
     ? Object.fromEntries((await sql`SELECT id, ${sql.unsafe(PREF)} as n FROM crew_members cm WHERE id = ANY(${ids})`).map(m => [m.id, m.n]))
     : {};
   return rows.map(r => ({ ...r, people: asIdArray(r.people), peopleNames: asIdArray(r.people).map(id => names[id]).filter(Boolean) }));
+}
+
+// "You've been added to an Event!" — emailed to each newly-tagged person.
+// No-op until SMTP is configured (queues to the Outbox like other automations).
+async function emailAddedToEvent(evt, personIds) {
+  try {
+    const ids = [...new Set((personIds || []).map(String))];
+    if (!ids.length) return;
+    const people = await sql`SELECT id, ${sql.unsafe(PREF)} as name, email FROM crew_members cm WHERE id = ANY(${ids}) AND email IS NOT NULL`;
+    const dates = `${String(evt.start_date).slice(0, 10)} to ${String(evt.end_date).slice(0, 10)}`;
+    for (const p of people) {
+      sendMail({ identity: 'team',
+        to: p.email,
+        subject: `You've been added to an Event! — ${evt.name}`,
+        text: `Hi ${p.name},\n\nYou've been added to an Event!\n\nEvent: ${evt.name}\nDates: ${dates}\n${evt.location ? `Location: ${evt.location}\n` : ''}\nIt will show on your Crew Calendar as out-of-office.`,
+        html: noticeHtml({ tag: 'Team', note: "You've been added to an Event!", color: '#E8500A',
+          title: evt.name, subtitle: p.name,
+          intro: "You've been added to an Event! It will show on your Crew Calendar as out-of-office.",
+          rows: [['Dates', dates], ['Location', evt.location || '']],
+          postmark: new Date() }),
+      }).catch(err => console.error('Event email failed:', err.message));
+    }
+  } catch (err) { console.error('Event email resolution failed:', err.message); }
 }
 
 router.get('/events', requireAuth, async (req, res, next) => {
@@ -202,18 +229,24 @@ router.post('/events', requireAuth, async (req, res, next) => {
     if (!name?.trim() || !startDate || !endDate) {
       return res.status(400).json({ error: 'Event name, start date, and end date are required' });
     }
+    const ids = asIdArray(people);
     const [row] = await sql`
       INSERT INTO misc_events (name, start_date, end_date, location, people, created_by)
-      VALUES (${name.trim()}, ${startDate}, ${endDate}, ${location || null}, ${JSON.stringify(asIdArray(people))}, ${req.user.name || req.user.email})
+      VALUES (${name.trim()}, ${startDate}, ${endDate}, ${location || null}, ${JSON.stringify(ids)}, ${req.user.name || req.user.email})
       RETURNING id`;
     const all = await eventsList();
-    res.status(201).json(all.find(r => r.id === row.id));
+    const item = all.find(r => r.id === row.id);
+    if (item) emailAddedToEvent(item, ids);   // everyone tagged on a new event
+    res.status(201).json(item);
   } catch (e) { next(e); }
 });
 
 router.patch('/events/:id', requireAuth, async (req, res, next) => {
   try {
     const d = req.body || {};
+    const [prev] = await sql`SELECT people FROM misc_events WHERE id = ${req.params.id}`;
+    if (!prev) return res.status(404).json({ error: 'Event not found' });
+    const oldIds = new Set(asIdArray(prev.people));
     const [row] = await sql`
       UPDATE misc_events SET
         name = ${d.name !== undefined ? d.name : sql`name`},
@@ -222,9 +255,14 @@ router.patch('/events/:id', requireAuth, async (req, res, next) => {
         location = ${d.location !== undefined ? d.location : sql`location`},
         people = ${d.people !== undefined ? JSON.stringify(asIdArray(d.people)) : sql`people`}
       WHERE id = ${req.params.id} RETURNING id`;
-    if (!row) return res.status(404).json({ error: 'Event not found' });
     const all = await eventsList();
-    res.json(all.find(r => r.id === row.id));
+    const item = all.find(r => r.id === row.id);
+    // Only newly-added people get the "added to an event" email.
+    if (item && d.people !== undefined) {
+      const added = asIdArray(d.people).filter(id => !oldIds.has(id));
+      if (added.length) emailAddedToEvent(item, added);
+    }
+    res.json(item);
   } catch (e) { next(e); }
 });
 

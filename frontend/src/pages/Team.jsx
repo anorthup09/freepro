@@ -57,6 +57,7 @@ export default function Team() {
   const [ef, setEf] = useState(EVT_BLANK);
   const [evtOpen, setEvtOpen] = useState(false);   // Misc. Event form expanded
   const [evtSaving, setEvtSaving] = useState(false);
+  const [editingId, setEditingId] = useState(null); // event being edited (null = new)
   // Open on the OOO Pipeline when linked with ?view=pipeline (e.g. from the
   // Crew Calendar PTO/OOO blocks); otherwise default to the request form.
   const [view, setView] = useState(() => {
@@ -121,20 +122,35 @@ export default function Team() {
   }
 
   const canSubmitEvt = ef.name.trim() && ef.startDate && ef.endDate;
+  function editEvent(e) {
+    setEf({
+      name: e.name || '', startDate: String(e.start_date || '').slice(0, 10),
+      endDate: String(e.end_date || '').slice(0, 10), location: e.location || '',
+      people: e.people || [],
+    });
+    setEditingId(e.id);
+    setEvtOpen(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  function cancelEdit() { setEf(EVT_BLANK); setEditingId(null); setEvtOpen(false); }
   async function submitEvent() {
     if (!canSubmitEvt || evtSaving) return;
     setEvtSaving(true);
     try {
-      const row = await api.createMiscEvent(ef);
-      setEvents(es => [...(es || []), row]);
-      setEf(EVT_BLANK);
-      setEvtOpen(false);
+      if (editingId) {
+        const row = await api.updateMiscEvent(editingId, ef);
+        setEvents(es => es.map(e => e.id === editingId ? row : e));
+      } else {
+        const row = await api.createMiscEvent(ef);
+        setEvents(es => [...(es || []), row]);
+      }
+      setEf(EVT_BLANK); setEvtOpen(false); setEditingId(null);
     } catch (e) { alert(e.message); }
     setEvtSaving(false);
   }
   async function removeEvent(id, name) {
     if (!confirm(`Delete "${name}"?`)) return;
-    try { await api.deleteMiscEvent(id); setEvents(es => es.filter(e => e.id !== id)); }
+    try { await api.deleteMiscEvent(id); setEvents(es => es.filter(e => e.id !== id)); if (editingId === id) cancelEdit(); }
     catch (e) { alert(e.message); }
   }
 
@@ -338,7 +354,7 @@ export default function Team() {
           <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderTop:`3px solid ${EVT}`, borderRadius:12, marginBottom:26, overflow:'hidden' }}>
             <div onClick={() => setEvtOpen(o => !o)}
               style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, padding:'14px 18px', cursor:'pointer' }}>
-              <div style={{ fontSize:13, fontWeight:800, color:'var(--text)' }}>Add a Misc. Event
+              <div style={{ fontSize:13, fontWeight:800, color:'var(--text)' }}>{editingId ? 'Edit Event' : 'Add a Misc. Event'}
                 <span style={{ fontSize:11, fontWeight:500, color:'var(--muted)', marginLeft:8 }}>golf tournaments, retreats, office visits…</span>
               </div>
               <span aria-hidden style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:26, height:26, borderRadius:8, border:'1px solid var(--border)', color:EVT, fontSize:13, fontWeight:800 }}>
@@ -383,10 +399,16 @@ export default function Team() {
                     </div>
                   </div>
                 </div>
-                <div style={{ display:'flex', justifyContent:'flex-end', marginTop:16 }}>
+                <div style={{ display:'flex', justifyContent:'flex-end', gap:10, marginTop:16 }}>
+                  {editingId && (
+                    <button onClick={cancelEdit}
+                      style={{ background:'transparent', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:8, padding:'9px 20px', fontSize:13, fontWeight:800, cursor:'pointer' }}>
+                      Cancel
+                    </button>
+                  )}
                   <button disabled={!canSubmitEvt || evtSaving} onClick={submitEvent}
                     style={{ background: canSubmitEvt ? EVT : 'var(--border)', border:'none', color: canSubmitEvt ? '#0b0b0b' : 'var(--muted)', borderRadius:8, padding:'9px 26px', fontSize:13, fontWeight:800, cursor: canSubmitEvt ? 'pointer' : 'default' }}>
-                    {evtSaving ? 'Adding…' : 'Add Event'}
+                    {evtSaving ? 'Saving…' : editingId ? 'Save Changes' : 'Add Event'}
                   </button>
                 </div>
               </div>
@@ -409,7 +431,7 @@ export default function Team() {
                   <thead>
                     <tr>
                       <th style={th}>Event</th><th style={th}>Start</th><th style={th}>End</th>
-                      <th style={th}>Location</th><th style={th}>People</th><th style={{ ...th, width:34 }}></th>
+                      <th style={th}>Location</th><th style={th}>People</th><th style={{ ...th, width:64 }}></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -426,9 +448,13 @@ export default function Team() {
                             )) : <span style={{ color:'var(--muted)' }}>—</span>}
                           </div>
                         </td>
-                        <td style={{ ...td, textAlign:'center' }}>
+                        <td style={{ ...td, textAlign:'center', whiteSpace:'nowrap' }}>
+                          <button title="Edit event" onClick={() => editEvent(e)}
+                            style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', padding:'0 6px', verticalAlign:'middle' }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+                          </button>
                           <button title="Delete event" onClick={() => removeEvent(e.id, e.name)}
-                            style={{ background:'none', border:'none', color:'var(--muted)', fontSize:12, cursor:'pointer' }}>✕</button>
+                            style={{ background:'none', border:'none', color:'var(--muted)', fontSize:12, cursor:'pointer', padding:'0 6px', verticalAlign:'middle' }}>✕</button>
                         </td>
                       </tr>
                     ))}

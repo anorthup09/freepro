@@ -248,13 +248,14 @@ router.get('/crew-calendar', requireAuth, async (req, res, next) => {
     // Misc. work events (retreats, golf, office visits) block the calendar per
     // tagged person, functioning as an out-of-office.
     const events = await sql`SELECT id, name, start_date, end_date, location, people FROM misc_events WHERE start_date IS NOT NULL`;
-    const evtIds = [...new Set(events.flatMap(e => (Array.isArray(e.people) ? e.people : []).map(String)))];
+    const evtPeople = e => { let a = e.people; if (typeof a === 'string') { try { a = JSON.parse(a || '[]'); } catch { a = []; } } return Array.isArray(a) ? a.map(String) : []; };
+    const evtIds = [...new Set(events.flatMap(evtPeople))];
     const evtNames = evtIds.length ? Object.fromEntries((await sql`
       SELECT id, COALESCE(NULLIF(TRIM(CONCAT(preferred_first_name, ' ', preferred_last_name)), ''), name) as n
       FROM crew_members WHERE id = ANY(${evtIds}) AND company ILIKE '%unbridled%'`).map(m => [m.id, m.n])) : {};
     const eventRows = [];
     for (const e of events) {
-      for (const pid of (Array.isArray(e.people) ? e.people : []).map(String)) {
+      for (const pid of evtPeople(e)) {
         if (!evtNames[pid]) continue;
         eventRows.push({
           id: `evt-${e.id}-${pid}`, kind: 'event', start_date: e.start_date, end_date: e.end_date,
