@@ -72,7 +72,7 @@ export default function Team() {
 
   useEffect(() => {
     api.ptoList().then(setRows).catch(e => alert(e.message));
-    api.eventsList().then(setEvents).catch(() => setEvents([]));
+    api.miscEvents().then(setEvents).catch(() => setEvents([]));
     api.getCrew().then(cs => setRoster(cs.filter(m => (m.company || '').toLowerCase().includes('unbridled')))).catch(() => setRoster([]));
   }, []);
 
@@ -125,7 +125,7 @@ export default function Team() {
     if (!canSubmitEvt || evtSaving) return;
     setEvtSaving(true);
     try {
-      const row = await api.createEvent(ef);
+      const row = await api.createMiscEvent(ef);
       setEvents(es => [...(es || []), row]);
       setEf(EVT_BLANK);
       setEvtOpen(false);
@@ -134,7 +134,7 @@ export default function Team() {
   }
   async function removeEvent(id, name) {
     if (!confirm(`Delete "${name}"?`)) return;
-    try { await api.deleteEvent(id); setEvents(es => es.filter(e => e.id !== id)); }
+    try { await api.deleteMiscEvent(id); setEvents(es => es.filter(e => e.id !== id)); }
     catch (e) { alert(e.message); }
   }
 
