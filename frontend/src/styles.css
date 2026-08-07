@@ -1054,7 +1054,8 @@ body { padding-top: env(safe-area-inset-top, 0px); }
   .dch { flex-direction: row; align-items: center; gap: 14px; flex-wrap: nowrap; }
   .dch-daydate { flex: 0 0 auto; white-space: nowrap; }
   .dch-loc, .dch-meta { flex: 0 1 auto; min-width: 0; flex-wrap: nowrap; border-left: 1px solid var(--border2); padding-left: 14px; }
-  .dch-expand { margin-left: auto; border-left: 1px solid var(--border2); padding-left: 14px; }
+  .dch-meta { margin-left: auto; }        /* push weather + day-type pill to the right, just left of Expand */
+  .dch-expand { border-left: 1px solid var(--border2); padding-left: 14px; }
 }
 
 /* While the Project View nav is expanded on the Finance tab, it swaps in for

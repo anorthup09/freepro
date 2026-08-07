@@ -784,6 +784,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
 
   // Hover-reveal clusters: calendar icon (dates) and gear icon (settings)
   const [datesOpen, setDatesOpen] = useState(false);
+  const [datesPinned, setDatesPinned] = useState(false); // clicking the date button pins the reveal open
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [groupFilter, setGroupFilter] = useState(null);   // group id to filter the schedule by
   const [groupFilterOpen, setGroupFilterOpen] = useState(false);
@@ -1303,8 +1304,8 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
           <button className="evt-glass" onClick={() => currentDay && (setEventTagOpen(false), setShowAddEvent(true))}>+ Event</button>
           {/* Dates wrapped into a calendar button — hovering reveals the day tabs to the right, each grows on hover */}
           <div style={{ display:'flex', alignItems:'center', gap:10, minWidth:0 }}
-            onMouseEnter={() => setDatesOpen(true)} onMouseLeave={() => setDatesOpen(false)}>
-            <button title="Shoot days" onClick={() => setDatesOpen(o => !o)}
+            onMouseEnter={() => setDatesOpen(true)} onMouseLeave={() => { if (!datesPinned) setDatesOpen(false); }}>
+            <button title="Shoot days" onClick={() => setDatesPinned(p => { const n = !p; setDatesOpen(n); return n; })}
               style={{ display:'inline-flex', alignItems:'center', gap:7, background:'var(--bg2)', border:'1px solid var(--border2)', borderRadius:8, color: datesOpen ? 'var(--orange)' : 'var(--text)', cursor:'pointer', padding:'0 11px', height:32, flexShrink:0 }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
               <span style={{ fontSize:12, fontWeight:700, whiteSpace:'nowrap' }}>
