@@ -489,7 +489,13 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
     refreshFlights();
     api.getSchedule(project.id).then(d => {
       setDays(d);
-      if (d.length > 0) setActiveDay(d[0].id);
+      if (d.length > 0) {
+        // Default to the day-of when today is one of the shoot days (a live shoot),
+        // otherwise fall back to the first day.
+        const todayISO = new Date().toLocaleDateString('en-CA');
+        const todayDay = d.find(day => day.date && String(day.date).slice(0, 10) === todayISO);
+        setActiveDay((todayDay || d[0]).id);
+      }
       const meta = {};
       const times = {};
       const ov = {};
