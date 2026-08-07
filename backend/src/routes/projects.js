@@ -375,7 +375,10 @@ router.patch('/:id', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, r
         WHERE code = ${before.code} AND (title = ${before.title} OR title IS NULL OR title = '')`;
     }
     res.json(await getFullProject(req.params.id));
-  } catch (err) { next(err); }
+  } catch (err) {
+    if (err.code === '23505') return res.status(409).json({ error: 'That project code is already in use.' });
+    next(err);
+  }
 });
 
 // DELETE /api/projects/:id — remove the project everywhere: Finance (budget/VCC,

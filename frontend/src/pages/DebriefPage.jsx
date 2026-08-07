@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '../App.jsx';
 import { api } from '../api.js';
 import HomeButton from '../components/HomeButton.jsx';
 
@@ -50,19 +51,38 @@ function Column({ meta, entries, onAdd, onDelete }) {
 export default function DebriefPage() {
   const { id } = useParams();
   const nav = useNavigate();
+  const { user } = useAuth();
+  const canEdit = ['ADMIN', 'PRODUCER'].includes(user?.role);
   const [project, setProject] = useState(null);
   const [entries, setEntries] = useState(null);
-  const [program, setProgram] = useState('');
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState({ code: '', title: '', client: '', program: '', year: '' });
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    api.getProject(id).then(p => { setProject(p); setProgram(p?.program || ''); }).catch(() => setProject(null));
+    api.getProject(id).then(setProject).catch(() => setProject(null));
     api.projectDebrief(id).then(setEntries).catch(() => setEntries([]));
   }, [id]);
 
-  async function saveProgram() {
-    if ((project?.program || '') === program.trim()) return;
-    try { await api.updateProject(id, { program: program.trim() }); setProject(p => ({ ...p, program: program.trim() })); }
-    catch (e) { alert(e.message); }
+  function startEdit() {
+    setForm({
+      code: project?.code || '', title: project?.title || '', client: project?.client || '',
+      program: project?.program || '', year: project?.start_date ? String(project.start_date).slice(0, 4) : '',
+    });
+    setEditing(true);
+  }
+  async function saveDetails() {
+    setSaving(true);
+    const patch = {
+      code: form.code.trim(), title: form.title.trim(), client: form.client.trim(),
+      program: form.program.trim(),
+    };
+    if (form.year && /^\d{4}$/.test(form.year.trim())) patch.startDate = `${form.year.trim()}-01-01`;
+    try {
+      const p = await api.updateProject(id, patch);
+      setProject(p); setEditing(false);
+    } catch (e) { alert(e.message); }
+    setSaving(false);
   }
 
   async function add(kind, text) {
@@ -91,15 +111,37 @@ export default function DebriefPage() {
       </div>
 
       <div style={{ maxWidth: 1250, margin: '0 auto', padding: '10px 16px 60px' }}>
-        <div className="page-title">{project ? `${project.code} — ${project.title}` : 'Project Debrief'}</div>
-        <div className="page-sub">{project?.client ? `${project.client} · ` : ''}Start / Stop / Continue and notes for consideration</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
-          <span style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Program</span>
-          <input value={program} onChange={e => setProgram(e.target.value)} onBlur={saveProgram}
-            onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
-            placeholder="Optional — e.g. LPL Focus (groups this project in the Debrief report)"
-            style={{ fontSize: 12, padding: '6px 10px', borderRadius: 8, background: 'var(--bg2)', color: 'var(--text)', border: '1px solid var(--border)', maxWidth: 420, width: '100%' }} />
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+          <div>
+            <div className="page-title">{project ? `${project.code} — ${project.title}` : 'Project Debrief'}</div>
+            <div className="page-sub">
+              {project?.client ? `${project.client} · ` : ''}
+              {project?.program ? `${project.program} · ` : ''}
+              {project?.start_date ? `${String(project.start_date).slice(0, 4)} · ` : ''}
+              Start / Stop / Continue and notes for consideration
+            </div>
+          </div>
+          {canEdit && !editing && <button onClick={startEdit} className="btn btn-ghost btn-sm">Edit details</button>}
         </div>
+
+        {editing && (
+          <div style={{ marginTop: 14, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 12, padding: '16px 18px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
+              {[['code', 'Project Code'], ['title', 'Title'], ['client', 'Client'], ['program', 'Program (optional)'], ['year', 'Year']].map(([k, label]) => (
+                <div key={k}>
+                  <span style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 4 }}>{label}</span>
+                  <input value={form[k]} onChange={e => setForm(f => ({ ...f, [k]: e.target.value }))}
+                    inputMode={k === 'year' ? 'numeric' : undefined}
+                    style={{ fontSize: 13, padding: '7px 10px', borderRadius: 8, background: 'var(--bg)', color: 'var(--text)', border: '1px solid var(--border)', width: '100%' }} />
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 14 }}>
+              <button onClick={() => setEditing(false)} className="btn btn-ghost btn-sm">Cancel</button>
+              <button onClick={saveDetails} disabled={saving || !form.code.trim() || !form.title.trim() || !form.client.trim()} className="btn btn-primary btn-sm">{saving ? 'Saving…' : 'Save details'}</button>
+            </div>
+          </div>
+        )}
 
         <div style={{ marginTop: 18, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14 }}>
           {KINDS.map(k => (
