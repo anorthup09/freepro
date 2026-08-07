@@ -819,6 +819,8 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
     ...(keyTalent || []).map(t => t.name),
   ].filter(Boolean));
   const taggedCrewNames = item => (item.audience || []).filter(n => taggableNameSet.has(n));
+  // Talent names get the talent-colored pill so they read differently from crew.
+  const talentNameSet = new Set((keyTalent || []).map(t => t.name).filter(Boolean));
   const [tagColors, setTagColors] = useState(project.schedule_tag_colors || {});
   const tagColorVars = {};
   TAG_COLOR_DEFS.forEach(t => { if (tagColors[t.key]) tagColorVars[t.cssVar] = tagColors[t.key]; });
@@ -1696,6 +1698,9 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                           onClick={() => openEditEvent(item)}>
                           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:8 }}>
                             <div className={`ev-title${(item.is_alert||item.isAlert) ? ' alert' : ''}`} style={{ flex:1, minWidth:0 }}>{(item.is_alert||item.isAlert) ? '⚠ ' : ''}{(item.is_filming||item.isFilming) ? '🎬 ' : ''}{item.title}</div>
+                            {(item.tags || []).some(t => (t && (t.type || t)) === 'TALENT') && (
+                              <span style={{ fontSize:10, fontWeight:700, color:'var(--sc-talent)', background:'rgba(167,139,250,0.14)', border:'1px solid var(--sc-talent)', borderRadius:100, padding:'2px 10px', whiteSpace:'nowrap', flexShrink:0, letterSpacing:'.04em', textTransform:'uppercase' }}>Talent</span>
+                            )}
                             <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11, flexShrink:0 }}
                               onClick={e => { e.stopPropagation(); deleteEvent(item.id); }}>✕</button>
                           </div>
@@ -1744,13 +1749,26 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                               </button>
                             </div>
                           )}
-                          {(() => { const names = taggedCrewNames(item); return names.length ? (
-                            <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginTop:8, paddingTop:8, borderTop:'1px solid var(--border)' }}>
-                              {names.map(n => (
-                                <span key={n} style={{ fontSize:10, fontWeight:700, color:'var(--tan)', background:'rgba(255,255,255,0.05)', border:'1px solid var(--border2)', borderRadius:100, padding:'2px 10px', whiteSpace:'nowrap' }}>{n}</span>
-                              ))}
-                            </div>
-                          ) : null; })()}
+                          {(() => {
+                            const names = taggedCrewNames(item);
+                            const gColor = item.group_tag ? colorForGroup(item.group_tag) : null;
+                            const gLabel = item.group_tag ? labelForGroup(item.group_tag) : '';
+                            if (!names.length && !(gColor && gLabel)) return null;
+                            return (
+                              <div style={{ display:'flex', alignItems:'flex-end', gap:6, marginTop:8, paddingTop:8, borderTop:'1px solid var(--border)' }}>
+                                <div style={{ display:'flex', flexWrap:'wrap', gap:6, flex:1, minWidth:0 }}>
+                                  {names.map(n => { const isTal = talentNameSet.has(n); return (
+                                    <span key={n} style={ isTal
+                                      ? { fontSize:10, fontWeight:700, color:'var(--sc-talent)', background:'rgba(167,139,250,0.14)', border:'1px solid var(--sc-talent)', borderRadius:100, padding:'2px 10px', whiteSpace:'nowrap' }
+                                      : { fontSize:10, fontWeight:700, color:'var(--tan)', background:'rgba(255,255,255,0.05)', border:'1px solid var(--border2)', borderRadius:100, padding:'2px 10px', whiteSpace:'nowrap' } }>{n}</span>
+                                  ); })}
+                                </div>
+                                {gColor && gLabel && (
+                                  <span style={{ fontSize:10, fontWeight:700, color:gColor, background:`${gColor}1a`, border:`1px solid ${gColor}`, borderRadius:100, padding:'2px 10px', whiteSpace:'nowrap', flexShrink:0 }}>{gLabel}</span>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
                       </div>
                     ))}
