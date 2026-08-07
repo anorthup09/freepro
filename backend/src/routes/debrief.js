@@ -56,6 +56,17 @@ router.delete('/debrief/:entryId', requireAuth, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// GET /api/debrief/programs — distinct program names, for the select-or-add picker.
+router.get('/debrief/programs', requireAuth, async (req, res, next) => {
+  try {
+    const rows = await sql`
+      SELECT DISTINCT program FROM projects
+      WHERE COALESCE(NULLIF(TRIM(program), ''), '') <> ''
+      ORDER BY program`;
+    res.json(rows.map(r => r.program));
+  } catch (e) { next(e); }
+});
+
 // GET /api/debrief/report — auto-populated with every client; each expands to
 // its programs, then projects (by year), then Start/Stop/Continue/Notes.
 router.get('/debrief/report', requireAuth, async (req, res, next) => {

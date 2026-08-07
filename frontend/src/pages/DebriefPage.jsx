@@ -48,6 +48,35 @@ function Column({ meta, entries, onAdd, onDelete }) {
   );
 }
 
+// Program picker: choose an existing program (so like-programs group together)
+// or add a new one. Saves on selection.
+function ProgramPicker({ value, programs, onSave }) {
+  const NEW = '__new__';
+  const [mode, setMode] = useState('');
+  const [nv, setNv] = useState('');
+  const opts = [...new Set([...(value ? [value] : []), ...programs])];
+  const sel = { fontSize: 12, padding: '6px 10px', borderRadius: 8, background: 'var(--bg2)', color: 'var(--text)', border: '1px solid var(--border)' };
+  return (
+    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+      <select value={mode === NEW ? NEW : (value || '')}
+        onChange={e => { const v = e.target.value; if (v === NEW) setMode(NEW); else { setMode(''); onSave(v); } }}
+        style={sel}>
+        <option value="">— None —</option>
+        {opts.map(p => <option key={p} value={p}>{p}</option>)}
+        <option value={NEW}>+ Add new program…</option>
+      </select>
+      {mode === NEW && (
+        <>
+          <input value={nv} onChange={e => setNv(e.target.value)} placeholder="New program name" autoFocus
+            onKeyDown={e => { if (e.key === 'Enter' && nv.trim()) { onSave(nv.trim()); setMode(''); setNv(''); } }}
+            style={{ ...sel, background: 'var(--bg)' }} />
+          <button className="btn btn-primary btn-sm" disabled={!nv.trim()} onClick={() => { onSave(nv.trim()); setMode(''); setNv(''); }}>Add</button>
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function DebriefPage() {
   const { id } = useParams();
   const nav = useNavigate();
@@ -55,19 +84,29 @@ export default function DebriefPage() {
   const canEdit = ['ADMIN', 'PRODUCER'].includes(user?.role);
   const [project, setProject] = useState(null);
   const [entries, setEntries] = useState(null);
+  const [programs, setPrograms] = useState([]);
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({ code: '', title: '', client: '', program: '', year: '' });
+  const [form, setForm] = useState({ code: '', title: '', client: '', year: '' });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     api.getProject(id).then(setProject).catch(() => setProject(null));
     api.projectDebrief(id).then(setEntries).catch(() => setEntries([]));
+    api.debriefPrograms().then(setPrograms).catch(() => setPrograms([]));
   }, [id]);
+
+  async function saveProgram(v) {
+    try {
+      const p = await api.updateProject(id, { program: v });
+      setProject(p);
+      if (v && !programs.includes(v)) setPrograms(ps => [...ps, v].sort((a, b) => a.localeCompare(b)));
+    } catch (e) { alert(e.message); }
+  }
 
   function startEdit() {
     setForm({
       code: project?.code || '', title: project?.title || '', client: project?.client || '',
-      program: project?.program || '', year: project?.start_date ? String(project.start_date).slice(0, 4) : '',
+      year: project?.start_date ? String(project.start_date).slice(0, 4) : '',
     });
     setEditing(true);
   }
@@ -75,7 +114,6 @@ export default function DebriefPage() {
     setSaving(true);
     const patch = {
       code: form.code.trim(), title: form.title.trim(), client: form.client.trim(),
-      program: form.program.trim(),
     };
     if (form.year && /^\d{4}$/.test(form.year.trim())) patch.startDate = `${form.year.trim()}-01-01`;
     try {
@@ -124,10 +162,18 @@ export default function DebriefPage() {
           {canEdit && !editing && <button onClick={startEdit} className="btn btn-ghost btn-sm">Edit details</button>}
         </div>
 
+        {canEdit && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Program</span>
+            <ProgramPicker value={project?.program || ''} programs={programs} onSave={saveProgram} />
+            <span style={{ fontSize: 10.5, color: 'var(--muted)' }}>Groups like programs together in the Debrief report.</span>
+          </div>
+        )}
+
         {editing && (
           <div style={{ marginTop: 14, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 12, padding: '16px 18px' }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
-              {[['code', 'Project Code'], ['title', 'Title'], ['client', 'Client'], ['program', 'Program (optional)'], ['year', 'Year']].map(([k, label]) => (
+              {[['code', 'Project Code'], ['title', 'Title'], ['client', 'Client'], ['year', 'Year']].map(([k, label]) => (
                 <div key={k}>
                   <span style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 4 }}>{label}</span>
                   <input value={form[k]} onChange={e => setForm(f => ({ ...f, [k]: e.target.value }))}

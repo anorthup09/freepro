@@ -81,6 +81,7 @@ export const api = {
   updateDebrief: (id, data) => req('PATCH', `/debrief/${id}`, data),
   deleteDebrief: (id) => req('DELETE', `/debrief/${id}`),
   debriefReport: () => req('GET', '/debrief/report'),
+  debriefPrograms: () => req('GET', '/debrief/programs'),
   debriefSeedStatus: (run) => req('GET', `/debrief/seed-status${run ? '?run=1' : ''}`),
 
   // Editable resource docs (e.g. International Travel Requirements)
