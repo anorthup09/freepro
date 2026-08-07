@@ -49,6 +49,10 @@ router.post('/login', async (req, res, next) => {
 
 router.get('/me', requireAuth, async (req, res, next) => {
   try {
+    // Read-only Hub preview guests have no users row — echo their token claims.
+    if (req.user.guest) {
+      return res.json({ id: req.user.id, name: req.user.name, email: req.user.email, role: req.user.role, guest: true, readOnly: true, mfa_enabled: true });
+    }
     const [user] = await sql`SELECT id, name, email, role, created_at, mfa_enabled, mfa_required FROM users WHERE id = ${req.user.id}`;
     // If the role changed since this token was issued (e.g. PENDING → ADMIN),
     // hand back a fresh token so the session picks up the new access.

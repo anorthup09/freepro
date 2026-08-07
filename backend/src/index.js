@@ -76,6 +76,11 @@ app.use('/api', (req, res, next) => {
   if (!h || !h.startsWith('Bearer ')) return next();
   try {
     const u = jwt.verify(h.slice(7), process.env.JWT_SECRET);
+    // Read-only Hub preview guests can browse but never mutate — the single
+    // chokepoint every /api write passes through.
+    if (u.readOnly && !['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+      return res.status(403).json({ error: 'This is a read-only preview link' });
+    }
     if (u.role === 'PENDING' && !(req.path.startsWith('/auth') || req.path.startsWith('/share'))) {
       return res.status(403).json({ error: 'Your account is awaiting approval from an admin' });
     }
@@ -134,6 +139,7 @@ app.get('/api/crew-views', requireAuthGlobal, async (req, res) => {
 });
 
 app.use('/api/share', shareRoutes);
+app.use('/api/hub-share', require('./routes/hubShare'));
 app.use('/api/auth', authRoutes);
 app.use('/api/crew', crewRoutes);
 app.use('/api/users', require('./routes/users'));

@@ -1816,6 +1816,89 @@ export default function Hub() {
   );
 }
 
+// Admin-only: generate a password-protected, read-only Hub preview link
+// (for demos / capturing the What's New walkthrough). Sits between User
+// Management and Automations.
+function HubPreviewLink() {
+  const [open, setOpen] = useState(false);
+  const [cfg, setCfg] = useState(undefined);   // undefined = loading, null = none
+  const [pw, setPw] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  async function load() { try { setCfg(await api.hubShareConfig()); } catch { setCfg(null); } }
+  async function toggle() { if (!open) { setCfg(undefined); await load(); } setOpen(o => !o); }
+
+  async function rotate() {
+    setBusy(true);
+    try { const r = await api.hubShareRotate(pw); setCfg(r); setPw(''); }
+    catch (e) { alert(e.message); }
+    finally { setBusy(false); }
+  }
+  async function disable() {
+    if (!confirm('Disable the current preview link? Anyone using it loses access.')) return;
+    setBusy(true);
+    try { await api.hubShareDisable(); setCfg(null); }
+    catch (e) { alert(e.message); }
+    finally { setBusy(false); }
+  }
+
+  const url = cfg?.token ? `${window.location.origin}/hub-share/${cfg.token}` : '';
+  function copy() { if (url) { navigator.clipboard?.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 1500); } }
+
+  return (
+    <>
+      {open && (
+        <div onClick={e => e.target === e.currentTarget && setOpen(false)}
+          style={{ position:'fixed', inset:0, zIndex:240, background:'rgba(0,0,0,0.7)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+          <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:14, padding:'22px 24px', width:'100%', maxWidth:460 }}>
+            <div style={{ fontSize:15, fontWeight:800 }}>Hub Preview Link</div>
+            <div style={{ fontSize:12, color:'var(--muted)', lineHeight:1.5, marginTop:6 }}>
+              A password-protected, <strong>read-only</strong> link that opens the whole Hub as a producer would see it — no edits, no deletes. Useful for demos and screenshots.
+            </div>
+
+            {cfg === undefined ? (
+              <div style={{ fontSize:12, color:'var(--muted)', marginTop:16 }}>Loading…</div>
+            ) : cfg ? (
+              <div style={{ marginTop:16, display:'flex', flexDirection:'column', gap:10 }}>
+                <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.06em' }}>Active link</div>
+                <div style={{ display:'flex', gap:8 }}>
+                  <input readOnly value={url} onFocus={e => e.target.select()}
+                    style={{ flex:1, fontSize:12, padding:'8px 10px', borderRadius:8, background:'var(--bg)', color:'var(--text)', border:'1px solid var(--border)' }} />
+                  <button className="btn btn-ghost btn-sm" onClick={copy}>{copied ? 'Copied' : 'Copy'}</button>
+                </div>
+                <div style={{ fontSize:12, color:'var(--muted)' }}>
+                  Password: <strong style={{ color:'var(--text)' }}>{cfg.password || '(none — link alone opens it)'}</strong>
+                </div>
+              </div>
+            ) : (
+              <div style={{ fontSize:12, color:'var(--muted)', marginTop:16 }}>No preview link yet.</div>
+            )}
+
+            <div style={{ marginTop:18, borderTop:'1px solid var(--border)', paddingTop:14 }}>
+              <div style={{ fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.06em', marginBottom:6 }}>{cfg ? 'Rotate — new link & password' : 'Generate a link'}</div>
+              <div style={{ display:'flex', gap:8 }}>
+                <input value={pw} onChange={e => setPw(e.target.value)} placeholder="Password (optional)"
+                  style={{ flex:1, fontSize:12, padding:'8px 10px', borderRadius:8, background:'var(--bg)', color:'var(--text)', border:'1px solid var(--border)' }} />
+                <button className="btn btn-primary btn-sm" disabled={busy} onClick={rotate}>{cfg ? 'Rotate' : 'Generate'}</button>
+              </div>
+              {cfg && <button className="btn btn-ghost btn-sm" style={{ marginTop:10, color:'#ff5c5c', borderColor:'#ff5c5c' }} disabled={busy} onClick={disable}>Disable link</button>}
+            </div>
+
+            <div style={{ display:'flex', justifyContent:'flex-end', marginTop:16 }}>
+              <button className="btn btn-ghost btn-sm" onClick={() => setOpen(false)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+      <button onClick={toggle}
+        style={{ background:'none', border:'1px solid var(--border)', borderRadius:14, padding:'4px 12px', color:'var(--muted)', fontSize:10, fontWeight:600, letterSpacing:'.05em', cursor:'pointer' }}>
+        Preview Link ▸
+      </button>
+    </>
+  );
+}
+
 // Single Admin button (above Sign out) that unfolds User Management and
 // Automations — admin role only.
 function AdminPanel({ user }) {
@@ -1837,8 +1920,9 @@ function AdminPanel({ user }) {
     <div style={{ padding:'0 26px 22px', display:'flex', flexDirection:'column', alignItems:'center', gap:10 }}>
       {open && (
         <div style={{ display:'flex', flexDirection:'column', alignItems:'stretch', gap:8, width:'100%', maxWidth:300 }}>
-          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:10 }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:10, flexWrap:'wrap' }}>
             <UserManagement user={user} />
+            <HubPreviewLink />
             <Automations />
           </div>
           <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, padding:'14px 16px' }}>

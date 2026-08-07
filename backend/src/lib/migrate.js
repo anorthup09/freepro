@@ -1820,6 +1820,19 @@ async function migrate() {
       created_at TIMESTAMPTZ DEFAULT NOW()
     )`;
 
+  // Admin-generated, password-protected read-only Hub preview links (for demos /
+  // the What's New walkthrough). One active row per token; the guest session it
+  // mints is server-enforced read-only.
+  await sql`
+    CREATE TABLE IF NOT EXISTS hub_shares (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      token TEXT UNIQUE NOT NULL,
+      password TEXT,
+      role user_role NOT NULL DEFAULT 'PRODUCER',
+      created_by TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`;
+
   // One-time ClickUp PTO/OOO import (idempotent)
   try { await require('./seedPto')(); } catch (e) { console.error('PTO seed failed:', e.message); }
 

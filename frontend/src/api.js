@@ -68,6 +68,13 @@ export const api = {
     return u;
   },
   mfaVerify: (mfaToken, code) => req('POST', '/auth/mfa/verify', { mfaToken, code }),
+
+  // Read-only Hub preview link (admin-generated, password-protected)
+  hubShareConfig: () => req('GET', '/hub-share/config'),
+  hubShareRotate: (password) => req('POST', '/hub-share/rotate', { password }),
+  hubShareDisable: () => req('DELETE', '/hub-share'),
+  hubShareAuth: (token, password) => req('POST', '/hub-share/authenticate', { token, password }),
+
   mfaSetup: () => req('POST', '/auth/mfa/setup'),
   mfaEnable: (code) => req('POST', '/auth/mfa/enable', { code }),
   mfaDisable: (code) => req('POST', '/auth/mfa/disable', { code }),

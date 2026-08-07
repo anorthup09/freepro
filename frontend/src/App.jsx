@@ -47,6 +47,7 @@ function PendingApproval({ setUser }) {
   );
 }
 import Share from './pages/Share.jsx';
+import HubShareGate from './pages/HubShareGate.jsx';
 import ContractSign from './pages/ContractSign.jsx';
 import Hub from './pages/Hub.jsx';
 import { SaveIndicator } from './pages/Finance.jsx';
@@ -131,7 +132,7 @@ function DailyTestingNotice({ user }) {
       setShow(true);
     }
   }, [user]);
-  if (!show || !user || loc.pathname.startsWith('/share') || loc.pathname.startsWith('/gantt') || loc.pathname.startsWith('/avo-share') || loc.pathname === '/login') return null;
+  if (!show || !user || loc.pathname.startsWith('/share') || loc.pathname.startsWith('/gantt') || loc.pathname.startsWith('/avo-share') || loc.pathname.startsWith('/hub-share') || loc.pathname === '/login') return null;
   return (
     <div onClick={e => e.target === e.currentTarget && setShow(false)}
       style={{ position:'fixed', inset:0, zIndex:230, background:'rgba(0,0,0,0.75)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
@@ -198,7 +199,7 @@ function SignOutFooter({ user, setUser }) {
     catch (e) { alert(e.message); setDeleting(false); }
   }
 
-  if (!user || loc.pathname.startsWith('/share') || loc.pathname.startsWith('/gantt') || loc.pathname.startsWith('/avo-share') || loc.pathname === '/login') return null;
+  if (!user || loc.pathname.startsWith('/share') || loc.pathname.startsWith('/gantt') || loc.pathname.startsWith('/avo-share') || loc.pathname.startsWith('/hub-share') || loc.pathname === '/login') return null;
   return (
     <div className="no-print signout-footer" style={{ display:'flex', justifyContent:'center', alignItems:'center', gap:10, padding:'26px 16px 34px', background:'var(--bg)' }}>
       <ThemeToggle />
@@ -307,6 +308,7 @@ export default function App() {
         <Route path="/gantt/:token" element={<GanttShare />} />
         <Route path="/reset-password/:token" element={<ResetPassword />} />
         <Route path="/share/:token" element={<Share />} />
+        <Route path="/hub-share/:token" element={<HubShareGate />} />
         <Route path="/contract/:token" element={<ContractSign />} />
         <Route path="/budget/:token" element={<BudgetShare />} />
         <Route path="/client/:client" element={<ClientPortal />} />
