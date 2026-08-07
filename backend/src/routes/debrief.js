@@ -56,13 +56,19 @@ router.delete('/debrief/:entryId', requireAuth, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-// GET /api/debrief/programs — distinct program names, for the select-or-add picker.
+// GET /api/debrief/programs?client= — distinct program names for the picker,
+// scoped to a client so a client only offers its own programs.
 router.get('/debrief/programs', requireAuth, async (req, res, next) => {
   try {
-    const rows = await sql`
-      SELECT DISTINCT program FROM projects
-      WHERE COALESCE(NULLIF(TRIM(program), ''), '') <> ''
-      ORDER BY program`;
+    const client = (req.query.client || '').trim();
+    const rows = client
+      ? await sql`SELECT DISTINCT program FROM projects
+          WHERE COALESCE(NULLIF(TRIM(program), ''), '') <> ''
+            AND LOWER(TRIM(client)) = ${client.toLowerCase()}
+          ORDER BY program`
+      : await sql`SELECT DISTINCT program FROM projects
+          WHERE COALESCE(NULLIF(TRIM(program), ''), '') <> ''
+          ORDER BY program`;
     res.json(rows.map(r => r.program));
   } catch (e) { next(e); }
 });

@@ -92,8 +92,12 @@ export default function DebriefPage() {
   useEffect(() => {
     api.getProject(id).then(setProject).catch(() => setProject(null));
     api.projectDebrief(id).then(setEntries).catch(() => setEntries([]));
-    api.debriefPrograms().then(setPrograms).catch(() => setPrograms([]));
   }, [id]);
+
+  // Programs are scoped to this project's client (a client only offers its own).
+  useEffect(() => {
+    if (project?.client) api.debriefPrograms(project.client).then(setPrograms).catch(() => setPrograms([]));
+  }, [project?.client]);
 
   async function saveProgram(v) {
     try {
