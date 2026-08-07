@@ -171,6 +171,11 @@ router.get('/team', requireAuth, async (req, res, next) => {
       const { city, state } = await resolveShootLocation(pid, s.city, s.state);
       shootLocByProject[pid] = [city, state].filter(Boolean).join(', ');
     }));
+    // Misc. work events (retreats, golf, office visits) count as a work trip today.
+    const events = await sql`
+      SELECT name, location, people FROM misc_events
+      WHERE start_date <= ${today} AND COALESCE(end_date, start_date) >= ${today}`;
+    const evPeople = p => { let a = p; if (typeof a === 'string') { try { a = JSON.parse(a || '[]'); } catch { a = []; } } return Array.isArray(a) ? a.map(String) : []; };
     const HIDDEN = ['anna parnigoni', 'ariel lynch', 'allison boon', 'brandon emery', 'cole seifert', 'dylan patterson', 'melinda love'];
     const visible = members.filter(m => !HIDDEN.includes((m.name || '').trim().toLowerCase()));
     const DENVER = ['anabelle', 'fabrizio'];
@@ -182,6 +187,8 @@ router.get('/team', requireAuth, async (req, res, next) => {
       if (p) return { id: m.id, name: m.name, status: 'out', location: homeOffice, detail: p.pto_type };
       const s = shoots.find(x => x.crew_member_id === m.id);
       if (s) return { id: m.id, name: m.name, status: 'shoot', location: shootLocByProject[s.project_id] || 'On location', detail: s.code };
+      const ev = events.find(e => evPeople(e.people).includes(String(m.id)));
+      if (ev) return { id: m.id, name: m.name, status: 'trip', location: ev.location || homeOffice, detail: ev.name };
       const stlOnly = pto.find(x => x.member_id === m.id && x.pto_type === 'STL/DEN Only');
       return { id: m.id, name: m.name, status: 'office', location: homeOffice, detail: stlOnly ? 'STL/DEN only' : 'In office' };
     }));
