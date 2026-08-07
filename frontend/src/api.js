@@ -151,6 +151,7 @@ export const api = {
   sendClientInvoice: (bid, label, amount, extra) => req('POST', `/finance/budget/${bid}/send-invoice`, { label, amount, ...(extra || {}) }),
   addMyTask: (data) => req('POST', '/dashboard/tasks', data),
   ptoList: () => req('GET', '/team/pto'),
+  ptoReport: () => req('GET', '/team/pto/report'),
   createPto: (data) => req('POST', '/team/pto', data),
   updatePto: (id, data) => req('PATCH', `/team/pto/${id}`, data),
   deletePto: (id) => req('DELETE', `/team/pto/${id}`),

@@ -82,6 +82,7 @@ import { api } from './api.js';
 import GearReport from './pages/GearReport.jsx';
 import VendorContractReport from './pages/VendorContractReport.jsx';
 import HardDrivesReport from './pages/HardDrivesReport.jsx';
+import DaysOffReport from './pages/DaysOffReport.jsx';
 import ResourceLibrary from './pages/ResourceLibrary.jsx';
 
 export const AuthContext = createContext(null);
@@ -288,6 +289,7 @@ export default function App() {
         <Route path="/reports/gear" element={user ? <GearReport /> : <Navigate to="/login" />} />
         <Route path="/reports/vendor-contracts" element={user ? <VendorContractReport /> : <Navigate to="/login" />} />
         <Route path="/reports/drives" element={user ? <HardDrivesReport /> : <Navigate to="/login" />} />
+        <Route path="/reports/days-off" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/reports" /> : <DaysOffReport />) : <Navigate to="/login" />} />
         <Route path="/reports/music-resources" element={user ? <ResourceLibrary kind="music" title="Music Resources" sub="The team's music library — licensing platforms, go-to tracks, and playlists" accent="#e6c229" placeholderTitle="Musicbed / track name / playlist…" placeholderCat="Licensing Platform, Playlists, Tracks…" /> : <Navigate to="/login" />} />
         <Route path="/reports/video-references" element={user ? <ResourceLibrary kind="video" title="Video References" sub="Reference and inspiration videos — style frames, past work, and examples to point clients at" accent="#a78bfa" placeholderTitle="Video name or what it's a reference for…" placeholderCat="Style Reference, Past Work, Inspiration…" /> : <Navigate to="/login" />} />
         <Route path="/reports/vcc" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/" /> : <VccReport />) : <Navigate to="/login" />} />

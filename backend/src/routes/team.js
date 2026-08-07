@@ -27,6 +27,48 @@ router.get('/pto', requireAuth, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// GET /api/team/pto/report — days off per person, split PTO vs OOO.
+// Counts weekdays (Mon–Fri) in each request's date range. WFH and STL/DEN Only
+// are working arrangements, not time off, so they're excluded. Comp and Other
+// OOO roll into OOO. Pending (REVIEW) requests are excluded.
+function weekdaysBetween(start, end) {
+  const s = new Date(String(start).slice(0, 10) + 'T12:00:00');
+  const e = new Date(String(end).slice(0, 10) + 'T12:00:00');
+  if (isNaN(s) || isNaN(e) || e < s) return 0;
+  let n = 0;
+  for (const d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+    const dow = d.getDay();
+    if (dow >= 1 && dow <= 5) n++;
+  }
+  return n;
+}
+router.get('/pto/report', requireAuth, async (req, res, next) => {
+  try {
+    await sql`UPDATE pto_requests SET status = 'CLOSED' WHERE end_date < ${bizToday()} AND status != 'CLOSED'`;
+    await sql`UPDATE pto_requests SET status = 'APPROVED' WHERE end_date >= ${bizToday()} AND status = 'CLOSED'`;
+    const rows = await LIST();
+    const byName = new Map();
+    for (const r of rows) {
+      if (r.status === 'REVIEW') continue;                       // pending — not counted
+      const type = r.pto_type;
+      let bucket = null;
+      if (type === 'PTO') bucket = 'pto';
+      else if (type === 'Comp' || type === 'Other OOO') bucket = 'ooo';
+      else continue;                                             // WFH / STL/DEN Only = working
+      const days = weekdaysBetween(r.start_date, r.end_date);
+      if (!days) continue;
+      const name = r.member_name || 'Unknown';
+      const cur = byName.get(name) || { name, pto: 0, ooo: 0 };
+      cur[bucket] += days;
+      byName.set(name, cur);
+    }
+    const report = [...byName.values()]
+      .map(x => ({ ...x, total: x.pto + x.ooo }))
+      .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name));
+    res.json(report);
+  } catch (e) { next(e); }
+});
+
 // POST /api/team/pto — submit the request form
 router.post('/pto', requireAuth, async (req, res, next) => {
   try {
