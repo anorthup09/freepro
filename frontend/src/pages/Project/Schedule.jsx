@@ -1107,17 +1107,11 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
         <div>
           <div className="card" style={{ marginBottom:16 }}>
             <div className="dch" style={{ marginBottom: dayCardCollapsed ? 0 : 12 }}>
-              {/* Row 1: day + date on the left, Expand/Collapse pinned top-right */}
-              <div className="dch-row1">
-                <span style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:15 }}>
-                  Day {[...days].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).findIndex(d=>d.id===currentDay.id)+1} · {parseDay(currentDay.date).toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' })}
-                </span>
-                <button className="btn btn-ghost btn-sm" onClick={() => setDayCardCollapsed(c => !c)}
-                  style={{ color:'var(--muted)', fontSize:11, padding:'1px 8px', lineHeight:1.3, minHeight:0, height:22, flexShrink:0 }}>
-                  {dayCardCollapsed ? '▸ Expand' : '▾ Collapse'}
-                </button>
-              </div>
-              {/* Row 2: location settings (centered on mobile) */}
+              {/* Desktop: one row — Day·Date | Location | Weather | Expand. Mobile: stacked. */}
+              <span className="dch-daydate" style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:15 }}>
+                Day {[...days].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).findIndex(d=>d.id===currentDay.id)+1} · {parseDay(currentDay.date).toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' })}
+              </span>
+              {/* Location settings */}
               <div className="dch-loc">
                 <WeatherLocationPicker
                   key={currentDay.id}
@@ -1159,6 +1153,10 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                   {DAY_TYPES.map(dt => <option key={dt.value} value={dt.value}>{dt.label}</option>)}
                 </select>
               </div>
+              <button className="dch-expand btn btn-ghost btn-sm" onClick={() => setDayCardCollapsed(c => !c)}
+                style={{ color:'var(--muted)', fontSize:11, padding:'1px 8px', lineHeight:1.3, minHeight:0, height:22, flexShrink:0 }}>
+                {dayCardCollapsed ? '▸ Expand' : '▾ Collapse'}
+              </button>
             </div>
             {!dayCardCollapsed && <>
               <div className="sched-times-grid" style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, marginBottom:10 }}>
