@@ -1699,7 +1699,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:8 }}>
                             <div className={`ev-title${(item.is_alert||item.isAlert) ? ' alert' : ''}`} style={{ flex:1, minWidth:0 }}>{(item.is_alert||item.isAlert) ? '⚠ ' : ''}{(item.is_filming||item.isFilming) ? '🎬 ' : ''}{item.title}</div>
                             {(item.tags || []).some(t => (t && (t.type || t)) === 'TALENT') && (
-                              <span style={{ fontSize:10, fontWeight:700, color:'var(--sc-talent)', background:'rgba(167,139,250,0.14)', border:'1px solid var(--sc-talent)', borderRadius:100, padding:'2px 10px', whiteSpace:'nowrap', flexShrink:0, letterSpacing:'.04em', textTransform:'uppercase' }}>Talent</span>
+                              <span className="etag t" style={{ flexShrink:0 }}>Talent</span>
                             )}
                             <button style={{ background:'none', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:11, flexShrink:0 }}
                               onClick={e => { e.stopPropagation(); deleteEvent(item.id); }}>✕</button>
@@ -1759,7 +1759,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                                 <div style={{ display:'flex', flexWrap:'wrap', gap:6, flex:1, minWidth:0 }}>
                                   {names.map(n => { const isTal = talentNameSet.has(n); return (
                                     <span key={n} style={ isTal
-                                      ? { fontSize:10, fontWeight:700, color:'var(--sc-talent)', background:'rgba(167,139,250,0.14)', border:'1px solid var(--sc-talent)', borderRadius:100, padding:'2px 10px', whiteSpace:'nowrap' }
+                                      ? { fontSize:10, fontWeight:700, color:'var(--etag-t, #f87171)', background:'rgba(248,113,113,0.14)', border:'1px solid rgba(248,113,113,0.4)', borderRadius:100, padding:'2px 10px', whiteSpace:'nowrap' }
                                       : { fontSize:10, fontWeight:700, color:'var(--tan)', background:'rgba(255,255,255,0.05)', border:'1px solid var(--border2)', borderRadius:100, padding:'2px 10px', whiteSpace:'nowrap' } }>{n}</span>
                                   ); })}
                                 </div>
