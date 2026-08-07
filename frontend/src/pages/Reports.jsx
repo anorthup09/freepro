@@ -51,6 +51,11 @@ const REPORTS = [
     accent: '#a78bfa', to: '/reports/video-references',
   },
   {
+    title: 'Subscriptions',
+    desc: 'Post-production tools and logins, grouped by type. No passwords — use Bitwarden.',
+    accent: '#c084fc', to: '/reports/subscriptions',
+  },
+  {
     title: 'Foodie Recs',
     desc: "The team's favorite restaurants from the road — ranked by the crew, with photos and a map of every spot.",
     accent: '#f0653c', to: '/reports/foodie',
@@ -88,7 +93,7 @@ const CATEGORIES = [
   { key: 'finance',  label: 'Finance',   icon: I.finance,  tos: ['/reports/vcc', '/reports/client-invoices', '/finance/overview', '/finance/report'] },
   { key: 'gear',     label: 'Gear',      icon: I.gear,     tos: ['/reports/gear', '/reports/drives'] },
   { key: 'people',   label: 'People',    icon: I.people,   tos: ['/reports/days-off', '/reports/media-moments', '/reports/ways-of-being'] },
-  { key: 'postpro',  label: 'Post-Pro',  icon: I.postpro,  tos: ['/reports/music-resources', '/reports/video-references'] },
+  { key: 'postpro',  label: 'Post-Pro',  icon: I.postpro,  tos: ['/reports/music-resources', '/reports/video-references', '/reports/subscriptions'] },
   { key: 'travel',   label: 'Travel',    icon: I.travel,   tos: ['/reports/foodie'] },
   { key: 'vendors',  label: 'Vendors',   icon: I.vendors,  tos: ['/reports/vendor-contracts', '/reports/invoices'] },
 ];

@@ -42,12 +42,20 @@ function weekdaysBetween(start, end) {
   }
   return n;
 }
+// Not counted as team members on the days-off report.
+const DAYSOFF_EXCLUDE = ['anna parnigoni', 'brandon emery', 'allison boon', 'ariel lynch'];
 router.get('/pto/report', requireAuth, async (req, res, next) => {
   try {
     await sql`UPDATE pto_requests SET status = 'CLOSED' WHERE end_date < ${bizToday()} AND status != 'CLOSED'`;
     await sql`UPDATE pto_requests SET status = 'APPROVED' WHERE end_date >= ${bizToday()} AND status = 'CLOSED'`;
-    const rows = await LIST();
-    const byName = new Map();
+    // Seed every Unbridled team member at zero so the full roster always shows.
+    const roster = await sql`SELECT id, ${sql.unsafe(PREF)} as name FROM crew_members cm WHERE company ILIKE '%unbridled%'`;
+    const byId = new Map();
+    for (const m of roster) {
+      if (DAYSOFF_EXCLUDE.includes((m.name || '').trim().toLowerCase())) continue;
+      byId.set(m.id, { name: m.name, pto: 0, ooo: 0 });
+    }
+    const rows = await sql`SELECT member_id, pto_type, start_date, end_date, status FROM pto_requests`;
     for (const r of rows) {
       if (r.status === 'REVIEW') continue;                       // pending — not counted
       const type = r.pto_type;
@@ -55,14 +63,13 @@ router.get('/pto/report', requireAuth, async (req, res, next) => {
       if (type === 'PTO') bucket = 'pto';
       else if (type === 'Comp' || type === 'Other OOO') bucket = 'ooo';
       else continue;                                             // WFH / STL/DEN Only = working
+      const cur = byId.get(r.member_id);
+      if (!cur) continue;                                        // excluded or non-Unbridled
       const days = weekdaysBetween(r.start_date, r.end_date);
       if (!days) continue;
-      const name = r.member_name || 'Unknown';
-      const cur = byName.get(name) || { name, pto: 0, ooo: 0 };
       cur[bucket] += days;
-      byName.set(name, cur);
     }
-    const report = [...byName.values()]
+    const report = [...byId.values()]
       .map(x => ({ ...x, total: x.pto + x.ooo }))
       .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name));
     res.json(report);

@@ -1847,6 +1847,25 @@ async function migrate() {
       created_at TIMESTAMPTZ DEFAULT NOW()
     )`;
 
+  // Subscriptions register (post-pro tools/logins). Passwords are NOT stored —
+  // the app only tracks type, name, website, and login handle. Types are saved
+  // for reuse in the picker.
+  await sql`
+    CREATE TABLE IF NOT EXISTS subscriptions (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      type TEXT,
+      name TEXT NOT NULL,
+      website TEXT,
+      login_name TEXT,
+      created_by TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`;
+  await sql`
+    CREATE TABLE IF NOT EXISTS subscription_types (
+      name TEXT PRIMARY KEY,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`;
+
   // One-time ClickUp PTO/OOO import (idempotent)
   try { await require('./seedPto')(); } catch (e) { console.error('PTO seed failed:', e.message); }
 

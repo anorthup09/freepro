@@ -75,6 +75,12 @@ export const api = {
   hubShareDisable: () => req('DELETE', '/hub-share'),
   hubShareAuth: (token, password) => req('POST', '/hub-share/authenticate', { token, password }),
 
+  // Subscriptions register (post-pro tools/logins) — no passwords stored
+  subscriptions: () => req('GET', '/subscriptions'),
+  createSubscription: (data) => req('POST', '/subscriptions', data),
+  updateSubscription: (id, data) => req('PATCH', `/subscriptions/${id}`, data),
+  deleteSubscription: (id) => req('DELETE', `/subscriptions/${id}`),
+
   mfaSetup: () => req('POST', '/auth/mfa/setup'),
   mfaEnable: (code) => req('POST', '/auth/mfa/enable', { code }),
   mfaDisable: (code) => req('POST', '/auth/mfa/disable', { code }),
