@@ -308,17 +308,21 @@ export default function Finance() {
                 </button>
               ))}
             </div>
-            {archTab === 'Closed' && (
-              <div style={{ display:'flex', gap:6, overflowX:'auto', paddingBottom:2 }}>
-                {(closedYears.length ? closedYears : [new Date().getFullYear()]).map(y => (
-                  <button key={y} onClick={() => setArchYear(y)}
-                    style={{ background: archYear === y ? '#8a8f98' : 'transparent', border:'1px solid ' + (archYear === y ? '#8a8f98' : 'var(--border)'),
-                      color: archYear === y ? '#0b0b0b' : 'var(--muted)', borderRadius:14, padding:'4px 12px', fontSize:11, fontWeight:800, cursor:'pointer', flexShrink:0 }}>
-                    {y}
-                  </button>
-                ))}
-              </div>
-            )}
+            {archTab === 'Closed' && (() => {
+              const now = new Date().getFullYear();
+              // Years that have closed budgets, plus a running range back so
+              // previous projects are always reachable from the dropdown.
+              const years = [...new Set([...closedYears, ...Array.from({ length: 8 }, (_, i) => now - i)])].sort((a, b) => b - a);
+              return (
+                <select value={archYear} onChange={e => setArchYear(Number(e.target.value))}
+                  title="Show closed projects from another year"
+                  style={{ background:'var(--bg2)', border:'1px solid var(--border)', color:'var(--text)', borderRadius:14, padding:'5px 12px', fontSize:12, fontWeight:800, cursor:'pointer' }}>
+                  {years.map(y => (
+                    <option key={y} value={y}>{y}{closedYears.includes(y) ? '' : ' (none)'}</option>
+                  ))}
+                </select>
+              );
+            })()}
           </div>
         )}
         {!projects && <div className="empty">Loading…</div>}
