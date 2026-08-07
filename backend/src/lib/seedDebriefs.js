@@ -8,7 +8,8 @@ const AUTHOR = 'Post-Mortem Import';
 
 const DEBRIEFS = [
   {
-    code: '02.STB00126', program: 'Investor Day',
+    code: '02.STB00126', program: 'Investor Day', client: 'Starbucks',
+    title: 'Starbucks Investor Day 2026', startDate: '2026-01-01', city: '', state: '',
     start: [
       'Utilizing SFX in rough cuts and initial deliveries for pre-produced edits.',
       'Arranging backup editor or Plan B for lingering edit on recap video day after event.',
@@ -31,7 +32,8 @@ const DEBRIEFS = [
     ],
   },
   {
-    code: '02.ASM05725', program: 'LPL Focus',
+    code: '02.ASM05725', program: 'LPL Focus', client: 'LPL Financial',
+    title: 'LPL Focus 2025', startDate: '2025-08-01', city: 'San Diego', state: 'CA',
     start: [
       'Define realistic amount of social output for on-site team for a 10-hour day and set expectations ahead of event.',
       'If lift goes over that - we will need to bill overtime or add extra bodies.',
@@ -58,7 +60,8 @@ const DEBRIEFS = [
     ],
   },
   {
-    code: '02.GRA90625', program: 'Fall NTC',
+    code: '02.GRA90625', program: 'Fall NTC', client: 'Graybar',
+    title: 'Graybar Fall NTC 2025', startDate: '2025-10-01', city: 'Orlando', state: 'FL',
     start: [
       'Minimize trade show footage to a single day - determine any necessary trade show footage to minimize needless overshooting.',
       'Write dedicated breaks into the schedule so client and company are all aware.',
@@ -76,7 +79,8 @@ const DEBRIEFS = [
     ],
   },
   {
-    code: '02.FAS06125', program: 'Rankin AU',
+    code: '02.FAS06125', program: 'Rankin AU', client: 'FAST',
+    title: 'FAST Rankin AU Shoot 2025', startDate: '2025-07-01', city: '', state: '',
     start: [
       'Share the International Travel Requirements doc with anyone selling-in new international projects to help with accurate planning and scoping.',
       'Pad more time in layovers to allow Carnet sign and gear re-checks.',
@@ -100,7 +104,8 @@ const DEBRIEFS = [
     ],
   },
   {
-    code: '02.ASMSLT90025', program: 'SALT Cannes',
+    code: '02.ASMSLT90025', program: 'SALT Cannes', client: 'SALT / Amazon',
+    title: 'SALT Cannes 2025', startDate: '2025-06-01', city: 'Cannes', state: 'France',
     start: [
       'Prioritize renting locally for gear instead of Carnet if possible - especially for larger studio shoots. Inflate gear budget to cover rental costs.',
       'Carnets are expensive - add an additional $500 at least as a line item for each Carnet, outside of normal gear allocation, if used for international.',
@@ -140,7 +145,8 @@ const DEBRIEFS = [
     ],
   },
   {
-    code: '02.ASM92425', program: "Women's Forum",
+    code: '02.ASM92425', program: "Women's Forum", client: 'Assetmark',
+    title: "Assetmark Women's Forum 2025", startDate: '2025-06-01', city: '', state: '',
     start: [
       'Assetmark specific - understand if a project is associated with other Solutions collaborators and, if so, connect with Sabrina earlier. Neither of us knew the other party was involved until right before the event.',
       'Consider rental car costs vs Ubers in more detail when deciding travel cost allocations in the budget. Extra Uber rides beyond arrival/departure were not accounted for and may have cost the same as a rental car - which would have been more convenient for the ground team.',
@@ -158,7 +164,8 @@ const DEBRIEFS = [
     ],
   },
   {
-    code: '02.ASM02426', program: 'Gold Forum',
+    code: '02.ASM02426', program: 'Gold Forum', client: 'Assetmark',
+    title: 'Assetmark Gold Forum 2026', startDate: '2026-01-01', city: '', state: '',
     start: [
       'Add more budget to fly in good crew instead of relying on the local market if possible.',
       'Have a conversation with Jordan re: Jimmy to prepare her for next year.',
@@ -191,10 +198,20 @@ async function findProject(code) {
 }
 
 async function seedDebriefs() {
-  let added = 0, projects = 0;
+  let added = 0, projects = 0, created = 0;
   for (const d of DEBRIEFS) {
-    const proj = await findProject(d.code);
-    if (!proj) { console.log(`Debrief seed: no project match for ${d.code} - skipped`); continue; }
+    let proj = await findProject(d.code);
+    // No existing project for this historical debrief — create a closed one so it
+    // shows up under the right client/program/year in the Debrief report.
+    if (!proj) {
+      const [np] = await sql`
+        INSERT INTO projects (id, code, title, client, city, state, start_date, status, program)
+        VALUES (gen_random_uuid()::text, ${d.code}, ${d.title || d.code}, ${d.client || 'Unassigned'},
+                ${d.city || ''}, ${d.state || ''}, ${d.startDate || null}, 'ARCHIVED'::project_status, ${d.program || null})
+        RETURNING id, program`;
+      proj = np;
+      created++;
+    }
     projects++;
     if (d.program && !proj.program) {
       await sql`UPDATE projects SET program = ${d.program} WHERE id = ${proj.id}`.catch(() => {});
@@ -209,7 +226,7 @@ async function seedDebriefs() {
       }
     }
   }
-  if (added) console.log(`Debrief seed: imported ${added} entries across ${projects} projects.`);
+  if (added || created) console.log(`Debrief seed: imported ${added} entries across ${projects} projects (${created} created).`);
 }
 
 // Diagnostics: for each doc, whether a project matched (and its real code/client)
