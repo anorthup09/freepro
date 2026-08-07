@@ -667,8 +667,20 @@ async function wikiImage(term) {
   return null;
 }
 
+// Best-effort fallback: search Wikipedia for the leading phrase of the answer
+// (before the first punctuation, first few words) so a photo shows up even when
+// the AI garnish step is unavailable or declines to pick one.
+async function leadPhraseImage(answer) {
+  const lead = String(answer || '').split(/[,.;:!?—–-]/)[0].trim().split(/\s+/).slice(0, 4).join(' ');
+  if (lead.length < 3) return null;
+  return await wikiImage(lead);
+}
+
 async function factVisual(prompt, answer) {
-  if (!process.env.ANTHROPIC_API_KEY) return 'none';
+  if (!process.env.ANTHROPIC_API_KEY) {
+    const url = await leadPhraseImage(answer);
+    return url || 'none';
+  }
   try {
     const r = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -689,7 +701,9 @@ async function factVisual(prompt, answer) {
       if (url) return url;
     }
   } catch (e) { console.error('fact visual failed:', e.message); }
-  return 'none';
+  // AI said NONE or the term had no image — try the answer's lead phrase before giving up.
+  const fb = await leadPhraseImage(answer);
+  return fb || 'none';
 }
 
 // Today's fact — rotates through everything submitted, one per day
@@ -710,7 +724,7 @@ router.get('/funfact/today', requireAuth, async (req, res, next) => {
         prompt: `Ways of Being — shouting out ${f.recipient_name}`, image: { type: 'emoji', value: '🏆' } });
     }
     let visual = f.image_url;
-    if (!visual) {
+    if (!visual || visual === 'none') {
       visual = await factVisual(f.prompt, f.answer);
       await sql`UPDATE fun_facts SET image_url = ${visual} WHERE id = ${f.id}`.catch(() => {});
     }
