@@ -33,12 +33,15 @@ router.get('/pto', requireAuth, async (req, res, next) => {
 // arrangements (excluded); PTO is its own column; every other OOO type (Comp,
 // Other OOO, etc.) rolls into OOO. Pending (REVIEW) requests are excluded.
 function weekdaysBetween(start, end) {
-  const s = new Date(String(start).slice(0, 10) + 'T12:00:00');
-  const e = new Date(String(end).slice(0, 10) + 'T12:00:00');
-  if (isNaN(s) || isNaN(e) || e < s) return 0;
+  // start/end may be Date objects (postgres DATE) or ISO strings — new Date()
+  // handles both; anchor at UTC noon and iterate in UTC to avoid tz drift.
+  const s = new Date(start), e = new Date(end);
+  if (isNaN(s) || isNaN(e)) return 0;
+  s.setUTCHours(12, 0, 0, 0); e.setUTCHours(12, 0, 0, 0);
+  if (e < s) return 0;
   let n = 0;
-  for (const d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
-    const dow = d.getDay();
+  for (const d = new Date(s); d <= e; d.setUTCDate(d.getUTCDate() + 1)) {
+    const dow = d.getUTCDay();
     if (dow >= 1 && dow <= 5) n++;
   }
   return n;
