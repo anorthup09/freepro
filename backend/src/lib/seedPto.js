@@ -55,6 +55,28 @@ const ROWS = [
   ['Tyler - PTO (2027)', 'Tyler Castle', '2027-04-16', '2027-04-24', 'PTO', 'Derik Smith', null],
   ['Tyler - PTO', 'Tyler Castle', '2027-08-25', '2027-08-30', 'PTO', 'Derik Smith', null],
   ['Tyler - PTO', 'Tyler Castle', '2027-10-08', '2027-10-11', 'PTO', 'Derik Smith', null],
+
+  // ── Added from the 8/7/26 ClickUp export — approved calendar items not in the July import ──
+  ['Joey Vegas ONLY', 'Joey Goldman', '2026-08-12', '2026-08-15', 'Comp', 'Kelly Hueseman', null],
+  ['Mason COMP', 'Mason Vitro', '2026-08-14', '2026-08-17', 'Comp', 'Derik Smith', null],
+  ['Kelly OOO', 'Kelly Hueseman', '2026-08-20', '2026-08-20', 'PTO', 'Mike Walsh', null],
+  ['Mason OOO', 'Mason Vitro', '2026-08-27', '2026-08-27', 'PTO', 'Derik Smith', null],
+  ['Derik OOO', 'Derik Smith', '2026-08-29', '2026-09-06', 'PTO', 'Mike Walsh', null],
+  ['Mason STL only', 'Mason Vitro', '2026-09-30', '2026-09-30', 'STL/DEN Only', 'Derik Smith', null],
+  ['Tyler - OOO', 'Tyler Castle', '2026-10-05', '2026-10-06', 'Comp', 'Derik Smith', null],
+  ['Tyler - STL Only', 'Tyler Castle', '2026-10-13', '2026-10-13', 'STL/DEN Only', 'Derik Smith', null],
+  ['Tyler - STL Only', 'Tyler Castle', '2026-10-19', '2026-10-21', 'STL/DEN Only', 'Derik Smith', null],
+  ['Joey STL Only', 'Joey Goldman', '2026-10-24', '2026-10-25', 'STL/DEN Only', 'Kelly Hueseman', null],
+  ['Tyler - PTO', 'Tyler Castle', '2027-01-08', '2027-01-10', 'PTO', 'Derik Smith', null],
+  ['Fab OOO (Wedding)', 'Fabrizio Alberdi', '2027-05-10', '2027-05-21', 'PTO', 'Alex Northup', null],
+
+  // ── Added from the 8/7/26 ClickUp export — Requests in Review (pending approval) ──
+  ['Alex Comp', 'Alex Northup', '2026-08-17', '2026-08-18', 'Comp', 'Mike Walsh', null, 'REVIEW'],
+  ['Anabelle OOO Comp', 'Anabelle Porio', '2026-08-21', '2026-08-21', 'Comp', 'Kelly Hueseman', null, 'REVIEW'],
+  ['Tyler - OOO', 'Tyler Castle', '2026-08-31', '2026-09-03', 'PTO', 'Derik Smith', null, 'REVIEW'],
+  ['Anabelle DEN Only', 'Anabelle Porio', '2026-09-22', '2026-09-22', 'STL/DEN Only', 'Kelly Hueseman', null, 'REVIEW'],
+  ['Jon PTO', 'Jon Arneson', '2026-09-25', '2026-09-25', 'PTO', 'Derik Smith', null, 'REVIEW'],
+  ['Jon COMP', 'Jon Arneson', '2026-10-02', '2026-10-02', 'Comp', 'Derik Smith', null, 'REVIEW'],
 ];
 
 const norm = s => String(s || '').trim().toLowerCase();
@@ -81,7 +103,7 @@ async function seedPto() {
     FROM crew_members WHERE company ILIKE '%unbridled%'`);
   if (!roster.length) return;
   let added = 0;
-  for (const [title, who, start, end, type, mgr, comp] of ROWS) {
+  for (const [title, who, start, end, type, mgr, comp, status] of ROWS) {
     const memberId = matchMember(who, roster);
     if (!memberId) { console.log(`PTO seed: no roster match for "${who}" — skipped "${title}"`); continue; }
     const managerId = matchMember(mgr, roster);
@@ -90,7 +112,7 @@ async function seedPto() {
     if (existing) continue;
     await sql`
       INSERT INTO pto_requests (member_id, title, pto_type, start_date, end_date, comp_notes, manager_id, status)
-      VALUES (${memberId}, ${title}, ${type}, ${start}, ${end}, ${comp}, ${managerId}, 'APPROVED')`;
+      VALUES (${memberId}, ${title}, ${type}, ${start}, ${end}, ${comp}, ${managerId}, ${status || 'APPROVED'})`;
     added++;
   }
   if (added) console.log(`PTO seed: imported ${added} ClickUp requests.`);
