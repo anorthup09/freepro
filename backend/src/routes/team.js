@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const sql = require('../lib/db');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, requireRole } = require('../middleware/auth');
 const { sendMail } = require('../lib/mailer');
 const { noticeHtml } = require('../lib/emailTemplates');
 const { bizToday } = require('../lib/dates');
@@ -27,10 +27,11 @@ router.get('/pto', requireAuth, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-// GET /api/team/pto/report — days off per person, split PTO vs OOO.
-// Counts weekdays (Mon–Fri) in each request's date range. WFH and STL/DEN Only
-// are working arrangements, not time off, so they're excluded. Comp and Other
-// OOO roll into OOO. Pending (REVIEW) requests are excluded.
+// GET /api/team/pto/report — days off per person, split PTO vs OOO. Admin only.
+// Calculated straight from the OOO pipeline (pto_requests): counts weekdays
+// (Mon–Fri) in each approved/closed request. WFH and STL/DEN Only are working
+// arrangements (excluded); PTO is its own column; every other OOO type (Comp,
+// Other OOO, etc.) rolls into OOO. Pending (REVIEW) requests are excluded.
 function weekdaysBetween(start, end) {
   const s = new Date(String(start).slice(0, 10) + 'T12:00:00');
   const e = new Date(String(end).slice(0, 10) + 'T12:00:00');
@@ -44,7 +45,7 @@ function weekdaysBetween(start, end) {
 }
 // Not counted as team members on the days-off report.
 const DAYSOFF_EXCLUDE = ['anna parnigoni', 'brandon emery', 'allison boon', 'ariel lynch'];
-router.get('/pto/report', requireAuth, async (req, res, next) => {
+router.get('/pto/report', requireAuth, requireRole('ADMIN'), async (req, res, next) => {
   try {
     await sql`UPDATE pto_requests SET status = 'CLOSED' WHERE end_date < ${bizToday()} AND status != 'CLOSED'`;
     await sql`UPDATE pto_requests SET status = 'APPROVED' WHERE end_date >= ${bizToday()} AND status = 'CLOSED'`;
@@ -55,14 +56,14 @@ router.get('/pto/report', requireAuth, async (req, res, next) => {
       if (DAYSOFF_EXCLUDE.includes((m.name || '').trim().toLowerCase())) continue;
       byId.set(m.id, { name: m.name, pto: 0, ooo: 0 });
     }
+    // Straight from the OOO pipeline. Normalize the type so any spelling/spacing
+    // of an OOO entry still counts (only WFH / STL-DEN are treated as working).
     const rows = await sql`SELECT member_id, pto_type, start_date, end_date, status FROM pto_requests`;
     for (const r of rows) {
       if (r.status === 'REVIEW') continue;                       // pending — not counted
-      const type = r.pto_type;
-      let bucket = null;
-      if (type === 'PTO') bucket = 'pto';
-      else if (type === 'Comp' || type === 'Other OOO') bucket = 'ooo';
-      else continue;                                             // WFH / STL/DEN Only = working
+      const t = (r.pto_type || '').trim().toLowerCase();
+      if (t === 'wfh' || t === 'stl/den only') continue;         // working arrangements
+      const bucket = t === 'pto' ? 'pto' : 'ooo';                // everything else off = OOO
       const cur = byId.get(r.member_id);
       if (!cur) continue;                                        // excluded or non-Unbridled
       const days = weekdaysBetween(r.start_date, r.end_date);

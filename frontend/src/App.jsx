@@ -290,7 +290,7 @@ export default function App() {
         <Route path="/reports/gear" element={user ? <GearReport /> : <Navigate to="/login" />} />
         <Route path="/reports/vendor-contracts" element={user ? <VendorContractReport /> : <Navigate to="/login" />} />
         <Route path="/reports/drives" element={user ? <HardDrivesReport /> : <Navigate to="/login" />} />
-        <Route path="/reports/days-off" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/reports" /> : <DaysOffReport />) : <Navigate to="/login" />} />
+        <Route path="/reports/days-off" element={user ? (user.role === 'ADMIN' ? <DaysOffReport /> : <Navigate to="/reports" />) : <Navigate to="/login" />} />
         <Route path="/reports/subscriptions" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/reports" /> : <SubscriptionsReport />) : <Navigate to="/login" />} />
         <Route path="/reports/music-resources" element={user ? <ResourceLibrary kind="music" title="Music Resources" sub="The team's music library — licensing platforms, go-to tracks, and playlists" accent="#e6c229" placeholderTitle="Musicbed / track name / playlist…" placeholderCat="Licensing Platform, Playlists, Tracks…" /> : <Navigate to="/login" />} />
         <Route path="/reports/video-references" element={user ? <ResourceLibrary kind="video" title="Video References" sub="Reference and inspiration videos — style frames, past work, and examples to point clients at" accent="#a78bfa" placeholderTitle="Video name or what it's a reference for…" placeholderCat="Style Reference, Past Work, Inspiration…" /> : <Navigate to="/login" />} />

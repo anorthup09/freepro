@@ -109,6 +109,8 @@ const gradientAccent = (i, n) => {
 
 // Crew only see non-financial resources (no VCCs, invoices, or finance rollups).
 const CREW_SAFE = new Set(['/reports/foodie', '/reports/music-resources', '/reports/video-references', '/reports/drives', '/reports/gear']);
+// Admin-only reports (hidden from everyone else, even producers/finance).
+const ADMIN_ONLY = new Set(['/reports/days-off']);
 
 const CSS = `
 .rpt-dockwrap{display:flex;justify-content:center;margin:20px 0 28px}
@@ -143,7 +145,8 @@ export default function Reports() {
 
   // Reports this user can open, keyed by route.
   const all = [...REPORTS, ...(isAdmin ? ADMIN_REPORTS : [])];
-  const accessible = isCrew ? all.filter(r => CREW_SAFE.has(r.to)) : all;
+  const accessible = (isCrew ? all.filter(r => CREW_SAFE.has(r.to)) : all)
+    .filter(r => !ADMIN_ONLY.has(r.to) || isAdmin);
   const byTo = new Map(accessible.map(r => [r.to, r]));
   const reportsFor = cat => cat.tos.map(to => byTo.get(to)).filter(Boolean);
 
