@@ -1787,7 +1787,7 @@ export default function Hub() {
                 <h1 className="hub-h1">Hey {firstName},</h1>
                 <div className="hub-tagline"><HubGreeting /></div>
               </div>
-              {!isCrew && <div className="hub-anim-drop" ref={mmRef}><MediaMomentOrbit /></div>}
+              <div className="hub-anim-drop" ref={mmRef}><MediaMomentOrbit /></div>
             </div>
             <div className="dash-scroll">
               <TripPrompt />
