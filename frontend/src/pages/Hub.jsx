@@ -1358,8 +1358,11 @@ const HUB_CSS = `
   animation:mmCardIn .7s cubic-bezier(.22,.61,.36,1) both}
 .mm-banner::after{content:'';position:absolute;right:-46px;top:-46px;width:190px;height:190px;border-radius:50%;
   background:radial-gradient(circle, rgba(232,80,10,0.13), transparent 70%);pointer-events:none}
-.mm-photo{position:absolute;top:0;right:0;bottom:0;width:48%;z-index:0;background-size:cover;background-position:center;opacity:.5;pointer-events:none;
+.mm-photo{position:absolute;top:0;right:0;bottom:0;width:48%;z-index:0;background-size:cover;background-position:center 30%;opacity:.5;pointer-events:none;
+  animation:mmPan 16s ease-in-out infinite alternate;
   -webkit-mask-image:linear-gradient(90deg, transparent, #000 58%);mask-image:linear-gradient(90deg, transparent, #000 58%)}
+@keyframes mmPan{from{background-position:center 16%}to{background-position:center 82%}}
+@media (prefers-reduced-motion: reduce){.mm-photo{animation:none;background-position:center 28%}}
 .mm-b-main{position:relative;z-index:1;min-width:0}
 .mm-kicker{font-size:9px;font-weight:900;letter-spacing:.18em;color:var(--orange)}
 .mm-prompt{font-size:10.5px;font-weight:700;color:var(--muted);margin-top:4px;line-height:1.3}
