@@ -406,7 +406,9 @@ export default function ProjectOverview({ pid, onOpenFinance }) {
                 {!killed && e.focus && <StatusPill status="Focus" color={FOCUS_COLOR} />}
                 {killed
                   ? <StatusPill status="Killed" color="#8a8f98" />
-                  : <StatusPill status={st ? st[1] : 'Upcoming'} color={st ? st[2] : '#8a8f98'} />}
+                  : e.delivered
+                    ? <StatusPill status="Delivered" color="#4a9eff" />
+                    : <StatusPill status={st ? st[1] : 'Upcoming'} color={st ? st[2] : '#8a8f98'} />}
               </div>
             );
           })}
