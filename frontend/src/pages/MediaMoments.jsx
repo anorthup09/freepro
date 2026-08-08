@@ -32,7 +32,7 @@ export default function MediaMoments() {
         {err && <div className="empty">{err}</div>}
         {rows && rows.length === 0 && <div className="empty">No MediaMoment submissions yet.</div>}
         {(rows || []).map(r => (
-          <div key={r.id} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderLeft:`3px solid ${ACCENT}`, borderRadius:10, padding:'14px 18px', marginBottom:10 }}>
+          <div key={r.id} className="glass" style={{ borderLeft:`3px solid ${ACCENT}`, borderRadius:12, padding:'14px 18px', marginBottom:10 }}>
             <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', gap:10, flexWrap:'wrap' }}>
               <div style={{ fontSize:13, fontWeight:800 }}>{r.member_name || r.member_email}</div>
               <div style={{ display:'flex', alignItems:'center', gap:10 }}>

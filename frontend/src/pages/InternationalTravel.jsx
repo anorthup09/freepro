@@ -130,7 +130,7 @@ export default function InternationalTravel() {
 
         <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
           {view.map((sec, si) => (
-            <div key={si} style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderTop: `3px solid ${ACCENT}`, borderRadius: 12, padding: '16px 20px' }}>
+            <div key={si} className="glass" style={{ borderTop: `3px solid ${ACCENT}`, borderRadius: 14, padding: '16px 20px' }}>
               {editing ? (
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12 }}>
                   <input value={sec.title} onChange={e => setSecTitle(si, e.target.value)} style={{ ...inp, fontWeight: 800 }} placeholder="Section title" />

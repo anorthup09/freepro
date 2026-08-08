@@ -388,7 +388,7 @@ textarea { resize: vertical; min-height: 70px; }
 
 /* ── Modal overlay ── */
 .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.55); backdrop-filter: blur(6px) saturate(1.1); -webkit-backdrop-filter: blur(6px) saturate(1.1); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; }
-.modal { background: color-mix(in srgb, var(--bg2) 78%, transparent); backdrop-filter: blur(22px) saturate(1.6); -webkit-backdrop-filter: blur(22px) saturate(1.6); border: 1px solid rgba(255,255,255,0.12); border-radius: 16px; padding: 24px; width: 100%; max-width: 540px; max-height: 90vh; overflow-y: auto; box-shadow: 0 24px 60px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.12); }
+.modal { background: linear-gradient(150deg, rgba(255,255,255,0.05), rgba(255,255,255,0.012) 55%), color-mix(in srgb, var(--bg2) 62%, transparent); backdrop-filter: blur(26px) saturate(1.4); -webkit-backdrop-filter: blur(26px) saturate(1.4); border: 1px solid rgba(255,255,255,0.12); border-radius: 18px; padding: 24px; width: 100%; max-width: 540px; max-height: 90vh; overflow-y: auto; box-shadow: inset 0 1px 0 rgba(255,255,255,0.28), inset 1px 0 0 rgba(255,255,255,0.08), inset 0 12px 28px -16px rgba(255,255,255,0.22), 0 24px 60px rgba(0,0,0,0.55); }
 :root[data-theme="light"] .modal { border-color: rgba(0,0,0,0.08); box-shadow: 0 24px 60px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.8); }
 /* Reusable subtle liquid-glass surface */
 /* Liquid glass: translucent fill with a luminous inner rim — crisp top light,
@@ -1214,6 +1214,8 @@ body.pvd-nav-open .proj-bottomnav { display: none !important; }
 :root[data-theme="light"] .aurora{opacity:.13}
 /* The hub landing page runs the full-strength wash */
 body.aurora-full .aurora{opacity:.35}
+/* Splash screen: full-strength aurora behind the glass tile */
+body.aurora-max .aurora{opacity:1 !important;transition:opacity .6s ease}
 :root[data-theme="light"] body.aurora-full .aurora{opacity:.22}
 /* Finance pages: the budget/VCC grids are too dense for the full wash */
 body.aurora-dim .aurora{opacity:.1}
@@ -1227,7 +1229,13 @@ body.aurora-off .aurora{display:none}
 
 /* Circular glass action buttons (report header) — icon-only, label slides out
    on hover; same glass finish as the home button */
-.glass-action{width:auto;min-width:36px;padding:0 9px;border-radius:100px;font-family:inherit}
+.glass-action{width:36px;border-radius:50%;font-family:inherit;position:relative}
 .glass-action:disabled{opacity:.45;cursor:default}
-.glass-action .ga-label{max-width:0;opacity:0;white-space:nowrap;overflow:hidden;font-size:11px;font-weight:800;letter-spacing:.02em;transition:max-width .28s ease,opacity .2s ease,margin-left .28s ease}
-.glass-action:hover:not(:disabled) .ga-label{max-width:150px;opacity:1;margin-left:7px}
+/* label appears as a floating tag under the button — no layout shift, so no
+   hover jitter against the backdrop-filtered buttons */
+.glass-action .ga-label{position:absolute;top:calc(100% + 8px);right:0;opacity:0;pointer-events:none;
+  white-space:nowrap;font-size:11px;font-weight:800;letter-spacing:.02em;color:rgba(255,255,255,0.92);
+  background:rgba(20,18,15,0.94);border:1px solid rgba(255,255,255,0.16);border-radius:8px;padding:4px 10px;
+  transform:translateY(-4px);transition:opacity .18s ease, transform .18s ease;z-index:50}
+.glass-action:hover:not(:disabled) .ga-label{opacity:1;transform:none}
+:root[data-theme="light"] .glass-action .ga-label{background:rgba(255,255,255,0.96);color:#3a3a3a;border-color:rgba(0,0,0,0.12)}

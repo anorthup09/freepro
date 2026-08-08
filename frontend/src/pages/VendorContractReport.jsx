@@ -27,7 +27,7 @@ function ContractDetailModal({ row, contract, loading, onClose, onCrew, onPost }
   const grandTotal = (c ? Number(c.quoted_total) : 0) || laborTotal + gearTotal || Number(row.est_total) || 0;
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 12, width: '100%', maxWidth: 520, maxHeight: '90vh', overflowY: 'auto', padding: 22 }}>
+      <div onClick={e => e.stopPropagation()} className="glass" style={{ borderRadius: 16, width: '100%', maxWidth: 520, maxHeight: '90vh', overflowY: 'auto', padding: 22 }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
           <div>
             <div style={{ fontSize: 16, fontWeight: 800 }}>{c ? c.contractor_name : row.contractor_name}</div>
@@ -136,7 +136,7 @@ export default function VendorContractReport() {
         </div>
         {!rows && <div className="empty">Loading…</div>}
         {rows && (
-          <div className="budget-tbl-wrap" style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 10, marginTop: 10, overflowX: 'auto' }}>
+          <div className="budget-tbl-wrap glass" style={{ borderRadius: 12, marginTop: 10, overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 640 }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)' }}>

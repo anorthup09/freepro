@@ -25,7 +25,7 @@ export default function WaysOfBeing() {
         {err && <div className="empty">{err}</div>}
         {rows && rows.length === 0 && <div className="empty">No shoutouts yet — the first two arrive this week.</div>}
         {(rows || []).map((w, i) => (
-          <div key={i} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderLeft:'3px solid #f7b52d', borderRadius:10, padding:'14px 18px', marginBottom:10 }}>
+          <div key={i} className="glass" style={{ borderLeft:'3px solid #f7b52d', borderRadius:12, padding:'14px 18px', marginBottom:10 }}>
             <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', gap:10, flexWrap:'wrap' }}>
               <div style={{ fontSize:13, fontWeight:800 }}>🏆 {w.recipient_name}</div>
               <div style={{ fontSize:10, color:'var(--muted)' }}>{fmtD(w.created_at)} · {w.week}</div>
