@@ -1348,6 +1348,9 @@ const HUB_CSS = `
 .hub-header{margin:54px 0 10px}
 .hub-h1{font-family:Georgia,'Times New Roman',serif;font-size:34px;font-weight:700;letter-spacing:-.01em;line-height:1.05;margin:0}
 .hub-tagline{text-align:left;font-size:14px;font-weight:600;color:var(--tan);max-width:560px;margin:8px 0 0;line-height:1.45}
+/* tagline + on-site welcome pill share one row */
+.hub-tagline-row{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.hub-tagline-row > .hub-tagline{flex:1 1 auto;min-width:0}
 /* Mobile: pin the hero (heading/tagline/media moment) and let the tiles below
    scroll up over it (they carry a solid bg + higher z-index). The pinned hero
    stays locked in place and slowly fades out (opacity via JS refs on scroll). */
@@ -1362,10 +1365,13 @@ const HUB_CSS = `
 /* Liquid-glass MediaMoment + on-site welcome pill, side by side, over a slow
    moving-gradient backdrop for depth. */
 .mm-row{position:relative;display:flex;gap:16px;align-items:stretch;flex-wrap:wrap;margin:8px 0 24px}
-.mm-row::before{content:'';position:absolute;inset:-28px -8px;z-index:0;pointer-events:none;
-  background:radial-gradient(60% 80% at 32% 30%, rgba(255,255,255,0.05), transparent 78%);
-  filter:blur(40px);animation:mmAmbient 34s ease-in-out infinite alternate}
-@keyframes mmAmbient{0%{transform:translate3d(0,0,0) scale(1)}100%{transform:translate3d(2%,-2%,0) scale(1.05)}}
+.mm-row::before{content:'';position:absolute;inset:-40px -20px;z-index:0;pointer-events:none;
+  background:radial-gradient(45% 65% at 25% 35%, rgba(232,80,10,0.18), transparent 72%),
+    radial-gradient(40% 55% at 85% 60%, rgba(232,80,10,0.12), transparent 74%);
+  filter:blur(55px);animation:hubAura 28s ease-in-out infinite alternate}
+:root[data-theme="light"] .mm-row::before{
+  background:radial-gradient(45% 65% at 25% 35%, rgba(232,80,10,0.13), transparent 72%),
+    radial-gradient(40% 55% at 85% 60%, rgba(232,80,10,0.08), transparent 74%)}
 .mm-row > *{position:relative;z-index:1}
 .mm-row > .mm-wrap{flex:2 1 440px;margin:0;min-width:0;display:flex}
 .mm-wrap{position:relative}
@@ -1374,17 +1380,17 @@ const HUB_CSS = `
 /* Frosted capsule: no glow — a clean blur with a subtle refractive light edge
    (bright glint at top-left + bottom-right, fading through the middle). */
 .mm-banner,.mm-welcome{position:relative;overflow:hidden;border-radius:40px;
-  border:1px solid rgba(255,255,255,0.12);
-  background:color-mix(in srgb, var(--bg2) 58%, transparent);
-  backdrop-filter:blur(24px) saturate(1.15);-webkit-backdrop-filter:blur(24px) saturate(1.15);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,0.22), inset 0 -1px 1px rgba(0,0,0,0.28), 0 14px 40px rgba(0,0,0,0.36);
+  border:1px solid rgba(255,255,255,0.16);
+  background:linear-gradient(150deg, rgba(255,255,255,0.13), rgba(255,255,255,0.04) 55%), color-mix(in srgb, var(--bg2) 64%, transparent);
+  backdrop-filter:blur(26px) saturate(1.2);-webkit-backdrop-filter:blur(26px) saturate(1.2);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.28), inset 0 -1px 1px rgba(0,0,0,0.28), 0 14px 40px rgba(0,0,0,0.36);
   animation:mmCardIn .7s cubic-bezier(.22,.61,.36,1) both}
 .mm-banner{display:flex;flex-direction:row;align-items:center;gap:16px;padding:18px 30px}
 .mm-banner::before,.mm-welcome::before{content:'';position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;z-index:4;
   background:linear-gradient(135deg, rgba(255,255,255,0.55), rgba(255,255,255,0.04) 34%, rgba(255,255,255,0) 56%, rgba(255,255,255,0.16) 100%);
   -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
 :root[data-theme="light"] .mm-banner,:root[data-theme="light"] .mm-welcome{
-  border-color:rgba(0,0,0,0.08);background:color-mix(in srgb, #fff 80%, transparent);
+  border-color:rgba(0,0,0,0.08);background:linear-gradient(150deg, rgba(255,255,255,0.7), rgba(255,255,255,0.35) 60%), color-mix(in srgb, #fff 78%, transparent);
   box-shadow:inset 0 1px 0 rgba(255,255,255,0.9), 0 10px 28px rgba(0,0,0,0.12)}
 :root[data-theme="light"] .mm-banner::before,:root[data-theme="light"] .mm-welcome::before{
   background:linear-gradient(135deg, rgba(255,255,255,0.9), rgba(255,255,255,0) 45%, rgba(0,0,0,0.05) 100%)}
@@ -1403,12 +1409,12 @@ const HUB_CSS = `
 .mm-answer{font-family:Georgia,'Times New Roman',serif;font-size:14px;font-weight:700;line-height:1.4;margin-top:5px;color:var(--text)}
 .mm-name{font-family:'DM Sans',sans-serif;font-size:11px;font-weight:800;color:var(--muted);white-space:nowrap;text-align:right;margin-top:4px}
 
-/* on-site welcome pill — the whole tile is the button; content right-aligned */
-.mm-welcome{flex:1 1 230px;min-width:210px;align-self:center;display:flex;flex-direction:column;align-items:flex-end;justify-content:center;
-  gap:3px;padding:12px 26px;text-align:right;text-decoration:none;cursor:pointer;
+/* on-site welcome pill — compact, sits inline to the right of the tagline */
+.mm-welcome{flex:0 1 auto;min-width:0;align-self:center;display:flex;flex-direction:column;align-items:flex-end;justify-content:center;
+  gap:1px;padding:7px 16px;text-align:right;text-decoration:none;cursor:pointer;
   transition:transform .18s ease, border-color .18s ease}
 .mm-welcome:hover{transform:translateY(-2px);border-color:rgba(232,99,42,0.5)}
-.mmw-title{position:relative;z-index:2;font-family:Georgia,'Times New Roman',serif;font-size:clamp(11px,1.3vw,13px);font-weight:700;line-height:1.15;letter-spacing:-.01em;color:var(--text)}
+.mmw-title{position:relative;z-index:2;font-family:Georgia,'Times New Roman',serif;font-size:clamp(10.5px,1.1vw,12.5px);font-weight:700;line-height:1.1;letter-spacing:-.01em;color:var(--text);white-space:nowrap}
 .mmw-cta{position:relative;z-index:2;display:flex;align-items:center;justify-content:flex-end;gap:7px;margin-top:2px}
 .mmw-view{color:var(--orange);font-size:clamp(11px,1.5vw,13px);font-weight:700;letter-spacing:.02em;transition:color .18s ease}
 
@@ -1864,11 +1870,13 @@ export default function Hub() {
             <div className="dash-hero">
               <div className="hub-header" ref={heroLeftRef}>
                 <h1 className="hub-h1">Hey {firstName},</h1>
-                <div className="hub-tagline"><HubGreeting /></div>
+                <div className="hub-tagline-row">
+                  <div className="hub-tagline"><HubGreeting /></div>
+                  <TripPrompt />
+                </div>
               </div>
               <div className="hub-anim-drop mm-row" ref={mmRef}>
                 <MediaMomentOrbit />
-                <TripPrompt />
               </div>
             </div>
             <div className="dash-scroll">
