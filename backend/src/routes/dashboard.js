@@ -102,6 +102,34 @@ async function itemsFor(cm, today) {
   return items;
 }
 
+// Solutions/agency contacts don't sit in crew_assignments — they're matched
+// the same way the on-trip pill finds them: an agency_contacts row on a
+// project with a shoot day on the given date.
+async function agencyShootItems(user, cm, date) {
+  const email = (user.email || '').toLowerCase();
+  const names = [];
+  if (cm) {
+    const disp = [cm.preferred_first_name, cm.preferred_last_name].filter(Boolean).join(' ').trim() || cm.name;
+    if (disp) names.push(disp.toLowerCase());
+    if (cm.name) names.push(cm.name.toLowerCase());
+  }
+  const shoots = await sql`
+    SELECT DISTINCT pr.id, pr.code, pr.title, pr.city, pr.state, ac.title AS contact_title
+    FROM agency_contacts ac
+    JOIN projects pr ON pr.id = ac.project_id
+    JOIN shoot_days sd ON sd.project_id = pr.id AND sd.date::date = ${date}
+    WHERE pr.status != 'ARCHIVED'
+      AND ( (${email} <> '' AND LOWER(ac.email) = ${email})
+            OR LOWER(ac.name) = ANY(${sql.array(names.length ? names : [''])}) )`;
+  const items = [];
+  for (const s of shoots) {
+    const { city, state } = await resolveShootLocation(s.id, s.city, s.state);
+    const loc = [city, state].filter(Boolean).join(', ');
+    items.push({ kind: 'shoot', title: `On shoot — ${s.code} ${s.title}`, subtitle: `${s.contact_title || 'On set'}${loc ? ` · ${loc}` : ''}`, link: `/projects/${s.id}` });
+  }
+  return items;
+}
+
 router.get('/today', requireAuth, async (req, res, next) => {
   try {
     const today = bizToday();
@@ -110,6 +138,13 @@ router.get('/today', requireAuth, async (req, res, next) => {
     const items = cm ? await itemsFor(cm, today) : [];
     // Coming Tomorrow: same signals for the next day (skip in-progress noise)
     const tomorrow = cm ? (await itemsFor(cm, tomorrowDate)).filter(i => i.kind !== 'work') : [];
+    // Solutions members on-set: same "On shoot" rows, matched via agency contacts
+    for (const it of await agencyShootItems(req.user, cm, today)) {
+      if (!items.some(x => x.title === it.title)) items.push(it);
+    }
+    for (const it of await agencyShootItems(req.user, cm, tomorrowDate)) {
+      if (!tomorrow.some(x => x.title === it.title)) tomorrow.push(it);
+    }
     // Open one-off project tasks assigned to me (fed from Project Overview pages)
     let tasks = [];
     if (cm) {
@@ -701,6 +736,32 @@ router.post('/funfact', requireAuth, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// On-site photos: anyone can submit a shot from the field with a caption —
+// it joins the daily MediaMoment rotation alongside facts and shoutouts.
+router.post('/site-photo', requireAuth, async (req, res, next) => {
+  try {
+    const { mime, fileBase64 } = req.body;
+    const caption = String(req.body.caption || '').trim();
+    if (!fileBase64) return res.status(400).json({ error: 'A photo is required' });
+    if (!(mime || '').startsWith('image/')) return res.status(400).json({ error: 'Photos only' });
+    const buf = Buffer.from(fileBase64, 'base64');
+    if (buf.length > 10 * 1024 * 1024) return res.status(400).json({ error: 'Photo too large (10MB max)' });
+    const key = (req.user.email || '').toLowerCase();
+    await sql`INSERT INTO site_photos (member_email, member_name, caption, mime, data)
+      VALUES (${key}, ${req.user.name || key}, ${caption.slice(0, 300)}, ${mime}, ${buf})`;
+    res.status(201).json({ ok: true });
+  } catch (e) { next(e); }
+});
+router.get('/site-photo/:id/file', requireAuth, async (req, res, next) => {
+  try {
+    const [f] = await sql`SELECT mime, data FROM site_photos WHERE id = ${req.params.id}`;
+    if (!f) return res.status(404).json({ error: 'Photo not found' });
+    res.setHeader('Content-Type', f.mime || 'image/jpeg');
+    res.setHeader('Cache-Control', 'private, max-age=86400');
+    res.send(f.data);
+  } catch (e) { next(e); }
+});
+
 // Visual garnish for a fact: an emoji, or a photo (Wikipedia page image) of
 // whatever the answer is about. Computed once per fact and cached on the row
 // as 'emoji:X', an https URL, or 'none'.
@@ -759,13 +820,19 @@ router.get('/funfact/today', requireAuth, async (req, res, next) => {
     const facts = await sql`SELECT id, member_name, prompt, answer, image_url FROM fun_facts ORDER BY created_at`;
     // Ways of Being shoutouts join the daily rotation
     const wobs = await sql`SELECT id, giver_name, recipient_name, text, created_at FROM ways_of_being ORDER BY created_at`;
+    const sitePhotos = await sql`SELECT id, member_name, caption, created_at FROM site_photos ORDER BY created_at`;
     const pool = [
       ...facts.map(x => ({ kind: 'fact', ...x })),
       ...wobs.map(x => ({ kind: 'wob', ...x })),
+      ...sitePhotos.map(x => ({ kind: 'photo', ...x })),
     ];
     if (!pool.length) return res.json(null);
     const dayN = Math.floor(new Date(bizToday() + 'T12:00:00').getTime() / 86400000);
     const f = pool[dayN % pool.length];
+    if (f.kind === 'photo') {
+      return res.json({ kind: 'photo', name: f.member_name, prompt: 'From the field', answer: f.caption || '',
+        photoId: f.id });
+    }
     if (f.kind === 'wob') {
       return res.json({ kind: 'wob', name: f.giver_name, recipient: f.recipient_name, answer: f.text,
         prompt: `Ways of Being — shouting out ${f.recipient_name}`, image: { type: 'emoji', value: '🏆' } });

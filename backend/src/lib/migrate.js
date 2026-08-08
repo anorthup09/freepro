@@ -1808,6 +1808,18 @@ async function migrate() {
     )`;
   await sql`ALTER TABLE fun_facts ADD COLUMN IF NOT EXISTS image_url TEXT`;
 
+  // On-site photos submitted from the hub — they join the MediaMoment rotation
+  await sql`
+    CREATE TABLE IF NOT EXISTS site_photos (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      member_email TEXT NOT NULL,
+      member_name TEXT,
+      caption TEXT,
+      mime TEXT,
+      data BYTEA,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`;
+
   // Ways of Being: weekly shoutouts for teammates going above and beyond
   await sql`
     CREATE TABLE IF NOT EXISTS ways_of_being (

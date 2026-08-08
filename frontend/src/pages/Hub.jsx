@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../App.jsx';
 import { api } from '../api.js';
@@ -84,6 +85,72 @@ export function TripPrompt() {
       <span className="mmw-view">{viewLabel}</span>
       <svg className="mmw-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6"/></svg>
     </a>
+  );
+}
+
+// "Submit an On-Site Photo!" — pill button beside the Producer/Crew View
+// prompt. Opens a pop-out to upload a shot with a caption; submissions join
+// the daily MediaMoment rotation.
+function SitePhotoButton() {
+  const [open, setOpen] = useState(false);
+  const [file, setFile] = useState(null);      // { name, mime, base64, preview }
+  const [caption, setCaption] = useState('');
+  const [saving, setSaving] = useState(false);
+  const close = () => { setOpen(false); setFile(null); setCaption(''); setSaving(false); };
+  function pick(e) {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    if (!f.type.startsWith('image/')) { alert('Photos only'); return; }
+    if (f.size > 10 * 1024 * 1024) { alert('Photo too large (10MB max)'); return; }
+    const rd = new FileReader();
+    rd.onload = () => setFile({ name: f.name, mime: f.type, base64: String(rd.result).split(',')[1], preview: String(rd.result) });
+    rd.readAsDataURL(f);
+  }
+  async function submit() {
+    if (!file || saving) return;
+    setSaving(true);
+    try { await api.submitSitePhoto({ mime: file.mime, fileBase64: file.base64, caption: caption.trim() }); close(); }
+    catch (e) { alert(e.message); setSaving(false); }
+  }
+  return (
+    <>
+      <button className="mm-welcome" onClick={() => setOpen(true)} style={{ font: 'inherit', cursor: 'pointer' }}
+        aria-label="Submit an on-site photo">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>
+        </svg>
+        <span className="mmw-view">Submit an On-Site Photo!</span>
+      </button>
+      {open && createPortal(
+        <div onClick={e => e.target === e.currentTarget && close()}
+          style={{ position:'fixed', inset:0, zIndex:260, background:'rgba(0,0,0,0.75)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+          <div className="glass" style={{ width:'100%', maxWidth:440, borderTop:'3px solid var(--orange)', borderRadius:14, padding:'22px 24px' }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+              <div style={{ fontSize:11, fontWeight:800, letterSpacing:'0.12em', color:'var(--orange)' }}>ON-SITE PHOTO</div>
+              <button className="btn btn-ghost btn-sm" onClick={close}>✕</button>
+            </div>
+            <div style={{ fontSize:16, fontWeight:800, margin:'12px 0 4px', lineHeight:1.35 }}>Show the team where you are</div>
+            <div style={{ fontSize:11, color:'var(--muted)', marginBottom:12 }}>Your shot joins the daily MediaMoment rotation on everyone's hub.</div>
+            <label style={{ display:'block', cursor:'pointer', marginBottom:10 }}>
+              <input type="file" accept="image/*" onChange={pick} style={{ display:'none' }} />
+              {file
+                ? <img src={file.preview} alt="" style={{ width:'100%', maxHeight:220, objectFit:'cover', borderRadius:10, border:'1px solid var(--border)' }} />
+                : <div style={{ border:'1.5px dashed var(--border2)', borderRadius:10, padding:'26px 12px', textAlign:'center', fontSize:12, color:'var(--muted)' }}>
+                    Tap to choose a photo
+                  </div>}
+            </label>
+            <input value={caption} onChange={e => setCaption(e.target.value)} placeholder="Add a caption…"
+              style={{ width:'100%', fontSize:13 }} />
+            <div style={{ display:'flex', justifyContent:'flex-end', marginTop:12 }}>
+              <button className="btn btn-primary btn-sm" disabled={!file || saving} onClick={submit}>
+                {saving ? 'Sending…' : 'Add to the rotation'}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+    </>
   );
 }
 
@@ -252,16 +319,28 @@ function MediaMomentOrbit() {
     const t = setTimeout(() => setIntro(false), 2700);
     return () => clearTimeout(t);
   }, [fact]);
+  // On-site photo moments serve their image behind auth, so fetch to a blob URL
+  const [photoUrl, setPhotoUrl] = useState(null);
+  useEffect(() => {
+    if (!fact || fact.kind !== 'photo' || !fact.photoId) return;
+    let obj;
+    fetch(`/api/dashboard/site-photo/${fact.photoId}/file`, { headers: { Authorization: `Bearer ${localStorage.getItem('fp_token')}` } })
+      .then(r => r.ok ? r.blob() : null)
+      .then(b => { if (b) { obj = URL.createObjectURL(b); setPhotoUrl(obj); } })
+      .catch(() => {});
+    return () => obj && URL.revokeObjectURL(obj);
+  }, [fact]);
   if (fact === undefined || !fact) return null;   // loading or no moment → hide
   const isWob = fact.kind === 'wob';
+  const bgPhoto = fact.kind === 'photo' ? photoUrl : (fact.image?.type === 'photo' ? fact.image.value : null);
   return (
     <div className="mm-wrap">
       <div className="mm-banner">
-        {fact.image?.type === 'photo' && <div className="mm-photo" style={{ backgroundImage:`url("${fact.image.value}")` }} aria-hidden />}
+        {bgPhoto && <div className="mm-photo" style={{ backgroundImage:`url("${bgPhoto}")` }} aria-hidden />}
         <div className="mm-b-main">
           <div className="mm-name"><span className="mm-name-pill">{fact.name}</span></div>
           {fact.prompt && <div className="mm-prompt">{fact.prompt}</div>}
-          <div className="mm-answer">“{fact.answer}”</div>
+          {fact.answer && <div className="mm-answer">“{fact.answer}”</div>}
         </div>
       </div>
       {intro && (
@@ -1429,7 +1508,7 @@ const HUB_CSS = `
 /* hero: greeting left, on-site welcome pill top right in line with it */
 .hub-hero-row{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:48px}
 .hub-hero-row .hub-header{margin-bottom:0;flex:1 1 320px;min-width:0}
-.hub-hero-cta{margin-top:40px;flex:0 1 auto;display:flex;justify-content:flex-end}
+.hub-hero-cta{margin-top:40px;flex:0 1 auto;display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap}
 @media(max-width:640px){.hub-hero-cta{margin-top:0;flex-basis:100%;justify-content:flex-end}}
 /* hub tile top row: MediaMoment / Ways of Being on the left half, controls +
    half-width search on the right half */
@@ -1822,8 +1901,9 @@ export function HubBottomNav({ raised = false }) {
       <style>{NAV_CSS}</style>
       <div className={`hub-bottomnav${path === '/' ? ' homeload' : ''}${scrolled ? ' condensed' : ''}${raised ? ' raised' : ''}${collapsing ? ' collapsing' : ''}`}>
         {bubble && <div className="hub-navbubble" style={{ left: bubble.left, top: bubble.top, width: bubble.width, height: bubble.height }} />}
-        {items.map(it => (
+        {items.map((it, i) => (
           <button key={it.key} ref={el => { btnRefs.current[it.key] = el; }}
+            style={path === '/' ? { animationDelay: `${0.35 + i * 0.16}s` } : undefined}
             className={`hub-navitem${it.active ? ' active' : ''}`} onClick={() => go(it.to)}>
             {it.icon}<span className="lbl">{it.label}</span>
           </button>
@@ -1847,9 +1927,13 @@ const NAV_CSS = `
    crops the dock's soft shadow into a visible dark box */
 @keyframes dockReveal{0%{clip-path:inset(-60px 100% -60px 0);opacity:0}96%{clip-path:inset(-60px 0 -60px 0);opacity:1}100%{clip-path:none;opacity:1}}
 @keyframes dockCollapse{0%{clip-path:inset(-60px 0 -60px 0);opacity:1}100%{clip-path:inset(-60px 100% -60px 0);opacity:0}}
-/* Dashboard load: the dock breathes in with a slow centered expand instead */
-.hub-bottomnav.homeload{animation:dockExpand 1s cubic-bezier(.22,.61,.36,1) 1.2s both}
-@keyframes dockExpand{from{transform:translateX(-50%) scale(.55);opacity:0}to{transform:translateX(-50%) scale(1);opacity:1}}
+/* Dashboard load: the dock shell wipes open left-to-right right away, then
+   each nav item blur/fades in (staggered via inline animation-delay) while
+   the page tiles are still entering */
+.hub-bottomnav.homeload{animation:dockReveal .8s cubic-bezier(.22,.61,.36,1) both}
+.hub-bottomnav.homeload .hub-navitem{animation:navItemIn .6s cubic-bezier(.22,.61,.36,1) both}
+@keyframes navItemIn{from{opacity:0;filter:blur(7px)}to{opacity:1;filter:none}}
+@media (prefers-reduced-motion: reduce){.hub-bottomnav .hub-navitem{animation:none !important}}
 .hub-bottomnav.collapsing{animation:dockCollapse .3s cubic-bezier(.55,.06,.68,.19) both}
 @media (prefers-reduced-motion: reduce){.hub-bottomnav{animation:none}}
 .hub-bottomnav.condensed{padding:7px 9px}
@@ -2077,6 +2161,7 @@ export default function Hub() {
                   <div className="hub-tagline"><HubGreeting /></div>
                 </div>
                 <div className="hub-hero-cta hub-anim-drop" ref={mmRef}>
+                  <SitePhotoButton />
                   <TripPrompt />
                 </div>
               </div>

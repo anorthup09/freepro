@@ -154,6 +154,7 @@ export const api = {
   funFactPrompt: () => req('GET', '/dashboard/funfact/prompt'),
   submitFunFact: (answer) => req('POST', '/dashboard/funfact', { answer }),
   funFactToday: () => req('GET', '/dashboard/funfact/today'),
+  submitSitePhoto: (data) => req('POST', '/dashboard/site-photo', data),
   submitWob: (data) => req('POST', '/dashboard/wob', data),
   myWobs: () => req('GET', '/dashboard/wob/mine'),
   allWobs: () => req('GET', '/dashboard/wob/all'),
