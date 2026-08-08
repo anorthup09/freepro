@@ -1344,6 +1344,36 @@ const HUB_CSS = `
 .hub-header{margin:54px 0 10px}
 .hub-h1{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:34px;font-weight:800;letter-spacing:-.02em;line-height:1.05;margin:0}
 .hub-tagline{text-align:left;font-size:14px;font-weight:600;color:var(--tan);max-width:560px;margin:8px 0 0;line-height:1.45}
+/* Liquid-glass intro splash: blank screen, glowing glass tile, refractive
+   edge shine sweeping clockwise from the top-left, then a fade-out */
+@property --splash-a{syntax:'<angle>';initial-value:0deg;inherits:false}
+.hub-splash{position:fixed;inset:0;z-index:400;background:var(--bg);display:flex;align-items:center;justify-content:center;opacity:1;transition:opacity .6s ease}
+.hub-splash.done{opacity:0;pointer-events:none}
+.hub-splash-tile{position:relative;width:152px;height:152px;border-radius:40px;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(150deg, rgba(255,255,255,0.13), rgba(255,255,255,0.035) 55%), color-mix(in srgb, var(--bg2) 72%, transparent);
+  backdrop-filter:blur(22px) saturate(1.2);-webkit-backdrop-filter:blur(22px) saturate(1.2);
+  border:1px solid rgba(255,255,255,0.10);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.16), 0 26px 70px rgba(0,0,0,0.55)}
+.hub-splash-tile img{width:70%;filter:brightness(0) invert(1);opacity:0.96;animation:splashBreath 3s ease-in-out both}
+.hub-splash-tile::before{content:'';position:absolute;inset:-1px;border-radius:inherit;padding:2px;pointer-events:none;
+  background:conic-gradient(from calc(315deg + var(--splash-a)),
+    rgba(255,255,255,0.95), rgba(255,214,180,0.55) 12%, rgba(255,255,255,0.06) 26%, transparent 42%, transparent 100%);
+  -webkit-mask:linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite:xor;mask:linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);mask-composite:exclude;
+  animation:splashSweep 1.4s linear 2}
+.hub-splash-glow{position:absolute;width:210px;height:210px;border-radius:64px;
+  background:radial-gradient(closest-side, rgba(232,80,10,0.55), rgba(232,80,10,0.15) 60%, transparent 75%);
+  filter:blur(26px);animation:splashPulse 1.5s ease-in-out infinite}
+@keyframes splashSweep{to{--splash-a:360deg}}
+@keyframes splashPulse{0%,100%{opacity:.55;transform:scale(.96)}50%{opacity:1;transform:scale(1.05)}}
+@keyframes splashBreath{0%{opacity:0;transform:scale(.92)}18%{opacity:.96;transform:scale(1)}100%{opacity:.96;transform:scale(1)}}
+@media (prefers-reduced-motion: reduce){.hub-splash{display:none}}
+/* After the splash: sections rise in one at a time, top to bottom */
+@keyframes hubRise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+.hub-cascade .hub-masthead{animation:hubRise .5s cubic-bezier(.22,.61,.36,1) 0s both}
+.hub-cascade .dash-hero{animation:hubRise .5s cubic-bezier(.22,.61,.36,1) .16s both}
+.hub-cascade .hub-hubs{animation:hubRise .5s cubic-bezier(.22,.61,.36,1) .34s both}
+@media (prefers-reduced-motion: reduce){.hub-cascade .hub-masthead,.hub-cascade .dash-hero,.hub-cascade .hub-hubs{animation:none}}
 /* on-site welcome pill sits centered below the tagline */
 .hub-welcome-row{display:flex;justify-content:center;margin-top:12px}
 /* hero: greeting left, on-site welcome pill top right in line with it */
@@ -1365,7 +1395,7 @@ const HUB_CSS = `
   .hub-ptile .hub-pt-title{margin:0 !important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 }
 .hub-right-col .hub-ctrl-half{flex:none}
-.hub-mm-half{flex:1 1 340px;min-width:0;display:flex}
+.hub-mm-half{flex:0.75 1 255px;min-width:0;display:flex}
 .hub-mm-half:empty{display:none}
 .hub-mm-half .mm-wrap{flex:1;display:flex;min-width:0}
 .hub-mm-half .mm-banner{flex:1;padding:7px 20px;align-items:center;min-height:0}
@@ -1854,6 +1884,15 @@ export default function Hub() {
   const isCrew = ['CREW','AGENCY'].includes(user?.role);
   const isFinance = user?.role === 'FINANCE';
   const [showNewProject, setShowNewProject] = useState(false);
+  // Liquid-glass intro: blank screen + glowing logo tile for ~3s, then the
+  // page cascades in. Plays on every arrival at the hub.
+  const [splashFading, setSplashFading] = useState(false);
+  const [splashGone, setSplashGone] = useState(false);
+  useEffect(() => {
+    const t1 = setTimeout(() => setSplashFading(true), 2400);
+    const t2 = setTimeout(() => setSplashGone(true), 3050);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, []);
   const isAgency = user?.role === 'AGENCY';
   const firstName = (user?.name || '').trim().split(/\s+/)[0] || 'there';
 
@@ -1889,6 +1928,14 @@ export default function Hub() {
   return (
     <div style={{ minHeight:'100vh', background:'transparent', display:'flex', flexDirection:'column', position:'relative' }}>
       <style>{HUB_CSS}</style>
+      {!splashGone && (
+        <div className={`hub-splash${splashFading ? ' done' : ''}`}>
+          <div className="hub-splash-glow" />
+          <div className="hub-splash-tile">
+            <img src="/unbridled-logo.png" alt="Unbridled Media" />
+          </div>
+        </div>
+      )}
       <V1Celebration />
       {(preview || realUser?.role === 'ADMIN') && (
         <div className="hub-topbar">
@@ -1901,7 +1948,8 @@ export default function Hub() {
         </div>
       )}
 
-        <div style={{ flex:1, display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'8px 16px 120px' }}>
+        {splashFading && (
+        <div className="hub-cascade" style={{ flex:1, display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'8px 16px 120px' }}>
           <div style={{ width:'100%', maxWidth:1150 }}>
             <div className="hub-masthead">
               <img className="hub-logo-top" src="/unbridled-logo.png" alt="Unbridled Media" />
@@ -1929,6 +1977,7 @@ export default function Hub() {
             </div>
           </div>
         </div>
+        )}
 
       <HubBottomNav />
 
