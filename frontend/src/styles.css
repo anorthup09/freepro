@@ -1187,7 +1187,7 @@ body.pvd-nav-open .proj-bottomnav { display: none !important; }
 
 /* Project section dock — bottom-right liquid-glass pill, mirroring the Finance dock */
 .proj-bottomnav { position: fixed; right: 14px; bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); z-index: 112; display: flex; align-items: center; gap: 2px; padding: 8px 12px; background: rgba(30,27,23,0.34); backdrop-filter: blur(22px) saturate(1.7); -webkit-backdrop-filter: blur(22px) saturate(1.7); border: 1px solid rgba(255,255,255,0.12); border-radius: 26px; box-shadow: 0 12px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.14); max-width: calc(100vw - 28px); animation: dockRevealP .55s cubic-bezier(.22,.61,.36,1) both; }
-@keyframes dockRevealP { from { clip-path: inset(-60px 100% -60px 0); opacity: 0; } to { clip-path: inset(-60px 0 -60px 0); opacity: 1; } }
+@keyframes dockRevealP { 0% { clip-path: inset(-60px 100% -60px 0); opacity: 0; } 96% { clip-path: inset(-60px 0 -60px 0); opacity: 1; } 100% { clip-path: none; opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .proj-bottomnav { animation: none; } }
 .proj-bottomnav::after { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1px; pointer-events: none; background: linear-gradient(135deg, rgba(255,255,255,0.5), rgba(255,255,255,0.03) 34%, rgba(255,255,255,0) 56%, rgba(255,255,255,0.14) 100%); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
 .proj-bottomnav .dock-btn, .proj-bottomnav .tab { position: relative; z-index: 1; }

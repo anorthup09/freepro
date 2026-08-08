@@ -1820,7 +1820,7 @@ export function HubBottomNav({ raised = false }) {
   return (
     <>
       <style>{NAV_CSS}</style>
-      <div className={`hub-bottomnav${scrolled ? ' condensed' : ''}${raised ? ' raised' : ''}${collapsing ? ' collapsing' : ''}`}>
+      <div className={`hub-bottomnav${path === '/' ? ' homeload' : ''}${scrolled ? ' condensed' : ''}${raised ? ' raised' : ''}${collapsing ? ' collapsing' : ''}`}>
         {bubble && <div className="hub-navbubble" style={{ left: bubble.left, top: bubble.top, width: bubble.width, height: bubble.height }} />}
         {items.map(it => (
           <button key={it.key} ref={el => { btnRefs.current[it.key] = el; }}
@@ -1843,9 +1843,14 @@ const NAV_CSS = `
 .hub-bottomnav::after{content:'';position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;
   background:linear-gradient(135deg, rgba(255,255,255,0.5), rgba(255,255,255,0.03) 34%, rgba(255,255,255,0) 56%, rgba(255,255,255,0.14) 100%);
   -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+/* The clip rectangle is released at the end of the wipe — leaving it applied
+   crops the dock's soft shadow into a visible dark box */
+@keyframes dockReveal{0%{clip-path:inset(-60px 100% -60px 0);opacity:0}96%{clip-path:inset(-60px 0 -60px 0);opacity:1}100%{clip-path:none;opacity:1}}
+@keyframes dockCollapse{0%{clip-path:inset(-60px 0 -60px 0);opacity:1}100%{clip-path:inset(-60px 100% -60px 0);opacity:0}}
+/* Dashboard load: the dock breathes in with a slow centered expand instead */
+.hub-bottomnav.homeload{animation:dockExpand 1s cubic-bezier(.22,.61,.36,1) 1.2s both}
+@keyframes dockExpand{from{transform:translateX(-50%) scale(.55);opacity:0}to{transform:translateX(-50%) scale(1);opacity:1}}
 .hub-bottomnav.collapsing{animation:dockCollapse .3s cubic-bezier(.55,.06,.68,.19) both}
-@keyframes dockReveal{from{clip-path:inset(-60px 100% -60px 0);opacity:0}to{clip-path:inset(-60px 0 -60px 0);opacity:1}}
-@keyframes dockCollapse{from{clip-path:inset(-60px 0 -60px 0);opacity:1}to{clip-path:inset(-60px 100% -60px 0);opacity:0}}
 @media (prefers-reduced-motion: reduce){.hub-bottomnav{animation:none}}
 .hub-bottomnav.condensed{padding:7px 9px}
 .hub-bottomnav.raised{bottom:96px}
