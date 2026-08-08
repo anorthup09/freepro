@@ -77,18 +77,12 @@ export function TripPrompt() {
   useEffect(() => { api.onTrip().then(setTrip).catch(() => {}); }, []);
   if (!trip) return null;
   const viewLabel = trip.viewType === 'crew' ? 'Crew View' : 'Producer View';
-  const loc = [trip.project.city, trip.project.state]
-    .map(s => String(s || '').trim())
-    .filter(s => s && /[A-Za-z]/.test(s))
-    .join(', ');
   return (
     <a className="mm-welcome" href={`/share/${trip.token}`}
-      aria-label={`Enter ${viewLabel} for ${loc || trip.project.title}`}>
-      <div className="mmw-title">Welcome to {loc || trip.project.title}</div>
-      <div className="mmw-cta">
-        <span className="mmw-view">{viewLabel}</span>
-        <DoubleChevron />
-      </div>
+      aria-label={`Enter ${viewLabel} for ${trip.project.title}`}>
+      <span className="mmw-name">{trip.project.title}</span>
+      <span className="mmw-view">{viewLabel}</span>
+      <svg className="mmw-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6"/></svg>
     </a>
   );
 }
@@ -1409,16 +1403,20 @@ const HUB_CSS = `
 .mm-answer{font-family:Georgia,'Times New Roman',serif;font-size:14px;font-weight:700;line-height:1.4;margin-top:5px;color:var(--text)}
 .mm-name{font-family:'DM Sans',sans-serif;font-size:11px;font-weight:800;color:var(--muted);white-space:nowrap;text-align:right;margin-top:4px}
 
-/* on-site welcome pill — compact, sits inline to the right of the tagline */
-.mm-welcome{flex:0 1 auto;min-width:0;align-self:center;display:flex;flex-direction:column;align-items:flex-end;justify-content:center;
-  gap:1px;padding:7px 16px;text-align:right;text-decoration:none;cursor:pointer;
+/* on-site welcome pill — two-segment: inset shoot-name chip on the left,
+   "Producer View →" on the right. Sits inline to the right of the tagline. */
+.mm-welcome{flex:0 1 auto;min-width:0;align-self:center;display:flex;flex-direction:row;align-items:center;
+  gap:9px;padding:5px 14px 5px 5px;text-decoration:none;cursor:pointer;
   transition:transform .18s ease, border-color .18s ease}
-.mm-welcome:hover{transform:translateY(-2px);border-color:rgba(232,99,42,0.5)}
-.mmw-title{position:relative;z-index:2;font-family:Georgia,'Times New Roman',serif;font-size:clamp(8.5px,0.85vw,10px);font-weight:700;line-height:1.1;letter-spacing:-.01em;color:var(--text);white-space:nowrap}
-.mmw-cta{position:relative;z-index:2;display:flex;align-items:center;justify-content:flex-end;gap:5px;margin-top:1px}
-.mmw-view{color:var(--orange);font-size:clamp(8px,0.8vw,9.5px);font-weight:700;letter-spacing:.02em;transition:color .18s ease}
-.mm-welcome .mm-go{transform:scale(.78)}
-.mm-welcome:hover .mm-go{transform:scale(.78) translateX(3px)}
+.mm-welcome:hover{transform:translateY(-2px);border-color:rgba(255,255,255,0.22)}
+.mmw-name{position:relative;z-index:2;display:inline-flex;align-items:center;white-space:nowrap;
+  font-size:11px;font-weight:800;letter-spacing:.01em;color:var(--text);
+  background:rgba(0,0,0,0.30);border:1px solid rgba(255,255,255,0.08);border-radius:999px;padding:5px 13px;
+  box-shadow:inset 0 1px 2px rgba(0,0,0,0.4)}
+.mmw-view{position:relative;z-index:2;color:var(--text);font-size:11px;font-weight:700;letter-spacing:.01em;white-space:nowrap}
+.mmw-arrow{position:relative;z-index:2;color:var(--text);flex-shrink:0;transition:transform .18s ease}
+.mm-welcome:hover .mmw-arrow{transform:translateX(3px)}
+:root[data-theme="light"] .mmw-name{background:rgba(0,0,0,0.06);border-color:rgba(0,0,0,0.10);box-shadow:inset 0 1px 2px rgba(0,0,0,0.08)}
 
 @keyframes mmCardIn{from{opacity:0;transform:scale(.97) translateY(6px)}to{opacity:1;transform:none}}
 @media(max-width:640px){.mm-answer{font-size:13px}.mm-banner{padding:16px 24px}.mm-welcome{padding:6px 13px}}
@@ -1452,8 +1450,8 @@ const HUB_CSS = `
 
 /* Liquid-glass bottom nav */
 .hub-bottomnav{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:120;display:flex;align-items:stretch;gap:2px;padding:8px 12px;border-radius:26px;
-  background:rgba(30,27,23,0.52);backdrop-filter:blur(22px) saturate(1.7);-webkit-backdrop-filter:blur(22px) saturate(1.7);
-  border:1px solid rgba(255,255,255,0.12);box-shadow:0 12px 40px rgba(0,0,0,0.55),inset 0 1px 0 rgba(255,255,255,0.12);transition:padding .28s ease}
+  background:rgba(30,27,23,0.34);backdrop-filter:blur(22px) saturate(1.7);-webkit-backdrop-filter:blur(22px) saturate(1.7);
+  border:1px solid rgba(255,255,255,0.12);box-shadow:0 12px 40px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.14);transition:padding .28s ease}
 .hub-bottomnav.condensed{padding:7px 9px}
 /* Lifted clear of a page's own bottom dock (e.g. Team's GlassDock) so the global nav doesn't overlap it */
 .hub-bottomnav.raised{bottom:96px}
@@ -1675,8 +1673,11 @@ export function HubBottomNav({ raised = false }) {
 // works on any page).
 const NAV_CSS = `
 .hub-bottomnav{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:120;display:flex;align-items:stretch;gap:2px;padding:8px 12px;border-radius:26px;
-  background:rgba(30,27,23,0.72);backdrop-filter:blur(22px) saturate(1.7);-webkit-backdrop-filter:blur(22px) saturate(1.7);
-  border:1px solid rgba(255,255,255,0.12);box-shadow:0 12px 40px rgba(0,0,0,0.55),inset 0 1px 0 rgba(255,255,255,0.12);transition:padding .28s ease}
+  background:rgba(30,27,23,0.34);backdrop-filter:blur(22px) saturate(1.7);-webkit-backdrop-filter:blur(22px) saturate(1.7);
+  border:1px solid rgba(255,255,255,0.12);box-shadow:0 12px 40px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.14);transition:padding .28s ease}
+.hub-bottomnav::after{content:'';position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;
+  background:linear-gradient(135deg, rgba(255,255,255,0.5), rgba(255,255,255,0.03) 34%, rgba(255,255,255,0) 56%, rgba(255,255,255,0.14) 100%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
 .hub-bottomnav.condensed{padding:7px 9px}
 .hub-bottomnav.raised{bottom:96px}
 @media (max-width:700px){.hub-bottomnav.raised{bottom:104px}}

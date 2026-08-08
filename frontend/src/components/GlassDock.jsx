@@ -33,9 +33,9 @@ export default function GlassDock({ items, active, onSelect, align = 'center' })
       ...(align === 'right' ? { right:14 } : { left:'50%', transform:'translateX(-50%)' }),
       zIndex:110, display:'flex', alignItems:'center', gap:2,
       padding: shrunk ? '6px 10px' : '8px 12px',
-      background:'rgba(24,22,19,0.81)', backdropFilter:'blur(18px) saturate(1.5)', WebkitBackdropFilter:'blur(18px) saturate(1.5)',
-      border:'1px solid rgba(255,255,255,0.12)', borderRadius:32,
-      boxShadow:'0 10px 34px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.08)',
+      background:'rgba(30,27,23,0.34)', backdropFilter:'blur(22px) saturate(1.7)', WebkitBackdropFilter:'blur(22px) saturate(1.7)',
+      border:'1px solid rgba(255,255,255,0.12)', borderRadius:26,
+      boxShadow:'0 12px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.14)',
       transition:'padding .25s ease',
     }}>
       {bubble && (
@@ -60,7 +60,7 @@ export default function GlassDock({ items, active, onSelect, align = 'center' })
             }}>
             {it.icon}
             <span style={{
-              fontSize:9, fontWeight:800, letterSpacing:'0.02em', whiteSpace:'nowrap',
+              fontSize:9.5, fontWeight:800, letterSpacing:'0.04em', textTransform:'uppercase', whiteSpace:'nowrap',
               maxHeight: shrunk ? 0 : 12, opacity: shrunk ? 0 : 1, overflow:'hidden',
               transition:'max-height .25s ease, opacity .2s ease',
             }}>{it.label}</span>
