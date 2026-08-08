@@ -1363,9 +1363,16 @@ const HUB_CSS = `
   animation:splashSweep 2.6s cubic-bezier(.16,.84,.32,.99) 1 both}
 .hub-splash-glow{position:absolute;width:210px;height:210px;border-radius:64px;
   background:radial-gradient(closest-side, rgba(232,80,10,0.55), rgba(232,80,10,0.15) 60%, transparent 75%);
-  filter:blur(26px);animation:splashPulse 1.5s ease-in-out infinite}
+  filter:blur(26px);animation:splashPulse 1.5s ease-in-out infinite, splashDrift 2.6s cubic-bezier(.16,.84,.32,.99) both}
 @keyframes splashSweep{to{--splash-a:360deg}}
-@keyframes splashPulse{0%,100%{opacity:.55;transform:scale(.96)}50%{opacity:1;transform:scale(1.05)}}
+@keyframes splashPulse{0%,100%{opacity:.55}50%{opacity:1}}
+/* the glow orbits behind the tile, chasing the edge shine around once */
+@keyframes splashDrift{
+  0%{transform:translate(-34px,-34px) scale(.95)}
+  25%{transform:translate(34px,-34px) scale(1.02)}
+  50%{transform:translate(34px,34px) scale(1.06)}
+  75%{transform:translate(-34px,34px) scale(1.02)}
+  100%{transform:translate(0,0) scale(1)}}
 @keyframes splashBreath{0%{opacity:0;transform:scale(.92)}18%{opacity:.96;transform:scale(1)}100%{opacity:.96;transform:scale(1)}}
 @media (prefers-reduced-motion: reduce){.hub-splash{display:none}}
 /* After the splash: sections rise in one at a time, top to bottom */
