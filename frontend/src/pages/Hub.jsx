@@ -1354,26 +1354,22 @@ const HUB_CSS = `
   backdrop-filter:blur(22px) saturate(1.2);-webkit-backdrop-filter:blur(22px) saturate(1.2);
   border:1px solid rgba(255,255,255,0.10);
   box-shadow:inset 0 1px 0 rgba(255,255,255,0.16), 0 26px 70px rgba(0,0,0,0.55)}
-.hub-splash-tile img{width:62%;opacity:0.96;animation:splashBreath 3s ease-in-out both}
+.hub-splash-tile img{width:62%;animation:splashBreath 2.6s cubic-bezier(.16,.84,.32,.99) both}
 .hub-splash-tile::before{content:'';position:absolute;inset:-1px;border-radius:inherit;padding:2px;pointer-events:none;
   background:conic-gradient(from calc(315deg + var(--splash-a)),
     rgba(255,255,255,0.95), rgba(255,214,180,0.55) 12%, rgba(255,255,255,0.06) 26%, transparent 42%, transparent 100%);
   -webkit-mask:linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite:xor;mask:linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);mask-composite:exclude;
   animation:splashSweep 2.6s cubic-bezier(.16,.84,.32,.99) 1 both}
-.hub-splash-glow{position:absolute;width:210px;height:210px;border-radius:64px;
-  background:radial-gradient(closest-side, rgba(232,80,10,0.55), rgba(232,80,10,0.15) 60%, transparent 75%);
-  filter:blur(26px);animation:splashPulse 1.5s ease-in-out infinite, splashDrift 2.6s cubic-bezier(.16,.84,.32,.99) both}
 @keyframes splashSweep{to{--splash-a:360deg}}
-@keyframes splashPulse{0%,100%{opacity:.55}50%{opacity:1}}
-/* the glow orbits behind the tile, chasing the edge shine around once */
-@keyframes splashDrift{
-  0%{transform:translate(-34px,-34px) scale(.95)}
-  25%{transform:translate(34px,-34px) scale(1.02)}
-  50%{transform:translate(34px,34px) scale(1.06)}
-  75%{transform:translate(-34px,34px) scale(1.02)}
-  100%{transform:translate(0,0) scale(1)}}
-@keyframes splashBreath{0%{opacity:0;transform:scale(.92)}18%{opacity:.96;transform:scale(1)}100%{opacity:.96;transform:scale(1)}}
+/* solid white at first light, ending as a frosted imprint pressed into the
+   glass: translucent, slightly blurred, embossed by a hairline highlight */
+@keyframes splashBreath{
+  0%{opacity:0;transform:scale(.92);filter:none}
+  16%{opacity:1;transform:scale(1);filter:none}
+  45%{opacity:1;filter:none}
+  100%{opacity:.38;transform:scale(1);
+    filter:blur(0.4px) drop-shadow(0 1px 0 rgba(255,255,255,0.28)) drop-shadow(0 -1px 2px rgba(0,0,0,0.55))}}
 @media (prefers-reduced-motion: reduce){.hub-splash{display:none}}
 /* After the splash: sections rise in one at a time, top to bottom */
 @keyframes hubRise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
@@ -1937,7 +1933,6 @@ export default function Hub() {
       <style>{HUB_CSS}</style>
       {!splashGone && (
         <div className={`hub-splash${splashFading ? ' done' : ''}`}>
-          <div className="hub-splash-glow" />
           <div className="hub-splash-tile">
             <img src="/splash-icon.png" alt="Unbridled Media" />
           </div>
