@@ -1086,6 +1086,9 @@ body.pvd-nav-open .proj-bottomnav { display: none !important; }
 .proj-bottomnav.shrunk .dock-btn { padding: 8px 12px; gap: 0; }
 .proj-bottomnav .tab { white-space: nowrap; border-radius: 20px; padding: 6px 10px; font-size: 12px; }
 .proj-bottomnav .tab.on { color: var(--orange); background: rgba(232,80,10,0.14); }
+:root[data-theme="light"] .proj-bottomnav { background: rgba(255,255,255,0.82); border: 1px solid rgba(0,0,0,0.10); box-shadow: 0 10px 30px rgba(0,0,0,0.16), inset 0 1px 0 rgba(255,255,255,0.75); }
+:root[data-theme="light"] .proj-bottomnav .dock-btn { color: #6f6a63; }
+:root[data-theme="light"] .proj-bottomnav .dock-btn.on { color: var(--orange); background: rgba(0,0,0,0.06); }
 
 /* Mobile: the V# versions pill pins top-right, level with the client name */
 @media (max-width: 700px) {

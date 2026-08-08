@@ -70,38 +70,22 @@ export function HubGreeting() {
 
 // On the road today? Offer a one-tap jump to the public view for your role —
 // producer view for admin/producers/agency, crew view for crew accounts
+// On-site welcome pill — sits to the right of the MediaMoment with the same
+// reflective liquid-glass pill styling.
 export function TripPrompt() {
   const [trip, setTrip] = useState(null);
-  const [hidden, setHidden] = useState(false);
   useEffect(() => { api.onTrip().then(setTrip).catch(() => {}); }, []);
-  if (!trip || hidden) return null;
-  const dismissKey = `fp_trip_prompt_${trip.project.id}_${new Date().toDateString()}`;
-  if (localStorage.getItem(dismissKey)) return null;
+  if (!trip) return null;
   const viewLabel = trip.viewType === 'crew' ? 'Crew View' : 'Producer View';
+  const loc = [trip.project.city, trip.project.state]
+    .map(s => String(s || '').trim())
+    .filter(s => s && /[A-Za-z]/.test(s))
+    .join(', ');
   return (
-    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:14, flexWrap:'wrap',
-      background:'rgba(232,80,10,0.10)', border:'1px solid rgba(232,80,10,0.45)', borderRadius:12,
-      padding:'12px 18px', margin:'0 auto 16px', maxWidth:620 }}>
-      <div style={{ fontSize:13, minWidth:0 }}>
-        <span style={{ fontWeight:800 }}>🎬 You're on the road — {trip.project.code} {trip.project.title}</span>
-        {(() => {
-          const loc = [trip.project.city, trip.project.state]
-            .map(s => String(s || '').trim())
-            .filter(s => s && /[A-Za-z]/.test(s))
-            .join(', ');
-          return loc ? <span style={{ color:'var(--muted)' }}> · {loc}</span> : null;
-        })()}
-      </div>
-      <div style={{ display:'flex', alignItems:'center', gap:10, flexShrink:0 }}>
-        <a href={`/share/${trip.token}`}
-          style={{ background:'var(--orange)', color:'var(--text)', textDecoration:'none', fontSize:12, fontWeight:800,
-            padding:'7px 16px', borderRadius:20, letterSpacing:'.02em', whiteSpace:'nowrap' }}>
-          Open {viewLabel} →
-        </a>
-        <button onClick={() => { localStorage.setItem(dismissKey, '1'); setHidden(true); }}
-          title="Hide for today"
-          style={{ background:'none', border:'none', color:'var(--muted)', fontSize:14, cursor:'pointer', padding:2 }}>✕</button>
-      </div>
+    <div className="mm-welcome reflect-pill">
+      <div className="mmw-kicker">On-Site</div>
+      <div className="mmw-title">Welcome to {loc || trip.project.title}</div>
+      <a className="mmw-link" href={`/share/${trip.token}`}>Open {viewLabel} →</a>
     </div>
   );
 }
@@ -1352,24 +1336,65 @@ const HUB_CSS = `
 }
 /* MediaMoment orbit: ring of team dots with the moment in the middle */
 /* MediaMoment banner: a wide horizontal card with a Netflix-style logo reveal */
-.mm-wrap{position:relative;margin:8px 0 22px}
-.mm-banner{position:relative;display:flex;flex-direction:column;overflow:hidden;padding:15px 20px;border-radius:16px;border:1px solid var(--border);
-  background:linear-gradient(120deg, rgba(232,80,10,0.16), rgba(232,80,10,0.03) 58%, transparent), var(--bg2);
-  animation:mmCardIn .7s cubic-bezier(.22,.61,.36,1) both}
-.mm-banner::after{content:'';position:absolute;right:-46px;top:-46px;width:190px;height:190px;border-radius:50%;
-  background:radial-gradient(circle, rgba(232,80,10,0.13), transparent 70%);pointer-events:none}
+@property --mmang{syntax:'<angle>';inherits:false;initial-value:0deg}
+/* Liquid-glass MediaMoment + on-site welcome pill, side by side, over a slow
+   moving-gradient backdrop for depth. */
+.mm-row{position:relative;display:flex;gap:16px;align-items:stretch;flex-wrap:wrap;margin:8px 0 24px}
+.mm-row::before{content:'';position:absolute;inset:-28px -8px;z-index:0;pointer-events:none;
+  background:radial-gradient(42% 62% at 18% 28%, rgba(232,80,10,0.30), transparent 70%),
+            radial-gradient(46% 58% at 84% 74%, rgba(150,90,255,0.24), transparent 70%),
+            radial-gradient(40% 50% at 62% 8%, rgba(74,158,255,0.16), transparent 70%);
+  filter:blur(34px);animation:mmAmbient 20s ease-in-out infinite alternate}
+@keyframes mmAmbient{0%{transform:translate3d(0,0,0) scale(1)}100%{transform:translate3d(4%,-3%,0) scale(1.12)}}
+.mm-row > *{position:relative;z-index:1}
+.mm-row > .mm-wrap{flex:2 1 440px;margin:0;min-width:0;display:flex}
+.mm-wrap{position:relative}
+.mm-wrap > .mm-banner{flex:1}
+
+.mm-banner,.mm-welcome{position:relative;overflow:hidden;border-radius:34px;border:1px solid rgba(255,255,255,0.12);
+  background:
+    radial-gradient(130% 165% at 0% 0%, rgba(232,80,10,0.30), transparent 55%),
+    radial-gradient(130% 165% at 100% 100%, rgba(150,90,255,0.22), transparent 55%),
+    linear-gradient(120deg, rgba(255,255,255,0.09), rgba(255,255,255,0.02) 45%, rgba(255,255,255,0.06));
+  background-color:rgba(18,16,24,0.62);background-size:220% 220%,220% 220%,100% 100%;background-position:0% 0%,100% 100%,0 0;
+  backdrop-filter:blur(18px) saturate(165%);-webkit-backdrop-filter:blur(18px) saturate(165%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.22), inset 0 -1px 1px rgba(0,0,0,0.4), 0 18px 50px rgba(0,0,0,0.45);
+  animation:mmCardIn .7s cubic-bezier(.22,.61,.36,1) both, mmDrift 17s ease-in-out infinite alternate}
+.mm-banner{display:flex;flex-direction:column;padding:18px 30px}
+@keyframes mmDrift{0%{background-position:0% 0%,100% 100%,0 0}100%{background-position:72% 42%,28% 58%,0 0}}
+/* reflective rotating edge light */
+.mm-banner::before,.mm-welcome::before{content:'';position:absolute;inset:0;border-radius:inherit;padding:1.4px;pointer-events:none;z-index:4;
+  background:conic-gradient(from var(--mmang), transparent 0 6%, rgba(255,255,255,0.7) 14%, rgba(232,80,10,0.75) 27%, transparent 40% 58%, rgba(255,255,255,0.55) 72%, rgba(150,90,255,0.65) 85%, transparent 96%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;
+  animation:mmSpin 7s linear infinite}
+@keyframes mmSpin{to{--mmang:360deg}}
+
 .mm-photo{position:absolute;top:0;right:0;bottom:0;width:48%;z-index:0;background-size:cover;background-position:center 30%;opacity:.5;pointer-events:none;
   animation:mmPan 16s ease-in-out infinite alternate;
   -webkit-mask-image:linear-gradient(90deg, transparent, #000 58%);mask-image:linear-gradient(90deg, transparent, #000 58%)}
 @keyframes mmPan{from{background-position:center 16%}to{background-position:center 82%}}
-@media (prefers-reduced-motion: reduce){.mm-photo{animation:none;background-position:center 28%}}
-.mm-b-main{position:relative;z-index:1;min-width:0}
+.mm-b-main{position:relative;z-index:2;min-width:0}
 .mm-kicker{font-size:9px;font-weight:900;letter-spacing:.18em;color:var(--orange)}
 .mm-prompt{font-size:10.5px;font-weight:700;color:var(--muted);margin-top:4px;line-height:1.3}
 .mm-answer{font-family:Georgia,'Times New Roman',serif;font-size:14px;font-weight:700;line-height:1.4;margin-top:5px;color:var(--text)}
 .mm-name{font-family:'DM Sans',sans-serif;font-size:11px;font-weight:800;color:var(--muted);white-space:nowrap;text-align:right;margin-top:4px}
+
+/* on-site welcome pill */
+.mm-welcome{flex:1 1 250px;min-width:230px;display:flex;flex-direction:column;justify-content:center;gap:7px;padding:20px 30px}
+.mmw-kicker{position:relative;z-index:2;font-size:9px;font-weight:900;letter-spacing:.18em;color:var(--orange)}
+.mmw-title{position:relative;z-index:2;font-family:Georgia,'Times New Roman',serif;font-size:17px;font-weight:700;line-height:1.25;color:var(--text)}
+.mmw-link{position:relative;z-index:2;align-self:flex-start;margin-top:2px;text-decoration:none;white-space:nowrap;
+  background:linear-gradient(120deg, rgba(232,80,10,0.95), rgba(232,80,10,0.72));color:#160a04;font-weight:800;font-size:12px;letter-spacing:.02em;
+  padding:8px 18px;border-radius:999px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.4), 0 6px 16px rgba(232,80,10,0.35)}
+.mmw-link:hover{filter:brightness(1.08)}
+
 @keyframes mmCardIn{from{opacity:0;transform:scale(.97) translateY(6px)}to{opacity:1;transform:none}}
-@media(max-width:640px){.mm-answer{font-size:13px}}
+@media(max-width:640px){.mm-answer{font-size:13px}.mmw-title{font-size:15px}.mm-banner{padding:16px 24px}.mm-welcome{padding:16px 24px}}
+@media (prefers-reduced-motion: reduce){
+  .mm-banner,.mm-welcome{animation:mmCardIn .7s cubic-bezier(.22,.61,.36,1) both}
+  .mm-banner::before,.mm-welcome::before,.mm-photo,.mm-row::before{animation:none}
+  .mm-photo{background-position:center 28%}
+}
 
 /* ── Netflix-style intro: assemble the logo, then the aperture zooms + turns ── */
 .mm-intro{position:absolute;inset:0;z-index:6;border-radius:16px;overflow:hidden;background:var(--bg2);
@@ -1610,6 +1635,12 @@ const NAV_CSS = `
 .hub-bottomnav.condensed .hub-navitem .lbl{max-height:0;opacity:0}
 .hub-navbubble{position:absolute;z-index:0;background:rgba(255,255,255,0.10);border-radius:18px;pointer-events:none;
   transition:left .3s cubic-bezier(.34,1.3,.5,1),width .3s cubic-bezier(.34,1.3,.5,1),top .3s ease,height .3s ease}
+/* Light mode: invert the pill to a light glass with dark text */
+:root[data-theme="light"] .hub-bottomnav{background:rgba(255,255,255,0.82);border:1px solid rgba(0,0,0,0.10);box-shadow:0 12px 34px rgba(0,0,0,0.16),inset 0 1px 0 rgba(255,255,255,0.75)}
+:root[data-theme="light"] .hub-navitem{color:#6f6a63}
+:root[data-theme="light"] .hub-navitem:hover{color:#1a1a1a}
+:root[data-theme="light"] .hub-navitem.active{color:var(--orange)}
+:root[data-theme="light"] .hub-navbubble{background:rgba(0,0,0,0.06)}
 `;
 
 function NewProjectFab({ onClick }) {
@@ -1787,10 +1818,12 @@ export default function Hub() {
                 <h1 className="hub-h1">Hey {firstName},</h1>
                 <div className="hub-tagline"><HubGreeting /></div>
               </div>
-              <div className="hub-anim-drop" ref={mmRef}><MediaMomentOrbit /></div>
+              <div className="hub-anim-drop mm-row" ref={mmRef}>
+                <MediaMomentOrbit />
+                <TripPrompt />
+              </div>
             </div>
             <div className="dash-scroll">
-              <TripPrompt />
               <WobBanner />
               <FunFactPrompt />
               {/* Solutions + Crew both get the project-scroll dashboard (all projects, no finance) */}
