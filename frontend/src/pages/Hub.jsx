@@ -1202,7 +1202,7 @@ function HubDashboard() {
 
   return (
     <div className="hub-dash" style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(300px, 1fr))', gap:16, marginTop:22 }}>
-      <div className="hub-anim-drop hub-glow glass" onMouseMove={glowMove} style={{ ...card, animationDelay:'.1s' }}>
+      <div className="hub-anim-drop hub-glow glass" onMouseMove={glowMove} style={card}>
         <div style={{ ...hdr, marginBottom:2, color:'var(--text)' }}>Day in Review</div>
         <div style={{ fontSize:12, color:'var(--muted)', fontWeight:600, marginBottom:10 }}>{dateLabel}</div>
         {!day && <div style={{ fontSize:11, color:'var(--muted)' }}>Loading…</div>}
@@ -1241,7 +1241,7 @@ function HubDashboard() {
         )}
       </div>
 
-      <div className="hub-anim-drop hub-glow glass" onMouseMove={glowMove} style={{ ...card, animationDelay:'.18s' }}>
+      <div className="hub-anim-drop hub-glow glass" onMouseMove={glowMove} style={card}>
         <div style={{ ...hdr, marginBottom:12, color:'var(--text)', display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
           My Tasks
           <button onClick={openAddTask} title="Add a task to your list"
@@ -1299,7 +1299,7 @@ function HubDashboard() {
         )}
       </div>
 
-      <div className="hub-anim-drop hub-glow glass" onMouseMove={glowMove} style={{ ...card, position:'relative', overflow:'hidden', animationDelay:'.26s' }}>
+      <div className="hub-anim-drop hub-glow glass" onMouseMove={glowMove} style={{ ...card, position:'relative', overflow:'hidden' }}>
         <div style={{ ...hdr, marginBottom:12, color:'var(--text)' }}>Team Today</div>
         {!team && <div style={{ fontSize:11, color:'var(--muted)' }}>Loading…</div>}
         {team && team.length === 0 && <div style={{ fontSize:12, color:'var(--muted)', fontStyle:'italic' }}>No Unbridled team members on the roster yet.</div>}
@@ -1408,9 +1408,18 @@ const HUB_CSS = `
 @media (prefers-reduced-motion: reduce){.hub-splash{display:none}}
 /* After the splash: sections rise in one at a time, top to bottom */
 @keyframes hubRise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
-.hub-cascade .hub-masthead{animation:hubRise .5s cubic-bezier(.22,.61,.36,1) 0s both}
-.hub-cascade .dash-hero{animation:hubRise .5s cubic-bezier(.22,.61,.36,1) .16s both}
-.hub-cascade .hub-hubs{animation:hubRise .5s cubic-bezier(.22,.61,.36,1) .34s both}
+.hub-cascade .hub-masthead{animation:hubRise .65s cubic-bezier(.22,.61,.36,1) 0s both}
+.hub-cascade .dash-hero{animation:hubRise .65s cubic-bezier(.22,.61,.36,1) .25s both}
+.hub-cascade .hub-hubs{animation:hubRise .65s cubic-bezier(.22,.61,.36,1) .55s both}
+/* Dashboard choreography: My Tasks fades in center stage, then Day in Review
+   and Team Today slide out from behind it to the left and right */
+.hub-cascade .hub-dash > .glass:nth-child(2){animation:dashFade .6s ease .95s both;z-index:2}
+.hub-cascade .hub-dash > .glass:nth-child(1){animation:dashSlideOutL .8s cubic-bezier(.22,.61,.36,1) 1.65s both;z-index:1}
+.hub-cascade .hub-dash > .glass:nth-child(3){animation:dashSlideOutR .8s cubic-bezier(.22,.61,.36,1) 1.65s both;z-index:1}
+@keyframes dashFade{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes dashSlideOutL{0%{opacity:0;transform:translateX(calc(100% + 16px))}25%{opacity:1}100%{opacity:1;transform:none}}
+@keyframes dashSlideOutR{0%{opacity:0;transform:translateX(calc(-100% - 16px))}25%{opacity:1}100%{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){.hub-cascade .hub-dash > .glass{animation:none !important}}
 @media (prefers-reduced-motion: reduce){.hub-cascade .hub-masthead,.hub-cascade .dash-hero,.hub-cascade .hub-hubs{animation:none}}
 /* on-site welcome pill sits centered below the tagline */
 .hub-welcome-row{display:flex;justify-content:center;margin-top:12px}
