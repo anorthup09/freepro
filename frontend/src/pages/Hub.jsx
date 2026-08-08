@@ -82,7 +82,7 @@ export function TripPrompt() {
       aria-label={`Enter ${viewLabel} for ${trip.project.title}`}>
       <span className="mmw-name">{trip.project.title}</span>
       <span className="mmw-view">{viewLabel}</span>
-      <svg className="mmw-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6"/></svg>
+      <svg className="mmw-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6"/></svg>
     </a>
   );
 }
@@ -1342,9 +1342,8 @@ const HUB_CSS = `
 .hub-header{margin:54px 0 10px}
 .hub-h1{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:34px;font-weight:800;letter-spacing:-.02em;line-height:1.05;margin:0}
 .hub-tagline{text-align:left;font-size:14px;font-weight:600;color:var(--tan);max-width:560px;margin:8px 0 0;line-height:1.45}
-/* tagline + on-site welcome pill share one row */
-.hub-tagline-row{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
-.hub-tagline-row > .hub-tagline{flex:1 1 auto;min-width:0}
+/* on-site welcome pill sits centered below the tagline */
+.hub-welcome-row{display:flex;justify-content:center;margin-top:12px}
 /* Mobile: pin the hero (heading/tagline/media moment) and let the tiles below
    scroll up over it (they carry a solid bg + higher z-index). The pinned hero
    stays locked in place and slowly fades out (opacity via JS refs on scroll). */
@@ -1404,19 +1403,22 @@ const HUB_CSS = `
 .mm-name{font-family:'DM Sans',sans-serif;font-size:11px;font-weight:800;color:var(--muted);white-space:nowrap;text-align:right;margin-top:4px}
 
 /* on-site welcome pill — two-segment: inset shoot-name chip on the left,
-   "Producer View →" on the right. Sits inline to the right of the tagline. */
+   "Producer View →" on the right. Centered under the tagline, light orange tint. */
 .mm-welcome{flex:0 1 auto;min-width:0;align-self:center;display:flex;flex-direction:row;align-items:center;
-  gap:9px;padding:5px 14px 5px 5px;text-decoration:none;cursor:pointer;
+  gap:8px;padding:4px 12px 4px 4px;text-decoration:none;cursor:pointer;
+  background:linear-gradient(150deg, rgba(232,80,10,0.15), rgba(232,80,10,0.05) 60%), color-mix(in srgb, var(--bg2) 62%, transparent);
+  border-color:rgba(242,128,80,0.28);
   transition:transform .18s ease, border-color .18s ease}
-.mm-welcome:hover{transform:translateY(-2px);border-color:rgba(255,255,255,0.22)}
+.mm-welcome:hover{transform:translateY(-2px);border-color:rgba(242,128,80,0.5)}
 .mmw-name{position:relative;z-index:2;display:inline-flex;align-items:center;white-space:nowrap;
-  font-size:11px;font-weight:800;letter-spacing:.01em;color:var(--text);
-  background:rgba(0,0,0,0.30);border:1px solid rgba(255,255,255,0.08);border-radius:999px;padding:5px 13px;
+  font-size:9.5px;font-weight:800;letter-spacing:.01em;color:#f2a878;
+  background:rgba(0,0,0,0.28);border:1px solid rgba(242,128,80,0.22);border-radius:999px;padding:4px 11px;
   box-shadow:inset 0 1px 2px rgba(0,0,0,0.4)}
-.mmw-view{position:relative;z-index:2;color:var(--text);font-size:11px;font-weight:700;letter-spacing:.01em;white-space:nowrap}
-.mmw-arrow{position:relative;z-index:2;color:var(--text);flex-shrink:0;transition:transform .18s ease}
+.mmw-view{position:relative;z-index:2;color:#f2a878;font-size:9.5px;font-weight:700;letter-spacing:.01em;white-space:nowrap}
+.mmw-arrow{position:relative;z-index:2;color:#f2a878;flex-shrink:0;transition:transform .18s ease}
 .mm-welcome:hover .mmw-arrow{transform:translateX(3px)}
-:root[data-theme="light"] .mmw-name{background:rgba(0,0,0,0.06);border-color:rgba(0,0,0,0.10);box-shadow:inset 0 1px 2px rgba(0,0,0,0.08)}
+:root[data-theme="light"] .mmw-name{background:rgba(232,80,10,0.08);border-color:rgba(232,80,10,0.25);box-shadow:inset 0 1px 2px rgba(0,0,0,0.06);color:#b8500f}
+:root[data-theme="light"] .mmw-view,:root[data-theme="light"] .mmw-arrow{color:#b8500f}
 
 @keyframes mmCardIn{from{opacity:0;transform:scale(.97) translateY(6px)}to{opacity:1;transform:none}}
 @media(max-width:640px){.mm-answer{font-size:13px}.mm-banner{padding:16px 24px}.mm-welcome{padding:6px 13px}}
@@ -1873,10 +1875,8 @@ export default function Hub() {
             <div className="dash-hero">
               <div className="hub-header" ref={heroLeftRef}>
                 <h1 className="hub-h1">Hey {firstName},</h1>
-                <div className="hub-tagline-row">
-                  <div className="hub-tagline"><HubGreeting /></div>
-                  <TripPrompt />
-                </div>
+                <div className="hub-tagline"><HubGreeting /></div>
+                <div className="hub-welcome-row"><TripPrompt /></div>
               </div>
               <div className="hub-anim-drop mm-row" ref={mmRef}>
                 <MediaMomentOrbit />
