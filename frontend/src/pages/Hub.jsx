@@ -1370,6 +1370,8 @@ const HUB_CSS = `
 @property --splash-a{syntax:'<angle>';initial-value:0deg;inherits:false}
 .hub-splash{position:fixed;inset:0;z-index:400;background:var(--bg);display:flex;align-items:center;justify-content:center;opacity:1;transition:opacity .6s ease}
 .hub-splash .aurora{position:absolute;z-index:0;opacity:1 !important}
+/* loading page: warm palette only — no blue fields */
+.hub-splash .aurora .b4,.hub-splash .aurora .b5{display:none}
 .hub-splash-tile{position:relative;z-index:1}
 .hub-splash.done{opacity:0;pointer-events:none}
 .hub-splash-tile{position:relative;width:152px;height:152px;border-radius:40px;display:flex;align-items:center;justify-content:center;
