@@ -187,14 +187,14 @@ export default function Locations({ project, setProject }) {
         <button className="btn btn-ghost btn-sm" onClick={() => setShowLocModal(true)}>+ Add Location</button>
       </div>
       {!locations.length && (
-        <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8, padding: '12px 16px', fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>No locations added yet.</div>
+        <div className="glass" style={{ borderRadius: 12, padding: '12px 16px', fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>No locations added yet.</div>
       )}
       {LOC_TYPES.filter(t => locations.some(l => l.type === t)).map(type => {
         const group = locations.filter(l => l.type === type);
         return (
           <div key={type} style={{ marginBottom: 12 }}>
             <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--muted)', marginBottom: 4 }}>{LOC_LABELS[type]}</div>
-            <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
+            <div className="glass" style={{ borderRadius: 12, overflow: 'hidden' }}>
               {group.map((l, i) => (
                 <div key={l.id} style={{ padding: '10px 16px', borderBottom: i < group.length - 1 ? '1px solid var(--border)' : 'none' }}>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', alignItems: 'center', gap: 12 }}>

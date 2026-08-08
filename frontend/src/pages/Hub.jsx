@@ -1411,22 +1411,22 @@ const HUB_CSS = `
 /* pill-shaped hub section, matching the MediaMoment banner radius — kept
    shallow: tight vertical padding and a compact tile row */
 .hub-hubtile.pillcard{border-radius:40px;padding:12px 26px 8px !important;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,0.32), inset 1.5px 0 0 rgba(255,255,255,0.10), inset -1px 0 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(255,255,255,0.08), inset 0 14px 34px -18px rgba(255,255,255,0.28), inset 0 0 60px rgba(255,255,255,0.035), 0 18px 44px rgba(0,0,0,0.38), 0 0 34px rgba(255,255,255,0.06) !important}
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.32), inset 1.5px 0 0 rgba(255,255,255,0.10), inset -1px 0 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(255,255,255,0.08), inset 0 14px 34px -18px rgba(255,255,255,0.28), inset 0 0 60px rgba(255,255,255,0.035), 0 18px 44px rgba(0,0,0,0.38), 0 0 44px rgba(255,255,255,0.10) !important}
 .hub-hubtile.pillcard > *:not(.pill-lume){position:relative;z-index:1}
 /* Luminous pill treatment: a slow refraction circling the outline and a soft
    white aura drifting across the interior (reference: the glowing search pill) */
 @property --lume-a{syntax:'<angle>';initial-value:0deg;inherits:false}
 .pill-lume{position:absolute;inset:0;border-radius:inherit;pointer-events:none;overflow:hidden;z-index:0}
-.pill-lume::before{content:'';position:absolute;inset:-1px;border-radius:inherit;padding:1.5px;
+.pill-lume::before{content:'';position:absolute;inset:-1px;border-radius:inherit;padding:2px;
   background:conic-gradient(from var(--lume-a),
-    rgba(255,255,255,0.8), rgba(255,255,255,0.08) 16%, transparent 30%,
-    rgba(255,255,255,0.28) 52%, transparent 68%, rgba(255,255,255,0.08) 86%, rgba(255,255,255,0.8) 100%);
+    rgba(255,255,255,1), rgba(255,255,255,0.12) 14%, transparent 28%,
+    rgba(255,255,255,0.5) 50%, transparent 66%, rgba(255,255,255,0.12) 84%, rgba(255,255,255,1) 100%);
   -webkit-mask:linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite:xor;mask:linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);mask-composite:exclude;
-  animation:lumeSpin 16s linear infinite;opacity:.75}
+  animation:lumeSpin 12s linear infinite;opacity:1}
 .pill-lume::after{content:'';position:absolute;width:38%;height:80%;left:-10%;top:10%;border-radius:50%;
-  background:radial-gradient(closest-side, rgba(255,255,255,0.16), transparent 72%);
-  filter:blur(28px);animation:lumeDrift 10s ease-in-out infinite alternate}
+  background:radial-gradient(closest-side, rgba(255,255,255,0.3), transparent 72%);
+  filter:blur(30px);animation:lumeDrift 8s ease-in-out infinite alternate}
 @keyframes lumeSpin{to{--lume-a:360deg}}
 @keyframes lumeDrift{0%{transform:translateX(0) scale(.92);opacity:.55}100%{transform:translateX(210%) scale(1.12);opacity:.95}}
 @media (prefers-reduced-motion: reduce){.pill-lume::before,.pill-lume::after{animation:none}}
