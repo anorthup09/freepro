@@ -1571,7 +1571,7 @@ const HUB_CSS = `
   .hub-hubtile .hub-expandbtn{width:22px;height:22px;font-size:13px;top:9px;right:9px}
 }
 @keyframes hubRollMobile{from{opacity:0;transform:translateY(16px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
-.hub-hubtile{position:relative;background:linear-gradient(150deg, rgba(255,255,255,0.065), rgba(255,255,255,0.02) 55%), color-mix(in srgb, var(--bg2) 64%, transparent);backdrop-filter:blur(26px) saturate(1.2);-webkit-backdrop-filter:blur(26px) saturate(1.2);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:20px 22px;cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,0.14), 0 14px 38px rgba(0,0,0,0.34);transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease}
+.hub-hubtile{position:relative;background:linear-gradient(150deg, rgba(255,255,255,0.045), rgba(255,255,255,0.012) 55%), color-mix(in srgb, var(--bg2) 34%, transparent);backdrop-filter:blur(30px) saturate(1.25);-webkit-backdrop-filter:blur(30px) saturate(1.25);border:1px solid rgba(255,255,255,0.10);border-radius:16px;padding:20px 22px;cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,0.32), inset 1.5px 0 0 rgba(255,255,255,0.10), inset -1px 0 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(255,255,255,0.08), inset 0 14px 34px -18px rgba(255,255,255,0.28), inset 0 0 60px rgba(255,255,255,0.035), 0 18px 44px rgba(0,0,0,0.38);transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease}
 .hub-hubtile:hover{transform:translateY(-2px);box-shadow:inset 0 1px 0 rgba(255,255,255,0.11), 0 16px 40px rgba(0,0,0,0.4)}
 /* Subtle neutral spotlight that follows the cursor + a static refractive light
    edge, giving the tiles (hub tile + the 3 dashboard tiles) a frosted-glass look.
@@ -1604,7 +1604,7 @@ const HUB_CSS = `
     radial-gradient(38% 48% at 82% 74%, rgba(232,80,10,0.09), transparent 72%)}
 @media (prefers-reduced-motion: reduce){.hub-dash::before,.hub-hubs::before{animation:none}}
 /* more glass: make the dashboard tiles more transparent so the aura shows through */
-.hub-dash .glass{background:linear-gradient(150deg, rgba(255,255,255,0.065), rgba(255,255,255,0.02) 55%), color-mix(in srgb, var(--bg2) 64%, transparent);border-color:rgba(255,255,255,0.08);box-shadow:inset 0 1px 0 rgba(255,255,255,0.14), 0 14px 38px rgba(0,0,0,0.34)}
+.hub-dash .glass{background:linear-gradient(150deg, rgba(255,255,255,0.045), rgba(255,255,255,0.012) 55%), color-mix(in srgb, var(--bg2) 34%, transparent);border-color:rgba(255,255,255,0.10);box-shadow:inset 0 1px 0 rgba(255,255,255,0.32), inset 1.5px 0 0 rgba(255,255,255,0.10), inset -1px 0 0 rgba(255,255,255,0.05), inset 0 -1px 0 rgba(255,255,255,0.08), inset 0 14px 34px -18px rgba(255,255,255,0.28), inset 0 0 60px rgba(255,255,255,0.035), 0 18px 44px rgba(0,0,0,0.38)}
 :root[data-theme="light"] .hub-dash .glass{background:linear-gradient(150deg, rgba(255,255,255,0.35), rgba(255,255,255,0.18) 60%), color-mix(in srgb, #fff 72%, transparent);border-color:rgba(0,0,0,0.06)}
 .hub-hubtile.neutral{border-top-color:#a89a86}
 .hub-expandbtn{position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--muted);font-size:17px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s ease}
