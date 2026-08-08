@@ -1196,3 +1196,6 @@ body.pvd-nav-open .proj-bottomnav { display: none !important; }
 @media (prefers-reduced-motion: reduce){.aurora .blob{animation:none}}
 @media print{.aurora{display:none}}
 :root[data-theme="light"] .aurora{opacity:.22}
+/* Finance pages: the budget/VCC grids are too dense for the full wash */
+body.aurora-dim .aurora{opacity:.1}
+:root[data-theme="light"] body.aurora-dim .aurora{opacity:.07}

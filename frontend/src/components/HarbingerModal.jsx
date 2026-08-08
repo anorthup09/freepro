@@ -217,8 +217,8 @@ const dotColor = (fld, attempted) => fld.filled ? '#e8500a' : (fld.req && attemp
 export function HarbingerView({ harbinger, onClose }) {
   const d = harbinger.data || {};
   return (
-    <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.75)', zIndex:130, display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'30px 14px', overflowY:'auto' }}>
-      <div onClick={e => e.stopPropagation()} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid #5ABF80', borderRadius:12, padding:'22px 26px', width:'100%', maxWidth:680 }}>
+    <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(11,10,8,0.7)', backdropFilter:'blur(36px) saturate(1.2)', WebkitBackdropFilter:'blur(36px) saturate(1.2)', zIndex:130, display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'34px 14px', overflowY:'auto' }}>
+      <div onClick={e => e.stopPropagation()} className="glass" style={{ borderRadius:28, borderTop:'2px solid rgba(90,191,128,0.65)', padding:'22px 26px', width:'100%', maxWidth:680 }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14 }}>
           <div>
             <div style={{ fontSize:18, fontWeight:800 }}>Harbinger — Submitted</div>
@@ -515,8 +515,8 @@ export default function HarbingerModal({ pid, initial, onClose, onSubmitted, sol
   );
 
   return (
-    <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.75)', zIndex:130, display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'30px 14px', overflowY:'auto' }}>
-      <div onClick={e => e.stopPropagation()} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid #5ABF80', borderRadius:12, padding: mobile ? '18px 15px' : '22px 26px', width:'100%', maxWidth:820 }}>
+    <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(11,10,8,0.7)', backdropFilter:'blur(36px) saturate(1.2)', WebkitBackdropFilter:'blur(36px) saturate(1.2)', zIndex:130, display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'34px 14px', overflowY:'auto' }}>
+      <div onClick={e => e.stopPropagation()} className="glass" style={{ borderRadius:28, borderTop:'2px solid rgba(90,191,128,0.65)', padding: mobile ? '18px 15px' : '22px 26px', width:'100%', maxWidth:820 }}>
         <style>{`@keyframes hbPulse{0%,100%{box-shadow:0 0 0 0 rgba(90,191,128,0.55)}50%{box-shadow:0 0 0 12px rgba(90,191,128,0)}}.hb-pulse{animation:hbPulse 1.8s ease-in-out infinite}@keyframes hbSlideR{from{opacity:0;transform:translateX(26px)}to{opacity:1;transform:none}}@keyframes hbSlideL{from{opacity:0;transform:translateX(-26px)}to{opacity:1;transform:none}}@keyframes hbPop{0%{transform:scale(.6);opacity:.3}60%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}`}</style>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:12 }}>
           <div>

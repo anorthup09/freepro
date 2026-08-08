@@ -95,6 +95,12 @@ export default function FinanceProject({ pidOverride, finTab, setFinTab }) {
     return () => window.removeEventListener('fp-dock-harbinger', open);
   }, []);
 
+  // Dense budget/VCC tables sit poorly over the full aurora — dim it here
+  useEffect(() => {
+    document.body.classList.add('aurora-dim');
+    return () => document.body.classList.remove('aurora-dim');
+  }, []);
+
   useEffect(() => {
     const onScroll = () => setGlass(window.scrollY > 170);
     window.addEventListener('scroll', onScroll, { passive: true });
