@@ -401,6 +401,8 @@ router.delete('/:id', requireAuth, requireRole('ADMIN'), async (req, res, next) 
     // Drop any weekly finance-report snapshots so a deleted project stops
     // appearing in saved report versions (finance_snapshots has no FK cascade).
     await sql`DELETE FROM finance_snapshots WHERE project_id = ANY(${sql.array(allIds)})`;
+    // Debriefs have no FK cascade — clean them up with the project.
+    await sql`DELETE FROM project_debriefs WHERE project_id = ANY(${sql.array(allIds)})`;
     // These location references aren't ON DELETE CASCADE, so clear them first —
     // otherwise the project → locations cascade is blocked by schedule_events /
     // shoot_days rows still pointing at the locations being deleted.

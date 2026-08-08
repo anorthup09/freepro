@@ -163,7 +163,19 @@ export default function DebriefPage() {
               Start / Stop / Continue and notes for consideration
             </div>
           </div>
-          {canEdit && !editing && <button onClick={startEdit} className="btn btn-ghost btn-sm">Edit details</button>}
+          {canEdit && !editing && (
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={startEdit} className="btn btn-ghost btn-sm">Edit details</button>
+              {user?.role === 'ADMIN' && (
+                <button className="btn btn-ghost btn-sm" style={{ color: '#e05252', borderColor: '#e05252' }}
+                  onClick={async () => {
+                    if (!confirm(`Delete this project and its debrief? (${project?.code} — ${project?.title})\nUse this to remove duplicates.`)) return;
+                    try { await api.deleteProject(id); nav('/reports/debrief'); }
+                    catch (e) { alert(e.message); }
+                  }}>Delete project</button>
+              )}
+            </div>
+          )}
         </div>
 
         {canEdit && (

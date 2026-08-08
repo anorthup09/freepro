@@ -218,6 +218,10 @@ async function findProject(code) {
 }
 
 async function seedDebriefs() {
+  // Import once ever. After this, editing a project's code won't cause the seed
+  // to re-create the original (which previously produced duplicates).
+  const [flag] = await sql`SELECT key FROM seed_flags WHERE key = 'debriefs_imported'`.catch(() => [null]);
+  if (flag) return;
   let added = 0, projects = 0, created = 0;
   for (const d of DEBRIEFS) {
     let proj = await findProject(d.code);
@@ -246,6 +250,7 @@ async function seedDebriefs() {
       }
     }
   }
+  await sql`INSERT INTO seed_flags (key) VALUES ('debriefs_imported') ON CONFLICT (key) DO NOTHING`.catch(() => {});
   if (added || created) console.log(`Debrief seed: imported ${added} entries across ${projects} projects (${created} created).`);
 }
 

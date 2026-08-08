@@ -1893,7 +1893,9 @@ async function migrate() {
 
   // One-time ClickUp PTO/OOO import (idempotent)
   try { await require('./seedPto')(); } catch (e) { console.error('PTO seed failed:', e.message); }
-  // One-time post-mortem debrief import (idempotent, matched by project code)
+  // One-time post-mortem debrief import — runs once, then a flag prevents it from
+  // re-creating projects after their codes are edited.
+  await sql`CREATE TABLE IF NOT EXISTS seed_flags (key TEXT PRIMARY KEY, done_at TIMESTAMPTZ DEFAULT NOW())`;
   try { await require('./seedDebriefs')(); } catch (e) { console.error('Debrief seed failed:', e.message); }
 
   // Foodie recs — team restaurant recommendations with ratings, photos, and a map
