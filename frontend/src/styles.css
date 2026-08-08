@@ -1198,4 +1198,7 @@ body.pvd-nav-open .proj-bottomnav { display: none !important; }
 :root[data-theme="light"] .aurora{opacity:.22}
 /* Finance pages: the budget/VCC grids are too dense for the full wash */
 body.aurora-dim .aurora{opacity:.1}
+/* Public share views (producer/crew/client): no aurora, plain black stage */
+body.aurora-off{background:#000}
+body.aurora-off .aurora{display:none}
 :root[data-theme="light"] body.aurora-dim .aurora{opacity:.07}

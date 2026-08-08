@@ -3124,6 +3124,12 @@ export default function Share() {
   const [pwInput, setPwInput] = useState('');
   const [pwError, setPwError] = useState('');
   const [pwLoading, setPwLoading] = useState(false);
+  // Public share views skip the aurora entirely — plain black stage
+  React.useEffect(() => {
+    document.body.classList.add('aurora-off');
+    return () => document.body.classList.remove('aurora-off');
+  }, []);
+
   const initialPage = searchParams.get('tab') || 'callsheet';
   const [sharePage, setSharePage] = useState(initialPage);
   const [resolvedPw, setResolvedPw] = useState(null);
