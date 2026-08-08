@@ -98,7 +98,7 @@ export default function RosterLookup() {
       <input value={query} onChange={e => setQuery(e.target.value)}
         placeholder="Search by name, email, or company…" style={{ marginBottom:8 }} />
       {query.trim().length > 0 && (
-        <div className="pos-table-wrap" style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden', marginBottom:12 }}>
+        <div className="pos-table-wrap glass" style={{ borderRadius:12, overflow:'hidden', marginBottom:12 }}>
           {matches.slice(0, 10).map(m => (
             <div key={m.id} onClick={() => openMember(m)}
               style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 14px', cursor:'pointer', borderBottom:'1px solid var(--border)' }}>
@@ -115,7 +115,7 @@ export default function RosterLookup() {
       )}
 
       {detail && (
-        <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'16px 18px', marginBottom:12 }}>
+        <div className="glass" style={{ borderRadius:12, padding:'16px 18px', marginBottom:12 }}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
             <div style={{ display:'flex', alignItems:'center', gap:10 }}>
               <div className="av" style={{ width:36, height:36, fontSize:12, flexShrink:0, background: colorFor(detail.name)+'22', color: colorFor(detail.name) }}>{initials(detail.name)}</div>

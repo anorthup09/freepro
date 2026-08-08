@@ -231,7 +231,7 @@ export default function Team() {
           Please remember to send your Backup Plan document with coverage for your ongoing projects before taking PTO.
         </div>
 
-        <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderTop:`3px solid ${BLUE}`, borderRadius:12, padding:'18px 20px', marginBottom:30 }}>
+        <div className="glass" style={{ borderTop:`3px solid ${BLUE}`, borderRadius:14, padding:'18px 20px', marginBottom:30 }}>
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(230px, 1fr))', gap:14 }}>
             <div>
               <span style={lbl}>Who is requesting PTO and/or OOO? *</span>
@@ -337,7 +337,7 @@ export default function Team() {
               </div>
               {!collapsed && group.length === 0 && <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic', padding:'2px 4px 6px' }}>Nothing here.</div>}
               {!collapsed && group.length > 0 && (
-                <div className="budget-tbl-wrap" style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10 }}>
+                <div className="budget-tbl-wrap glass" style={{ borderRadius:12 }}>
                   <table style={{ width:'100%', borderCollapse:'collapse', minWidth:860 }}>
                     <thead>
                       <tr>
@@ -401,7 +401,7 @@ export default function Team() {
         <div style={{ marginTop:16 }}>
         <div style={{ maxWidth:680, margin:'0 auto' }}>
           {/* Condensed Misc. Event form — expands on click */}
-          <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderTop:`3px solid ${EVT}`, borderRadius:12, marginBottom:26, overflow:'hidden' }}>
+          <div className="glass" style={{ borderTop:`3px solid ${EVT}`, borderRadius:14, marginBottom:26, overflow:'hidden' }}>
             <div onClick={() => setEvtOpen(o => !o)}
               style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, padding:'14px 18px', cursor:'pointer' }}>
               <div style={{ fontSize:13, fontWeight:800, color:'var(--text)' }}>{editingId ? 'Edit Event' : 'Add a Misc. Event'}
@@ -476,7 +476,7 @@ export default function Team() {
             </div>
             {events.length === 0 && <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic', padding:'2px 4px 6px' }}>No events yet.</div>}
             {events.length > 0 && (
-              <div className="budget-tbl-wrap" style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10 }}>
+              <div className="budget-tbl-wrap glass" style={{ borderRadius:12 }}>
                 <table style={{ width:'100%', borderCollapse:'collapse', minWidth:720 }}>
                   <thead>
                     <tr>

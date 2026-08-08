@@ -1381,11 +1381,11 @@ const HUB_CSS = `
 .hub-splash .aurora{z-index:-1 !important}
 .hub-splash-tile{position:relative;z-index:1}
 .hub-splash.done{opacity:0;pointer-events:none}
-.hub-splash-tile{position:relative;width:152px;height:152px;border-radius:40px;display:flex;align-items:center;justify-content:center;
-  background:linear-gradient(150deg, rgba(255,255,255,0.13), rgba(255,255,255,0.035) 55%), color-mix(in srgb, var(--bg2) 72%, transparent);
-  backdrop-filter:blur(22px) saturate(1.2);-webkit-backdrop-filter:blur(22px) saturate(1.2);
-  border:1px solid rgba(255,255,255,0.10);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,0.16), 0 26px 70px rgba(0,0,0,0.55)}
+.hub-splash-tile{position:relative;width:114px;height:114px;border-radius:30px;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(150deg, rgba(255,255,255,0.10), rgba(255,255,255,0.03) 55%), color-mix(in srgb, var(--bg2) 22%, transparent);
+  backdrop-filter:blur(30px) saturate(1.25);-webkit-backdrop-filter:blur(30px) saturate(1.25);
+  border:1px solid rgba(255,255,255,0.14);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.30), inset 1px 0 0 rgba(255,255,255,0.10), inset 0 12px 30px -16px rgba(255,255,255,0.24), 0 26px 70px rgba(0,0,0,0.55)}
 .hub-splash-tile img{width:62%;animation:splashBreath 2.6s cubic-bezier(.16,.84,.32,.99) both}
 .hub-splash-tile::before{content:'';position:absolute;inset:-1px;border-radius:inherit;padding:2px;pointer-events:none;
   background:conic-gradient(from calc(315deg + var(--splash-a)),
