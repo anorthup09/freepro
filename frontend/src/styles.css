@@ -376,8 +376,12 @@ textarea { resize: vertical; min-height: 70px; }
 .login-err { background: var(--red-bg); border: 1px solid var(--red-border); color: var(--red-text); border-radius: 6px; padding: 8px 12px; font-size: 12px; margin-bottom: 14px; }
 
 /* ── Modal overlay ── */
-.modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; }
-.modal { background: var(--bg2); border: 1px solid var(--border2); border-radius: 10px; padding: 24px; width: 100%; max-width: 540px; max-height: 90vh; overflow-y: auto; }
+.modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.55); backdrop-filter: blur(6px) saturate(1.1); -webkit-backdrop-filter: blur(6px) saturate(1.1); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.modal { background: color-mix(in srgb, var(--bg2) 78%, transparent); backdrop-filter: blur(22px) saturate(1.6); -webkit-backdrop-filter: blur(22px) saturate(1.6); border: 1px solid rgba(255,255,255,0.12); border-radius: 16px; padding: 24px; width: 100%; max-width: 540px; max-height: 90vh; overflow-y: auto; box-shadow: 0 24px 60px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.12); }
+:root[data-theme="light"] .modal { border-color: rgba(0,0,0,0.08); box-shadow: 0 24px 60px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.8); }
+/* Reusable subtle liquid-glass surface */
+.glass { background: color-mix(in srgb, var(--bg2) 78%, transparent); backdrop-filter: blur(18px) saturate(1.5); -webkit-backdrop-filter: blur(18px) saturate(1.5); border: 1px solid rgba(255,255,255,0.10); box-shadow: 0 12px 34px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.10); }
+:root[data-theme="light"] .glass { border-color: rgba(0,0,0,0.08); box-shadow: 0 12px 30px rgba(0,0,0,0.14), inset 0 1px 0 rgba(255,255,255,0.75); }
 .modal-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; margin-bottom: 18px; }
 
 /* ── Spec Tiles (liquid glass) ── */
