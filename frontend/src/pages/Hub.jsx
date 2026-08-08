@@ -259,9 +259,9 @@ function MediaMomentOrbit() {
       <div className="mm-banner">
         {fact.image?.type === 'photo' && <div className="mm-photo" style={{ backgroundImage:`url("${fact.image.value}")` }} aria-hidden />}
         <div className="mm-b-main">
+          <div className="mm-name"><span className="mm-name-pill">{fact.name}</span></div>
           {fact.prompt && <div className="mm-prompt">{fact.prompt}</div>}
           <div className="mm-answer">“{fact.answer}”</div>
-          <div className="mm-name">— {fact.name}</div>
         </div>
       </div>
       {intro && (
@@ -1404,7 +1404,7 @@ const HUB_CSS = `
 .hub-mm-half .mm-banner{flex:1;padding:9px 20px;align-items:center;min-height:123px;max-height:123px;overflow:hidden}
 .hub-mm-half .mm-prompt{margin-top:0}
 .hub-mm-half .mm-answer{font-size:12.5px;margin-top:2px}
-.hub-mm-half .mm-name{margin-top:2px}
+.hub-mm-half .mm-name{margin-bottom:3px}
 .hub-ctrl-half{flex:1 1 340px;min-width:0;display:flex;align-items:center;gap:10px}
 /* pill-shaped hub section, matching the MediaMoment banner radius — kept
    shallow: tight vertical padding and a compact tile row */
@@ -1466,8 +1466,11 @@ const HUB_CSS = `
 .mm-b-main{position:relative;z-index:2;min-width:0;flex:1}
 .mm-kicker{font-size:9px;font-weight:900;letter-spacing:.18em;color:var(--orange)}
 .mm-prompt{font-size:10.5px;font-weight:700;color:var(--muted);margin-top:4px;line-height:1.3}
-.mm-answer{font-family:Georgia,'Times New Roman',serif;font-size:14px;font-weight:700;line-height:1.4;margin-top:5px;color:var(--text)}
-.mm-name{font-family:'DM Sans',sans-serif;font-size:11px;font-weight:800;color:var(--muted);white-space:nowrap;text-align:right;margin-top:4px}
+.mm-answer{font-family:'DM Sans',-apple-system,sans-serif;font-size:14px;font-weight:700;line-height:1.4;margin-top:5px;color:var(--text)}
+.mm-name{margin-bottom:5px}
+.mm-name-pill{display:inline-block;font-family:'DM Sans',sans-serif;font-size:10px;font-weight:800;color:#fff;letter-spacing:.04em;white-space:nowrap;
+  background:rgba(255,255,255,0.10);border:1px solid rgba(255,255,255,0.22);border-radius:20px;padding:3px 12px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.2)}
 
 /* on-site welcome pill — two-segment: inset shoot-name chip on the left,
    "Producer View →" on the right. Centered under the tagline, light orange tint. */
