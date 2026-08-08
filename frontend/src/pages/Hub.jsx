@@ -1799,6 +1799,14 @@ export function HubBottomNav({ raised = false }) {
   const activeKey = (items.find(i => i.active) || {}).key;
   const btnRefs = useRef({});
   const [bubble, setBubble] = useState(null);
+  // Navigating away collapses the dock right-to-left before the route change;
+  // the next page's dock then reveals left-to-right on mount (see NAV_CSS).
+  const [collapsing, setCollapsing] = useState(false);
+  const go = (to) => {
+    if (path === to || collapsing) return;
+    setCollapsing(true);
+    setTimeout(() => nav(to), 300);
+  };
   useEffect(() => {
     const measure = () => {
       const el = btnRefs.current[activeKey];
@@ -1812,11 +1820,11 @@ export function HubBottomNav({ raised = false }) {
   return (
     <>
       <style>{NAV_CSS}</style>
-      <div className={`hub-bottomnav${scrolled ? ' condensed' : ''}${raised ? ' raised' : ''}`}>
+      <div className={`hub-bottomnav${scrolled ? ' condensed' : ''}${raised ? ' raised' : ''}${collapsing ? ' collapsing' : ''}`}>
         {bubble && <div className="hub-navbubble" style={{ left: bubble.left, top: bubble.top, width: bubble.width, height: bubble.height }} />}
         {items.map(it => (
           <button key={it.key} ref={el => { btnRefs.current[it.key] = el; }}
-            className={`hub-navitem${it.active ? ' active' : ''}`} onClick={() => nav(it.to)}>
+            className={`hub-navitem${it.active ? ' active' : ''}`} onClick={() => go(it.to)}>
             {it.icon}<span className="lbl">{it.label}</span>
           </button>
         ))}
@@ -1830,10 +1838,15 @@ export function HubBottomNav({ raised = false }) {
 const NAV_CSS = `
 .hub-bottomnav{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:120;display:flex;align-items:stretch;gap:2px;padding:8px 12px;border-radius:26px;
   background:rgba(30,27,23,0.34);backdrop-filter:blur(22px) saturate(1.7);-webkit-backdrop-filter:blur(22px) saturate(1.7);
-  border:1px solid rgba(255,255,255,0.12);box-shadow:0 12px 40px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.14);transition:padding .28s ease}
+  border:1px solid rgba(255,255,255,0.12);box-shadow:0 12px 40px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.14);transition:padding .28s ease;
+  animation:dockReveal .55s cubic-bezier(.22,.61,.36,1) both}
 .hub-bottomnav::after{content:'';position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;
   background:linear-gradient(135deg, rgba(255,255,255,0.5), rgba(255,255,255,0.03) 34%, rgba(255,255,255,0) 56%, rgba(255,255,255,0.14) 100%);
   -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+.hub-bottomnav.collapsing{animation:dockCollapse .3s cubic-bezier(.55,.06,.68,.19) both}
+@keyframes dockReveal{from{clip-path:inset(-60px 100% -60px 0);opacity:0}to{clip-path:inset(-60px 0 -60px 0);opacity:1}}
+@keyframes dockCollapse{from{clip-path:inset(-60px 0 -60px 0);opacity:1}to{clip-path:inset(-60px 100% -60px 0);opacity:0}}
+@media (prefers-reduced-motion: reduce){.hub-bottomnav{animation:none}}
 .hub-bottomnav.condensed{padding:7px 9px}
 .hub-bottomnav.raised{bottom:96px}
 @media (max-width:700px){.hub-bottomnav.raised{bottom:104px}}

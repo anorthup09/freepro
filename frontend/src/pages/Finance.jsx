@@ -35,7 +35,7 @@ export function SaveIndicator() {
   );
 }
 
-export function FinanceHeader({ crumb }) {
+export function FinanceHeader({ crumb, extra }) {
   const { user, setUser } = useAuth();
   return (
     <div className="finance-header" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 26px' }}>
@@ -48,6 +48,7 @@ export function FinanceHeader({ crumb }) {
       </div>
       <div style={{ display:'flex', alignItems:'center', gap:12 }}>
         <span style={{ fontSize:11, color:'var(--muted)' }}>{user?.name}</span>
+        {extra}
         <HomeButton />
       </div>
     </div>

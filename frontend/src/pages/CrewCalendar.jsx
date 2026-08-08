@@ -75,7 +75,7 @@ export default function CrewCalendar() {
             <div style={{ width: NAME_W + totalDays * DAY_W, position: 'relative' }}>
               {/* month row */}
               <div style={{ display: 'flex', height: 24, borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                <div style={{ width: NAME_W, flexShrink: 0, position: 'sticky', left: 0, background: 'var(--bg2)', zIndex: 3, borderRight: '1px solid var(--border)' }} />
+                <div className="cal-name" style={{ width: NAME_W, flexShrink: 0, position: 'sticky', left: 0, zIndex: 3, borderRight: '1px solid var(--border)' }} />
                 <div style={{ position: 'relative', flex: 1 }}>
                   {months.map(m => (
                     <div key={m.i} style={{ position: 'absolute', left: m.i * DAY_W + 6, top: 5, fontSize: 10, fontWeight: 800, color: 'var(--text)', whiteSpace: 'nowrap' }}>{m.label}</div>
@@ -84,7 +84,7 @@ export default function CrewCalendar() {
               </div>
               {/* day header */}
               <div style={{ display: 'flex', borderBottom: '1px solid var(--border)' }}>
-                <div style={{ width: NAME_W, flexShrink: 0, position: 'sticky', left: 0, background: 'var(--bg2)', zIndex: 3, borderRight: '1px solid var(--border)' }} />
+                <div className="cal-name" style={{ width: NAME_W, flexShrink: 0, position: 'sticky', left: 0, zIndex: 3, borderRight: '1px solid var(--border)' }} />
                 {Array.from({ length: totalDays }, (_, i) => {
                   const d = dayAt(i);
                   const wknd = d.getDay() === 0 || d.getDay() === 6;
@@ -112,7 +112,7 @@ export default function CrewCalendar() {
                 const rowH = 12 + laneCount * 28;
                 return (
                   <div key={name} style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.04)', position: 'relative', minHeight: rowH }}>
-                    <div style={{ width: NAME_W, flexShrink: 0, padding: '10px 12px', fontSize: 12, fontWeight: 700, position: 'sticky', left: 0, background: 'var(--bg2)', zIndex: 2, borderRight: '1px solid var(--border)' }}>{name}</div>
+                    <div className="cal-name" style={{ width: NAME_W, flexShrink: 0, padding: '10px 12px', fontSize: 12, fontWeight: 700, position: 'sticky', left: 0, zIndex: 2, borderRight: '1px solid var(--border)' }}>{name}</div>
                     {/* weekend shading + today line */}
                     {Array.from({ length: totalDays }, (_, i) => {
                       const d = dayAt(i);
@@ -128,13 +128,13 @@ export default function CrewCalendar() {
                       const c = a.kind === 'pto' ? '#4a9eff' : a.kind === 'event' ? '#E8500A' : colorFor(a.project_code);
                       const isEdit = a.kind === 'edit';
                       return (
-                        <a key={a.id} href={a.kind === 'pto' ? '/team?view=pipeline' : a.kind === 'event' ? '/team?view=events' : isEdit ? `/avo/${a.project_id}` : `/projects/${a.project_id}`}
+                        <a key={a.id} className="cal-bar" href={a.kind === 'pto' ? '/team?view=pipeline' : a.kind === 'event' ? '/team?view=events' : isEdit ? `/avo/${a.project_id}` : `/projects/${a.project_id}`}
                           title={`${a.project_code || ''} · ${a.project_title || ''} — ${a.position_name}`}
                           style={{
                             position: 'absolute', top: 8 + (laneOf[a.id] || 0) * 28, height: 24, zIndex: 1,
                             left: NAME_W + from * DAY_W,
                             width: (to - from + 1) * DAY_W - 4,
-                            background: `${c}2e`, border: `1px solid ${c}`, borderRadius: 6,
+                            backgroundColor: `${c}2e`, border: `1px solid ${c}`, borderRadius: 6,
                             display: 'flex', alignItems: 'center', padding: '0 6px', overflow: 'hidden',
                             fontSize: 9, fontWeight: 700, color: c, whiteSpace: 'nowrap', textDecoration: 'none',
                           }}>

@@ -1102,6 +1102,34 @@ body { padding-top: env(safe-area-inset-top, 0px); }
 }
 .evt-glass:active { transform: translateY(0) scale(0.96); }
 
+/* Crew Calendar — frosted sticky name column and glassy assignment bars.
+   The name cells must still mask bars scrolling beneath them, so they keep a
+   heavy tint under the blur rather than the near-transparent .glass recipe. */
+.cal-name {
+  background:
+    linear-gradient(150deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015) 55%),
+    color-mix(in srgb, var(--bg2) 82%, transparent);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.10),
+    inset -1px 0 0 rgba(255,255,255,0.06);
+}
+.cal-bar {
+  background-image: linear-gradient(150deg, rgba(255,255,255,0.14), rgba(255,255,255,0.03) 55%, rgba(255,255,255,0.07));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.30),
+    inset 0 -1px 0 rgba(255,255,255,0.06),
+    0 4px 12px rgba(0,0,0,0.32);
+}
+.cal-bar:hover { filter: brightness(1.18); }
+:root.light .cal-name {
+  background:
+    linear-gradient(150deg, rgba(255,255,255,0.55), rgba(255,255,255,0.25) 55%),
+    color-mix(in srgb, var(--bg2) 85%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.7), inset -1px 0 0 rgba(0,0,0,0.05);
+}
+
 /* Revealed date tabs on the Schedule toolbar — stable highlight on hover
    (no scale transform, which enlarged the tab and overlapped its neighbours) */
 .sched-daterow .day-tab { transition: background .12s ease, border-color .12s ease, color .12s ease; }
@@ -1132,7 +1160,9 @@ body.pvd-nav-open .fin-dock,
 body.pvd-nav-open .proj-bottomnav { display: none !important; }
 
 /* Project section dock — bottom-right liquid-glass pill, mirroring the Finance dock */
-.proj-bottomnav { position: fixed; right: 14px; bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); z-index: 112; display: flex; align-items: center; gap: 2px; padding: 8px 12px; background: rgba(30,27,23,0.34); backdrop-filter: blur(22px) saturate(1.7); -webkit-backdrop-filter: blur(22px) saturate(1.7); border: 1px solid rgba(255,255,255,0.12); border-radius: 26px; box-shadow: 0 12px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.14); max-width: calc(100vw - 28px); }
+.proj-bottomnav { position: fixed; right: 14px; bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); z-index: 112; display: flex; align-items: center; gap: 2px; padding: 8px 12px; background: rgba(30,27,23,0.34); backdrop-filter: blur(22px) saturate(1.7); -webkit-backdrop-filter: blur(22px) saturate(1.7); border: 1px solid rgba(255,255,255,0.12); border-radius: 26px; box-shadow: 0 12px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.14); max-width: calc(100vw - 28px); animation: dockRevealP .55s cubic-bezier(.22,.61,.36,1) both; }
+@keyframes dockRevealP { from { clip-path: inset(-60px 100% -60px 0); opacity: 0; } to { clip-path: inset(-60px 0 -60px 0); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .proj-bottomnav { animation: none; } }
 .proj-bottomnav::after { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1px; pointer-events: none; background: linear-gradient(135deg, rgba(255,255,255,0.5), rgba(255,255,255,0.03) 34%, rgba(255,255,255,0) 56%, rgba(255,255,255,0.14) 100%); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
 .proj-bottomnav .dock-btn, .proj-bottomnav .tab { position: relative; z-index: 1; }
 /* Merged with the phase tabs (embedded desktop pre-pro) — centered like the Finance dock */

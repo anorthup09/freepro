@@ -22,14 +22,20 @@ export default function FinanceOverview() {
 
   return (
     <div style={{ minHeight:'100vh', background:'transparent' }}>
-      <FinanceHeader crumb="Overview" />
+      <FinanceHeader crumb="Overview" extra={
+        <button className="home-glass glass-action" onClick={() => nav('/finance/report')} title="Weekly Finance Report" aria-label="Weekly Finance Report">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 15l2.5-3 2 2L16 10"/>
+          </svg>
+          <span className="ga-label">Weekly Finance Report</span>
+        </button>
+      } />
       <div style={{ maxWidth:1200, margin:'0 auto', padding:'6px 26px 60px' }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12, flexWrap:'wrap', gap:8 }}>
           <div>
             <div className="page-title">Project Finance Overview</div>
             <div className="page-sub">{projects ? `${gridProjects.length} project${gridProjects.length === 1 ? '' : 's'} · RFPs live in the RFP folder` : 'Loading…'}</div>
           </div>
-          <button className="btn btn-primary btn-sm" onClick={() => nav('/finance/report')}>Weekly Finance Report</button>
         </div>
         <div className="pos-table-wrap glass" style={{ borderRadius:12, overflow:'auto' }}>
           <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12, minWidth:820 }}>
