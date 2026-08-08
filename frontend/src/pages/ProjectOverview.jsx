@@ -6,7 +6,8 @@ import { displayName } from '../utils/displayName.js';
 import { STATUS_COLORS } from './Hub.jsx';
 import { DELIV_STATUS, FOCUS_COLOR } from './Avo.jsx';
 
-const card = { background:'color-mix(in srgb, var(--bg2) 72%, transparent)', backdropFilter:'blur(18px) saturate(1.4)', WebkitBackdropFilter:'blur(18px) saturate(1.4)', border:'1px solid var(--border)', borderRadius:12, padding:'16px 18px', boxShadow:'0 12px 30px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.08)' };
+// Layout only — the frosted fill + refractive edge come from the global .glass class.
+const card = { borderRadius:16, padding:'16px 18px' };
 const secHdr = { fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.07em', marginBottom:10 };
 const cellInput = { background:'transparent', border:'1px solid transparent', fontSize:12, width:'100%', padding:'5px 6px', borderRadius:5 };
 const fmtD = d => d ? new Date(String(d).slice(0, 10) + 'T12:00:00').toLocaleDateString('en-US', { month:'numeric', day:'numeric', year:'2-digit' }) : '';
@@ -119,7 +120,7 @@ function DocsTile({ pid, docs, setDocs }) {
     setBusy(null);
   }
   return (
-    <div className="pv-docs" style={{ ...card, marginBottom:16 }}>
+    <div className="pv-docs glass" style={{ ...card, marginBottom:16 }}>
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, flexWrap:'wrap', marginBottom:10 }}>
         <div style={{ ...secHdr, marginBottom:0 }}>Creative Docs</div>
         <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
@@ -176,7 +177,7 @@ function LinksTile({ pid, links, setLinks }) {
   }
   const addPill = { background:'var(--bg)', border:'1px solid rgba(255,255,255,0.55)', color:'#e8e8e8', borderRadius:14, padding:'3px 12px', fontSize:10, fontWeight:800, cursor:'pointer' };
   return (
-    <div className="pv-links" style={{ ...card, marginBottom:16 }}>
+    <div className="pv-links glass" style={{ ...card, marginBottom:16 }}>
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
         <div style={{ ...secHdr, marginBottom:0 }}>Important Links</div>
         <button onClick={() => setAdding(a => !a)} style={addPill} title="Add a link">{adding ? '×' : '+'}</button>
@@ -253,7 +254,7 @@ function DebriefTile({ pid }) {
   }
 
   return (
-    <div className="pv-debrief" style={{ ...card, marginBottom:16 }}>
+    <div className="pv-debrief glass" style={{ ...card, marginBottom:16 }}>
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
         <div style={{ ...secHdr, marginBottom:0 }}>Debrief</div>
         <button onClick={() => nav(`/projects/${pid}/debrief`)}
@@ -447,7 +448,7 @@ export default function ProjectOverview({ pid, onOpenFinance }) {
     <div className="pv-overview" style={{ maxWidth:1250, margin:'0 auto', padding:'8px 16px 60px', display:'grid', gridTemplateColumns:'1fr 320px', gridTemplateRows:'auto 1fr', gap:16, alignItems:'start' }}>
       {/* ── Budget tile: status left, running total right (hidden for Solutions) ── */}
       {!isSolutions && (
-      <div className="pv-head" title="Open the finance page"
+      <div className="pv-head glass" title="Open the finance page"
         onClick={() => onOpenFinance ? onOpenFinance() : nav(`/finance/${pid}`)}
         style={{ gridColumn:1, ...card, display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap', cursor:'pointer' }}>
         <div style={{ display:'flex', alignItems:'center', gap:10 }}>
@@ -466,7 +467,7 @@ export default function ProjectOverview({ pid, onOpenFinance }) {
 
       {/* ── Left: cover page ── */}
       <div className="pv-left" style={{ gridColumn:1, display:'flex', flexDirection:'column', gap:16 }}>
-        <div className="pv-shoots" style={card}>
+        <div className="pv-shoots glass" style={card}>
           <div style={secHdr}>Shoots</div>
           {shoots.length === 0 && <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>No production shoots yet — they appear when the budget goes Live.</div>}
           {shoots.map(s => (
@@ -480,7 +481,7 @@ export default function ProjectOverview({ pid, onOpenFinance }) {
           ))}
         </div>
 
-        <div className="pv-post" style={card}>
+        <div className="pv-post glass" style={card}>
           <div style={secHdr}>Post-Production at a Glance</div>
           {edits.length === 0 && <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>No edits on this project code yet.</div>}
           {edits.map(e => {
@@ -505,7 +506,7 @@ export default function ProjectOverview({ pid, onOpenFinance }) {
           })}
         </div>
 
-        <div className="pv-notes" style={card}>
+        <div className="pv-notes glass" style={card}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
             <div style={{ ...secHdr, marginBottom:0 }}>Client Call Notes</div>
             <button onClick={async () => {
@@ -550,7 +551,7 @@ export default function ProjectOverview({ pid, onOpenFinance }) {
       <DocsTile pid={pid} docs={docs} setDocs={setDocs} />
       <LinksTile pid={pid} links={links} setLinks={setLinks} />
       <DebriefTile pid={pid} />
-      <div className="pv-todo" style={{ ...card, minHeight:420, display:'flex', flexDirection:'column' }}>
+      <div className="pv-todo glass" style={{ ...card, minHeight:420, display:'flex', flexDirection:'column' }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
           <div style={{ ...secHdr, marginBottom:0 }}>To-Do</div>
           <button onClick={async () => {
