@@ -1404,7 +1404,7 @@ const HUB_CSS = `
 .hub-hero-row{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:20px}
 .hub-hero-row .hub-header{margin-bottom:0;flex:1 1 320px;min-width:0}
 .hub-hero-cta{margin-top:96px;flex:0 1 auto;display:flex;justify-content:flex-end}
-@media(max-width:640px){.hub-hero-cta{margin-top:0;flex-basis:100%;justify-content:flex-start}}
+@media(max-width:640px){.hub-hero-cta{margin-top:0;flex-basis:100%;justify-content:flex-end}}
 /* hub tile top row: MediaMoment / Ways of Being on the left half, controls +
    half-width search on the right half */
 .hub-toprow{display:flex;gap:14px;align-items:stretch;flex-wrap:wrap;margin-bottom:12px}
