@@ -572,6 +572,16 @@ export default function Overview({ project, setProject, onTabChange,
           <div className="modal">
             <div className="modal-title">Add Agency Contact</div>
             <form onSubmit={addAgencyContact}>
+              <div className="field" style={{ marginBottom:12 }}>
+                <label>Quick add — Solutions Creative</label>
+                <select value=""
+                  onChange={e => { const n = e.target.value; if (n) setAgencyForm(f => ({ ...f, name: n, title: 'Creative' })); }}>
+                  <option value="">— Choose a Solutions contact —</option>
+                  {['Allison Boon', 'Brandon Emery', 'Ariel Lynch'].map(n => (
+                    <option key={n} value={n}>{n} — Creative</option>
+                  ))}
+                </select>
+              </div>
               <div className="form-grid" style={{ marginBottom:12 }}>
                 <div className="field"><label>Name</label><input value={agencyForm.name} onChange={e => setAgencyForm(f=>({...f,name:e.target.value}))} required /></div>
                 <div className="field"><label>Title</label><input value={agencyForm.title} onChange={e => setAgencyForm(f=>({...f,title:e.target.value}))} required /></div>

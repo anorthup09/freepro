@@ -159,7 +159,8 @@ const CSS = `
 export default function Reports() {
   const nav = useNavigate();
   const { user } = useAuth();
-  const isCrew = user?.role === 'CREW';
+  // AGENCY (Solutions) shares the crew-safe report surface with CREW.
+  const isCrew = ['CREW', 'AGENCY'].includes(user?.role);
   const isAdmin = user?.role === 'ADMIN';
 
   // Reports this user can open, keyed by route.

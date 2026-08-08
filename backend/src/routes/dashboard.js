@@ -424,13 +424,36 @@ router.get('/on-trip', requireAuth, async (req, res, next) => {
   try {
     const today = bizToday();
     const cm = await myCrewMember(req.user.email);
-    if (!cm) return res.json(null);
-    const [trip] = await sql`
-      SELECT pr.id, pr.code, pr.title, pr.city, pr.state
-      FROM crew_assignments ca JOIN projects pr ON pr.id = ca.project_id
-      WHERE ca.crew_member_id = ${cm.id} AND pr.status != 'ARCHIVED'
-        AND ca.start_date::date <= ${today} AND COALESCE(ca.end_date, ca.start_date)::date >= ${today}
-      ORDER BY ca.start_date LIMIT 1`;
+    let trip = null;
+    if (cm) {
+      [trip] = await sql`
+        SELECT pr.id, pr.code, pr.title, pr.city, pr.state
+        FROM crew_assignments ca JOIN projects pr ON pr.id = ca.project_id
+        WHERE ca.crew_member_id = ${cm.id} AND pr.status != 'ARCHIVED'
+          AND ca.start_date::date <= ${today} AND COALESCE(ca.end_date, ca.start_date)::date >= ${today}
+        ORDER BY ca.start_date LIMIT 1`;
+    }
+    // Agency contacts (e.g. Solutions "Creative") get the on-site pill when a
+    // project they're listed on as an agency contact has a shoot day today —
+    // matched by their email or display name.
+    if (!trip) {
+      const email = (req.user.email || '').toLowerCase();
+      const names = [];
+      if (cm) {
+        const disp = [cm.preferred_first_name, cm.preferred_last_name].filter(Boolean).join(' ').trim() || cm.name;
+        if (disp) names.push(disp.toLowerCase());
+        if (cm.name) names.push(cm.name.toLowerCase());
+      }
+      [trip] = await sql`
+        SELECT DISTINCT pr.id, pr.code, pr.title, pr.city, pr.state, pr.start_date
+        FROM agency_contacts ac
+        JOIN projects pr ON pr.id = ac.project_id
+        JOIN shoot_days sd ON sd.project_id = pr.id AND sd.date::date = ${today}
+        WHERE pr.status != 'ARCHIVED'
+          AND ( (${email} <> '' AND LOWER(ac.email) = ${email})
+                OR LOWER(ac.name) = ANY(${sql.array(names.length ? names : [''])}) )
+        ORDER BY pr.start_date LIMIT 1`;
+    }
     if (!trip) return res.json(null);
     const viewType = req.user.role === 'CREW' ? 'crew' : 'producer';
     let [share] = await sql`

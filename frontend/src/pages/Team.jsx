@@ -111,6 +111,8 @@ export default function Team() {
     return ['roster', 'form', 'pipeline', 'events'].includes(v) ? v : 'form';
   });
   const { user } = useAuth();
+  // Solutions (AGENCY) OOO requests skip manager approval and go straight to the pipeline.
+  const isSolutions = user?.role === 'AGENCY';
 
   const displayOf = m => [m.preferred_first_name, m.preferred_last_name].filter(Boolean).join(' ').trim() || m.name;
   // Not selectable as requester or manager
@@ -142,14 +144,14 @@ export default function Team() {
   }, [f.memberId, f.ptoType, roster.length]);
 
   const set = k => e => setF(v => ({ ...v, [k]: e.target.value }));
-  const canSubmit = f.memberId && f.ptoType && f.title && f.startDate && f.endDate && f.onShoots && f.managerId;
+  const canSubmit = f.memberId && f.ptoType && f.title && f.startDate && f.endDate && f.onShoots && (isSolutions || f.managerId);
 
   async function submit() {
     if (!canSubmit || saving) return;
     setSaving(true);
     try {
       const row = await api.createPto(f);
-      maybeMailNotice("The manager's approval-request email");
+      if (!isSolutions) maybeMailNotice("The manager's approval-request email");
       setRows(rs => [...(rs || []), row]);
       setF(BLANK);
       setView('pipeline');
@@ -254,10 +256,12 @@ export default function Team() {
               <span style={lbl}>End Date of PTO or OOO *</span>
               <input type="date" value={f.endDate} onChange={set('endDate')} />
             </div>
-            <div>
-              <span style={lbl}>Manager's Name (Must be person who approves your timecards) *</span>
-              <MemberSelect roster={selectable} value={f.managerId} onChange={v => setF(x => ({ ...x, managerId: v }))} />
-            </div>
+            {!isSolutions && (
+              <div>
+                <span style={lbl}>Manager's Name (Must be person who approves your timecards) *</span>
+                <MemberSelect roster={selectable} value={f.managerId} onChange={v => setF(x => ({ ...x, managerId: v }))} />
+              </div>
+            )}
             <div>
               <span style={lbl}>Are you currently assigned to any shoots/travel for these dates? *</span>
               <select value={f.onShoots} onChange={set('onShoots')}>

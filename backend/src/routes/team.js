@@ -87,10 +87,14 @@ router.post('/pto', requireAuth, async (req, res, next) => {
     if (!d.title || !d.memberId || !d.startDate || !d.endDate) {
       return res.status(400).json({ error: 'Requester, title, start and end dates are required' });
     }
+    // Solutions (AGENCY) OOO requests skip manager approval — straight to the
+    // pipeline as APPROVED.
+    const isSolutions = req.user.role === 'AGENCY';
     const [row] = await sql`
-      INSERT INTO pto_requests (member_id, title, pto_type, start_date, end_date, on_shoots, comp_notes, manager_id, notify)
+      INSERT INTO pto_requests (member_id, title, pto_type, start_date, end_date, on_shoots, comp_notes, manager_id, notify, status)
       VALUES (${d.memberId}, ${d.title}, ${d.ptoType || 'PTO'}, ${d.startDate}, ${d.endDate},
-        ${d.onShoots || null}, ${d.compNotes || null}, ${d.managerId || null}, ${d.notify || null})
+        ${d.onShoots || null}, ${d.compNotes || null}, ${isSolutions ? null : (d.managerId || null)}, ${d.notify || null},
+        ${isSolutions ? 'APPROVED' : 'REVIEW'})
       RETURNING id`;
     const [full] = await sql`
       SELECT p.*,
