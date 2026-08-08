@@ -1360,7 +1360,7 @@ const HUB_CSS = `
     rgba(255,255,255,0.95), rgba(255,214,180,0.55) 12%, rgba(255,255,255,0.06) 26%, transparent 42%, transparent 100%);
   -webkit-mask:linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite:xor;mask:linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);mask-composite:exclude;
-  animation:splashSweep 1.4s linear 2}
+  animation:splashSweep 2.6s cubic-bezier(.16,.84,.32,.99) 1 both}
 .hub-splash-glow{position:absolute;width:210px;height:210px;border-radius:64px;
   background:radial-gradient(closest-side, rgba(232,80,10,0.55), rgba(232,80,10,0.15) 60%, transparent 75%);
   filter:blur(26px);animation:splashPulse 1.5s ease-in-out infinite}
