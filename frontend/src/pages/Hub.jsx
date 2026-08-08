@@ -1865,7 +1865,7 @@ export default function Hub() {
         </div>
       )}
 
-        <div style={{ flex:1, display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'8px 16px 120px' }}>
+        <div style={{ flex:1, display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'8px 16px 120px', filter:'saturate(0.5)' }}>
           <div style={{ width:'100%', maxWidth:1150 }}>
             <div className="hub-masthead">
               <img className="hub-logo-top" src="/unbridled-logo.png" alt="Unbridled Media" />
