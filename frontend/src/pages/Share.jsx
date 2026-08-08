@@ -5,6 +5,7 @@ import { api } from '../api.js';
 import { displayName } from '../utils/displayName.js';
 import { positionLabels, positionName } from '../utils/positionLabel.js';
 import ShineBorder from '../components/ShineBorder.jsx';
+import HomeButton from '../components/HomeButton.jsx';
 import Clapboard from '../components/Clapboard.jsx';
 
 const isMobileNow = () => typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches;
@@ -3275,6 +3276,10 @@ export default function Share() {
             {view_type === 'producer' ? 'Producer View' : view_type === 'crew' ? 'Crew View' : 'Client View'}
           </span>
         )}
+        {/* Logged-in teammates (not password-only visitors) get a way home */}
+        {(view_type === 'producer' || view_type === 'crew') && (() => {
+          try { return !!localStorage.getItem('fp_token'); } catch { return false; }
+        })() && <HomeButton />}
         {view_type === 'talent' && (
           <div style={{ fontSize:11, color:'var(--text)', textTransform:'uppercase', letterSpacing:'.08em', border:'1px solid rgba(255,255,255,0.6)', borderRadius:6, padding:'4px 10px' }}>
             {data.talent_name} — Talent
