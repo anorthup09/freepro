@@ -1146,7 +1146,9 @@ function FinancePill({ onClick }) {
 
 // ── Lower dashboard: Day in Review (left) + team whereabouts (right) ──
 const STATUS_BUBBLE = { out: '#e05252', shoot: '#e6c229', trip: '#e6c229', office: '#5ABF80' };
-const KIND_DOT = { due: '#e8500a', shoot: '#e6c229', pto: '#4a9eff', work: '#9DC183' };
+// Monochrome dots for now (varying grays keep a subtle distinction); we can
+// reintroduce hue per-kind later once the monochrome base is dialed in.
+const KIND_DOT = { due: '#d8d3ca', shoot: '#b3ada3', pto: '#8f8a82', work: '#c4beb4' };
 
 function HubDashboard() {
   const nav = useNavigate();
@@ -1184,7 +1186,7 @@ function HubDashboard() {
   return (
     <div className="hub-dash" style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(300px, 1fr))', gap:16, marginTop:22 }}>
       <div className="hub-anim-drop hub-glow glass" onMouseMove={glowMove} style={{ ...card, animationDelay:'.1s' }}>
-        <div style={{ ...hdr, marginBottom:2, color:'#e8500a' }}>Day in Review</div>
+        <div style={{ ...hdr, marginBottom:2, color:'var(--text)' }}>Day in Review</div>
         <div style={{ fontSize:12, color:'var(--muted)', fontWeight:600, marginBottom:10 }}>{dateLabel}</div>
         {!day && <div style={{ fontSize:11, color:'var(--muted)' }}>Loading…</div>}
         {day && day.items.length === 0 && (
@@ -1223,7 +1225,7 @@ function HubDashboard() {
       </div>
 
       <div className="hub-anim-drop hub-glow glass" onMouseMove={glowMove} style={{ ...card, animationDelay:'.18s' }}>
-        <div style={{ ...hdr, marginBottom:12, color:'#e8500a', display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
+        <div style={{ ...hdr, marginBottom:12, color:'var(--text)', display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
           My Tasks
           <button onClick={openAddTask} title="Add a task to your list"
             style={{ background:'transparent', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:10,
@@ -1281,7 +1283,7 @@ function HubDashboard() {
       </div>
 
       <div className="hub-anim-drop hub-glow glass" onMouseMove={glowMove} style={{ ...card, position:'relative', overflow:'hidden', animationDelay:'.26s' }}>
-        <div style={{ ...hdr, marginBottom:12, color:'#e8500a' }}>Team Today</div>
+        <div style={{ ...hdr, marginBottom:12, color:'var(--text)' }}>Team Today</div>
         {!team && <div style={{ fontSize:11, color:'var(--muted)' }}>Loading…</div>}
         {team && team.length === 0 && <div style={{ fontSize:12, color:'var(--muted)', fontStyle:'italic' }}>No Unbridled team members on the roster yet.</div>}
         <div className="team-grid" style={{ display:'grid', gridTemplateColumns:'1fr', columnGap:18 }}>
@@ -1369,24 +1371,23 @@ const HUB_CSS = `
 .mm-wrap{position:relative}
 .mm-wrap > .mm-banner{flex:1}
 
-/* Glowing capsule: bright luminous hairline edge + a soft breathing bloom,
-   clean translucent interior. No busy drift/spin — the glow carries it. */
+/* Frosted capsule: no glow — a clean blur with a subtle refractive light edge
+   (bright glint at top-left + bottom-right, fading through the middle). */
 .mm-banner,.mm-welcome{position:relative;overflow:hidden;border-radius:40px;
-  border:1px solid rgba(255,255,255,0.5);
+  border:1px solid rgba(255,255,255,0.12);
   background:color-mix(in srgb, var(--bg2) 58%, transparent);
-  backdrop-filter:blur(22px) saturate(1.3);-webkit-backdrop-filter:blur(22px) saturate(1.3);
-  box-shadow:0 0 16px rgba(255,255,255,0.20), 0 0 42px rgba(255,255,255,0.10),
-    inset 0 1px 0 rgba(255,255,255,0.35), inset 0 0 26px rgba(255,255,255,0.05), 0 18px 46px rgba(0,0,0,0.42);
-  animation:mmCardIn .7s cubic-bezier(.22,.61,.36,1) both, mmGlow 6.5s ease-in-out infinite alternate}
-.mm-banner{display:flex;flex-direction:row;align-items:center;gap:16px;padding:18px 30px}
-@keyframes mmGlow{
-  0%{box-shadow:0 0 12px rgba(255,255,255,0.14), 0 0 30px rgba(255,255,255,0.07), inset 0 1px 0 rgba(255,255,255,0.32), inset 0 0 24px rgba(255,255,255,0.04), 0 18px 46px rgba(0,0,0,0.42)}
-  100%{box-shadow:0 0 22px rgba(255,255,255,0.30), 0 0 56px rgba(255,255,255,0.16), inset 0 1px 0 rgba(255,255,255,0.5), inset 0 0 30px rgba(255,255,255,0.08), 0 18px 46px rgba(0,0,0,0.42)}
-}
-:root[data-theme="light"] .mm-banner,:root[data-theme="light"] .mm-welcome{
-  border-color:rgba(0,0,0,0.10);background:color-mix(in srgb, #fff 82%, transparent);
-  box-shadow:0 0 16px rgba(150,170,220,0.12), 0 10px 30px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.9);
+  backdrop-filter:blur(24px) saturate(1.15);-webkit-backdrop-filter:blur(24px) saturate(1.15);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.22), inset 0 -1px 1px rgba(0,0,0,0.28), 0 14px 40px rgba(0,0,0,0.36);
   animation:mmCardIn .7s cubic-bezier(.22,.61,.36,1) both}
+.mm-banner{display:flex;flex-direction:row;align-items:center;gap:16px;padding:18px 30px}
+.mm-banner::before,.mm-welcome::before{content:'';position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;z-index:4;
+  background:linear-gradient(135deg, rgba(255,255,255,0.55), rgba(255,255,255,0.04) 34%, rgba(255,255,255,0) 56%, rgba(255,255,255,0.16) 100%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+:root[data-theme="light"] .mm-banner,:root[data-theme="light"] .mm-welcome{
+  border-color:rgba(0,0,0,0.08);background:color-mix(in srgb, #fff 80%, transparent);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.9), 0 10px 28px rgba(0,0,0,0.12)}
+:root[data-theme="light"] .mm-banner::before,:root[data-theme="light"] .mm-welcome::before{
+  background:linear-gradient(135deg, rgba(255,255,255,0.9), rgba(255,255,255,0) 45%, rgba(0,0,0,0.05) 100%)}
 /* go-chevron mark at the right end of the pill; shifts on tile hover */
 .mm-go{position:relative;z-index:2;flex-shrink:0;display:inline-flex;align-items:center;
   filter:drop-shadow(0 0 5px rgba(232,99,42,0.35));transition:transform .18s ease}
@@ -1495,16 +1496,22 @@ const HUB_CSS = `
   .hub-hubtile .hub-expandbtn{width:22px;height:22px;font-size:13px;top:9px;right:9px}
 }
 @keyframes hubRollMobile{from{opacity:0;transform:translateY(16px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
-.hub-hubtile{position:relative;background:var(--bg2);border:1px solid var(--border);border-top:3px solid var(--orange);border-radius:14px;padding:20px 22px;cursor:pointer;transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease}
-.hub-hubtile:hover{transform:translateY(-2px);box-shadow:0 8px 26px rgba(0,0,0,0.4)}
-/* Small, subtle orange spotlight that follows the cursor across the tiles
-   (hub tile + the 3 dashboard tiles). --gx/--gy are set on mousemove; it sits
-   above the tile background but below all text/children. */
+.hub-hubtile{position:relative;background:color-mix(in srgb, var(--bg2) 55%, transparent);backdrop-filter:blur(22px) saturate(0.95);-webkit-backdrop-filter:blur(22px) saturate(0.95);border:1px solid var(--border);border-radius:16px;padding:20px 22px;cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,0.18), 0 14px 38px rgba(0,0,0,0.3);transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease}
+.hub-hubtile:hover{transform:translateY(-2px);box-shadow:inset 0 1px 0 rgba(255,255,255,0.22), 0 16px 40px rgba(0,0,0,0.4)}
+/* Subtle neutral spotlight that follows the cursor + a static refractive light
+   edge, giving the tiles (hub tile + the 3 dashboard tiles) a frosted-glass look.
+   --gx/--gy are set on mousemove; the spotlight sits above the tile background
+   but below all text/children; the refractive edge sits on top, mask-clipped. */
 .hub-glow{position:relative;overflow:hidden}
 .hub-glow::before{content:'';position:absolute;inset:0;z-index:0;pointer-events:none;opacity:0;
-  background:radial-gradient(120px circle at var(--gx, 50%) var(--gy, 40%), rgba(232,80,10,0.08), transparent 68%);
+  background:radial-gradient(150px circle at var(--gx, 50%) var(--gy, 40%), rgba(255,255,255,0.08), transparent 68%);
   transition:opacity .3s ease}
 .hub-glow:hover::before{opacity:1}
+.hub-glow::after{content:'';position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;z-index:2;
+  background:linear-gradient(135deg, rgba(255,255,255,0.5), rgba(255,255,255,0.03) 34%, rgba(255,255,255,0) 56%, rgba(255,255,255,0.14) 100%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+:root[data-theme="light"] .hub-hubtile{background:color-mix(in srgb, #fff 75%, transparent)}
+:root[data-theme="light"] .hub-glow::after{background:linear-gradient(135deg, rgba(255,255,255,0.9), rgba(255,255,255,0) 45%, rgba(0,0,0,0.05) 100%)}
 .hub-glow > *{position:relative;z-index:1}
 @media (prefers-reduced-motion: reduce){.hub-glow::before{transition:none}}
 .hub-hubtile.neutral{border-top-color:#a89a86}
