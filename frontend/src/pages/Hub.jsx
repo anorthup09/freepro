@@ -1887,6 +1887,12 @@ export default function Hub() {
   const isCrew = ['CREW','AGENCY'].includes(user?.role);
   const isFinance = user?.role === 'FINANCE';
   const [showNewProject, setShowNewProject] = useState(false);
+  // The landing page keeps the full-strength aurora; subpages run 20%
+  useEffect(() => {
+    document.body.classList.add('aurora-full');
+    return () => document.body.classList.remove('aurora-full');
+  }, []);
+
   // Liquid-glass intro: blank screen + glowing logo tile for ~3s, then the
   // page cascades in. Plays on every arrival at the hub.
   const [splashFading, setSplashFading] = useState(false);

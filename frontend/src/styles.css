@@ -1167,7 +1167,7 @@ body.pvd-nav-open .proj-bottomnav { display: none !important; }
    Drifting gradient wash behind every page, from the reference video:
    cream-gold bloom top, burnt orange shoulder, plum band, steel-blue base,
    cool light reflection. Transform-only motion, sits at z-index -1. */
-.aurora{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.35;overflow:hidden}
+.aurora{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.2;overflow:hidden}
 .aurora .blob{position:absolute;border-radius:50%;filter:blur(70px);will-change:transform}
 .aurora .b1{width:85vw;height:70vh;left:15%;top:-28%;
   background:radial-gradient(closest-side, #ffe9c4 0%, #f4b95e 45%, transparent 72%);
@@ -1201,11 +1201,12 @@ body.pvd-nav-open .proj-bottomnav { display: none !important; }
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.35'/%3E%3C/svg%3E")}
 @media (prefers-reduced-motion: reduce){.aurora .blob{animation:none}}
 @media print{.aurora{display:none}}
-:root[data-theme="light"] .aurora{opacity:.22}
+:root[data-theme="light"] .aurora{opacity:.13}
+/* The hub landing page runs the full-strength wash */
+body.aurora-full .aurora{opacity:.35}
+:root[data-theme="light"] body.aurora-full .aurora{opacity:.22}
 /* Finance pages: the budget/VCC grids are too dense for the full wash */
 body.aurora-dim .aurora{opacity:.1}
-/* Pre-Pro pages: gentler wash under the dense overview/schedule content */
-body.aurora-soft .aurora{opacity:.3}
 /* Crew grid on the shoot overview keeps its orange cast over the glass */
 .ov-crewglass{background:linear-gradient(150deg, rgba(232,80,10,0.16), rgba(232,80,10,0.05) 60%), color-mix(in srgb, var(--bg2) 30%, transparent) !important;border-color:rgba(232,80,10,0.4) !important}
 /* Public share views (producer/crew/client): no aurora, plain black stage */
