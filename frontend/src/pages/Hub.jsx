@@ -1416,7 +1416,7 @@ const HUB_CSS = `
 /* Luminous pill treatment: a slow refraction circling the outline and a soft
    white aura drifting across the interior (reference: the glowing search pill) */
 @property --lume-a{syntax:'<angle>';initial-value:0deg;inherits:false}
-.pill-lume{position:absolute;inset:0;border-radius:inherit;pointer-events:none;overflow:hidden;z-index:0}
+.pill-lume{position:absolute !important;inset:0;border-radius:inherit;pointer-events:none;overflow:hidden;z-index:0}
 .pill-lume::before{content:'';position:absolute;inset:-1px;border-radius:inherit;padding:2px;
   background:conic-gradient(from var(--lume-a),
     rgba(255,255,255,1), rgba(255,255,255,0.12) 14%, transparent 28%,
@@ -1611,7 +1611,7 @@ const HUB_CSS = `
   -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
 :root[data-theme="light"] .hub-hubtile{background:linear-gradient(150deg, rgba(255,255,255,0.35), rgba(255,255,255,0.18) 60%), color-mix(in srgb, #fff 72%, transparent);border-color:rgba(0,0,0,0.06)}
 :root[data-theme="light"] .hub-glow::after{background:linear-gradient(135deg, rgba(255,255,255,0.9), rgba(255,255,255,0) 45%, rgba(0,0,0,0.05) 100%)}
-.hub-glow > *{position:relative;z-index:1}
+.hub-glow > *:not(.pill-lume){position:relative;z-index:1}
 @media (prefers-reduced-motion: reduce){.hub-glow::before{transition:none}}
 /* Slow orange aura drifting behind the tile grids — it reads through the glassy,
    translucent tiles (each tile's backdrop-filter blurs it) to give depth + motion.
