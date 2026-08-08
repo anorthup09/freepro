@@ -1412,7 +1412,7 @@ const HUB_CSS = `
 /* on-site welcome pill sits centered below the tagline */
 .hub-welcome-row{display:flex;justify-content:center;margin-top:12px}
 /* hero: greeting left, on-site welcome pill top right in line with it */
-.hub-hero-row{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+.hub-hero-row{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:48px}
 .hub-hero-row .hub-header{margin-bottom:0;flex:1 1 320px;min-width:0}
 .hub-hero-cta{margin-top:40px;flex:0 1 auto;display:flex;justify-content:flex-end}
 @media(max-width:640px){.hub-hero-cta{margin-top:0;flex-basis:100%;justify-content:flex-end}}
