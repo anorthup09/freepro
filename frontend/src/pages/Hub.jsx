@@ -1410,13 +1410,16 @@ const HUB_CSS = `
 @keyframes hubRise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
 .hub-cascade .hub-masthead{animation:hubRise .65s cubic-bezier(.22,.61,.36,1) 0s both}
 .hub-cascade .dash-hero{animation:hubRise .65s cubic-bezier(.22,.61,.36,1) .25s both}
-.hub-cascade .hub-hubs{animation:hubRise .65s cubic-bezier(.22,.61,.36,1) .55s both}
-/* Dashboard choreography: My Tasks fades in center stage, then Day in Review
-   and Team Today slide out from behind it to the left and right */
-.hub-cascade .hub-dash > .glass:nth-child(2){animation:dashFade .6s ease .95s both;z-index:2}
-.hub-cascade .hub-dash > .glass:nth-child(1){animation:dashSlideOutL .8s cubic-bezier(.22,.61,.36,1) 1.65s both;z-index:1}
-.hub-cascade .hub-dash > .glass:nth-child(3){animation:dashSlideOutR .8s cubic-bezier(.22,.61,.36,1) 1.65s both;z-index:1}
-@keyframes dashFade{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+/* The pill card rises from the bottom together with the side tiles */
+.hub-cascade .hub-hubs{animation:hubRiseUp .8s cubic-bezier(.22,.61,.36,1) 1.55s both}
+/* Dashboard choreography: My Tasks flips in with a 3D rotation, then Day in
+   Review and Team Today slide out from behind it to the left and right */
+.hub-cascade .hub-dash{perspective:1400px}
+.hub-cascade .hub-dash > .glass:nth-child(2){animation:dashFlip .85s cubic-bezier(.22,.61,.36,1) .7s both;z-index:2;transform-style:preserve-3d;backface-visibility:hidden}
+.hub-cascade .hub-dash > .glass:nth-child(1){animation:dashSlideOutL .8s cubic-bezier(.22,.61,.36,1) 1.55s both;z-index:1}
+.hub-cascade .hub-dash > .glass:nth-child(3){animation:dashSlideOutR .8s cubic-bezier(.22,.61,.36,1) 1.55s both;z-index:1}
+@keyframes dashFlip{0%{opacity:0;transform:rotateY(82deg) translateY(10px)}55%{opacity:1}100%{opacity:1;transform:none}}
+@keyframes hubRiseUp{from{opacity:0;transform:translateY(48px)}to{opacity:1;transform:none}}
 @keyframes dashSlideOutL{0%{opacity:0;transform:translateX(calc(100% + 16px))}25%{opacity:1}100%{opacity:1;transform:none}}
 @keyframes dashSlideOutR{0%{opacity:0;transform:translateX(calc(-100% - 16px))}25%{opacity:1}100%{opacity:1;transform:none}}
 @media (prefers-reduced-motion: reduce){.hub-cascade .hub-dash > .glass{animation:none !important}}
