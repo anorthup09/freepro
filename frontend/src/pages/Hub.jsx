@@ -217,6 +217,19 @@ function DailyFactBlob() {
 // The team roster as a ring of dots with the day's MediaMoment in the center.
 // Full dot = in office, shrunk = out; orange = St. Louis, gray = Denver.
 // Closing the moment spins the ring and parades the dots up into a row.
+// Double-chevron "go" mark that sits at the right end of the glowing pill.
+// Back chevron is a faint white; front chevron carries the brand orange accent.
+function GoChevron() {
+  return (
+    <span className="mm-go" aria-hidden>
+      <svg viewBox="0 0 40 40" width="30" height="30">
+        <path d="M9 11 L19 20 L9 29" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" opacity="0.5" style={{ color:'#fff' }} />
+        <path d="M21 11 L31 20 L21 29" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </span>
+  );
+}
+
 function MediaMomentOrbit() {
   const [fact, setFact] = useState(undefined); // undefined = loading, null = none
   const [intro, setIntro] = useState(false);   // Netflix-style logo reveal
@@ -249,6 +262,7 @@ function MediaMomentOrbit() {
           <div className="mm-answer">“{fact.answer}”</div>
           <div className="mm-name">— {fact.name}</div>
         </div>
+        <GoChevron />
       </div>
       {intro && (
         <div className="mm-intro" aria-hidden>
@@ -1349,26 +1363,33 @@ const HUB_CSS = `
 .mm-wrap{position:relative}
 .mm-wrap > .mm-banner{flex:1}
 
-.mm-banner,.mm-welcome{position:relative;overflow:hidden;border-radius:34px;border:1px solid rgba(255,255,255,0.14);
-  background:linear-gradient(135deg, rgba(255,255,255,0.10), rgba(255,255,255,0.02) 58%);
-  background-color:color-mix(in srgb, var(--bg2) 66%, transparent);background-size:200% 200%;background-position:0% 0%;
-  backdrop-filter:blur(20px) saturate(1.35);-webkit-backdrop-filter:blur(20px) saturate(1.35);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,0.22), inset 0 -1px 1px rgba(0,0,0,0.35), 0 16px 44px rgba(0,0,0,0.4);
-  animation:mmCardIn .7s cubic-bezier(.22,.61,.36,1) both, mmDrift 40s ease-in-out infinite alternate}
-.mm-banner{display:flex;flex-direction:column;padding:18px 30px}
-@keyframes mmDrift{0%{background-position:0% 0%}100%{background-position:60% 40%}}
-/* reflective edge: neutral white hairline with one soft glint that drifts slowly around */
-.mm-banner::before,.mm-welcome::before{content:'';position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;z-index:4;
-  background:conic-gradient(from var(--mmang), rgba(255,255,255,0.07) 0 70%, rgba(255,255,255,0.5) 83%, rgba(255,255,255,0.22) 94%, rgba(255,255,255,0.07) 100%);
-  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;
-  animation:mmSpin 22s linear infinite}
-@keyframes mmSpin{to{--mmang:360deg}}
+/* Glowing capsule: bright luminous hairline edge + a soft breathing bloom,
+   clean translucent interior. No busy drift/spin — the glow carries it. */
+.mm-banner,.mm-welcome{position:relative;overflow:hidden;border-radius:40px;
+  border:1px solid rgba(255,255,255,0.5);
+  background:color-mix(in srgb, var(--bg2) 58%, transparent);
+  backdrop-filter:blur(22px) saturate(1.3);-webkit-backdrop-filter:blur(22px) saturate(1.3);
+  box-shadow:0 0 16px rgba(255,255,255,0.20), 0 0 42px rgba(255,255,255,0.10),
+    inset 0 1px 0 rgba(255,255,255,0.35), inset 0 0 26px rgba(255,255,255,0.05), 0 18px 46px rgba(0,0,0,0.42);
+  animation:mmCardIn .7s cubic-bezier(.22,.61,.36,1) both, mmGlow 6.5s ease-in-out infinite alternate}
+.mm-banner{display:flex;flex-direction:row;align-items:center;gap:16px;padding:18px 30px}
+@keyframes mmGlow{
+  0%{box-shadow:0 0 12px rgba(255,255,255,0.14), 0 0 30px rgba(255,255,255,0.07), inset 0 1px 0 rgba(255,255,255,0.32), inset 0 0 24px rgba(255,255,255,0.04), 0 18px 46px rgba(0,0,0,0.42)}
+  100%{box-shadow:0 0 22px rgba(255,255,255,0.30), 0 0 56px rgba(255,255,255,0.16), inset 0 1px 0 rgba(255,255,255,0.5), inset 0 0 30px rgba(255,255,255,0.08), 0 18px 46px rgba(0,0,0,0.42)}
+}
+:root[data-theme="light"] .mm-banner,:root[data-theme="light"] .mm-welcome{
+  border-color:rgba(0,0,0,0.10);background:color-mix(in srgb, #fff 82%, transparent);
+  box-shadow:0 0 16px rgba(150,170,220,0.12), 0 10px 30px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.9);
+  animation:mmCardIn .7s cubic-bezier(.22,.61,.36,1) both}
+/* go-chevron mark at the right end of the pill */
+.mm-go{position:relative;z-index:2;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;
+  color:var(--orange);filter:drop-shadow(0 0 7px rgba(232,80,10,0.45))}
 
 .mm-photo{position:absolute;top:0;right:0;bottom:0;width:48%;z-index:0;background-size:cover;background-position:center 30%;opacity:.5;pointer-events:none;
   animation:mmPan 16s ease-in-out infinite alternate;
   -webkit-mask-image:linear-gradient(90deg, transparent, #000 58%);mask-image:linear-gradient(90deg, transparent, #000 58%)}
 @keyframes mmPan{from{background-position:center 16%}to{background-position:center 82%}}
-.mm-b-main{position:relative;z-index:2;min-width:0}
+.mm-b-main{position:relative;z-index:2;min-width:0;flex:1}
 .mm-kicker{font-size:9px;font-weight:900;letter-spacing:.18em;color:var(--orange)}
 .mm-prompt{font-size:10.5px;font-weight:700;color:var(--muted);margin-top:4px;line-height:1.3}
 .mm-answer{font-family:Georgia,'Times New Roman',serif;font-size:14px;font-weight:700;line-height:1.4;margin-top:5px;color:var(--text)}
