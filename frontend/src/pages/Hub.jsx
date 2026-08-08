@@ -919,11 +919,11 @@ function SolutionsHub() {
       <div className="hub-hubtile hub-glow hub-anim-left pillcard" onMouseMove={glowMove} style={{ cursor:'default', paddingTop:16, minWidth:0 }}>
         <div className="hub-toprow">
           <div className="hub-mm-half"><MediaMomentOrbit /></div>
-          <div className="hub-ctrl-half">
-            <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search code, title, client…" style={{ flex:1, minWidth:0 }} />
-            <span style={{ fontSize:9, fontWeight:800, color:'var(--orange)', border:'1px solid rgba(232,80,10,0.4)', borderRadius:10, padding:'2px 8px', whiteSpace:'nowrap' }}>{label}</span>
-          </div>
-        </div>
+          <div className="hub-right-col">
+            <div className="hub-ctrl-half">
+              <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search code, title, client…" style={{ flex:1, minWidth:0 }} />
+              <span style={{ fontSize:9, fontWeight:800, color:'var(--orange)', border:'1px solid rgba(232,80,10,0.4)', borderRadius:10, padding:'2px 8px', whiteSpace:'nowrap' }}>{label}</span>
+            </div>
         {!projects && <div className="empty">Loading…</div>}
         {projects && shown.length === 0 && <div className="empty">No {isCrewRole ? '' : 'Solutions '}projects yet.</div>}
         {shown.length > 0 && (
@@ -944,6 +944,8 @@ function SolutionsHub() {
             ))}
           </div>
         )}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -1049,20 +1051,22 @@ function HubProjects({ onNewProject, finance }) {
       <div className={`hub-hubtile hub-glow hub-anim-left pillcard${onProjects ? '' : ' neutral'}`} onMouseMove={glowMove} style={{ cursor:'default', paddingTop:16, minWidth:0 }}>
         <div className="hub-toprow">
           <div className="hub-mm-half"><MediaMomentOrbit /></div>
-          <div className="hub-ctrl-half">
-            {onNewProject && !finance && <NewProjectPill onClick={onNewProject} />}
-            {!hideSearch && (onProjects
-              ? <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search code, title, client…" style={{ flex:1, minWidth:0 }} />
-              : <input value={cq} onChange={e => setCq(e.target.value)} placeholder="Search clients…" style={{ flex:1, minWidth:0 }} />)}
-            {hideSearch && <div style={{ flex:1 }} />}
-            {!finance && <HubSwitchPill label={onProjects ? 'Client Hub' : 'Project Hub'} neutral={onProjects}
-              onClick={doSwitch} />}
-            {!finance && <HubAppMenu open={appOpen} setOpen={setAppOpen} />}
-            {finance && <FinancePill onClick={() => nav('/finance')} />}
+          <div className="hub-right-col">
+            <div className="hub-ctrl-half">
+              {onNewProject && !finance && <NewProjectPill onClick={onNewProject} />}
+              {!hideSearch && (onProjects
+                ? <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search code, title, client…" style={{ flex:1, minWidth:0 }} />
+                : <input value={cq} onChange={e => setCq(e.target.value)} placeholder="Search clients…" style={{ flex:1, minWidth:0 }} />)}
+              {hideSearch && <div style={{ flex:1 }} />}
+              {!finance && <HubSwitchPill label={onProjects ? 'Client Hub' : 'Project Hub'} neutral={onProjects}
+                onClick={doSwitch} />}
+              {!finance && <HubAppMenu open={appOpen} setOpen={setAppOpen} />}
+              {finance && <FinancePill onClick={() => nav('/finance')} />}
+            </div>
+            <div key={flips} style={{ minWidth:0 }}>
+              {onProjects ? projectList : clientList}
+            </div>
           </div>
-        </div>
-        <div key={flips}>
-          {onProjects ? projectList : clientList}
         </div>
       </div>
     </div>
@@ -1358,6 +1362,8 @@ const HUB_CSS = `
 /* hub tile top row: MediaMoment / Ways of Being on the left half, controls +
    half-width search on the right half */
 .hub-toprow{display:flex;gap:14px;align-items:stretch;flex-wrap:wrap;margin-bottom:12px}
+.hub-right-col{flex:1 1 340px;min-width:0;display:flex;flex-direction:column;gap:12px}
+.hub-right-col .hub-ctrl-half{flex:none}
 .hub-mm-half{flex:1 1 340px;min-width:0;display:flex}
 .hub-mm-half:empty{display:none}
 .hub-mm-half .mm-wrap{flex:1;display:flex;min-width:0}
