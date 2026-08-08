@@ -58,7 +58,7 @@ export default function CrewCalendar() {
       <div style={{ maxWidth: 1300, margin: '0 auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', marginBottom: 18 }}>
           <div>
-            <div className="page-title">Crew Calendar</div>
+            <div className="page-title">Calendar</div>
             <div className="page-sub">Unbridled Media employees on shoots &amp; edits</div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -71,7 +71,7 @@ export default function CrewCalendar() {
         {rows && members.length === 0 && <div className="empty">No Unbridled crew assigned to shoots or edits yet.</div>}
 
         {members.length > 0 && (
-          <div ref={scrollRef} style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 10, overflowX: 'auto' }}>
+          <div ref={scrollRef} className="glass" style={{ borderRadius: 14, overflowX: 'auto' }}>
             <div style={{ width: NAME_W + totalDays * DAY_W, position: 'relative' }}>
               {/* month row */}
               <div style={{ display: 'flex', height: 24, borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
