@@ -913,7 +913,7 @@ function SolutionsHub() {
           <div className="hub-scroll" style={{ display:'flex', gap:10, overflowX:'auto', paddingBottom:8, WebkitMaskImage:SCROLL_FADE, maskImage:SCROLL_FADE }}>
             {shown.map(p => (
               <div key={p.id} onClick={() => nav(`/project-view/${p.id}`)}
-                style={{ flex:'0 0 auto', width:180, background:'color-mix(in srgb, var(--bg2) 74%, transparent)', backdropFilter:'blur(16px) saturate(1.5)', WebkitBackdropFilter:'blur(16px) saturate(1.5)', border:'1px solid rgba(255,255,255,0.10)', borderTop:'3px solid rgba(232,80,10,0.6)', borderRadius:14, padding:'11px 13px', cursor:'pointer', boxShadow:'0 10px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08)', transition:'transform .15s ease' }}
+                style={{ flex:'0 0 auto', width:180, background:'color-mix(in srgb, var(--bg2) 74%, transparent)', backdropFilter:'blur(16px) saturate(1.5)', WebkitBackdropFilter:'blur(16px) saturate(1.5)', border:'1px solid rgba(255,255,255,0.10)', borderTop:'1px solid rgba(255,255,255,0.10)', borderRadius:14, padding:'11px 13px', cursor:'pointer', boxShadow:'0 10px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08)', transition:'transform .15s ease' }}
                 onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-3px)'}
                 onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
                 <div style={{ fontSize:10, fontWeight:800, color:'var(--muted)', letterSpacing:'0.04em' }}>{p.code}</div>
@@ -987,7 +987,7 @@ function HubProjects({ onNewProject, finance }) {
           {shown.map((p, i) => (
             <div key={p.id} onClick={() => nav(`/project-view/${p.id}`)}
               className={flips ? 'hub-cardflip' : ''}
-              style={{ flex:'0 0 auto', width:180, background:'color-mix(in srgb, var(--bg2) 74%, transparent)', backdropFilter:'blur(16px) saturate(1.5)', WebkitBackdropFilter:'blur(16px) saturate(1.5)', border:'1px solid rgba(255,255,255,0.10)', borderTop:'3px solid rgba(232,80,10,0.6)', borderRadius:14, padding:'11px 13px', cursor:'pointer', boxShadow:'0 10px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08)', transition:'transform .15s ease', animationDelay:`${i * 0.045}s` }}
+              style={{ flex:'0 0 auto', width:180, background:'color-mix(in srgb, var(--bg2) 74%, transparent)', backdropFilter:'blur(16px) saturate(1.5)', WebkitBackdropFilter:'blur(16px) saturate(1.5)', border:'1px solid rgba(255,255,255,0.10)', borderTop:'1px solid rgba(255,255,255,0.10)', borderRadius:14, padding:'11px 13px', cursor:'pointer', boxShadow:'0 10px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08)', transition:'transform .15s ease', animationDelay:`${i * 0.045}s` }}
               onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-3px)'} onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
               <div style={{ fontSize:10, fontWeight:800, color:'var(--muted)', letterSpacing:'0.04em' }}>{p.code}</div>
               <div style={{ fontSize:12.5, fontWeight:800, margin:'3px 0 2px' }}>{p.title}</div>
@@ -1010,7 +1010,7 @@ function HubProjects({ onNewProject, finance }) {
           {shownClients.map((c, i) => (
             <div key={c.name} onClick={() => nav(`/project-view/client/${encodeURIComponent(c.name)}`)}
               className={flips ? 'hub-cardflip' : ''}
-              style={{ flex:'0 0 auto', width:180, background:'color-mix(in srgb, var(--bg2) 74%, transparent)', backdropFilter:'blur(16px) saturate(1.5)', WebkitBackdropFilter:'blur(16px) saturate(1.5)', border:'1px solid rgba(255,255,255,0.10)', borderTop:'3px solid #a89a86', borderRadius:14, padding:'11px 13px', cursor:'pointer', boxShadow:'0 10px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08)', transition:'transform .15s ease', animationDelay:`${i * 0.045}s` }}
+              style={{ flex:'0 0 auto', width:180, background:'color-mix(in srgb, var(--bg2) 74%, transparent)', backdropFilter:'blur(16px) saturate(1.5)', WebkitBackdropFilter:'blur(16px) saturate(1.5)', border:'1px solid rgba(255,255,255,0.10)', borderTop:'1px solid rgba(255,255,255,0.10)', borderRadius:14, padding:'11px 13px', cursor:'pointer', boxShadow:'0 10px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08)', transition:'transform .15s ease', animationDelay:`${i * 0.045}s` }}
               onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-3px)'} onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
               <div style={{ fontSize:12.5, fontWeight:800 }}>{c.name}</div>
               <div style={{ fontSize:10.5, color:'var(--muted)', margin:'3px 0 8px' }}>{c.projects.length} project{c.projects.length !== 1 ? 's' : ''}</div>

@@ -143,7 +143,7 @@ const CSS = `
 .rpt-list{display:flex;flex-direction:column;gap:9px;max-width:340px;margin:0 auto}
 .rpt-tile{display:flex;align-items:center;justify-content:space-between;gap:12px;
   background:color-mix(in srgb, var(--bg2) 76%, transparent);backdrop-filter:blur(16px) saturate(1.5);-webkit-backdrop-filter:blur(16px) saturate(1.5);
-  border:1px solid rgba(255,255,255,0.10);border-left:4px solid var(--orange);border-radius:12px;padding:11px 15px;cursor:pointer;
+  border:1px solid rgba(255,255,255,0.10);border-radius:12px;padding:11px 15px;cursor:pointer;
   box-shadow:0 8px 22px rgba(0,0,0,0.28),inset 0 1px 0 rgba(255,255,255,0.08);transition:transform .15s ease}
 :root[data-theme="light"] .rpt-tile{border-color:rgba(0,0,0,0.08);box-shadow:0 8px 20px rgba(0,0,0,0.10),inset 0 1px 0 rgba(255,255,255,0.7)}
 .rpt-tile:hover{transform:translateX(3px)}
