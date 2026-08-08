@@ -1362,15 +1362,21 @@ const HUB_CSS = `
 /* hub tile top row: MediaMoment / Ways of Being on the left half, controls +
    half-width search on the right half */
 .hub-toprow{display:flex;gap:14px;align-items:stretch;flex-wrap:wrap;margin-bottom:12px}
-.hub-right-col{flex:1 1 340px;min-width:0;display:flex;flex-direction:column;gap:12px}
+.hub-right-col{flex:1 1 340px;min-width:0;display:flex;flex-direction:column;gap:8px}
 .hub-right-col .hub-ctrl-half{flex:none}
 .hub-mm-half{flex:1 1 340px;min-width:0;display:flex}
 .hub-mm-half:empty{display:none}
 .hub-mm-half .mm-wrap{flex:1;display:flex;min-width:0}
-.hub-mm-half .mm-banner{flex:1;padding:14px 24px}
+.hub-mm-half .mm-banner{flex:1;padding:10px 22px;align-items:center}
+.hub-mm-half .mm-prompt{margin-top:0}
+.hub-mm-half .mm-answer{font-size:13px;margin-top:3px}
+.hub-mm-half .mm-name{margin-top:2px}
 .hub-ctrl-half{flex:1 1 340px;min-width:0;display:flex;align-items:center;gap:10px}
-/* pill-shaped hub section, matching the MediaMoment banner radius */
-.hub-hubtile.pillcard{border-radius:40px;padding-left:26px;padding-right:26px}
+/* pill-shaped hub section, matching the MediaMoment banner radius — kept
+   shallow: tight vertical padding and a compact tile row */
+.hub-hubtile.pillcard{border-radius:40px;padding:12px 26px 8px !important}
+.hub-hubtile.pillcard .hub-toprow{margin-bottom:0}
+.hub-hubtile.pillcard .hub-scroll{padding-bottom:4px}
 /* Mobile: pin the hero (heading/tagline/media moment) and let the tiles below
    scroll up over it (they carry a solid bg + higher z-index). The pinned hero
    stays locked in place and slowly fades out (opacity via JS refs on scroll). */
