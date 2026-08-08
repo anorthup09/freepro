@@ -141,11 +141,15 @@ const CSS = `
 .rpt-navitem:hover svg{transform:scale(1.18)}
 .rpt-navitem.on{color:var(--orange)}
 .rpt-list{display:flex;flex-direction:column;gap:9px;max-width:340px;margin:0 auto}
-.rpt-tile{display:flex;align-items:center;justify-content:space-between;gap:12px;
-  background:color-mix(in srgb, var(--bg2) 76%, transparent);backdrop-filter:blur(16px) saturate(1.5);-webkit-backdrop-filter:blur(16px) saturate(1.5);
-  border:1px solid rgba(255,255,255,0.10);border-radius:12px;padding:11px 15px;cursor:pointer;
-  box-shadow:0 8px 22px rgba(0,0,0,0.28),inset 0 1px 0 rgba(255,255,255,0.08);transition:transform .15s ease}
-:root[data-theme="light"] .rpt-tile{border-color:rgba(0,0,0,0.08);box-shadow:0 8px 20px rgba(0,0,0,0.10),inset 0 1px 0 rgba(255,255,255,0.7)}
+.rpt-tile{position:relative;display:flex;align-items:center;justify-content:space-between;gap:12px;
+  background:linear-gradient(150deg, rgba(255,255,255,0.12), rgba(255,255,255,0.035) 55%), color-mix(in srgb, var(--bg2) 64%, transparent);backdrop-filter:blur(22px) saturate(1.3);-webkit-backdrop-filter:blur(22px) saturate(1.3);
+  border:1px solid rgba(255,255,255,0.16);border-radius:14px;padding:11px 15px;cursor:pointer;
+  box-shadow:0 12px 30px rgba(0,0,0,0.32),inset 0 1px 0 rgba(255,255,255,0.26);transition:transform .15s ease}
+:root[data-theme="light"] .rpt-tile{background:linear-gradient(150deg, rgba(255,255,255,0.7), rgba(255,255,255,0.35) 60%), color-mix(in srgb, #fff 78%, transparent);border-color:rgba(0,0,0,0.08);box-shadow:0 10px 24px rgba(0,0,0,0.10),inset 0 1px 0 rgba(255,255,255,0.8)}
+.rpt-tile::after{content:'';position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;
+  background:linear-gradient(135deg, rgba(255,255,255,0.5), rgba(255,255,255,0.03) 34%, rgba(255,255,255,0) 56%, rgba(255,255,255,0.14) 100%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+:root[data-theme="light"] .rpt-tile::after{background:linear-gradient(135deg, rgba(255,255,255,0.9), rgba(255,255,255,0) 45%, rgba(0,0,0,0.05) 100%)}
 .rpt-tile:hover{transform:translateX(3px)}
 @keyframes rptIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
 .rpt-tile{animation:rptIn .6s cubic-bezier(.22,.61,.36,1) backwards}
@@ -198,7 +202,7 @@ export default function Reports() {
           <HomeButton />
         </div>
       </div>
-      <div style={{ maxWidth:900, margin:'0 auto', padding:'10px 16px 120px' }}>
+      <div className="aura-wrap" style={{ maxWidth:900, margin:'0 auto', padding:'10px 16px 120px' }}>
         <div className="page-title" style={{ textAlign:'center' }}>Reports &amp; Resources</div>
         <div className="page-sub" style={{ textAlign:'center' }}>Pick a category to see its reports</div>
 

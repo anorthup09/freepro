@@ -380,8 +380,18 @@ textarea { resize: vertical; min-height: 70px; }
 .modal { background: color-mix(in srgb, var(--bg2) 78%, transparent); backdrop-filter: blur(22px) saturate(1.6); -webkit-backdrop-filter: blur(22px) saturate(1.6); border: 1px solid rgba(255,255,255,0.12); border-radius: 16px; padding: 24px; width: 100%; max-width: 540px; max-height: 90vh; overflow-y: auto; box-shadow: 0 24px 60px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.12); }
 :root[data-theme="light"] .modal { border-color: rgba(0,0,0,0.08); box-shadow: 0 24px 60px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.8); }
 /* Reusable subtle liquid-glass surface */
-.glass { background: color-mix(in srgb, var(--bg2) 78%, transparent); backdrop-filter: blur(18px) saturate(1.5); -webkit-backdrop-filter: blur(18px) saturate(1.5); border: 1px solid rgba(255,255,255,0.10); box-shadow: 0 12px 34px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.10); }
-:root[data-theme="light"] .glass { border-color: rgba(0,0,0,0.08); box-shadow: 0 12px 30px rgba(0,0,0,0.14), inset 0 1px 0 rgba(255,255,255,0.75); }
+.glass { position: relative; background: linear-gradient(150deg, rgba(255,255,255,0.11), rgba(255,255,255,0.03) 55%), color-mix(in srgb, var(--bg2) 66%, transparent); backdrop-filter: blur(22px) saturate(1.3); -webkit-backdrop-filter: blur(22px) saturate(1.3); border: 1px solid rgba(255,255,255,0.16); box-shadow: 0 14px 38px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.26); }
+:root[data-theme="light"] .glass { background: linear-gradient(150deg, rgba(255,255,255,0.7), rgba(255,255,255,0.35) 60%), color-mix(in srgb, #fff 78%, transparent); border-color: rgba(0,0,0,0.08); box-shadow: 0 12px 30px rgba(0,0,0,0.14), inset 0 1px 0 rgba(255,255,255,0.85); }
+/* subtle refractive light edge — a bright glint at top-left + bottom-right */
+.glass::after { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1px; pointer-events: none; background: linear-gradient(135deg, rgba(255,255,255,0.5), rgba(255,255,255,0.03) 34%, rgba(255,255,255,0) 56%, rgba(255,255,255,0.14) 100%); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+:root[data-theme="light"] .glass::after { background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(255,255,255,0) 45%, rgba(0,0,0,0.05) 100%); }
+/* reusable drifting orange aura behind a container's content (add class "aura-wrap") */
+.aura-wrap { position: relative; isolation: isolate; }
+.aura-wrap > * { position: relative; z-index: 1; }
+.aura-wrap::before { content: ''; position: absolute; inset: -60px -30px; z-index: 0; pointer-events: none; background: radial-gradient(42% 55% at 22% 22%, rgba(232,80,10,0.16), transparent 70%), radial-gradient(38% 48% at 82% 78%, rgba(232,80,10,0.11), transparent 72%); filter: blur(60px); animation: auraDrift 30s ease-in-out infinite alternate; }
+:root[data-theme="light"] .aura-wrap::before { background: radial-gradient(42% 55% at 22% 22%, rgba(232,80,10,0.12), transparent 70%), radial-gradient(38% 48% at 82% 78%, rgba(232,80,10,0.08), transparent 72%); }
+@keyframes auraDrift { 0% { transform: translate3d(-3%,-2%,0) scale(1); } 100% { transform: translate3d(5%,4%,0) scale(1.14); } }
+@media (prefers-reduced-motion: reduce) { .aura-wrap::before { animation: none; } }
 .modal-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; margin-bottom: 18px; }
 
 /* ── Spec Tiles (liquid glass) ── */

@@ -1414,12 +1414,14 @@ const HUB_CSS = `
   gap:1px;padding:7px 16px;text-align:right;text-decoration:none;cursor:pointer;
   transition:transform .18s ease, border-color .18s ease}
 .mm-welcome:hover{transform:translateY(-2px);border-color:rgba(232,99,42,0.5)}
-.mmw-title{position:relative;z-index:2;font-family:Georgia,'Times New Roman',serif;font-size:clamp(10.5px,1.1vw,12.5px);font-weight:700;line-height:1.1;letter-spacing:-.01em;color:var(--text);white-space:nowrap}
-.mmw-cta{position:relative;z-index:2;display:flex;align-items:center;justify-content:flex-end;gap:7px;margin-top:2px}
-.mmw-view{color:var(--orange);font-size:clamp(11px,1.5vw,13px);font-weight:700;letter-spacing:.02em;transition:color .18s ease}
+.mmw-title{position:relative;z-index:2;font-family:Georgia,'Times New Roman',serif;font-size:clamp(8.5px,0.85vw,10px);font-weight:700;line-height:1.1;letter-spacing:-.01em;color:var(--text);white-space:nowrap}
+.mmw-cta{position:relative;z-index:2;display:flex;align-items:center;justify-content:flex-end;gap:5px;margin-top:1px}
+.mmw-view{color:var(--orange);font-size:clamp(8px,0.8vw,9.5px);font-weight:700;letter-spacing:.02em;transition:color .18s ease}
+.mm-welcome .mm-go{transform:scale(.78)}
+.mm-welcome:hover .mm-go{transform:scale(.78) translateX(3px)}
 
 @keyframes mmCardIn{from{opacity:0;transform:scale(.97) translateY(6px)}to{opacity:1;transform:none}}
-@media(max-width:640px){.mm-answer{font-size:13px}.mmw-title{font-size:15px}.mm-banner{padding:16px 24px}.mm-welcome{padding:16px 24px}}
+@media(max-width:640px){.mm-answer{font-size:13px}.mm-banner{padding:16px 24px}.mm-welcome{padding:6px 13px}}
 @media (prefers-reduced-motion: reduce){
   .mm-banner,.mm-welcome{animation:mmCardIn .7s cubic-bezier(.22,.61,.36,1) both}
   .mm-banner::before,.mm-welcome::before,.mm-photo,.mm-row::before{animation:none}
