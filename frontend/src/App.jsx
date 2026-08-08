@@ -233,6 +233,21 @@ function SignOutFooter({ user, setUser }) {
   );
 }
 
+// Site-wide aurora: five blurred color fields drifting slowly behind every
+// page at 20% opacity — recreated in CSS from the gradient reference video
+// (cream-gold bloom, burnt orange, plum band, steel blue, cool reflection).
+function AuroraBackground() {
+  return (
+    <div className="aurora no-print" aria-hidden>
+      <div className="blob b1" />
+      <div className="blob b2" />
+      <div className="blob b3" />
+      <div className="blob b4" />
+      <div className="blob b5" />
+    </div>
+  );
+}
+
 export default function App() {
   const [realUser, setUser] = useState(undefined); // undefined = loading
   // Admin role preview: browse the platform as another role (UI-only — the
@@ -267,6 +282,7 @@ export default function App() {
           </button>
         </div>
       )}
+      <AuroraBackground />
       <SaveIndicator />
       <MailNoticeHost />
       <DailyTestingNotice user={user} />
