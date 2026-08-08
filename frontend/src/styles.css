@@ -43,7 +43,8 @@
 :root[data-theme="light"] .q-btn.on { background: var(--orange); border-color: var(--orange); color: #0b0b0b; }
 :root[data-theme="light"] .hub-newproj { background: #5ABF80 !important; color: #08160E !important; border-color: #3f9d68 !important; }
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
-body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); font-size: 13px; line-height: 1.5; min-height: 100vh; }
+html { background: var(--bg); }
+body { font-family: 'DM Sans', sans-serif; background: transparent; color: var(--text); font-size: 13px; line-height: 1.5; min-height: 100vh; }
 
 /* ── Nav ── */
 .nav { background: var(--bg); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 10px 20px; gap: 6px; flex-wrap: wrap; position: sticky; top: 0; z-index: 100; }
@@ -396,8 +397,8 @@ textarea { resize: vertical; min-height: 70px; }
 /* ── Full-page ambient aura: a slow orange glow fixed behind every page. Pages
    whose root paints an opaque bg (e.g. the hub) sit above it and keep their own
    treatment; pages with a transparent content wrap (Project, etc.) let it show. */
-body::before { content: ''; position: fixed; inset: -15vh -15vw; z-index: -1; pointer-events: none; background: radial-gradient(26% 34% at 16% 18%, rgba(232,80,10,0.09), transparent 70%), radial-gradient(24% 32% at 86% 84%, rgba(232,80,10,0.06), transparent 72%); filter: blur(70px); animation: auraDrift 34s ease-in-out infinite alternate; }
-:root[data-theme="light"] body::before { background: radial-gradient(26% 34% at 16% 18%, rgba(232,80,10,0.10), transparent 70%), radial-gradient(24% 32% at 86% 84%, rgba(232,80,10,0.07), transparent 72%); }
+body::before { content: ''; position: fixed; inset: -15vh -15vw; z-index: -1; pointer-events: none; background: radial-gradient(32% 42% at 15% 16%, rgba(232,80,10,0.16), transparent 70%), radial-gradient(30% 40% at 88% 86%, rgba(232,80,10,0.12), transparent 72%); filter: blur(72px); animation: auraDrift 34s ease-in-out infinite alternate; }
+:root[data-theme="light"] body::before { background: radial-gradient(32% 42% at 15% 16%, rgba(232,80,10,0.12), transparent 70%), radial-gradient(30% 40% at 88% 86%, rgba(232,80,10,0.08), transparent 72%); }
 @media (prefers-reduced-motion: reduce) { body::before { animation: none; } }
 
 /* ── Site-wide glass surfaces: sweep the shared card/panel classes to the frosted
@@ -414,8 +415,8 @@ body::before { content: ''; position: fixed; inset: -15vh -15vw; z-index: -1; po
   border-color: rgba(0,0,0,0.07);
   box-shadow: 0 8px 22px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.8);
 }
-/* refractive light edge for the shared glass bottom dock (Team, etc.) */
-.glass-dock::after { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1px; pointer-events: none; background: linear-gradient(135deg, rgba(255,255,255,0.5), rgba(255,255,255,0.03) 34%, rgba(255,255,255,0) 56%, rgba(255,255,255,0.14) 100%); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+/* refractive light edge for the app's glass bottom docks (Team, ProjectView, Finance) */
+.glass-dock::after, .pvd-dock::after, .fin-dock::after { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1px; pointer-events: none; background: linear-gradient(135deg, rgba(255,255,255,0.5), rgba(255,255,255,0.03) 34%, rgba(255,255,255,0) 56%, rgba(255,255,255,0.14) 100%); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
 .modal-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; margin-bottom: 18px; }
 
 /* ── Spec Tiles (liquid glass) ── */

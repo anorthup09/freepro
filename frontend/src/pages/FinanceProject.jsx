@@ -90,7 +90,7 @@ export default function FinanceProject({ pidOverride }) {
     }
   }, [data?.budget, pid]);
 
-  if (!data) return <div style={{ minHeight:'100vh', background:'var(--bg)' }}><FinanceHeader /><div className="empty">Loading…</div></div>;
+  if (!data) return <div style={{ minHeight:'100vh', background:'transparent' }}><FinanceHeader /><div className="empty">Loading…</div></div>;
   const { project, budget, sections, lines, vcc, categories, estimates = [] } = data;
 
   const set = fn => setData(d => ({ ...d, ...fn(d) }));
@@ -101,7 +101,7 @@ export default function FinanceProject({ pidOverride }) {
   }
 
   return (
-    <div style={{ minHeight:'100vh', background:'var(--bg)' }}>
+    <div style={{ minHeight:'100vh', background:'transparent' }}>
       <FinanceHeader />
       <FinanceDock tab={tab} setTab={setTab} onHarbinger={() => {
         if (harbinger) { setShowHarbinger(true); return; }
@@ -359,9 +359,9 @@ function FinanceDock({ tab, setTab, onHarbinger }) {
     <div className="fin-dock no-print" style={{
       position:'fixed', right:14, bottom:'calc(env(safe-area-inset-bottom, 0px) + 14px)',
       zIndex:110, display:'flex', alignItems:'center', gap:2, padding: shrunk ? '6px 10px' : '8px 12px', transition:'padding .25s ease',
-      background:'rgba(24,22,19,0.81)', backdropFilter:'blur(18px) saturate(1.5)', WebkitBackdropFilter:'blur(18px) saturate(1.5)',
-      border:'1px solid rgba(255,255,255,0.12)', borderRadius:32,
-      boxShadow:'0 10px 34px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.08)',
+      background:'rgba(30,27,23,0.34)', backdropFilter:'blur(22px) saturate(1.7)', WebkitBackdropFilter:'blur(22px) saturate(1.7)',
+      border:'1px solid rgba(255,255,255,0.12)', borderRadius:26,
+      boxShadow:'0 12px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.14)',
     }}>
       {bubble && (
         <div aria-hidden style={{
@@ -376,7 +376,7 @@ function FinanceDock({ tab, setTab, onHarbinger }) {
             background:'transparent', border:'none', cursor:'pointer', color:'#5ABF80',
             borderRadius:22, padding:'7px 14px 6px' }}>
           {FIN_DOCK_ICONS.harbinger}
-          <span style={{ fontSize:9, fontWeight:800, letterSpacing:'0.02em', whiteSpace:'nowrap', maxHeight: shrunk ? 0 : 12, opacity: shrunk ? 0 : 1, overflow:'hidden', transition:'max-height .25s ease, opacity .2s ease' }}>Harbinger</span>
+          <span style={{ fontSize:9.5, fontWeight:800, letterSpacing:'0.04em', textTransform:'uppercase', whiteSpace:'nowrap', maxHeight: shrunk ? 0 : 12, opacity: shrunk ? 0 : 1, overflow:'hidden', transition:'max-height .25s ease, opacity .2s ease' }}>Harbinger</span>
         </button>
       )}
       {[['budget', 'Budget'], ['vcc', 'VCC']].map(([k, label]) => {
@@ -391,7 +391,7 @@ function FinanceDock({ tab, setTab, onHarbinger }) {
               borderRadius:22, padding:'7px 14px 6px', transition:'color .25s ease',
             }}>
             {FIN_DOCK_ICONS[k]}
-            <span style={{ fontSize:9, fontWeight:800, letterSpacing:'0.02em', whiteSpace:'nowrap', maxHeight: shrunk ? 0 : 12, opacity: shrunk ? 0 : 1, overflow:'hidden', transition:'max-height .25s ease, opacity .2s ease' }}>{label}</span>
+            <span style={{ fontSize:9.5, fontWeight:800, letterSpacing:'0.04em', textTransform:'uppercase', whiteSpace:'nowrap', maxHeight: shrunk ? 0 : 12, opacity: shrunk ? 0 : 1, overflow:'hidden', transition:'max-height .25s ease, opacity .2s ease' }}>{label}</span>
           </button>
         );
       })}

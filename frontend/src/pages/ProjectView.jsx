@@ -92,9 +92,9 @@ function MobileTabDock({ tabs, tab, setTab }) {
       ...(mobile ? { right:14 } : { left:'50%', transform:'translateX(-50%)' }),
       zIndex:110, display:'flex', alignItems:'center', gap:2,
       padding: shrunk ? '6px 10px' : '8px 12px',
-      background:'rgba(24,22,19,0.81)', backdropFilter:'blur(18px) saturate(1.5)', WebkitBackdropFilter:'blur(18px) saturate(1.5)',
-      border:'1px solid rgba(255,255,255,0.12)', borderRadius:32,
-      boxShadow:'0 10px 34px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.08)',
+      background:'rgba(30,27,23,0.34)', backdropFilter:'blur(22px) saturate(1.7)', WebkitBackdropFilter:'blur(22px) saturate(1.7)',
+      border:'1px solid rgba(255,255,255,0.12)', borderRadius:26,
+      boxShadow:'0 12px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.14)',
       transition:'padding .25s ease',
     }}>
       {bubble && (
@@ -118,7 +118,7 @@ function MobileTabDock({ tabs, tab, setTab }) {
             }}>
             {TAB_ICONS[k]}
             <span style={{
-              fontSize:9, fontWeight:800, letterSpacing:'0.02em', whiteSpace:'nowrap',
+              fontSize:9.5, fontWeight:800, letterSpacing:'0.04em', textTransform:'uppercase', whiteSpace:'nowrap',
               maxHeight: shrunk ? 0 : 12, opacity: shrunk ? 0 : 1, overflow:'hidden',
               transition:'max-height .25s ease, opacity .2s ease',
             }}>{label.replace('Project ', '').replace('-Production', '-Pro')}</span>
@@ -197,7 +197,7 @@ export default function ProjectView() {
   }, [visible, q]);
 
   return (
-    <div style={{ minHeight:'100vh', background:'var(--bg)' }}>
+    <div style={{ minHeight:'100vh', background:'transparent' }}>
       <PVHeader />
       <div style={{ maxWidth:1100, margin:'0 auto', padding:'6px 16px 80px' }}>
         <div style={{ marginBottom:18 }}>
@@ -315,7 +315,7 @@ export function ProjectViewDetail() {
   useEffect(() => { if (isFinance && (tab === 'pre' || tab === 'post')) setTab('overview'); }, [isFinance, tab]);
 
   return (
-    <div className="pvd-page" style={{ minHeight:'100vh', background:'var(--bg)' }}>
+    <div className="pvd-page" style={{ minHeight:'100vh', background:'transparent' }}>
       <PVHeader preControls={preControls} tab={tab} />
       <div style={{ maxWidth:1250, margin:'0 auto', padding:'0 16px' }}>
         <div className="pvd-bar" style={{ display:'flex', flexDirection:'column', alignItems:'flex-start', gap:6, marginBottom:6 }}>
