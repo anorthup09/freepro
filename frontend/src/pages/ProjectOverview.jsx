@@ -467,6 +467,52 @@ export default function ProjectOverview({ pid, onOpenFinance }) {
 
       {/* ── Left: cover page ── */}
       <div className="pv-left" style={{ gridColumn:1, display:'flex', flexDirection:'column', gap:16 }}>
+        <div className="pv-notes-row" style={{ display:'flex', gap:16, alignItems:'stretch', flexWrap:'wrap' }}>
+          <div style={{ flex:'1.35 1 340px', minWidth:0, display:'flex', flexDirection:'column' }}>
+        <div className="pv-notes glass" style={card}>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+            <div style={{ ...secHdr, marginBottom:0 }}>Client Call Notes</div>
+            <button onClick={async () => {
+              try { const n = await api.addCallNote(pid, {}); setNotes(ns => [n, ...ns]); }
+              catch (e) { alert(e.message); }
+            }} style={{ background:'var(--bg)', border:'1px solid rgba(255,255,255,0.55)', color:'#e8e8e8', borderRadius:14, padding:'3px 12px', fontSize:10, fontWeight:800, cursor:'pointer' }}>
+              + Add Note
+            </button>
+          </div>
+          {callNotes.length === 0 && <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>No call notes yet — capture takeaways from each client call here.</div>}
+          {callNotes.map(n => (
+            <div key={n.id} style={{ display:'flex', gap:8, alignItems:'flex-start', padding:'8px 0', borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
+              <DateField value={n.call_date ? String(n.call_date).slice(0, 10) : ''}
+                onSave={async v => {
+                  try { const u = await api.updateCallNote(n.id, { callDate: v }); setNotes(ns => ns.map(x => x.id === n.id ? u : x)); }
+                  catch (er) { alert(er.message); }
+                }}
+                style={{ width:'auto', fontSize:10, padding:'3px 6px', flexShrink:0 }} />
+              <textarea defaultValue={n.note || ''} placeholder="Call takeaways…"
+                onBlur={async e => {
+                  if (e.target.value === (n.note || '')) return;
+                  try { const u = await api.updateCallNote(n.id, { note: e.target.value }); setNotes(ns => ns.map(x => x.id === n.id ? u : x)); }
+                  catch (er) { alert(er.message); }
+                }}
+                style={{ flex:1, minHeight:40, fontSize:12 }} />
+              <button title="Delete note" onClick={async () => {
+                if (armedNote !== n.id) { setArmedNote(n.id); setTimeout(() => setArmedNote(a => a === n.id ? null : a), 3000); return; }
+                try { await api.deleteCallNote(n.id); setNotes(ns => ns.filter(x => x.id !== n.id)); setArmedNote(null); }
+                catch (e) { alert(e.message); }
+              }} style={armedNote === n.id
+                ? { background:'rgba(224,82,82,0.18)', border:'1px solid #e05252', color:'#e05252', fontSize:10, fontWeight:800, cursor:'pointer', borderRadius:10, padding:'3px 8px', marginTop:3, whiteSpace:'nowrap' }
+                : { background:'none', border:'none', color:'var(--muted)', fontSize:12, cursor:'pointer', paddingTop:6 }}>
+                {armedNote === n.id ? 'Delete?' : '✕'}
+              </button>
+            </div>
+          ))}
+        </div>
+          </div>
+          <div className="pv-debrief-cell" style={{ flex:'1 1 280px', minWidth:0, display:'flex', flexDirection:'column' }}>
+            <DebriefTile pid={pid} />
+          </div>
+        </div>
+
         <div className="pv-shoots glass" style={card}>
           <div style={secHdr}>Shoots</div>
           {shoots.length === 0 && <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>No production shoots yet — they appear when the budget goes Live.</div>}
@@ -506,51 +552,12 @@ export default function ProjectOverview({ pid, onOpenFinance }) {
           })}
         </div>
 
-        <div className="pv-notes glass" style={card}>
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
-            <div style={{ ...secHdr, marginBottom:0 }}>Client Call Notes</div>
-            <button onClick={async () => {
-              try { const n = await api.addCallNote(pid, {}); setNotes(ns => [n, ...ns]); }
-              catch (e) { alert(e.message); }
-            }} style={{ background:'var(--bg)', border:'1px solid rgba(255,255,255,0.55)', color:'#e8e8e8', borderRadius:14, padding:'3px 12px', fontSize:10, fontWeight:800, cursor:'pointer' }}>
-              + Add Note
-            </button>
-          </div>
-          {callNotes.length === 0 && <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>No call notes yet — capture takeaways from each client call here.</div>}
-          {callNotes.map(n => (
-            <div key={n.id} style={{ display:'flex', gap:8, alignItems:'flex-start', padding:'8px 0', borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
-              <DateField value={n.call_date ? String(n.call_date).slice(0, 10) : ''}
-                onSave={async v => {
-                  try { const u = await api.updateCallNote(n.id, { callDate: v }); setNotes(ns => ns.map(x => x.id === n.id ? u : x)); }
-                  catch (er) { alert(er.message); }
-                }}
-                style={{ width:'auto', fontSize:10, padding:'3px 6px', flexShrink:0 }} />
-              <textarea defaultValue={n.note || ''} placeholder="Call takeaways…"
-                onBlur={async e => {
-                  if (e.target.value === (n.note || '')) return;
-                  try { const u = await api.updateCallNote(n.id, { note: e.target.value }); setNotes(ns => ns.map(x => x.id === n.id ? u : x)); }
-                  catch (er) { alert(er.message); }
-                }}
-                style={{ flex:1, minHeight:40, fontSize:12 }} />
-              <button title="Delete note" onClick={async () => {
-                if (armedNote !== n.id) { setArmedNote(n.id); setTimeout(() => setArmedNote(a => a === n.id ? null : a), 3000); return; }
-                try { await api.deleteCallNote(n.id); setNotes(ns => ns.filter(x => x.id !== n.id)); setArmedNote(null); }
-                catch (e) { alert(e.message); }
-              }} style={armedNote === n.id
-                ? { background:'rgba(224,82,82,0.18)', border:'1px solid #e05252', color:'#e05252', fontSize:10, fontWeight:800, cursor:'pointer', borderRadius:10, padding:'3px 8px', marginTop:3, whiteSpace:'nowrap' }
-                : { background:'none', border:'none', color:'var(--muted)', fontSize:12, cursor:'pointer', paddingTop:6 }}>
-                {armedNote === n.id ? 'Delete?' : '✕'}
-              </button>
-            </div>
-          ))}
-        </div>
       </div>
 
       {/* ── Right: docs tile above the elongated to-do column ── */}
       <div className="pv-right" style={{ gridColumn:2, gridRow:'1 / span 2' }}>
       <DocsTile pid={pid} docs={docs} setDocs={setDocs} />
       <LinksTile pid={pid} links={links} setLinks={setLinks} />
-      <DebriefTile pid={pid} />
       <div className="pv-todo glass" style={{ ...card, minHeight:420, display:'flex', flexDirection:'column' }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
           <div style={{ ...secHdr, marginBottom:0 }}>To-Do</div>
