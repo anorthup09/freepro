@@ -15,7 +15,7 @@ export default function GanttShare() {
   useEffect(() => { api.getGanttShare(token).then(setData).catch(e => setErr(e.message)); }, [token]);
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', padding: '26px 18px 60px' }}>
+    <div style={{ minHeight: '100vh', background: 'transparent', padding: '26px 18px 60px' }}>
       <div style={{ maxWidth: 1000, margin: '0 auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', marginBottom: 20 }}>
           <div>

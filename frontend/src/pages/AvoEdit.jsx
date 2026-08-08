@@ -509,7 +509,7 @@ export default function AvoEdit() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [e?.lead_editor_id, e?.lead_editor_email, e?.lead_editor_company]);
 
-  if (!e) return <div style={{ minHeight:'100vh', background:'var(--bg)' }}><AvoHeader /><div className="empty">Loading…</div></div>;
+  if (!e) return <div style={{ minHeight:'100vh', background:'transparent' }}><AvoHeader /><div className="empty">Loading…</div></div>;
 
   const patch = fields => setE(v => ({ ...v, ...fields }));
   const save = data => api.updateAvoEdit(id, data).then(full => setE(v => ({ ...v, ...full }))).catch(err => alert(err.message));
@@ -619,7 +619,7 @@ export default function AvoEdit() {
   );
 
   return (
-    <div style={{ minHeight:'100vh', background:'var(--bg)' }}>
+    <div style={{ minHeight:'100vh', background:'transparent' }}>
       <AvoHeader />
       <div style={{ maxWidth:1250, margin:'0 auto', padding:'6px 16px 80px' }}>
         <div style={{ display:'flex', gap:8, marginBottom:12, flexWrap:'wrap' }}>

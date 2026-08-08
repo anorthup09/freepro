@@ -1949,7 +1949,7 @@ export default function AvoProject({ idOverride, embedded, shareData, clientView
       : null;
 
   return (
-    <div style={{ minHeight:'100vh', background:'var(--bg)' }}>
+    <div style={{ minHeight:'100vh', background:'transparent' }}>
       {!embedded && <AvoHeader right={isStaff && !shareData ? (
         <div style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
           <span style={{ fontSize:9, color:'var(--muted)', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em' }}>View as</span>
@@ -2123,7 +2123,7 @@ export function AvoShareView() {
   const shareApi = useMemo(() => api.avoShareApi(token, usedPw), [token, usedPw]);
 
   const shell = inner => (
-    <div style={{ minHeight:'100vh', background:'var(--bg)' }}>
+    <div style={{ minHeight:'100vh', background:'transparent' }}>
       <div style={{ display:'flex', alignItems:'center', gap:14, padding:'18px 26px', borderBottom:'1px solid var(--border)' }}>
         <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height:20, filter:'brightness(0) invert(1)', opacity:0.95 }} />
         {data && <span style={{ fontSize:11, color:'var(--muted)' }}>{data.code}{data.title ? ` — ${data.title}` : ''}</span>}

@@ -210,7 +210,7 @@ ${sender}`);
   );
 
   return (
-    <div style={{ minHeight:'100vh', background:'var(--bg)' }}>
+    <div style={{ minHeight:'100vh', background:'transparent' }}>
       <div style={{ maxWidth:1000, margin:'0 auto', padding:'20px 16px 80px' }}>
         <button className="btn btn-ghost btn-sm" onClick={() => nav(`/projects/${id}`)} style={{ marginBottom:12 }}>‹ Back to Project</button>
         {!project && <div className="empty">Loading…</div>}

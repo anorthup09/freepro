@@ -148,7 +148,7 @@ export default function ClientHub() {
   const clientView = view === 'client';
 
   return (
-    <div style={{ minHeight:'100vh', background:'var(--bg)', borderTop: clientView ? '5px solid var(--orange)' : '5px solid transparent' }}>
+    <div style={{ minHeight:'100vh', background:'transparent', borderTop: clientView ? '5px solid var(--orange)' : '5px solid transparent' }}>
       {clientView && (
         <div style={{ background:'rgba(232,80,10,0.12)', borderBottom:'1px solid rgba(232,80,10,0.4)', textAlign:'center', padding:'5px 10px', fontSize:10, fontWeight:800, letterSpacing:'0.08em', color:'var(--orange)', textTransform:'uppercase' }}>
           Client Access View — everything on this screen is what {client} will see

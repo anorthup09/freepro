@@ -397,8 +397,8 @@ textarea { resize: vertical; min-height: 70px; }
 /* ── Full-page ambient aura: a slow orange glow fixed behind every page. Pages
    whose root paints an opaque bg (e.g. the hub) sit above it and keep their own
    treatment; pages with a transparent content wrap (Project, etc.) let it show. */
-body::before { content: ''; position: fixed; inset: -15vh -15vw; z-index: -1; pointer-events: none; background: radial-gradient(32% 42% at 15% 16%, rgba(232,80,10,0.16), transparent 70%), radial-gradient(30% 40% at 88% 86%, rgba(232,80,10,0.12), transparent 72%); filter: blur(72px); animation: auraDrift 34s ease-in-out infinite alternate; }
-:root[data-theme="light"] body::before { background: radial-gradient(32% 42% at 15% 16%, rgba(232,80,10,0.12), transparent 70%), radial-gradient(30% 40% at 88% 86%, rgba(232,80,10,0.08), transparent 72%); }
+body::before { content: ''; position: fixed; inset: -25vh -25vw; z-index: -1; pointer-events: none; background: linear-gradient(122deg, transparent 24%, rgba(232,80,10,0.16) 38%, rgba(255,150,80,0.40) 47%, rgba(255,185,120,0.46) 50%, rgba(255,150,80,0.40) 53%, rgba(232,80,10,0.16) 62%, transparent 76%), radial-gradient(40% 48% at 16% 20%, rgba(255,120,45,0.28), transparent 66%), radial-gradient(46% 56% at 90% 92%, rgba(232,80,10,0.22), transparent 70%); filter: blur(56px); animation: auraDrift 30s ease-in-out infinite alternate; }
+:root[data-theme="light"] body::before { background: linear-gradient(122deg, transparent 26%, rgba(232,80,10,0.10) 40%, rgba(255,150,80,0.20) 48%, rgba(255,150,80,0.20) 52%, rgba(232,80,10,0.10) 60%, transparent 74%), radial-gradient(40% 48% at 16% 20%, rgba(232,80,10,0.10), transparent 66%), radial-gradient(46% 56% at 90% 92%, rgba(232,80,10,0.08), transparent 70%); }
 @media (prefers-reduced-motion: reduce) { body::before { animation: none; } }
 
 /* ── Site-wide glass surfaces: sweep the shared card/panel classes to the frosted

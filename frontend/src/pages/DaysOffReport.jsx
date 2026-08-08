@@ -23,7 +23,7 @@ export default function DaysOffReport() {
   const totals = (rows || []).reduce((a, r) => ({ pto: a.pto + r.pto, ooo: a.ooo + r.ooo, total: a.total + r.total }), { pto: 0, ooo: 0, total: 0 });
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
+    <div style={{ minHeight: '100vh', background: 'transparent' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 26px', flexWrap: 'wrap', gap: 10 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 14 }}>
           <Link to="/" style={{ display: 'flex', alignItems: 'center' }} title="Back to the Unbridled Media hub">

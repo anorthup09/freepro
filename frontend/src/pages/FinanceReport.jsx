@@ -81,7 +81,7 @@ export default function FinanceReport() {
 
   // No report loaded yet (none pulled, or none exist): show the header + a prompt
   if (!report) return (
-    <div style={{ minHeight:'100vh', background:'var(--bg)', padding:'30px 16px 80px' }}>
+    <div style={{ minHeight:'100vh', background:'transparent', padding:'30px 16px 80px' }}>
       <div style={{ maxWidth:900, margin:'0 auto' }}>
         <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, flexWrap:'wrap' }}>
           <div>
@@ -109,7 +109,7 @@ export default function FinanceReport() {
   const totalFees = shown.reduce((s, c) => s + Number(c.fee || 0), 0);
 
   return (
-    <div style={{ minHeight:'100vh', background:'var(--bg)', padding:'30px 16px 80px' }}>
+    <div style={{ minHeight:'100vh', background:'transparent', padding:'30px 16px 80px' }}>
       <div style={{ maxWidth:900, margin:'0 auto' }}>
         <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, flexWrap:'wrap' }}>
           <div>

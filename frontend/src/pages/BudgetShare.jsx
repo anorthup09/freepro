@@ -46,7 +46,7 @@ export default function BudgetShare() {
   const lbl = { fontSize:10, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' };
 
   return (
-    <div style={{ minHeight:'100vh', background:'var(--bg)', padding:'34px 16px 80px', position:'relative' }}>
+    <div style={{ minHeight:'100vh', background:'transparent', padding:'34px 16px 80px', position:'relative' }}>
       <div className="no-print" style={{ position:'absolute', top:14, right:16 }}>
         <ShareLinkButton />
       </div>

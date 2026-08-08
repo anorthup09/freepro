@@ -54,7 +54,7 @@ export default function CrewCalendar() {
   }, []);
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', padding: '24px 18px 60px' }}>
+    <div style={{ minHeight: '100vh', background: 'transparent', padding: '24px 18px 60px' }}>
       <div style={{ maxWidth: 1300, margin: '0 auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', marginBottom: 18 }}>
           <div>

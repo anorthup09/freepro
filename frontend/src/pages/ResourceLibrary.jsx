@@ -56,7 +56,7 @@ export default function ResourceLibrary({ kind, title, sub, accent, placeholderT
   const host = u => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return u; } };
 
   return (
-    <div style={{ minHeight:'100vh', background:'var(--bg)' }}>
+    <div style={{ minHeight:'100vh', background:'transparent' }}>
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 26px', flexWrap:'wrap', gap:10 }}>
         <div style={{ display:'flex', alignItems:'baseline', gap:14 }}>
           <Link to="/" style={{ display:'flex', alignItems:'center' }} title="Back to the Unbridled Media hub">

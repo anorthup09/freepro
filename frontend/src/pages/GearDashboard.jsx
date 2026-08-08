@@ -39,7 +39,7 @@ export default function GearDashboard() {
     : 'Gear Dashboard';
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
+    <div style={{ minHeight: '100vh', background: 'transparent' }}>
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '18px 16px 60px' }}>
         <button className="btn btn-ghost btn-sm" onClick={() => nav('/projects')}>‹ Gear Management</button>
         <div style={{ fontSize: 18, fontWeight: 800, margin: '10px 0 16px' }}>{header}</div>

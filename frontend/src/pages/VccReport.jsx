@@ -101,7 +101,7 @@ export function VccProjectPage() {
   }, [isPdf, data]);
 
   return (
-    <div style={{ minHeight:'100vh', background:'var(--bg)' }}>
+    <div style={{ minHeight:'100vh', background:'transparent' }}>
       <Header user={user} setUser={setUser} backTo="/reports/vcc" backLabel="All VCCs" />
       <div style={{ maxWidth:1150, margin:'0 auto', padding:'10px 16px 60px' }}>
         {err && <div className="empty">{err}</div>}
@@ -178,7 +178,7 @@ export default function VccReport() {
   const total = shown.reduce((s, p) => s + p.total, 0);
 
   return (
-    <div style={{ minHeight:'100vh', background:'var(--bg)' }}>
+    <div style={{ minHeight:'100vh', background:'transparent' }}>
       <Header user={user} setUser={setUser} backTo="/reports" backLabel="Reports" />
       <div style={{ maxWidth:1050, margin:'0 auto', padding:'10px 16px 60px' }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap' }}>

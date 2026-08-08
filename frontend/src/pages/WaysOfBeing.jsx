@@ -9,7 +9,7 @@ export default function WaysOfBeing() {
   useEffect(() => { api.allWobs().then(setRows).catch(e => setErr(e.message)); }, []);
   const fmtD = d => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   return (
-    <div style={{ minHeight:'100vh', background:'var(--bg)' }}>
+    <div style={{ minHeight:'100vh', background:'transparent' }}>
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 26px', flexWrap:'wrap', gap:10 }}>
         <div style={{ display:'flex', alignItems:'baseline', gap:14 }}>
           <Link to="/" style={{ display:'flex', alignItems:'center' }} title="Back to the Unbridled Media hub">

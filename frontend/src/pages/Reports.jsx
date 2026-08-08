@@ -190,7 +190,7 @@ export default function Reports() {
   }, [activeCat?.key, shownCats.length]);
 
   return (
-    <div style={{ minHeight:'100vh', background:'var(--bg)' }}>
+    <div style={{ minHeight:'100vh', background:'transparent' }}>
       <style>{CSS}</style>
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 26px', flexWrap:'wrap', gap:10 }}>
         <div style={{ display:'flex', alignItems:'baseline', gap:14 }}>

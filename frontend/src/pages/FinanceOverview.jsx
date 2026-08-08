@@ -21,7 +21,7 @@ export default function FinanceOverview() {
   const gridProjects = (projects || []).filter(p => p.budget_status !== 'RFP');
 
   return (
-    <div style={{ minHeight:'100vh', background:'var(--bg)' }}>
+    <div style={{ minHeight:'100vh', background:'transparent' }}>
       <FinanceHeader crumb="Overview" />
       <div style={{ maxWidth:1200, margin:'0 auto', padding:'6px 26px 60px' }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12, flexWrap:'wrap', gap:8 }}>

@@ -1851,7 +1851,7 @@ export default function Hub() {
   }, []);
 
   return (
-    <div style={{ minHeight:'100vh', background:'var(--bg)', display:'flex', flexDirection:'column', position:'relative' }}>
+    <div style={{ minHeight:'100vh', background:'transparent', display:'flex', flexDirection:'column', position:'relative' }}>
       <style>{HUB_CSS}</style>
       <V1Celebration />
       {(preview || realUser?.role === 'ADMIN') && (

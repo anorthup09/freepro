@@ -310,7 +310,7 @@ export default function Avo() {
   const td = { padding:'7px 10px', fontSize:12, verticalAlign:'middle' };
 
   return (
-    <div style={{ minHeight:'100vh', background:'var(--bg)' }}>
+    <div style={{ minHeight:'100vh', background:'transparent' }}>
       <AvoHeader />
       <div style={{ maxWidth:1250, margin:'0 auto', padding:'6px 16px 80px' }}>
         <ProjectLookup />

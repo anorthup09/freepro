@@ -83,7 +83,7 @@ export default function InvoiceSearch() {
   const td = { padding:'8px 12px', fontSize:12, verticalAlign:'middle' };
 
   return (
-    <div style={{ minHeight:'100vh', background:'var(--bg)' }}>
+    <div style={{ minHeight:'100vh', background:'transparent' }}>
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 26px', flexWrap:'wrap', gap:10 }}>
         <div style={{ display:'flex', alignItems:'baseline', gap:14 }}>
           <Link to="/" style={{ display:'flex', alignItems:'center' }}>

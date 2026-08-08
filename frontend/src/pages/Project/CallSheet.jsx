@@ -322,8 +322,8 @@ export default function CallSheet() {
     });
   }
 
-  if (err) return <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)' }}><div className="empty">{err}</div></div>;
-  if (!project || !days) return <div style={{ minHeight: '100vh', background: 'var(--bg)' }}><div className="empty">Loading…</div></div>;
+  if (err) return <div style={{ minHeight: '100vh', background: 'transparent', color: 'var(--text)' }}><div className="empty">{err}</div></div>;
+  if (!project || !days) return <div style={{ minHeight: '100vh', background: 'transparent' }}><div className="empty">Loading…</div></div>;
 
   const locations = project.locations || [];
   const keyTalent = project.keyTalent || [];
@@ -356,7 +356,7 @@ export default function CallSheet() {
   const hoverOff = e => { e.currentTarget.style.background = 'none'; };
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)' }}>
+    <div style={{ minHeight: '100vh', background: 'transparent', color: 'var(--text)' }}>
       <div className="no-print" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 22px', gap: 10, borderBottom: '1px solid var(--border)' }}>
         <div style={{ fontSize: 13, fontWeight: 800 }}>Call Sheet — {project.code} <span style={{ color: 'var(--muted)', fontWeight: 400 }}>{project.title}</span></div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>

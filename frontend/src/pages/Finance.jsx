@@ -257,7 +257,7 @@ export default function Finance() {
       : (p.budget_status === 'Closed' && yearOf(p) === archYear));
 
   return (
-    <div style={{ minHeight:'100vh', background:'var(--bg)' }}>
+    <div style={{ minHeight:'100vh', background:'transparent' }}>
       <FinanceHeader />
       <div style={{ maxWidth:900, margin:'0 auto', padding:'10px 16px 60px' }}>
         <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'space-between', gap:10, flexWrap:'wrap', marginBottom:16 }}>

@@ -38,7 +38,7 @@ export default function AvoGantt() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
+    <div style={{ minHeight: '100vh', background: 'transparent' }}>
       <AvoHeader />
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '22px 18px 60px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>

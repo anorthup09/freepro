@@ -107,7 +107,7 @@ function PipelinePanel() {
 export default function Pipeline() {
   const { user, setUser } = useAuth();
   return (
-    <div style={{ minHeight:'100vh', background:'var(--bg)' }}>
+    <div style={{ minHeight:'100vh', background:'transparent' }}>
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 26px' }}>
         <div style={{ display:'flex', alignItems:'center', gap:14 }}>
           <Link to="/" style={{ display:'flex', alignItems:'center' }} title="Back to the Unbridled Media hub">

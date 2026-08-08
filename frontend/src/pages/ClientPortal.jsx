@@ -8,7 +8,7 @@ export default function ClientPortal() {
   const { client } = useParams();
   const name = decodeURIComponent(client || '');
   return (
-    <div style={{ minHeight:'100vh', background:'var(--bg)', display:'flex', flexDirection:'column' }}>
+    <div style={{ minHeight:'100vh', background:'transparent', display:'flex', flexDirection:'column' }}>
       <div style={{ padding:'22px 26px', borderBottom:'1px solid var(--border)' }}>
         <img src="/unbridled-logo.png" alt="Unbridled Media"
           style={{ height:26, filter:'brightness(0) invert(1)', opacity:0.95, display:'block' }} />

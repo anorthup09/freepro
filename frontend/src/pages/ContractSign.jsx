@@ -45,7 +45,7 @@ export default function ContractSign() {
   const lbl = { color:'var(--muted)', fontSize:11, textTransform:'uppercase', letterSpacing:'0.05em', flexShrink:0 };
 
   return (
-    <div style={{ minHeight:'100vh', background:'var(--bg)', padding:'32px 16px' }}>
+    <div style={{ minHeight:'100vh', background:'transparent', padding:'32px 16px' }}>
       <div style={{ maxWidth:640, margin:'0 auto' }}>
         <div style={{ textAlign:'center', marginBottom:20 }}>
           <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height:26, filter:'brightness(0) invert(1)', opacity:0.9 }} />
