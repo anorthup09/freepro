@@ -1362,7 +1362,7 @@ const HUB_CSS = `
 .hub-masthead{display:flex;justify-content:flex-end;padding-top:2px;margin-bottom:0}
 .hub-logo-top{height:32px;filter:brightness(0) invert(1);opacity:.25}
 /* Left-aligned serif heading + tagline, dropped down from the masthead */
-.hub-header{margin:54px 0 10px}
+.hub-header{margin:26px 0 10px}
 .hub-h1{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:34px;font-weight:800;letter-spacing:-.02em;line-height:1.05;margin:0}
 .hub-tagline{text-align:left;font-size:14px;font-weight:600;color:var(--tan);max-width:560px;margin:8px 0 0;line-height:1.45}
 /* Liquid-glass intro splash: blank screen, glowing glass tile, refractive
@@ -1370,8 +1370,15 @@ const HUB_CSS = `
 @property --splash-a{syntax:'<angle>';initial-value:0deg;inherits:false}
 .hub-splash{position:fixed;inset:0;z-index:400;background:var(--bg);display:flex;align-items:center;justify-content:center;opacity:1;transition:opacity .6s ease}
 .hub-splash .aurora{position:absolute;z-index:0;opacity:1 !important}
-/* loading page: warm palette only — no blue fields */
-.hub-splash .aurora .b4,.hub-splash .aurora .b5{display:none}
+/* loading page: orange/gold only — no blue or plum fields */
+.hub-splash .aurora .b3,.hub-splash .aurora .b4,.hub-splash .aurora .b5{display:none}
+/* second orange bloom, low right, on its own slow drift */
+.hub-splash .aurora .b6{width:75vw;height:75vh;left:45%;top:52%;
+  background:radial-gradient(closest-side, #d45e1a 0%, #8a2f14 55%, transparent 76%);
+  animation:aurora-d3 36s ease-in-out infinite alternate-reverse}
+/* darken the loading stage 50% */
+.hub-splash::before{content:'';position:absolute;inset:0;background:rgba(0,0,0,0.5);z-index:0;pointer-events:none}
+.hub-splash .aurora{z-index:-1 !important}
 .hub-splash-tile{position:relative;z-index:1}
 .hub-splash.done{opacity:0;pointer-events:none}
 .hub-splash-tile{position:relative;width:152px;height:152px;border-radius:40px;display:flex;align-items:center;justify-content:center;
@@ -1407,7 +1414,7 @@ const HUB_CSS = `
 /* hero: greeting left, on-site welcome pill top right in line with it */
 .hub-hero-row{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:20px}
 .hub-hero-row .hub-header{margin-bottom:0;flex:1 1 320px;min-width:0}
-.hub-hero-cta{margin-top:96px;flex:0 1 auto;display:flex;justify-content:flex-end}
+.hub-hero-cta{margin-top:40px;flex:0 1 auto;display:flex;justify-content:flex-end}
 @media(max-width:640px){.hub-hero-cta{margin-top:0;flex-basis:100%;justify-content:flex-end}}
 /* hub tile top row: MediaMoment / Ways of Being on the left half, controls +
    half-width search on the right half */
@@ -1570,7 +1577,7 @@ const HUB_CSS = `
 @keyframes mmApIn{from{opacity:0;transform:translateX(54px) scale(.7)}to{opacity:1;transform:none}}
 @keyframes mmApZoom{from{opacity:1;transform:scale(1) rotate(0deg)}to{opacity:0;transform:scale(22) rotate(210deg)}}
 @keyframes mmFade{to{opacity:0}}
-@media(max-width:640px){.hub-h1{font-size:28px}.hub-header{margin:42px 0 10px}.hub-logo-top{height:28px}}
+@media(max-width:640px){.hub-h1{font-size:28px}.hub-header{margin:20px 0 10px}.hub-logo-top{height:28px}}
 
 .hub-reveal{opacity:0;transform:translateY(20px);transition:opacity .55s cubic-bezier(.22,.61,.36,1),transform .55s cubic-bezier(.22,.61,.36,1)}
 .hub-reveal.in{opacity:1;transform:none}
@@ -2005,7 +2012,7 @@ export default function Hub() {
       {!splashGone && (
         <div className={`hub-splash${splashFading ? ' done' : ''}`}>
           <div className="aurora" aria-hidden>
-            <div className="blob b1" /><div className="blob b2" /><div className="blob b3" /><div className="blob b4" /><div className="blob b5" />
+            <div className="blob b1" /><div className="blob b2" /><div className="blob b6" />
           </div>
           <div className="hub-splash-tile">
             <img src="/splash-icon.png" alt="Unbridled Media" />
