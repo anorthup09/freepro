@@ -1496,7 +1496,7 @@ const HUB_CSS = `
   .hub-hubtile .hub-expandbtn{width:22px;height:22px;font-size:13px;top:9px;right:9px}
 }
 @keyframes hubRollMobile{from{opacity:0;transform:translateY(16px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
-.hub-hubtile{position:relative;background:color-mix(in srgb, var(--bg2) 55%, transparent);backdrop-filter:blur(22px) saturate(0.95);-webkit-backdrop-filter:blur(22px) saturate(0.95);border:1px solid var(--border);border-radius:16px;padding:20px 22px;cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,0.18), 0 14px 38px rgba(0,0,0,0.3);transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease}
+.hub-hubtile{position:relative;background:color-mix(in srgb, var(--bg2) 46%, transparent);backdrop-filter:blur(24px) saturate(1.1);-webkit-backdrop-filter:blur(24px) saturate(1.1);border:1px solid var(--border);border-radius:16px;padding:20px 22px;cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,0.2), 0 14px 38px rgba(0,0,0,0.3);transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease}
 .hub-hubtile:hover{transform:translateY(-2px);box-shadow:inset 0 1px 0 rgba(255,255,255,0.22), 0 16px 40px rgba(0,0,0,0.4)}
 /* Subtle neutral spotlight that follows the cursor + a static refractive light
    edge, giving the tiles (hub tile + the 3 dashboard tiles) a frosted-glass look.
@@ -1510,10 +1510,27 @@ const HUB_CSS = `
 .hub-glow::after{content:'';position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;z-index:2;
   background:linear-gradient(135deg, rgba(255,255,255,0.5), rgba(255,255,255,0.03) 34%, rgba(255,255,255,0) 56%, rgba(255,255,255,0.14) 100%);
   -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
-:root[data-theme="light"] .hub-hubtile{background:color-mix(in srgb, #fff 75%, transparent)}
+:root[data-theme="light"] .hub-hubtile{background:color-mix(in srgb, #fff 62%, transparent)}
 :root[data-theme="light"] .hub-glow::after{background:linear-gradient(135deg, rgba(255,255,255,0.9), rgba(255,255,255,0) 45%, rgba(0,0,0,0.05) 100%)}
 .hub-glow > *{position:relative;z-index:1}
 @media (prefers-reduced-motion: reduce){.hub-glow::before{transition:none}}
+/* Slow orange aura drifting behind the tile grids — it reads through the glassy,
+   translucent tiles (each tile's backdrop-filter blurs it) to give depth + motion.
+   Sits above the page bg but below the tiles (positioned tiles paint after it). */
+.hub-dash,.hub-hubs{position:relative;isolation:isolate}
+.hub-dash::before,.hub-hubs::before{content:'';position:absolute;inset:-60px -30px;z-index:0;pointer-events:none;
+  background:radial-gradient(42% 55% at 22% 28%, rgba(232,80,10,0.20), transparent 70%),
+    radial-gradient(38% 48% at 82% 74%, rgba(232,80,10,0.13), transparent 72%);
+  filter:blur(55px);animation:hubAura 28s ease-in-out infinite alternate}
+@keyframes hubAura{0%{transform:translate3d(-3%,-2%,0) scale(1)}100%{transform:translate3d(5%,4%,0) scale(1.14)}}
+.hub-dash > *,.hub-hubs > *{position:relative;z-index:1}
+:root[data-theme="light"] .hub-dash::before,:root[data-theme="light"] .hub-hubs::before{
+  background:radial-gradient(42% 55% at 22% 28%, rgba(232,80,10,0.14), transparent 70%),
+    radial-gradient(38% 48% at 82% 74%, rgba(232,80,10,0.09), transparent 72%)}
+@media (prefers-reduced-motion: reduce){.hub-dash::before,.hub-hubs::before{animation:none}}
+/* more glass: make the dashboard tiles more transparent so the aura shows through */
+.hub-dash .glass{background:color-mix(in srgb, var(--bg2) 46%, transparent)}
+:root[data-theme="light"] .hub-dash .glass{background:color-mix(in srgb, #fff 60%, transparent)}
 .hub-hubtile.neutral{border-top-color:#a89a86}
 .hub-expandbtn{position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--muted);font-size:17px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s ease}
 .hub-expandbtn:hover{color:var(--orange);border-color:var(--orange)}
