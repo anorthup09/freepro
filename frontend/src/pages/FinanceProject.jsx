@@ -55,11 +55,21 @@ function MoneyInput({ value, onCommit, width = 85 }) {
   );
 }
 
-export default function FinanceProject({ pidOverride }) {
+export default function FinanceProject({ pidOverride, finTab, setFinTab }) {
   const { pid: pidParam } = useParams();
   const pid = pidOverride || pidParam;
   const [data, setData] = useState(null);
-  const [tab, setTab] = useState('budget');
+  const [tabLocal, setTabLocal] = useState('budget');
+  // When embedded under ProjectView on desktop, the phase dock owns the
+  // Budget/VCC/Harbinger buttons — tab state is lifted up
+  const tab = finTab || tabLocal;
+  const setTab = setFinTab || setTabLocal;
+  const [dockMobile, setDockMobile] = useState(typeof window !== 'undefined' && window.innerWidth <= 700);
+  useEffect(() => {
+    const onR = () => setDockMobile(window.innerWidth <= 700);
+    window.addEventListener('resize', onR);
+    return () => window.removeEventListener('resize', onR);
+  }, []);
   const [estimateMode, setEstimateMode] = useState(false);
   const [overview, setOverview] = useState(false);
   const [editProject, setEditProject] = useState(false);
@@ -72,6 +82,18 @@ export default function FinanceProject({ pidOverride }) {
   useEffect(() => {
     api.getHarbinger(pid).then(setHarbinger).catch(() => setHarbinger(null));
   }, [pid]);
+
+  const harbingerRef = useRef(null);
+  harbingerRef.current = harbinger;
+  useEffect(() => {
+    const open = () => {
+      if (harbingerRef.current) { setShowHarbinger(true); return; }
+      setTab('budget');
+      setTimeout(() => window.dispatchEvent(new Event('fp-open-harbinger')), 60);
+    };
+    window.addEventListener('fp-dock-harbinger', open);
+    return () => window.removeEventListener('fp-dock-harbinger', open);
+  }, []);
 
   useEffect(() => {
     const onScroll = () => setGlass(window.scrollY > 170);
@@ -103,11 +125,13 @@ export default function FinanceProject({ pidOverride }) {
   return (
     <div style={{ minHeight:'100vh', background:'transparent' }}>
       <FinanceHeader />
+      {(!setFinTab || dockMobile) && (
       <FinanceDock tab={tab} setTab={setTab} onHarbinger={() => {
         if (harbinger) { setShowHarbinger(true); return; }
         setTab('budget');
         setTimeout(() => window.dispatchEvent(new Event('fp-open-harbinger')), 60);
       }} />
+      )}
       <div style={{ maxWidth:1100, margin:'0 auto', padding:'6px 16px 80px' }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:10, marginBottom:14, position:'relative' }}>
           <div className="fp-idblock">
@@ -326,7 +350,7 @@ function ClientContactField({ budget, patchBudget, saveBudget }) {
 }
 
 // ── Bottom-right liquid-glass dock: Budget / VCC navigation ──────────────
-const FIN_DOCK_ICONS = {
+export const FIN_DOCK_ICONS = {
   budget: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M15 9.5c0-1.4-1.3-2.5-3-2.5s-3 .9-3 2.2c0 3 6 1.6 6 4.6 0 1.3-1.3 2.2-3 2.2s-3-1.1-3-2.5"/></svg>,
   vcc: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 9.5h19M6 15h4"/></svg>,
   harbinger: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg>,

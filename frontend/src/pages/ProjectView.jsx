@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../App.jsx';
 import { api } from '../api.js';
-import FinanceProject from './FinanceProject.jsx';
+import FinanceProject, { FIN_DOCK_ICONS } from './FinanceProject.jsx';
 import Project, { ShareDropdown } from './Project/index.jsx';
 import AvoProject from './AvoProject.jsx';
 import ProjectOverview from './ProjectOverview.jsx';
@@ -27,7 +27,7 @@ const TAB_ICONS = {
 
 // Instagram-style liquid-glass dock: pinned bottom-center on phones, icons +
 // labels at the top of the page, shrinking to icons alone once you scroll.
-function MobileTabDock({ tabs, tab, setTab }) {
+function MobileTabDock({ tabs, tab, setTab, finance }) {
   const [shrunk, setShrunk] = useState(false);
   const [mobile, setMobile] = useState(typeof window !== 'undefined' && window.innerWidth <= 700);
   useEffect(() => {
@@ -48,16 +48,18 @@ function MobileTabDock({ tabs, tab, setTab }) {
   const btnRefs = useRef({});
   const [bubble, setBubble] = useState(null);   // sliding highlight behind the active icon
   useEffect(() => {
+    const el = btnRefs.current['ph-' + tab];
+    const finEl = finance && !mobile ? btnRefs.current['fin-' + finance.finTab] : null;
+    const target = finEl || el;
     const measure = () => {
-      const el = btnRefs.current[tab];
-      if (el) setBubble({ left: el.offsetLeft, top: el.offsetTop, width: el.offsetWidth, height: el.offsetHeight });
+      if (target) setBubble({ left: target.offsetLeft, top: target.offsetTop, width: target.offsetWidth, height: target.offsetHeight });
     };
     measure();
     // icon labels collapse/expand over 250ms — re-measure once they settle
     const t = setTimeout(measure, 300);
     window.addEventListener('resize', measure);
     return () => { clearTimeout(t); window.removeEventListener('resize', measure); };
-  }, [tab, shrunk, tabs.length, min]);
+  }, [tab, shrunk, tabs.length, min, finance && finance.finTab, mobile]);
   useEffect(() => {
     let raf = null;
     const onScroll = () => {
@@ -107,7 +109,7 @@ function MobileTabDock({ tabs, tab, setTab }) {
       {tabs.map(([k, label, color]) => {
         const on = tab === k;
         return (
-          <button key={k} ref={el => { btnRefs.current[k] = el; }} onClick={() => { setTab(k); setMin(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+          <button key={k} ref={el => { btnRefs.current['ph-' + k] = el; }} onClick={() => { setTab(k); setMin(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
             aria-label={label}
             style={{
               display:'flex', flexDirection:'column', alignItems:'center', gap:3, position:'relative',
@@ -125,6 +127,32 @@ function MobileTabDock({ tabs, tab, setTab }) {
           </button>
         );
       })}
+      {finance && !mobile && (
+        <>
+          <div aria-hidden style={{ width:1, alignSelf:'stretch', margin:'6px 6px', background:'rgba(255,255,255,0.14)' }} />
+          <button onClick={() => window.dispatchEvent(new Event('fp-dock-harbinger'))} aria-label="Harbinger"
+            style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:3, position:'relative',
+              background:'transparent', border:'none', cursor:'pointer', color:'#5ABF80',
+              borderRadius:22, padding:'7px 12px 6px' }}>
+            {FIN_DOCK_ICONS.harbinger}
+            <span style={{ fontSize:9.5, fontWeight:800, letterSpacing:'0.04em', textTransform:'uppercase', whiteSpace:'nowrap' }}>Harbinger</span>
+          </button>
+          {[['budget', 'Budget'], ['vcc', 'VCC']].map(([k, label]) => {
+            const on = finance.finTab === k;
+            return (
+              <button key={k} ref={el => { btnRefs.current['fin-' + k] = el; }}
+                onClick={() => { finance.setFinTab(k); window.scrollTo({ top: 0, behavior: 'smooth' }); }} aria-label={label}
+                style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:3, position:'relative',
+                  background:'transparent', border:'none', cursor:'pointer',
+                  color: on ? 'var(--orange)' : 'rgba(255,255,255,0.55)',
+                  borderRadius:22, padding:'7px 12px 6px', transition:'color .25s ease' }}>
+                {FIN_DOCK_ICONS[k]}
+                <span style={{ fontSize:9.5, fontWeight:800, letterSpacing:'0.04em', textTransform:'uppercase', whiteSpace:'nowrap' }}>{label}</span>
+              </button>
+            );
+          })}
+        </>
+      )}
     </div>
     </>
   );
@@ -274,6 +302,7 @@ export function ProjectViewDetail() {
     sp.delete('tab');   // let the newly-shown section start at its own default sub-tab
     nav({ pathname: loc.pathname, search: sp.toString() }, { replace: true });
   };
+  const [finTab, setFinTab] = useState('budget'); // finance sub-tab, shown in the merged dock on desktop
   const [shootId, setShootId] = useState('');   // FreePro project id for Pre-Production
   const [avoPageId, setAvoPageId] = useState('');
   const [preControls, setPreControls] = useState(null); // ?/Share lifted from the embedded Pre-Pro
@@ -358,11 +387,12 @@ export function ProjectViewDetail() {
         </div>
       </div>
 
-      <MobileTabDock tabs={tabs} tab={tab} setTab={setTab} />
+      <MobileTabDock tabs={tabs} tab={tab} setTab={setTab}
+        finance={tab === 'finance' ? { finTab, setFinTab } : null} />
 
       {project === false && <div className="empty">Project not found.</div>}
       {project && tab === 'overview' && <ProjectOverview pid={pid} onOpenFinance={() => { setTab('finance'); window.scrollTo({ top: 0 }); }} />}
-      {project && tab === 'finance' && <div className="pvd-embed"><FinanceProject pidOverride={pid} /></div>}
+      {project && tab === 'finance' && <div className="pvd-embed"><FinanceProject pidOverride={pid} finTab={finTab} setFinTab={setFinTab} /></div>}
       {project && tab === 'pre' && (shootId
         ? <div className="pvd-embed"><Project idOverride={shootId} key={shootId} onControls={setPreControls} /></div>
         : <div className="empty">No FreePro production tile yet — set the budget Live to create one.</div>)}
