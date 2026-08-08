@@ -1368,7 +1368,9 @@ const HUB_CSS = `
 /* Liquid-glass intro splash: blank screen, glowing glass tile, refractive
    edge shine sweeping clockwise from the top-left, then a fade-out */
 @property --splash-a{syntax:'<angle>';initial-value:0deg;inherits:false}
-.hub-splash{position:fixed;inset:0;z-index:400;background:rgba(11,10,8,0.45);backdrop-filter:blur(44px) saturate(1.1);-webkit-backdrop-filter:blur(44px) saturate(1.1);display:flex;align-items:center;justify-content:center;opacity:1;transition:opacity .6s ease}
+.hub-splash{position:fixed;inset:0;z-index:400;background:var(--bg);display:flex;align-items:center;justify-content:center;opacity:1;transition:opacity .6s ease}
+.hub-splash .aurora{position:absolute;z-index:0;opacity:1 !important}
+.hub-splash-tile{position:relative;z-index:1}
 .hub-splash.done{opacity:0;pointer-events:none}
 .hub-splash-tile{position:relative;width:152px;height:152px;border-radius:40px;display:flex;align-items:center;justify-content:center;
   background:linear-gradient(150deg, rgba(255,255,255,0.13), rgba(255,255,255,0.035) 55%), color-mix(in srgb, var(--bg2) 72%, transparent);
@@ -1963,12 +1965,6 @@ export default function Hub() {
     const t2 = setTimeout(() => setSplashGone(true), 3050);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, []);
-  // The splash rides the aurora at full strength, easing back as the page lands
-  useEffect(() => {
-    document.body.classList.toggle('aurora-max', !splashFading);
-    if (splashFading) return;
-    return () => document.body.classList.remove('aurora-max');
-  }, [splashFading]);
   const isAgency = user?.role === 'AGENCY';
   const firstName = (user?.name || '').trim().split(/\s+/)[0] || 'there';
 
@@ -2006,6 +2002,9 @@ export default function Hub() {
       <style>{HUB_CSS}</style>
       {!splashGone && (
         <div className={`hub-splash${splashFading ? ' done' : ''}`}>
+          <div className="aurora" aria-hidden>
+            <div className="blob b1" /><div className="blob b2" /><div className="blob b3" /><div className="blob b4" /><div className="blob b5" />
+          </div>
           <div className="hub-splash-tile">
             <img src="/splash-icon.png" alt="Unbridled Media" />
           </div>

@@ -1214,8 +1214,6 @@ body.pvd-nav-open .proj-bottomnav { display: none !important; }
 :root[data-theme="light"] .aurora{opacity:.13}
 /* The hub landing page runs the full-strength wash */
 body.aurora-full .aurora{opacity:.35}
-/* Splash screen: full-strength aurora behind the glass tile */
-body.aurora-max .aurora{opacity:1 !important;transition:opacity .6s ease}
 :root[data-theme="light"] body.aurora-full .aurora{opacity:.22}
 /* Finance pages: the budget/VCC grids are too dense for the full wash */
 body.aurora-dim .aurora{opacity:.1}
