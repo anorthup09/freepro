@@ -206,7 +206,7 @@ function SignOutFooter({ user, setUser }) {
 
   if (!user || loc.pathname.startsWith('/share') || loc.pathname.startsWith('/gantt') || loc.pathname.startsWith('/avo-share') || loc.pathname.startsWith('/hub-share') || loc.pathname === '/login') return null;
   return (
-    <div className="no-print signout-footer" style={{ display:'flex', justifyContent:'center', alignItems:'center', gap:10, padding:'26px 16px 34px', background:'var(--bg)' }}>
+    <div className="no-print signout-footer" style={{ display:'flex', justifyContent:'center', alignItems:'center', gap:10, padding:'26px 16px 34px', background:'transparent' }}>
       <ThemeToggle />
       <button className="btn btn-ghost btn-sm" onClick={() => { localStorage.removeItem('fp_token'); setUser(null); }}>
         Sign out
