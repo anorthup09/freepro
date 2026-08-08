@@ -779,7 +779,7 @@ export default function Crew({ project, onProjectUpdate }) {
           </tr>
         );
         return (
-        <div className="pos-table-wrap" style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflowX:'auto' }}>
+        <div className="pos-table-wrap glass" style={{ borderRadius:8, overflowX:'auto' }}>
           <table className="pos-table" style={{ width:'100%', minWidth:1000 }}>
             <thead>
               <tr>
@@ -847,7 +847,7 @@ export default function Crew({ project, onProjectUpdate }) {
       {(project.keyTalent||[]).length === 0
         ? <div className="empty" style={{ marginBottom:16 }}>No talent added yet.</div>
         : (
-          <div className="pos-table-wrap" style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden', marginBottom:16 }}>
+          <div className="pos-table-wrap glass" style={{ borderRadius:8, overflow:'hidden', marginBottom:16 }}>
             <table className="pos-table" style={{ width:'100%' }}>
               <thead>
                 <tr>
@@ -919,7 +919,7 @@ export default function Crew({ project, onProjectUpdate }) {
         style={{ marginBottom:8 }}
       />
       {rosterQuery.trim().length > 0 && (
-        <div className="pos-table-wrap" style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden', marginBottom:12 }}>
+        <div className="pos-table-wrap glass" style={{ borderRadius:8, overflow:'hidden', marginBottom:12 }}>
           {roster.filter(m => {
             const q = rosterQuery.toLowerCase();
             return displayName(m)?.toLowerCase().includes(q) || m.name?.toLowerCase().includes(q) || m.email?.toLowerCase().includes(q) || m.company?.toLowerCase().includes(q);
@@ -945,7 +945,7 @@ export default function Crew({ project, onProjectUpdate }) {
 
       {/* Crew Member Detail Panel */}
       {selectedMember && memberDetail && (
-        <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'16px 18px', marginBottom:12 }}>
+        <div className="glass" style={{ borderRadius:8, padding:'16px 18px', marginBottom:12 }}>
           {/* Header */}
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
             <div style={{ display:'flex', alignItems:'center', gap:10 }}>

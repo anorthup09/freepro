@@ -176,7 +176,7 @@ export default function GearList({ project }) {
 
       {/* Add form (shown above groups) */}
       {showAdd && (
-        <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:16, marginBottom:16 }}>
+        <div className="glass" style={{ borderRadius:8, padding:16, marginBottom:16 }}>
           <div style={{ fontSize:13, fontWeight:600, marginBottom:10 }}>Add Gear Item</div>
           <form onSubmit={handleAdd}>
             <div className="form-grid">
@@ -214,7 +214,7 @@ export default function GearList({ project }) {
         CATEGORIES.map(cat => {
           const catItems = items.filter(i => i.category === cat.id);
           return (
-            <div key={cat.id} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, marginBottom:12, overflow:'hidden' }}>
+            <div key={cat.id} className="glass" style={{ borderRadius:8, marginBottom:12, overflow:'hidden' }}>
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 14px', borderBottom: catItems.length ? '1px solid var(--border)' : 'none' }}>
                 <div style={{ fontSize:12, fontWeight:700, textTransform:'uppercase', letterSpacing:'.07em', color:'var(--muted)' }}>{cat.label}</div>
                 <button className="btn btn-ghost btn-sm" style={{ padding:'2px 10px', fontSize:11 }} onClick={() => openAdd(cat.id)}>+ Add</button>
@@ -242,7 +242,7 @@ export default function GearList({ project }) {
               const catItems = items.filter(i => i.category === cat.id);
               if (!catItems.length) return null;
               return (
-                <div key={cat.id} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, marginBottom:10, overflow:'hidden' }}>
+                <div key={cat.id} className="glass" style={{ borderRadius:8, marginBottom:10, overflow:'hidden' }}>
                   <div style={{ padding:'7px 12px', borderBottom:'1px solid var(--border)', fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'.07em', color:'var(--muted)' }}>{cat.label}</div>
                   {catItems.map(item => {
                     const sm = sourceMeta(item.source || 'unassigned');

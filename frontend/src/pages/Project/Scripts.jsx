@@ -45,7 +45,7 @@ function ScriptTile({ script, projectId, onUpdate, onDelete }) {
   }
 
   return (
-    <div style={{ display:'flex', alignItems:'center', gap:10, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding:'12px 16px', marginBottom:10, flexWrap:'wrap' }}>
+    <div className="glass" style={{ display:'flex', alignItems:'center', gap:10, borderRadius:10, padding:'12px 16px', marginBottom:10, flexWrap:'wrap' }}>
       <span style={{ fontSize:18, flexShrink:0 }}>📄</span>
       <input
         value={name}

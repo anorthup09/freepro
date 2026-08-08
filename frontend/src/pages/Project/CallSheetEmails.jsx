@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../../api.js';
 
 const KEY_PRODUCTION_POSITIONS = ['Director', 'Executive Producer', 'Field Producer', 'Producer', 'Line Producer'];
-const card = { background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, padding:'16px 18px' };
+const card = { borderRadius:12, padding:'16px 18px' };
 const secHdr = { fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.07em', marginBottom:8 };
 const csLongDate = d => d ? new Date(String(d).slice(0, 10) + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : '';
 
@@ -227,7 +227,7 @@ ${sender}`);
             </div>
 
             <div className="cse-grid" style={{ display:'grid', gridTemplateColumns:'320px 1fr', gap:16, alignItems:'start' }}>
-              <div style={card}>
+              <div className="glass" style={card}>
                 <div style={{ ...secHdr, marginBottom:10 }}>Recipients {selected.length > 0 && <span style={{ color:'var(--orange)' }}>({selected.length})</span>}</div>
                 {/* Full webpage vs. per-day PDF */}
                 <div style={{ display:'inline-flex', border:'1px solid var(--border2)', borderRadius:16, overflow:'hidden', marginBottom: sheetMode === 'daily' ? 8 : 12 }}>
@@ -256,7 +256,7 @@ ${sender}`);
                 {section('Talent', groups.talent, '#e6c229', 'talent')}
               </div>
 
-              <div style={card}>
+              <div className="glass" style={card}>
                 <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, flexWrap:'wrap', marginBottom:12 }}>
                   <div style={{ ...secHdr, marginBottom:0 }}>Email</div>
                   <div style={{ display:'flex', alignItems:'center', gap:6, flexWrap:'wrap' }}>

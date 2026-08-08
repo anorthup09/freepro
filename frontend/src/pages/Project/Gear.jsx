@@ -186,7 +186,7 @@ export default function Gear({ project, setProject }) {
       )}
 
       {/* ── Person Responsible ── */}
-      <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'16px', marginBottom:20 }}>
+      <div className="glass" style={{ borderRadius:8, padding:'16px', marginBottom:20 }}>
         <div className="sec-lbl" style={{ marginTop:0 }}>Person Responsible for Gear</div>
         <div style={{ display:'flex', gap:16, alignItems:'flex-start', flexWrap:'wrap' }}>
           <div className="field" style={{ flex:'1 1 240px', margin:0 }}>
@@ -211,7 +211,7 @@ export default function Gear({ project, setProject }) {
       <DrivesTile pid={project.id} title="DIT — Drives" style={{ flex: 'none', width: '100%', marginBottom: 20, borderRadius: 8, borderTop: '1px solid var(--border)' }} />
 
       {/* ── Storage Location ── */}
-      <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'16px', marginBottom:20 }}>
+      <div className="glass" style={{ borderRadius:8, padding:'16px', marginBottom:20 }}>
         <div className="sec-lbl" style={{ marginTop:0 }}>Storage Location</div>
         <div className="field" style={{ margin:0 }}>
           <input {...field('storageLocation')} placeholder="Room 104B — locked cage near freight elevator" />
@@ -219,7 +219,7 @@ export default function Gear({ project, setProject }) {
       </div>
 
       {/* ── Online Rentals ── */}
-      <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'16px', marginBottom:20 }}>
+      <div className="glass" style={{ borderRadius:8, padding:'16px', marginBottom:20 }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
           <div className="sec-lbl" style={{ marginTop:0, marginBottom:0 }}>Online Rentals</div>
           <button className="btn btn-ghost btn-sm" onClick={() => setShowAddRental(true)}>+ Add</button>
@@ -281,7 +281,7 @@ export default function Gear({ project, setProject }) {
       </div>
 
       {/* ── Rental House ── */}
-      <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'16px', marginBottom:20 }}>
+      <div className="glass" style={{ borderRadius:8, padding:'16px', marginBottom:20 }}>
         <div className="sec-lbl" style={{ marginTop:0 }}>Rental House Information</div>
         <div className="form-grid">
           <div className="field"><label>Rental Company</label><input {...field('rentalCompany')} placeholder="Keslow Camera" /></div>

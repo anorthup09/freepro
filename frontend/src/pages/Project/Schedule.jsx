@@ -1275,7 +1275,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
           {currentDay.crewCalls?.length > 0 && (
             <>
               <div className="sec-lbl">Crew Calls</div>
-              <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden', marginBottom:16 }}>
+              <div className="glass" style={{ borderRadius:8, overflow:'hidden', marginBottom:16 }}>
                 <table className="pos-table" style={{ width:'100%' }}>
                   <thead><tr>
                     <th>Position</th><th>Crew Member</th><th>Call Time</th><th>Location</th>

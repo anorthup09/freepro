@@ -57,7 +57,7 @@ export default function AdditionalDocs({ project }) {
       {docs.length === 0 && <div className="empty">No additional documents yet.</div>}
       {docs.map(d => (
         <div key={d.id} onClick={() => view(d)}
-          style={{ display:'flex', alignItems:'center', gap:12, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding:'12px 16px', marginBottom:10, cursor:'pointer' }}>
+          style={{ display:'flex', alignItems:'center', gap:12, borderRadius:10, padding:'12px 16px', marginBottom:10, cursor:'pointer' }}>
           <span style={{ fontSize:18 }}>📄</span>
           <div style={{ minWidth:0, flex:1 }}>
             <div style={{ fontSize:13, fontWeight:700, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{d.filename}</div>

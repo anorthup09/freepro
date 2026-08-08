@@ -119,7 +119,7 @@ export default function Catering({ project }) {
           const catering = d.catering || [];
           const byMeal = Object.fromEntries(catering.map(c => [c.meal_type, c]));
           return (
-            <div key={d.id} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden' }}>
+            <div key={d.id} className="glass" style={{ borderRadius:8, overflow:'hidden' }}>
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 14px', borderBottom:'1px solid var(--border)' }}>
                 <div style={{ fontWeight:700, fontSize:13 }}>
                   Day {i+1} · {parseDay(d.date).toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' })}

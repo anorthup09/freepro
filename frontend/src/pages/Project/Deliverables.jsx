@@ -277,7 +277,7 @@ export default function Deliverables({ project }) {
       <div className="page-sub">{project.client} · {project.code}</div>
 
       {/* ── DIT ── */}
-      <div style={{ display:'flex', alignItems:'center', gap:12, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, padding:'12px 16px', marginBottom:20 }}>
+      <div className="glass" style={{ display:'flex', alignItems:'center', gap:12, borderRadius:8, padding:'12px 16px', marginBottom:20 }}>
         <span style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:'var(--muted)', whiteSpace:'nowrap' }}>DIT</span>
         <select
           value={ditId}
@@ -306,7 +306,7 @@ export default function Deliverables({ project }) {
         <button className="btn btn-primary" onClick={goAddOnTracker}>+ Add Deliverable</button>
       </div>
 
-      <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden' }}>
+      <div className="glass" style={{ borderRadius:8, overflow:'hidden' }}>
         <table className="dtable">
           <thead><tr>
             <th>Deliverable</th>
