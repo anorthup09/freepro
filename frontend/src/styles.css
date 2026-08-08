@@ -1031,7 +1031,7 @@ body { padding-top: env(safe-area-inset-top, 0px); }
 /* ── Home button — liquid-glass pill with a stroked house icon ───────── */
 .home-glass {
   display: inline-flex; align-items: center; justify-content: center;
-  width: 36px; height: 32px; border-radius: 11px;
+  width: 36px; height: 36px; border-radius: 50%;
   color: rgba(255,255,255,0.92); text-decoration: none; flex-shrink: 0;
   background: linear-gradient(150deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.05) 45%, rgba(255,255,255,0.10) 100%);
   border: 1px solid rgba(255,255,255,0.22);
