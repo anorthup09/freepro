@@ -386,9 +386,6 @@ async function migrate() {
   await sql`ALTER TABLE crew_assignments ADD COLUMN IF NOT EXISTS gear_cost NUMERIC`;
   await sql`ALTER TABLE crew_assignments ADD COLUMN IF NOT EXISTS gear_days NUMERIC`;
 
-  // Budget "last opened" tracking — drives the new-version prompt on open
-  await sql`ALTER TABLE budgets ADD COLUMN IF NOT EXISTS last_opened_at TIMESTAMPTZ`;
-
   await sql`ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS crew_lunch TEXT`;
   await sql`ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS gear_storage TEXT`;
   await sql`ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS gs_audio TEXT`;
@@ -961,6 +958,9 @@ async function migrate() {
 
   await sql`ALTER TABLE vcc_entries ADD COLUMN IF NOT EXISTS review BOOLEAN DEFAULT FALSE`;
   await sql`ALTER TABLE vcc_entries ADD COLUMN IF NOT EXISTS flag TEXT`;
+  // Budget "last opened" tracking — drives the new-version prompt on open
+  // (must come after the budgets CREATE TABLE for fresh databases)
+  await sql`ALTER TABLE budgets ADD COLUMN IF NOT EXISTS last_opened_at TIMESTAMPTZ`;
   await sql`ALTER TABLE budgets ADD COLUMN IF NOT EXISTS share_token TEXT`;
   await sql`ALTER TABLE budgets ADD COLUMN IF NOT EXISTS close_month TEXT`;
   await sql`UPDATE budgets SET status = 'RFP' WHERE status IN ('Draft','Sent')`;

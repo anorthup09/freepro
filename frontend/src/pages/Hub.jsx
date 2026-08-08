@@ -916,10 +916,13 @@ function SolutionsHub() {
   const shown = s ? list.filter(p => (p.code || '').toLowerCase().includes(s) || (p.title || '').toLowerCase().includes(s) || (p.client || '').toLowerCase().includes(s)) : list;
   return (
     <div className="hub-hubs" style={{ gridTemplateColumns:'1fr' }}>
-      <div className="hub-hubtile hub-glow hub-anim-left" onMouseMove={glowMove} style={{ cursor:'default', paddingTop:16, minWidth:0 }}>
-        <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:12 }}>
-          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search code, title, client…" style={{ flex:'0 0 34%', minWidth:160 }} />
-          <span style={{ fontSize:9, fontWeight:800, color:'var(--orange)', border:'1px solid rgba(232,80,10,0.4)', borderRadius:10, padding:'2px 8px', whiteSpace:'nowrap' }}>{label}</span>
+      <div className="hub-hubtile hub-glow hub-anim-left pillcard" onMouseMove={glowMove} style={{ cursor:'default', paddingTop:16, minWidth:0 }}>
+        <div className="hub-toprow">
+          <div className="hub-mm-half"><MediaMomentOrbit /></div>
+          <div className="hub-ctrl-half">
+            <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search code, title, client…" style={{ flex:1, minWidth:0 }} />
+            <span style={{ fontSize:9, fontWeight:800, color:'var(--orange)', border:'1px solid rgba(232,80,10,0.4)', borderRadius:10, padding:'2px 8px', whiteSpace:'nowrap' }}>{label}</span>
+          </div>
         </div>
         {!projects && <div className="empty">Loading…</div>}
         {projects && shown.length === 0 && <div className="empty">No {isCrewRole ? '' : 'Solutions '}projects yet.</div>}
@@ -1043,17 +1046,20 @@ function HubProjects({ onNewProject, finance }) {
   const onProjects = view === 'projects';
   return (
     <div className="hub-hubs" style={{ gridTemplateColumns:'1fr' }}>
-      <div className={`hub-hubtile hub-glow hub-anim-left${onProjects ? '' : ' neutral'}`} onMouseMove={glowMove} style={{ cursor:'default', paddingTop:16, minWidth:0 }}>
-        <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:12 }}>
-          {onNewProject && !finance && <NewProjectPill onClick={onNewProject} />}
-          {!hideSearch && (onProjects
-            ? <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search code, title, client…" style={{ flex: finance ? '0 0 34%' : 1, minWidth: finance ? 160 : 0 }} />
-            : <input value={cq} onChange={e => setCq(e.target.value)} placeholder="Search clients…" style={{ flex:1, minWidth:0 }} />)}
-          {hideSearch && <div style={{ flex:1 }} />}
-          {!finance && <HubSwitchPill label={onProjects ? 'Client Hub' : 'Project Hub'} neutral={onProjects}
-            onClick={doSwitch} />}
-          {!finance && <HubAppMenu open={appOpen} setOpen={setAppOpen} />}
-          {finance && <FinancePill onClick={() => nav('/finance')} />}
+      <div className={`hub-hubtile hub-glow hub-anim-left pillcard${onProjects ? '' : ' neutral'}`} onMouseMove={glowMove} style={{ cursor:'default', paddingTop:16, minWidth:0 }}>
+        <div className="hub-toprow">
+          <div className="hub-mm-half"><MediaMomentOrbit /></div>
+          <div className="hub-ctrl-half">
+            {onNewProject && !finance && <NewProjectPill onClick={onNewProject} />}
+            {!hideSearch && (onProjects
+              ? <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search code, title, client…" style={{ flex:1, minWidth:0 }} />
+              : <input value={cq} onChange={e => setCq(e.target.value)} placeholder="Search clients…" style={{ flex:1, minWidth:0 }} />)}
+            {hideSearch && <div style={{ flex:1 }} />}
+            {!finance && <HubSwitchPill label={onProjects ? 'Client Hub' : 'Project Hub'} neutral={onProjects}
+              onClick={doSwitch} />}
+            {!finance && <HubAppMenu open={appOpen} setOpen={setAppOpen} />}
+            {finance && <FinancePill onClick={() => nav('/finance')} />}
+          </div>
         </div>
         <div key={flips}>
           {onProjects ? projectList : clientList}
@@ -1344,6 +1350,21 @@ const HUB_CSS = `
 .hub-tagline{text-align:left;font-size:14px;font-weight:600;color:var(--tan);max-width:560px;margin:8px 0 0;line-height:1.45}
 /* on-site welcome pill sits centered below the tagline */
 .hub-welcome-row{display:flex;justify-content:center;margin-top:12px}
+/* hero: greeting left, on-site welcome pill top right in line with it */
+.hub-hero-row{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+.hub-hero-row .hub-header{margin-bottom:0;flex:1 1 320px;min-width:0}
+.hub-hero-cta{margin-top:58px;flex:0 1 auto;display:flex;justify-content:flex-end}
+@media(max-width:640px){.hub-hero-cta{margin-top:0;flex-basis:100%;justify-content:flex-start}}
+/* hub tile top row: MediaMoment / Ways of Being on the left half, controls +
+   half-width search on the right half */
+.hub-toprow{display:flex;gap:14px;align-items:stretch;flex-wrap:wrap;margin-bottom:12px}
+.hub-mm-half{flex:1 1 340px;min-width:0;display:flex}
+.hub-mm-half:empty{display:none}
+.hub-mm-half .mm-wrap{flex:1;display:flex;min-width:0}
+.hub-mm-half .mm-banner{flex:1;padding:14px 24px}
+.hub-ctrl-half{flex:1 1 340px;min-width:0;display:flex;align-items:center;gap:10px}
+/* pill-shaped hub section, matching the MediaMoment banner radius */
+.hub-hubtile.pillcard{border-radius:40px;padding-left:26px;padding-right:26px}
 /* Mobile: pin the hero (heading/tagline/media moment) and let the tiles below
    scroll up over it (they carry a solid bg + higher z-index). The pinned hero
    stays locked in place and slowly fades out (opacity via JS refs on scroll). */
@@ -1873,13 +1894,14 @@ export default function Hub() {
               <img className="hub-logo-top" src="/unbridled-logo.png" alt="Unbridled Media" />
             </div>
             <div className="dash-hero">
-              <div className="hub-header" ref={heroLeftRef}>
-                <h1 className="hub-h1">Hey {firstName},</h1>
-                <div className="hub-tagline"><HubGreeting /></div>
-                <div className="hub-welcome-row"><TripPrompt /></div>
-              </div>
-              <div className="hub-anim-drop mm-row" ref={mmRef}>
-                <MediaMomentOrbit />
+              <div className="hub-hero-row">
+                <div className="hub-header" ref={heroLeftRef}>
+                  <h1 className="hub-h1">Hey {firstName},</h1>
+                  <div className="hub-tagline"><HubGreeting /></div>
+                </div>
+                <div className="hub-hero-cta hub-anim-drop" ref={mmRef}>
+                  <TripPrompt />
+                </div>
               </div>
             </div>
             <div className="dash-scroll">
