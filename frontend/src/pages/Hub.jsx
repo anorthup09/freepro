@@ -1158,12 +1158,12 @@ function HubDashboard() {
 
   // Server sends 'today' in the business timezone — trust it over the browser clock
   const dateLabel = (day?.date ? new Date(day.date + 'T12:00:00') : new Date()).toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' });
-  const card = { background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, padding:'18px 20px', minHeight:220 };
+  const card = { borderRadius:16, padding:'18px 20px', minHeight:220 };
   const hdr = { fontSize:12, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.07em', marginBottom:12 };
 
   return (
     <div className="hub-dash" style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(300px, 1fr))', gap:16, marginTop:22 }}>
-      <div className="hub-anim-drop hub-glow" onMouseMove={glowMove} style={{ ...card, animationDelay:'.1s' }}>
+      <div className="hub-anim-drop hub-glow glass" onMouseMove={glowMove} style={{ ...card, animationDelay:'.1s' }}>
         <div style={{ ...hdr, marginBottom:2, color:'#e8500a' }}>Day in Review</div>
         <div style={{ fontSize:12, color:'var(--muted)', fontWeight:600, marginBottom:10 }}>{dateLabel}</div>
         {!day && <div style={{ fontSize:11, color:'var(--muted)' }}>Loading…</div>}
@@ -1202,7 +1202,7 @@ function HubDashboard() {
         )}
       </div>
 
-      <div className="hub-anim-drop hub-glow" onMouseMove={glowMove} style={{ ...card, animationDelay:'.18s' }}>
+      <div className="hub-anim-drop hub-glow glass" onMouseMove={glowMove} style={{ ...card, animationDelay:'.18s' }}>
         <div style={{ ...hdr, marginBottom:12, color:'#e8500a', display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
           My Tasks
           <button onClick={openAddTask} title="Add a task to your list"
@@ -1260,7 +1260,7 @@ function HubDashboard() {
         )}
       </div>
 
-      <div className="hub-anim-drop hub-glow" onMouseMove={glowMove} style={{ ...card, position:'relative', overflow:'hidden', animationDelay:'.26s' }}>
+      <div className="hub-anim-drop hub-glow glass" onMouseMove={glowMove} style={{ ...card, position:'relative', overflow:'hidden', animationDelay:'.26s' }}>
         <div style={{ ...hdr, marginBottom:12, color:'#e8500a' }}>Team Today</div>
         {!team && <div style={{ fontSize:11, color:'var(--muted)' }}>Loading…</div>}
         {team && team.length === 0 && <div style={{ fontSize:12, color:'var(--muted)', fontStyle:'italic' }}>No Unbridled team members on the roster yet.</div>}
