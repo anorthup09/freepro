@@ -1372,8 +1372,11 @@ const HUB_CSS = `
 .hub-splash .aurora{position:absolute;z-index:0;opacity:1 !important}
 /* loading page: orange/gold only — no blue or plum fields */
 .hub-splash .aurora .b3,.hub-splash .aurora .b4,.hub-splash .aurora .b5{display:none}
+/* larger fields that sweep behind the center tile so the frosted glass reads */
+.hub-splash .aurora .b1{width:130vw;height:110vh;left:-8%;top:-42%}
+.hub-splash .aurora .b2{width:110vw;height:120vh;left:-38%;top:-18%}
 /* second orange bloom, low right, on its own slow drift */
-.hub-splash .aurora .b6{width:75vw;height:75vh;left:45%;top:52%;
+.hub-splash .aurora .b6{width:120vw;height:115vh;left:22%;top:28%;
   background:radial-gradient(closest-side, #d45e1a 0%, #8a2f14 55%, transparent 76%);
   animation:aurora-d3 36s ease-in-out infinite alternate-reverse}
 /* darken the loading stage 50% */
