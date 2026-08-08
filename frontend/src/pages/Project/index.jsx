@@ -73,6 +73,16 @@ function fmtSlHeaderDate(str) {
   return String(str).replace(/,?\s*\d{4}\s*$/, '');
 }
 
+// Phase icons for the merged desktop dock (same glyphs as the ProjectView
+// phase nav — duplicated here to avoid a circular import)
+const PHASE_ICONS = {
+  overview: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>,
+  finance:  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M15 9.5c0-1.4-1.3-2.5-3-2.5s-3 .9-3 2.2c0 3 6 1.6 6 4.6 0 1.3-1.3 2.2-3 2.2s-3-1.1-3-2.5"/></svg>,
+  pre:      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 9h16v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V9z"/><path d="M4 9l1.5-4L9 6l2-3.5L14.5 4 17 1.5 20 4l-1 5"/></svg>,
+  post:     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M10 9.5l5 2.5-5 2.5v-5z" fill="currentColor" stroke="none"/></svg>,
+};
+const PHASES = [['overview','Overview','#e8e8e8'],['finance','Finance','#5ABF80'],['pre','Pre-Pro','var(--orange)'],['post','Post-Pro','#9DC183']];
+
 // Section-dock icons — line-art, matching the Finance dock (Harbinger/Budget/VCC)
 const PROJ_NAV_ICONS = {
   overview: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg>,
@@ -587,7 +597,20 @@ export default function Project({ idOverride, onControls }) {
 
       {/* Project section nav — floated to the bottom, styled like the Finance dock;
           collapses to icons-only once the page is scrolled */}
-      <div className={`proj-bottomnav no-print${glassVisible ? ' shrunk' : ''}`}>
+      <div className={`proj-bottomnav no-print${glassVisible ? ' shrunk' : ''}${idOverride ? ' merged' : ''}`}>
+        {idOverride && (
+          <>
+            {PHASES.map(([k, label, color]) => (
+              <button key={k} className={`dock-btn phase${k === 'pre' ? ' on' : ''}`}
+                style={k === 'pre' ? { color } : undefined}
+                onClick={() => k !== 'pre' && window.dispatchEvent(new CustomEvent('fp-phase', { detail: k }))} aria-label={label}>
+                {PHASE_ICONS[k]}
+                <span className="dock-lbl">{label}</span>
+              </button>
+            ))}
+            <div aria-hidden style={{ width:1, alignSelf:'stretch', margin:'6px 6px', background:'rgba(255,255,255,0.14)' }} />
+          </>
+        )}
         {!isAgency && !isCrew && (
           <button className={`dock-btn${tab === 'overview' ? ' on' : ''}`} onClick={() => { setTab('overview'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} aria-label="Overview">
             {PROJ_NAV_ICONS.overview}

@@ -303,6 +303,17 @@ export function ProjectViewDetail() {
     nav({ pathname: loc.pathname, search: sp.toString() }, { replace: true });
   };
   const [finTab, setFinTab] = useState('budget'); // finance sub-tab, shown in the merged dock on desktop
+  const [deskW, setDeskW] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
+  useEffect(() => {
+    const onR = () => setDeskW(window.innerWidth);
+    window.addEventListener('resize', onR);
+    return () => window.removeEventListener('resize', onR);
+  }, []);
+  useEffect(() => {
+    const onPhase = e => setTab(e.detail);
+    window.addEventListener('fp-phase', onPhase);
+    return () => window.removeEventListener('fp-phase', onPhase);
+  }, []);
   const [shootId, setShootId] = useState('');   // FreePro project id for Pre-Production
   const [avoPageId, setAvoPageId] = useState('');
   const [preControls, setPreControls] = useState(null); // ?/Share lifted from the embedded Pre-Pro
@@ -387,8 +398,10 @@ export function ProjectViewDetail() {
         </div>
       </div>
 
+      {!(tab === 'pre' && deskW > 700) && (
       <MobileTabDock tabs={tabs} tab={tab} setTab={setTab}
         finance={tab === 'finance' ? { finTab, setFinTab } : null} />
+      )}
 
       {project === false && <div className="empty">Project not found.</div>}
       {project && tab === 'overview' && <ProjectOverview pid={pid} onOpenFinance={() => { setTab('finance'); window.scrollTo({ top: 0 }); }} />}
