@@ -1341,29 +1341,25 @@ const HUB_CSS = `
    moving-gradient backdrop for depth. */
 .mm-row{position:relative;display:flex;gap:16px;align-items:stretch;flex-wrap:wrap;margin:8px 0 24px}
 .mm-row::before{content:'';position:absolute;inset:-28px -8px;z-index:0;pointer-events:none;
-  background:radial-gradient(42% 62% at 18% 28%, rgba(232,80,10,0.30), transparent 70%),
-            radial-gradient(46% 58% at 84% 74%, rgba(150,90,255,0.24), transparent 70%),
-            radial-gradient(40% 50% at 62% 8%, rgba(74,158,255,0.16), transparent 70%);
-  filter:blur(34px);animation:mmAmbient 20s ease-in-out infinite alternate}
-@keyframes mmAmbient{0%{transform:translate3d(0,0,0) scale(1)}100%{transform:translate3d(4%,-3%,0) scale(1.12)}}
+  background:radial-gradient(60% 80% at 32% 30%, rgba(255,255,255,0.05), transparent 78%);
+  filter:blur(40px);animation:mmAmbient 34s ease-in-out infinite alternate}
+@keyframes mmAmbient{0%{transform:translate3d(0,0,0) scale(1)}100%{transform:translate3d(2%,-2%,0) scale(1.05)}}
 .mm-row > *{position:relative;z-index:1}
 .mm-row > .mm-wrap{flex:2 1 440px;margin:0;min-width:0;display:flex}
 .mm-wrap{position:relative}
 .mm-wrap > .mm-banner{flex:1}
 
-.mm-banner,.mm-welcome{position:relative;overflow:hidden;border-radius:34px;border:1px solid rgba(255,255,255,0.10);
-  background:
-    radial-gradient(135% 175% at 0% 0%, rgba(232,80,10,0.18), transparent 62%),
-    linear-gradient(120deg, rgba(255,255,255,0.05), rgba(255,255,255,0.012) 55%);
-  background-color:rgba(18,16,24,0.66);background-size:200% 200%,100% 100%;background-position:0% 0%,0 0;
-  backdrop-filter:blur(18px) saturate(150%);-webkit-backdrop-filter:blur(18px) saturate(150%);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,0.16), inset 0 -1px 1px rgba(0,0,0,0.4), 0 16px 44px rgba(0,0,0,0.42);
+.mm-banner,.mm-welcome{position:relative;overflow:hidden;border-radius:34px;border:1px solid rgba(255,255,255,0.14);
+  background:linear-gradient(135deg, rgba(255,255,255,0.10), rgba(255,255,255,0.02) 58%);
+  background-color:color-mix(in srgb, var(--bg2) 66%, transparent);background-size:200% 200%;background-position:0% 0%;
+  backdrop-filter:blur(20px) saturate(1.35);-webkit-backdrop-filter:blur(20px) saturate(1.35);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.22), inset 0 -1px 1px rgba(0,0,0,0.35), 0 16px 44px rgba(0,0,0,0.4);
   animation:mmCardIn .7s cubic-bezier(.22,.61,.36,1) both, mmDrift 40s ease-in-out infinite alternate}
 .mm-banner{display:flex;flex-direction:column;padding:18px 30px}
-@keyframes mmDrift{0%{background-position:0% 0%,0 0}100%{background-position:55% 35%,0 0}}
-/* reflective edge: a faint constant hairline with one soft glint that drifts slowly around */
+@keyframes mmDrift{0%{background-position:0% 0%}100%{background-position:60% 40%}}
+/* reflective edge: neutral white hairline with one soft glint that drifts slowly around */
 .mm-banner::before,.mm-welcome::before{content:'';position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;z-index:4;
-  background:conic-gradient(from var(--mmang), rgba(255,255,255,0.08) 0 72%, rgba(255,255,255,0.5) 82%, rgba(232,80,10,0.55) 90%, rgba(255,255,255,0.35) 96%, rgba(255,255,255,0.08) 100%);
+  background:conic-gradient(from var(--mmang), rgba(255,255,255,0.07) 0 70%, rgba(255,255,255,0.5) 83%, rgba(255,255,255,0.22) 94%, rgba(255,255,255,0.07) 100%);
   -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;
   animation:mmSpin 22s linear infinite}
 @keyframes mmSpin{to{--mmang:360deg}}
@@ -1383,9 +1379,9 @@ const HUB_CSS = `
 .mmw-kicker{position:relative;z-index:2;font-size:9px;font-weight:900;letter-spacing:.18em;color:var(--orange)}
 .mmw-title{position:relative;z-index:2;font-family:Georgia,'Times New Roman',serif;font-size:17px;font-weight:700;line-height:1.25;color:var(--text)}
 .mmw-link{position:relative;z-index:2;align-self:flex-start;margin-top:2px;text-decoration:none;white-space:nowrap;
-  background:linear-gradient(120deg, rgba(232,80,10,0.95), rgba(232,80,10,0.72));color:#160a04;font-weight:800;font-size:12px;letter-spacing:.02em;
-  padding:8px 18px;border-radius:999px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.4), 0 6px 16px rgba(232,80,10,0.35)}
-.mmw-link:hover{filter:brightness(1.08)}
+  background:rgba(232,80,10,0.14);border:1px solid rgba(232,80,10,0.5);color:var(--orange);font-weight:800;font-size:12px;letter-spacing:.02em;
+  padding:8px 18px;border-radius:999px}
+.mmw-link:hover{background:rgba(232,80,10,0.22)}
 
 @keyframes mmCardIn{from{opacity:0;transform:scale(.97) translateY(6px)}to{opacity:1;transform:none}}
 @media(max-width:640px){.mm-answer{font-size:13px}.mmw-title{font-size:15px}.mm-banner{padding:16px 24px}.mm-welcome{padding:16px 24px}}
