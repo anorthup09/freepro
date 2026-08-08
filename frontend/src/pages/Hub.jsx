@@ -1636,6 +1636,13 @@ const HUB_CSS = `
    the orange project cards give way to the gray client cards (and back). */
 @keyframes hubCardFlip{0%{transform:perspective(700px) rotateY(-90deg);opacity:0}55%{opacity:1}100%{transform:perspective(700px) rotateY(0);opacity:1}}
 .hub-cardflip{animation:hubCardFlip .45s cubic-bezier(.34,.75,.35,1) backwards;transform-origin:left center;will-change:transform}
+/* Focus-on-hover: the tile under the cursor stays crisp while its siblings
+   blur and fade back into the glass (desktop pointers only) */
+@media (hover:hover){
+  .hub-scroll .hub-ptile{transition:opacity .25s ease, filter .25s ease, transform .15s ease}
+  .hub-scroll:hover .hub-ptile:not(:hover){opacity:.42;filter:blur(2.2px) saturate(.85)}
+  .hub-scroll .hub-ptile:hover{opacity:1;filter:none}
+}
 @media (prefers-reduced-motion: reduce){.hub-cardflip{animation:none}}
 /* Dashboard open animations: Media Moment / Day in Review / Team Today drop in
    from the top; Project Hub flies in from the left, Client Hub from the right.
