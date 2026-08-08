@@ -1466,7 +1466,9 @@ const HUB_CSS = `
 @media(max-width:700px){
   .dash-hero{position:sticky;top:6px;z-index:1;overflow-x:clip}
   .dash-hero .hub-header,.dash-hero .hub-anim-drop{will-change:transform,opacity}
-  .dash-scroll{position:relative;z-index:3;background:var(--bg);will-change:transform}
+  /* transparent, not solid — a solid bg reads as a black box over the aurora;
+     the hero underneath fades out on scroll anyway */
+  .dash-scroll{position:relative;z-index:3;background:transparent;will-change:transform}
 }
 /* MediaMoment orbit: ring of team dots with the moment in the middle */
 /* MediaMoment banner: a wide horizontal card with a Netflix-style logo reveal */
@@ -1976,7 +1978,7 @@ export default function Hub() {
       raf = null;
       const mob = window.innerWidth <= 700;
       const s = window.scrollY;
-      const fade = mob ? String(Math.max(0, 1 - s / 240)) : '';
+      const fade = mob ? String(Math.max(0, 1 - s / 130)) : '';
       if (heroLeftRef.current) {
         heroLeftRef.current.style.transform = '';
         heroLeftRef.current.style.opacity = fade;
