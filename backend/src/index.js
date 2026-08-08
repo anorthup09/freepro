@@ -36,6 +36,27 @@ if (fs.existsSync(publicDir)) {
 
 app.get('/health', (req, res) => res.json({ status: 'ok', ts: new Date(), aerodatabox: !!process.env.AERODATABOX_API_KEY }));
 
+// Live probe: can this server pull a flight status? (diagnostic, public)
+// /health/flight?number=WN3181&date=2026-08-08
+app.get('/health/flight', async (req, res) => {
+  const key = process.env.AERODATABOX_API_KEY;
+  if (!key) return res.json({ error: 'AERODATABOX_API_KEY not set' });
+  const number = String(req.query.number || '').toUpperCase().replace(/\s+/g, '');
+  const date = String(req.query.date || new Date().toISOString().slice(0, 10));
+  if (!number) return res.json({ error: 'pass ?number=WN3181' });
+  try {
+    const r = await fetch(`https://aerodatabox.p.rapidapi.com/flights/number/${encodeURIComponent(number)}/${date}?dateLocalRole=Both`, {
+      headers: { 'X-RapidAPI-Key': key, 'X-RapidAPI-Host': 'aerodatabox.p.rapidapi.com' },
+    });
+    const body = await r.text();
+    let parsed = null; try { parsed = JSON.parse(body); } catch {}
+    const legs = (Array.isArray(parsed) ? parsed : [parsed]).filter(Boolean).map(x => ({
+      from: x.departure?.airport?.iata, to: x.arrival?.airport?.iata, status: x.status }));
+    res.json({ httpStatus: r.status, ok: r.ok, legs: legs.length ? legs : undefined,
+      raw: r.ok ? undefined : body.slice(0, 300) });
+  } catch (e) { res.json({ error: e.message }); }
+});
+
 // Live probe: can this server reach the weather APIs? (diagnostic, public)
 app.get('/health/weather', async (req, res) => {
   const { geocode, fetchWeatherForDay } = require('./lib/weather');

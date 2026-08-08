@@ -99,8 +99,11 @@ router.get('/:token', async (req, res, next) => {
       new Promise(r => setTimeout(r, 4000)),
     ]);
 
-    // Live flight status refresh in the background — next load shows the update
-    refreshFlightStatuses(projectId).catch(() => {});
+    // Live flight status refresh, capped like the weather call above
+    await Promise.race([
+      refreshFlightStatuses(projectId).catch(() => {}),
+      new Promise(r => setTimeout(r, 4000)),
+    ]);
 
     // Bulk-load catering for all days
     const dayIds = shootDays.map(d => d.id);

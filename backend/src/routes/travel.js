@@ -66,8 +66,12 @@ router.delete('/:id/travel/guests/:gid', requireAuth, requireRole('ADMIN','PRODU
 // ─── Flights ─────────────────────────────────────────────────────────────────
 router.get('/:id/travel/flights', requireAuth, async (req, res, next) => {
   try {
-    // Live status refresh in the background — next load shows the update
-    refreshFlightStatuses(req.params.id).catch(() => {});
+    // Live status refresh — wait up to 4s so statuses land on this load,
+    // then fall through so a slow API can never stall the page
+    await Promise.race([
+      refreshFlightStatuses(req.params.id).catch(() => {}),
+      new Promise(r => setTimeout(r, 4000)),
+    ]);
     res.json(await sql`SELECT f.*, COALESCE(NULLIF(TRIM(CONCAT(cm.preferred_first_name, ' ', cm.preferred_last_name)), ''), cm.name) as crew_name FROM flights f LEFT JOIN crew_members cm ON cm.id=f.crew_member_id WHERE f.project_id=${req.params.id} ORDER BY f.depart_time`);
   } catch(e){next(e);}
 });
