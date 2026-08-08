@@ -469,7 +469,7 @@ export default function ProjectOverview({ pid, onOpenFinance }) {
       <div className="pv-left" style={{ gridColumn:1, display:'flex', flexDirection:'column', gap:16 }}>
         <div className="pv-notes-row" style={{ display:'flex', gap:16, alignItems:'stretch', flexWrap:'wrap' }}>
           <div style={{ flex:'1.35 1 340px', minWidth:0, display:'flex', flexDirection:'column' }}>
-        <div className="pv-notes glass" style={card}>
+        <div className="pv-notes glass" style={{ ...card, flex:1 }}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
             <div style={{ ...secHdr, marginBottom:0 }}>Client Call Notes</div>
             <button onClick={async () => {
