@@ -6,7 +6,7 @@ import { displayName } from '../utils/displayName.js';
 import { STATUS_COLORS } from './Hub.jsx';
 import { DELIV_STATUS, FOCUS_COLOR } from './Avo.jsx';
 
-const card = { background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, padding:'16px 18px' };
+const card = { background:'color-mix(in srgb, var(--bg2) 72%, transparent)', backdropFilter:'blur(18px) saturate(1.4)', WebkitBackdropFilter:'blur(18px) saturate(1.4)', border:'1px solid var(--border)', borderRadius:12, padding:'16px 18px', boxShadow:'0 12px 30px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.08)' };
 const secHdr = { fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.07em', marginBottom:10 };
 const cellInput = { background:'transparent', border:'1px solid transparent', fontSize:12, width:'100%', padding:'5px 6px', borderRadius:5 };
 const fmtD = d => d ? new Date(String(d).slice(0, 10) + 'T12:00:00').toLocaleDateString('en-US', { month:'numeric', day:'numeric', year:'2-digit' }) : '';

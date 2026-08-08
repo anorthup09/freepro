@@ -87,7 +87,7 @@ export default function SubscriptionsReport() {
         </div>
 
         {/* Collapsed add form */}
-        <div style={{ marginTop: 14, background: 'var(--bg2)', border: '1px solid var(--border)', borderTop: `3px solid ${ACCENT}`, borderRadius: 12, overflow: 'hidden' }}>
+        <div className="glass" style={{ marginTop: 14, borderRadius: 12, overflow: 'hidden' }}>
           <div onClick={() => setOpen(o => !o)}
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '14px 18px', cursor: 'pointer' }}>
             <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)' }}>Add a Subscription</div>
@@ -143,7 +143,7 @@ export default function SubscriptionsReport() {
                 <span style={{ background: `${ACCENT}22`, border: `1px solid ${ACCENT}`, color: ACCENT, borderRadius: 14, padding: '3px 12px', fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{key}</span>
                 <span style={{ fontSize: 11, color: 'var(--muted)' }}>{groups[key].length}</span>
               </div>
-              <div className="budget-tbl-wrap" style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 10 }}>
+              <div className="budget-tbl-wrap glass" style={{ borderRadius: 10 }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 620 }}>
                   <thead>
                     <tr>

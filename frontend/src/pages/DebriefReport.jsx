@@ -63,7 +63,7 @@ function ProjectCard({ p, nav }) {
 function ClientTile({ c, accent, nav }) {
   const [open, setOpen] = useState(false);
   return (
-    <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderLeft: `4px solid ${accent}`, borderRadius: 9, overflow: 'hidden', transition: 'transform .15s ease' }}>
+    <div className="glass" style={{ borderLeft: `3px solid ${accent}`, borderRadius: 9, overflow: 'hidden', transition: 'transform .15s ease' }}>
       <div onClick={() => setOpen(o => !o)}
         style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', cursor: 'pointer' }}>
         <span style={{ fontSize: 14, fontWeight: 800, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.client}</span>

@@ -23,7 +23,7 @@ function Column({ meta, entries, onAdd, onDelete }) {
     setText(''); setSaving(false);
   }
   return (
-    <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderTop: `3px solid ${meta.color}`, borderRadius: 12, padding: '14px 16px', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+    <div className="glass" style={{ borderTop: `2px solid ${meta.color}`, borderRadius: 12, padding: '14px 16px', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
       <div style={{ fontSize: 13, fontWeight: 800, color: meta.color, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{meta.label}</div>
       <div style={{ fontSize: 10.5, color: 'var(--muted)', margin: '4px 0 10px' }}>{meta.hint}</div>
       <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
