@@ -1342,7 +1342,17 @@ const HUB_CSS = `
 .hub-logo-top{height:32px;filter:brightness(0) invert(1);opacity:.25}
 /* Left-aligned serif heading + tagline, dropped down from the masthead */
 .hub-header{margin:54px 0 10px}
-.hub-h1{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:34px;font-weight:800;letter-spacing:-.02em;line-height:1.05;margin:0}
+/* Liquid-glass lettering: translucent gradient fill clipped to the glyphs —
+   bright top light, dimmer core, lit bottom edge — with a soft lift shadow */
+.hub-h1{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:34px;font-weight:800;letter-spacing:-.02em;line-height:1.05;margin:0;
+  color:transparent;
+  background:linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.72) 38%, rgba(255,255,255,0.30) 58%, rgba(255,255,255,0.55) 78%, rgba(255,255,255,0.88) 100%);
+  -webkit-background-clip:text;background-clip:text;
+  filter:drop-shadow(0 1px 0 rgba(255,255,255,0.18)) drop-shadow(0 4px 10px rgba(0,0,0,0.5))}
+:root[data-theme="light"] .hub-h1{
+  background:linear-gradient(180deg, rgba(40,36,30,0.95) 0%, rgba(40,36,30,0.62) 40%, rgba(40,36,30,0.35) 58%, rgba(40,36,30,0.55) 80%, rgba(40,36,30,0.85) 100%);
+  -webkit-background-clip:text;background-clip:text;
+  filter:drop-shadow(0 1px 0 rgba(255,255,255,0.6)) drop-shadow(0 3px 8px rgba(0,0,0,0.18))}
 .hub-tagline{text-align:left;font-size:14px;font-weight:600;color:var(--tan);max-width:560px;margin:8px 0 0;line-height:1.45}
 /* Liquid-glass intro splash: blank screen, glowing glass tile, refractive
    edge shine sweeping clockwise from the top-left, then a fade-out */
