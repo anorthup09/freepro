@@ -1204,6 +1204,10 @@ body.pvd-nav-open .proj-bottomnav { display: none !important; }
 :root[data-theme="light"] .aurora{opacity:.22}
 /* Finance pages: the budget/VCC grids are too dense for the full wash */
 body.aurora-dim .aurora{opacity:.1}
+/* Pre-Pro pages: gentler wash under the dense overview/schedule content */
+body.aurora-soft .aurora{opacity:.3}
+/* Crew grid on the shoot overview keeps its orange cast over the glass */
+.ov-crewglass{background:linear-gradient(150deg, rgba(232,80,10,0.16), rgba(232,80,10,0.05) 60%), color-mix(in srgb, var(--bg2) 30%, transparent) !important;border-color:rgba(232,80,10,0.4) !important}
 /* Public share views (producer/crew/client): no aurora, plain black stage */
 body.aurora-off{background:#000}
 body.aurora-off .aurora{display:none}

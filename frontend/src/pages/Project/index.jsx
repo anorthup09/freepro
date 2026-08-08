@@ -344,6 +344,11 @@ export function ShareDropdown({ projectId, showShotList, crews = [] }) {
 }
 
 export default function Project({ idOverride, onControls }) {
+  // Pre-Pro runs the aurora at 30% — busy pages, gentler wash
+  useEffect(() => {
+    document.body.classList.add('aurora-soft');
+    return () => document.body.classList.remove('aurora-soft');
+  }, []);
   const { id: idParam } = useParams();
   const id = idOverride || idParam;
   const nav = useNavigate();

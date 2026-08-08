@@ -483,7 +483,7 @@ export default function Overview({ project, setProject, onTabChange,
               </div>
           {scheduleDays.length > 0 && (
             <>
-              <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden' }}>
+              <div className="glass" style={{ borderRadius:12, overflow:'hidden' }}>
                 {scheduleDays.map((d, i) => (
                   <div key={d.id} style={{ display:'grid', gridTemplateColumns:'1fr auto', alignItems:'center', gap:12, padding:'10px 16px', borderBottom: i < scheduleDays.length - 1 ? '1px solid var(--border)' : 'none' }}>
                     <div style={{ fontSize:13, fontWeight:600 }}>
@@ -508,7 +508,7 @@ export default function Overview({ project, setProject, onTabChange,
       {(project.crewAssignments||[]).some(a => a.crewMember) && (
         <>
           <div className="sec-lbl" style={{ fontWeight:700, fontSize:12, color:'var(--text)' }}>Crew</div>
-          <div style={{ background:'rgba(232,80,10,0.12)', border:'1px solid rgba(232,80,10,0.45)', borderRadius:8, overflow:'hidden', marginBottom:20 }}>
+          <div className="glass ov-crewglass" style={{ borderRadius:12, overflow:'hidden', marginBottom:20 }}>
             <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))' }}>
               {(project.crewAssignments||[]).filter(a => a.crewMember).map((a, i) => (
                 <div key={a.id} style={{ padding:'10px 16px', borderRight:'1px solid rgba(255,255,255,0.10)', borderBottom:'1px solid rgba(255,255,255,0.10)', display:'flex', flexDirection:'column', gap:2 }}>
