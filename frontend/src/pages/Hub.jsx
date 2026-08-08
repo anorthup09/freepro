@@ -930,16 +930,12 @@ function SolutionsHub() {
           <div className="hub-scroll" style={{ display:'flex', gap:10, overflowX:'auto', paddingBottom:8, WebkitMaskImage:SCROLL_FADE, maskImage:SCROLL_FADE }}>
             {shown.map(p => (
               <div key={p.id} onClick={() => nav(`/project-view/${p.id}`)} className="hub-ptile"
-                style={{ flex:'0 0 auto', width:180, background:'color-mix(in srgb, var(--bg2) 74%, transparent)', backdropFilter:'blur(16px) saturate(1.5)', WebkitBackdropFilter:'blur(16px) saturate(1.5)', border:'1px solid rgba(255,255,255,0.10)', borderTop:'1px solid rgba(255,255,255,0.10)', borderRadius:14, padding:'11px 13px', cursor:'pointer', boxShadow:'0 10px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08)', transition:'transform .15s ease' }}
+                style={{ flex:'0 0 auto', width:180, background:'color-mix(in srgb, var(--bg2) 74%, transparent)', backdropFilter:'blur(16px) saturate(1.5)', WebkitBackdropFilter:'blur(16px) saturate(1.5)', border:'1px solid rgba(255,255,255,0.10)', borderTop:'1px solid rgba(255,255,255,0.10)', borderRadius:14, padding:'9px 13px', cursor:'pointer', boxShadow:'0 10px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08)', transition:'transform .15s ease' }}
                 onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-3px)'}
                 onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
                 <div className="hub-pt-code" style={{ fontSize:10, fontWeight:800, color:'var(--muted)', letterSpacing:'0.04em' }}>{p.code}</div>
                 <div className="hub-pt-title" style={{ fontSize:12.5, fontWeight:800, margin:'3px 0 2px' }}>{p.title}</div>
                 <div className="hub-pt-meta" style={{ fontSize:10.5, color:'var(--muted)' }}>{p.client}</div>
-                <div className="hub-pt-meta" style={{ display:'flex', gap:5, marginTop:8, flexWrap:'wrap' }}>
-                  <span style={{ fontSize:9, fontWeight:800, color: HUB_STATUS[p.budget_status] || '#a89a86', border: `1px solid ${(HUB_STATUS[p.budget_status] || '#a89a86')}55`, borderRadius:10, padding:'2px 8px' }}>{p.budget_status || 'No budget'}</span>
-                  {(p.shoots || []).length > 0 && <span style={{ fontSize:9, fontWeight:800, color:'var(--orange)', border:'1px solid rgba(232,80,10,0.4)', borderRadius:10, padding:'2px 8px' }}>{p.shoots.length} shoot{p.shoots.length !== 1 ? 's' : ''}</span>}
-                </div>
               </div>
             ))}
           </div>
@@ -1006,15 +1002,11 @@ function HubProjects({ onNewProject, finance }) {
           {shown.map((p, i) => (
             <div key={p.id} onClick={() => nav(`/project-view/${p.id}`)}
               className={`hub-ptile${flips ? ' hub-cardflip' : ''}`}
-              style={{ flex:'0 0 auto', width:180, background:'color-mix(in srgb, var(--bg2) 74%, transparent)', backdropFilter:'blur(16px) saturate(1.5)', WebkitBackdropFilter:'blur(16px) saturate(1.5)', border:'1px solid rgba(255,255,255,0.10)', borderTop:'1px solid rgba(255,255,255,0.10)', borderRadius:14, padding:'11px 13px', cursor:'pointer', boxShadow:'0 10px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08)', transition:'transform .15s ease', animationDelay:`${i * 0.045}s` }}
+              style={{ flex:'0 0 auto', width:180, background:'color-mix(in srgb, var(--bg2) 74%, transparent)', backdropFilter:'blur(16px) saturate(1.5)', WebkitBackdropFilter:'blur(16px) saturate(1.5)', border:'1px solid rgba(255,255,255,0.10)', borderTop:'1px solid rgba(255,255,255,0.10)', borderRadius:14, padding:'9px 13px', cursor:'pointer', boxShadow:'0 10px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08)', transition:'transform .15s ease', animationDelay:`${i * 0.045}s` }}
               onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-3px)'} onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
               <div className="hub-pt-code" style={{ fontSize:10, fontWeight:800, color:'var(--muted)', letterSpacing:'0.04em' }}>{p.code}</div>
               <div className="hub-pt-title" style={{ fontSize:12.5, fontWeight:800, margin:'3px 0 2px' }}>{p.title}</div>
               <div className="hub-pt-meta" style={{ fontSize:10.5, color:'var(--muted)' }}>{p.client}</div>
-              <div className="hub-pt-meta" style={{ display:'flex', gap:5, marginTop:8, flexWrap:'wrap' }}>
-                <span style={{ fontSize:9, fontWeight:800, color: HUB_STATUS[p.budget_status] || '#a89a86', border: `1px solid ${(HUB_STATUS[p.budget_status] || '#a89a86')}55`, borderRadius:10, padding:'2px 8px' }}>{p.budget_status || 'No budget'}</span>
-                {(p.shoots || []).length > 0 && <span style={{ fontSize:9, fontWeight:800, color:'var(--orange)', border:'1px solid rgba(232,80,10,0.4)', borderRadius:10, padding:'2px 8px' }}>{p.shoots.length} shoot{p.shoots.length !== 1 ? 's' : ''}</span>}
-              </div>
             </div>
           ))}
         </div>
@@ -1029,7 +1021,7 @@ function HubProjects({ onNewProject, finance }) {
           {shownClients.map((c, i) => (
             <div key={c.name} onClick={() => nav(`/project-view/client/${encodeURIComponent(c.name)}`)}
               className={`hub-ptile${flips ? ' hub-cardflip' : ''}`}
-              style={{ flex:'0 0 auto', width:180, background:'color-mix(in srgb, var(--bg2) 74%, transparent)', backdropFilter:'blur(16px) saturate(1.5)', WebkitBackdropFilter:'blur(16px) saturate(1.5)', border:'1px solid rgba(255,255,255,0.10)', borderTop:'1px solid rgba(255,255,255,0.10)', borderRadius:14, padding:'11px 13px', cursor:'pointer', boxShadow:'0 10px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08)', transition:'transform .15s ease', animationDelay:`${i * 0.045}s` }}
+              style={{ flex:'0 0 auto', width:180, background:'color-mix(in srgb, var(--bg2) 74%, transparent)', backdropFilter:'blur(16px) saturate(1.5)', WebkitBackdropFilter:'blur(16px) saturate(1.5)', border:'1px solid rgba(255,255,255,0.10)', borderTop:'1px solid rgba(255,255,255,0.10)', borderRadius:14, padding:'9px 13px', cursor:'pointer', boxShadow:'0 10px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08)', transition:'transform .15s ease', animationDelay:`${i * 0.045}s` }}
               onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-3px)'} onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
               <div className="hub-pt-title" style={{ fontSize:12.5, fontWeight:800 }}>{c.name}</div>
               <div className="hub-pt-code" style={{ fontSize:10.5, color:'var(--muted)', margin:'3px 0 8px' }}>{c.projects.length} project{c.projects.length !== 1 ? 's' : ''}</div>
@@ -1357,7 +1349,7 @@ const HUB_CSS = `
 /* hero: greeting left, on-site welcome pill top right in line with it */
 .hub-hero-row{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:20px}
 .hub-hero-row .hub-header{margin-bottom:0;flex:1 1 320px;min-width:0}
-.hub-hero-cta{margin-top:58px;flex:0 1 auto;display:flex;justify-content:flex-end}
+.hub-hero-cta{margin-top:96px;flex:0 1 auto;display:flex;justify-content:flex-end}
 @media(max-width:640px){.hub-hero-cta{margin-top:0;flex-basis:100%;justify-content:flex-start}}
 /* hub tile top row: MediaMoment / Ways of Being on the left half, controls +
    half-width search on the right half */
@@ -1376,9 +1368,9 @@ const HUB_CSS = `
 .hub-mm-half{flex:1 1 340px;min-width:0;display:flex}
 .hub-mm-half:empty{display:none}
 .hub-mm-half .mm-wrap{flex:1;display:flex;min-width:0}
-.hub-mm-half .mm-banner{flex:1;padding:10px 22px;align-items:center}
+.hub-mm-half .mm-banner{flex:1;padding:7px 20px;align-items:center;min-height:0}
 .hub-mm-half .mm-prompt{margin-top:0}
-.hub-mm-half .mm-answer{font-size:13px;margin-top:3px}
+.hub-mm-half .mm-answer{font-size:12.5px;margin-top:2px}
 .hub-mm-half .mm-name{margin-top:2px}
 .hub-ctrl-half{flex:1 1 340px;min-width:0;display:flex;align-items:center;gap:10px}
 /* pill-shaped hub section, matching the MediaMoment banner radius — kept
