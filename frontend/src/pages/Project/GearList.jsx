@@ -299,7 +299,7 @@ export default function GearList({ project }) {
               const internal = SOURCES.find(s2 => s2.id === 'internal');
               const count = items.filter(i => i.source === 'internal').length;
               return (
-                <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderLeft:`3px solid ${internal.color}`, borderRadius:8, padding:'9px 12px' }}>
+                <div className="glass" style={{ borderLeft:`3px solid ${internal.color}`, borderRadius:10, padding:'9px 12px' }}>
                   <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
                     <div style={{ width:8, height:8, borderRadius:'50%', background:internal.color }} />
                     <div style={{ fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:'.06em', color:internal.color }}>Internal</div>
@@ -363,7 +363,7 @@ export default function GearList({ project }) {
             })}
 
             {/* Contractor: one sub-zone per crew member on the shoot */}
-            <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderLeft:'3px solid #a78bfa', borderRadius:8, padding:'9px 12px' }}>
+            <div className="glass" style={{ borderLeft:'3px solid #a78bfa', borderRadius:10, padding:'9px 12px' }}>
               <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom: contractors.length ? 6 : 0 }}>
                 <div style={{ width:8, height:8, borderRadius:'50%', background:'#a78bfa' }} />
                 <div style={{ fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:'.06em', color:'#a78bfa' }}>Contractor</div>

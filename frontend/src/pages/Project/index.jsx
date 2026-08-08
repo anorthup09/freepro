@@ -92,7 +92,7 @@ const PROJ_NAV_ICONS = {
   deliverable: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><path d="M3.5 8l8.5 5 8.5-5M12 13v8.5"/></svg>,
 };
 
-function DropdownTab({ label, subtabs, tab, setTab, dropUp, icon, excludeActive = [] }) {
+function DropdownTab({ label, subtabs, tab, setTab, dropUp, icon, excludeActive = [], defaultTab }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   const isActive = subtabs.some(t => t.id === tab && !excludeActive.includes(t.id));
@@ -108,7 +108,8 @@ function DropdownTab({ label, subtabs, tab, setTab, dropUp, icon, excludeActive 
   return (
     <div ref={ref} style={{ position:'relative' }} onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
       {icon ? (
-        <button className={`dock-btn${isActive ? ' on' : ''}`} onClick={() => setOpen(o => !o)} aria-label={label}>
+        <button className={`dock-btn${isActive ? ' on' : ''}`}
+          onClick={() => { if (defaultTab) { setTab(defaultTab); setOpen(false); } else setOpen(o => !o); }} aria-label={label}>
           {icon}
           <span className="dock-lbl">{label}</span>
         </button>
@@ -624,7 +625,7 @@ export default function Project({ idOverride, onControls }) {
         <DropdownTab dropUp icon={PROJ_NAV_ICONS.logistics} label="Logistics" subtabs={isViewer
           ? [{ id:'travel', label:'Travel' }, { id:'shot-list', label:'Shot List' }, { id:'additional-docs', label:'Additional Docs' }]
           : [...BASE_LOGISTICS_TABS, ...(showTravel ? [{ id:'travel', label:'Travel' }] : []), ...(showCateringGrid ? [{ id:'catering', label:'Catering/Meals' }] : []), ...(showShotList ? [{ id:'shot-list', label:'Shot List' }] : []), ...(showScripts ? [{ id:'scripts', label:'Scripts' }] : []), { id:'additional-docs', label:'Additional Docs' }, { id:'producer-checklist', label:'Producer Checklist' }]} tab={tab} setTab={setTab} />
-        <DropdownTab dropUp icon={PROJ_NAV_ICONS.gear} label="Gear" subtabs={GEAR_TABS} tab={tab} setTab={setTab} />
+        <DropdownTab dropUp icon={PROJ_NAV_ICONS.gear} label="Gear" subtabs={GEAR_TABS} tab={tab} setTab={setTab} defaultTab="gear" />
         <button className={`dock-btn${tab === 'deliverable-overview' ? ' on' : ''}`} onClick={() => setTab('deliverable-overview')} aria-label="Deliverable">
           {PROJ_NAV_ICONS.deliverable}
           <span className="dock-lbl">Deliverable</span>

@@ -250,7 +250,7 @@ export default function GearRequestModal({ projectId, existing, onClose, onSubmi
   }
 
   const inner = (
-      <div onClick={e => e.stopPropagation()} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid var(--orange)', borderRadius:12, padding:'22px 26px', width:'100%', maxWidth:640 }}>
+      <div onClick={e => e.stopPropagation()} className="glass" style={{ borderTop:'3px solid var(--orange)', borderRadius:16, padding:'22px 26px', width:'100%', maxWidth:640 }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6, gap:10 }}>
           <div style={{ fontSize:17, fontWeight:800 }}>
             {amending ? 'Amend Gear Request' : 'Gear Request'}
