@@ -1351,22 +1351,21 @@ const HUB_CSS = `
 .mm-wrap{position:relative}
 .mm-wrap > .mm-banner{flex:1}
 
-.mm-banner,.mm-welcome{position:relative;overflow:hidden;border-radius:34px;border:1px solid rgba(255,255,255,0.12);
+.mm-banner,.mm-welcome{position:relative;overflow:hidden;border-radius:34px;border:1px solid rgba(255,255,255,0.10);
   background:
-    radial-gradient(130% 165% at 0% 0%, rgba(232,80,10,0.30), transparent 55%),
-    radial-gradient(130% 165% at 100% 100%, rgba(150,90,255,0.22), transparent 55%),
-    linear-gradient(120deg, rgba(255,255,255,0.09), rgba(255,255,255,0.02) 45%, rgba(255,255,255,0.06));
-  background-color:rgba(18,16,24,0.62);background-size:220% 220%,220% 220%,100% 100%;background-position:0% 0%,100% 100%,0 0;
-  backdrop-filter:blur(18px) saturate(165%);-webkit-backdrop-filter:blur(18px) saturate(165%);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,0.22), inset 0 -1px 1px rgba(0,0,0,0.4), 0 18px 50px rgba(0,0,0,0.45);
-  animation:mmCardIn .7s cubic-bezier(.22,.61,.36,1) both, mmDrift 17s ease-in-out infinite alternate}
+    radial-gradient(135% 175% at 0% 0%, rgba(232,80,10,0.18), transparent 62%),
+    linear-gradient(120deg, rgba(255,255,255,0.05), rgba(255,255,255,0.012) 55%);
+  background-color:rgba(18,16,24,0.66);background-size:200% 200%,100% 100%;background-position:0% 0%,0 0;
+  backdrop-filter:blur(18px) saturate(150%);-webkit-backdrop-filter:blur(18px) saturate(150%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.16), inset 0 -1px 1px rgba(0,0,0,0.4), 0 16px 44px rgba(0,0,0,0.42);
+  animation:mmCardIn .7s cubic-bezier(.22,.61,.36,1) both, mmDrift 40s ease-in-out infinite alternate}
 .mm-banner{display:flex;flex-direction:column;padding:18px 30px}
-@keyframes mmDrift{0%{background-position:0% 0%,100% 100%,0 0}100%{background-position:72% 42%,28% 58%,0 0}}
-/* reflective rotating edge light */
-.mm-banner::before,.mm-welcome::before{content:'';position:absolute;inset:0;border-radius:inherit;padding:1.4px;pointer-events:none;z-index:4;
-  background:conic-gradient(from var(--mmang), transparent 0 6%, rgba(255,255,255,0.7) 14%, rgba(232,80,10,0.75) 27%, transparent 40% 58%, rgba(255,255,255,0.55) 72%, rgba(150,90,255,0.65) 85%, transparent 96%);
+@keyframes mmDrift{0%{background-position:0% 0%,0 0}100%{background-position:55% 35%,0 0}}
+/* reflective edge: a faint constant hairline with one soft glint that drifts slowly around */
+.mm-banner::before,.mm-welcome::before{content:'';position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;z-index:4;
+  background:conic-gradient(from var(--mmang), rgba(255,255,255,0.08) 0 72%, rgba(255,255,255,0.5) 82%, rgba(232,80,10,0.55) 90%, rgba(255,255,255,0.35) 96%, rgba(255,255,255,0.08) 100%);
   -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;
-  animation:mmSpin 7s linear infinite}
+  animation:mmSpin 22s linear infinite}
 @keyframes mmSpin{to{--mmang:360deg}}
 
 .mm-photo{position:absolute;top:0;right:0;bottom:0;width:48%;z-index:0;background-size:cover;background-position:center 30%;opacity:.5;pointer-events:none;
