@@ -269,7 +269,6 @@ function MediaMomentOrbit() {
           <div className="mm-answer">“{fact.answer}”</div>
           <div className="mm-name">— {fact.name}</div>
         </div>
-        <DoubleChevron />
       </div>
       {intro && (
         <div className="mm-intro" aria-hidden>
@@ -1408,7 +1407,7 @@ const HUB_CSS = `
   gap:3px;padding:12px 26px;text-align:right;text-decoration:none;cursor:pointer;
   transition:transform .18s ease, border-color .18s ease}
 .mm-welcome:hover{transform:translateY(-2px);border-color:rgba(232,99,42,0.5)}
-.mmw-title{position:relative;z-index:2;font-family:Georgia,'Times New Roman',serif;font-size:clamp(12px,1.5vw,15px);font-weight:700;line-height:1.15;letter-spacing:-.01em;color:var(--text)}
+.mmw-title{position:relative;z-index:2;font-family:Georgia,'Times New Roman',serif;font-size:clamp(11px,1.3vw,13px);font-weight:700;line-height:1.15;letter-spacing:-.01em;color:var(--text)}
 .mmw-cta{position:relative;z-index:2;display:flex;align-items:center;justify-content:flex-end;gap:7px;margin-top:2px}
 .mmw-view{color:var(--orange);font-size:clamp(11px,1.5vw,13px);font-weight:700;letter-spacing:.02em;transition:color .18s ease}
 
