@@ -1354,7 +1354,7 @@ const HUB_CSS = `
   backdrop-filter:blur(22px) saturate(1.2);-webkit-backdrop-filter:blur(22px) saturate(1.2);
   border:1px solid rgba(255,255,255,0.10);
   box-shadow:inset 0 1px 0 rgba(255,255,255,0.16), 0 26px 70px rgba(0,0,0,0.55)}
-.hub-splash-tile img{width:70%;filter:brightness(0) invert(1);opacity:0.96;animation:splashBreath 3s ease-in-out both}
+.hub-splash-tile img{width:62%;opacity:0.96;animation:splashBreath 3s ease-in-out both}
 .hub-splash-tile::before{content:'';position:absolute;inset:-1px;border-radius:inherit;padding:2px;pointer-events:none;
   background:conic-gradient(from calc(315deg + var(--splash-a)),
     rgba(255,255,255,0.95), rgba(255,214,180,0.55) 12%, rgba(255,255,255,0.06) 26%, transparent 42%, transparent 100%);
@@ -1395,10 +1395,10 @@ const HUB_CSS = `
   .hub-ptile .hub-pt-title{margin:0 !important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 }
 .hub-right-col .hub-ctrl-half{flex:none}
-.hub-mm-half{flex:0.75 1 255px;min-width:0;display:flex}
+.hub-mm-half{flex:0.75 1 255px;min-width:0;display:flex;align-items:center}
 .hub-mm-half:empty{display:none}
 .hub-mm-half .mm-wrap{flex:1;display:flex;min-width:0}
-.hub-mm-half .mm-banner{flex:1;padding:7px 20px;align-items:center;min-height:0}
+.hub-mm-half .mm-banner{flex:1;padding:7px 20px;align-items:center;min-height:0;max-height:112px;overflow:hidden}
 .hub-mm-half .mm-prompt{margin-top:0}
 .hub-mm-half .mm-answer{font-size:12.5px;margin-top:2px}
 .hub-mm-half .mm-name{margin-top:2px}
@@ -1932,7 +1932,7 @@ export default function Hub() {
         <div className={`hub-splash${splashFading ? ' done' : ''}`}>
           <div className="hub-splash-glow" />
           <div className="hub-splash-tile">
-            <img src="/unbridled-logo.png" alt="Unbridled Media" />
+            <img src="/splash-icon.png" alt="Unbridled Media" />
           </div>
         </div>
       )}
