@@ -1418,9 +1418,9 @@ const HUB_CSS = `
 @property --lume-a{syntax:'<angle>';initial-value:0deg;inherits:false}
 .pill-lume{position:absolute !important;inset:0;border-radius:inherit;pointer-events:none;overflow:hidden;z-index:0;
   background:
-    radial-gradient(55% 130% at 18% 50%, rgba(255,255,255,0.07), transparent 70%),
-    radial-gradient(45% 110% at 85% 45%, rgba(255,255,255,0.05), transparent 72%);
-  animation:lumeBreathe 7s ease-in-out infinite alternate}
+    radial-gradient(70% 150% at 30% 45%, rgba(255,255,255,0.12), rgba(255,255,255,0.04) 65%, transparent 80%),
+    radial-gradient(60% 130% at 78% 55%, rgba(255,255,255,0.10), transparent 76%);
+  animation:lumeBreathe 10s ease-in-out infinite alternate}
 .pill-lume::before{content:'';position:absolute;inset:-1px;border-radius:inherit;padding:2px;
   background:conic-gradient(from var(--lume-a),
     rgba(255,255,255,1), rgba(255,255,255,0.12) 14%, transparent 28%,
@@ -1428,11 +1428,11 @@ const HUB_CSS = `
   -webkit-mask:linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite:xor;mask:linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);mask-composite:exclude;
   animation:lumeSpin 12s linear infinite;opacity:1}
-.pill-lume::after{content:'';position:absolute;width:52%;height:150%;left:-16%;top:-25%;border-radius:50%;
-  background:radial-gradient(closest-side, rgba(255,255,255,0.34), rgba(255,255,255,0.10) 55%, transparent 74%);
-  filter:blur(34px);animation:lumeDrift 9s ease-in-out infinite alternate}
+.pill-lume::after{content:'';position:absolute;width:78%;height:170%;left:-30%;top:-35%;border-radius:50%;
+  background:radial-gradient(closest-side, rgba(10,9,8,0.5), rgba(10,9,8,0.2) 55%, transparent 76%);
+  filter:blur(40px);animation:lumeDrift 18s ease-in-out infinite alternate}
 @keyframes lumeSpin{to{--lume-a:360deg}}
-@keyframes lumeDrift{0%{transform:translateX(0) scale(.9);opacity:.5}45%{opacity:1}100%{transform:translateX(240%) scale(1.18);opacity:.85}}
+@keyframes lumeDrift{0%{transform:translateX(0) scale(.94);opacity:.6}45%{opacity:1}100%{transform:translateX(175%) scale(1.15);opacity:.8}}
 @keyframes lumeBreathe{0%{background-position:0% 0%, 0% 0%;filter:brightness(.9)}100%{background-position:6% 0%, -6% 0%;filter:brightness(1.25)}}
 @media (prefers-reduced-motion: reduce){.pill-lume::before,.pill-lume::after{animation:none}}
 .hub-hubtile.pillcard .hub-toprow{margin-bottom:0}
