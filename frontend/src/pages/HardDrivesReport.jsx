@@ -62,7 +62,7 @@ export default function HardDrivesReport() {
         <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search by drive, tag, serial, shoot, or location…" style={{ margin: '10px 0' }} />
         {!drives && <div className="empty">Loading…</div>}
         {drives && (
-          <div className="budget-tbl-wrap" style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 10, overflowX: 'auto' }}>
+          <div className="budget-tbl-wrap glass" style={{ borderRadius: 10, overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 640 }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)' }}>

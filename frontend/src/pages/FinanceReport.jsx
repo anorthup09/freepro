@@ -72,8 +72,18 @@ export default function FinanceReport() {
           </select>
         </label>
       )}
-      <button style={csBtn(!report)} onMouseEnter={csOn} onMouseLeave={csOff} onClick={() => window.print()} disabled={!report}>Print / Save PDF</button>
-      <button style={csBtn(pulling)} onMouseEnter={csOn} onMouseLeave={csOff} onClick={pullReport} disabled={pulling}>{pulling ? 'Pulling…' : 'Pull Report'}</button>
+      <button className="home-glass glass-action" onClick={() => window.print()} disabled={!report} title="Print / Save PDF" aria-label="Print / Save PDF">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/>
+        </svg>
+        <span className="ga-label">Print / Save PDF</span>
+      </button>
+      <button className="home-glass glass-action" onClick={pullReport} disabled={pulling} title="Pull Report" aria-label="Pull Report">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 15l2.5-3 2 2L16 10"/>
+        </svg>
+        <span className="ga-label">{pulling ? 'Pulling…' : 'Pull Report'}</span>
+      </button>
       <HomeButton />
     </div>
   );

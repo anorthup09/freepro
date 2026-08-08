@@ -37,7 +37,7 @@ export default function ClientInvoiceReport() {
     : <span style={{ display: 'inline-block', fontSize: 9, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#0b0b0b', background: '#8a8f98', border: '1px solid #8a8f98', borderRadius: 10, padding: '2px 9px' }}>Closed</span>;
 
   const requestTable = (list, { withStatus }) => (
-    <div style={{ overflowX: 'auto', background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 10, marginTop: 16 }}>
+    <div className="glass" style={{ overflowX: 'auto', borderRadius: 10, marginTop: 16 }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, minWidth: 940 }}>
         <thead>
           <tr>

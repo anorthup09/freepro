@@ -123,7 +123,7 @@ export default function GearReport() {
         )}
         {mode === 'shoots' && !rows && <div className="empty">Loading…</div>}
         {mode === 'shoots' && rows && (
-          <div className="budget-tbl-wrap" style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 10, marginTop: 10, overflowX: 'auto' }}>
+          <div className="budget-tbl-wrap glass" style={{ borderRadius: 10, marginTop: 10, overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1120 }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)' }}>

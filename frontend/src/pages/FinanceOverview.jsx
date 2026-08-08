@@ -31,7 +31,7 @@ export default function FinanceOverview() {
           </div>
           <button className="btn btn-primary btn-sm" onClick={() => nav('/finance/report')}>Weekly Finance Report</button>
         </div>
-        <div className="pos-table-wrap" style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, overflow:'auto' }}>
+        <div className="pos-table-wrap glass" style={{ borderRadius:12, overflow:'auto' }}>
           <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12, minWidth:820 }}>
             <thead>
               <tr style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', textAlign:'left' }}>
