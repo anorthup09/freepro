@@ -34,7 +34,10 @@ if (fs.existsSync(publicDir)) {
   });
 }
 
-app.get('/health', (req, res) => res.json({ status: 'ok', ts: new Date(), aerodatabox: !!process.env.AERODATABOX_API_KEY }));
+// deploy is the commit Railway built — the definitive "did my push land" check
+app.get('/health', (req, res) => res.json({ status: 'ok', ts: new Date(),
+  deploy: (process.env.RAILWAY_GIT_COMMIT_SHA || 'unknown').slice(0, 7),
+  aerodatabox: !!process.env.AERODATABOX_API_KEY }));
 
 // Live probe: can this server pull a flight status? (diagnostic, public)
 // /health/flight?number=WN3181&date=2026-08-08
