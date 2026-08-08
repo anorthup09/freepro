@@ -114,7 +114,7 @@ export default function GearReport() {
             <button className={mode === 'assets' ? 'btn btn-primary btn-sm' : 'btn btn-ghost btn-sm'} onClick={() => setMode(m => m === 'assets' ? 'shoots' : 'assets')}>
               {mode === 'assets' ? '‹ Back to Shoots' : 'Asset Management'}
             </button>
-            <button className="btn btn-primary btn-sm" onClick={() => setShowForm(true)}>+ New Gear Request</button>
+            <button className="evt-glass" onClick={() => setShowForm(true)}>+ New Gear Request</button>
           </div>
         </div>
         {mode === 'assets' && <div style={{ marginTop:14 }}><AssetLookup /></div>}

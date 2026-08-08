@@ -49,13 +49,9 @@ export default function HardDrivesReport() {
               {drives && <span> · {drives.length} drives · <b style={{ color: '#e6c229' }}>{out.length}</b> out on shoots</span>}
             </div>
           </div>
-          <div style={{ display: 'inline-flex', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden' }}>
+          <div className="seg-glass">
             {[['all', 'All'], ['out', 'On Shoots'], ['home', 'In Office']].map(([k, label]) => (
-              <button key={k} onClick={() => setFilter(k)}
-                style={{ background: filter === k ? 'rgba(74,158,255,0.2)' : 'transparent', border: 'none',
-                  color: filter === k ? '#4a9eff' : 'var(--muted)', fontSize: 11, fontWeight: 800, padding: '6px 14px', cursor: 'pointer' }}>
-                {label}
-              </button>
+              <button key={k} className={filter === k ? 'on' : ''} onClick={() => setFilter(k)}>{label}</button>
             ))}
           </div>
         </div>

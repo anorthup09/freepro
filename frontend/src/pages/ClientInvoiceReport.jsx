@@ -114,13 +114,9 @@ export default function ClientInvoiceReport() {
             <div className="page-title">Client Outstanding Invoice Report</div>
             <div className="page-sub">Requested invoices waiting to go out{outstanding.length ? ` — ${outstanding.length} unsent · ${fmt$(totalOutstanding)}` : ''}</div>
           </div>
-          <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden' }}>
+          <div className="seg-glass">
             {[['outstanding', `Unsent (${outstanding.length})`], ['requests', `All Requests (${requests.length})`]].map(([k, label]) => (
-              <button key={k} onClick={() => setView(k)}
-                style={{ background: view === k ? 'rgba(90,191,128,0.2)' : 'transparent', border: 'none',
-                  color: view === k ? '#5ABF80' : 'var(--muted)', fontSize: 11, fontWeight: 800, padding: '6px 14px', cursor: 'pointer' }}>
-                {label}
-              </button>
+              <button key={k} className={view === k ? 'on' : ''} onClick={() => setView(k)}>{label}</button>
             ))}
           </div>
         </div>
