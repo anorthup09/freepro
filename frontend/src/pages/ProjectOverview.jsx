@@ -254,7 +254,7 @@ function DebriefTile({ pid }) {
   }
 
   return (
-    <div className="pv-debrief glass" style={{ ...card, marginBottom:16 }}>
+    <div className="pv-debrief glass" style={{ ...card, flex:1 }}>
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
         <div style={{ ...secHdr, marginBottom:0 }}>Debrief</div>
         <button onClick={() => nav(`/projects/${pid}/debrief`)}
