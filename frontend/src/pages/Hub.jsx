@@ -985,6 +985,7 @@ function HubProjects({ onNewProject, finance }) {
   const doSwitch = () => { setView(v => v === 'projects' ? 'clients' : 'projects'); setFlips(f => f + 1); };
   const [appOpen, setAppOpen] = useState(false); // app (≡) menu expanded
   const [mobile, setMobile] = useState(typeof window !== 'undefined' && window.innerWidth <= 700);
+  const [listOpen, setListOpen] = useState(false);  // phones: rows collapsed until the caret opens them
   useEffect(() => {
     const onR = () => setMobile(window.innerWidth <= 700);
     window.addEventListener('resize', onR);
@@ -1048,18 +1049,31 @@ function HubProjects({ onNewProject, finance }) {
           <div className="hub-right-col">
             <div className="hub-ctrl-half">
               {onNewProject && !finance && <NewProjectPill onClick={onNewProject} />}
-              {!hideSearch && (onProjects
-                ? <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search code, title, client…" style={{ flex:1, minWidth:0 }} />
-                : <input value={cq} onChange={e => setCq(e.target.value)} placeholder="Search clients…" style={{ flex:1, minWidth:0 }} />)}
+              {!hideSearch && (
+                <div style={{ flex:1, minWidth:0, position:'relative' }}>
+                  {onProjects
+                    ? <input value={q} onChange={e => { setQ(e.target.value); if (mobile && e.target.value.trim()) setListOpen(true); }} placeholder="Search code, title, client…" style={{ width:'100%', minWidth:0, paddingRight: mobile ? 36 : undefined }} />
+                    : <input value={cq} onChange={e => { setCq(e.target.value); if (mobile && e.target.value.trim()) setListOpen(true); }} placeholder="Search clients…" style={{ width:'100%', minWidth:0, paddingRight: mobile ? 36 : undefined }} />}
+                  {mobile && (
+                    <button onClick={() => setListOpen(o => !o)} aria-label={listOpen ? 'Hide projects' : 'Show projects'}
+                      style={{ position:'absolute', right:6, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', color:'var(--muted)', cursor:'pointer', padding:6, display:'flex' }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"
+                        style={{ transform: listOpen ? 'rotate(180deg)' : 'none', transition:'transform .2s' }}><path d="M6 9l6 6 6-6"/></svg>
+                    </button>
+                  )}
+                </div>
+              )}
               {hideSearch && <div style={{ flex:1 }} />}
               {!finance && <HubSwitchPill label={onProjects ? 'Client Hub' : 'Project Hub'} neutral={onProjects}
                 onClick={doSwitch} />}
-              {!finance && <HubAppMenu open={appOpen} setOpen={setAppOpen} />}
+              {!finance && <HubAppMenu open={appOpen} setOpen={setAppOpen} onSwitch={doSwitch} switchLabel={onProjects ? 'Client Hub' : 'Project Hub'} />}
               {finance && <FinancePill onClick={() => nav('/finance')} />}
             </div>
+            {(!mobile || listOpen) && (
             <div key={flips} style={{ minWidth:0 }}>
               {onProjects ? projectList : clientList}
             </div>
+            )}
           </div>
         </div>
       </div>
@@ -1097,7 +1111,7 @@ function AppPill({ icon, label, accent, bg, onClick, i }) {
 
 // Orange "≡" menu circle on the right of the hub tile. Clicking it expands the
 // three app shortcuts (Project Finance / FreePro / Post Production) to its left.
-function HubAppMenu({ open, setOpen }) {
+function HubAppMenu({ open, setOpen, onSwitch, switchLabel }) {
   const nav = useNavigate();
   const ref = useRef(null);
   useEffect(() => {
@@ -1120,6 +1134,11 @@ function HubAppMenu({ open, setOpen }) {
       {open && apps.map((a, i) => (
         <AppPill key={a.to} {...a} i={i} onClick={() => nav(a.to)} />
       ))}
+      {open && onSwitch && (
+        <AppPill label={switchLabel} accent="#9DC183" bg="rgba(157,193,131,0.16)" i={apps.length}
+          icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3l4 4-4 4"/><path d="M21 7H7a4 4 0 0 0-4 4"/><path d="M7 21l-4-4 4-4"/><path d="M3 17h14a4 4 0 0 0 4-4"/></svg>}
+          onClick={() => { onSwitch(); setOpen(false); }} />
+      )}
       <button className={`np-pill hub-menu-pill${open ? ' active' : ''}`} title="Apps" onClick={() => setOpen(o => !o)}>
         <span className="np-plus" style={{ display:'flex', alignItems:'center', justifyContent:'center' }}>
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
@@ -1435,6 +1454,10 @@ const HUB_CSS = `
 @keyframes lumeDrift{0%{transform:translateX(0) scale(.94);opacity:.6}45%{opacity:1}100%{transform:translateX(175%) scale(1.15);opacity:.8}}
 @keyframes lumeBreathe{0%{background-position:0% 0%, 0% 0%;filter:brightness(.9)}100%{background-position:6% 0%, -6% 0%;filter:brightness(1.25)}}
 @media (prefers-reduced-motion: reduce){.pill-lume::before,.pill-lume::after{animation:none}}
+@media (max-width:700px){
+  .pill-lume::after{display:none}
+  .hub-switch-pill{display:none !important}
+}
 .hub-hubtile.pillcard .hub-toprow{margin-bottom:0}
 .hub-hubtile.pillcard .hub-scroll{padding-bottom:4px}
 /* Mobile: pin the hero (heading/tagline/media moment) and let the tiles below
