@@ -82,11 +82,14 @@ export function TripPrompt() {
     .filter(s => s && /[A-Za-z]/.test(s))
     .join(', ');
   return (
-    <div className="mm-welcome reflect-pill">
-      <div className="mmw-kicker">On-Site</div>
+    <a className="mm-welcome" href={`/share/${trip.token}`}
+      aria-label={`Enter ${viewLabel} for ${loc || trip.project.title}`}>
       <div className="mmw-title">Welcome to {loc || trip.project.title}</div>
-      <a className="mmw-link" href={`/share/${trip.token}`}>Open {viewLabel} →</a>
-    </div>
+      <div className="mmw-cta">
+        <span className="mmw-view">{viewLabel}</span>
+        <DoubleChevron />
+      </div>
+    </a>
   );
 }
 
@@ -217,16 +220,21 @@ function DailyFactBlob() {
 // The team roster as a ring of dots with the day's MediaMoment in the center.
 // Full dot = in office, shrunk = out; orange = St. Louis, gray = Denver.
 // Closing the moment spins the ring and parades the dots up into a row.
-// Double-chevron "go" mark that sits at the right end of the glowing pill.
-// Back chevron is a faint white; front chevron carries the brand orange accent.
-function GoChevron() {
+// Gray -> orange double chevron "go" mark at the right end of the glowing pill.
+// Shared by the MediaMoment tile and the on-site welcome tile.
+function DoubleChevron() {
   return (
-    <span className="mm-go" aria-hidden>
-      <svg viewBox="0 0 40 40" width="30" height="30">
-        <path d="M9 11 L19 20 L9 29" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" opacity="0.5" style={{ color:'#fff' }} />
-        <path d="M21 11 L31 20 L21 29" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
+    <span className="mm-go" aria-hidden="true">
+      <Chevron color="#8A8078" />
+      <Chevron color="#E8632A" style={{ marginLeft: -6 }} />
     </span>
+  );
+}
+function Chevron({ color, style }) {
+  return (
+    <svg width="13" height="16" viewBox="0 0 22 30" fill="none" style={style}>
+      <path d="M5 5 L16 15 L5 25" stroke={color} strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
 
@@ -262,7 +270,7 @@ function MediaMomentOrbit() {
           <div className="mm-answer">“{fact.answer}”</div>
           <div className="mm-name">— {fact.name}</div>
         </div>
-        <GoChevron />
+        <DoubleChevron />
       </div>
       {intro && (
         <div className="mm-intro" aria-hidden>
@@ -1381,9 +1389,10 @@ const HUB_CSS = `
   border-color:rgba(0,0,0,0.10);background:color-mix(in srgb, #fff 82%, transparent);
   box-shadow:0 0 16px rgba(150,170,220,0.12), 0 10px 30px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.9);
   animation:mmCardIn .7s cubic-bezier(.22,.61,.36,1) both}
-/* go-chevron mark at the right end of the pill */
-.mm-go{position:relative;z-index:2;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;
-  color:var(--orange);filter:drop-shadow(0 0 7px rgba(232,80,10,0.45))}
+/* go-chevron mark at the right end of the pill; shifts on tile hover */
+.mm-go{position:relative;z-index:2;flex-shrink:0;display:inline-flex;align-items:center;
+  filter:drop-shadow(0 0 5px rgba(232,99,42,0.35));transition:transform .18s ease}
+.mm-welcome:hover .mm-go{transform:translateX(3px)}
 
 .mm-photo{position:absolute;top:0;right:0;bottom:0;width:48%;z-index:0;background-size:cover;background-position:center 30%;opacity:.5;pointer-events:none;
   animation:mmPan 16s ease-in-out infinite alternate;
@@ -1395,14 +1404,14 @@ const HUB_CSS = `
 .mm-answer{font-family:Georgia,'Times New Roman',serif;font-size:14px;font-weight:700;line-height:1.4;margin-top:5px;color:var(--text)}
 .mm-name{font-family:'DM Sans',sans-serif;font-size:11px;font-weight:800;color:var(--muted);white-space:nowrap;text-align:right;margin-top:4px}
 
-/* on-site welcome pill */
-.mm-welcome{flex:1 1 250px;min-width:230px;display:flex;flex-direction:column;justify-content:center;gap:7px;padding:20px 30px}
-.mmw-kicker{position:relative;z-index:2;font-size:9px;font-weight:900;letter-spacing:.18em;color:var(--orange)}
-.mmw-title{position:relative;z-index:2;font-family:Georgia,'Times New Roman',serif;font-size:17px;font-weight:700;line-height:1.25;color:var(--text)}
-.mmw-link{position:relative;z-index:2;align-self:flex-start;margin-top:2px;text-decoration:none;white-space:nowrap;
-  background:rgba(232,80,10,0.14);border:1px solid rgba(232,80,10,0.5);color:var(--orange);font-weight:800;font-size:12px;letter-spacing:.02em;
-  padding:8px 18px;border-radius:999px}
-.mmw-link:hover{background:rgba(232,80,10,0.22)}
+/* on-site welcome pill — the whole tile is the button; content right-aligned */
+.mm-welcome{flex:1 1 250px;min-width:230px;display:flex;flex-direction:column;align-items:flex-end;justify-content:center;
+  gap:4px;padding:20px 30px;text-align:right;text-decoration:none;cursor:pointer;
+  transition:transform .18s ease, border-color .18s ease}
+.mm-welcome:hover{transform:translateY(-2px);border-color:rgba(232,99,42,0.5)}
+.mmw-title{position:relative;z-index:2;font-family:Georgia,'Times New Roman',serif;font-size:clamp(15px,2.2vw,20px);font-weight:700;line-height:1.15;letter-spacing:-.01em;color:var(--text)}
+.mmw-cta{position:relative;z-index:2;display:flex;align-items:center;justify-content:flex-end;gap:7px;margin-top:2px}
+.mmw-view{color:var(--orange);font-size:clamp(11px,1.5vw,13px);font-weight:700;letter-spacing:.02em;transition:color .18s ease}
 
 @keyframes mmCardIn{from{opacity:0;transform:scale(.97) translateY(6px)}to{opacity:1;transform:none}}
 @media(max-width:640px){.mm-answer{font-size:13px}.mmw-title{font-size:15px}.mm-banner{padding:16px 24px}.mm-welcome{padding:16px 24px}}
