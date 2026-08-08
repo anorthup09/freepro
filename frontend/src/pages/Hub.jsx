@@ -1348,8 +1348,8 @@ const HUB_CSS = `
 .hub-h1{font-family:Georgia,'Times New Roman',serif;font-size:34px;font-weight:700;letter-spacing:-.01em;line-height:1.05;margin:0}
 .hub-tagline{text-align:left;font-size:14px;font-weight:600;color:var(--tan);max-width:560px;margin:8px 0 0;line-height:1.45}
 /* Mobile: pin the hero (heading/tagline/media moment) and let the tiles below
-   scroll up over it (they carry a solid bg + higher z-index). The tagline and
-   media moment are slid off sideways via JS refs as the page scrolls. */
+   scroll up over it (they carry a solid bg + higher z-index). The pinned hero
+   stays locked in place and slowly fades out (opacity via JS refs on scroll). */
 @media(max-width:700px){
   .dash-hero{position:sticky;top:6px;z-index:1;overflow-x:clip}
   .dash-hero .hub-header,.dash-hero .hub-anim-drop{will-change:transform,opacity}
@@ -1789,25 +1789,26 @@ export default function Hub() {
   const isAgency = user?.role === 'AGENCY';
   const firstName = (user?.name || '').trim().split(/\s+/)[0] || 'there';
 
-  // Mobile scroll parallax: as the page scrolls, slide the tagline off to the
-  // left and the Media Moment off to the right (the tiles below are layered on
-  // top and scroll over them). Driven straight off refs to avoid re-rendering
-  // the whole dashboard on every scroll frame.
-  const heroLeftRef = useRef(null);   // heading + tagline slide left
-  const mmRef = useRef(null);         // media moment slides right
+  // Mobile scroll behavior: the hero (heading + tagline + media moment) stays
+  // pinned in place (sticky) and slowly fades out as the tiles below scroll up
+  // over it. No sideways slide — everything attached stays locked, just fades.
+  // Driven straight off refs to avoid re-rendering on every scroll frame.
+  const heroLeftRef = useRef(null);   // heading + tagline
+  const mmRef = useRef(null);         // media moment + welcome row
   useEffect(() => {
     let raf = null;
     const apply = () => {
       raf = null;
       const mob = window.innerWidth <= 700;
       const s = window.scrollY;
+      const fade = mob ? String(Math.max(0, 1 - s / 240)) : '';
       if (heroLeftRef.current) {
-        heroLeftRef.current.style.transform = mob ? `translate3d(${-s * 1.2}px,0,0)` : '';
-        heroLeftRef.current.style.opacity = mob ? String(Math.max(0, 1 - s / 140)) : '';
+        heroLeftRef.current.style.transform = '';
+        heroLeftRef.current.style.opacity = fade;
       }
       if (mmRef.current) {
-        mmRef.current.style.transform = mob ? `translate3d(${s * 1.25}px,0,0)` : '';
-        mmRef.current.style.opacity = mob ? String(Math.max(0, 1 - s / 160)) : '';
+        mmRef.current.style.transform = '';
+        mmRef.current.style.opacity = fade;
       }
     };
     const onScroll = () => { if (!raf) raf = requestAnimationFrame(apply); };
