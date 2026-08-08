@@ -33,15 +33,13 @@ export default function GlassDock({ items, active, onSelect, align = 'center' })
       ...(align === 'right' ? { right:14 } : { left:'50%', transform:'translateX(-50%)' }),
       zIndex:110, display:'flex', alignItems:'center', gap:2,
       padding: shrunk ? '6px 10px' : '8px 12px',
-      background:'rgba(30,27,23,0.34)', backdropFilter:'blur(22px) saturate(1.7)', WebkitBackdropFilter:'blur(22px) saturate(1.7)',
-      border:'1px solid rgba(255,255,255,0.12)', borderRadius:26,
-      boxShadow:'0 12px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.14)',
+      borderRadius:26,
       transition:'padding .25s ease',
     }}>
       {bubble && (
-        <div aria-hidden style={{
+        <div aria-hidden className="gd-bubble" style={{
           position:'absolute', left:bubble.left, top:bubble.top, width:bubble.width, height:bubble.height,
-          background:'rgba(255,255,255,0.10)', borderRadius:22, pointerEvents:'none',
+          borderRadius:22, pointerEvents:'none',
           transition:'left .3s cubic-bezier(.34,1.3,.5,1), width .3s cubic-bezier(.34,1.3,.5,1), top .3s ease, height .3s ease',
         }} />
       )}
@@ -50,11 +48,11 @@ export default function GlassDock({ items, active, onSelect, align = 'center' })
         return (
           <button key={it.key} ref={el => { btnRefs.current[it.key] = el; }}
             onClick={() => { onSelect(it.key); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-            aria-label={it.label}
+            aria-label={it.label} className={`gd-item${on ? ' on' : ''}`}
             style={{
               display:'flex', flexDirection:'column', alignItems:'center', gap:3, position:'relative',
               background:'transparent', border:'none', cursor:'pointer',
-              color: on ? (it.color || 'var(--orange)') : 'rgba(255,255,255,0.55)',
+              ...(on ? { color: it.color || 'var(--orange)' } : {}),
               borderRadius:22, padding: shrunk ? '8px 12px' : '7px 12px 6px',
               transition:'color .25s ease',
             }}>

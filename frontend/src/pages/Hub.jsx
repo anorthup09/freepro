@@ -114,11 +114,8 @@ function SitePhotoButton() {
   }
   return (
     <>
-      <button className="mm-welcome" onClick={() => setOpen(true)} style={{ font: 'inherit', cursor: 'pointer' }}
+      <button className="mm-welcome mm-photobtn" onClick={() => setOpen(true)} style={{ font: 'inherit', cursor: 'pointer' }}
         aria-label="Submit an on-site photo">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>
-        </svg>
         <span className="mmw-view">Submit an On-Site Photo!</span>
       </button>
       {open && createPortal(
@@ -142,8 +139,9 @@ function SitePhotoButton() {
             <input value={caption} onChange={e => setCaption(e.target.value)} placeholder="Add a caption…"
               style={{ width:'100%', fontSize:13 }} />
             <div style={{ display:'flex', justifyContent:'flex-end', marginTop:12 }}>
-              <button className="btn btn-primary btn-sm" disabled={!file || saving} onClick={submit}>
-                {saving ? 'Sending…' : 'Add to the rotation'}
+              <button className="evt-glass" disabled={!file || saving} onClick={submit}
+                style={{ opacity: (!file || saving) ? 0.45 : 1 }}>
+                {saving ? 'Sending…' : 'Submit'}
               </button>
             </div>
           </div>
@@ -1509,7 +1507,7 @@ const HUB_CSS = `
 .hub-hero-row{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:48px}
 .hub-hero-row .hub-header{margin-bottom:0;flex:1 1 320px;min-width:0}
 .hub-hero-cta{margin-top:40px;flex:0 1 auto;display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap}
-@media(max-width:640px){.hub-hero-cta{margin-top:0;flex-basis:100%;justify-content:flex-end}}
+@media(max-width:640px){.hub-hero-cta{margin-top:0;flex-basis:100%;justify-content:flex-end;flex-wrap:nowrap}}
 /* hub tile top row: MediaMoment / Ways of Being on the left half, controls +
    half-width search on the right half */
 .hub-toprow{display:flex;gap:14px;align-items:stretch;flex-wrap:wrap;margin-bottom:12px}
@@ -1631,11 +1629,14 @@ const HUB_CSS = `
 /* on-site welcome pill — two-segment: inset shoot-name chip on the left,
    "Producer View →" on the right. Centered under the tagline, light orange tint. */
 .mm-welcome{flex:0 1 auto;min-width:0;align-self:center;display:flex;flex-direction:row;align-items:center;
-  gap:8px;padding:4px 12px 4px 4px;text-decoration:none;cursor:pointer;
+  gap:8px;padding:4px 12px 4px 4px;text-decoration:none;cursor:pointer;box-sizing:border-box;min-height:34px;
   background:linear-gradient(150deg, rgba(232,80,10,0.15), rgba(232,80,10,0.05) 60%), color-mix(in srgb, var(--bg2) 62%, transparent);
   border-color:rgba(242,128,80,0.28);
   transition:transform .18s ease, border-color .18s ease}
 .mm-welcome:hover{transform:translateY(-2px);border-color:rgba(242,128,80,0.5)}
+/* The photo pill has no inner name chip — pad it evenly; the shared
+   min-height keeps it exactly as tall as the Producer View pill */
+.mm-photobtn{padding:4px 14px}
 .mmw-name{position:relative;z-index:2;display:inline-flex;align-items:center;white-space:nowrap;
   font-size:9.5px;font-weight:800;letter-spacing:.01em;color:#f2a878;
   background:rgba(0,0,0,0.28);border:1px solid rgba(242,128,80,0.22);border-radius:999px;padding:4px 11px;
