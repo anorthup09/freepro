@@ -107,7 +107,7 @@ export default function ResourceLibrary({ kind, title, sub, accent, placeholderT
         {cats.map(cat => (
           <div key={cat} style={{ marginTop:18 }}>
             <div className="sec-lbl">{cat}</div>
-            <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, overflow:'hidden' }}>
+            <div className="glass" style={{ borderRadius:12, overflow:'hidden' }}>
               {shown.filter(r => (r.category || 'General') === cat).map(r => (
                 <div key={r.id} style={{ display:'flex', alignItems:'center', gap:12, padding:'10px 16px', borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
                   <div style={{ flex:1, minWidth:0 }}>

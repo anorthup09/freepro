@@ -217,7 +217,7 @@ export default function FoodieRecs() {
         </div>
 
         {showAdd && (
-          <form onSubmit={submit} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, padding:18, marginTop:14 }}>
+          <form onSubmit={submit} className="glass" style={{ borderRadius:16, padding:18, marginTop:14 }}>
             <div className="form-grid">
               <div className="field"><label>Restaurant Name * <span style={{ fontWeight:400, textTransform:'none', letterSpacing:0 }}>(start typing to search)</span></label>
                 <NameSearchField value={form.name} onChange={v => setForm(f => ({ ...f, name:v }))}
@@ -271,7 +271,7 @@ export default function FoodieRecs() {
           return (
         <div style={{ display:'flex', flexDirection:'column', gap:12, marginTop:16 }}>
           {shown.map(({ r, i }) => (
-            <div key={r.id} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, padding:'14px 16px' }}>
+            <div key={r.id} className="glass" style={{ borderRadius:14, padding:'14px 16px' }}>
               <div style={{ display:'flex', gap:12, alignItems:'flex-start' }}>
                 <div style={{ fontSize:20, fontWeight:800, color: i < 3 ? 'var(--orange)' : 'var(--muted)', minWidth:34, textAlign:'center', lineHeight:1.2 }}>
                   {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}

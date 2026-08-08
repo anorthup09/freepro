@@ -15,7 +15,8 @@ const fmtDT = d => d ? new Date(d).toLocaleString('en-US', { month:'long', day:'
 export default function FinanceReport() {
   const [report, setReport] = useState(null);
   const [error, setError] = useState('');
-  const [year, setYear] = useState('all');
+  const [year, setYear] = useState(String(new Date().getFullYear())); // default: current year
+  const [closeMonth, setCloseMonth] = useState('all');                 // 'all' | '01'..'12'
   const [versions, setVersions] = useState(null);     // saved report versions (newest first)
   const [selectedBatch, setSelectedBatch] = useState('');
   const [pulling, setPulling] = useState(false);
@@ -98,13 +99,17 @@ export default function FinanceReport() {
   );
 
   const secTitle = { fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.08em', color:'#5ABF80', margin:'22px 0 8px' };
-  const card = { background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, overflow:'hidden' };
+  const card = { borderRadius:12, overflow:'hidden' };
   const th = { padding:'8px 10px', fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', textAlign:'left' };
   const td = { padding:'6px 10px', fontSize:12 };
 
   const yearOf = p => (p.close_month ? String(p.close_month).slice(0, 4) : null);
-  const years = [...new Set(report.current.map(yearOf).filter(Boolean))].sort().reverse();
-  const shown = report.current.filter(p => year === 'all' ? true : year === 'none' ? !yearOf(p) : yearOf(p) === year);
+  const years = [...new Set([String(new Date().getFullYear()), ...report.current.map(yearOf).filter(Boolean)])].sort().reverse();
+  const monthOf = p => (p.close_month ? String(p.close_month).slice(5, 7) : null);
+  const shown = report.current
+    .filter(p => year === 'all' ? true : year === 'none' ? !yearOf(p) : yearOf(p) === year)
+    .filter(p => closeMonth === 'all' ? true : monthOf(p) === closeMonth)
+    .sort((a, b) => (a.close_month || '9999-99').localeCompare(b.close_month || '9999-99'));
   const totalPortfolio = shown.reduce((s, c) => s + Number(c.budget_total || 0), 0);
   const totalFees = shown.reduce((s, c) => s + Number(c.fee || 0), 0);
 
@@ -126,7 +131,7 @@ export default function FinanceReport() {
         {!report.firstReport && (
           <>
             <div style={secTitle}>New Projects ({report.added.length})</div>
-            <div style={card}>
+            <div className="glass" style={card}>
               {report.added.length === 0 ? <div style={{ padding:'10px 14px', fontSize:12, color:'var(--muted)', fontStyle:'italic' }}>No new projects this period.</div> : (
                 <table style={{ width:'100%', borderCollapse:'collapse' }}>
                   <thead><tr><th style={th}>Code</th><th style={th}>Project</th><th style={th}>Owner</th><th style={th}>Status</th><th style={{ ...th, textAlign:'right' }}>Budget</th><th style={{ ...th, textAlign:'right' }}>Gross Profit</th></tr></thead>
@@ -145,7 +150,7 @@ export default function FinanceReport() {
             </div>
 
             <div style={secTitle}>Changed Projects ({report.changed.length})</div>
-            <div style={card}>
+            <div className="glass" style={card}>
               {report.changed.length === 0 ? <div style={{ padding:'10px 14px', fontSize:12, color:'var(--muted)', fontStyle:'italic' }}>No changes this period.</div> : (
                 report.changed.map(p => (
                   <div key={p.project_id} style={{ padding:'10px 14px', borderTop:'1px solid rgba(255,255,255,0.04)' }}>
@@ -162,7 +167,7 @@ export default function FinanceReport() {
             </div>
 
             <div style={secTitle}>Closed / Dead ({report.closed.length})</div>
-            <div style={card}>
+            <div className="glass" style={card}>
               {report.closed.length === 0 ? <div style={{ padding:'10px 14px', fontSize:12, color:'var(--muted)', fontStyle:'italic' }}>No closings this period.</div> : (
                 report.closed.map(p => (
                   <div key={p.project_id} style={{ padding:'10px 14px', borderTop:'1px solid rgba(255,255,255,0.04)', display:'flex', justifyContent:'space-between', gap:10, flexWrap:'wrap' }}>
@@ -177,6 +182,13 @@ export default function FinanceReport() {
 
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, flexWrap:'wrap' }}>
           <div style={secTitle}>Projects by Year ({shown.length})</div>
+          <select className="no-print" value={closeMonth} onChange={e => setCloseMonth(e.target.value)}
+            style={{ width:150, fontSize:12, background:'var(--bg2)', border:'1px solid var(--border)', color:'var(--text)', borderRadius:8, padding:'5px 10px', marginRight:8 }}>
+            <option value="all">All Close Months</option>
+            {['January','February','March','April','May','June','July','August','September','October','November','December'].map((m, i) => (
+              <option key={m} value={String(i + 1).padStart(2, '0')}>{m}</option>
+            ))}
+          </select>
           <select className="no-print" value={year} onChange={e => setYear(e.target.value)}
             style={{ width:150, fontSize:12, background:'var(--bg2)', border:'1px solid var(--border)', color:'var(--text)', borderRadius:8, padding:'5px 10px' }}>
             <option value="all">All Years</option>
@@ -184,7 +196,7 @@ export default function FinanceReport() {
             {report.current.some(p => !yearOf(p)) && <option value="none">No close month</option>}
           </select>
         </div>
-        <div style={card}>
+        <div className="glass" style={card}>
           <table style={{ width:'100%', borderCollapse:'collapse' }}>
             <thead><tr><th style={th}>Code</th><th style={th}>Project</th><th style={th}>Owner</th><th style={th}>Status</th><th style={{ ...th, textAlign:'right' }}>Budget</th><th style={{ ...th, textAlign:'right' }}>Gross Profit</th><th style={th}>Close</th></tr></thead>
             <tbody>

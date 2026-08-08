@@ -62,7 +62,7 @@ function PipelinePanel() {
   }
 
   return (
-    <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, padding:'16px 20px', marginBottom:30 }}>
+    <div className="glass" style={{ borderRadius:12, padding:'16px 20px', marginBottom:30 }}>
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, flexWrap:'wrap', marginBottom:10 }}>
         <div style={{ fontSize:13, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.07em' }}>Project Pipeline</div>
         <div style={{ display:'flex', alignItems:'center', gap:12 }}>

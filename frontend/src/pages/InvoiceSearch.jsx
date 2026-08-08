@@ -119,7 +119,7 @@ export default function InvoiceSearch() {
         {!rows && <div className="empty">Loading…</div>}
         {rows && rows.length === 0 && <div className="empty">No invoices match.</div>}
         {rows && rows.length > 0 && (
-          <div className="budget-tbl-wrap" style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10 }}>
+          <div className="budget-tbl-wrap glass" style={{ borderRadius:12 }}>
             <table style={{ width:'100%', borderCollapse:'collapse', minWidth:720 }}>
               <thead>
                 <tr>
