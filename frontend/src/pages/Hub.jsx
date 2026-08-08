@@ -1405,7 +1405,7 @@ const HUB_CSS = `
 .hub-mm-half{flex:0.75 1 255px;min-width:0;display:flex;align-items:center}
 .hub-mm-half:empty{display:none}
 .hub-mm-half .mm-wrap{flex:1;display:flex;min-width:0}
-.hub-mm-half .mm-banner{flex:1;padding:9px 20px;align-items:center;min-height:129px;max-height:129px;overflow:hidden}
+.hub-mm-half .mm-banner{flex:1;padding:9px 20px;align-items:center;min-height:123px;max-height:123px;overflow:hidden}
 .hub-mm-half .mm-prompt{margin-top:0}
 .hub-mm-half .mm-answer{font-size:12.5px;margin-top:2px}
 .hub-mm-half .mm-name{margin-top:2px}
