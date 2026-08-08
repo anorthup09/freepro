@@ -1340,7 +1340,7 @@ const HUB_CSS = `
 .hub-logo-top{height:32px;filter:brightness(0) invert(1);opacity:.25}
 /* Left-aligned serif heading + tagline, dropped down from the masthead */
 .hub-header{margin:54px 0 10px}
-.hub-h1{font-family:Georgia,'Times New Roman',serif;font-size:34px;font-weight:700;letter-spacing:-.01em;line-height:1.05;margin:0}
+.hub-h1{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:34px;font-weight:800;letter-spacing:-.02em;line-height:1.05;margin:0}
 .hub-tagline{text-align:left;font-size:14px;font-weight:600;color:var(--tan);max-width:560px;margin:8px 0 0;line-height:1.45}
 /* tagline + on-site welcome pill share one row */
 .hub-tagline-row{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
