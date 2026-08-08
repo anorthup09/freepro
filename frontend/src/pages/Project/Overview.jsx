@@ -402,7 +402,7 @@ export default function Overview({ project, setProject, onTabChange,
       </div>
 
       {/* Main POC · Gear Contact · Client & Agency Contacts — one card */}
-      <div className="ov-contacts-card" style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden', marginBottom:10 }}>
+      <div className="ov-contacts-card glass" style={{ borderRadius:12, overflow:'hidden', marginBottom:10 }}>
         <div className="ov-poc-main" style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 16px' }}>
           <span style={{ fontSize:13, fontWeight:700, color:'var(--text)', whiteSpace:'nowrap', flexShrink:0 }}>Main POC</span>
           <select value={pocId} onChange={e => savePoc(e.target.value)} style={{ flex:'1 1 auto', minWidth:0, maxWidth:320 }}>

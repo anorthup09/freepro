@@ -1,6 +1,6 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 :root {
-  --bg: #0A0A08; --bg2: #111109; --bg3: #191916; --bg4: #1E1E18;
+  --bg: #000000; --bg2: #111109; --bg3: #191916; --bg4: #1E1E18;
   --border: #242420; --border2: #2E2E28;
   --text: #F0EDE4; --muted: #7A7565; --tan: #B8AF98;
   --orange: #E8500A; --orange2: #F28050;
@@ -1113,11 +1113,13 @@ body.pvd-nav-open .fin-dock,
 body.pvd-nav-open .proj-bottomnav { display: none !important; }
 
 /* Project section dock — bottom-right liquid-glass pill, mirroring the Finance dock */
-.proj-bottomnav { position: fixed; right: 14px; bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); z-index: 112; display: flex; align-items: center; gap: 2px; padding: 8px 12px; background: rgba(24,22,19,0.81); backdrop-filter: blur(18px) saturate(1.5); -webkit-backdrop-filter: blur(18px) saturate(1.5); border: 1px solid rgba(255,255,255,0.12); border-radius: 32px; box-shadow: 0 10px 34px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.08); max-width: calc(100vw - 28px); }
+.proj-bottomnav { position: fixed; right: 14px; bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); z-index: 112; display: flex; align-items: center; gap: 2px; padding: 8px 12px; background: rgba(30,27,23,0.34); backdrop-filter: blur(22px) saturate(1.7); -webkit-backdrop-filter: blur(22px) saturate(1.7); border: 1px solid rgba(255,255,255,0.12); border-radius: 26px; box-shadow: 0 12px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.14); max-width: calc(100vw - 28px); }
+.proj-bottomnav::after { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1px; pointer-events: none; background: linear-gradient(135deg, rgba(255,255,255,0.5), rgba(255,255,255,0.03) 34%, rgba(255,255,255,0) 56%, rgba(255,255,255,0.14) 100%); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+.proj-bottomnav .dock-btn, .proj-bottomnav .tab { position: relative; z-index: 1; }
 /* Dock buttons — icon over label, mirroring the Finance dock (Harbinger/Budget/VCC) */
 .proj-bottomnav .dock-btn { display: flex; flex-direction: column; align-items: center; gap: 3px; background: transparent; border: none; cursor: pointer; color: rgba(255,255,255,0.55); border-radius: 22px; padding: 7px 14px 6px; transition: color .25s ease, background .2s ease, padding .25s ease; }
 .proj-bottomnav .dock-btn.on { color: var(--orange); background: rgba(255,255,255,0.10); }
-.proj-bottomnav .dock-lbl { font-size: 9px; font-weight: 800; letter-spacing: 0.02em; white-space: nowrap; max-height: 12px; opacity: 1; overflow: hidden; transition: max-height .25s ease, opacity .2s ease; }
+.proj-bottomnav .dock-lbl { font-size: 9.5px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap; max-height: 12px; opacity: 1; overflow: hidden; transition: max-height .25s ease, opacity .2s ease; }
 /* Scrolled: collapse labels to an icons-only dock */
 .proj-bottomnav.shrunk { padding: 6px 10px; }
 .proj-bottomnav.shrunk .dock-lbl { max-height: 0; opacity: 0; }
