@@ -105,13 +105,31 @@ function totalCost(items) {
   return t > 0 ? '$' + t.toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 }) : null;
 }
 
+
+// Display-only flights ("Aug 8, 2:15 PM", no timestamp): build a local Date
+// from the display string, picking the year closest to now
+function dateFromDisplayStr(disp) {
+  if (!disp) return null;
+  const m = /([A-Za-z]{3,9})\.?\s+(\d{1,2})(?:[^0-9]+(\d{1,2}):(\d{2})\s*(AM|PM)?)?/i.exec(String(disp));
+  if (!m) return null;
+  const months = { jan:0, feb:1, mar:2, apr:3, may:4, jun:5, jul:6, aug:7, sep:8, oct:9, nov:10, dec:11 };
+  const mo = months[m[1].slice(0, 3).toLowerCase()];
+  if (mo == null) return null;
+  let h = m[3] != null ? parseInt(m[3], 10) : 12, mi = m[4] != null ? parseInt(m[4], 10) : 0;
+  if (m[5]) { const pm = m[5].toUpperCase() === 'PM'; if (pm && h !== 12) h += 12; if (!pm && h === 12) h = 0; }
+  const now = new Date();
+  let d = new Date(now.getFullYear(), mo, +m[2], h, mi);
+  const alt = new Date(now.getFullYear() + (d < now ? 1 : -1), mo, +m[2], h, mi);
+  if (Math.abs(alt - now) < Math.abs(d - now)) d = alt;
+  return d;
+}
 function computeFlightStatus(f) {
   const now = new Date();
   const st = (f.status || '').toUpperCase();
   const delayed = st === 'DELAYED';
   if (st === 'CANCELLED') return { label: 'Cancelled', color: '#ef4444', dot: '#ef4444', cancelled: true };
-  const depart = f.depart_time ? new Date(f.depart_time) : null;
-  const arrive = f.arrive_time ? new Date(f.arrive_time) : null;
+  const depart = f.depart_time ? new Date(f.depart_time) : dateFromDisplayStr(f.depart_display);
+  const arrive = f.arrive_time ? new Date(f.arrive_time) : dateFromDisplayStr(f.arrive_display);
   if (!depart) return { label: 'Status Coming Soon', color: 'var(--muted)', dot: null, delayed };
   const todayStr = now.toISOString().slice(0, 10);
   const departStr = depart.toISOString().slice(0, 10);
