@@ -2282,7 +2282,7 @@ function DaySection({ day, showCalls, flights, drives, dayIndex, talentCallTime,
   // ── Simple-view compact tile helpers ──
   const simpleTimeOf = it => fmtTime(it.start_time || it.startTime || it.est_start_time || it.delivery_time || it._time || it.call_time) || '';
   const simpleTitleOf = it => {
-    if (it._type === 'flight') return `${it._leg === 'depart' ? 'Departure' : 'Arrival'} — ${it.crew_name || it.passenger_name || ''}`;
+    if (it._type === 'flight') return `${it.crew_name || it.passenger_name || ''} - Flight${it.destination ? ` to ${it.destination}` : ''}`;
     if (it._type === 'catering') { const mm = MEAL_META[it.meal_type] || MEAL_META.BREAKFAST; return `${mm.label}${it.name ? ` — ${it.name}` : ''}`; }
     if (it._type === 'talentcall') return `Talent Call — ${it.name}`;
     if (it._type === 'drive') return `${it._leg === 'depart' ? 'Drive Departure' : 'Approx. Drive Arrival'} — ${it.driver || it.driver_name || 'Driver TBD'}`;
@@ -2722,7 +2722,7 @@ function DaySection({ day, showCalls, flights, drives, dayIndex, talentCallTime,
                   (arrAt && !isNaN(arrAt) ? now < arrAt : (now - depAt) < 3 * 3600e3);
                 return (
                   <div key={`f-${item.id}-${item._leg}`} className="ev">
-                    <div className="ev-time"><PlaneIcon className="ev-plane" /> {item._time}</div>
+                    <div className="ev-time"><PlaneIcon className="ev-plane" /> {item._time} - {item._leg === 'depart' ? 'Departure' : 'Arrival'}</div>
                     <div className={`ev-body${inFlight ? ' ev-live' : ''}`} style={{ borderLeft:`2px solid ${fs.alert ? fs.color : 'var(--sc-travel)'}`, ...(fs.alert ? { background: `${fs.color}11` } : {}) }}>
                       {(item.origin || item.destination || item.airline || item.flight_number || item.confirmation) && (() => {
                         const fkey = `f-${item.id}-${item._leg}`;
@@ -2740,7 +2740,7 @@ function DaySection({ day, showCalls, flights, drives, dayIndex, talentCallTime,
                         <div style={{ display:'flex', alignItems:'center', gap:6, flex:'1 1 auto', minWidth:0 }}>
                           {fs.alert && <span style={{ fontSize:14 }}>❗</span>}
                           <div className="ev-title" style={fs.alert ? { color: fs.color } : {}}>
-                            {item._leg === 'depart' ? 'Departure' : 'Arrival'} — {item.crew_name || item.passenger_name}
+                            {item.crew_name || item.passenger_name} - Flight{item.destination ? ` to ${item.destination}` : ''}
                           </div>
                         </div>
                         {item._leg === 'depart' && !fs.cancelled && (

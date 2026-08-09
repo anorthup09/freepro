@@ -1680,7 +1680,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                         (arrAt && !isNaN(arrAt) ? nowTick < arrAt : (nowTick - depAt) < 3 * 3600e3);
                       return (
                         <div key={item._key} className="ev">
-                          <div className="ev-time">✈ {legDisplayTime(item)}</div>
+                          <div className="ev-time">✈ {legDisplayTime(item)} - {item._leg === 'depart' ? 'Departure' : 'Arrival'}</div>
                           <div className={`ev-body${inFlight ? ' ev-live' : ''}`} style={{ borderLeft:`2px solid ${fs.alert ? fs.color : 'var(--sc-travel)'}`, position:'relative', ...(fs.alert ? { background:`${fs.color}11` } : {}) }}>
                             {item._leg === 'depart' && (
                               <div style={{ position:'absolute', top:8, right:10, display:'inline-flex', alignItems:'center', gap:5, background:'rgba(0,0,0,0.2)', borderRadius:20, padding:'2px 10px' }}>
@@ -1690,7 +1690,7 @@ export default function Schedule({ project, showCateringGrid, setShowCateringGri
                             )}
                             <div style={{ paddingRight:150 }}>
                               <div className="ev-title" style={fs.alert ? { color:fs.color } : {}}>
-                                {fs.alert && '❗ '}{item._leg === 'depart' ? 'Departure' : 'Arrival'} — {item.crew_name || item.passenger_name}
+                                {fs.alert && '❗ '}{item.crew_name || item.passenger_name} - Flight{item.destination ? ` to ${item.destination}` : ''}
                                 {item.is_return && <span style={{ fontSize:10, marginLeft:6, color:'var(--muted)' }}>↩ return</span>}
                               </div>
                               <div className="ev-detail">

@@ -299,24 +299,9 @@ function Chevron({ color, style }) {
 
 function MediaMomentOrbit() {
   const [fact, setFact] = useState(undefined); // undefined = loading, null = none
-  const [intro, setIntro] = useState(false);   // Netflix-style logo reveal
-  const started = React.useRef(false);
   useEffect(() => {
     api.funFactToday().then(f => setFact(f || null)).catch(() => setFact(null));
   }, []);
-  // Play the logo intro once per session, once the moment has loaded
-  useEffect(() => {
-    if (fact === undefined || started.current) return;
-    started.current = true;
-    if (!fact) return;
-    let played;
-    try { played = sessionStorage.getItem('mm_intro_played'); } catch {}
-    if (played) return;
-    try { sessionStorage.setItem('mm_intro_played', '1'); } catch {}
-    setIntro(true);
-    const t = setTimeout(() => setIntro(false), 2700);
-    return () => clearTimeout(t);
-  }, [fact]);
   // On-site photo moments serve their image behind auth, so fetch to a blob URL
   const [photoUrl, setPhotoUrl] = useState(null);
   useEffect(() => {
@@ -341,14 +326,6 @@ function MediaMomentOrbit() {
           {fact.answer && <div className="mm-answer">“{fact.answer}”</div>}
         </div>
       </div>
-      {intro && (
-        <div className="mm-intro" aria-hidden>
-          <div className="mm-logo">
-            <img className="mm-logo-word" src="/unbridled-logo.png" alt="" />
-            <img className="mm-logo-ap" src="/unbridled-logo.png" alt="" />
-          </div>
-        </div>
-      )}
     </div>
   );
 }
