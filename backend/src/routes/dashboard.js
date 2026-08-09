@@ -210,11 +210,20 @@ router.get('/team', requireAuth, async (req, res, next) => {
     const events = await sql`
       SELECT name, location, people FROM misc_events
       WHERE start_date <= ${today} AND COALESCE(end_date, start_date) >= ${today}`;
+    // Active AvocadoPost edit windows: editors/PMs mid-edit show as editing
+    // (mirrors the Crew Calendar, which already draws these runners)
+    const edits = await sql`
+      SELECT e.lead_editor_id, e.pm_id, e.milestone_assignees, e.project_code
+      FROM edits e
+      WHERE e.status != 'CLOSED'
+        AND e.start_date::date <= ${today} AND COALESCE(e.end_date, e.start_date)::date >= ${today}`;
+    const editFor = id => edits.find(e =>
+      e.lead_editor_id === id || e.pm_id === id || String(e.milestone_assignees || '').includes(id));
     const evPeople = p => { let a = p; if (typeof a === 'string') { try { a = JSON.parse(a || '[]'); } catch { a = []; } } return Array.isArray(a) ? a.map(String) : []; };
     const HIDDEN = ['anna parnigoni', 'ariel lynch', 'allison boon', 'brandon emery', 'cole seifert', 'dylan patterson', 'melinda love'];
     const visible = members.filter(m => !HIDDEN.includes((m.name || '').trim().toLowerCase()));
     const DENVER = ['anabelle', 'fabrizio'];
-    res.json(visible.map(m => {
+    const statusFor = m => {
       const first = (m.name || '').trim().toLowerCase().split(/\s+/)[0];
       const homeOffice = DENVER.includes(first) ? 'Denver' : 'St. Louis';
       // STL/DEN Only is a scheduling notation (no travel) — the person is still in office
@@ -222,11 +231,24 @@ router.get('/team', requireAuth, async (req, res, next) => {
       if (p) return { id: m.id, name: m.name, status: 'out', location: homeOffice, detail: p.pto_type };
       const s = shoots.find(x => x.crew_member_id === m.id);
       if (s) return { id: m.id, name: m.name, status: 'shoot', location: shootLocByProject[s.project_id] || 'On location', detail: s.code };
+      const ed = editFor(m.id);
+      if (ed) return { id: m.id, name: m.name, status: 'edit', location: homeOffice, detail: `${ed.project_code || 'Avo'} Edit` };
       const ev = events.find(e => evPeople(e.people).includes(String(m.id)));
       if (ev) return { id: m.id, name: m.name, status: 'trip', location: ev.location || homeOffice, detail: ev.name };
       const stlOnly = pto.find(x => x.member_id === m.id && x.pto_type === 'STL/DEN Only');
       return { id: m.id, name: m.name, status: 'office', location: homeOffice, detail: stlOnly ? 'STL/DEN only' : 'In office' };
-    }));
+    };
+    // Duplicate roster rows share one display name — a status can hang off any
+    // of them, so compute all and surface the most interesting one per name
+    const PRIO = { out: 0, shoot: 1, edit: 2, trip: 3, office: 4 };
+    const byName = new Map();
+    for (const m of visible) {
+      const key = (m.name || '').trim().toLowerCase();
+      if (!byName.has(key)) byName.set(key, []);
+      byName.get(key).push(statusFor(m));
+    }
+    res.json([...byName.values()].map(rows =>
+      rows.sort((a, b) => PRIO[a.status] - PRIO[b.status])[0]));
   } catch (e) { next(e); }
 });
 

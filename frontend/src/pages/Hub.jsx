@@ -1239,7 +1239,7 @@ function FinancePill({ onClick }) {
 }
 
 // ── Lower dashboard: Day in Review (left) + team whereabouts (right) ──
-const STATUS_BUBBLE = { out: '#e05252', shoot: '#e6c229', trip: '#e6c229', office: '#5ABF80' };
+const STATUS_BUBBLE = { out: '#e05252', shoot: '#e6c229', trip: '#e6c229', edit: '#a78bfa', office: '#5ABF80' };
 // Monochrome dots for now (varying grays keep a subtle distinction); we can
 // reintroduce hue per-kind later once the monochrome base is dialed in.
 const KIND_DOT = { due: '#d8d3ca', shoot: '#b3ada3', pto: '#8f8a82', work: '#c4beb4' };
@@ -1383,7 +1383,7 @@ function HubDashboard() {
         <div className="team-grid" style={{ display:'grid', gridTemplateColumns:'1fr', columnGap:18 }}>
           {(team || []).map(m => (
             <div key={m.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'6px 4px', borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
-              <span title={m.status === 'out' ? 'Out of Office / PTO' : m.status === 'shoot' ? 'Traveling / on a shoot' : m.status === 'trip' ? 'Work trip / event' : 'In office'}
+              <span title={m.status === 'out' ? 'Out of Office / PTO' : m.status === 'shoot' ? 'Traveling / on a shoot' : m.status === 'trip' ? 'Work trip / event' : m.status === 'edit' ? 'On an edit' : 'In office'}
                 style={{ width:10, height:10, borderRadius:'50%', background: STATUS_BUBBLE[m.status], boxShadow:`0 0 6px ${STATUS_BUBBLE[m.status]}66`, flexShrink:0 }} />
               <span style={{ fontSize:12, fontWeight:700, flex:1, minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{m.name}</span>
               <span style={{ fontSize:10, color:'var(--muted)', flexShrink:0 }}>{m.detail !== 'In office' ? `${m.detail} · ` : ''}{m.location}</span>

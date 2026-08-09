@@ -24,6 +24,12 @@
   --purple-bg: #F0EDFB; --purple-border: #CFC4EC; --purple-text: #5B46B0;
 }
 :root[data-theme="light"] body { background: var(--bg); }
+/* Small "+ Add" pill buttons on project overview / Avo grids — token-driven so
+   they stay legible in both themes (they were white-on-white in light view) */
+:root { --pill-bg: var(--bg); --pill-border: rgba(255,255,255,0.55); --pill-text: #e8e8e8; }
+:root[data-theme="light"] { --pill-bg: #FFFFFF; --pill-border: rgba(0,0,0,0.20); --pill-text: #3a3a3a; }
+.pv-pill { background: var(--pill-bg); border: 1px solid var(--pill-border); color: var(--pill-text);
+  border-radius: 14px; padding: 3px 12px; font-size: 10px; font-weight: 800; cursor: pointer; font-family: inherit; }
 /* Light-view fixes for assets/controls that were built white for the dark theme */
 /* Grayscale, not pure black: the wordmark drops to a dark grey in light view */
 :root[data-theme="light"] img[alt="Unbridled Media"] { filter: brightness(0) opacity(0.72) !important; }

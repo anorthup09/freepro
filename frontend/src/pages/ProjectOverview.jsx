@@ -125,7 +125,7 @@ function DocsTile({ pid, docs, setDocs }) {
         <div style={{ ...secHdr, marginBottom:0 }}>Creative Docs</div>
         <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
           {DOC_KINDS.map(([kind, label]) => (
-            <label key={kind} style={{ background:'var(--bg)', border:'1px solid rgba(255,255,255,0.55)', color:'#e8e8e8', borderRadius:14, padding:'3px 12px', fontSize:10, fontWeight:800, cursor:'pointer' }}>
+            <label key={kind} className="pv-pill">
               {busy === kind ? 'Uploading…' : `+ ${label}`}
               <input type="file" onChange={e => pick(kind, e)} disabled={!!busy} style={{ display:'none' }} />
             </label>
@@ -175,7 +175,7 @@ function LinksTile({ pid, links, setLinks }) {
     } catch (e) { alert(e.message); }
     setSaving(false);
   }
-  const addPill = { background:'var(--bg)', border:'1px solid rgba(255,255,255,0.55)', color:'#e8e8e8', borderRadius:14, padding:'3px 12px', fontSize:10, fontWeight:800, cursor:'pointer' };
+  const addPill = { background:'var(--pill-bg)', border:'1px solid var(--pill-border)', color:'var(--pill-text)', borderRadius:14, padding:'3px 12px', fontSize:10, fontWeight:800, cursor:'pointer' };
   return (
     <div className="pv-links glass" style={{ ...card, marginBottom:16 }}>
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
@@ -258,7 +258,7 @@ function DebriefTile({ pid }) {
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
         <div style={{ ...secHdr, marginBottom:0 }}>Debrief</div>
         <button onClick={() => nav(`/projects/${pid}/debrief`)}
-          style={{ background:'var(--bg)', border:'1px solid rgba(255,255,255,0.55)', color:'#e8e8e8', borderRadius:14, padding:'3px 12px', fontSize:10, fontWeight:800, cursor:'pointer' }}>
+          className="pv-pill">
           Full Debrief →
         </button>
       </div>
@@ -475,7 +475,7 @@ export default function ProjectOverview({ pid, onOpenFinance }) {
             <button onClick={async () => {
               try { const n = await api.addCallNote(pid, {}); setNotes(ns => [n, ...ns]); }
               catch (e) { alert(e.message); }
-            }} style={{ background:'var(--bg)', border:'1px solid rgba(255,255,255,0.55)', color:'#e8e8e8', borderRadius:14, padding:'3px 12px', fontSize:10, fontWeight:800, cursor:'pointer' }}>
+            }} className="pv-pill">
               + Add Note
             </button>
           </div>
@@ -564,7 +564,7 @@ export default function ProjectOverview({ pid, onOpenFinance }) {
           <button onClick={async () => {
             try { const t = await api.addProjectTask(pid, {}); setTasks(ts => [...ts, t]); }
             catch (e) { alert(e.message); }
-          }} style={{ background:'var(--bg)', border:'1px solid rgba(255,255,255,0.55)', color:'#e8e8e8', borderRadius:14, padding:'3px 12px', fontSize:10, fontWeight:800, cursor:'pointer' }}>
+          }} className="pv-pill">
             + Add Task
           </button>
         </div>

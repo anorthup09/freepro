@@ -64,7 +64,7 @@ function CommentCell({ latest, onPost }) {
   );
 }
 
-const pillBtn = () => ({ background:'var(--bg)', border:'1px solid rgba(255,255,255,0.55)', color:'#e8e8e8', borderRadius:14, padding:'3px 12px', fontSize:10, fontWeight:800, cursor:'pointer' });
+const pillBtn = () => ({ background:'var(--pill-bg)', border:'1px solid var(--pill-border)', color:'var(--pill-text)', borderRadius:14, padding:'3px 12px', fontSize:10, fontWeight:800, cursor:'pointer' });
 
 /*
  * SmartTable — shared grid with custom text columns and cell merging.
