@@ -116,7 +116,7 @@ function SitePhotoButton() {
     <>
       <button className="mm-welcome mm-photobtn" onClick={() => setOpen(true)} style={{ font: 'inherit', cursor: 'pointer' }}
         aria-label="Submit an on-site photo">
-        <span className="mmw-view">Submit an On-Site Photo!</span>
+        <span className="mmw-view">Submit a Photo!</span>
       </button>
       {open && createPortal(
         <div onClick={e => e.target === e.currentTarget && close()}
