@@ -83,7 +83,12 @@ function addrWithoutName(address, name) {
   if (n && a.toLowerCase().startsWith(n.toLowerCase())) {
     a = a.slice(n.length).replace(/^[\s,]+/, '');
   }
-  return a;
+  // Tidy geocoder output: glue the house number onto the street ("111, West
+  // Harbor Drive" → "111 West Harbor Drive") and drop county/country noise
+  let parts = a.split(',').map(x => x.trim()).filter(Boolean);
+  parts = parts.filter(x => !/^(united states|usa)$/i.test(x) && !/ county$/i.test(x));
+  if (parts.length > 1 && /^\d+[a-z-]*$/i.test(parts[0])) parts = [parts[0] + ' ' + parts[1], ...parts.slice(2)];
+  return parts.join(', ');
 }
 
 // Locations as compact stacked blocks: Type + Name, then Map + Dates, then the
@@ -111,8 +116,8 @@ function LocationsSection({ locations, schedule }) {
               {/* Line 2 — map + dates */}
               {(l.address || dates) && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6, flexWrap: 'wrap' }}>
-                  {l.address && <a href={mapsUrl(l.address)} target="_blank" rel="noreferrer" style={mapBtn}>+ Map</a>}
                   {dates && <span style={{ fontSize: 12, color: 'var(--muted)', fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>{dates}</span>}
+                  {l.address && <a href={mapsUrl(l.address)} target="_blank" rel="noreferrer" style={{ ...mapBtn, marginLeft: 'auto' }}>+ Map</a>}
                 </div>
               )}
               {/* Line 3 — address, with the repeated name removed */}

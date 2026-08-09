@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { api } from '../../api.js';
 import { useAuth } from '../../App.jsx';
@@ -94,35 +95,42 @@ const PROJ_NAV_ICONS = {
 
 function DropdownTab({ label, subtabs, tab, setTab, dropUp, icon, excludeActive = [], defaultTab }) {
   const [open, setOpen] = useState(false);
+  const [rect, setRect] = useState(null);
   const ref = useRef(null);
+  const menuRef = useRef(null);
+  const closeT = useRef(null);
   const isActive = subtabs.some(t => t.id === tab && !excludeActive.includes(t.id));
+  // The dock scrolls horizontally (overflow), which would clip an absolutely
+  // positioned menu — so the menu renders through a portal at fixed coords.
+  const openMenu = () => { if (ref.current) setRect(ref.current.getBoundingClientRect()); setOpen(true); };
+  const cancelClose = () => { if (closeT.current) clearTimeout(closeT.current); };
+  const scheduleClose = () => { cancelClose(); closeT.current = setTimeout(() => setOpen(false), 150); };
 
   useEffect(() => {
     function handleClick(e) {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target) && !(menuRef.current && menuRef.current.contains(e.target))) setOpen(false);
     }
     document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
+    return () => { document.removeEventListener('mousedown', handleClick); if (closeT.current) clearTimeout(closeT.current); };
   }, []);
 
   return (
-    <div ref={ref} style={{ position:'relative' }} onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
+    <div ref={ref} style={{ position:'relative' }} onMouseEnter={() => { cancelClose(); openMenu(); }} onMouseLeave={scheduleClose}>
       {icon ? (
         <button className={`dock-btn${isActive ? ' on' : ''}`}
-          onClick={() => { if (defaultTab) { setTab(defaultTab); setOpen(false); } else setOpen(o => !o); }} aria-label={label}>
+          onClick={() => { if (defaultTab) { setTab(defaultTab); setOpen(false); } else (open ? setOpen(false) : openMenu()); }} aria-label={label}>
           {icon}
           <span className="dock-lbl">{label}</span>
         </button>
       ) : (
-        <button className={`tab${isActive ? ' on' : ''}`} onClick={() => setOpen(o => !o)}>
+        <button className={`tab${isActive ? ' on' : ''}`} onClick={() => (open ? setOpen(false) : openMenu())}>
           {label} ▾
         </button>
       )}
-      {open && (
-        // Flush outer wrapper (bottom/top:100%) whose 6px inner margin becomes a
-        // hoverable bridge — without it the gap between button and menu is dead
-        // space that fires onMouseLeave and closes the menu before you reach it.
-        <div style={{ position:'absolute', ...(dropUp ? { bottom:'100%' } : { top:'100%' }), left:0, zIndex:200 }}>
+      {open && rect && createPortal(
+        <div ref={menuRef} onMouseEnter={cancelClose} onMouseLeave={scheduleClose}
+          style={{ position:'fixed', left: Math.max(8, Math.min(rect.left, window.innerWidth - 176)),
+            ...(dropUp ? { bottom: window.innerHeight - rect.top } : { top: rect.bottom }), zIndex:300 }}>
           <div style={{ ...(dropUp ? { marginBottom:6 } : { marginTop:6 }), background:'var(--bg)', border:'1px solid var(--border)', borderRadius:6, boxShadow:'0 4px 12px rgba(0,0,0,0.3)', minWidth:160, overflow:'hidden' }}>
             {subtabs.map(t => (
               <div
@@ -136,7 +144,8 @@ function DropdownTab({ label, subtabs, tab, setTab, dropUp, icon, excludeActive 
               </div>
             ))}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -609,7 +618,7 @@ export default function Project({ idOverride, onControls }) {
                 <span className="dock-lbl">{label}</span>
               </button>
             ))}
-            <div aria-hidden style={{ width:1, alignSelf:'stretch', margin:'6px 6px', background:'rgba(255,255,255,0.14)' }} />
+            <div aria-hidden style={{ width:1, flex:'0 0 auto', alignSelf:'stretch', margin:'6px 6px', background:'rgba(255,255,255,0.14)' }} />
           </>
         )}
         {!isAgency && !isCrew && (
