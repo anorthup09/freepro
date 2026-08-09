@@ -801,12 +801,16 @@ async function notifySitePhoto(user, caption, mime, buf) {
     JOIN crew_members cm ON cm.id = ca.crew_member_id
     WHERE ca.project_id = ${proj.id}
     ORDER BY p.name` : [];
-  let to = process.env.SITE_PHOTO_NOTIFY;
+  // Recipient/from come from the Automations tab (mail_automations override →
+  // registry default), with env + roster lookup as final fallbacks
+  const { automation } = require('../lib/automations');
+  const cfg = await automation('site-photo').catch(() => null);
+  let to = (cfg && cfg.to) || process.env.SITE_PHOTO_NOTIFY;
   if (!to) {
     const [ben] = await sql`SELECT email FROM crew_members WHERE name ILIKE '%ben%lamb%' AND email IS NOT NULL AND company ILIKE '%unbridled%' LIMIT 1`;
     to = ben && ben.email;
   }
-  if (!to) { console.error('site-photo mail: no recipient found for Ben Lamb'); return; }
+  if (!to) { console.error('site-photo mail: no recipient configured'); return; }
   const lines = [
     `Submitted by: ${user.name || user.email}`,
     proj ? `Project: ${proj.code} — ${proj.title}` : 'Project: (no active shoot found for the submitter)',
@@ -820,6 +824,7 @@ async function notifySitePhoto(user, caption, mime, buf) {
   const ext = (mime || 'image/jpeg').split('/')[1] || 'jpg';
   await sendMail({
     identity: 'production',
+    fromAddr: cfg && cfg.from,
     to,
     subject: `On-site photo${proj ? ` — ${proj.code} ${proj.title}` : ''}${user.name ? ` (from ${user.name})` : ''}`,
     text: lines.join('\n'),

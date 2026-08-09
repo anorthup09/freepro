@@ -215,6 +215,7 @@ async function emailAddedToEvent(evt, personIds) {
     for (const p of people) {
       sendMail({ identity: 'team',
         to: p.email,
+        automationKey: 'event-added',
         subject: `You've been added to an Event! — ${evt.name}`,
         text: `Hi ${p.name},\n\nYou've been added to an Event!\n\nEvent: ${evt.name}\nDates: ${dates}\n${evt.location ? `Location: ${evt.location}\n` : ''}\nIt will show on your Crew Calendar as out-of-office.`,
         html: noticeHtml({ tag: 'Team', note: "You've been added to an Event!", color: '#E8500A',

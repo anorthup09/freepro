@@ -44,6 +44,12 @@ const DEFS = [
   { key: 'password-reset', title: 'Password Reset', identity: 'noreply', editable: 'from',
     toDesc: 'The account owner',
     desc: 'Single-use reset link from the login page.' },
+  { key: 'event-added', title: 'Added to an Event', identity: 'team', editable: 'from',
+    toDesc: 'Each newly-tagged person on the Misc. Event',
+    desc: "\"You've been added to an Event!\" with the event name, dates, and location when someone is tagged on a Team → Event Pipeline event." },
+  { key: 'site-photo', title: 'On-Site Photo Submitted', identity: 'production', editable: true, noCc: true,
+    defaultTo: 'blamb@unbridledmedia.com',
+    desc: 'The submitted photo (attached) with project code and name, client, shoot city/state, the full crew list, and the caption — sent whenever someone submits an on-site photo from the hub.' },
 ];
 
 async function overrides() {
