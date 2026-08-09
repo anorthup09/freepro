@@ -822,12 +822,27 @@ async function notifySitePhoto(user, caption, mime, buf) {
     ...crew.map(c => `  - ${c.name} — ${c.position_name}`),
   ].filter(x => x !== null);
   const ext = (mime || 'image/jpeg').split('/')[1] || 'jpg';
+  const { noticeHtml } = require('../lib/emailTemplates');
   await sendMail({
     identity: 'production',
     fromAddr: cfg && cfg.from,
     to,
     subject: `On-site photo${proj ? ` — ${proj.code} ${proj.title}` : ''}${user.name ? ` (from ${user.name})` : ''}`,
     text: lines.join('\n'),
+    html: noticeHtml({
+      tag: 'Production', note: 'On-site photo submitted',
+      title: proj ? proj.title : 'On-site photo', subtitle: proj ? proj.code : undefined,
+      intro: `${user.name || user.email} submitted an on-site photo from the hub — the shot is attached to this email.`,
+      rows: [
+        ['Submitted by', user.name || user.email],
+        proj ? ['Project', `${proj.code} — ${proj.title}`] : null,
+        proj && proj.client ? ['Client', proj.client] : null,
+        (city || state) ? ['Location', [city, state].filter(Boolean).join(', ')] : null,
+        ['Caption', caption || '(none)'],
+      ].filter(Boolean),
+      blocks: crew.length ? [['Crew', crew.map(c => `${c.name} — ${c.position_name}`).join('\n')]] : [],
+      postmark: new Date(),
+    }),
     attachments: [{ filename: `on-site-photo.${ext}`, content: buf, contentType: mime || 'image/jpeg' }],
     automationKey: 'site-photo',
   });
