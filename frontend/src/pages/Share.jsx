@@ -763,7 +763,21 @@ function useScheduleView() {
 }
 
 // ── Producer View ────────────────────────────────────────────────────────────
+// Days that are fully in the past hide by default; a small text button under
+// the reminders hint brings them back (numbering keeps the original day order).
+const dayIsPast = d => String(d.date || '').slice(0, 10) < new Date().toLocaleDateString('en-CA');
+function PastDaysToggle({ count, show, setShow }) {
+  if (!count) return null;
+  return (
+    <button onClick={() => setShow(x => !x)}
+      style={{ background:'none', border:'none', color:'var(--muted)', fontSize:10, textDecoration:'underline', cursor:'pointer', padding:0, fontStyle:'italic' }}>
+      {show ? 'Hide Past Days' : `Show Past Days (${count})`}
+    </button>
+  );
+}
+
 function ProducerView({ data, hideGear, onOpenShotList, shareToken, pw }) {
+  const [showPastDays, setShowPastDays] = useState(false);
   const { project, locations, techSpecs, clientContacts, agencyContacts = [], keyTalent, generalNotes = [], crewAssignments, schedule: rawSchedule, flights: allFlights, drives: allDrives = [], hotelBlocks: allHotelBlocks, rentalCars: allRentalCars, deliverables, gear, onlineRentals = [], shotList = [], slDays = [], slBreaks = [] } = data;
   const scheduleRef = useRef(null);
   const [tagFilter, setTagFilter] = useState(null);
@@ -946,10 +960,12 @@ function ProducerView({ data, hideGear, onOpenShotList, shareToken, pw }) {
         {(schedule||[]).length > 0 && (
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, margin:'0 0 12px', flexWrap:'wrap' }}>
             <span style={{ fontSize:10, fontWeight:400, color:'var(--muted)', fontStyle:'italic' }}>swipe left to add reminders</span>
+            <PastDaysToggle count={(schedule||[]).filter(dayIsPast).length} show={showPastDays} setShow={setShowPastDays} />
             <ScheduleViewToggle value={scheduleView} onChange={setScheduleView} />
           </div>
         )}
-        {[...(schedule||[])].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).filter(day => {
+        {[...(schedule||[])].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map((d, idx) => ({ ...d, _idx: idx }))
+          .filter(day => showPastDays || !dayIsPast(day)).filter(day => {
           if (!tagFilter) return true;
           if (day.events.some(e => (e.tags || []).some(t => t.type === tagFilter || t.type === 'ALL_CREW'))) return true;
           return [day.call_time_tags, day.shooting_call_tags, day.lunch_tags, day.wrap_time_tags]
@@ -958,7 +974,7 @@ function ProducerView({ data, hideGear, onOpenShotList, shareToken, pw }) {
           ? { ...day, events: (day.events || []).filter(e => !(e.crew_ids || []).length || e.crew_ids.includes(crewFilter)) }
           : day
         ).map((day, i) => (
-          <DaySection key={day.id} day={day} showCalls flights={flights} drives={drives} dayIndex={i} tagFilter={tagFilter} personFilter={personFilter} cateringDetail="full" simple={scheduleView === 'simple'} shotList={shotList} slDays={slDays} slBreaks={slBreaks} onOpenShotList={onOpenShotList} crewAssignments={crewAssignments} includePhoto={project.include_photo !== false} projectCity={[project.city, project.state].filter(Boolean).join(', ')} headerGradient shareToken={shareToken} pw={pw} showTalentCalls colorFor={k => colorForTag(k, project)} groupColorForFn={k => groupColorFor(k, project)} groupLabelForFn={k => groupLabelFor(k, project)} talentNames={(keyTalent||[]).map(t=>t.name).filter(Boolean)} />
+          <DaySection key={day.id} day={day} showCalls flights={flights} drives={drives} dayIndex={day._idx} tagFilter={tagFilter} personFilter={personFilter} cateringDetail="full" simple={scheduleView === 'simple'} shotList={shotList} slDays={slDays} slBreaks={slBreaks} onOpenShotList={onOpenShotList} crewAssignments={crewAssignments} includePhoto={project.include_photo !== false} projectCity={[project.city, project.state].filter(Boolean).join(', ')} headerGradient shareToken={shareToken} pw={pw} showTalentCalls colorFor={k => colorForTag(k, project)} groupColorForFn={k => groupColorFor(k, project)} groupLabelForFn={k => groupLabelFor(k, project)} talentNames={(keyTalent||[]).map(t=>t.name).filter(Boolean)} />
         ))}
       </div>
     </div>
@@ -967,6 +983,7 @@ function ProducerView({ data, hideGear, onOpenShotList, shareToken, pw }) {
 
 // ── Crew View ────────────────────────────────────────────────────────────────
 function CrewView({ data, shareToken, hideGear, onOpenShotList, pw }) {
+  const [showPastDays, setShowPastDays] = useState(false);
   // Crew get airport/hotel from their own flight & hotel blocks, so those
   // location types are dropped from the crew call sheet's Locations list below.
   const { project, locations: rawLocations, techSpecs, clientContacts, agencyContacts = [], keyTalent, generalNotes = [], crewAssignments, schedule: rawSchedule, flights: allFlights, drives: allDrives = [], hotelBlocks: allHotelBlocks, rentalCars: allRentalCars, deliverables, gear, onlineRentals = [], shotList = [], slDays = [], slBreaks = [] } = data;
@@ -1129,16 +1146,18 @@ function CrewView({ data, shareToken, hideGear, onOpenShotList, pw }) {
         {sortedSchedule.length > 0 && (
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, margin:'0 0 12px', flexWrap:'wrap' }}>
             <span style={{ fontSize:10, fontWeight:400, color:'var(--muted)', fontStyle:'italic' }}>swipe left to add reminders</span>
+            <PastDaysToggle count={sortedSchedule.filter(dayIsPast).length} show={showPastDays} setShow={setShowPastDays} />
             <ScheduleViewToggle value={scheduleView} onChange={setScheduleView} />
           </div>
         )}
-        {sortedSchedule.filter(day => {
+        {sortedSchedule.map((d, idx) => ({ ...d, _idx: idx }))
+          .filter(day => showPastDays || !dayIsPast(day)).filter(day => {
           if (!tagFilter) return true;
           if (day.events.some(e => (e.tags || []).some(t => t.type === tagFilter || t.type === 'ALL_CREW'))) return true;
           return [day.call_time_tags, day.shooting_call_tags, day.lunch_tags, day.wrap_time_tags]
             .some(tags => Array.isArray(tags) && (tags.includes(tagFilter) || tags.includes('ALL_CREW')));
         }).map((day, i) => (
-          <DaySection key={day.id} day={day} showCalls flights={flights} drives={drives} dayIndex={i} tagFilter={tagFilter} personFilter={personFilter} cateringDetail="name" simple={scheduleView === 'simple'} shotList={shotList} slDays={slDays} slBreaks={slBreaks} onOpenShotList={onOpenShotList} crewAssignments={crewAssignments} includePhoto={project.include_photo !== false} projectCity={[project.city, project.state].filter(Boolean).join(', ')} headerGradient shareToken={shareToken} pw={pw} colorFor={k => colorForTag(k, project)} groupColorForFn={k => groupColorFor(k, project)} groupLabelForFn={k => groupLabelFor(k, project)} talentNames={(keyTalent||[]).map(t=>t.name).filter(Boolean)} />
+          <DaySection key={day.id} day={day} showCalls flights={flights} drives={drives} dayIndex={day._idx} tagFilter={tagFilter} personFilter={personFilter} cateringDetail="name" simple={scheduleView === 'simple'} shotList={shotList} slDays={slDays} slBreaks={slBreaks} onOpenShotList={onOpenShotList} crewAssignments={crewAssignments} includePhoto={project.include_photo !== false} projectCity={[project.city, project.state].filter(Boolean).join(', ')} headerGradient shareToken={shareToken} pw={pw} colorFor={k => colorForTag(k, project)} groupColorForFn={k => groupColorFor(k, project)} groupLabelForFn={k => groupLabelFor(k, project)} talentNames={(keyTalent||[]).map(t=>t.name).filter(Boolean)} />
         ))}
       </div>
     </div>
@@ -1760,6 +1779,7 @@ function ShotListShareView({ scenes: initialScenes, days: initialDays = [], brea
 
 // ── Client View ──────────────────────────────────────────────────────────────
 function ClientView({ data, onOpenShotList }) {
+  const [showPastDays, setShowPastDays] = useState(false);
   const { project, locations: rawLocations, clientContacts, keyTalent, crewAssignments, schedule, shotList = [], slDays = [], slBreaks = [] } = data;
   // Crew hotel and airport are internal logistics — clients don't need them on
   // their PDF, so drop those location types (shoot locations still show).
@@ -1868,11 +1888,13 @@ function ClientView({ data, onOpenShotList }) {
       {(schedule||[]).length > 0 && (
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, margin:'0 0 12px', flexWrap:'wrap' }}>
           <span style={{ fontSize:10, fontWeight:400, color:'var(--muted)', fontStyle:'italic' }}>swipe left to add reminders</span>
+            <PastDaysToggle count={(schedule||[]).filter(dayIsPast).length} show={showPastDays} setShow={setShowPastDays} />
           <ScheduleViewToggle value={scheduleView} onChange={setScheduleView} />
         </div>
       )}
-      {[...(schedule||[])].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map((day, i) => (
-        <DaySection key={day.id} day={day} showCalls={false} dayIndex={i} cateringDetail="name" simple={scheduleView === 'simple'} shotList={shotList} slDays={slDays} slBreaks={slBreaks} onOpenShotList={onOpenShotList} includePhoto={project.include_photo !== false} projectCity={[project.city, project.state].filter(Boolean).join(', ')} />
+      {[...(schedule||[])].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map((d, idx) => ({ ...d, _idx: idx }))
+        .filter(day => showPastDays || !dayIsPast(day)).map((day, i) => (
+        <DaySection key={day.id} day={day} showCalls={false} dayIndex={day._idx} cateringDetail="name" simple={scheduleView === 'simple'} shotList={shotList} slDays={slDays} slBreaks={slBreaks} onOpenShotList={onOpenShotList} includePhoto={project.include_photo !== false} projectCity={[project.city, project.state].filter(Boolean).join(', ')} />
       ))}
       </div>
     </div>
