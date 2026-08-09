@@ -66,6 +66,11 @@ const REPORTS = [
     accent: '#4a9eff', to: '/reports/international-travel',
   },
   {
+    title: 'On-Site Photos',
+    desc: 'Every photo the team has submitted from the field — they rotate through the daily MediaMoment.',
+    accent: '#f2a878', to: '/reports/photos',
+  },
+  {
     title: 'Team Days Off',
     desc: 'Days off per person from the PTO/OOO tracker — PTO and OOO totals side by side.',
     accent: '#d66a9b', to: '/reports/days-off',
@@ -103,7 +108,7 @@ const I = {
 const CATEGORIES = [
   { key: 'finance',  label: 'Finance',   icon: I.finance,  tos: ['/reports/vcc', '/reports/client-invoices', '/finance/overview', '/finance/report'] },
   { key: 'gear',     label: 'Gear',      icon: I.gear,     tos: ['/reports/gear', '/reports/drives'] },
-  { key: 'people',   label: 'People',    icon: I.people,   tos: ['/reports/days-off', '/reports/media-moments', '/reports/ways-of-being'] },
+  { key: 'people',   label: 'People',    icon: I.people,   tos: ['/reports/days-off', '/reports/photos', '/reports/media-moments', '/reports/ways-of-being'] },
   { key: 'postpro',  label: 'Post-Pro',  icon: I.postpro,  tos: ['/reports/music-resources', '/reports/video-references', '/reports/subscriptions'] },
   { key: 'projects', label: 'Projects',  icon: I.projects, tos: ['/reports/debrief'] },
   { key: 'travel',   label: 'Travel',    icon: I.travel,   tos: ['/reports/foodie', '/reports/international-travel'] },

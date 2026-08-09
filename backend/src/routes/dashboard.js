@@ -847,6 +847,22 @@ async function notifySitePhoto(user, caption, mime, buf) {
     automationKey: 'site-photo',
   });
 }
+// Roster of every submitted on-site photo (report under People)
+router.get('/site-photos', requireAuth, async (req, res, next) => {
+  try {
+    res.json(await sql`SELECT id, member_name, member_email, caption, mime, created_at FROM site_photos ORDER BY created_at DESC`);
+  } catch (e) { next(e); }
+});
+router.delete('/site-photo/:id', requireAuth, async (req, res, next) => {
+  try {
+    const [row] = await sql`SELECT member_email FROM site_photos WHERE id = ${req.params.id}`;
+    if (!row) return res.status(404).json({ error: 'Photo not found' });
+    const mine = (row.member_email || '').toLowerCase() === (req.user.email || '').toLowerCase();
+    if (!mine && req.user.role !== 'ADMIN') return res.status(403).json({ error: 'Only the submitter (or an admin) can remove a photo' });
+    await sql`DELETE FROM site_photos WHERE id = ${req.params.id}`;
+    res.status(204).end();
+  } catch (e) { next(e); }
+});
 router.get('/site-photo/:id/file', requireAuth, async (req, res, next) => {
   try {
     const [f] = await sql`SELECT mime, data FROM site_photos WHERE id = ${req.params.id}`;
