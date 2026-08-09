@@ -1138,7 +1138,7 @@ function HubProjects({ onNewProject, finance }) {
               {finance && <FinancePill onClick={() => nav('/finance')} />}
             </div>
             {(!mobile || listOpen) && (
-            <div key={flips} style={{ minWidth:0 }}>
+            <div key={flips} className="hub-listwrap" style={{ minWidth:0 }}>
               {onProjects ? projectList : clientList}
             </div>
             )}
@@ -1534,6 +1534,14 @@ const HUB_CSS = `
 .mm-expand > div{overflow:hidden;min-height:0}
 .mm-expand img{width:100%;max-height:min(62vh,520px);object-fit:cover;border-radius:14px;display:block;margin-top:10px}
 .mm-exp-cap{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;color:var(--text);margin:8px 2px 4px;line-height:1.4}
+/* While the photo is expanded, the project tiles stretch down to fill the
+   taller row instead of leaving dead space under the search field (desktop) */
+@media(min-width:641px){
+  .hub-toprow:has(.mm-open) .hub-right-col{align-self:stretch}
+  .hub-toprow:has(.mm-open) .hub-listwrap{flex:1;display:flex;flex-direction:column}
+  .hub-toprow:has(.mm-open) .hub-scroll{flex:1;align-items:stretch}
+  .hub-toprow:has(.mm-open) .hub-ptile{height:auto;display:flex;flex-direction:column;justify-content:space-between}
+}
 .hub-mm-half .mm-prompt{margin-top:0}
 .hub-mm-half .mm-answer{font-size:12.5px;margin-top:2px}
 .hub-mm-half .mm-name{margin-bottom:3px}

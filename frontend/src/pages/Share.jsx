@@ -113,25 +113,29 @@ function LocationsSection({ locations, schedule }) {
                 <span style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.07em', fontWeight: 700, flexShrink: 0 }}>{typeLabel}</span>
                 <span style={{ minWidth: 0, fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{l.name}</span>
               </div>
-              {/* Line 2 — map + dates */}
-              {(l.address || dates) && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6, flexWrap: 'wrap' }}>
-                  {dates && <span style={{ fontSize: 12, color: 'var(--muted)', fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>{dates}</span>}
-                  {l.address && <a href={mapsUrl(l.address)} target="_blank" rel="noreferrer" style={{ ...mapBtn, marginLeft: 'auto' }}>+ Map</a>}
+              {/* Details column | divider | Map — text can never wrap under the button */}
+              <div style={{ display: 'flex', gap: 12, marginTop: 6 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  {dates && <div style={{ fontSize: 12, color: 'var(--muted)', fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>{dates}</div>}
+                  {addr && <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: dates ? 6 : 0 }}>{addr}</div>}
+                  {hosp && (
+                    <div style={{ marginTop: 6, fontSize: 11, color: 'var(--muted)' }}>
+                      <span style={{ fontWeight: 700, color: 'var(--tan)' }}>Nearest Hospital: </span>{hosp}
+                    </div>
+                  )}
+                  {l.arrival_notes && (
+                    <div style={{ marginTop: 4, fontSize: 11, color: 'var(--muted)', whiteSpace: 'pre-wrap' }}>
+                      <span style={{ fontWeight: 700, color: 'var(--tan)' }}>Arrival: </span>{l.arrival_notes}
+                    </div>
+                  )}
                 </div>
-              )}
-              {/* Line 3 — address, with the repeated name removed */}
-              {addr && <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6 }}>{addr}</div>}
-              {hosp && (
-                <div style={{ marginTop: 6, fontSize: 11, color: 'var(--muted)' }}>
-                  <span style={{ fontWeight: 700, color: 'var(--tan)' }}>Nearest Hospital: </span>{hosp}
-                </div>
-              )}
-              {l.arrival_notes && (
-                <div style={{ marginTop: 4, fontSize: 11, color: 'var(--muted)', whiteSpace: 'pre-wrap' }}>
-                  <span style={{ fontWeight: 700, color: 'var(--tan)' }}>Arrival: </span>{l.arrival_notes}
-                </div>
-              )}
+                {l.address && (
+                  <>
+                    <div aria-hidden style={{ width: 1, alignSelf: 'stretch', background: 'var(--border2)', flexShrink: 0 }} />
+                    <a href={mapsUrl(l.address)} target="_blank" rel="noreferrer" style={{ ...mapBtn, alignSelf: 'center' }}>+ Map</a>
+                  </>
+                )}
+              </div>
               {l.space_map && <img src={l.space_map} alt={`Space map for ${l.name}`} style={{ maxWidth: '100%', maxHeight: 320, borderRadius: 6, marginTop: 8, display: 'block' }} />}
             </div>
           );
