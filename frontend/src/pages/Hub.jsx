@@ -1507,7 +1507,13 @@ const HUB_CSS = `
 .hub-hero-row{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:48px}
 .hub-hero-row .hub-header{margin-bottom:0;flex:1 1 320px;min-width:0}
 .hub-hero-cta{margin-top:40px;flex:0 1 auto;display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap}
-@media(max-width:640px){.hub-hero-cta{margin-top:0;flex-basis:100%;justify-content:flex-end;flex-wrap:nowrap}}
+@media(max-width:640px){
+  .hub-hero-cta{margin-top:0;flex-basis:100%;justify-content:flex-end;flex-wrap:nowrap;min-width:0}
+  /* Keep both pills fully on screen: the project-name chip gives way first */
+  .hub-hero-cta .mm-welcome{min-width:0}
+  .hub-hero-cta .mmw-name{min-width:0;overflow:hidden;text-overflow:ellipsis;display:block;max-width:34vw}
+  .hub-hero-cta .mm-photobtn{flex-shrink:0}
+}
 /* hub tile top row: MediaMoment / Ways of Being on the left half, controls +
    half-width search on the right half */
 .hub-toprow{display:flex;gap:14px;align-items:stretch;flex-wrap:wrap;margin-bottom:12px}
@@ -1557,6 +1563,8 @@ const HUB_CSS = `
 @keyframes lumeDrift{0%{transform:translateX(0) scale(.94);opacity:.6}45%{opacity:1}100%{transform:translateX(175%) scale(1.15);opacity:.8}}
 @keyframes lumeBreathe{0%{background-position:0% 0%, 0% 0%;filter:brightness(.9)}100%{background-position:6% 0%, -6% 0%;filter:brightness(1.25)}}
 @media (prefers-reduced-motion: reduce){.pill-lume::before,.pill-lume::after{animation:none}}
+/* Light view: no drifting dark window behind the MediaMoment pill card */
+:root[data-theme="light"] .pill-lume::after{display:none}
 @media (max-width:700px){
   .pill-lume::after{display:none}
   .hub-switch-pill{display:none !important}
@@ -1953,7 +1961,7 @@ const NAV_CSS = `
 /* Light mode: invert the pill to a light glass with dark text */
 :root[data-theme="light"] .hub-bottomnav{background:rgba(255,255,255,0.82);border:1px solid rgba(0,0,0,0.10);box-shadow:0 12px 34px rgba(0,0,0,0.16),inset 0 1px 0 rgba(255,255,255,0.75)}
 :root[data-theme="light"] .hub-navitem{color:#6f6a63}
-:root[data-theme="light"] .hub-navitem:hover{color:#1a1a1a}
+:root[data-theme="light"] .hub-navitem:hover{color:#3a3a3a}
 :root[data-theme="light"] .hub-navitem.active{color:var(--orange)}
 :root[data-theme="light"] .hub-navbubble{background:rgba(0,0,0,0.06)}
 `;
@@ -2133,7 +2141,9 @@ export default function Hub() {
             <div className="blob b1" /><div className="blob b2" /><div className="blob b6" />
           </div>
           <div className="hub-splash-tile">
-            <img src="/splash-icon.png" alt="Unbridled Media" />
+            {/* alt is empty on purpose: the light theme paints img[alt="Unbridled Media"]
+                black, and this icon must stay white on the splash's dark aurora */}
+            <img src="/splash-icon.png" alt="" />
           </div>
         </div>
       )}

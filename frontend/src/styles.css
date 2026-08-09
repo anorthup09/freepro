@@ -13,9 +13,10 @@
 }
 /* Light view — toggled from the Sign-out bar; variable-driven so surfaces flip. */
 :root[data-theme="light"] {
-  --bg: #FBFAF7; --bg2: #FFFFFF; --bg3: #F1EFE9; --bg4: #E7E4DB;
-  --border: #E2DED4; --border2: #CFC9BB;
-  --text: #1A1815; --muted: #6B6656; --tan: #8A8270;
+  /* Cool, true-white palette (Facebook reference: #F0F2F5 ground, white tiles) */
+  --bg: #F0F2F5; --bg2: #FFFFFF; --bg3: #E4E6EB; --bg4: #D8DADF;
+  --border: #DADDE1; --border2: #CCD0D5;
+  --text: #1C1E21; --muted: #65676B; --tan: #8A8D91;
   --orange: #E8500A; --orange2: #C6420A;
   --green-bg: #E7F3EB; --green-border: #BFE0C9; --green-text: #2E7D4F;
   --amber-bg: #FBF1DD; --amber-border: #E6D2A0; --amber-text: #8A5E10;
@@ -24,7 +25,8 @@
 }
 :root[data-theme="light"] body { background: var(--bg); }
 /* Light-view fixes for assets/controls that were built white for the dark theme */
-:root[data-theme="light"] img[alt="Unbridled Media"] { filter: brightness(0) !important; }
+/* Grayscale, not pure black: the wordmark drops to a dark grey in light view */
+:root[data-theme="light"] img[alt="Unbridled Media"] { filter: brightness(0) opacity(0.72) !important; }
 :root[data-theme="light"] .home-glass {
   color: rgba(70,70,70,0.92);
   background: linear-gradient(150deg, rgba(0,0,0,0.07) 0%, rgba(0,0,0,0.02) 45%, rgba(0,0,0,0.06) 100%);
@@ -1126,7 +1128,7 @@ body { padding-top: env(safe-area-inset-top, 0px); }
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.30), 0 2px 8px rgba(0,0,0,0.3);
 }
 :root[data-theme="light"] .seg-glass { background: rgba(255,255,255,0.75); border-color: rgba(0,0,0,0.10); box-shadow: inset 0 1px 0 rgba(255,255,255,0.7), 0 4px 12px rgba(0,0,0,0.12); }
-:root[data-theme="light"] .seg-glass button.on { color: #1a1a1a; background: rgba(0,0,0,0.07); box-shadow: none; }
+:root[data-theme="light"] .seg-glass button.on { color: #3a3a3a; background: rgba(0,0,0,0.07); box-shadow: none; }
 
 /* Shared bottom dock (GlassDock) shell + item colors — light theme inverts to
    a light shell with dark text so labels stay readable */
@@ -1144,12 +1146,12 @@ body { padding-top: env(safe-area-inset-top, 0px); }
 
 /* Light theme: the white glass pills invert to light shells with dark text */
 :root[data-theme="light"] .evt-glass {
-  color: #1a1a1a;
+  color: #3a3a3a;
   background: rgba(255,255,255,0.78);
   border-color: rgba(0,0,0,0.14);
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.75), 0 4px 12px rgba(0,0,0,0.12);
 }
-:root[data-theme="light"] .evt-glass:hover { color: #000; background: rgba(255,255,255,0.95); border-color: rgba(0,0,0,0.28); }
+:root[data-theme="light"] .evt-glass:hover { color: #3a3a3a; background: rgba(255,255,255,0.95); border-color: rgba(0,0,0,0.28); }
 
 /* Crew Calendar — frosted sticky name column and glassy assignment bars.
    The name cells must still mask bars scrolling beneath them, so they keep a
@@ -1290,10 +1292,10 @@ body.pvd-nav-open .proj-bottomnav { display: none !important; }
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.35'/%3E%3C/svg%3E")}
 @media (prefers-reduced-motion: reduce){.aurora .blob{animation:none}}
 @media print{.aurora{display:none}}
-:root[data-theme="light"] .aurora{opacity:.13}
+:root[data-theme="light"] .aurora{opacity:.07}
 /* The hub landing page runs the full-strength wash */
 body.aurora-full .aurora{opacity:.35}
-:root[data-theme="light"] body.aurora-full .aurora{opacity:.22}
+:root[data-theme="light"] body.aurora-full .aurora{opacity:.13}
 /* Finance pages: the budget/VCC grids are too dense for the full wash */
 body.aurora-dim .aurora{opacity:.1}
 /* Crew grid on the shoot overview keeps its orange cast over the glass */
@@ -1301,7 +1303,7 @@ body.aurora-dim .aurora{opacity:.1}
 /* Public share views (producer/crew/client): no aurora, plain black stage */
 body.aurora-off{background:#000}
 body.aurora-off .aurora{display:none}
-:root[data-theme="light"] body.aurora-dim .aurora{opacity:.07}
+:root[data-theme="light"] body.aurora-dim .aurora{opacity:.04}
 
 
 /* Circular glass action buttons (report header) — icon-only, label slides out

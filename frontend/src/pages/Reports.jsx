@@ -140,6 +140,12 @@ const CSS = `
 .rpt-navitem:hover{color:var(--text)}
 .rpt-navitem:hover svg{transform:scale(1.18)}
 .rpt-navitem.on{color:var(--orange)}
+/* Light view: light dock shell with grey labels */
+:root[data-theme="light"] .rpt-dock{background:rgba(255,255,255,0.82);border:1px solid rgba(0,0,0,0.10);box-shadow:0 12px 34px rgba(0,0,0,0.14),inset 0 1px 0 rgba(255,255,255,0.75)}
+:root[data-theme="light"] .rpt-navbubble{background:rgba(0,0,0,0.06)}
+:root[data-theme="light"] .rpt-navitem{color:#6f6a63}
+:root[data-theme="light"] .rpt-navitem:hover{color:#3a3a3a}
+:root[data-theme="light"] .rpt-navitem.on{color:var(--orange)}
 .rpt-list{display:flex;flex-direction:column;gap:9px;max-width:340px;margin:0 auto}
 .rpt-tile{position:relative;display:flex;align-items:center;justify-content:space-between;gap:12px;
   background:linear-gradient(150deg, rgba(255,255,255,0.06), rgba(255,255,255,0.017) 55%), color-mix(in srgb, var(--bg2) 64%, transparent);backdrop-filter:blur(22px) saturate(1.3);-webkit-backdrop-filter:blur(22px) saturate(1.3);
