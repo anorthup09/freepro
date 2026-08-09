@@ -299,6 +299,7 @@ function Chevron({ color, style }) {
 
 function MediaMomentOrbit() {
   const [fact, setFact] = useState(undefined); // undefined = loading, null = none
+  const [expanded, setExpanded] = useState(false); // photo moments blow up in place
   useEffect(() => {
     api.funFactToday().then(f => setFact(f || null)).catch(() => setFact(null));
   }, []);
@@ -315,16 +316,29 @@ function MediaMomentOrbit() {
   }, [fact]);
   if (fact === undefined || !fact) return null;   // loading or no moment → hide
   const isWob = fact.kind === 'wob';
-  const bgPhoto = fact.kind === 'photo' ? photoUrl : (fact.image?.type === 'photo' ? fact.image.value : null);
+  const isPhoto = fact.kind === 'photo';
+  const bgPhoto = isPhoto ? photoUrl : (fact.image?.type === 'photo' ? fact.image.value : null);
+  const canExpand = isPhoto && !!photoUrl;
   return (
     <div className="mm-wrap">
-      <div className="mm-banner">
-        {bgPhoto && <div className="mm-photo" style={{ backgroundImage:`url("${bgPhoto}")` }} aria-hidden />}
+      <div className={`mm-banner${canExpand ? ' mm-clickable' : ''}${expanded ? ' mm-open' : ''}`}
+        onClick={canExpand ? () => setExpanded(x => !x) : undefined}
+        role={canExpand ? 'button' : undefined}
+        title={canExpand ? (expanded ? 'Collapse the photo' : 'Tap to see the full photo') : undefined}>
+        {bgPhoto && !expanded && <div className="mm-photo" style={{ backgroundImage:`url("${bgPhoto}")` }} aria-hidden />}
         <div className="mm-b-main">
           <div className="mm-name"><span className="mm-name-pill">{fact.name}</span></div>
           {fact.prompt && <div className="mm-prompt">{fact.prompt}</div>}
-          {fact.answer && <div className="mm-answer">“{fact.answer}”</div>}
+          {fact.answer && !(isPhoto && expanded) && <div className="mm-answer">“{fact.answer}”</div>}
         </div>
+        {canExpand && (
+          <div className={`mm-expand${expanded ? ' open' : ''}`} aria-hidden={!expanded}>
+            <div>
+              <img src={photoUrl} alt={fact.answer || 'On-site photo'} />
+              {fact.answer && <div className="mm-exp-cap">“{fact.answer}”</div>}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1509,6 +1523,17 @@ const HUB_CSS = `
 .hub-mm-half:empty{display:none}
 .hub-mm-half .mm-wrap{flex:1;display:flex;min-width:0}
 .hub-mm-half .mm-banner{flex:1;padding:9px 20px;align-items:center;min-height:123px;max-height:123px;overflow:hidden}
+/* Photo moments expand in place: the cap lifts and the grid-rows animation
+   below grows the tile smoothly, pushing the rest of the page down */
+.hub-mm-half .mm-banner.mm-open{max-height:none;flex-direction:column;align-items:stretch}
+.mm-clickable{cursor:pointer;flex-wrap:wrap}
+/* Full-basis flex item: wraps onto its own zero-height row while closed, so
+   it never squeezes the banner text sideways */
+.mm-expand{display:grid;grid-template-rows:0fr;transition:grid-template-rows .5s cubic-bezier(.22,.61,.36,1);position:relative;z-index:2;flex:1 1 100%;min-width:100%}
+.mm-expand.open{grid-template-rows:1fr}
+.mm-expand > div{overflow:hidden;min-height:0}
+.mm-expand img{width:100%;max-height:min(62vh,520px);object-fit:cover;border-radius:14px;display:block;margin-top:10px}
+.mm-exp-cap{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;color:var(--text);margin:8px 2px 4px;line-height:1.4}
 .hub-mm-half .mm-prompt{margin-top:0}
 .hub-mm-half .mm-answer{font-size:12.5px;margin-top:2px}
 .hub-mm-half .mm-name{margin-bottom:3px}
