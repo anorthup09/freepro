@@ -814,8 +814,9 @@ function Automations() {
         <div onClick={e => e.target === e.currentTarget && setOpen(false)}
           style={{ position:'fixed', inset:0, zIndex:120, background:'rgba(0,0,0,0.7)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
         <div onClick={e => e.stopPropagation()}
-          style={{ width:'100%', maxWidth:860, maxHeight:'85vh', display:'flex', flexDirection:'column', background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, overflow:'hidden' }}>
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 18px', borderBottom:'1px solid var(--border)' }}>
+          className="glass"
+          style={{ width:'100%', maxWidth:860, maxHeight:'85vh', display:'flex', flexDirection:'column', borderRadius:16, overflow:'hidden' }}>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, flexWrap:'wrap', padding:'14px 18px', borderBottom:'1px solid var(--border)' }}>
             <div style={{ display:'flex', alignItems:'center', gap:6 }}>
               {[['automations','Automations'],['outbox','Outbox']].map(([k, label]) => (
                 <button key={k} onClick={() => k === 'outbox' ? goOutbox() : setTab('automations')}
@@ -826,9 +827,9 @@ function Automations() {
                 </button>
               ))}
             </div>
-            <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap', justifyContent:'flex-end', minWidth:0 }}>
               {data && !data.configured && (
-                <span style={{ fontSize:10, fontWeight:700, color:'#e8b04b', border:'1px solid rgba(232,176,75,0.5)', borderRadius:10, padding:'2px 9px' }}>
+                <span className="mail-badge" style={{ fontSize:10, fontWeight:700, color:'#e8b04b', border:'1px solid rgba(232,176,75,0.5)', borderRadius:10, padding:'2px 9px' }}>
                   ✉ Outlook not connected yet — {tab === 'outbox' ? 'these are held as drafts' : 'these go live once SMTP is set'}
                 </span>
               )}
@@ -838,7 +839,7 @@ function Automations() {
           {tab === 'automations' && (
           <div style={{ overflowY:'auto', padding:'6px 18px 16px' }}>
             {(data?.automations || []).map(a => (
-              <div key={a.key} style={{ borderBottom:'1px solid var(--border)', padding:'12px 0', display:'grid', gridTemplateColumns:'190px 1fr auto', gap:12, alignItems:'start' }}>
+              <div key={a.key} className="auto-row">
                 <div>
                   <div style={{ fontSize:12, fontWeight:800 }}>{a.title}</div>
                   <div style={{ fontSize:10, color:'var(--muted)', lineHeight:1.45, marginTop:3 }}>{a.desc}</div>
@@ -861,7 +862,7 @@ function Automations() {
                     </div>
                   )}
                 </div>
-                <div style={{ display:'flex', flexDirection:'column', gap:6, alignItems:'stretch' }}>
+                <div className="auto-actions" style={{ display:'flex', flexDirection:'column', gap:6, alignItems:'stretch' }}>
                   <button onClick={() => showPreview(a)}
                     style={{ background:'none', border:'1px solid var(--border)', borderRadius:6, color:'var(--muted)', fontSize:10, fontWeight:700, padding:'4px 12px', cursor:'pointer' }}>
                     Preview
@@ -1575,6 +1576,15 @@ const HUB_CSS = `
 @media (prefers-reduced-motion: reduce){.pill-lume::before,.pill-lume::after{animation:none}}
 /* Light view: no drifting dark window behind the MediaMoment pill card */
 :root[data-theme="light"] .pill-lume::after{display:none}
+/* Automations dashboard rows: 3-column desktop grid stacks on phones so the
+   FROM/TO/CC inputs get the full width instead of collapsing to slivers */
+.auto-row{display:grid;grid-template-columns:190px 1fr auto;gap:12px;align-items:start;border-bottom:1px solid var(--border);padding:12px 0}
+@media(max-width:640px){
+  .auto-row{grid-template-columns:1fr;gap:8px}
+  .auto-actions{flex-direction:row !important}
+  .auto-actions button{flex:1}
+  .mail-badge{flex-basis:100%;order:5;text-align:center}
+}
 @media (max-width:700px){
   .pill-lume::after{display:none}
   .hub-switch-pill{display:none !important}
