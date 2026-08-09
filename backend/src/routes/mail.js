@@ -149,6 +149,18 @@ router.get('/automations/:key/preview', ...admin, async (req, res, next) => {
         html: noticeHtml({ tag: 'Account', note: 'Password reset', title: 'Reset your password', subtitle: 'Unbridled Operating Platform',
           intro: 'Someone (hopefully you) asked to reset your password. The link below expires in 1 hour.',
           button: { label: 'Reset password', url: 'https://freepro-production.up.railway.app/reset-password/…' }, postmark: pm }) },
+      'event-added': { subject: "You've been added to an Event! — Summer Retreat",
+        html: noticeHtml({ tag: 'Team', note: 'Added to an event', color: '#4a7fb5', title: 'Summer Retreat', subtitle: 'Team Event',
+          intro: 'You were tagged on a Misc. Event in Team Management — it now shows on your calendar as out-of-office.',
+          rows: [['Event', 'Summer Retreat'], ['Dates', '2026-08-20 to 2026-08-22'], ['Location', 'Breckenridge, CO']],
+          postmark: pm }) },
+      'site-photo': { subject: 'On-site photo — 02.LPL16926 LPL Focus 2026 (from Fred Munoz)',
+        html: noticeHtml({ tag: 'Production', note: 'On-site photo submitted', title: 'LPL Focus 2026 — Social Media', subtitle: '02.LPL16926',
+          intro: 'Fred Munoz submitted an on-site photo from the hub — the shot is attached to this email.',
+          rows: [['Submitted by', 'Fred Munoz'], ['Project', '02.LPL16926 — LPL Focus 2026'], ['Client', 'LPL Financial'],
+                 ['Location', 'San Diego, CA'], ['Caption', 'Sunset over the convention center load-in']],
+          blocks: [['Crew', 'Joey Goldman — Field Producer\nJon Arneson — Onsite Editor\nJay Diaz — Camera Operator']],
+          postmark: pm }) },
     };
     const s = samples[key];
     if (!s) return res.status(404).json({ error: 'No preview available' });
