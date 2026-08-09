@@ -18,6 +18,7 @@ const FUTURE_DAYS = 240;
 // bars span assignment dates, auto-scrolled to today on load.
 export default function CrewCalendar() {
   const [rows, setRows] = useState(null);
+  const [openGroups, setOpenGroups] = useState(() => new Set()); // expanded edit stacks
   const scrollRef = useRef(null);
 
   useEffect(() => { api.crewCalendar().then(setRows).catch(e => alert(e.message)); }, []);
@@ -99,10 +100,33 @@ export default function CrewCalendar() {
               </div>
               {/* member rows */}
               {members.map(([name, assigns]) => {
+                // Same-project edit stacks collapse into one hold tile spanning
+                // the first edit's start to the last edit's end; clicking the
+                // tile expands the individual edits below it.
+                const editsByCode = {};
+                const displayList = [];
+                for (const a of assigns) {
+                  if (a.kind === 'edit') (editsByCode[a.project_code || 'EDIT'] ||= []).push(a);
+                  else displayList.push(a);
+                }
+                for (const [code, list] of Object.entries(editsByCode)) {
+                  if (list.length === 1) { displayList.push(list[0]); continue; }
+                  const gkey = `${name}||${code}`;
+                  let start = list[0].start_date, end = list[0].end_date || list[0].start_date;
+                  for (const a of list) {
+                    if (day(a.start_date) < day(start)) start = a.start_date;
+                    const ae = a.end_date || a.start_date;
+                    if (day(ae) > day(end)) end = ae;
+                  }
+                  displayList.push({ id: `grp-${gkey}`, kind: 'editgroup', gkey, project_code: code,
+                    project_title: `${list.length} edits`, position_name: `${list.length} edits`,
+                    start_date: start, end_date: end });
+                  if (openGroups.has(gkey)) displayList.push(...list);
+                }
                 // Double bookings drop to their own lane instead of overlapping
                 const lanes = [];
                 const laneOf = {};
-                for (const a of [...assigns].sort((x, y) => day(x.start_date) - day(y.start_date))) {
+                for (const a of [...displayList].sort((x, y) => day(x.start_date) - day(y.start_date))) {
                   const s2 = day(a.start_date), e2 = day(a.end_date || a.start_date);
                   let li = lanes.findIndex(end => end < s2);
                   if (li === -1) { li = lanes.length; lanes.push(e2); } else lanes[li] = e2;
@@ -121,12 +145,33 @@ export default function CrewCalendar() {
                       return <div key={i} style={{ position: 'absolute', left: NAME_W + i * DAY_W, top: 0, bottom: 0, width: DAY_W, background: 'rgba(255,255,255,0.02)' }} />;
                     })}
                     <div style={{ position: 'absolute', left: NAME_W + PAST_DAYS * DAY_W + DAY_W / 2, top: 0, bottom: 0, width: 1, background: 'var(--orange)', opacity: 0.45, zIndex: 1 }} />
-                    {assigns.map(a => {
+                    {displayList.map(a => {
                       const from = Math.max(0, idxOf(a.start_date));
                       const to = Math.min(totalDays - 1, idxOf(a.end_date || a.start_date));
                       if (to < from) return null;
                       const c = a.kind === 'pto' ? '#4a9eff' : a.kind === 'event' ? '#E8500A' : colorFor(a.project_code);
                       const isEdit = a.kind === 'edit';
+                      if (a.kind === 'editgroup') {
+                        const open = openGroups.has(a.gkey);
+                        return (
+                          <div key={a.id} className="cal-bar"
+                            onClick={() => setOpenGroups(g => { const n = new Set(g); n.has(a.gkey) ? n.delete(a.gkey) : n.add(a.gkey); return n; })}
+                            title={`${a.project_code} — ${a.project_title}. Click to ${open ? 'collapse' : 'expand'} the individual edits.`}
+                            style={{
+                              position: 'absolute', top: 8 + (laneOf[a.id] || 0) * 28, height: 24, zIndex: 1,
+                              left: NAME_W + from * DAY_W,
+                              width: (to - from + 1) * DAY_W - 4,
+                              backgroundColor: `${c}2e`, border: `1px solid ${c}`, borderRadius: 6,
+                              display: 'flex', alignItems: 'center', gap: 5, padding: '0 6px', overflow: 'hidden',
+                              fontSize: 9, fontWeight: 700, color: c, whiteSpace: 'nowrap', cursor: 'pointer',
+                            }}>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" aria-hidden="true" style={{ flexShrink: 0 }}>
+                              <path d="M3 6h18M3 12h18M3 18h18" />
+                            </svg>
+                            Multiple Edits · {a.project_code}{open ? ' ▴' : ' ▾'}
+                          </div>
+                        );
+                      }
                       return (
                         <a key={a.id} className="cal-bar" href={a.kind === 'pto' ? '/team?view=pipeline' : a.kind === 'event' ? '/team?view=events' : isEdit ? `/avo/${a.project_id}` : `/projects/${a.project_id}`}
                           title={`${a.project_code || ''} · ${a.project_title || ''} — ${a.position_name}`}
