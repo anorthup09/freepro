@@ -1893,7 +1893,7 @@ export function HubBottomNav({ raised = false }) {
   // Drop the entrance-animation class once it has played out — mobile Safari
   // can leave the staggered blur frozen mid-frame if the animation lingers
   const [entered, setEntered] = useState(false);
-  useEffect(() => { const t = setTimeout(() => setEntered(true), 2000); return () => clearTimeout(t); }, []);
+  useEffect(() => { const t = setTimeout(() => setEntered(true), 2800); return () => clearTimeout(t); }, []);
   const go = (to) => {
     if (path === to || collapsing) return;
     setCollapsing(true);
@@ -1916,7 +1916,7 @@ export function HubBottomNav({ raised = false }) {
         {bubble && <div className="hub-navbubble" style={{ left: bubble.left, top: bubble.top, width: bubble.width, height: bubble.height }} />}
         {items.map((it, i) => (
           <button key={it.key} ref={el => { btnRefs.current[it.key] = el; }}
-            style={path === '/' ? { animationDelay: `${0.35 + i * 0.16}s` } : undefined}
+            style={path === '/' ? { animationDelay: `${1.35 + i * 0.18}s` } : undefined}
             className={`hub-navitem${it.active ? ' active' : ''}`} onClick={() => go(it.to)}>
             {it.icon}<span className="lbl">{it.label}</span>
           </button>
@@ -1940,10 +1940,11 @@ const NAV_CSS = `
    crops the dock's soft shadow into a visible dark box */
 @keyframes dockReveal{0%{clip-path:inset(-60px 100% -60px 0);opacity:0}96%{clip-path:inset(-60px 0 -60px 0);opacity:1}100%{clip-path:none;opacity:1}}
 @keyframes dockCollapse{0%{clip-path:inset(-60px 0 -60px 0);opacity:1}100%{clip-path:inset(-60px 100% -60px 0);opacity:0}}
-/* Dashboard load: the dock shell wipes open left-to-right right away, then
-   each nav item blur/fades in (staggered via inline animation-delay) while
-   the page tiles are still entering */
-.hub-bottomnav.homeload{animation:dockReveal .8s cubic-bezier(.22,.61,.36,1) both}
+/* Dashboard load: the content mounts while the splash overlay is still fading
+   out (2.4s-3.05s), so these delays push the show past the splash — the shell
+   wipes open left-to-right first, then each nav item blur/fades in (staggered
+   via inline animation-delay) while the page tiles are still entering */
+.hub-bottomnav.homeload{animation:dockReveal .9s cubic-bezier(.22,.61,.36,1) .65s both}
 .hub-bottomnav.homeload .hub-navitem{animation:navItemIn .6s cubic-bezier(.22,.61,.36,1) both}
 @keyframes navItemIn{from{opacity:0;filter:blur(7px)}to{opacity:1;filter:none}}
 @media (prefers-reduced-motion: reduce){.hub-bottomnav .hub-navitem{animation:none !important}}
@@ -2195,7 +2196,9 @@ export default function Hub() {
         </div>
         )}
 
-      <HubBottomNav />
+      {/* Mount with the cascade — mounted earlier, its reveal plays out
+          invisibly behind the opaque splash overlay */}
+      {splashFading && <HubBottomNav />}
 
       {showNewProject && (
         <NewProjectModal

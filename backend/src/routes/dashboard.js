@@ -34,7 +34,7 @@ async function itemsFor(cm, today) {
         JOIN positions p ON p.id = ca.position_id
         JOIN projects pr ON pr.id = ca.project_id
         WHERE ca.crew_member_id = ${cm.id} AND pr.status != 'ARCHIVED'
-          AND ca.start_date::date <= ${today} AND COALESCE(ca.end_date, ca.start_date)::date >= ${today}`;
+          AND ca.start_date::date <= ${today} AND GREATEST(COALESCE(ca.end_date, ca.start_date), ca.start_date)::date >= ${today}`;
       for (const s of shoots) {
         const { city, state } = await resolveShootLocation(s.id, s.city, s.state);
         const loc = [city, state].filter(Boolean).join(', ');
@@ -198,7 +198,7 @@ router.get('/team', requireAuth, async (req, res, next) => {
       SELECT ca.crew_member_id, pr.id as project_id, pr.code, pr.title, pr.city, pr.state
       FROM crew_assignments ca JOIN projects pr ON pr.id = ca.project_id
       WHERE pr.status != 'ARCHIVED'
-        AND ca.start_date::date <= ${today} AND COALESCE(ca.end_date, ca.start_date)::date >= ${today}`;
+        AND ca.start_date::date <= ${today} AND GREATEST(COALESCE(ca.end_date, ca.start_date), ca.start_date)::date >= ${today}`;
     // Resolve each shoot project's real location once (from the schedule), keyed by project id
     const shootLocByProject = {};
     await Promise.all([...new Set(shoots.map(s => s.project_id))].map(async pid => {
@@ -210,15 +210,6 @@ router.get('/team', requireAuth, async (req, res, next) => {
     const events = await sql`
       SELECT name, location, people FROM misc_events
       WHERE start_date <= ${today} AND COALESCE(end_date, start_date) >= ${today}`;
-    // Active AvocadoPost edit windows: editors/PMs mid-edit show as editing
-    // (mirrors the Crew Calendar, which already draws these runners)
-    const edits = await sql`
-      SELECT e.lead_editor_id, e.pm_id, e.milestone_assignees, e.project_code
-      FROM edits e
-      WHERE e.status != 'CLOSED'
-        AND e.start_date::date <= ${today} AND COALESCE(e.end_date, e.start_date)::date >= ${today}`;
-    const editFor = id => edits.find(e =>
-      e.lead_editor_id === id || e.pm_id === id || String(e.milestone_assignees || '').includes(id));
     const evPeople = p => { let a = p; if (typeof a === 'string') { try { a = JSON.parse(a || '[]'); } catch { a = []; } } return Array.isArray(a) ? a.map(String) : []; };
     const HIDDEN = ['anna parnigoni', 'ariel lynch', 'allison boon', 'brandon emery', 'cole seifert', 'dylan patterson', 'melinda love'];
     const visible = members.filter(m => !HIDDEN.includes((m.name || '').trim().toLowerCase()));
@@ -231,8 +222,6 @@ router.get('/team', requireAuth, async (req, res, next) => {
       if (p) return { id: m.id, name: m.name, status: 'out', location: homeOffice, detail: p.pto_type };
       const s = shoots.find(x => x.crew_member_id === m.id);
       if (s) return { id: m.id, name: m.name, status: 'shoot', location: shootLocByProject[s.project_id] || 'On location', detail: s.code };
-      const ed = editFor(m.id);
-      if (ed) return { id: m.id, name: m.name, status: 'edit', location: homeOffice, detail: `${ed.project_code || 'Avo'} Edit` };
       const ev = events.find(e => evPeople(e.people).includes(String(m.id)));
       if (ev) return { id: m.id, name: m.name, status: 'trip', location: ev.location || homeOffice, detail: ev.name };
       const stlOnly = pto.find(x => x.member_id === m.id && x.pto_type === 'STL/DEN Only');
@@ -240,7 +229,7 @@ router.get('/team', requireAuth, async (req, res, next) => {
     };
     // Duplicate roster rows share one display name — a status can hang off any
     // of them, so compute all and surface the most interesting one per name
-    const PRIO = { out: 0, shoot: 1, edit: 2, trip: 3, office: 4 };
+    const PRIO = { out: 0, shoot: 1, trip: 2, office: 3 };
     const byName = new Map();
     for (const m of visible) {
       const key = (m.name || '').trim().toLowerCase();
@@ -325,7 +314,7 @@ async function greetingContext(user) {
       SELECT pr.id as project_id, pr.city, pr.state, pr.title, pr.code, ca.start_date
       FROM crew_assignments ca JOIN projects pr ON pr.id = ca.project_id
       WHERE ca.crew_member_id = ${cm.id} AND pr.status != 'ARCHIVED'
-        AND COALESCE(ca.end_date, ca.start_date)::date >= ${today}
+        AND GREATEST(COALESCE(ca.end_date, ca.start_date), ca.start_date)::date >= ${today}
         AND ca.start_date::date <= ${bizToday(10)}
       ORDER BY ca.start_date LIMIT 1`;
     if (trip) {
@@ -487,7 +476,7 @@ router.get('/on-trip', requireAuth, async (req, res, next) => {
         SELECT pr.id, pr.code, pr.title, pr.city, pr.state
         FROM crew_assignments ca JOIN projects pr ON pr.id = ca.project_id
         WHERE ca.crew_member_id = ${cm.id} AND pr.status != 'ARCHIVED'
-          AND ca.start_date::date <= ${today} AND COALESCE(ca.end_date, ca.start_date)::date >= ${today}
+          AND ca.start_date::date <= ${today} AND GREATEST(COALESCE(ca.end_date, ca.start_date), ca.start_date)::date >= ${today}
         ORDER BY ca.start_date LIMIT 1`;
     }
     // Agency contacts (e.g. Solutions "Creative") get the on-site pill when a

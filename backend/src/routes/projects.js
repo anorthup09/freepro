@@ -149,7 +149,10 @@ async function maybeAutoStatus(project) {
 router.get('/crew-calendar', requireAuth, async (req, res, next) => {
   try {
     const rows = await sql`
-      SELECT ca.id, ca.start_date, ca.end_date, ca.crew_member_id,
+      SELECT ca.id, ca.start_date,
+             -- an end date entered before the start (bad data) would hide the bar
+             GREATEST(COALESCE(ca.end_date, ca.start_date), ca.start_date) as end_date,
+             ca.crew_member_id,
              COALESCE(NULLIF(TRIM(CONCAT(cm.preferred_first_name, ' ', cm.preferred_last_name)), ''), cm.name) as member_name,
              p.name as position_name, pr.id as project_id, pr.title as project_title, pr.code as project_code, pr.status as project_status
       FROM crew_assignments ca
