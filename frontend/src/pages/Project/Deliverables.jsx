@@ -238,7 +238,7 @@ export default function Deliverables({ project }) {
       trackerType: item.tracker_type || LEGACY_TYPE[item.category] || '',
       category: item.avo_category || '',
       leadEditorId: item.lead_editor_id || '', pmId: item.pm_id || '',
-      aspectRatio: item.aspect_ratio || '', resolution: item.resolution || '',
+      aspectRatio: item.aspect_ratio || '', resolution: item.resolution || '', frameRate: item.frame_rate || '',
       assetRef: item.asset_ref || '', musicRef: item.music_ref || '',
       startDate: isoD(item.start_date), endDate: isoD(item.due_date), reviewLink: item.review_link || '',
       costEstimate: item.cost_estimate != null ? String(item.cost_estimate) : '',
@@ -255,7 +255,7 @@ export default function Deliverables({ project }) {
       } else {
         await api.updateDeliverable(project.id, editItemId.id, {
           title: editForm.title, description: editForm.description,
-          aspectRatio: editForm.aspectRatio, resolution: editForm.resolution,
+          aspectRatio: editForm.aspectRatio, resolution: editForm.resolution, frameRate: editForm.frameRate,
           dueDate: editForm.endDate, musicRef: editForm.musicRef, category: editForm.trackerType,
         });
       }
@@ -351,7 +351,7 @@ export default function Deliverables({ project }) {
                 </td>
                 <td><span className="epill">{item.editor_name || item.editorName || '—'}</span></td>
                 <td className="dv-hide-m" style={{ fontSize:11, color:'var(--tan)' }}>
-                  {item.aspect_ratio || item.aspectRatio}{item.resolution ? ` · ${item.resolution}` : ''}
+                  {[item.aspect_ratio || item.aspectRatio, item.resolution, item.frame_rate].filter(Boolean).join(' · ')}
                 </td>
                 <td className="dv-hide-m" style={{ fontSize:11, color: item.isUrgent ? 'var(--orange)' : 'var(--muted)', fontWeight: item.isUrgent ? 500 : 400 }}>
                   {item.due_date ? String(item.due_date).slice(0,10) : (item.dueDate || '—')}
@@ -381,6 +381,7 @@ export default function Deliverables({ project }) {
                 ['Editor', detailItem.editor_name || '—'],
                 ['Aspect Ratio', detailItem.aspect_ratio || '—'],
                 ['Resolution', detailItem.resolution || '—'],
+                ['Frame Rate', detailItem.frame_rate || '—'],
                 ['Due Date', detailItem.due_date ? String(detailItem.due_date).slice(0,10) : '—'],
                 ['Asset Ref', detailItem.asset_ref || '—'],
                 ['Music Ref', detailItem.music_ref || '—'],

@@ -104,6 +104,7 @@ async function syncToDeliverable(e) {
     UPDATE deliverables SET
       title = ${e.title}, description = ${e.description || null}, editor_name = ${editor},
       aspect_ratio = ${e.aspect_ratio || null}, resolution = ${e.resolution || null},
+      frame_rate = ${e.frame_rate || null},
       asset_ref = ${e.asset_ref || null}, music_ref = ${e.music_ref || null},
       status = ${status}::deliverable_status,
       category = COALESCE(${e.tracker_type || null}, category),
@@ -186,8 +187,8 @@ router.post('/edits', ...staff, async (req, res, next) => {
     if (projectId) {
       const editor = (await memberName(d.leadEditorId))?.n || null;
       const [del] = await sql`
-        INSERT INTO deliverables (id, project_id, title, description, editor_name, aspect_ratio, resolution, due_date, asset_ref, music_ref, category)
-        VALUES (gen_random_uuid()::text, ${projectId}, ${d.title}, ${d.description || null}, ${editor}, ${d.aspectRatio || null}, ${d.resolution || null}, ${d.endDate || null}, ${d.assetRef || null}, ${d.musicRef || null}, ${d.trackerType || 'POST_SHOOT'})
+        INSERT INTO deliverables (id, project_id, title, description, editor_name, aspect_ratio, resolution, frame_rate, due_date, asset_ref, music_ref, category)
+        VALUES (gen_random_uuid()::text, ${projectId}, ${d.title}, ${d.description || null}, ${editor}, ${d.aspectRatio || null}, ${d.resolution || null}, ${d.frameRate || null}, ${d.endDate || null}, ${d.assetRef || null}, ${d.musicRef || null}, ${d.trackerType || 'POST_SHOOT'})
         RETURNING id`;
       await sql`UPDATE edits SET deliverable_id = ${del.id} WHERE id = ${e.id}`;
       await logAct(e.id, 'log', who, 'linked to FreePro deliverable');

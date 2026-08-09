@@ -300,7 +300,7 @@ function DeliverablesBlock({ deliverables, gear, frameRate, crewAssignments }) {
               d.title + (d.is_urgent ? ' ⚠' : ''),
               STATUS_LABEL[d.status] || d.status,
               d.editor_name || '—',
-              [d.aspect_ratio, d.resolution, frameRate ? `${frameRate} fps` : null].filter(Boolean).join(' · ') || '—',
+              [d.aspect_ratio, d.resolution, (d.frame_rate || frameRate) ? `${d.frame_rate || frameRate} fps` : null].filter(Boolean).join(' · ') || '—',
               d.due_date || '—',
             ])}
           />

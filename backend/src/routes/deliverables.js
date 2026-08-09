@@ -21,7 +21,7 @@ async function mirrorToAvo(item, actor) {
         UPDATE edits SET
           title = ${item.title}, description = ${item.description || null},
           lead_editor_id = ${editor ? editor.id : null}, lead_editor_name = ${item.editor_name || null},
-          aspect_ratio = ${item.aspect_ratio || null}, resolution = ${item.resolution || null},
+          aspect_ratio = ${item.aspect_ratio || null}, resolution = ${item.resolution || null}, frame_rate = ${item.frame_rate || null},
           asset_ref = ${item.asset_ref || null}, music_ref = ${item.music_ref || null},
           status = ${lane}, workflow_status = ${ws},
           approved = ${ws === 'APPROVED'},
@@ -32,9 +32,9 @@ async function mirrorToAvo(item, actor) {
     } else {
       const [e] = await sql`
         INSERT INTO edits (project_id, project_code, deliverable_id, title, description, lead_editor_id, lead_editor_name,
-          aspect_ratio, resolution, asset_ref, music_ref, status, workflow_status, end_date, category)
+          aspect_ratio, resolution, frame_rate, asset_ref, music_ref, status, workflow_status, end_date, category)
         VALUES (${item.project_id}, ${proj ? proj.code : null}, ${item.id}, ${item.title}, ${item.description || null},
-          ${editor ? editor.id : null}, ${item.editor_name || null}, ${item.aspect_ratio || null}, ${item.resolution || null},
+          ${editor ? editor.id : null}, ${item.editor_name || null}, ${item.aspect_ratio || null}, ${item.resolution || null}, ${item.frame_rate || null},
           ${item.asset_ref || null}, ${item.music_ref || null}, ${lane}, ${ws}, ${item.due_date || null}, ${item.category || null})
         RETURNING id`;
       await sql`INSERT INTO edit_activity (edit_id, kind, author, body) VALUES (${e.id}, 'log', ${actor || 'FreePro'}, 'created from a FreePro deliverable')`;
@@ -56,8 +56,8 @@ router.post('/:id/deliverables', requireAuth, requireRole('ADMIN','PRODUCER','AG
   try {
     const d = req.body;
     const [item] = await sql`
-      INSERT INTO deliverables (id, project_id, title, description, editor_name, aspect_ratio, resolution, due_date, asset_ref, music_ref, is_urgent, notes, category)
-      VALUES (gen_random_uuid()::text, ${req.params.id}, ${d.title}, ${d.description||null}, ${d.editorName||null}, ${d.aspectRatio||null}, ${d.resolution||null}, ${d.dueDate||null}, ${d.assetRef||null}, ${d.musicRef||null}, ${d.isUrgent||false}, ${d.notes||null}, ${d.category||'POST_SHOOT'})
+      INSERT INTO deliverables (id, project_id, title, description, editor_name, aspect_ratio, resolution, frame_rate, due_date, asset_ref, music_ref, is_urgent, notes, category)
+      VALUES (gen_random_uuid()::text, ${req.params.id}, ${d.title}, ${d.description||null}, ${d.editorName||null}, ${d.aspectRatio||null}, ${d.resolution||null}, ${d.frameRate||null}, ${d.dueDate||null}, ${d.assetRef||null}, ${d.musicRef||null}, ${d.isUrgent||false}, ${d.notes||null}, ${d.category||'POST_SHOOT'})
       RETURNING *`;
     mirrorToAvo(item, req.user?.email);
     res.status(201).json(item);
@@ -72,6 +72,7 @@ router.patch('/:id/deliverables/:did', requireAuth, requireRole('ADMIN','PRODUCE
         title=COALESCE(${d.title??null},title), description=COALESCE(${d.description??null},description),
         status=COALESCE(${d.status??null}::deliverable_status,status), editor_name=COALESCE(${d.editorName??null},editor_name),
         aspect_ratio=COALESCE(${d.aspectRatio??null},aspect_ratio), resolution=COALESCE(${d.resolution??null},resolution),
+        frame_rate=COALESCE(${d.frameRate??null},frame_rate),
         due_date=COALESCE(${d.dueDate??null},due_date), music_ref=COALESCE(${d.musicRef??null},music_ref),
         is_urgent=COALESCE(${d.isUrgent??null},is_urgent), category=COALESCE(${d.category??null},category)
       WHERE id=${req.params.did} RETURNING *`;
