@@ -252,6 +252,14 @@ function DebriefTile({ pid }) {
     try { await api.deleteDebrief(id); setEntries(es => es.filter(x => x.id !== id)); }
     catch (e) { alert(e.message); }
   }
+  const [editingId, setEditingId] = useState(null);
+  async function saveEdit(id, value) {
+    const t = String(value || '').trim();
+    setEditingId(null);
+    if (!t) return;
+    try { const u = await api.updateDebrief(id, { text: t }); setEntries(es => es.map(x => x.id === id ? { ...x, ...u } : x)); }
+    catch (e) { alert(e.message); }
+  }
 
   return (
     <div className="pv-debrief glass" style={{ ...card, flex:1 }}>
@@ -289,7 +297,15 @@ function DebriefTile({ pid }) {
           <div key={e.id} style={{ display:'flex', gap:8, alignItems:'flex-start', padding:'7px 0', borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
             <span style={{ fontSize:9, fontWeight:800, color:m.color, background:`${m.color}1a`, border:`1px solid ${m.color}`, borderRadius:10, padding:'1px 7px', textTransform:'uppercase', letterSpacing:'0.04em', flexShrink:0, marginTop:1 }}>{m.label}</span>
             <div style={{ flex:1, minWidth:0 }}>
-              <div style={{ fontSize:12, color:'var(--text)', overflowWrap:'anywhere' }}>{e.text}</div>
+              {editingId === e.id ? (
+                <input autoFocus defaultValue={e.text}
+                  onKeyDown={ev => { if (ev.key === 'Enter') saveEdit(e.id, ev.target.value); if (ev.key === 'Escape') setEditingId(null); }}
+                  onBlur={ev => saveEdit(e.id, ev.target.value)}
+                  style={{ width:'100%', fontSize:12 }} />
+              ) : (
+                <div onClick={() => setEditingId(e.id)} title="Click to edit"
+                  style={{ fontSize:12, color:'var(--text)', overflowWrap:'anywhere', cursor:'text' }}>{e.text}</div>
+              )}
               <div style={{ fontSize:9.5, color:'var(--muted)', marginTop:2 }}>{e.author_name || 'Someone'} · {fmtDebriefDate(e.created_at)}</div>
             </div>
             <button title="Delete" onClick={() => remove(e.id)} style={{ background:'none', border:'none', color:'var(--muted)', fontSize:12, cursor:'pointer', paddingTop:4 }}>✕</button>

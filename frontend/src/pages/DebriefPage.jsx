@@ -13,9 +13,17 @@ const KINDS = [
 ];
 const fmtDate = d => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
 
-function Column({ meta, entries, onAdd, onDelete }) {
+function Column({ meta, entries, onAdd, onDelete, onEdit }) {
   const [text, setText] = useState('');
   const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [editText, setEditText] = useState('');
+  async function saveEdit(id) {
+    const t = editText.trim();
+    if (!t) return;
+    await onEdit(id, t);
+    setEditingId(null);
+  }
   async function submit() {
     if (!text.trim() || saving) return;
     setSaving(true);
@@ -37,7 +45,19 @@ function Column({ meta, entries, onAdd, onDelete }) {
         {entries.map(e => (
           <div key={e.id} style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, padding: '9px 11px' }}>
             <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-              <div style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: 'var(--text)', overflowWrap: 'anywhere' }}>{e.text}</div>
+              {editingId === e.id ? (
+                <input autoFocus value={editText} onChange={ev => setEditText(ev.target.value)}
+                  onKeyDown={ev => { if (ev.key === 'Enter') saveEdit(e.id); if (ev.key === 'Escape') setEditingId(null); }}
+                  onBlur={() => saveEdit(e.id)}
+                  style={{ flex: 1, minWidth: 0, fontSize: 12.5 }} />
+              ) : (
+                <div onClick={() => { setEditingId(e.id); setEditText(e.text); }} title="Click to edit"
+                  style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: 'var(--text)', overflowWrap: 'anywhere', cursor: 'text' }}>{e.text}</div>
+              )}
+              <button title="Edit" onClick={() => { setEditingId(e.id); setEditText(e.text); }}
+                style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', lineHeight: 0, padding: 2 }}>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>
+              </button>
               <button title="Delete" onClick={() => onDelete(e.id)} style={{ background: 'none', border: 'none', color: 'var(--muted)', fontSize: 12, cursor: 'pointer' }}>✕</button>
             </div>
             <div style={{ fontSize: 9.5, color: 'var(--muted)', marginTop: 5 }}>{e.author_name || 'Someone'} · {fmtDate(e.created_at)}</div>
@@ -131,6 +151,10 @@ export default function DebriefPage() {
     try { const e = await api.addDebrief(id, { kind, text }); setEntries(es => [e, ...(es || [])]); }
     catch (e) { alert(e.message); }
   }
+  async function editEntry(entryId, text) {
+    try { const u = await api.updateDebrief(entryId, { text }); setEntries(es => es.map(x => x.id === entryId ? u : x)); }
+    catch (e) { alert(e.message); }
+  }
   async function remove(entryId) {
     try { await api.deleteDebrief(entryId); setEntries(es => es.filter(x => x.id !== entryId)); }
     catch (e) { alert(e.message); }
@@ -208,7 +232,7 @@ export default function DebriefPage() {
         <div style={{ marginTop: 18, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14 }}>
           {KINDS.map(k => (
             <Column key={k.key} meta={k} entries={byKind(k.key)}
-              onAdd={text => add(k.key, text)} onDelete={remove} />
+              onAdd={text => add(k.key, text)} onDelete={remove} onEdit={editEntry} />
           ))}
         </div>
       </div>
