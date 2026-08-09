@@ -24,6 +24,10 @@
   --purple-bg: #F0EDFB; --purple-border: #CFC4EC; --purple-text: #5B46B0;
 }
 :root[data-theme="light"] body { background: var(--bg); }
+/* Installed-app mode draws edge-to-edge under the iOS status bar
+   (black-translucent) — keep normal page content below the clock while the
+   aurora/splash (position:fixed) still paint all the way to the top */
+body { padding-top: env(safe-area-inset-top, 0px); }
 /* Small "+ Add" pill buttons on project overview / Avo grids — token-driven so
    they stay legible in both themes (they were white-on-white in light view) */
 :root { --pill-bg: var(--bg); --pill-border: rgba(255,255,255,0.55); --pill-text: #e8e8e8; }
