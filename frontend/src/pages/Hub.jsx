@@ -1907,7 +1907,11 @@ export function HubBottomNav({ raised = false }) {
   const go = (to) => {
     if (path === to || collapsing) return;
     setCollapsing(true);
-    setTimeout(() => nav(to), 300);
+    // Slide the whole page off to the left; the destination flies in from the
+    // right (one-shot flag consumed by SlideRoutes in App.jsx)
+    try { sessionStorage.setItem('fp_slide', '1'); } catch {}
+    document.body.classList.add('page-out');
+    setTimeout(() => { nav(to); document.body.classList.remove('page-out'); }, 300);
   };
   useEffect(() => {
     const measure = () => {

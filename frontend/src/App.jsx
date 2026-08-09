@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import Login from './pages/Login.jsx';
 import Projects from './pages/Projects.jsx';
@@ -248,6 +248,22 @@ function AuroraBackground() {
   );
 }
 
+// Slide transition between pages: the bottom nav stamps a one-shot flag before
+// navigating; the freshly mounted page then flies in from the right while the
+// old one was animated off to the left (body.page-out, see styles.css).
+function SlideRoutes({ children }) {
+  const loc = useLocation();
+  const animRef = useRef(false);
+  const prevPath = useRef(loc.pathname);
+  if (prevPath.current !== loc.pathname) {
+    prevPath.current = loc.pathname;
+    let f = null;
+    try { f = sessionStorage.getItem('fp_slide'); if (f) sessionStorage.removeItem('fp_slide'); } catch {}
+    animRef.current = !!f;
+  }
+  return <div key={loc.pathname} className={`page-slidewrap${animRef.current ? ' page-slide-in' : ''}`}>{children}</div>;
+}
+
 export default function App() {
   const [realUser, setUser] = useState(undefined); // undefined = loading
   // Admin role preview: browse the platform as another role (UI-only — the
@@ -288,6 +304,7 @@ export default function App() {
       <DailyTestingNotice user={user} />
       {user && <FeedbackBoard variant="fab" />}
       {user?.role === 'PENDING' ? <PendingApproval setUser={setUser} /> : (realUser && (['ADMIN','PRODUCER'].includes(realUser.role) || realUser.mfa_required === true) && realUser.mfa_enabled === false) ? <MfaSetup /> : (
+      <SlideRoutes>
       <Routes>
         <Route path="/login" element={user ? <Navigate to="/" /> : <Login />} />
         <Route path="/" element={user ? <Hub /> : <Navigate to="/login" />} />
@@ -340,6 +357,7 @@ export default function App() {
         <Route path="/client/:client" element={<ClientPortal />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
+      </SlideRoutes>
       )}
       <SignOutFooter user={user} setUser={setUser} />
     </AuthContext.Provider>

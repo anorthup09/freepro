@@ -1338,3 +1338,11 @@ body.aurora-off .aurora{display:none}
   transform:translateY(-4px);transition:opacity .18s ease, transform .18s ease;z-index:50}
 .glass-action:hover:not(:disabled) .ga-label{opacity:1;transform:none}
 :root[data-theme="light"] .glass-action .ga-label{background:rgba(255,255,255,0.96);color:#3a3a3a;border-color:rgba(0,0,0,0.12)}
+
+/* Page slide transition (bottom nav): current page flies off left, the next
+   one flies in from the right */
+body.page-out .page-slidewrap { animation: pageOut .3s cubic-bezier(.55,.06,.68,.19) both; }
+.page-slide-in { animation: pageIn .5s cubic-bezier(.22,.61,.36,1) both; }
+@keyframes pageOut { to { opacity: 0; transform: translateX(-20vw); } }
+@keyframes pageIn { from { opacity: 0; transform: translateX(24vw); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .page-slide-in, body.page-out .page-slidewrap { animation: none; } }
