@@ -11,7 +11,7 @@ import HomeButton from '../components/HomeButton.jsx';
 
 const WHITE = '#e8e8e8';
 const TABS = [
-  ['overview', 'Overview', '#e8e8e8'],
+  ['overview', 'Overview', 'var(--dock-on)'],
   ['finance', 'Project Finance', '#5ABF80'],
   ['pre', 'Pre-Production', 'var(--orange)'],
   ['post', 'Post-Production', '#9DC183'],
@@ -89,20 +89,18 @@ function MobileTabDock({ tabs, tab, setTab, finance }) {
   return (
     <>
     {menuBtn}
-    <div className="pvd-dock no-print" style={{
+    <div className="pvd-dock glass-dock no-print" style={{
       position:'fixed', bottom:'calc(env(safe-area-inset-bottom, 0px) + 14px)',
       ...(mobile ? { right:14 } : { left:'50%', transform:'translateX(-50%)' }),
       zIndex:110, display:'flex', alignItems:'center', gap:2,
       padding: shrunk ? '6px 10px' : '8px 12px',
-      background:'rgba(30,27,23,0.34)', backdropFilter:'blur(22px) saturate(1.7)', WebkitBackdropFilter:'blur(22px) saturate(1.7)',
-      border:'1px solid rgba(255,255,255,0.12)', borderRadius:26,
-      boxShadow:'0 12px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.14)',
+      borderRadius:26,
       transition:'padding .25s ease',
     }}>
       {bubble && (
-        <div aria-hidden style={{
+        <div aria-hidden className="gd-bubble" style={{
           position:'absolute', left:bubble.left, top:bubble.top, width:bubble.width, height:bubble.height,
-          background:'rgba(255,255,255,0.10)', borderRadius:22, pointerEvents:'none',
+          borderRadius:22, pointerEvents:'none',
           transition:'left .3s cubic-bezier(.34,1.3,.5,1), width .3s cubic-bezier(.34,1.3,.5,1), top .3s ease, height .3s ease',
         }} />
       )}
@@ -110,11 +108,11 @@ function MobileTabDock({ tabs, tab, setTab, finance }) {
         const on = tab === k;
         return (
           <button key={k} ref={el => { btnRefs.current['ph-' + k] = el; }} onClick={() => { setTab(k); setMin(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-            aria-label={label}
+            aria-label={label} className="gd-item"
             style={{
               display:'flex', flexDirection:'column', alignItems:'center', gap:3, position:'relative',
               background:'transparent', border:'none', cursor:'pointer',
-              color: on ? color : 'rgba(255,255,255,0.55)',
+              ...(on ? { color } : {}),
               borderRadius:22, padding: shrunk ? '8px 12px' : '7px 12px 6px',
               transition:'all .25s ease',
             }}>
@@ -129,7 +127,7 @@ function MobileTabDock({ tabs, tab, setTab, finance }) {
       })}
       {finance && !mobile && (
         <>
-          <div aria-hidden style={{ width:1, alignSelf:'stretch', margin:'6px 6px', background:'rgba(255,255,255,0.14)' }} />
+          <div aria-hidden className="gd-div" style={{ width:1, alignSelf:'stretch', margin:'6px 6px' }} />
           <button onClick={() => window.dispatchEvent(new Event('fp-dock-harbinger'))} aria-label="Harbinger"
             style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:3, position:'relative',
               background:'transparent', border:'none', cursor:'pointer', color:'#5ABF80',
@@ -142,9 +140,10 @@ function MobileTabDock({ tabs, tab, setTab, finance }) {
             return (
               <button key={k} ref={el => { btnRefs.current['fin-' + k] = el; }}
                 onClick={() => { finance.setFinTab(k); window.scrollTo({ top: 0, behavior: 'smooth' }); }} aria-label={label}
+                className="gd-item"
                 style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:3, position:'relative',
                   background:'transparent', border:'none', cursor:'pointer',
-                  color: on ? 'var(--orange)' : 'rgba(255,255,255,0.55)',
+                  ...(on ? { color:'var(--orange)' } : {}),
                   borderRadius:22, padding:'7px 12px 6px', transition:'color .25s ease' }}>
                 {FIN_DOCK_ICONS[k]}
                 <span style={{ fontSize:9.5, fontWeight:800, letterSpacing:'0.04em', textTransform:'uppercase', whiteSpace:'nowrap' }}>{label}</span>

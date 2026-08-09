@@ -1890,6 +1890,10 @@ export function HubBottomNav({ raised = false }) {
   // Navigating away collapses the dock right-to-left before the route change;
   // the next page's dock then reveals left-to-right on mount (see NAV_CSS).
   const [collapsing, setCollapsing] = useState(false);
+  // Drop the entrance-animation class once it has played out — mobile Safari
+  // can leave the staggered blur frozen mid-frame if the animation lingers
+  const [entered, setEntered] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setEntered(true), 2000); return () => clearTimeout(t); }, []);
   const go = (to) => {
     if (path === to || collapsing) return;
     setCollapsing(true);
@@ -1908,7 +1912,7 @@ export function HubBottomNav({ raised = false }) {
   return (
     <>
       <style>{NAV_CSS}</style>
-      <div className={`hub-bottomnav${path === '/' ? ' homeload' : ''}${scrolled ? ' condensed' : ''}${raised ? ' raised' : ''}${collapsing ? ' collapsing' : ''}`}>
+      <div className={`hub-bottomnav${path === '/' && !entered ? ' homeload' : ''}${scrolled ? ' condensed' : ''}${raised ? ' raised' : ''}${collapsing ? ' collapsing' : ''}`}>
         {bubble && <div className="hub-navbubble" style={{ left: bubble.left, top: bubble.top, width: bubble.width, height: bubble.height }} />}
         {items.map((it, i) => (
           <button key={it.key} ref={el => { btnRefs.current[it.key] = el; }}

@@ -1149,6 +1149,11 @@ body { padding-top: env(safe-area-inset-top, 0px); }
 :root[data-theme="light"] .glass-dock { background: rgba(255,255,255,0.82); border: 1px solid rgba(0,0,0,0.10); box-shadow: 0 12px 34px rgba(0,0,0,0.16), inset 0 1px 0 rgba(255,255,255,0.75); }
 :root[data-theme="light"] .glass-dock .gd-item { color: #6f6a63; }
 :root[data-theme="light"] .glass-dock .gd-bubble { background: rgba(0,0,0,0.06); }
+.glass-dock .gd-div { background: rgba(255,255,255,0.14); }
+:root[data-theme="light"] .glass-dock .gd-div { background: rgba(0,0,0,0.10); }
+/* Neutral "active" accent for dock tabs whose accent is white in dark view */
+:root { --dock-on: #e8e8e8; }
+:root[data-theme="light"] { --dock-on: #3a3a3a; }
 
 /* Light theme: the white glass pills invert to light shells with dark text */
 :root[data-theme="light"] .evt-glass {
