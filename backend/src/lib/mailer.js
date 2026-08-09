@@ -69,7 +69,7 @@ async function recordOutbox({ automationKey, identity, from, to, cc, subject, ht
   }
 }
 
-async function sendMail({ to, cc, subject, text, html, icalEvent, identity, fromAddr, automationKey }) {
+async function sendMail({ to, cc, subject, text, html, icalEvent, attachments, identity, fromAddr, automationKey }) {
   const name = IDENTITIES[identity] ? IDENTITIES[identity].name : 'Unbridled Media';
   const from = fromAddr ? `${name} <${fromAddr}>` : fromFor(identity);
   const base = { automationKey, identity, from, to: Array.isArray(to) ? to.join(', ') : to,
@@ -85,7 +85,7 @@ async function sendMail({ to, cc, subject, text, html, icalEvent, identity, from
   }
 
   try {
-    const info = await getTransporter().sendMail({ from, to, cc, subject, text, html, ...(icalEvent ? { icalEvent } : {}) });
+    const info = await getTransporter().sendMail({ from, to, cc, subject, text, html, ...(icalEvent ? { icalEvent } : {}), ...(attachments ? { attachments } : {}) });
     await recordOutbox({ ...base, status: 'sent', sentAt: new Date() });
     return info;
   } catch (e) {

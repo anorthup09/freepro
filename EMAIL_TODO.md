@@ -130,3 +130,9 @@ permission on each address (Outlook 365: shared mailbox or alias).
   an email with the event name, dates, and location. Wired via `sendMail` in
   `backend/src/routes/team.js` (`emailAddedToEvent`); queues to the Outbox and
   no-ops until SMTP is connected.
+- **On-site photo notification (Hub → Submit an On-Site Photo!)** — every
+  submission emails Ben Lamb (roster lookup, `SITE_PHOTO_NOTIFY` env
+  overrides) with the photo attached plus project code/name, client, shoot
+  city/state, the full crew list (name — position), and the caption. Wired
+  via `sendMail` (`notifySitePhoto` in `backend/src/routes/dashboard.js`,
+  automation key `site-photo`); queues to the Outbox until SMTP is connected.

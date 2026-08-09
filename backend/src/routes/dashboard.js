@@ -761,8 +761,72 @@ router.post('/site-photo', requireAuth, async (req, res, next) => {
     await sql`INSERT INTO site_photos (member_email, member_name, caption, mime, data)
       VALUES (${key}, ${req.user.name || key}, ${caption.slice(0, 300)}, ${mime}, ${buf})`;
     res.status(201).json({ ok: true });
+    // Automation: forward the shot + shoot context to Ben Lamb (fire-and-forget;
+    // if SMTP isn't configured the mailer files it as an outbox draft)
+    notifySitePhoto(req.user, caption.slice(0, 300), mime, buf).catch(e => console.error('site-photo mail failed:', e.message));
   } catch (e) { next(e); }
 });
+
+// Best-effort context for a submitted on-site photo: the submitter's active
+// shoot (crew assignment first, agency-contact shoot day as fallback), plus
+// that project's full crew list.
+async function notifySitePhoto(user, caption, mime, buf) {
+  const { sendMail } = require('../lib/mailer');
+  const today = bizToday();
+  const cm = await myCrewMember(user.email);
+  let proj = null;
+  if (cm) {
+    [proj] = await sql`
+      SELECT pr.id, pr.code, pr.title, pr.client, pr.city, pr.state
+      FROM crew_assignments ca JOIN projects pr ON pr.id = ca.project_id
+      WHERE ca.crew_member_id = ${cm.id} AND pr.status != 'ARCHIVED'
+        AND ca.start_date::date <= ${today} AND GREATEST(COALESCE(ca.end_date, ca.start_date), ca.start_date)::date >= ${today}
+      ORDER BY ca.start_date LIMIT 1`;
+  }
+  if (!proj) {
+    const email = (user.email || '').toLowerCase();
+    [proj] = await sql`
+      SELECT DISTINCT pr.id, pr.code, pr.title, pr.client, pr.city, pr.state
+      FROM agency_contacts ac
+      JOIN projects pr ON pr.id = ac.project_id
+      JOIN shoot_days sd ON sd.project_id = pr.id AND sd.date::date = ${today}
+      WHERE pr.status != 'ARCHIVED' AND ${email} <> '' AND LOWER(ac.email) = ${email}
+      LIMIT 1`;
+  }
+  const { city, state } = proj ? await resolveShootLocation(proj.id, proj.city, proj.state) : {};
+  const crew = proj ? await sql`
+    SELECT ${sql.unsafe(PREF)} as name, p.name as position_name
+    FROM crew_assignments ca
+    JOIN positions p ON p.id = ca.position_id
+    JOIN crew_members cm ON cm.id = ca.crew_member_id
+    WHERE ca.project_id = ${proj.id}
+    ORDER BY p.name` : [];
+  let to = process.env.SITE_PHOTO_NOTIFY;
+  if (!to) {
+    const [ben] = await sql`SELECT email FROM crew_members WHERE name ILIKE '%ben%lamb%' AND email IS NOT NULL AND company ILIKE '%unbridled%' LIMIT 1`;
+    to = ben && ben.email;
+  }
+  if (!to) { console.error('site-photo mail: no recipient found for Ben Lamb'); return; }
+  const lines = [
+    `Submitted by: ${user.name || user.email}`,
+    proj ? `Project: ${proj.code} — ${proj.title}` : 'Project: (no active shoot found for the submitter)',
+    proj && proj.client ? `Client: ${proj.client}` : null,
+    (city || state) ? `Location: ${[city, state].filter(Boolean).join(', ')}` : null,
+    caption ? `Caption: ${caption}` : 'Caption: (none)',
+    crew.length ? '' : null,
+    crew.length ? 'Crew:' : null,
+    ...crew.map(c => `  - ${c.name} — ${c.position_name}`),
+  ].filter(x => x !== null);
+  const ext = (mime || 'image/jpeg').split('/')[1] || 'jpg';
+  await sendMail({
+    identity: 'production',
+    to,
+    subject: `On-site photo${proj ? ` — ${proj.code} ${proj.title}` : ''}${user.name ? ` (from ${user.name})` : ''}`,
+    text: lines.join('\n'),
+    attachments: [{ filename: `on-site-photo.${ext}`, content: buf, contentType: mime || 'image/jpeg' }],
+    automationKey: 'site-photo',
+  });
+}
 router.get('/site-photo/:id/file', requireAuth, async (req, res, next) => {
   try {
     const [f] = await sql`SELECT mime, data FROM site_photos WHERE id = ${req.params.id}`;
