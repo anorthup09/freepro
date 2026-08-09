@@ -660,7 +660,7 @@ export default function Crew({ project, onProjectUpdate }) {
           <div className="page-title">Crew/Talent</div>
           <div className="page-sub">{assignments.length} position{assignments.length !== 1 ? 's' : ''} assigned</div>
         </div>
-        <button className="btn btn-primary btn-sm" onClick={() => setShowAddSlot(true)}>+ Add Position</button>
+        <button className="evt-glass" onClick={() => setShowAddSlot(true)}>+ Add Position</button>
       </div>
 
       {/* Named crews (units) — schedules & call sheets group by these */}
@@ -838,7 +838,7 @@ export default function Crew({ project, onProjectUpdate }) {
       {/* Talent */}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:24, marginBottom:6 }}>
         <div className="sec-lbl" style={{ marginTop:0 }}>Talent</div>
-        <button className="btn btn-primary btn-sm" onClick={() => {
+        <button className="evt-glass" onClick={() => {
           setAddTalentDayCalls({});
           api.getSchedule(project.id).then(setTalentDays).catch(() => {});
           setShowTalentModal(true);
