@@ -443,6 +443,11 @@ body::before { content: none; }
 }
 /* refractive light edge for the app's glass bottom docks (Team, ProjectView, Finance) */
 .glass-dock::after, .pvd-dock::after, .fin-dock::after { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1px; pointer-events: none; background: linear-gradient(135deg, rgba(255,255,255,0.5), rgba(255,255,255,0.03) 34%, rgba(255,255,255,0) 56%, rgba(255,255,255,0.14) 100%); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+/* The docks can outgrow a phone screen (merged phase/section items) — let
+   them scroll sideways instead of clipping, with the scrollbar hidden */
+.glass-dock, .pvd-dock, .proj-bottomnav { max-width: calc(100vw - 28px); overflow-x: auto; overflow-y: hidden; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.glass-dock::-webkit-scrollbar, .pvd-dock::-webkit-scrollbar, .proj-bottomnav::-webkit-scrollbar { display: none; }
+.glass-dock button, .pvd-dock button, .proj-bottomnav .dock-btn, .proj-bottomnav .tab { flex: 0 0 auto; }
 .modal-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; margin-bottom: 18px; }
 
 /* ── Spec Tiles (liquid glass) ── */
