@@ -108,7 +108,7 @@ const I = {
 const CATEGORIES = [
   { key: 'finance',  label: 'Finance',   icon: I.finance,  tos: ['/reports/vcc', '/reports/client-invoices', '/finance/overview', '/finance/report'] },
   { key: 'gear',     label: 'Gear',      icon: I.gear,     tos: ['/reports/gear', '/reports/drives'] },
-  { key: 'people',   label: 'People',    icon: I.people,   tos: ['/reports/days-off', '/reports/photos', '/reports/media-moments', '/reports/ways-of-being'] },
+  { key: 'people',   label: 'Team',      icon: I.people,   tos: ['/reports/days-off', '/reports/photos', '/reports/media-moments', '/reports/ways-of-being'] },
   { key: 'postpro',  label: 'Post-Pro',  icon: I.postpro,  tos: ['/reports/music-resources', '/reports/video-references', '/reports/subscriptions'] },
   { key: 'projects', label: 'Projects',  icon: I.projects, tos: ['/reports/debrief'] },
   { key: 'travel',   label: 'Travel',    icon: I.travel,   tos: ['/reports/foodie', '/reports/international-travel'] },
