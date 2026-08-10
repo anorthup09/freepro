@@ -223,7 +223,7 @@ function SmartTable({ rows, colDefs, config, onConfig, saveExtra, leading, trail
   const nCols = allCols.length + (leading ? 1 : 0) + (trailing ? 1 : 0) + (onReorder ? 1 : 0);
 
   return (
-    <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, overflow:'hidden' }}>
+    <div className="glass" style={{ borderRadius:14, overflow:'hidden' }}>
       <div className="budget-tbl-wrap">
         <table style={{ width:'100%', borderCollapse:'collapse', minWidth: minWidth || undefined }}>
           <thead>
@@ -730,7 +730,7 @@ function ContractorTracker({ pageId }) {
           ))}
         </div>
       </div>
-      <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 10, overflowX: 'auto' }}>
+      <div className="glass" style={{ borderRadius: 14, overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 900 }}>
           <thead>
             <tr style={{ borderBottom: '1px solid var(--border)' }}>
@@ -891,7 +891,7 @@ function MusicShareModal({ groups, code, title, onClose }) {
   const tdw = { border:'1px solid #999', padding:'10px 14px', verticalAlign:'top', fontSize:14, color:'#111' };
   return (
     <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:120, background:'rgba(0,0,0,0.7)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, padding:'20px 22px', width:'100%', maxWidth:780, maxHeight:'90vh', overflowY:'auto' }}>
+      <div onClick={e => e.stopPropagation()} className="glass" style={{ borderRadius:16, padding:'20px 22px', width:'100%', maxWidth:780, maxHeight:'90vh', overflowY:'auto' }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, marginBottom:14, flexWrap:'wrap' }}>
           <div style={{ fontSize:15, fontWeight:800 }}>Music Options — {title || code}</div>
           <div style={{ display:'flex', gap:8 }}>
@@ -1103,7 +1103,7 @@ function MusicGrid({ rows, setRows, pageId, code, title, config, onConfig, edits
   };
   const shareGroups = groups.filter(([, rs]) => rs.some(r => r.url));
   return (
-    <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, overflow:'hidden' }}>
+    <div className="glass" style={{ borderRadius:14, overflow:'hidden' }}>
       <div className="budget-tbl-wrap">
         <table style={{ width:'100%', borderCollapse:'collapse' }}>
           <thead>
@@ -1285,7 +1285,8 @@ function FileFolder({ title, subtitle, accent = AVO, files, onUpload, onDownload
   const drop = ev => { ev.preventDefault(); dragDepth.current = 0; setDragging(false); if (readOnly) return; Array.from(ev.dataTransfer?.files || []).forEach(onUpload); };
   return (
     <div onDragEnter={enter} onDragOver={over} onDragLeave={leave} onDrop={drop}
-      style={{ position:'relative', background:'var(--bg2)', border:`1px solid ${dragging ? accent : 'var(--border)'}`, borderLeft:`3px solid ${accent}`, borderRadius:10, marginBottom:8, overflow:'hidden', boxShadow: dragging ? `0 0 0 2px ${accent}55 inset` : 'none' }}>
+      className="glass"
+      style={{ position:'relative', border:`1px solid ${dragging ? accent : 'rgba(255,255,255,0.10)'}`, borderLeft:`3px solid ${accent}`, borderRadius:12, marginBottom:8, overflow:'hidden', boxShadow: dragging ? `0 0 0 2px ${accent}55 inset` : undefined }}>
       {dragging && (
         <div style={{ position:'absolute', inset:0, zIndex:5, background:`${accent}18`, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
           <span style={{ fontSize:12, fontWeight:800, color:accent, background:'var(--bg2)', border:`1px dashed ${accent}`, borderRadius:8, padding:'6px 14px' }}>Drop to upload to “{title}”</span>
@@ -1422,7 +1423,7 @@ function AvoShareModal({ page, url, onEnable, onDisable, onClose }) {
   return (
     <div onClick={e => e.target === e.currentTarget && onClose()}
       style={{ position:'fixed', inset:0, zIndex:200, background:'rgba(0,0,0,0.75)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
-      <div style={{ width:'100%', maxWidth:520, background:'var(--bg2)', border:'1px solid var(--border)', borderTop:`3px solid ${AVO}`, borderRadius:12, padding:'18px 22px' }}>
+      <div className="glass" style={{ width:'100%', maxWidth:520, borderTop:`3px solid ${AVO}`, borderRadius:14, padding:'18px 22px' }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
           <div style={{ fontSize:15, fontWeight:800 }}>Share — Client / Crew View</div>
           <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
@@ -1745,7 +1746,7 @@ function DeliverableOverview({ edits, onSave, onOpenEdit, onStatus, readOnly, A 
     setBusyId(null);
   };
   return (
-    <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, overflow:'hidden' }}>
+    <div className="glass" style={{ borderRadius:14, overflow:'hidden' }}>
       <div style={{ display:'flex', alignItems:'baseline', gap:9, padding:'12px 16px' }}>
         <span style={{ fontSize:14, fontWeight:800, color:'var(--text)' }}>Post-Production Overview</span>
         <span style={{ fontSize:11, color:'var(--muted)' }}>· {list.length} deliverable{list.length === 1 ? '' : 's'}</span>
@@ -1987,7 +1988,6 @@ export default function AvoProject({ idOverride, embedded, shareData, clientView
               ) : <div />}
               {!clientView && (
                 <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:8 }}>
-                  <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text, #e05252)' }} onClick={removePage}>Delete Page</button>
                   {isStaff && !shareData && (
                     <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap', justifyContent:'flex-end',
                       border:`1px solid ${page.share_token ? AVO + '88' : 'var(--border)'}`, borderRadius:10, padding:'6px 10px' }}>
@@ -1995,7 +1995,7 @@ export default function AvoProject({ idOverride, embedded, shareData, clientView
                       <input value={pwDraft} placeholder="No password set" onChange={e => setPwDraft(e.target.value)}
                         onKeyDown={e => { if (e.key === 'Enter') enableShare(pwDraft.trim()); }}
                         style={{ fontSize:12, width:150, padding:'4px 8px' }} />
-                      <button className="btn btn-primary btn-sm" onClick={() => enableShare(pwDraft.trim())}>Save</button>
+                      <button className="evt-glass" onClick={() => enableShare(pwDraft.trim())}>Save</button>
                       {page.share_token && (
                         <>
                           <span style={{ color:'var(--border2, #333)' }}>|</span>
@@ -2013,25 +2013,16 @@ export default function AvoProject({ idOverride, embedded, shareData, clientView
               WebkitMaskImage:'linear-gradient(to right, transparent 0, #000 16px, #000 calc(100% - 16px), transparent 100%)',
               maskImage:'linear-gradient(to right, transparent 0, #000 16px, #000 calc(100% - 16px), transparent 100%)' }}>
               {TABS.map(([k, label]) => (
-                <button key={k} onClick={() => setTab(k)}
-                  style={{
-                    background: tab === k ? `${AVO}2e` : 'transparent', border:`1px solid ${tab === k ? AVO : 'var(--border)'}`,
-                    color: tab === k ? AVO : 'var(--muted)', borderRadius:16, padding:'5px 14px', fontSize:11, fontWeight:800, cursor:'pointer', whiteSpace:'nowrap', flexShrink:0,
-                  }}>
+                <button key={k} onClick={() => setTab(k)} className={`avo-tab${tab === k ? ' on' : ''}`}>
                   {label}{k === 'tracker' && edits.length ? ` (${edits.length})` : ''}
                 </button>
               ))}
               {tables.map(t => (
-                <button key={t.id} onClick={() => setTab('table:' + t.id)}
-                  style={{
-                    background: tab === 'table:' + t.id ? `${AVO}2e` : 'transparent', border:`1px solid ${tab === 'table:' + t.id ? AVO : 'var(--border)'}`,
-                    color: tab === 'table:' + t.id ? AVO : 'var(--muted)', borderRadius:16, padding:'5px 14px', fontSize:11, fontWeight:800, cursor:'pointer', whiteSpace:'nowrap', flexShrink:0,
-                  }}>
+                <button key={t.id} onClick={() => setTab('table:' + t.id)} className={`avo-tab${tab === 'table:' + t.id ? ' on' : ''}`}>
                   {t.name}
                 </button>
               ))}
-              <button onClick={addTable} title="Add a custom table as a new tab"
-                style={{ background:'var(--bg)', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:16, padding:'5px 14px', fontSize:11, fontWeight:800, cursor:'pointer', whiteSpace:'nowrap', flexShrink:0 }}>
+              <button onClick={addTable} title="Add a custom table as a new tab" className="avo-tab">
                 + Add Custom Table
               </button>
             </div>
@@ -2092,6 +2083,11 @@ export default function AvoProject({ idOverride, embedded, shareData, clientView
                 </>
               );
             })()}
+            {!clientView && (
+              <div style={{ display:'flex', justifyContent:'center', marginTop:34 }}>
+                <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text, #e05252)' }} onClick={removePage}>Delete Page</button>
+              </div>
+            )}
           </>
         )}
       </div>
