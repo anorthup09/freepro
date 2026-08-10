@@ -208,10 +208,8 @@ export default function Team() {
 
   return (
     <div style={{ minHeight:'100vh', background:'transparent' }}>
-      <TeamHeader />
-      <HubBottomNav />
-      <div style={{ maxWidth:1150, margin:'0 auto', padding:'6px 16px 110px' }}>
-        <GlassDock top active={view} onSelect={setView} items={[
+      <div style={{ paddingTop:12 }}>
+      <GlassDock top active={view} onSelect={setView} items={[
           { key:'roster', label:'Roster', color:BLUE, icon:(
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.4 2.9-5.5 6.5-5.5s6.5 2.1 6.5 5.5"/><circle cx="17" cy="9" r="2.4"/><path d="M16.5 14.7c2.9.3 5 2.1 5 4.8"/></svg>
           )},
@@ -225,10 +223,14 @@ export default function Team() {
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M8 3v4M16 3v4M3 10h18"/><path d="M12 12.6l.95 1.92 2.12.31-1.53 1.49.36 2.11L12 18.44l-1.9 1 .36-2.11-1.53-1.49 2.12-.31z"/></svg>
           )},
         ]} />
+      </div>
+      <TeamHeader />
+      <HubBottomNav />
+      <div style={{ maxWidth:1150, margin:'0 auto', padding:'6px 16px 110px' }}>
         {view === 'roster' && <div style={{ maxWidth:760, margin:'12px auto 0' }}><RosterLookup /></div>}
         {view === 'form' && (
         <>
-        <div style={{ maxWidth:680, margin:'0 auto' }}>
+        <div style={{ maxWidth:680, margin:'0 auto', minHeight:'calc(100vh - 380px)', display:'flex', flexDirection:'column', justifyContent:'center' }}>
         <div style={{ fontSize:12, color:'#e05252', fontWeight:700, margin:'8px 0 16px' }}>
           Please remember to send your Backup Plan document with coverage for your ongoing projects before taking PTO.
         </div>
