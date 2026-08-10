@@ -208,11 +208,11 @@ export default function Team() {
 
   return (
     <div style={{ minHeight:'100vh', background:'transparent' }}>
-      <div style={{ display:'grid', gridTemplateColumns:'1fr auto 1fr', alignItems:'center', gap:10, padding:'14px 26px 4px' }}>
-        <Link to="/" style={{ display:'flex', alignItems:'center' }} title="Back to the Unbridled Media hub">
+      <div className="team-toprow">
+        <Link to="/" className="team-toplogo" style={{ display:'flex', alignItems:'center' }} title="Back to the Unbridled Media hub">
           <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height:20, filter:'brightness(0) invert(1)', opacity:0.95 }} />
         </Link>
-        <div style={{ minWidth:0, maxWidth:'calc(100vw - 32px)' }}>
+        <div className="team-topdock" style={{ minWidth:0, maxWidth:'calc(100vw - 32px)' }}>
       <GlassDock top active={view} onSelect={setView} items={[
           { key:'roster', label:'Roster', color:BLUE, icon:(
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.4 2.9-5.5 6.5-5.5s6.5 2.1 6.5 5.5"/><circle cx="17" cy="9" r="2.4"/><path d="M16.5 14.7c2.9.3 5 2.1 5 4.8"/></svg>
@@ -228,7 +228,7 @@ export default function Team() {
           )},
         ]} />
         </div>
-        <div style={{ display:'flex', alignItems:'center', gap:10, justifySelf:'end' }}>
+        <div className="team-topbtns" style={{ display:'flex', alignItems:'center', gap:10, justifySelf:'end' }}>
           <Link to="/crew-calendar" className="evt-glass" style={{ textDecoration:'none' }}>Crew Calendar</Link>
           <HomeButton />
         </div>
