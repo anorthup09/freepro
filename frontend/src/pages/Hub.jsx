@@ -1460,8 +1460,8 @@ const HUB_CSS = `
   box-shadow:inset 0 1px 0 rgba(255,255,255,0.30), inset 1px 0 0 rgba(255,255,255,0.10), inset 0 12px 30px -16px rgba(255,255,255,0.24), 0 26px 70px rgba(0,0,0,0.55)}
 .hub-splash-tile img{width:62%;animation:splashBreath 2.6s cubic-bezier(.16,.84,.32,.99) both}
 .hub-splash-tile::before{content:'';position:absolute;inset:-1px;border-radius:inherit;padding:2px;pointer-events:none;
-  background:conic-gradient(from calc(315deg + var(--splash-a)),
-    rgba(255,255,255,0.95), rgba(255,214,180,0.55) 12%, rgba(255,255,255,0.06) 26%, transparent 42%, transparent 100%);
+  background:conic-gradient(from calc(311deg + var(--splash-a)),
+    transparent 0%, rgba(255,255,255,0.95) 4%, rgba(255,214,180,0.55) 15%, rgba(255,255,255,0.06) 28%, transparent 44%, transparent 100%);
   -webkit-mask:linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite:xor;mask:linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);mask-composite:exclude;
   animation:splashSweep 2.6s cubic-bezier(.16,.84,.32,.99) 1 both}
