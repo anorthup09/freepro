@@ -30,7 +30,7 @@ export default function GlassDock({ items, active, onSelect, align = 'center', t
   return (
     <div className="glass-dock no-print" style={{
       ...(top
-        ? { position:'relative', margin:'14px auto 8px', width:'max-content' }
+        ? { position:'relative', margin:'0 auto', width:'max-content' }
         : { position:'fixed', bottom:'calc(env(safe-area-inset-bottom, 0px) + 14px)',
             ...(align === 'right' ? { right:14 } : { left:'50%', transform:'translateX(-50%)' }), zIndex:110 }),
       display:'flex', alignItems:'center', gap:2,

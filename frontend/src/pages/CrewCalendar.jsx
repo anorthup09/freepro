@@ -198,7 +198,6 @@ export default function CrewCalendar() {
           Scroll sideways through the schedule — bars show assignment start–end dates. Assigning someone (with dates) emails them an Outlook calendar hold automatically.
         </div>
       </div>
-      <HubBottomNav />
     </div>
   );
 }

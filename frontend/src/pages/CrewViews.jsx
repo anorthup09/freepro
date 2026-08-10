@@ -172,7 +172,6 @@ export default function CrewViews() {
         )}
         <div style={{ height: 100 }} />
       </div>
-      <HubBottomNav />
     </>
   );
 }

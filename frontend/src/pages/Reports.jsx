@@ -242,7 +242,6 @@ export default function Reports() {
           })}
         </div>
       </div>
-      <HubBottomNav />
     </div>
   );
 }

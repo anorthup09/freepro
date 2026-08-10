@@ -7,6 +7,7 @@ import CrewCalendar from './pages/CrewCalendar.jsx';
 import Project from './pages/Project/index.jsx';
 import TalentCallSheets from './pages/Project/TalentCallSheets.jsx';
 import CrewViews from './pages/CrewViews.jsx';
+import { HubBottomNav } from './pages/Hub.jsx';
 
 class ErrorBoundary extends React.Component {
   constructor(props) { super(props); this.state = { error: null }; }
@@ -273,6 +274,7 @@ function SlideRoutes({ children }) {
 }
 
 export default function App() {
+  const loc = useLocation();
   const [realUser, setUser] = useState(undefined); // undefined = loading
   // Admin role preview: browse the platform as another role (UI-only — the
   // API still sees the admin token, but every route guard and menu follows
@@ -311,6 +313,10 @@ export default function App() {
       <MailNoticeHost />
       <DailyTestingNotice user={user} />
       {user && <FeedbackBoard variant="fab" />}
+      {/* Persistent bottom nav for the four hub-level pages: it lives outside
+          SlideRoutes so page transitions slide the content underneath it while
+          the dock stays mounted */}
+      {user && user.role !== 'PENDING' && ['/', '/crew-calendar', '/reports', '/team', '/crew-views'].includes(loc.pathname) && <HubBottomNav />}
       {user?.role === 'PENDING' ? <PendingApproval setUser={setUser} /> : (realUser && (['ADMIN','PRODUCER'].includes(realUser.role) || realUser.mfa_required === true) && realUser.mfa_enabled === false) ? <MfaSetup /> : (
       <SlideRoutes>
       <Routes>

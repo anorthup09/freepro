@@ -1915,18 +1915,18 @@ export function HubBottomNav({ raised = false }) {
   const activeKey = (items.find(i => i.active) || {}).key;
   const btnRefs = useRef({});
   const [bubble, setBubble] = useState(null);
-  // Navigating away collapses the dock right-to-left before the route change;
-  // the next page's dock then reveals left-to-right on mount (see NAV_CSS).
-  const [collapsing, setCollapsing] = useState(false);
-  // Drop the entrance-animation class once it has played out — mobile Safari
-  // can leave the staggered blur frozen mid-frame if the animation lingers
+  // The dock lives at the app shell now and persists across the four hub
+  // pages — only the page content slides. Its entrance plays once at mount:
+  // the delayed dashboard choreography when the app opens on '/', the quick
+  // wipe otherwise. The class comes off afterwards (a lingering filled
+  // transform animation freezes blur on mobile Safari).
+  const initialHome = useRef(path === '/');
   const [entered, setEntered] = useState(false);
-  useEffect(() => { const t = setTimeout(() => setEntered(true), 2800); return () => clearTimeout(t); }, []);
+  useEffect(() => { const t = setTimeout(() => setEntered(true), initialHome.current ? 5600 : 1200); return () => clearTimeout(t); }, []);
   const go = (to) => {
-    if (path === to || collapsing) return;
-    setCollapsing(true);
-    // Slide the whole page off to the left; the destination flies in from the
-    // right (one-shot flag consumed by SlideRoutes in App.jsx)
+    if (path === to) return;
+    // Slide the page content off left; the destination flies in from the
+    // right (one-shot flag consumed by SlideRoutes). The dock stays put.
     try { sessionStorage.setItem('fp_slide', '1'); } catch {}
     document.body.classList.add('page-out');
     setTimeout(() => { nav(to); document.body.classList.remove('page-out'); }, 300);
@@ -1944,11 +1944,11 @@ export function HubBottomNav({ raised = false }) {
   return (
     <>
       <style>{NAV_CSS}</style>
-      <div className={`hub-bottomnav${path === '/' && !entered ? ' homeload' : ''}${scrolled ? ' condensed' : ''}${raised ? ' raised' : ''}${collapsing ? ' collapsing' : ''}`}>
+      <div className={`hub-bottomnav${initialHome.current && !entered ? ' homeload' : ''}${scrolled ? ' condensed' : ''}${raised ? ' raised' : ''}`}>
         {bubble && <div className="hub-navbubble" style={{ left: bubble.left, top: bubble.top, width: bubble.width, height: bubble.height }} />}
         {items.map((it, i) => (
           <button key={it.key} ref={el => { btnRefs.current[it.key] = el; }}
-            style={path === '/' ? { animationDelay: `${1.35 + i * 0.18}s` } : undefined}
+            style={initialHome.current && !entered ? { animationDelay: `${3.85 + i * 0.18}s` } : undefined}
             className={`hub-navitem${it.active ? ' active' : ''}`} onClick={() => go(it.to)}>
             {it.icon}<span className="lbl">{it.label}</span>
           </button>
@@ -1976,7 +1976,7 @@ const NAV_CSS = `
    out (2.4s-3.05s), so these delays push the show past the splash — the shell
    wipes open left-to-right first, then each nav item blur/fades in (staggered
    via inline animation-delay) while the page tiles are still entering */
-.hub-bottomnav.homeload{animation:dockReveal .9s cubic-bezier(.22,.61,.36,1) .65s both}
+.hub-bottomnav.homeload{animation:dockReveal .9s cubic-bezier(.22,.61,.36,1) 3.15s both}
 .hub-bottomnav.homeload .hub-navitem{animation:navItemIn .6s cubic-bezier(.22,.61,.36,1) both}
 @keyframes navItemIn{from{opacity:0;filter:blur(7px)}to{opacity:1;filter:none}}
 @media (prefers-reduced-motion: reduce){.hub-bottomnav .hub-navitem{animation:none !important}}
@@ -2228,9 +2228,6 @@ export default function Hub() {
         </div>
         )}
 
-      {/* Mount with the cascade — mounted earlier, its reveal plays out
-          invisibly behind the opaque splash overlay */}
-      {splashFading && <HubBottomNav />}
 
       {showNewProject && (
         <NewProjectModal
