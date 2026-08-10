@@ -832,7 +832,7 @@ async function notifySitePhoto(user, caption, mime, buf) {
     html: noticeHtml({
       tag: 'Production', note: 'On-site photo submitted',
       title: proj ? proj.title : 'On-site photo', subtitle: proj ? proj.code : undefined,
-      intro: `${user.name || user.email} submitted an on-site photo from the hub — the shot is attached to this email.`,
+      intro: `${user.name || user.email} submitted an on-site photo from the hub — the shot is below.`,
       rows: [
         ['Submitted by', user.name || user.email],
         proj ? ['Project', `${proj.code} — ${proj.title}`] : null,
@@ -841,9 +841,12 @@ async function notifySitePhoto(user, caption, mime, buf) {
         ['Caption', caption || '(none)'],
       ].filter(Boolean),
       blocks: crew.length ? [['Crew', crew.map(c => `${c.name} — ${c.position_name}`).join('\n')]] : [],
+      // cid: reference renders the attached bytes inline (photos live behind
+      // auth in Postgres — there is no public URL to point at)
+      image: { src: 'cid:site-photo', alt: caption || 'On-site photo' },
       postmark: new Date(),
     }),
-    attachments: [{ filename: `on-site-photo.${ext}`, content: buf, contentType: mime || 'image/jpeg' }],
+    attachments: [{ filename: `on-site-photo.${ext}`, content: buf, contentType: mime || 'image/jpeg', cid: 'site-photo' }],
     automationKey: 'site-photo',
   });
 }

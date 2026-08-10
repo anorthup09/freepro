@@ -157,10 +157,11 @@ router.get('/automations/:key/preview', ...admin, async (req, res, next) => {
           postmark: pm }) },
       'site-photo': { subject: 'On-site photo — 02.LPL16926 LPL Focus 2026 (from Fred Munoz)',
         html: noticeHtml({ tag: 'Production', note: 'On-site photo submitted', title: 'LPL Focus 2026 — Social Media', subtitle: '02.LPL16926',
-          intro: 'Fred Munoz submitted an on-site photo from the hub — the shot is attached to this email.',
+          intro: 'Fred Munoz submitted an on-site photo from the hub — the shot is below.',
           rows: [['Submitted by', 'Fred Munoz'], ['Project', '02.LPL16926 — LPL Focus 2026'], ['Client', 'LPL Financial'],
                  ['Location', 'San Diego, CA'], ['Caption', 'Sunset over the convention center load-in']],
           blocks: [['Crew', 'Joey Goldman — Field Producer\nJon Arneson — Onsite Editor\nJay Diaz — Camera Operator']],
+          image: { src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='360'%3E%3Crect width='100%25' height='100%25' fill='%23e8ded2'/%3E%3Ctext x='50%25' y='52%25' text-anchor='middle' font-family='Arial' font-size='20' fill='%238a8270'%3ESubmitted photo renders here%3C/text%3E%3C/svg%3E", alt: 'On-site photo' },
           postmark: pm }) },
     };
     const s = samples[key];

@@ -83,7 +83,7 @@ function harbingerHtml({ project, d, appUrl }) {
 // Every automated email shares this design: dark UNBRIDLED MEDIA header,
 // colored hero, labeled rows/blocks, optional action button + copy-able link,
 // and an optional postmark timestamp in the footer.
-function noticeHtml({ tag, title, subtitle, note, intro, rows = [], blocks = [], button, copyLink, postmark, color }) {
+function noticeHtml({ tag, title, subtitle, note, intro, rows = [], blocks = [], image, button, copyLink, postmark, color }) {
   const heroColor = color || BRAND.orange;
   const hero = `
     <div style="background:${heroColor};padding:20px 26px;color:#fff">
@@ -91,11 +91,12 @@ function noticeHtml({ tag, title, subtitle, note, intro, rows = [], blocks = [],
       <div style="font-size:20px;font-weight:800;margin-top:4px">${esc(title)}</div>
       ${subtitle ? `<div style="font-size:13px;margin-top:3px;opacity:.9">${esc(subtitle)}</div>` : ''}
     </div>`;
-  const detail = (intro || rows.some(r => r && r[1]) || blocks.some(b => b && b[1])) ? `
+  const detail = (intro || rows.some(r => r && r[1]) || blocks.some(b => b && b[1]) || (image && image.src)) ? `
     <div style="background:#fff;border:1px solid ${BRAND.border};border-top:none;padding:18px 26px">
       ${intro ? `<div style="font-size:13px;line-height:1.6;color:${BRAND.ink};margin-bottom:${rows.length || blocks.length ? '12px' : '0'}">${nl2br(intro)}</div>` : ''}
       ${rows.map(([l, v]) => row(l, v)).join('')}
       ${blocks.map(([l, v]) => block(l, v)).join('')}
+      ${image && image.src ? `<img src="${esc(image.src)}" alt="${esc(image.alt || '')}" style="display:block;width:100%;max-width:100%;border-radius:8px;margin-top:16px" />` : ''}
     </div>` : '';
   const linkBox = copyLink && copyLink.url ? `
     <div style="background:#fff;border:1px solid ${BRAND.border};border-top:none;padding:14px 26px">
