@@ -262,6 +262,9 @@ function SlideRoutes({ children }) {
     try { f = sessionStorage.getItem('fp_slide'); if (f) sessionStorage.removeItem('fp_slide'); } catch {}
     animRef.current = !!f;
   }
+  // New page, fresh scroll: without this, navigating mid-scroll leaves the
+  // next page half-scrolled and the persistent dock stuck condensed on phones
+  useEffect(() => { window.scrollTo(0, 0); }, [loc.pathname]);
   // The slide class must come OFF once the animation finishes: a filled
   // transform animation keeps the wrapper a containing block, which would
   // pin every position:fixed dock to the page instead of the viewport.

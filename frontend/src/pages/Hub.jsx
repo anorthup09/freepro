@@ -1714,13 +1714,13 @@ const HUB_CSS = `
 .hub-reveal.in{opacity:1;transform:none}
 
 /* Liquid-glass bottom nav */
-.hub-bottomnav{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:120;display:flex;align-items:stretch;gap:2px;padding:8px 12px;border-radius:26px;
+.hub-bottomnav{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom, 0px) + 16px);transform:translateX(-50%);z-index:120;display:flex;align-items:stretch;gap:2px;padding:8px 12px;border-radius:26px;
   background:rgba(30,27,23,0.34);backdrop-filter:blur(22px) saturate(1.7);-webkit-backdrop-filter:blur(22px) saturate(1.7);
   border:1px solid rgba(255,255,255,0.12);box-shadow:0 12px 40px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.14);transition:padding .28s ease}
 .hub-bottomnav.condensed{padding:7px 9px}
 /* Lifted clear of a page's own bottom dock (e.g. Team's GlassDock) so the global nav doesn't overlap it */
-.hub-bottomnav.raised{bottom:96px}
-@media (max-width:700px){.hub-bottomnav.raised{bottom:104px}}
+.hub-bottomnav.raised{bottom:calc(env(safe-area-inset-bottom, 0px) + 90px)}
+@media (max-width:700px){.hub-bottomnav.raised{bottom:calc(env(safe-area-inset-bottom, 0px) + 98px)}}
 .hub-navitem{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:none;border:none;color:var(--muted);
   font-size:9.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;padding:7px 16px;border-radius:18px;transition:color .15s ease,background .15s ease,padding .28s ease}
 .hub-navitem:hover{color:var(--text);background:rgba(255,255,255,0.07)}
@@ -1961,7 +1961,7 @@ export function HubBottomNav({ raised = false }) {
 // Self-contained styles for the bottom nav (duplicated from HUB_CSS so the nav
 // works on any page).
 const NAV_CSS = `
-.hub-bottomnav{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:120;display:flex;align-items:stretch;gap:2px;padding:8px 12px;border-radius:26px;
+.hub-bottomnav{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom, 0px) + 16px);transform:translateX(-50%);z-index:120;display:flex;align-items:stretch;gap:2px;padding:8px 12px;border-radius:26px;
   background:rgba(30,27,23,0.34);backdrop-filter:blur(22px) saturate(1.7);-webkit-backdrop-filter:blur(22px) saturate(1.7);
   border:1px solid rgba(255,255,255,0.12);box-shadow:0 12px 40px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.14);transition:padding .28s ease;
   animation:dockReveal .55s cubic-bezier(.22,.61,.36,1) both}
@@ -1983,8 +1983,8 @@ const NAV_CSS = `
 .hub-bottomnav.collapsing{animation:dockCollapse .3s cubic-bezier(.55,.06,.68,.19) both}
 @media (prefers-reduced-motion: reduce){.hub-bottomnav{animation:none}}
 .hub-bottomnav.condensed{padding:7px 9px}
-.hub-bottomnav.raised{bottom:96px}
-@media (max-width:700px){.hub-bottomnav.raised{bottom:104px}}
+.hub-bottomnav.raised{bottom:calc(env(safe-area-inset-bottom, 0px) + 90px)}
+@media (max-width:700px){.hub-bottomnav.raised{bottom:calc(env(safe-area-inset-bottom, 0px) + 98px)}}
 .hub-navitem{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:none;border:none;color:var(--muted);
   font-size:9.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;padding:7px 16px;border-radius:18px;transition:color .15s ease,padding .28s ease}
 .hub-navitem:hover{color:var(--text)}
