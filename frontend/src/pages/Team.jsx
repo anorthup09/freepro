@@ -21,12 +21,12 @@ const fmtD = d => d ? new Date(String(d).slice(0, 10) + 'T12:00:00').toLocaleDat
 
 function TeamHeader() {
   return (
-    <div style={{ display:'grid', gridTemplateColumns:'1fr auto 1fr', alignItems:'center', padding:'18px 26px', gap:10 }}>
-      <Link to="/" style={{ display:'flex', alignItems:'center', justifySelf:'start' }} title="Back to the Unbridled Media hub">
+    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 26px', gap:10 }}>
+      <Link to="/" style={{ display:'flex', alignItems:'center' }} title="Back to the Unbridled Media hub">
         <img src="/unbridled-logo.png" alt="Unbridled Media" style={{ height:20, filter:'brightness(0) invert(1)', opacity:0.95 }} />
       </Link>
-      <Link to="/crew-calendar" className="evt-glass" style={{ justifySelf:'center', textDecoration:'none' }}>Crew Calendar</Link>
-      <div style={{ justifySelf:'end' }}>
+      <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+        <Link to="/crew-calendar" className="evt-glass" style={{ textDecoration:'none' }}>Crew Calendar</Link>
         <HomeButton />
       </div>
     </div>
