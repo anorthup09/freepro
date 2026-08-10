@@ -2328,6 +2328,39 @@ function HubPreviewLink() {
 
 // Single Admin button (above Sign out) that unfolds User Management and
 // Automations — admin role only.
+// "Preview as role" condensed to a pill: opens a small drop-up of roles.
+function RolePreviewButton() {
+  const { preview, setPreview } = useAuth();
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    const h = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, []);
+  return (
+    <div ref={ref} style={{ position:'relative' }}>
+      <button onClick={() => setOpen(o => !o)} title="Preview the platform as another role"
+        style={{ background:'none', border:`1px solid ${preview ? '#a78bfa' : 'var(--border)'}`, borderRadius:14, padding:'4px 12px',
+          color: preview ? '#a78bfa' : 'var(--muted)', fontSize:10, fontWeight:600, letterSpacing:'.05em', cursor:'pointer', whiteSpace:'nowrap' }}>
+        {preview ? `Viewing: ${roleLabel(preview)}` : 'Role Preview'} ▸
+      </button>
+      {open && (
+        <div style={{ position:'absolute', bottom:'calc(100% + 6px)', left:0, zIndex:300, background:'var(--bg)', border:'1px solid var(--border)',
+          borderRadius:8, minWidth:160, overflow:'hidden', boxShadow:'0 8px 20px rgba(0,0,0,0.4)' }}>
+          {[['', 'View as… (off)'], ...['PRODUCER','FINANCE','CREW','AGENCY'].map(r => [r, `View as ${roleLabel(r)}`])].map(([v, label]) => (
+            <div key={v || 'off'} onClick={() => { setPreview(v); setOpen(false); }}
+              style={{ padding:'8px 14px', fontSize:12, cursor:'pointer', color: (preview || '') === v ? '#a78bfa' : 'var(--text)', fontWeight: (preview || '') === v ? 700 : 400 }}
+              onMouseEnter={e => e.currentTarget.style.background='var(--bg2)'} onMouseLeave={e => e.currentTarget.style.background='transparent'}>
+              {label}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AdminPanel({ user }) {
   const { preview, setPreview } = useAuth();
   const nav = useNavigate();
@@ -2349,6 +2382,7 @@ function AdminPanel({ user }) {
       {open && (
         <div style={{ display:'flex', flexDirection:'column', alignItems:'stretch', gap:8, width:'100%', maxWidth:300 }}>
           <div style={{ display:'flex', justifyContent:'center', alignItems:'center', gap:8, flexWrap:'nowrap', width:'max-content', alignSelf:'center', maxWidth:'92vw' }}>
+            <RolePreviewButton />
             <UserManagement user={user} />
             <HubPreviewLink />
             <Automations />
@@ -2359,13 +2393,6 @@ function AdminPanel({ user }) {
           </div>
           <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, padding:'14px 16px' }}>
             <div style={{ fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:'.06em', marginBottom:12 }}>Platform</div>
-            <div style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'.06em', marginBottom:4 }}>Preview as role</div>
-            <select value={preview || ''} title="Preview the platform as another role"
-              onChange={e => setPreview(e.target.value)}
-              style={{ width:'100%', fontSize:12, padding:'6px 8px', borderRadius:8, background:'var(--bg)', color: preview ? '#a78bfa' : 'var(--muted)', border:`1px solid ${preview ? '#a78bfa' : 'var(--border)'}`, marginBottom:12 }}>
-              <option value="">View as… (off)</option>
-              {['PRODUCER', 'FINANCE', 'CREW', 'AGENCY'].map(r => <option key={r} value={r}>View as {roleLabel(r)}</option>)}
-            </select>
             <button className="btn btn-ghost btn-sm" style={{ width:'100%' }} onClick={backup}
               title="Download a full database backup (all projects, budgets, contracts, roster)">⬇ Backup Database</button>
           </div>
