@@ -1820,6 +1820,7 @@ async function migrate() {
       data BYTEA,
       created_at TIMESTAMPTZ DEFAULT NOW()
     )`;
+  await sql`ALTER TABLE site_photos ADD COLUMN IF NOT EXISTS project_id TEXT`;
 
   // Ways of Being: weekly shoutouts for teammates going above and beyond
   await sql`

@@ -61,7 +61,10 @@ export default function SitePhotosReport() {
             <div key={r.id} className="glass" style={{ borderRadius: 14, padding: 12 }}>
               <Photo id={r.id} onClick={() => setZoom(r)} />
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, marginTop: 9 }}>
-                <div style={{ fontSize: 12.5, fontWeight: 800, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.member_name || r.member_email}</div>
+                <div style={{ fontSize: 12.5, fontWeight: 800, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {r.member_name || r.member_email}
+                  {r.project_code && <span style={{ fontSize: 9.5, fontWeight: 800, color: 'var(--muted)', marginLeft: 7 }}>{r.project_code}</span>}
+                </div>
                 <div style={{ fontSize: 9.5, color: 'var(--muted)', flexShrink: 0 }}>{fmtD(r.created_at)}</div>
               </div>
               {r.caption && <div style={{ fontSize: 11.5, color: 'var(--text)', marginTop: 3, lineHeight: 1.4 }}>“{r.caption}”</div>}

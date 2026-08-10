@@ -155,6 +155,7 @@ export const api = {
   submitFunFact: (answer) => req('POST', '/dashboard/funfact', { answer }),
   funFactToday: () => req('GET', '/dashboard/funfact/today'),
   submitSitePhoto: (data) => req('POST', '/dashboard/site-photo', data),
+  sitePhotoEligible: () => req('GET', '/dashboard/site-photo/eligible'),
   sitePhotos: () => req('GET', '/dashboard/site-photos'),
   deleteSitePhoto: (id) => req('DELETE', `/dashboard/site-photo/${id}`),
   submitWob: (data) => req('POST', '/dashboard/wob', data),

@@ -747,8 +747,57 @@ router.post('/funfact', requireAuth, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+
+// The shoot an on-site photo ties back to: a crew assignment (or agency-contact
+// shoot day) that is active today or ended within 1 business day — a Friday
+// wrap keeps the photo button through Monday.
+function nextBusinessDay(d) {
+  const x = new Date(String(d).slice(0, 10) + 'T12:00:00');
+  do { x.setDate(x.getDate() + 1); } while (x.getDay() === 0 || x.getDay() === 6);
+  return x.toISOString().slice(0, 10);
+}
+async function photoShootFor(user, cm) {
+  const today = bizToday();
+  if (cm) {
+    const rows = await sql`
+      SELECT pr.id, pr.code, pr.title, pr.client, pr.city, pr.state,
+             ca.start_date, GREATEST(COALESCE(ca.end_date, ca.start_date), ca.start_date) as eff_end
+      FROM crew_assignments ca JOIN projects pr ON pr.id = ca.project_id
+      WHERE ca.crew_member_id = ${cm.id} AND pr.status != 'ARCHIVED'
+        AND ca.start_date::date <= ${today}
+        AND GREATEST(COALESCE(ca.end_date, ca.start_date), ca.start_date)::date >= ${today}::date - 4
+      ORDER BY ca.start_date DESC`;
+    for (const r of rows) {
+      const effEnd = String(r.eff_end).slice(0, 10);
+      if (effEnd >= today || nextBusinessDay(effEnd) >= today) return r;
+    }
+  }
+  const email = (user.email || '').toLowerCase();
+  const days = await sql`
+    SELECT DISTINCT pr.id, pr.code, pr.title, pr.client, pr.city, pr.state, sd.date
+    FROM agency_contacts ac
+    JOIN projects pr ON pr.id = ac.project_id
+    JOIN shoot_days sd ON sd.project_id = pr.id AND sd.date::date >= ${today}::date - 4 AND sd.date::date <= ${today}
+    WHERE pr.status != 'ARCHIVED' AND ${email} <> '' AND LOWER(ac.email) = ${email}
+    ORDER BY sd.date DESC`;
+  for (const r of days) {
+    const d = String(r.date).slice(0, 10);
+    if (d === today || nextBusinessDay(d) >= today) return r;
+  }
+  return null;
+}
+
 // On-site photos: anyone can submit a shot from the field with a caption —
 // it joins the daily MediaMoment rotation alongside facts and shoutouts.
+// Should the "Submit a Photo!" pill show? Only on a shoot (+1 business day)
+router.get('/site-photo/eligible', requireAuth, async (req, res, next) => {
+  try {
+    const cm = await myCrewMember(req.user.email);
+    const proj = await photoShootFor(req.user, cm);
+    res.json(proj ? { eligible: true, project: { id: proj.id, code: proj.code, title: proj.title } } : { eligible: false });
+  } catch (e) { next(e); }
+});
+
 router.post('/site-photo', requireAuth, async (req, res, next) => {
   try {
     const { mime, fileBase64 } = req.body;
@@ -758,8 +807,10 @@ router.post('/site-photo', requireAuth, async (req, res, next) => {
     const buf = Buffer.from(fileBase64, 'base64');
     if (buf.length > 10 * 1024 * 1024) return res.status(400).json({ error: 'Photo too large (10MB max)' });
     const key = (req.user.email || '').toLowerCase();
-    await sql`INSERT INTO site_photos (member_email, member_name, caption, mime, data)
-      VALUES (${key}, ${req.user.name || key}, ${caption.slice(0, 300)}, ${mime}, ${buf})`;
+    const cm = await myCrewMember(req.user.email);
+    const shoot = await photoShootFor(req.user, cm);
+    await sql`INSERT INTO site_photos (member_email, member_name, caption, mime, data, project_id)
+      VALUES (${key}, ${req.user.name || key}, ${caption.slice(0, 300)}, ${mime}, ${buf}, ${shoot ? shoot.id : null})`;
     res.status(201).json({ ok: true });
     // Automation: forward the shot + shoot context to Ben Lamb (fire-and-forget;
     // if SMTP isn't configured the mailer files it as an outbox draft)
@@ -772,27 +823,8 @@ router.post('/site-photo', requireAuth, async (req, res, next) => {
 // that project's full crew list.
 async function notifySitePhoto(user, caption, mime, buf) {
   const { sendMail } = require('../lib/mailer');
-  const today = bizToday();
   const cm = await myCrewMember(user.email);
-  let proj = null;
-  if (cm) {
-    [proj] = await sql`
-      SELECT pr.id, pr.code, pr.title, pr.client, pr.city, pr.state
-      FROM crew_assignments ca JOIN projects pr ON pr.id = ca.project_id
-      WHERE ca.crew_member_id = ${cm.id} AND pr.status != 'ARCHIVED'
-        AND ca.start_date::date <= ${today} AND GREATEST(COALESCE(ca.end_date, ca.start_date), ca.start_date)::date >= ${today}
-      ORDER BY ca.start_date LIMIT 1`;
-  }
-  if (!proj) {
-    const email = (user.email || '').toLowerCase();
-    [proj] = await sql`
-      SELECT DISTINCT pr.id, pr.code, pr.title, pr.client, pr.city, pr.state
-      FROM agency_contacts ac
-      JOIN projects pr ON pr.id = ac.project_id
-      JOIN shoot_days sd ON sd.project_id = pr.id AND sd.date::date = ${today}
-      WHERE pr.status != 'ARCHIVED' AND ${email} <> '' AND LOWER(ac.email) = ${email}
-      LIMIT 1`;
-  }
+  const proj = await photoShootFor(user, cm);
   const { city, state } = proj ? await resolveShootLocation(proj.id, proj.city, proj.state) : {};
   const crew = proj ? await sql`
     SELECT ${sql.unsafe(PREF)} as name, p.name as position_name
@@ -853,7 +885,10 @@ async function notifySitePhoto(user, caption, mime, buf) {
 // Roster of every submitted on-site photo (report under People)
 router.get('/site-photos', requireAuth, async (req, res, next) => {
   try {
-    res.json(await sql`SELECT id, member_name, member_email, caption, mime, created_at FROM site_photos ORDER BY created_at DESC`);
+    res.json(await sql`
+      SELECT sp.id, sp.member_name, sp.member_email, sp.caption, sp.mime, sp.created_at, pr.code as project_code
+      FROM site_photos sp LEFT JOIN projects pr ON pr.id = sp.project_id
+      ORDER BY sp.created_at DESC`);
   } catch (e) { next(e); }
 });
 router.delete('/site-photo/:id', requireAuth, async (req, res, next) => {

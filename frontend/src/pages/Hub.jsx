@@ -92,6 +92,10 @@ export function TripPrompt() {
 // prompt. Opens a pop-out to upload a shot with a caption; submissions join
 // the daily MediaMoment rotation.
 function SitePhotoButton() {
+  // Only shown while the user is on a shoot (through 1 business day after
+  // wrap) — the submission ties back to that shoot
+  const [eligible, setEligible] = useState(false);
+  useEffect(() => { api.sitePhotoEligible().then(r => setEligible(!!r.eligible)).catch(() => {}); }, []);
   const [open, setOpen] = useState(false);
   const [file, setFile] = useState(null);      // { name, mime, base64, preview }
   const [caption, setCaption] = useState('');
@@ -112,6 +116,7 @@ function SitePhotoButton() {
     try { await api.submitSitePhoto({ mime: file.mime, fileBase64: file.base64, caption: caption.trim() }); close(); }
     catch (e) { alert(e.message); setSaving(false); }
   }
+  if (!eligible) return null;
   return (
     <>
       <button className="mm-welcome mm-photobtn" onClick={() => setOpen(true)} style={{ font: 'inherit', cursor: 'pointer' }}
