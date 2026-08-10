@@ -46,7 +46,7 @@ export default function GearDashboard() {
 
         <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', alignItems: 'flex-start' }}>
           {/* Left — locked gear request form */}
-          <div style={{ flex: '1 1 460px', minWidth: 300, background: 'var(--bg2)', border: '1px solid var(--border)', borderTop: '3px solid var(--orange)', borderRadius: 12, padding: '18px 22px' }}>
+          <div className="glass" style={{ flex: '1 1 460px', minWidth: 300, borderTop: '3px solid var(--orange)', borderRadius: 12, padding: '18px 22px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <div style={{ fontSize: 15, fontWeight: 800 }}>Gear Request</div>
               <span style={{ fontSize: 9, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)', border: '1px solid var(--border)', borderRadius: 10, padding: '2px 8px' }}>🔒 Locked</span>
@@ -59,7 +59,7 @@ export default function GearDashboard() {
           <DrivesTile pid={pid} />
 
           {/* Right — activity feed */}
-          <div style={{ flex: '1 1 340px', minWidth: 280, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 12, padding: '18px 20px' }}>
+          <div className="glass" style={{ flex: '1 1 340px', minWidth: 280, borderRadius: 12, padding: '18px 20px' }}>
             <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 12 }}>Activity</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 14 }}>
               {feed.length === 0 && <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>No activity yet.</div>}

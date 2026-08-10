@@ -22,7 +22,7 @@ export default function DrivesTile({ pid, title = 'Drives', style }) {
   }
 
   return (
-    <div style={{ flex: '1 1 340px', minWidth: 280, background: 'var(--bg2)', border: '1px solid var(--border)', borderTop: '3px solid #4a9eff', borderRadius: 12, padding: '18px 20px', ...style }}>
+    <div className="glass" style={{ flex: '1 1 340px', minWidth: 280, borderTop: '3px solid #4a9eff', borderRadius: 12, padding: '18px 20px', ...style }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
         <div style={{ fontSize: 15, fontWeight: 800 }}>{title} <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)' }}>· {mine.length} on this shoot</span></div>
         <button className="btn btn-ghost btn-sm" onClick={() => setPickerOpen(o => !o)}>{pickerOpen ? 'Done' : '+ Tag Drive'}</button>
