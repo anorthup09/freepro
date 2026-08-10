@@ -1389,6 +1389,79 @@ router.post('/finance/budget/:bid/share', ...finance, async (req, res, next) => 
   } catch (e) { next(e); }
 });
 
+// Excel export of the full budget — every section, line, subtotal, and the
+// coordination fee / grand total, mirroring the on-screen budget math.
+router.get('/finance/budget/:bid/export.xlsx', ...finance, async (req, res, next) => {
+  try {
+    const XLSX = require('xlsx');
+    const [budget] = await sql`SELECT id, project_id, budget_date, solutions_code, mgmt_fee_rate FROM budgets WHERE id = ${req.params.bid}`;
+    if (!budget) return res.status(404).json({ error: 'Budget not found' });
+    const [project] = await sql`SELECT code, title, client FROM projects WHERE id = ${budget.project_id}`;
+    const sections = await sql`SELECT id, title, subtitle, kind, sort FROM budget_sections WHERE budget_id = ${budget.id} ORDER BY sort`;
+    const lines = await sql`SELECT id, section_id, scope, notes, qty, unit_cost, percent, is_travel, sort FROM budget_lines WHERE budget_id = ${budget.id} ORDER BY sort`;
+
+    const mgmtRate = budget.mgmt_fee_rate != null ? Number(budget.mgmt_fee_rate) : 0.15;
+    const bySection = {};
+    for (const l of lines) (bySection[l.section_id] ||= []).push(l);
+
+    const MONEY = '"$"#,##0.00';
+    const rows = [];      // arrays of cell values
+    const fmts = [];      // per-row: map of colIndex → number format
+    const push = (arr, fmt) => { rows.push(arr); fmts.push(fmt || null); };
+
+    push([`${project.code} — ${project.title}`]);
+    push([`Client: ${project.client || ''}`]);
+    if (budget.budget_date) push([`Budget Dated: ${budget.budget_date}`]);
+    if (budget.solutions_code) push([`Solutions Code: ${budget.solutions_code}`]);
+    push([]);
+    push(['Section', 'Scope of Work', 'Notes', 'Hrs/Days', 'Unit Cost', 'Subtotal']);
+
+    let nonTravel = 0, travel = 0, photo = 0;
+    for (const sec of sections) {
+      const secLines = (bySection[sec.id] || []).sort((a, b) => a.sort - b.sort)
+        .filter(l => lineSubtotal(l, bySection[sec.id]) > 0 || Number(l.qty) > 0);
+      if (!secLines.length) continue;
+      const secTotal = secLines.reduce((s, l) => s + lineSubtotal(l, bySection[sec.id]), 0);
+      push([]);
+      push([sec.title + (sec.subtitle ? ` — ${sec.subtitle}` : ''), '', '', '', '', secTotal], { 5: MONEY });
+      const emit = l => {
+        const st = lineSubtotal(l, bySection[sec.id]);
+        if (sec.kind === 'photo') photo += st; else if (l.is_travel) travel += st; else nonTravel += st;
+        push(['', l.scope || '', l.notes || '', Number(l.qty) || 0,
+          l.percent != null ? `${Math.round(Number(l.percent) * 100)}%` : Number(l.unit_cost) || 0, st],
+          { 4: l.percent != null ? null : MONEY, 5: MONEY });
+      };
+      secLines.filter(l => !l.is_travel).forEach(emit);
+      const trav = secLines.filter(l => l.is_travel);
+      if (trav.length) { push(['', 'TRAVEL']); trav.forEach(emit); }
+    }
+
+    const mgmt = mgmtRate * nonTravel;
+    push([]);
+    push(['Production & Post-Production', '', '', '', '', nonTravel], { 5: MONEY });
+    if (travel > 0) push(['Travel', '', '', '', '', travel], { 5: MONEY });
+    push([`Project Management & Coordination (${Math.round(mgmtRate * 100)}%)`, '', '', '', '', mgmt], { 5: MONEY });
+    if (photo > 0) push(['Photography', '', '', '', '', photo], { 5: MONEY });
+    push(['TOTAL BUDGET', '', '', '', '', nonTravel + travel + mgmt + photo], { 5: MONEY });
+
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols'] = [{ wch: 38 }, { wch: 30 }, { wch: 46 }, { wch: 9 }, { wch: 12 }, { wch: 14 }];
+    for (let r = 0; r < rows.length; r++) {
+      if (!fmts[r]) continue;
+      for (const [c, z] of Object.entries(fmts[r])) {
+        const cell = ws[XLSX.utils.encode_cell({ r, c: Number(c) })];
+        if (cell && typeof cell.v === 'number' && z) cell.z = z;
+      }
+    }
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Budget');
+    const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${(project.code || 'budget').replace(/[^\w.-]+/g, '_')}_Budget.xlsx"`);
+    res.send(buf);
+  } catch (e) { next(e); }
+});
+
 // Public: client-facing budget estimate (sanitized — no costs ledger, no profit data)
 router.get('/budget-share/:token', async (req, res, next) => {
   try {

@@ -415,6 +415,13 @@ export const api = {
   importOdc: (pid, fileBase64, filename) => req('POST', `/finance/${pid}/odc-import`, { fileBase64, filename }),
   shareBudget: (bid) => req('POST', `/finance/budget/${bid}/share`),
   getBudgetShare: (token) => req('GET', `/budget-share/${token}`),
+  // Full budget as an Excel workbook (blob download)
+  exportBudgetXlsx: async (bid) => {
+    const t = localStorage.getItem('fp_token');
+    const r = await fetch(`${BASE}/finance/budget/${bid}/export.xlsx`, { headers: t ? { Authorization: `Bearer ${t}` } : {} });
+    if (!r.ok) { let m = 'Excel export failed'; try { m = (await r.json()).error || m; } catch { /* non-JSON */ } throw new Error(m); }
+    return r.blob();
+  },
   weeklyFinanceReport: () => req('POST', '/finance/weekly-report'),
   financeReportVersions: () => req('GET', '/finance/weekly-report/versions'),
   financeReportVersion: (batchId) => req('GET', `/finance/weekly-report/${batchId}`),

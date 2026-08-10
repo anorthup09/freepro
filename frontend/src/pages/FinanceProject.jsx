@@ -2211,6 +2211,24 @@ function ShareBudgetButton({ budget, project, sections, lines, onModePicked, onO
                   <div style={{ fontSize:11, color:'var(--muted)', marginTop:2 }}>{desc}</div>
                 </button>
               ))}
+              <button type="button" disabled={busy} onClick={async () => {
+                if (busy) return;
+                setBusy(true);
+                try {
+                  const blob = await api.exportBudgetXlsx(budget.id);
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url; a.download = `${(project.code || 'budget').replace(/[^\w.-]+/g, '_')}_Budget.xlsx`;
+                  document.body.appendChild(a); a.click(); a.remove();
+                  setTimeout(() => URL.revokeObjectURL(url), 4000);
+                  setOpen(false);
+                } catch (e) { alert(e.message); }
+                setBusy(false);
+              }}
+                style={{ textAlign:'left', background:'var(--bg)', border:'1px solid #5ABF80', borderRadius:10, padding:'12px 14px', cursor:'pointer', opacity: busy ? 0.6 : 1 }}>
+                <div style={{ fontSize:13, fontWeight:800, color:'#5ABF80' }}>Export to Excel (.xlsx)</div>
+                <div style={{ fontSize:11, color:'var(--muted)', marginTop:2 }}>The full budget as a spreadsheet — every section, line, subtotal, and the grand total.</div>
+              </button>
               <button type="button" onClick={() => { setOpen(false); openEstimatePdf({ project, budget, sections, lines, preparedBy: user?.name || user?.email || '' }); }}
                 style={{ textAlign:'left', background:'var(--bg)', border:'1px solid #e6c229', borderRadius:10, padding:'12px 14px', cursor:'pointer' }}>
                 <div style={{ fontSize:13, fontWeight:800, color:'#e6c229' }}>Project Estimate PDF</div>
