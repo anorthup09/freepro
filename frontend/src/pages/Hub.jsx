@@ -2339,7 +2339,7 @@ function AdminPanel({ user }) {
     <div style={{ padding:'0 26px 22px', display:'flex', flexDirection:'column', alignItems:'center', gap:10 }}>
       {open && (
         <div style={{ display:'flex', flexDirection:'column', alignItems:'stretch', gap:8, width:'100%', maxWidth:300 }}>
-          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:10, flexWrap:'wrap' }}>
+          <div style={{ display:'flex', justifyContent:'center', alignItems:'center', gap:8, flexWrap:'nowrap', width:'max-content', alignSelf:'center', maxWidth:'92vw' }}>
             <UserManagement user={user} />
             <HubPreviewLink />
             <Automations />
