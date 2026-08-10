@@ -81,6 +81,7 @@ import MediaMoments from './pages/MediaMoments.jsx';
 import { api } from './api.js';
 import GearReport from './pages/GearReport.jsx';
 import SitePhotosReport from './pages/SitePhotosReport.jsx';
+import HoldingLoop from './pages/HoldingLoop.jsx';
 import VendorContractReport from './pages/VendorContractReport.jsx';
 import HardDrivesReport from './pages/HardDrivesReport.jsx';
 import DaysOffReport from './pages/DaysOffReport.jsx';
@@ -328,6 +329,7 @@ export default function App() {
         <Route path="/reports/international-travel" element={user ? <InternationalTravel /> : <Navigate to="/login" />} />
         <Route path="/reports/gear" element={user ? <GearReport /> : <Navigate to="/login" />} />
         <Route path="/reports/photos" element={user ? <SitePhotosReport /> : <Navigate to="/login" />} />
+        <Route path="/holding" element={user ? <HoldingLoop /> : <Navigate to="/login" />} />
         <Route path="/reports/vendor-contracts" element={user ? <VendorContractReport /> : <Navigate to="/login" />} />
         <Route path="/reports/drives" element={user ? <HardDrivesReport /> : <Navigate to="/login" />} />
         <Route path="/reports/days-off" element={user ? (user.role === 'ADMIN' ? <DaysOffReport /> : <Navigate to="/reports" />) : <Navigate to="/login" />} />

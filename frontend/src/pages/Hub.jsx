@@ -2322,6 +2322,7 @@ function HubPreviewLink() {
 // Automations — admin role only.
 function AdminPanel({ user }) {
   const { preview, setPreview } = useAuth();
+  const nav = useNavigate();
   const [open, setOpen] = useState(false);
   async function backup() {
     try {
@@ -2343,6 +2344,10 @@ function AdminPanel({ user }) {
             <UserManagement user={user} />
             <HubPreviewLink />
             <Automations />
+            <button onClick={() => nav('/holding')}
+              style={{ background:'none', border:'1px solid var(--border)', borderRadius:14, padding:'4px 12px', color:'var(--muted)', fontSize:10, fontWeight:600, letterSpacing:'.05em', cursor:'pointer', whiteSpace:'nowrap' }}>
+              Holding Loop ▸
+            </button>
           </div>
           <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, padding:'14px 16px' }}>
             <div style={{ fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:'.06em', marginBottom:12 }}>Platform</div>
