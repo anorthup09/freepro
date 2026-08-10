@@ -352,10 +352,9 @@ export default function Overview({ project, setProject, onTabChange,
           {setShowCateringGrid && (
             <div className="ov-toggle-row" style={{ display:'flex', gap:6, flexWrap:'nowrap', overflowX:'auto', alignItems:'center', minWidth:0, scrollbarWidth:'none' }}>
               {addonToggles.map(t => (
-                <button key={t.label}
-                  onClick={() => { if (!t.on) { t.set(true); t.go?.(); } else { t.set(false); } }}
-                  style={{ fontSize:11, fontWeight:600, padding:'4px 10px', borderRadius:6, border:`1px solid ${t.on ? t.color : 'var(--border2)'}`, background: t.on ? `${t.color}26` : 'var(--bg2)', color: t.on ? t.color : 'var(--muted)', cursor:'pointer', transition:'all .15s', whiteSpace:'nowrap', flexShrink:0 }}>
-                  {t.on ? `✓ ${t.label}` : `+ ${t.label}`}
+                <button key={t.label} className={`addon-glass${t.on ? ' on' : ''}`}
+                  onClick={() => { if (!t.on) { t.set(true); t.go?.(); } else { t.set(false); } }}>
+                  {t.on ? `\u2713 ${t.label}` : `+ ${t.label}`}
                 </button>
               ))}
             </div>
