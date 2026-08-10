@@ -1286,15 +1286,11 @@ body.pvd-nav-open .proj-bottomnav { display: none !important; }
 .aurora .b2{width:70vw;height:80vh;left:-24%;top:-12%;
   background:radial-gradient(closest-side, #c85416 0%, #8a2f14 55%, transparent 75%);
   animation:aurora-d2 32s ease-in-out infinite alternate}
-.aurora .b3{width:95vw;height:52vh;left:0%;top:38%;
-  background:radial-gradient(closest-side, #7d3350 0%, #5a2340 55%, transparent 78%);
-  animation:aurora-d3 38s ease-in-out infinite alternate}
-.aurora .b4{width:100vw;height:70vh;left:2%;top:62%;
-  background:radial-gradient(closest-side, #5f7fa3 0%, #2e4260 55%, transparent 78%);
-  animation:aurora-d2 44s ease-in-out infinite alternate-reverse}
-.aurora .b5{width:60vw;height:40vh;left:22%;top:74%;
-  background:radial-gradient(closest-side, #dfe6ee 0%, #93a7c0 50%, transparent 74%);
-  animation:aurora-d1 30s ease-in-out infinite alternate-reverse}
+/* Site-wide wash matches the loading page: warm-only (no plum/blue fields) —
+   the third field is the second orange bloom drifting low right */
+.aurora .b6{width:95vw;height:80vh;left:24%;top:44%;
+  background:radial-gradient(closest-side, #d45e1a 0%, #8a2f14 55%, transparent 76%);
+  animation:aurora-d3 36s ease-in-out infinite alternate-reverse}
 @keyframes aurora-d1{
   0%{transform:translate(0,0) scale(1)}
   50%{transform:translate(-6vw,3vh) scale(1.12)}

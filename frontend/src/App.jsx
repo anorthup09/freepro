@@ -243,9 +243,7 @@ function AuroraBackground() {
     <div className="aurora no-print" aria-hidden>
       <div className="blob b1" />
       <div className="blob b2" />
-      <div className="blob b3" />
-      <div className="blob b4" />
-      <div className="blob b5" />
+      <div className="blob b6" />
     </div>
   );
 }
