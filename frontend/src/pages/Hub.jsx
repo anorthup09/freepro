@@ -2390,11 +2390,11 @@ function AdminPanel({ user }) {
               style={{ background:'none', border:'1px solid var(--border)', borderRadius:14, padding:'4px 12px', color:'var(--muted)', fontSize:10, fontWeight:600, letterSpacing:'.05em', cursor:'pointer', whiteSpace:'nowrap' }}>
               Holding Loop ▸
             </button>
-          </div>
-          <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, padding:'14px 16px' }}>
-            <div style={{ fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:'.06em', marginBottom:12 }}>Platform</div>
-            <button className="btn btn-ghost btn-sm" style={{ width:'100%' }} onClick={backup}
-              title="Download a full database backup (all projects, budgets, contracts, roster)">⬇ Backup Database</button>
+            <button onClick={backup}
+              title="Download a full database backup (all projects, budgets, contracts, roster)"
+              style={{ background:'none', border:'1px solid var(--border)', borderRadius:14, padding:'4px 12px', color:'var(--muted)', fontSize:10, fontWeight:600, letterSpacing:'.05em', cursor:'pointer', whiteSpace:'nowrap' }}>
+              Backup Database ↓
+            </button>
           </div>
         </div>
       )}
