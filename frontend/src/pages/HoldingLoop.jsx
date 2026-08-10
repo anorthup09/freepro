@@ -27,20 +27,22 @@ const CSS = `
   -webkit-mask:linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite:xor;mask:linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);mask-composite:exclude;
   animation:holdSweep 60s linear infinite}
-/* Six fast (2.5s) / slow (7.5s) lap pairs per minute — 12 clockwise laps */
+/* Six fast (1.4s) / slow (8.6s) lap pairs per minute — 12 clockwise laps.
+   Fast laps run linear; slow laps use a fast-slow-fast curve so speed carries
+   through each hand-off and ramps naturally instead of snapping. */
 @keyframes holdSweep{
-  0%{--hold-a:0deg}
-  4.1667%{--hold-a:360deg}
-  16.6667%{--hold-a:720deg}
-  20.8333%{--hold-a:1080deg}
-  33.3333%{--hold-a:1440deg}
-  37.5%{--hold-a:1800deg}
-  50%{--hold-a:2160deg}
-  54.1667%{--hold-a:2520deg}
-  66.6667%{--hold-a:2880deg}
-  70.8333%{--hold-a:3240deg}
-  83.3333%{--hold-a:3600deg}
-  87.5%{--hold-a:3960deg}
+  0%{--hold-a:0deg;animation-timing-function:linear}
+  2.3333%{--hold-a:360deg;animation-timing-function:cubic-bezier(.1,.6,.9,.4)}
+  16.6667%{--hold-a:720deg;animation-timing-function:linear}
+  19%{--hold-a:1080deg;animation-timing-function:cubic-bezier(.1,.6,.9,.4)}
+  33.3333%{--hold-a:1440deg;animation-timing-function:linear}
+  35.6667%{--hold-a:1800deg;animation-timing-function:cubic-bezier(.1,.6,.9,.4)}
+  50%{--hold-a:2160deg;animation-timing-function:linear}
+  52.3333%{--hold-a:2520deg;animation-timing-function:cubic-bezier(.1,.6,.9,.4)}
+  66.6667%{--hold-a:2880deg;animation-timing-function:linear}
+  69%{--hold-a:3240deg;animation-timing-function:cubic-bezier(.1,.6,.9,.4)}
+  83.3333%{--hold-a:3600deg;animation-timing-function:linear}
+  85.6667%{--hold-a:3960deg;animation-timing-function:cubic-bezier(.1,.6,.9,.4)}
   100%{--hold-a:4320deg}}
 @media (prefers-reduced-motion: reduce){.hold-tile::before{animation:none}}
 `;
