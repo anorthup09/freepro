@@ -769,7 +769,7 @@ async function photoShootFor(user, cm) {
       ORDER BY ca.start_date DESC`;
     for (const r of rows) {
       const effEnd = String(r.eff_end).slice(0, 10);
-      if (effEnd >= today || nextBusinessDay(effEnd) >= today) return r;
+      if (effEnd >= today || nextBusinessDay(effEnd) >= today) return { ...r, _active: effEnd >= today };
     }
   }
   const email = (user.email || '').toLowerCase();
@@ -782,7 +782,7 @@ async function photoShootFor(user, cm) {
     ORDER BY sd.date DESC`;
   for (const r of days) {
     const d = String(r.date).slice(0, 10);
-    if (d === today || nextBusinessDay(d) >= today) return r;
+    if (d === today || nextBusinessDay(d) >= today) return { ...r, _active: d === today };
   }
   return null;
 }
@@ -794,7 +794,7 @@ router.get('/site-photo/eligible', requireAuth, async (req, res, next) => {
   try {
     const cm = await myCrewMember(req.user.email);
     const proj = await photoShootFor(req.user, cm);
-    res.json(proj ? { eligible: true, project: { id: proj.id, code: proj.code, title: proj.title } } : { eligible: false });
+    res.json(proj ? { eligible: true, after: !proj._active, project: { id: proj.id, code: proj.code, title: proj.title } } : { eligible: false });
   } catch (e) { next(e); }
 });
 

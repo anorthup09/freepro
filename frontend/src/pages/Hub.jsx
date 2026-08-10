@@ -94,8 +94,8 @@ export function TripPrompt() {
 function SitePhotoButton() {
   // Only shown while the user is on a shoot (through 1 business day after
   // wrap) — the submission ties back to that shoot
-  const [eligible, setEligible] = useState(false);
-  useEffect(() => { api.sitePhotoEligible().then(r => setEligible(!!r.eligible)).catch(() => {}); }, []);
+  const [eligible, setEligible] = useState(null); // { after, project } when eligible
+  useEffect(() => { api.sitePhotoEligible().then(r => setEligible(r.eligible ? r : null)).catch(() => {}); }, []);
   const [open, setOpen] = useState(false);
   const [file, setFile] = useState(null);      // { name, mime, base64, preview }
   const [caption, setCaption] = useState('');
@@ -121,6 +121,9 @@ function SitePhotoButton() {
     <>
       <button className="mm-welcome mm-photobtn" onClick={() => setOpen(true)} style={{ font: 'inherit', cursor: 'pointer' }}
         aria-label="Submit an on-site photo">
+        {/* The day after wrap, the shoot's code rides inside the pill (the
+            Producer View pill is gone by then, so this keeps the context) */}
+        {eligible?.after && eligible?.project?.code && <span className="mmw-name">{eligible.project.code}</span>}
         <span className="mmw-view">Submit a Photo!</span>
       </button>
       {open && createPortal(

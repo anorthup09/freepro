@@ -261,7 +261,15 @@ function SlideRoutes({ children }) {
     try { f = sessionStorage.getItem('fp_slide'); if (f) sessionStorage.removeItem('fp_slide'); } catch {}
     animRef.current = !!f;
   }
-  return <div key={loc.pathname} className={`page-slidewrap${animRef.current ? ' page-slide-in' : ''}`}>{children}</div>;
+  // The slide class must come OFF once the animation finishes: a filled
+  // transform animation keeps the wrapper a containing block, which would
+  // pin every position:fixed dock to the page instead of the viewport.
+  return (
+    <div key={loc.pathname} className={`page-slidewrap${animRef.current ? ' page-slide-in' : ''}`}
+      onAnimationEnd={e => { if (e.target === e.currentTarget) { animRef.current = false; e.currentTarget.classList.remove('page-slide-in'); } }}>
+      {children}
+    </div>
+  );
 }
 
 export default function App() {
