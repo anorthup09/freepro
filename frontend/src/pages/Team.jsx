@@ -4,6 +4,7 @@ import { useAuth } from '../App.jsx';
 import { api } from '../api.js';
 import { maybeMailNotice } from '../utils/mailNotice.js';
 import RosterLookup from '../components/RosterLookup.jsx';
+import { HubBottomNav } from './Hub.jsx';
 import HomeButton from '../components/HomeButton.jsx';
 import GlassDock from '../components/GlassDock.jsx';
 
@@ -208,8 +209,9 @@ export default function Team() {
   return (
     <div style={{ minHeight:'100vh', background:'transparent' }}>
       <TeamHeader />
-      <div style={{ maxWidth:1150, margin:'0 auto', padding:'6px 16px 80px' }}>
-        <GlassDock active={view} onSelect={setView} items={[
+      <HubBottomNav />
+      <div style={{ maxWidth:1150, margin:'0 auto', padding:'6px 16px 110px' }}>
+        <GlassDock top active={view} onSelect={setView} items={[
           { key:'roster', label:'Roster', color:BLUE, icon:(
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.4 2.9-5.5 6.5-5.5s6.5 2.1 6.5 5.5"/><circle cx="17" cy="9" r="2.4"/><path d="M16.5 14.7c2.9.3 5 2.1 5 4.8"/></svg>
           )},

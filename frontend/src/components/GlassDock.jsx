@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 // Shared liquid-glass bottom dock: icon+label items with a sliding highlight
 // bubble, collapsing labels to icons once the page scrolls (phones only).
 // items: [{ key, label, icon, color }] — color tints the active item.
-export default function GlassDock({ items, active, onSelect, align = 'center' }) {
+export default function GlassDock({ items, active, onSelect, align = 'center', top = false }) {
   const btnRefs = useRef({});
   const [bubble, setBubble] = useState(null);
   const [shrunk, setShrunk] = useState(false);
@@ -29,9 +29,11 @@ export default function GlassDock({ items, active, onSelect, align = 'center' })
   }, []);
   return (
     <div className="glass-dock no-print" style={{
-      position:'fixed', bottom:'calc(env(safe-area-inset-bottom, 0px) + 14px)',
-      ...(align === 'right' ? { right:14 } : { left:'50%', transform:'translateX(-50%)' }),
-      zIndex:110, display:'flex', alignItems:'center', gap:2,
+      ...(top
+        ? { position:'relative', margin:'14px auto 8px', width:'max-content' }
+        : { position:'fixed', bottom:'calc(env(safe-area-inset-bottom, 0px) + 14px)',
+            ...(align === 'right' ? { right:14 } : { left:'50%', transform:'translateX(-50%)' }), zIndex:110 }),
+      display:'flex', alignItems:'center', gap:2,
       padding: shrunk ? '6px 10px' : '8px 12px',
       borderRadius:26,
       transition:'padding .25s ease',
