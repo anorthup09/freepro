@@ -31,13 +31,18 @@ export default function ResourceLibrary({ kind, title, sub, accent, placeholderT
     } catch (e) { alert(e.message); }
   }
 
-  async function add(ev) {
+  async function save(ev) {
     ev.preventDefault();
     if (busy) return;
     setBusy(true);
     try {
-      const r = await api.addResourceLink(kind, form);
-      setRows(rs => [...(rs || []), r]);
+      if (form.id) {
+        const r = await api.updateResourceLink(kind, form.id, { title: form.title, url: form.url, category: form.category, note: form.note });
+        setRows(rs => rs.map(x => x.id === form.id ? r : x));
+      } else {
+        const r = await api.addResourceLink(kind, form);
+        setRows(rs => [...(rs || []), r]);
+      }
       setForm(null);
     } catch (e) { alert(e.message); }
     setBusy(false);
@@ -119,6 +124,12 @@ export default function ResourceLibrary({ kind, title, sub, accent, placeholderT
                     </div>
                   </div>
                   {r.added_by && <span style={{ fontSize:10, color:'var(--muted)', whiteSpace:'nowrap', flexShrink:0 }}>{r.added_by}</span>}
+                  {canEdit && (
+                    <button className="btn btn-ghost btn-sm" style={{ flexShrink:0 }} title="Edit this resource"
+                      onClick={() => setForm({ id: r.id, title: r.title || '', url: r.url || '', category: r.category || '', note: r.note || '' })}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>
+                    </button>
+                  )}
                   {canEdit && <button className="btn btn-ghost btn-sm" style={{ color:'var(--red-text, #e05252)', flexShrink:0 }} onClick={() => remove(r)}>✕</button>}
                 </div>
               ))}
@@ -130,8 +141,8 @@ export default function ResourceLibrary({ kind, title, sub, accent, placeholderT
       {form && (
         <div className="modal-bg" onClick={e => e.target === e.currentTarget && setForm(null)}>
           <div className="modal">
-            <div className="modal-title">Add to {title}</div>
-            <form onSubmit={add}>
+            <div className="modal-title">{form.id ? 'Edit Resource' : `Add to ${title}`}</div>
+            <form onSubmit={save}>
               <div className="form-grid cols1" style={{ marginBottom:12 }}>
                 <div className="field"><label>Title *</label>
                   <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder={placeholderTitle} required autoFocus /></div>
@@ -150,7 +161,7 @@ export default function ResourceLibrary({ kind, title, sub, accent, placeholderT
                   <input value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} placeholder="What it's good for, license notes…" /></div>
               </div>
               <div className="btn-row">
-                <button className="btn btn-primary" disabled={busy}>{busy ? 'Adding…' : 'Add Resource'}</button>
+                <button className="btn btn-primary" disabled={busy}>{busy ? 'Saving…' : (form.id ? 'Save Changes' : 'Add Resource')}</button>
                 <button type="button" className="btn btn-ghost" onClick={() => setForm(null)}>Cancel</button>
               </div>
             </form>
