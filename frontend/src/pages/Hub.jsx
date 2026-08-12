@@ -1656,7 +1656,9 @@ const HUB_CSS = `
 .mm-b-main{position:relative;z-index:2;min-width:0;flex:1}
 .mm-kicker{font-size:9px;font-weight:900;letter-spacing:.18em;color:var(--orange)}
 .mm-prompt{font-size:10.5px;font-weight:700;color:var(--muted);margin-top:4px;line-height:1.3}
-.mm-answer{font-family:'DM Sans',-apple-system,sans-serif;font-size:14px;font-weight:700;line-height:1.4;margin-top:5px;color:var(--text)}
+.mm-answer{font-family:'DM Sans',-apple-system,sans-serif;font-size:14px;font-weight:700;line-height:1.4;margin-top:5px;color:var(--text);
+  max-height:calc(1.4em * 3);overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,0.25) transparent;
+  padding-right:6px;overscroll-behavior:contain}
 .mm-name{margin-bottom:5px}
 .mm-name-pill{display:inline-block;font-family:'DM Sans',sans-serif;font-size:10px;font-weight:800;color:#fff;letter-spacing:.04em;white-space:nowrap;
   background:rgba(255,255,255,0.10);border:1px solid rgba(255,255,255,0.22);border-radius:20px;padding:3px 12px;
