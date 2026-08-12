@@ -57,10 +57,9 @@ async function syncSourcingTask(e) {
     const scriptDate = ms.scripting_start || ms.scripting_end || null;
     const needs = scriptDate && !e.lead_editor_id && e.project_id && e.status !== 'CLOSED';
     if (needs) {
-      if (e.sourcing_task_id) {
-        const [t] = await sql`SELECT id, done FROM project_tasks WHERE id = ${e.sourcing_task_id}`;
-        if (t && !t.done) return;
-      }
+      // One sourcing task per edit, ever. Open → nothing to do; checked off or
+      // deleted by hand → that's the team saying "handled", don't resurrect it.
+      if (e.sourcing_task_id) return;
       // Assignee: the edit's PM, else the project's Main POC, else unassigned
       let assignee = e.pm_id || null;
       if (!assignee) {

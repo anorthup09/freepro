@@ -429,7 +429,8 @@ export function ProjectViewDetail() {
       {project === false && <div className="empty">Project not found.</div>}
       <div key={tab} ref={slideRef} className={`pvd-slidewrap${slideIn ? ' in' : ''}`}
         onAnimationEnd={e => { if (e.target === e.currentTarget) { setSlideIn(false); e.currentTarget.classList.remove('out'); } }}>
-        {project && tab === 'overview' && <ProjectOverview pid={pid} onOpenFinance={() => setTab('finance')} />}
+        {project && tab === 'overview' && <ProjectOverview pid={pid} onOpenFinance={() => setTab('finance')}
+          onOpenPre={sid => { const m = shoots.find(s => s.freeproProjectId === sid); if (m) setShootId(sid); setTab('pre'); }} />}
         {project && tab === 'finance' && <div className="pvd-embed"><FinanceProject pidOverride={pid} finTab={finTab} setFinTab={setFinTab} /></div>}
         {project && tab === 'pre' && (shootId
           ? <div className="pvd-embed"><Project idOverride={shootId} key={shootId} onControls={setPreControls} /></div>

@@ -426,7 +426,7 @@ function TaskRow({ t, members, onSave, onDelete }) {
   );
 }
 
-export default function ProjectOverview({ pid, onOpenFinance }) {
+export default function ProjectOverview({ pid, onOpenFinance, onOpenPre }) {
   const nav = useNavigate();
   const { user } = useAuth();
   const isSolutions = ['AGENCY', 'CREW'].includes(user?.role);   // Solutions + Crew never see finance
@@ -533,7 +533,7 @@ export default function ProjectOverview({ pid, onOpenFinance }) {
           <div style={secHdr}>Shoots</div>
           {shoots.length === 0 && <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>No production shoots yet — they appear when the budget goes Live.</div>}
           {shoots.map(s => (
-            <div key={s.id} className="pv-shootrow" onClick={() => nav(`/projects/${s.id}`)}
+            <div key={s.id} className="pv-shootrow" onClick={() => onOpenPre ? onOpenPre(s.id) : nav(`/projects/${s.id}`)}
               style={{ display:'flex', alignItems:'center', gap:10, padding:'7px 4px', borderBottom:'1px solid rgba(255,255,255,0.04)', cursor:'pointer' }}>
               <span className="pv-shootcode" style={{ fontSize:11, fontWeight:800, minWidth:120 }}>{s.shoot_code || s.code}</span>
               <span style={{ fontSize:11, color:'var(--text)', flex:1, minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{s.title}</span>
