@@ -1274,24 +1274,30 @@ body.pvd-nav-open .proj-bottomnav { display: none !important; }
 @keyframes dockRevealP { 0% { clip-path: inset(-60px 100% -60px 0); opacity: 0; } 96% { clip-path: inset(-60px 0 -60px 0); opacity: 1; } 100% { clip-path: none; opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .proj-bottomnav { animation: none; } }
 .proj-bottomnav::after { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1px; pointer-events: none; background: linear-gradient(135deg, rgba(255,255,255,0.5), rgba(255,255,255,0.03) 34%, rgba(255,255,255,0) 56%, rgba(255,255,255,0.14) 100%); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
-.proj-bottomnav .dock-btn, .proj-bottomnav .tab { position: relative; z-index: 1; }
+.proj-bottomnav .dock-btn, .proj-bottomnav .tab, .pvd-dock .dock-btn, .pvd-dock .tab { position: relative; z-index: 1; }
+/* Right side of the project-hub dock: contextual section nav that expands and
+   contracts (0fr → 1fr) while the phase buttons on the left stay persistent. */
+.pvd-right-in { max-width: 0; overflow: hidden; display: flex; align-items: center; gap: 2px;
+  transition: max-width .45s cubic-bezier(.22,.61,.36,1), opacity .3s ease; opacity: 0; }
+.pvd-right.open .pvd-right-in { max-width: 720px; opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .pvd-right-in { transition: none; } }
 /* Merged with the phase tabs (embedded desktop pre-pro) — centered like the Finance dock */
 @media (min-width: 701px) {
   .proj-bottomnav.merged { right: auto; left: 50%; transform: translateX(-50%); }
 }
 /* Dock buttons — icon over label, mirroring the Finance dock (Harbinger/Budget/VCC) */
-.proj-bottomnav .dock-btn { display: flex; flex-direction: column; align-items: center; gap: 3px; background: transparent; border: none; cursor: pointer; color: rgba(255,255,255,0.55); border-radius: 22px; padding: 7px 14px 6px; transition: color .25s ease, background .2s ease, padding .25s ease; }
-.proj-bottomnav .dock-btn.on { color: var(--orange); background: rgba(255,255,255,0.10); }
-.proj-bottomnav .dock-lbl { font-size: 9.5px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap; max-height: 12px; opacity: 1; overflow: hidden; transition: max-height .25s ease, opacity .2s ease; }
+.proj-bottomnav .dock-btn, .pvd-dock .dock-btn { display: flex; flex-direction: column; align-items: center; gap: 3px; background: transparent; border: none; cursor: pointer; color: rgba(255,255,255,0.55); border-radius: 22px; padding: 7px 14px 6px; transition: color .25s ease, background .2s ease, padding .25s ease; }
+.proj-bottomnav .dock-btn.on, .pvd-dock .dock-btn.on { color: var(--orange); background: rgba(255,255,255,0.10); }
+.proj-bottomnav .dock-lbl, .pvd-dock .dock-lbl { font-size: 9.5px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap; max-height: 12px; opacity: 1; overflow: hidden; transition: max-height .25s ease, opacity .2s ease; }
 /* Scrolled: collapse labels to an icons-only dock */
 .proj-bottomnav.shrunk { padding: 6px 10px; }
 .proj-bottomnav.shrunk .dock-lbl { max-height: 0; opacity: 0; }
 .proj-bottomnav.shrunk .dock-btn { padding: 8px 12px; gap: 0; }
-.proj-bottomnav .tab { white-space: nowrap; border-radius: 20px; padding: 6px 10px; font-size: 12px; }
-.proj-bottomnav .tab.on { color: var(--orange); background: rgba(232,80,10,0.14); }
+.proj-bottomnav .tab, .pvd-dock .tab { white-space: nowrap; border-radius: 20px; padding: 6px 10px; font-size: 12px; }
+.proj-bottomnav .tab.on, .pvd-dock .tab.on { color: var(--orange); background: rgba(232,80,10,0.14); }
 :root[data-theme="light"] .proj-bottomnav { background: rgba(255,255,255,0.82); border: 1px solid rgba(0,0,0,0.10); box-shadow: 0 10px 30px rgba(0,0,0,0.16), inset 0 1px 0 rgba(255,255,255,0.75); }
-:root[data-theme="light"] .proj-bottomnav .dock-btn { color: #6f6a63; }
-:root[data-theme="light"] .proj-bottomnav .dock-btn.on { color: var(--orange); background: rgba(0,0,0,0.06); }
+:root[data-theme="light"] .proj-bottomnav .dock-btn, :root[data-theme="light"] .pvd-dock .dock-btn { color: #6f6a63; }
+:root[data-theme="light"] .proj-bottomnav .dock-btn.on, :root[data-theme="light"] .pvd-dock .dock-btn.on { color: var(--orange); background: rgba(0,0,0,0.06); }
 
 /* Mobile: the V# versions pill pins top-right, level with the client name */
 @media (max-width: 700px) {

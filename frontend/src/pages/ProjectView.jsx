@@ -27,7 +27,7 @@ const TAB_ICONS = {
 
 // Instagram-style liquid-glass dock: pinned bottom-center on phones, icons +
 // labels at the top of the page, shrinking to icons alone once you scroll.
-function MobileTabDock({ tabs, tab, setTab, finance }) {
+function MobileTabDock({ tabs, tab, setTab, finance, preSlot }) {
   const [shrunk, setShrunk] = useState(false);
   const [mobile, setMobile] = useState(typeof window !== 'undefined' && window.innerWidth <= 700);
   useEffect(() => {
@@ -125,9 +125,14 @@ function MobileTabDock({ tabs, tab, setTab, finance }) {
           </button>
         );
       })}
+      {/* Right side of the dock: contextual section nav that expands/contracts
+          while the phase side stays put. Finance renders its own items here;
+          Pre-Pro portals the embedded FreePro section nav into the slot. */}
+      <div className={`pvd-right${(finance && !mobile) || preSlot ? ' open' : ''}`}>
+      <div className="pvd-right-in">
       {finance && !mobile && (
         <>
-          <div aria-hidden className="gd-div" style={{ width:1, alignSelf:'stretch', margin:'6px 6px' }} />
+          <div aria-hidden className="gd-div" style={{ width:1, alignSelf:'stretch', margin:'6px 6px', flex:'0 0 auto' }} />
           <button onClick={() => window.dispatchEvent(new Event('fp-dock-harbinger'))} aria-label="Harbinger"
             style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:3, position:'relative',
               background:'transparent', border:'none', cursor:'pointer', color:'#5ABF80',
@@ -152,6 +157,9 @@ function MobileTabDock({ tabs, tab, setTab, finance }) {
           })}
         </>
       )}
+      {preSlot && <div id="pvd-dock-slot" style={{ display:'flex', alignItems:'center', gap:2 }} />}
+      </div>
+      </div>
     </div>
     </>
   );
@@ -414,10 +422,9 @@ export function ProjectViewDetail() {
         </div>
       </div>
 
-      {!(tab === 'pre' && deskW > 700) && (
       <MobileTabDock tabs={tabs} tab={tab} setTab={setTab}
-        finance={tab === 'finance' ? { finTab, setFinTab } : null} />
-      )}
+        finance={tab === 'finance' ? { finTab, setFinTab } : null}
+        preSlot={tab === 'pre' && deskW > 700} />
 
       {project === false && <div className="empty">Project not found.</div>}
       <div key={tab} ref={slideRef} className={`pvd-slidewrap${slideIn ? ' in' : ''}`}

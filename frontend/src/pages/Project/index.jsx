@@ -490,6 +490,20 @@ export default function Project({ idOverride, onControls }) {
     return `${displayH}:${String(endM).padStart(2, '0')} ${period}`;
   }
 
+  // Merged desktop hub: the project hub's persistent dock exposes a slot; when
+  // it exists we portal the section nav into it instead of floating our own
+  // dock, so the phase buttons never remount between Overview/Finance/Pre/Post.
+  const [dockSlot, setDockSlot] = useState(null);
+  useEffect(() => {
+    if (!idOverride) return;
+    const find = () => setDockSlot(document.getElementById('pvd-dock-slot'));
+    find();
+    const t = setTimeout(find, 150);
+    const onR = () => setTimeout(find, 120);
+    window.addEventListener('resize', onR);
+    return () => { clearTimeout(t); window.removeEventListener('resize', onR); };
+  }, [idOverride]);
+
   const shootingCall = shotListScenes.length > 0 ? shotListScenes[0].est_start_time || null : null;
   const lastScene = shotListScenes.length > 0 ? shotListScenes[shotListScenes.length - 1] : null;
   const shootingWrap = lastScene ? calcWrapTime(lastScene.est_start_time, lastScene.shots || []) : null;
@@ -605,41 +619,56 @@ export default function Project({ idOverride, onControls }) {
         </div>
       </nav>
 
-      {/* Project section nav — floated to the bottom, styled like the Finance dock;
-          collapses to icons-only once the page is scrolled */}
-      <div className={`proj-bottomnav no-print${glassVisible ? ' shrunk' : ''}${idOverride ? ' merged' : ''}`}>
-        {idOverride && (
+      {/* Project section nav. Standalone (or mobile merged): floats its own dock.
+          Merged desktop: portals into the project hub's persistent dock slot so
+          the phase side never remounts — only this section expands/contracts. */}
+      {(() => {
+        const sectionItems = (
           <>
-            {PHASES.map(([k, label, color]) => (
-              <button key={k} className={`dock-btn phase${k === 'pre' ? ' on' : ''}`}
-                style={k === 'pre' ? { color } : undefined}
-                onClick={() => k !== 'pre' && window.dispatchEvent(new CustomEvent('fp-phase', { detail: k }))} aria-label={label}>
-                {PHASE_ICONS[k]}
-                <span className="dock-lbl">{label}</span>
+            {!isAgency && !isCrew && (
+              <button className={`dock-btn${tab === 'overview' ? ' on' : ''}`} onClick={() => { setTab('overview'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} aria-label="Overview">
+                {PROJ_NAV_ICONS.overview}
+                <span className="dock-lbl">Overview</span>
               </button>
-            ))}
-            <div aria-hidden style={{ width:1, flex:'0 0 auto', alignSelf:'stretch', margin:'6px 6px', background:'rgba(255,255,255,0.14)' }} />
+            )}
+            <button className={`dock-btn${tab === 'schedule' ? ' on' : ''}`} onClick={() => setTab('schedule')} aria-label="Schedule">
+              {PROJ_NAV_ICONS.schedule}
+              <span className="dock-lbl">Schedule</span>
+            </button>
+            <DropdownTab dropUp icon={PROJ_NAV_ICONS.logistics} label="Logistics" subtabs={isViewer
+              ? [{ id:'travel', label:'Travel' }, { id:'shot-list', label:'Shot List' }, { id:'additional-docs', label:'Additional Docs' }]
+              : [...BASE_LOGISTICS_TABS, ...(showTravel ? [{ id:'travel', label:'Travel' }] : []), ...(showCateringGrid ? [{ id:'catering', label:'Catering/Meals' }] : []), ...(showShotList ? [{ id:'shot-list', label:'Shot List' }] : []), ...(showScripts ? [{ id:'scripts', label:'Scripts' }] : []), { id:'additional-docs', label:'Additional Docs' }, { id:'producer-checklist', label:'Producer Checklist' }]} tab={tab} setTab={setTab} />
+            <DropdownTab dropUp icon={PROJ_NAV_ICONS.gear} label="Gear" subtabs={GEAR_TABS} tab={tab} setTab={setTab} defaultTab="gear" />
+            <button className={`dock-btn${tab === 'deliverable-overview' ? ' on' : ''}`} onClick={() => setTab('deliverable-overview')} aria-label="Deliverable">
+              {PROJ_NAV_ICONS.deliverable}
+              <span className="dock-lbl">Deliverable</span>
+            </button>
           </>
-        )}
-        {!isAgency && !isCrew && (
-          <button className={`dock-btn${tab === 'overview' ? ' on' : ''}`} onClick={() => { setTab('overview'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} aria-label="Overview">
-            {PROJ_NAV_ICONS.overview}
-            <span className="dock-lbl">Overview</span>
-          </button>
-        )}
-        <button className={`dock-btn${tab === 'schedule' ? ' on' : ''}`} onClick={() => setTab('schedule')} aria-label="Schedule">
-          {PROJ_NAV_ICONS.schedule}
-          <span className="dock-lbl">Schedule</span>
-        </button>
-        <DropdownTab dropUp icon={PROJ_NAV_ICONS.logistics} label="Logistics" subtabs={isViewer
-          ? [{ id:'travel', label:'Travel' }, { id:'shot-list', label:'Shot List' }, { id:'additional-docs', label:'Additional Docs' }]
-          : [...BASE_LOGISTICS_TABS, ...(showTravel ? [{ id:'travel', label:'Travel' }] : []), ...(showCateringGrid ? [{ id:'catering', label:'Catering/Meals' }] : []), ...(showShotList ? [{ id:'shot-list', label:'Shot List' }] : []), ...(showScripts ? [{ id:'scripts', label:'Scripts' }] : []), { id:'additional-docs', label:'Additional Docs' }, { id:'producer-checklist', label:'Producer Checklist' }]} tab={tab} setTab={setTab} />
-        <DropdownTab dropUp icon={PROJ_NAV_ICONS.gear} label="Gear" subtabs={GEAR_TABS} tab={tab} setTab={setTab} defaultTab="gear" />
-        <button className={`dock-btn${tab === 'deliverable-overview' ? ' on' : ''}`} onClick={() => setTab('deliverable-overview')} aria-label="Deliverable">
-          {PROJ_NAV_ICONS.deliverable}
-          <span className="dock-lbl">Deliverable</span>
-        </button>
-      </div>
+        );
+        if (idOverride && dockSlot) return createPortal(
+          <>
+            <div aria-hidden className="gd-div" style={{ width:1, flex:'0 0 auto', alignSelf:'stretch', margin:'6px 6px' }} />
+            {sectionItems}
+          </>, dockSlot);
+        return (
+          <div className={`proj-bottomnav no-print${glassVisible ? ' shrunk' : ''}${idOverride ? ' merged' : ''}`}>
+            {idOverride && (
+              <>
+                {PHASES.map(([k, label, color]) => (
+                  <button key={k} className={`dock-btn phase${k === 'pre' ? ' on' : ''}`}
+                    style={k === 'pre' ? { color } : undefined}
+                    onClick={() => k !== 'pre' && window.dispatchEvent(new CustomEvent('fp-phase', { detail: k }))} aria-label={label}>
+                    {PHASE_ICONS[k]}
+                    <span className="dock-lbl">{label}</span>
+                  </button>
+                ))}
+                <div aria-hidden style={{ width:1, flex:'0 0 auto', alignSelf:'stretch', margin:'6px 6px', background:'rgba(255,255,255,0.14)' }} />
+              </>
+            )}
+            {sectionItems}
+          </div>
+        );
+      })()}
 
       <div className="wrap">
         {tab === 'overview'             && <Overview     project={project} setProject={setProject} onTabChange={setTab} showCateringGrid={showCateringGrid} setShowCateringGrid={toggleCateringGrid} onCateringTabChange={() => setTab('catering')} showShotList={showShotList} setShowShotList={toggleShotList} onShotListTabChange={() => setTab('shot-list')} showScripts={showScripts} setShowScripts={toggleScripts} onScriptsTabChange={() => setTab('scripts')} showTravel={showTravel} setShowTravel={toggleTravel} onTravelTabChange={() => setTab('travel')} />}
