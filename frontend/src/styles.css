@@ -1381,6 +1381,12 @@ body.page-out .page-slidewrap { animation: pageOut .3s cubic-bezier(.55,.06,.68,
 @keyframes pageOut { to { opacity: 0; transform: translateX(-20vw); } }
 @keyframes pageIn { from { opacity: 0; transform: translateX(24vw); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .page-slide-in, body.page-out .page-slidewrap { animation: none; } }
+/* Project hub phase transitions — same choreography as the home-page nav:
+   outgoing phase slides off left, incoming slides in from the right, while
+   the bottom dock stays put. */
+.pvd-slidewrap.out { animation: pageOut .3s cubic-bezier(.55,.06,.68,.19) both; }
+.pvd-slidewrap.in { animation: pageIn .5s cubic-bezier(.22,.61,.36,1) both; }
+@media (prefers-reduced-motion: reduce) { .pvd-slidewrap.out, .pvd-slidewrap.in { animation: none; } }
 
 /* AvocadoPost project tabs: glass pills, AvocadoPost-green tinted when active */
 .avo-tab {

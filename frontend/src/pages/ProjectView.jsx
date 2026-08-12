@@ -294,12 +294,29 @@ export function ProjectViewDetail() {
   // embedded Pre-Pro page, which persists its own sub-tab as `?tab=`.
   const loc = useLocation();
   const [tab, setTabRaw] = useState(() => new URLSearchParams(loc.search).get('view') || 'overview');
-  const setTab = t => {
+  const applyTab = t => {
     setTabRaw(t);
     const sp = new URLSearchParams(window.location.search);
     sp.set('view', t);
     sp.delete('tab');   // let the newly-shown section start at its own default sub-tab
     nav({ pathname: loc.pathname, search: sp.toString() }, { replace: true });
+    window.scrollTo(0, 0);
+  };
+  // Phase switches animate like the home-page nav: current content slides out
+  // left, the new phase slides in from the right, dock staying in place.
+  const slideRef = useRef(null);
+  const [slideIn, setSlideIn] = useState(false);
+  const sliding = useRef(false);
+  const setTab = t => {
+    if (t === tab || sliding.current) { if (t !== tab) applyTab(t); return; }
+    const el = slideRef.current;
+    if (!el) return applyTab(t);
+    sliding.current = true;
+    el.classList.add('out');
+    setTimeout(() => {
+      sliding.current = false; applyTab(t); setSlideIn(true);
+      setTimeout(() => setSlideIn(false), 650);   // fallback if animationend never bubbles up
+    }, 280);
   };
   const [finTab, setFinTab] = useState('budget'); // finance sub-tab, shown in the merged dock on desktop
   const [deskW, setDeskW] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
@@ -403,14 +420,17 @@ export function ProjectViewDetail() {
       )}
 
       {project === false && <div className="empty">Project not found.</div>}
-      {project && tab === 'overview' && <ProjectOverview pid={pid} onOpenFinance={() => { setTab('finance'); window.scrollTo({ top: 0 }); }} />}
-      {project && tab === 'finance' && <div className="pvd-embed"><FinanceProject pidOverride={pid} finTab={finTab} setFinTab={setFinTab} /></div>}
-      {project && tab === 'pre' && (shootId
-        ? <div className="pvd-embed"><Project idOverride={shootId} key={shootId} onControls={setPreControls} /></div>
-        : <div className="empty">No FreePro production tile yet — set the budget Live to create one.</div>)}
-      {project && tab === 'post' && (avoPageId
-        ? <div style={{ maxWidth:1250, margin:'0 auto', padding:'0 16px 40px' }}><AvoProject idOverride={avoPageId} embedded /></div>
-        : <div className="empty">Loading post-production…</div>)}
+      <div key={tab} ref={slideRef} className={`pvd-slidewrap${slideIn ? ' in' : ''}`}
+        onAnimationEnd={e => { if (e.target === e.currentTarget) { setSlideIn(false); e.currentTarget.classList.remove('out'); } }}>
+        {project && tab === 'overview' && <ProjectOverview pid={pid} onOpenFinance={() => setTab('finance')} />}
+        {project && tab === 'finance' && <div className="pvd-embed"><FinanceProject pidOverride={pid} finTab={finTab} setFinTab={setFinTab} /></div>}
+        {project && tab === 'pre' && (shootId
+          ? <div className="pvd-embed"><Project idOverride={shootId} key={shootId} onControls={setPreControls} /></div>
+          : <div className="empty">No FreePro production tile yet — set the budget Live to create one.</div>)}
+        {project && tab === 'post' && (avoPageId
+          ? <div style={{ maxWidth:1250, margin:'0 auto', padding:'0 16px 40px' }}><AvoProject idOverride={avoPageId} embedded /></div>
+          : <div className="empty">Loading post-production…</div>)}
+      </div>
     </div>
   );
 }
