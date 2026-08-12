@@ -1277,10 +1277,27 @@ body.pvd-nav-open .proj-bottomnav { display: none !important; }
 .proj-bottomnav .dock-btn, .proj-bottomnav .tab, .pvd-dock .dock-btn, .pvd-dock .tab { position: relative; z-index: 1; }
 /* Right side of the project-hub dock: contextual section nav that expands and
    contracts (0fr → 1fr) while the phase buttons on the left stay persistent. */
-.pvd-right-in { max-width: 0; overflow: hidden; display: flex; align-items: center; gap: 2px;
-  transition: max-width .45s cubic-bezier(.22,.61,.36,1), opacity .3s ease; opacity: 0; }
-.pvd-right.open .pvd-right-in { max-width: 720px; opacity: 1; }
-@media (prefers-reduced-motion: reduce) { .pvd-right-in { transition: none; } }
+.pvd-right-in { max-width: 0; overflow: hidden; display: flex; align-items: center; gap: 2px; opacity: 0;
+  transition: max-width .45s cubic-bezier(.6,0,.3,1), opacity .22s ease; }
+.pvd-right.open .pvd-right-in { max-width: 720px; opacity: 1;
+  transition: max-width .6s cubic-bezier(.34,1.18,.4,1), opacity .3s ease; }
+/* Each item in the opening section blur-slides into place, staggered left to
+   right — same feel as the home dock's tile reveal. */
+@keyframes pvdItemIn { from { opacity: 0; filter: blur(6px); transform: translateX(18px) scale(.85); } to { opacity: 1; filter: none; transform: none; } }
+.pvd-right.open .pvd-right-in > :not(#pvd-dock-slot), .pvd-right.open #pvd-dock-slot > * {
+  animation: pvdItemIn .5s cubic-bezier(.22,.61,.36,1) both; }
+.pvd-right.open .pvd-right-in > :nth-child(1) { animation-delay: .10s }
+.pvd-right.open .pvd-right-in > :nth-child(2), .pvd-right.open #pvd-dock-slot > :nth-child(1) { animation-delay: .17s }
+.pvd-right.open .pvd-right-in > :nth-child(3), .pvd-right.open #pvd-dock-slot > :nth-child(2) { animation-delay: .24s }
+.pvd-right.open .pvd-right-in > :nth-child(4), .pvd-right.open #pvd-dock-slot > :nth-child(3) { animation-delay: .31s }
+.pvd-right.open .pvd-right-in > :nth-child(5), .pvd-right.open #pvd-dock-slot > :nth-child(4) { animation-delay: .38s }
+.pvd-right.open .pvd-right-in > :nth-child(6), .pvd-right.open #pvd-dock-slot > :nth-child(5) { animation-delay: .45s }
+.pvd-right.open #pvd-dock-slot > :nth-child(6) { animation-delay: .52s }
+.pvd-right.open #pvd-dock-slot > :nth-child(7) { animation-delay: .59s }
+@media (prefers-reduced-motion: reduce) {
+  .pvd-right-in { transition: none; }
+  .pvd-right.open .pvd-right-in > :not(#pvd-dock-slot), .pvd-right.open #pvd-dock-slot > * { animation: none; }
+}
 /* Merged with the phase tabs (embedded desktop pre-pro) — centered like the Finance dock */
 @media (min-width: 701px) {
   .proj-bottomnav.merged { right: auto; left: 50%; transform: translateX(-50%); }
