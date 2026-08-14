@@ -1364,6 +1364,20 @@ async function migrate() {
       created_at TIMESTAMPTZ DEFAULT NOW()
     )`;
 
+  // Potential holds — tentative shoots for unapproved projects, shown as gray
+  // bubbles in the crew calendar's top "Shoots" lane.
+  await sql`
+    CREATE TABLE IF NOT EXISTS potential_holds (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      project_name TEXT NOT NULL,
+      start_date DATE,
+      end_date DATE,
+      location TEXT,
+      notes TEXT,
+      added_by TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )`;
+
   // Password reset tokens (single-use, 1-hour expiry)
   await sql`
     CREATE TABLE IF NOT EXISTS password_resets (

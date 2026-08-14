@@ -108,6 +108,10 @@ export const api = {
   createProject: (data) => req('POST', '/projects', data),
   searchClientLogos: (q) => req('GET', `/projects/logos?q=${encodeURIComponent(q || '')}`),
   crewCalendar: () => req('GET', '/projects/crew-calendar'),
+  calendarLane: () => req('GET', '/projects/calendar-lane'),
+  createHold: (d) => req('POST', '/projects/potential-holds', d),
+  updateHold: (id, d) => req('PATCH', `/projects/potential-holds/${id}`, d),
+  deleteHold: (id) => req('DELETE', `/projects/potential-holds/${id}`),
   // AvocadoPost
   avoEdits: () => req('GET', '/avo/edits'),
   avoEdit: (id) => req('GET', `/avo/edits/${id}`),

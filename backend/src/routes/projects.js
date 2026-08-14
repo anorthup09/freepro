@@ -278,6 +278,49 @@ router.get('/crew-calendar', requireAuth, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// GET /api/projects/calendar-lane — the top "Shoots" lane for the crew calendar:
+// real shoots (green, from shoot_days) + potential holds (gray).
+router.get('/calendar-lane', requireAuth, async (req, res, next) => {
+  try {
+    const holds = await sql`SELECT id, project_name, start_date, end_date, location, notes, added_by FROM potential_holds ORDER BY start_date`;
+    const shootRaw = await sql`
+      SELECT pr.id as project_id, pr.code, pr.title, MIN(sd.date) as start_date, MAX(sd.date) as end_date
+      FROM shoot_days sd JOIN projects pr ON pr.id = sd.project_id
+      WHERE pr.status != 'ARCHIVED' AND sd.date IS NOT NULL
+      GROUP BY pr.id, pr.code, pr.title ORDER BY 4`;
+    const codes = await displayCodes([...new Set(shootRaw.map(s => s.project_id))]);
+    const shoots = shootRaw.map(s => ({ ...s, code: codes[s.project_id] || s.code }));
+    res.json({ holds, shoots });
+  } catch (err) { next(err); }
+});
+
+// Potential-hold CRUD (admins/producers create tentative shoot holds).
+router.post('/potential-holds', requireAuth, requireRole('ADMIN', 'PRODUCER'), async (req, res, next) => {
+  try {
+    const d = req.body;
+    if (!d.projectName || !d.projectName.trim()) return res.status(400).json({ error: 'Project name is required' });
+    const [row] = await sql`
+      INSERT INTO potential_holds (project_name, start_date, end_date, location, notes, added_by)
+      VALUES (${d.projectName.trim()}, ${d.startDate || null}, ${d.endDate || null}, ${d.location || null}, ${d.notes || null}, ${d.addedBy || req.user.email || null})
+      RETURNING *`;
+    res.status(201).json(row);
+  } catch (err) { next(err); }
+});
+router.patch('/potential-holds/:id', requireAuth, requireRole('ADMIN', 'PRODUCER'), async (req, res, next) => {
+  try {
+    const d = req.body;
+    const [row] = await sql`
+      UPDATE potential_holds SET
+        project_name = ${d.projectName}, start_date = ${d.startDate || null}, end_date = ${d.endDate || null},
+        location = ${d.location || null}, notes = ${d.notes || null}
+      WHERE id = ${req.params.id} RETURNING *`;
+    res.json(row);
+  } catch (err) { next(err); }
+});
+router.delete('/potential-holds/:id', requireAuth, requireRole('ADMIN', 'PRODUCER'), async (req, res, next) => {
+  try { await sql`DELETE FROM potential_holds WHERE id = ${req.params.id}`; res.status(204).end(); } catch (err) { next(err); }
+});
+
 // GET /api/projects/logos?q= — distinct client logos from past projects
 router.get('/logos', requireAuth, async (req, res, next) => {
   try {
