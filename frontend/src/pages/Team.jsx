@@ -152,7 +152,7 @@ export default function Team() {
   useEffect(() => { api.crewCalendar().then(setCalRows).catch(() => setCalRows([])); }, []);
   const dstr = d => d ? String(d).slice(0, 10) : '';
   const conflicts = (f.memberId && f.startDate && f.endDate)
-    ? calRows.filter(r => r.crew_member_id === f.memberId && r.kind === 'shoot'
+    ? calRows.filter(r => r.crew_member_id === f.memberId && (r.kind === 'shoot' || r.kind === 'event')
         && dstr(r.start_date) <= f.endDate && dstr(r.end_date) >= f.startDate)
     : [];
   const hasConflict = conflicts.length > 0;
