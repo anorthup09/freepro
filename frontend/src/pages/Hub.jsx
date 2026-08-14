@@ -1339,11 +1339,13 @@ const HUB_CSS = `
 .hub-masthead{display:flex;justify-content:flex-end;padding-top:2px;margin-bottom:0}
 .hub-logo-top{height:32px;filter:brightness(0) invert(1);opacity:.25}
 /* Left-aligned serif heading + tagline, dropped down from the masthead */
-.hub-header{margin:54px 0 10px}
+.hub-header{margin:54px 0 10px;position:relative}
 .hub-h1{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:34px;font-weight:800;letter-spacing:-.02em;line-height:1.05;margin:0}
 .hub-tagline{text-align:left;font-size:14px;font-weight:600;color:var(--tan);max-width:560px;margin:8px 0 0;line-height:1.45}
 /* on-site welcome pill sits centered below the tagline */
 .hub-welcome-row{display:flex;justify-content:center;margin-top:12px}
+/* Desktop: sit the on-site pill top-right, in-line with the greeting */
+@media(min-width:701px){.hub-welcome-row{position:absolute;top:0;right:0;margin-top:0;justify-content:flex-end}}
 /* Mobile: pin the hero (heading/tagline/media moment) and let the tiles below
    scroll up over it (they carry a solid bg + higher z-index). The pinned hero
    stays locked in place and slowly fades out (opacity via JS refs on scroll). */
