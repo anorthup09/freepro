@@ -509,24 +509,6 @@ export default function AvoEdit() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [e?.lead_editor_id, e?.lead_editor_email, e?.lead_editor_company]);
 
-  // Auto-populate the edit window from the timeline while the fields are blank:
-  // Start Date follows Creative/Scripting Complete, Due Date follows Final
-  // Delivery. Typed values are never overwritten. (Must sit above the loading
-  // early-return so the hook count stays stable.)
-  useEffect(() => {
-    if (!e) return;
-    const ms = e.milestones || {};
-    const fill = {};
-    if (!e.start_date && ms.scripting_end) fill.start_date = ms.scripting_end;
-    if (!e.end_date && ms.final_delivery) fill.end_date = ms.final_delivery;
-    if (!Object.keys(fill).length) return;
-    setE(v => ({ ...v, ...fill }));
-    api.updateAvoEdit(id, {
-      ...(fill.start_date ? { startDate: fill.start_date } : {}),
-      ...(fill.end_date ? { endDate: fill.end_date } : {}),
-    }).catch(() => {});
-  }, [e ? JSON.stringify(e.milestones || {}) : '', e?.start_date, e?.end_date]);
-
   if (!e) return <div style={{ minHeight:'100vh', background:'transparent' }}><AvoHeader /><div className="empty">Loading…</div></div>;
 
   const patch = fields => setE(v => ({ ...v, ...fields }));
