@@ -283,11 +283,16 @@ router.get('/crew-calendar', requireAuth, async (req, res, next) => {
 router.get('/calendar-lane', requireAuth, async (req, res, next) => {
   try {
     const holds = await sql`SELECT id, project_name, start_date, end_date, location, notes, added_by FROM potential_holds ORDER BY start_date`;
+    // Shoot bars come from the BUDGET: each budget shoot section links to a shoot
+    // project (freepro_project_id) whose start/end dates are what the budget's
+    // date pickers set. Use those directly so the calendar matches the budget.
     const shootRaw = await sql`
-      SELECT pr.id as project_id, pr.code, pr.title, MIN(sd.date) as start_date, MAX(sd.date) as end_date
-      FROM shoot_days sd JOIN projects pr ON pr.id = sd.project_id
-      WHERE pr.status != 'ARCHIVED' AND sd.date IS NOT NULL
-      GROUP BY pr.id, pr.code, pr.title ORDER BY 4`;
+      SELECT DISTINCT pr.id as project_id, pr.code, pr.title, pr.start_date, pr.end_date
+      FROM budget_sections bs
+      JOIN projects pr ON pr.id = bs.freepro_project_id
+      WHERE bs.kind = 'shoot' AND bs.freepro_project_id IS NOT NULL
+        AND pr.status != 'ARCHIVED' AND pr.start_date IS NOT NULL
+      ORDER BY pr.start_date`;
     const codes = await displayCodes([...new Set(shootRaw.map(s => s.project_id))]);
     const shoots = shootRaw.map(s => ({ ...s, code: codes[s.project_id] || s.code }));
     res.json({ holds, shoots });
