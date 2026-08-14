@@ -99,6 +99,8 @@ export default function Team() {
   const [roster, setRoster] = useState([]);
   const [f, setF] = useState(BLANK);
   const [saving, setSaving] = useState(false);
+  const [editRow, setEditRow] = useState(null);   // pipeline row being edited
+  const [editSaving, setEditSaving] = useState(false);
   const [closedOpen, setClosedOpen] = useState(false);
   const [myView, setMyView] = useState(false);   // pipeline: only my requests (assignee or supervisor)
   const [events, setEvents] = useState(null);
@@ -194,6 +196,18 @@ export default function Team() {
   async function patch(id, data) {
     try { const row = await api.updatePto(id, data); setRows(rs => rs.map(r => r.id === id ? row : r)); }
     catch (e) { alert(e.message); }
+  }
+  function openEdit(r) {
+    setEditRow({ id: r.id, title: r.title || '', memberId: r.member_id || '', ptoType: r.pto_type || '',
+      startDate: String(r.start_date || '').slice(0, 10), endDate: String(r.end_date || '').slice(0, 10),
+      managerId: r.manager_id || '', compNotes: r.comp_notes || '' });
+  }
+  async function saveEdit() {
+    if (!editRow || editSaving) return;
+    setEditSaving(true);
+    try { await patch(editRow.id, editRow); setEditRow(null); }
+    catch (e) { alert(e.message); }
+    setEditSaving(false);
   }
   async function remove(id, title) {
     if (!confirm(`Delete "${title}"?`)) return;
@@ -397,7 +411,7 @@ export default function Team() {
                       <tr>
                         <th style={th}>Name</th><th style={th}>Assignee</th><th style={th}>Start</th><th style={th}>End</th>
                         <th style={th}>PTO Type</th><th style={th}>Supervisor</th><th style={{ ...th, textAlign:'center' }}>Approved</th>
-                        <th style={th}>Comp Reference</th><th style={{ ...th, width:34 }}></th>
+                        <th style={th}>Comp Reference</th><th style={{ ...th, width:62 }}></th>
                       </tr>
                     </thead>
                     <tbody>
@@ -430,9 +444,11 @@ export default function Team() {
                               )}
                             </td>
                             <td style={{ ...td, color:'var(--muted)' }}>{r.comp_notes || '—'}</td>
-                            <td style={{ ...td, textAlign:'center' }}>
+                            <td style={{ ...td, textAlign:'center', whiteSpace:'nowrap' }}>
+                              <button title="Edit request" onClick={() => openEdit(r)}
+                                style={{ background:'none', border:'none', color:'var(--muted)', fontSize:12, cursor:'pointer', padding:'0 6px' }}>✎</button>
                               <button title="Delete request" onClick={() => remove(r.id, r.title)}
-                                style={{ background:'none', border:'none', color:'var(--muted)', fontSize:12, cursor:'pointer' }}>✕</button>
+                                style={{ background:'none', border:'none', color:'var(--muted)', fontSize:12, cursor:'pointer', padding:'0 4px' }}>✕</button>
                             </td>
                           </tr>
                         );
@@ -574,6 +590,39 @@ export default function Team() {
         </div>
         )}
       </div>
+
+      {editRow && (
+        <div className="modal-bg" onClick={e => e.target === e.currentTarget && setEditRow(null)}>
+          <div className="glass" style={{ borderRadius:14, padding:'20px 24px', width:'100%', maxWidth:520, maxHeight:'88vh', overflowY:'auto' }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16 }}>
+              <div className="modal-title" style={{ marginBottom:0 }}>Edit Request</div>
+              <button className="btn btn-ghost btn-sm" onClick={() => setEditRow(null)}>Close</button>
+            </div>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(210px, 1fr))', gap:14 }}>
+              <div style={{ gridColumn:'1 / -1' }}><span style={lbl}>Title</span>
+                <input value={editRow.title} onChange={e => setEditRow(v => ({ ...v, title:e.target.value }))} /></div>
+              <div><span style={lbl}>Assignee</span>
+                <MemberSelect roster={selectable} value={editRow.memberId} onChange={v => setEditRow(x => ({ ...x, memberId:v }))} /></div>
+              <div><span style={lbl}>PTO Type</span>
+                <select value={editRow.ptoType} onChange={e => setEditRow(v => ({ ...v, ptoType:e.target.value }))}>
+                  <option value="">Select…</option>{PTO_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                </select></div>
+              <div><span style={lbl}>Start Date</span>
+                <input type="date" value={editRow.startDate} onChange={e => setEditRow(v => ({ ...v, startDate:e.target.value }))} /></div>
+              <div><span style={lbl}>End Date</span>
+                <input type="date" value={editRow.endDate} onChange={e => setEditRow(v => ({ ...v, endDate:e.target.value }))} /></div>
+              <div><span style={lbl}>Supervisor</span>
+                <MemberSelect roster={selectable} value={editRow.managerId} onChange={v => setEditRow(x => ({ ...x, managerId:v }))} /></div>
+              <div style={{ gridColumn:'1 / -1' }}><span style={lbl}>Comp Reference</span>
+                <input value={editRow.compNotes} onChange={e => setEditRow(v => ({ ...v, compNotes:e.target.value }))} placeholder="Project code / notes" /></div>
+            </div>
+            <div style={{ display:'flex', justifyContent:'flex-end', gap:8, marginTop:18 }}>
+              <button className="btn btn-ghost btn-sm" onClick={() => setEditRow(null)}>Cancel</button>
+              <button className="btn btn-primary btn-sm" disabled={editSaving || !editRow.title.trim()} onClick={saveEdit}>{editSaving ? 'Saving…' : 'Save'}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

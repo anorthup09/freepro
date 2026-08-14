@@ -152,6 +152,7 @@ router.patch('/pto/:id', requireAuth, async (req, res, next) => {
     const [row] = await sql`
       UPDATE pto_requests SET
         title = ${d.title !== undefined ? d.title : sql`title`},
+        member_id = ${d.memberId !== undefined ? (d.memberId || null) : sql`member_id`},
         pto_type = ${d.ptoType !== undefined ? d.ptoType : sql`pto_type`},
         start_date = ${d.startDate !== undefined ? (d.startDate || null) : sql`start_date`},
         end_date = ${d.endDate !== undefined ? (d.endDate || null) : sql`end_date`},
