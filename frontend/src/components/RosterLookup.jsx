@@ -1,6 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../api.js';
 import { displayName } from '../utils/displayName.js';
+import { ORG_TREE } from '../data/orgChart.js';
+
+// Recursive org-chart node: name pill with its reports indented beneath.
+function OrgNode({ node, depth = 0 }) {
+  return (
+    <div style={{ marginLeft: depth ? 18 : 0, borderLeft: depth ? '1px solid var(--border)' : 'none', paddingLeft: depth ? 14 : 0 }}>
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '5px 12px', margin: '4px 0',
+        background: depth === 0 ? 'rgba(232,80,10,0.14)' : 'var(--bg2)',
+        border: `1px solid ${depth === 0 ? 'var(--orange)' : 'var(--border)'}`, borderRadius: 999 }}>
+        <span style={{ fontSize: depth === 0 ? 13 : 12, fontWeight: depth === 0 ? 800 : 600, color: depth === 0 ? 'var(--orange)' : 'var(--text)' }}>{node.name}</span>
+      </div>
+      {(node.reports || []).map(r => <OrgNode key={r.name} node={r} depth={depth + 1} />)}
+    </div>
+  );
+}
 
 // Self-contained Roster Look-Up — same behavior as the one on FreePro's Crew
 // tab (search, member detail, edit, delete, + New Person) against the same
@@ -17,6 +32,7 @@ export default function RosterLookup() {
   const [form, setForm] = useState(null);
   const [saving, setSaving] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
+  const [showOrg, setShowOrg] = useState(false);
   const [addForm, setAddForm] = useState({ name:'', email:'', phone:'', company:'' });
 
   useEffect(() => { api.getCrew().then(setRoster).catch(() => setRoster([])); }, []);
@@ -93,8 +109,23 @@ export default function RosterLookup() {
     <div>
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:8 }}>
         <div className="sec-lbl" style={{ marginTop:0 }}>Roster Look-Up</div>
-        <button className="btn btn-ghost btn-sm" onClick={() => setShowAdd(true)}>+ New Person</button>
+        <div style={{ display:'flex', gap:8 }}>
+          <button className="btn btn-ghost btn-sm" onClick={() => setShowOrg(true)}>Org Chart</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => setShowAdd(true)}>+ New Person</button>
+        </div>
       </div>
+
+      {showOrg && (
+        <div className="modal-bg" onClick={e => e.target === e.currentTarget && setShowOrg(false)}>
+          <div className="glass" style={{ borderRadius:14, padding:'20px 24px', width:'100%', maxWidth:520, maxHeight:'86vh', overflowY:'auto' }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
+              <div className="modal-title" style={{ marginBottom:0 }}>Org Chart</div>
+              <button className="btn btn-ghost btn-sm" onClick={() => setShowOrg(false)}>Close</button>
+            </div>
+            {ORG_TREE.map(root => <div key={root.name} style={{ marginBottom:18 }}><OrgNode node={root} /></div>)}
+          </div>
+        </div>
+      )}
       <input value={query} onChange={e => setQuery(e.target.value)}
         placeholder="Search by name, email, or company…" style={{ marginBottom:8 }} />
       {query.trim().length > 0 && (

@@ -4,6 +4,7 @@ import { useAuth } from '../App.jsx';
 import { api } from '../api.js';
 import { maybeMailNotice } from '../utils/mailNotice.js';
 import RosterLookup from '../components/RosterLookup.jsx';
+import { managerFor } from '../data/orgChart.js';
 import { HubBottomNav } from './Hub.jsx';
 import HomeButton from '../components/HomeButton.jsx';
 import GlassDock from '../components/GlassDock.jsx';
@@ -132,6 +133,36 @@ export default function Team() {
     const me = roster.find(m => (m.email || '').toLowerCase() === user.email.toLowerCase());
     if (me) setF(v => v.memberId ? v : { ...v, memberId: me.id });
   }, [roster, user?.email]);
+
+  // Manager auto-fills from the org chart for whoever is the requester (still
+  // overridable — only re-sets while it holds the last auto value).
+  const lastAutoMgr = useRef('');
+  useEffect(() => {
+    const m = roster.find(x => x.id === f.memberId);
+    if (!m) return;
+    const mgrName = managerFor(displayOf(m));
+    const mgr = mgrName ? roster.find(x => displayOf(x).toLowerCase() === mgrName.toLowerCase() || (x.name || '').toLowerCase() === mgrName.toLowerCase()) : null;
+    const mgrId = mgr ? mgr.id : '';
+    setF(v => (!v.managerId || v.managerId === lastAutoMgr.current) ? { ...v, managerId: mgrId } : v);
+    lastAutoMgr.current = mgrId;
+  }, [f.memberId, roster.length]);
+
+  // Crew-calendar conflict check for the "assigned to shoots/travel?" question.
+  const [calRows, setCalRows] = useState([]);
+  useEffect(() => { api.crewCalendar().then(setCalRows).catch(() => setCalRows([])); }, []);
+  const dstr = d => d ? String(d).slice(0, 10) : '';
+  const conflicts = (f.memberId && f.startDate && f.endDate)
+    ? calRows.filter(r => r.crew_member_id === f.memberId && r.kind === 'shoot'
+        && dstr(r.start_date) <= f.endDate && dstr(r.end_date) >= f.startDate)
+    : [];
+  const hasConflict = conflicts.length > 0;
+  // Feed the computed answer into the form so validation + submit still work.
+  useEffect(() => {
+    if (f.memberId && f.startDate && f.endDate) {
+      const ans = hasConflict ? 'Yes' : 'No';
+      setF(v => v.onShoots === ans ? v : { ...v, onShoots: ans });
+    }
+  }, [hasConflict, f.memberId, f.startDate, f.endDate]);
 
   // Title auto-fills as "Name - Type" until it's manually edited
   const lastAuto = useRef('');
@@ -274,13 +305,25 @@ export default function Team() {
               </div>
             )}
             <div>
-              <span style={lbl}>Are you currently assigned to any shoots/travel for these dates? *</span>
-              <select value={f.onShoots} onChange={set('onShoots')}>
-                <option value="">Select option…</option>
-                <option>No</option>
-                <option>Yes</option>
-                <option>Not sure</option>
-              </select>
+              <span style={lbl}>Are you currently assigned to any shoots/travel for these dates?</span>
+              {(f.memberId && f.startDate && f.endDate) ? (
+                <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap', minHeight:30 }}>
+                  {hasConflict ? (
+                    <>
+                      <span style={{ background:'rgba(224,82,82,0.16)', border:'1px solid #e05252', color:'#e05252', borderRadius:999, padding:'3px 14px', fontSize:12, fontWeight:800 }}>Yes</span>
+                      <span style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
+                        {conflicts.map(c => (
+                          <span key={c.id} style={{ fontSize:11.5, color:'var(--tan)', fontWeight:600 }}>{c.project_code} · {c.project_title}</span>
+                        ))}
+                      </span>
+                    </>
+                  ) : (
+                    <span style={{ background:'rgba(90,191,128,0.16)', border:'1px solid #5ABF80', color:'#5ABF80', borderRadius:999, padding:'3px 14px', fontSize:12, fontWeight:800 }}>No</span>
+                  )}
+                </div>
+              ) : (
+                <div style={{ fontSize:11.5, color:'var(--muted)', fontStyle:'italic', minHeight:30, display:'flex', alignItems:'center' }}>Add the dates above — we'll check the crew calendar automatically.</div>
+              )}
             </div>
             <div style={{ gridColumn:'1 / -1' }}>
               <span style={lbl}>If comp, please provide project code and production dates responsible for this comp time.</span>
