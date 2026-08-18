@@ -153,7 +153,7 @@ export default function FinanceProject({ pidOverride, finTab, setFinTab }) {
           <div className="fp-actions" style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:8 }}>
             {budget && (
               <div className="fp-btnrow" style={{ display:'flex', gap:8, flexWrap:'wrap', justifyContent:'flex-end', alignItems:'center' }}>
-                <button type="button" className="evt-glass evt-gold" onClick={() => setEstimateMode(true)}>
+                <button type="button" className="evt-glass evt-sm evt-gold" onClick={() => setEstimateMode(true)}>
                   + Add Estimate{estimates.length ? ` (${estimates.length})` : ''}
                 </button>
                 <ShareBudgetButton budget={budget} project={project} sections={sections} lines={lines} onOverview={() => setOverview(true)}
@@ -516,7 +516,7 @@ function BudgetVersions({ budget, pid, reload }) {
   }
   return (
     <span ref={ref} className="fp-versions" style={{ position:'relative', display:'inline-block' }}>
-      <button type="button" className="evt-glass" onClick={() => setOpen(o => !o)} title="Budget versions" style={{ whiteSpace:'nowrap' }}>
+      <button type="button" className="evt-glass evt-sm" onClick={() => setOpen(o => !o)} title="Budget versions" style={{ whiteSpace:'nowrap' }}>
         V{budget.version || 1} ▾
       </button>
       {open && (
@@ -2193,7 +2193,7 @@ function ShareBudgetButton({ budget, project, sections, lines, onModePicked, onO
   ];
   return (
     <>
-      <button type="button" className="evt-glass" onClick={() => setOpen(true)} title="Open the client-facing budget page in a new window">
+      <button type="button" className="evt-glass evt-sm" onClick={() => setOpen(true)} title="Open the client-facing budget page in a new window">
         Share Options
       </button>
       {open && (
