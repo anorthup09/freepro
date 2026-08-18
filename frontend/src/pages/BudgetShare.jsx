@@ -118,7 +118,7 @@ export default function BudgetShare() {
             Estimate for Unbridled Media video production services.<br />
             All figures subject to change based on actuals and/or final output.
           </div>
-          <button className="btn btn-ghost btn-sm" style={{ marginTop:12 }} onClick={() => window.print()}>Print / Save PDF</button>
+          <button className="btn btn-ghost btn-sm no-print" style={{ marginTop:12 }} onClick={() => window.print()}>Print / Save PDF</button>
         </div>
       </div>
     </div>

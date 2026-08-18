@@ -769,6 +769,8 @@ body::before { content: none; }
   .spec-tile-label { color: #555 !important; }
 }
 @media print { .no-print { display: none !important } }
+/* Unbridled logo is white (inverted) on-screen for the dark UI — force it black when printed / saved to PDF. */
+@media print { img[alt="Unbridled Media"] { filter: brightness(0) !important; opacity: 1 !important; } }
 
 /* Hub header: center the pipeline button on desktop; flow naturally on mobile */
 .hub-pipeline-btn { position: absolute; left: 50%; transform: translateX(-50%); }
