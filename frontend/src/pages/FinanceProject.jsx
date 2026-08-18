@@ -141,14 +141,15 @@ export default function FinanceProject({ pidOverride, finTab, setFinTab }) {
       <div style={{ maxWidth:1100, margin:'0 auto', padding:'6px 16px 80px' }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:10, marginBottom:14, position:'relative' }}>
           <div className="fp-idblock">
-            <button className="fp-edit" onClick={() => setEditProject(true)}
-              style={{ marginBottom:6, background:'none', border:'1px solid var(--border)', borderRadius:12, padding:'2px 12px', fontSize:10, fontWeight:600, color:'var(--muted)', cursor:'pointer' }}>
-              ✎ Edit
-            </button>
+            <div className="page-sub fp-client" style={{ marginBottom:2 }}>{project.client}</div>
             <div className="fp-code" style={{ fontSize:10, color:'var(--muted)' }}>{project.code}</div>
-            <div className="page-title">{project.title}</div>
-            <div className="page-sub">{project.client}</div>
-
+            <div className="fp-titlerow" style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
+              <div className="page-title" style={{ marginBottom:0 }}>{project.title}</div>
+              <button className="fp-edit" onClick={() => setEditProject(true)}
+                style={{ background:'none', border:'1px solid var(--border)', borderRadius:12, padding:'2px 12px', fontSize:10, fontWeight:600, color:'var(--muted)', cursor:'pointer' }}>
+                ✎ Edit
+              </button>
+            </div>
           </div>
           <div className="fp-actions" style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:8 }}>
             {budget && (
