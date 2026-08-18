@@ -139,7 +139,7 @@ export default function FinanceProject({ pidOverride, finTab, setFinTab }) {
       }} />
       )}
       <div style={{ maxWidth:1100, margin:'0 auto', padding:'6px 16px 80px' }}>
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:10, marginBottom:14, position:'relative' }}>
+        <div className="fp-headrow" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:10, marginBottom:14, position:'relative' }}>
           <div className="fp-idblock">
             <div className="page-sub fp-client" style={{ marginBottom:2 }}>{project.client}</div>
             <div className="fp-code" style={{ fontSize:10, color:'var(--muted)' }}>{project.code}</div>
@@ -2527,7 +2527,7 @@ function OverviewEstimateModal({ sections, lines, feeRate, heading, onClose }) {
   );
 }
 
-function EditProjectModal({ project, onClose, onSaved }) {
+export function EditProjectModal({ project, onClose, onSaved }) {
   const [f, setF] = useState({
     code: project.code || '', title: project.title || '', client: project.client || '',
   });

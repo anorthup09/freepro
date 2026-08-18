@@ -934,9 +934,11 @@ body::before { content: none; }
 .pvd-embed .ov-head .proj-code,
 .pvd-embed .ov-head .proj-title,
 .pvd-embed .ov-head .proj-meta .meta:nth-child(2) { display: none !important; }
-/* Finance id block repeats the code + project name too — keep Edit + client */
-.pvd-embed .fp-idblock .fp-code,
-.pvd-embed .fp-idblock .page-title { display: none !important; }
+/* Finance id block repeats the client / code / name / Edit already shown in the
+   shared project header (pvd-bar) — hide it here and keep the action buttons on
+   the right. */
+.pvd-embed .fp-idblock { display: none !important; }
+.pvd-embed .fp-headrow { justify-content: flex-end !important; }
 
 /* Budget shoot header: code / trip / description stack on phones; the cost
    column stays pinned top-right instead of wrapping underneath */

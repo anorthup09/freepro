@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../App.jsx';
 import { api } from '../api.js';
-import FinanceProject, { FIN_DOCK_ICONS } from './FinanceProject.jsx';
+import FinanceProject, { FIN_DOCK_ICONS, EditProjectModal } from './FinanceProject.jsx';
 import Project, { ShareDropdown } from './Project/index.jsx';
 import AvoProject from './AvoProject.jsx';
 import ProjectOverview from './ProjectOverview.jsx';
@@ -340,6 +340,7 @@ export function ProjectViewDetail() {
   }, []);
   const [shootId, setShootId] = useState('');   // FreePro project id for Pre-Production
   const [avoPageId, setAvoPageId] = useState('');
+  const [editOpen, setEditOpen] = useState(false); // Edit Project modal (lives in the shared header)
   const [preControls, setPreControls] = useState(null); // ?/Share lifted from the embedded Pre-Pro
   useEffect(() => { if (tab !== 'pre') setPreControls(null); }, [tab]);
 
@@ -389,7 +390,15 @@ export function ProjectViewDetail() {
                 {project.client_logo
                   ? <img src={project.client_logo} alt={project.client} style={{ height:20, maxWidth:120, objectFit:'contain', display:'block', marginBottom:3 }} />
                   : project.client && <div style={{ fontSize:10, color:'var(--muted)', fontWeight:700, letterSpacing:'0.04em', marginBottom:1 }}>{project.client}</div>}
-                <div style={{ fontSize:13, fontWeight:800 }}>{project.code} — {project.title}</div>
+                <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
+                  <div style={{ fontSize:13, fontWeight:800 }}>{project.code} — {project.title}</div>
+                  {!isSolutions && (
+                    <button className="fp-edit" onClick={() => setEditOpen(true)}
+                      style={{ background:'none', border:'1px solid var(--border)', borderRadius:12, padding:'2px 12px', fontSize:10, fontWeight:600, color:'var(--muted)', cursor:'pointer', flexShrink:0 }}>
+                      ✎ Edit
+                    </button>
+                  )}
+                </div>
               </div>
             )}
             {/* Share lifted up from the embedded Pre-Pro — top-right (? moved to the top bar, left of Home) */}
@@ -439,6 +448,10 @@ export function ProjectViewDetail() {
           ? <div style={{ maxWidth:1250, margin:'0 auto', padding:'0 16px 40px' }}><AvoProject idOverride={avoPageId} embedded /></div>
           : <div className="empty">Loading post-production…</div>)}
       </div>
+      {editOpen && project && (
+        <EditProjectModal project={project} onClose={() => setEditOpen(false)}
+          onSaved={p2 => { setProject(prev => ({ ...prev, ...p2 })); setEditOpen(false); }} />
+      )}
     </div>
   );
 }
