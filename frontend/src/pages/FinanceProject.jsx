@@ -151,18 +151,15 @@ export default function FinanceProject({ pidOverride, finTab, setFinTab }) {
 
           </div>
           <div className="fp-actions" style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:8 }}>
-            {budget && <BudgetVersions budget={budget} pid={pid} reload={() => api.financeBundle(pid).then(setData)} />}
             {budget && (
-              <>
-                <div className="fp-btnrow" style={{ display:'flex', gap:8, flexWrap:'wrap', justifyContent:'flex-end' }}>
-                  <button onClick={() => setEstimateMode(true)}
-                    style={{ background:'rgba(230,194,41,0.15)', border:'1px solid #e6c229', color:'#e6c229', borderRadius:20, padding:'4px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
-                    + Add Estimate{estimates.length ? ` (${estimates.length})` : ''}
-                  </button>
-                  <ShareBudgetButton budget={budget} project={project} sections={sections} lines={lines} onOverview={() => setOverview(true)}
-                    onModePicked={m => set(d => ({ budget: { ...d.budget, share_mode: m } }))} />
-                </div>
-              </>
+              <div className="fp-btnrow" style={{ display:'flex', gap:8, flexWrap:'wrap', justifyContent:'flex-end', alignItems:'center' }}>
+                <button type="button" className="evt-glass evt-gold" onClick={() => setEstimateMode(true)}>
+                  + Add Estimate{estimates.length ? ` (${estimates.length})` : ''}
+                </button>
+                <ShareBudgetButton budget={budget} project={project} sections={sections} lines={lines} onOverview={() => setOverview(true)}
+                  onModePicked={m => set(d => ({ budget: { ...d.budget, share_mode: m } }))} />
+                <BudgetVersions budget={budget} pid={pid} reload={() => api.financeBundle(pid).then(setData)} />
+              </div>
             )}
           </div>
         </div>
@@ -518,9 +515,8 @@ function BudgetVersions({ budget, pid, reload }) {
     setBusy(false);
   }
   return (
-    <span ref={ref} className="fp-versions" style={{ position:'relative', display:'inline-block', marginLeft:8 }}>
-      <button onClick={() => setOpen(o => !o)} title="Budget versions"
-        style={{ background:'none', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:16, padding:'5px 12px', fontSize:11, fontWeight:800, cursor:'pointer', whiteSpace:'nowrap' }}>
+    <span ref={ref} className="fp-versions" style={{ position:'relative', display:'inline-block' }}>
+      <button type="button" className="evt-glass" onClick={() => setOpen(o => !o)} title="Budget versions" style={{ whiteSpace:'nowrap' }}>
         V{budget.version || 1} ▾
       </button>
       {open && (
@@ -634,10 +630,10 @@ function LinkShootButton({ sec, onLinked }) {
   }
   return (
     <span style={{ position:'relative' }}>
-      <button type="button" onClick={openPicker}
+      <button type="button" className="evt-glass evt-sm" onClick={openPicker}
         title={sec.freepro_project_id ? 'Re-link this shoot to a different FreePro project' : 'Connect an existing FreePro shoot to this budget section'}
-        style={{ fontSize:10, fontWeight:700, color:'var(--muted)', background:'none', border:'1px solid var(--border)', borderRadius:12, padding:'3px 10px', cursor:'pointer', whiteSpace:'nowrap' }}>
-        🔗 {sec.freepro_project_id ? 'Re-link' : 'Link shoot'}
+        style={{ whiteSpace:'nowrap' }}>
+        {sec.freepro_project_id ? 'Re-link' : 'Link shoot'}
       </button>
       {open && (
         <div onClick={e => e.target === e.currentTarget && setOpen(false)}
@@ -856,76 +852,89 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
             </div>
           </div>
         )}
-        {(!mobile || metaOpen) && [
-          ['Budget Dated', 'budget_date', 'budgetDate', 'date'],
-          ...(budget.unbridled_solutions ? [['Solutions Code', 'solutions_code', 'solutionsCode', 'text']] : []),
-        ].map(([label, key, apiKey, type]) => (
-          <div key={key} style={{ display:'flex', flexDirection:'column', gap:3, width: mobile ? '100%' : 'auto' }}>
-            <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>{label}</label>
-            <input type={type} value={budget[key] || ''} style={{ width: mobile ? '100%' : (type === 'date' ? 140 : 130), fontSize:12, boxSizing:'border-box' }}
-              onChange={e => patchBudget({ [key]: e.target.value })}
-              onBlur={e => saveBudget({ [apiKey]: e.target.value })} />
-          </div>
-        ))}
-        {(!mobile || metaOpen) && <>
-        <div style={{ display:'flex', flexDirection:'column', gap:3, width: mobile ? '100%' : 'auto' }}>
-          <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Budget Owner</label>
-          <select value={budget.media_rep || ''} style={{ width: mobile ? '100%' : 160, fontSize:12, boxSizing:'border-box' }}
-            onChange={e => { patchBudget({ media_rep: e.target.value }); saveBudget({ mediaRep: e.target.value }); }}>
-            <option value="">— Select —</option>
-            {budget.media_rep && !BUDGET_OWNERS.includes(budget.media_rep) && <option value={budget.media_rep}>{budget.media_rep}</option>}
-            {BUDGET_OWNERS.map(n => <option key={n}>{n}</option>)}
-          </select>
-        </div>
-        <div style={{ display:'flex', flexDirection:'column', gap:3, width: mobile ? '100%' : 'auto' }}>
-          <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Est. Final Delivery</label>
-          <input type="date" value={budget.est_final_delivery ? String(budget.est_final_delivery).slice(0, 10) : ''} style={{ width: mobile ? '100%' : 140, fontSize:12, boxSizing:'border-box' }}
-            onChange={e => { patchBudget({ est_final_delivery: e.target.value }); saveBudget({ estFinalDelivery: e.target.value }); }} />
-        </div>
-        <div style={{ display:'flex', flexDirection:'column', gap:3, width: mobile ? '100%' : 'auto' }}>
-          <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Close Month</label>
-          <select value={budget.close_month || ''} style={{ width: mobile ? '100%' : 150, fontSize:12, boxSizing:'border-box' }}
-            onChange={e => { patchBudget({ close_month: e.target.value }); saveBudget({ closeMonth: e.target.value }); }}>
-            <option value="">— Select —</option>
-            {budget.close_month && !closeMonthOptions.some(o => o.value === budget.close_month) && (
-              <option value={budget.close_month}>{budget.close_month}</option>
-            )}
-            {closeMonthOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
-        </div>
-        <ClientContactField budget={budget} patchBudget={patchBudget} saveBudget={saveBudget} />
-        <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
-          <label style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Tagged</label>
-          <TagRow budgetId={budget.id} ownerName={budget.media_rep} />
-        </div>
-        <div style={{ marginLeft: mobile ? 0 : 'auto', width: mobile ? '100%' : 'auto', display:'flex', flexDirection:'column', alignItems: mobile ? 'flex-start' : 'flex-end', gap:8 }}>
-          <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
+        {(!mobile || metaOpen) && (() => {
+          const lblStyle = { fontSize: 9, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' };
+          const dateFields = [
+            ['Budget Dated', 'budget_date', 'budgetDate', 'date'],
+            ...(budget.unbridled_solutions ? [['Solutions Code', 'solutions_code', 'solutionsCode', 'text']] : []),
+          ].map(([label, key, apiKey, type]) => (
+            <div key={key} style={{ display: 'flex', flexDirection: 'column', gap: 3, width: mobile ? '100%' : 'auto' }}>
+              <label style={lblStyle}>{label}</label>
+              <input type={type} value={budget[key] || ''} style={{ width: mobile ? '100%' : (type === 'date' ? 140 : 130), fontSize: 12, boxSizing: 'border-box' }}
+                onChange={e => patchBudget({ [key]: e.target.value })}
+                onBlur={e => saveBudget({ [apiKey]: e.target.value })} />
+            </div>
+          ));
+          const field = (label, node) => (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 3, width: mobile ? '100%' : 'auto' }}>
+              <label style={lblStyle}>{label}</label>
+              {node}
+            </div>
+          );
+          const ownerField = field('Budget Owner', (
+            <select value={budget.media_rep || ''} style={{ width: mobile ? '100%' : 160, fontSize: 12, boxSizing: 'border-box' }}
+              onChange={e => { patchBudget({ media_rep: e.target.value }); saveBudget({ mediaRep: e.target.value }); }}>
+              <option value="">— Select —</option>
+              {budget.media_rep && !BUDGET_OWNERS.includes(budget.media_rep) && <option value={budget.media_rep}>{budget.media_rep}</option>}
+              {BUDGET_OWNERS.map(n => <option key={n}>{n}</option>)}
+            </select>
+          ));
+          const deliveryField = field('Est. Final Delivery', (
+            <input type="date" value={budget.est_final_delivery ? String(budget.est_final_delivery).slice(0, 10) : ''} style={{ width: mobile ? '100%' : 140, fontSize: 12, boxSizing: 'border-box' }}
+              onChange={e => { patchBudget({ est_final_delivery: e.target.value }); saveBudget({ estFinalDelivery: e.target.value }); }} />
+          ));
+          const closeField = field('Close Month', (
+            <select value={budget.close_month || ''} style={{ width: mobile ? '100%' : 150, fontSize: 12, boxSizing: 'border-box' }}
+              onChange={e => { patchBudget({ close_month: e.target.value }); saveBudget({ closeMonth: e.target.value }); }}>
+              <option value="">— Select —</option>
+              {budget.close_month && !closeMonthOptions.some(o => o.value === budget.close_month) && (<option value={budget.close_month}>{budget.close_month}</option>)}
+              {closeMonthOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          ));
+          const contactField = <ClientContactField budget={budget} patchBudget={patchBudget} saveBudget={saveBudget} />;
+          const taggedField = field('Tagged', <TagRow budgetId={budget.id} ownerName={budget.media_rep} />);
+          const solutionsBtn = (
             <button onClick={() => { const on = !budget.unbridled_solutions; patchBudget({ unbridled_solutions: on }); saveBudget({ unbridledSolutions: on }); }}
               title="Reveals Solutions-specific fields (Solutions Code, commissions) in the budget and Harbinger"
               style={budget.unbridled_solutions
-                ? { background:'rgba(74,158,255,0.15)', border:'1px solid #4a9eff', color:'#4a9eff', borderRadius:14, padding:'3px 12px', fontSize:10, fontWeight:800, cursor:'pointer', whiteSpace:'nowrap' }
-                : { background:'none', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:14, padding:'3px 12px', fontSize:10, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap' }}>
+                ? { background: 'rgba(74,158,255,0.15)', border: '1px solid #4a9eff', color: '#4a9eff', borderRadius: 14, padding: '5px 14px', fontSize: 10, fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap' }
+                : { background: 'none', border: '1px solid var(--border)', color: 'var(--muted)', borderRadius: 14, padding: '5px 14px', fontSize: 10, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
               Unbridled Solutions{budget.unbridled_solutions ? ' ✓' : ''}
             </button>
-            {(budget.status || 'RFP') === 'RFP' && (
-              <button onClick={() => setHarbingerOpen(true)}
-                title="Fill out and submit the Harbinger kickoff — moves the budget to Live"
-                style={{ background:'rgba(232,80,10,0.14)', border:'1px solid var(--orange)', color:'var(--orange)',
-                  borderRadius:14, padding:'3px 12px', fontSize:10, fontWeight:800, cursor:'pointer', whiteSpace:'nowrap' }}>
-                Submit Harbinger
-              </button>
-            )}
-            {/* status pill already shown in the mobile compact bar */}
-            {!mobile && <StatusPill value={budget.status || 'RFP'} onChange={handleStatusChange} small />}
-          </div>
-          {!mobile && (
-            <div style={{ textAlign:'right' }}>
-              <span style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.08em', marginRight:8 }}>Total Budget</span>
-              <span style={{ fontSize:18, fontWeight:800, color:'#5ABF80', fontVariantNumeric:'tabular-nums' }}>{fmt$(t.total)}</span>
+          );
+          const harbingerBtn = (budget.status || 'RFP') === 'RFP' ? (
+            <button onClick={() => setHarbingerOpen(true)} title="Fill out and submit the Harbinger kickoff"
+              style={{ background: 'rgba(232,80,10,0.14)', border: '1px solid var(--orange)', color: 'var(--orange)', borderRadius: 14, padding: '5px 14px', fontSize: 10, fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              Submit Harbinger
+            </button>
+          ) : null;
+          const totalBlock = (
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: 9, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Total Budget</div>
+              <div style={{ fontSize: 32, fontWeight: 800, color: '#5ABF80', fontVariantNumeric: 'tabular-nums', lineHeight: 1.05 }}>{fmt$(t.total)}</div>
             </div>
-          )}
-        </div>
-        </>}
+          );
+          const statusPill = <StatusPill value={budget.status || 'RFP'} onChange={handleStatusChange} small />;
+          if (mobile) {
+            return (
+              <>
+                {dateFields}{ownerField}{deliveryField}{closeField}{contactField}{taggedField}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', width: '100%' }}>{solutionsBtn}{harbingerBtn}</div>
+              </>
+            );
+          }
+          return (
+            <div style={{ display: 'flex', width: '100%', justifyContent: 'space-between', alignItems: 'flex-start', gap: 20, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, flex: '1 1 auto', minWidth: 0 }}>
+                <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>{dateFields}{ownerField}{deliveryField}{closeField}</div>
+                <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>{contactField}{taggedField}<div style={{ display: 'flex', alignItems: 'flex-end' }}>{solutionsBtn}</div></div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, flexShrink: 0 }}>
+                {totalBlock}{statusPill}{harbingerBtn}
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {(() => { const lastShootId = [...sections].filter(x => x.kind === 'shoot').map(x => x.id).pop(); return sections.map(sec => {
@@ -986,9 +995,41 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
                       onBlur={e => api.updateBudgetSection(sec.id, { trip: e.target.value }).catch(() => {})} />
                   )}
                   <input value={sec.subtitle || ''} placeholder={sec.kind === 'shoot' ? 'Shoot Description' : 'Description'}
-                    style={{ ...cellIn, fontSize:11, color:'var(--muted)', ...(sec.kind === 'shoot' && sec.fp_start_date ? { width:'auto', flex:'0 1 260px' } : {}) }}
+                    style={{ ...cellIn, fontSize:11, color:'var(--muted)', ...(sec.kind === 'shoot' && sec.fp_start_date ? { width:'auto', flex:'0 1 220px' } : {}) }}
                     onChange={e => patchSection(sec.id, { subtitle: e.target.value })}
                     onBlur={e => api.updateBudgetSection(sec.id, { subtitle: e.target.value }).catch(() => {})} />
+                  {sec.kind === 'shoot' && sec.fp_start_date && (
+                    dateEdit?.secId === sec.id ? (
+                      <span style={{ display:'flex', alignItems:'center', gap:6, flexWrap:'wrap' }}>
+                        <span style={{ fontSize:11, color:'var(--muted)', opacity:0.45 }}>|</span>
+                        <input type="date" value={dateEdit.start} onChange={e => setDateEdit(d => ({ ...d, start: e.target.value }))} style={{ width:'auto', fontSize:11, padding:'3px 6px' }} />
+                        <span style={{ fontSize:10, color:'var(--muted)' }}>–</span>
+                        <input type="date" value={dateEdit.end} onChange={e => setDateEdit(d => ({ ...d, end: e.target.value }))} style={{ width:'auto', fontSize:11, padding:'3px 6px' }} />
+                        <button className="btn btn-primary btn-sm" style={{ fontSize:10, padding:'3px 10px' }}
+                          onClick={async () => {
+                            try {
+                              await api.updateProject(sec.freepro_project_id, { startDate: dateEdit.start, endDate: dateEdit.end || dateEdit.start });
+                              patchSection(sec.id, { fp_start_date: dateEdit.start, fp_end_date: dateEdit.end || dateEdit.start });
+                              setDateEdit(null);
+                            } catch (err) { alert(err.message); }
+                          }}>Save</button>
+                        <button className="btn btn-ghost btn-sm" style={{ fontSize:10, padding:'3px 8px' }} onClick={() => setDateEdit(null)}>✕</button>
+                      </span>
+                    ) : (
+                      <span style={{ display:'flex', alignItems:'center', gap:6 }}>
+                        <span style={{ fontSize:11, color:'var(--muted)', opacity:0.45 }}>|</span>
+                        <span title="Shoot dates — feed the FreePro project, call sheets, and gear views"
+                          style={{ fontSize:10, color:'var(--muted)', whiteSpace:'nowrap' }}>
+                          {new Date(String(sec.fp_start_date).slice(0,10)+'T12:00:00').toLocaleDateString()} – {new Date(String(sec.fp_end_date || sec.fp_start_date).slice(0,10)+'T12:00:00').toLocaleDateString()}
+                        </span>
+                        {sec.freepro_project_id && (
+                          <button title="Edit the shoot dates — updates FreePro and every view fed by it"
+                            onClick={() => setDateEdit({ secId: sec.id, start: String(sec.fp_start_date).slice(0,10), end: String(sec.fp_end_date || sec.fp_start_date).slice(0,10) })}
+                            style={{ background:'none', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:8, padding:'2px 8px', fontSize:10, cursor:'pointer' }}>✎ Edit</button>
+                        )}
+                      </span>
+                    )
+                  )}
                 </div>
               </div>
               <div className="shoot-head-right" style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:6, flexShrink:0 }}>
@@ -999,43 +1040,13 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
                 {sec.kind === 'shoot' && (
                   <span style={{ display:'flex', alignItems:'center', gap:6 }}>
                     {sec.freepro_project_id && (
-                      <a href={`/projects/${sec.freepro_project_id}`}
-                        style={{ fontSize:10, fontWeight:700, color:'var(--orange)', border:'1px solid rgba(232,80,10,0.45)', borderRadius:12, padding:'3px 10px', textDecoration:'none', whiteSpace:'nowrap' }}>
-                        Go to FreePro ›
+                      <a href={`/projects/${sec.freepro_project_id}`} className="evt-glass evt-sm"
+                        style={{ whiteSpace:'nowrap' }}>
+                        Production ›
                       </a>
                     )}
                     <LinkShootButton sec={sec} onLinked={() => reload && reload()} />
                   </span>
-                )}
-                {sec.kind === 'shoot' && sec.fp_start_date && (
-                  dateEdit?.secId === sec.id ? (
-                    <span style={{ display:'flex', alignItems:'center', gap:6, flexWrap:'wrap', justifyContent:'flex-end' }}>
-                      <input type="date" value={dateEdit.start} onChange={e => setDateEdit(d => ({ ...d, start: e.target.value }))} style={{ width:'auto', fontSize:11, padding:'3px 6px' }} />
-                      <span style={{ fontSize:10, color:'var(--muted)' }}>–</span>
-                      <input type="date" value={dateEdit.end} onChange={e => setDateEdit(d => ({ ...d, end: e.target.value }))} style={{ width:'auto', fontSize:11, padding:'3px 6px' }} />
-                      <button className="btn btn-primary btn-sm" style={{ fontSize:10, padding:'3px 10px' }}
-                        onClick={async () => {
-                          try {
-                            await api.updateProject(sec.freepro_project_id, { startDate: dateEdit.start, endDate: dateEdit.end || dateEdit.start });
-                            patchSection(sec.id, { fp_start_date: dateEdit.start, fp_end_date: dateEdit.end || dateEdit.start });
-                            setDateEdit(null);
-                          } catch (err) { alert(err.message); }
-                        }}>Save</button>
-                      <button className="btn btn-ghost btn-sm" style={{ fontSize:10, padding:'3px 8px' }} onClick={() => setDateEdit(null)}>✕</button>
-                    </span>
-                  ) : (
-                    <span style={{ display:'flex', alignItems:'center', gap:6 }}>
-                      <span title="Shoot dates — feed the FreePro project, call sheets, and gear views"
-                        style={{ fontSize:10, color:'var(--muted)', whiteSpace:'nowrap' }}>
-                        {new Date(String(sec.fp_start_date).slice(0,10)+'T12:00:00').toLocaleDateString()} – {new Date(String(sec.fp_end_date || sec.fp_start_date).slice(0,10)+'T12:00:00').toLocaleDateString()}
-                      </span>
-                      {sec.freepro_project_id && (
-                        <button title="Edit the shoot dates — updates FreePro and every view fed by it"
-                          onClick={() => setDateEdit({ secId: sec.id, start: String(sec.fp_start_date).slice(0,10), end: String(sec.fp_end_date || sec.fp_start_date).slice(0,10) })}
-                          style={{ background:'none', border:'1px solid var(--border)', color:'var(--muted)', borderRadius:8, padding:'2px 8px', fontSize:10, cursor:'pointer' }}>✎ Edit</button>
-                      )}
-                    </span>
-                  )
                 )}
               </div>
             </div>
@@ -2182,16 +2193,15 @@ function ShareBudgetButton({ budget, project, sections, lines, onModePicked, onO
   ];
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} title="Open the client-facing budget page in a new window"
-        style={{ background:'rgba(74,158,255,0.12)', border:'1px solid #4a9eff', color:'#4a9eff', borderRadius:20, padding:'4px 14px', fontSize:11, fontWeight:700, cursor:'pointer' }}>
-        Share Budget Options
+      <button type="button" className="evt-glass" onClick={() => setOpen(true)} title="Open the client-facing budget page in a new window">
+        Share Options
       </button>
       {open && (
         <div onClick={e => e.target === e.currentTarget && setOpen(false)}
           style={{ position:'fixed', inset:0, zIndex:130, background:'rgba(0,0,0,0.72)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
           <div style={{ width:'100%', maxWidth:420, background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid #4a9eff', borderRadius:12, padding:'18px 20px' }}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4 }}>
-              <div style={{ fontSize:14, fontWeight:800 }}>Share Budget Options</div>
+              <div style={{ fontSize:14, fontWeight:800 }}>Share Options</div>
               <button className="btn btn-ghost btn-sm" onClick={() => setOpen(false)}>✕</button>
             </div>
             <div style={{ fontSize:11, color:'var(--muted)', marginBottom:12 }}>How should the client see this budget?</div>

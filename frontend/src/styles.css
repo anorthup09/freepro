@@ -1145,6 +1145,38 @@ body { padding-top: env(safe-area-inset-top, 0px); }
 }
 .evt-glass:active { transform: translateY(0) scale(0.96); }
 
+/* Compact variant of .evt-glass for inline/dense rows (shoot header actions) */
+.evt-glass.evt-sm { height: 26px; padding: 0 11px; font-size: 11px; gap: 4px; border-radius: 9px; }
+
+/* Gold-sheened variant of .evt-glass — makes a button stand out (Add Estimate) */
+.evt-glass.evt-gold {
+  color: #f0d76b;
+  background: linear-gradient(150deg, rgba(230,194,41,0.28) 0%, rgba(230,194,41,0.07) 45%, rgba(230,194,41,0.16) 100%);
+  border-color: rgba(230,194,41,0.55);
+  box-shadow:
+    inset 0 1px 0 rgba(255,240,180,0.35),
+    inset 0 -1px 1px rgba(0,0,0,0.25),
+    0 4px 14px rgba(0,0,0,0.35),
+    0 0 14px rgba(230,194,41,0.22);
+}
+.evt-glass.evt-gold:hover {
+  color: #f8e79a;
+  background: linear-gradient(150deg, rgba(230,194,41,0.42) 0%, rgba(230,194,41,0.12) 45%, rgba(230,194,41,0.24) 100%);
+  border-color: rgba(230,194,41,0.78);
+  box-shadow:
+    inset 0 1px 0 rgba(255,240,180,0.45),
+    inset 0 -1px 1px rgba(0,0,0,0.25),
+    0 6px 18px rgba(0,0,0,0.4),
+    0 0 20px rgba(230,194,41,0.33);
+}
+:root[data-theme="light"] .evt-glass.evt-gold {
+  color: #8a6d0a;
+  background: rgba(230,194,41,0.18);
+  border-color: rgba(230,194,41,0.6);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 4px 12px rgba(0,0,0,0.12), 0 0 12px rgba(230,194,41,0.25);
+}
+:root[data-theme="light"] .evt-glass.evt-gold:hover { color: #6b5405; background: rgba(230,194,41,0.30); border-color: rgba(230,194,41,0.8); }
+
 /* Neutral glass segmented pill (All / On Shoots / In Office etc.) — same
    family as .home-glass/.evt-glass: white glass shell, frosted active bubble */
 .seg-glass {
