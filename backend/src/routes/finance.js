@@ -504,12 +504,14 @@ router.post('/finance/budget/:bid/version', ...finance, async (req, res, next) =
 router.get('/finance/:pid/versions', ...finance, async (req, res, next) => {
   try {
     const rows = await sql`
-      SELECT b.id, b.version, b.label, b.status, b.created_at,
-             (SELECT COALESCE(SUM(CASE WHEN l.percent IS NULL THEN l.qty * l.unit_cost ELSE 0 END), 0)
-              FROM budget_lines l WHERE l.budget_id = b.id) as raw_total
+      SELECT b.id, b.version, b.label, b.status, b.created_at, b.mgmt_fee_rate
       FROM budgets b WHERE b.project_id = ${req.params.pid} AND b.kind = 'version'
       ORDER BY b.version DESC`;
-    res.json(rows);
+    // raw_total = the true grand total (non-travel + travel + management fee +
+    // photo), matching the budget's bottom-line TOTAL, not a raw line sum.
+    const withTotals = [];
+    for (const b of rows) withTotals.push({ ...b, raw_total: await budgetGrandTotal(b) });
+    res.json(withTotals);
   } catch (e) { next(e); }
 });
 
