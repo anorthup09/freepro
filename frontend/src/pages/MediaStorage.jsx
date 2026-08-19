@@ -159,6 +159,19 @@ const isDeployedSub = r => r.subscription_added && r.status === 'Live';
 const subBucket = r => (r.sub_status === 'Live Subscription' ? 'Live' : 'New Request');
 const SUB_GROUPS = [['New Request', '(!) New Request', '#e05252'], ['Live', 'Live', '#5ABF80']];
 
+// Hard Drive status is derived from the two Sent flags:
+//  both sent → Completed · hd sent only → Send Invoice · invoice sent only →
+//  Send Hard Drive · neither → New Request.
+const driveState = r => {
+  const hd = r.hard_drive_sent, inv = r.hard_drive_invoice_sent;
+  if (hd && inv) return { key: 'Completed', label: 'Completed', color: '#5ABF80' };
+  if (hd && !inv) return { key: 'SendInvoice', label: 'Send Invoice', color: '#e6c229' };
+  if (!hd && inv) return { key: 'SendHardDrive', label: 'Send Hard Drive', color: '#e6c229' };
+  return { key: 'NewRequest', label: '(!) New Request', color: '#e05252' };
+};
+const driveBucket = r => (r.hard_drive_sent && r.hard_drive_invoice_sent ? 'Completed' : 'New Request');
+const DRIVE_GROUPS = [['New Request', '(!) New Request', '#e05252'], ['Completed', 'Completed', '#5ABF80']];
+
 // Whole days since a date (for Days Since Outreach). Null if no date.
 const daysSince = d => {
   if (!d) return null;
@@ -282,16 +295,15 @@ function DriveHeader() {
   );
 }
 
-function DriveRow({ r, patchReq, onDetail, onShip }) {
+function DriveRow({ r, patchReq, onDetail, onShip, onTrack }) {
   const stop = e => e.stopPropagation();
-  const sent = r.drive_status === 'Sent';
+  const st = driveState(r);
   const shipped = hasShipping(r);
   return (
     <div className="glass" style={{ display: 'grid', gridTemplateColumns: DRIVE_COLS, gap: 10, alignItems: 'center', padding: '10px 14px', borderRadius: 10 }}>
       <div style={{ fontSize: 10, color: 'var(--muted)', whiteSpace: 'nowrap' }}>{shortDate(r.live_date)}</div>
       <div>
-        <button type="button" onClick={e => { stop(e); patchReq(r.id, { driveStatus: sent ? 'New Request' : 'Sent' }); }}
-          style={pill(sent ? '#5ABF80' : '#e05252')}>{sent ? 'Sent' : '(!) New Request'}</button>
+        <span style={{ ...pill(st.color), cursor: 'default' }}>{st.label}</span>
       </div>
       <div onClick={() => onDetail(r)} style={{ cursor: 'pointer', minWidth: 0, fontSize: 12, fontWeight: 800 }} title="Open full request">{r.client_name}</div>
       <div onClick={() => onDetail(r)} style={{ cursor: 'pointer', minWidth: 0, fontSize: 11, color: 'var(--muted)' }} title="Open full request">
@@ -299,7 +311,8 @@ function DriveRow({ r, patchReq, onDetail, onShip }) {
       </div>
       <div style={{ fontSize: 11 }}>{r.hard_drive_tier ? `${r.hard_drive_tier} · ${fmt$(r.hard_drive_cost)}` : '—'}</div>
       <div>
-        <button type="button" onClick={e => { stop(e); patchReq(r.id, { hardDriveSent: !r.hard_drive_sent }); }}
+        <button type="button" title={r.hard_drive_sent ? 'Mark hard drive unsent' : 'Confirm tracking number to mark sent'}
+          onClick={e => { stop(e); if (r.hard_drive_sent) patchReq(r.id, { hardDriveSent: false }); else onTrack(r); }}
           style={pill(r.hard_drive_sent ? '#5ABF80' : null)}>{r.hard_drive_sent ? 'Sent' : 'Unsent'}</button>
       </div>
       <div>
@@ -412,7 +425,7 @@ function ExpiredRow({ r, patchReq, onDetail, onShip }) {
 function ShippingModal({ r, onClose, onSave }) {
   const [s, setS] = useState({
     shippingName: r.shipping_name || '', shippingEmail: r.shipping_email || '',
-    shippingAddress: r.shipping_address || '', shippingTracking: r.shipping_tracking || '',
+    shippingAddress: r.shipping_address || '',
   });
   const [saving, setSaving] = useState(false);
   const set = (k, v) => setS(p => ({ ...p, [k]: v }));
@@ -430,11 +443,45 @@ function ShippingModal({ r, onClose, onSave }) {
           <Field label="Shipping Name"><input value={s.shippingName} onChange={e => set('shippingName', e.target.value)} style={inp} /></Field>
           <Field label="Shipping Email"><input type="email" value={s.shippingEmail} onChange={e => set('shippingEmail', e.target.value)} style={inp} /></Field>
           <Field label="Shipping Address"><textarea value={s.shippingAddress} onChange={e => set('shippingAddress', e.target.value)} rows={2} style={{ ...inp, resize: 'vertical', fontFamily: 'inherit' }} /></Field>
-          <Field label="Shipping Tracking Number"><input value={s.shippingTracking} onChange={e => set('shippingTracking', e.target.value)} style={inp} /></Field>
         </div>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 18 }}>
           <button className="btn btn-ghost btn-sm" onClick={onClose}>Cancel</button>
           <button disabled={saving} onClick={save} className="evt-glass">{saving ? 'Saving…' : 'Save Shipping Info'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Confirm the shipping tracking number when marking a hard drive Sent.
+function TrackingModal({ r, onClose, onConfirm }) {
+  const [tracking, setTracking] = useState(r.shipping_tracking || '');
+  const [saving, setSaving] = useState(false);
+  async function confirm() {
+    if (!tracking.trim()) return;
+    setSaving(true);
+    await onConfirm(r.id, tracking.trim());
+    setSaving(false);
+    onClose();
+  }
+  return (
+    <div onClick={e => e.target === e.currentTarget && onClose()}
+      style={{ position: 'fixed', inset: 0, zIndex: 210, background: 'rgba(0,0,0,0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+      <div className="glass" style={{ width: '100%', maxWidth: 420, borderRadius: 14, padding: '20px 22px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+          <div style={{ fontSize: 15, fontWeight: 800 }}>Confirm Shipping Tracking</div>
+          <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
+        </div>
+        <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 14 }}>Enter the tracking number to mark the hard drive as sent — {r.client_name}{r.project_code ? ` · ${r.project_code}` : ''}.</div>
+        <input autoFocus value={tracking} onChange={e => setTracking(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter' && tracking.trim()) confirm(); }}
+          placeholder="Tracking number" style={{ ...inp, marginBottom: 16 }} />
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+          <button className="btn btn-ghost btn-sm" onClick={onClose}>Cancel</button>
+          <button disabled={!tracking.trim() || saving} onClick={confirm} className="evt-glass"
+            style={{ opacity: tracking.trim() && !saving ? 1 : 0.5, cursor: tracking.trim() && !saving ? 'pointer' : 'not-allowed' }}>
+            {saving ? 'Saving…' : 'Confirm & Mark Sent'}
+          </button>
         </div>
       </div>
     </div>
@@ -507,6 +554,8 @@ export default function MediaStorage() {
   const [pipeView, setPipeView] = useState('email');
   const [emailGroup, setEmailGroup] = useState('New Request');
   const [subGroup, setSubGroup] = useState('New Request');
+  const [driveGroup, setDriveGroup] = useState('New Request');
+  const [trackEdit, setTrackEdit] = useState(null);   // request whose tracking is being confirmed
   const [detail, setDetail] = useState(null);   // request open in the detail modal
   const [shipEdit, setShipEdit] = useState(null);   // request whose shipping is being edited
   const set = (k, v) => setF(p => ({ ...p, [k]: v }));
@@ -544,10 +593,10 @@ export default function MediaStorage() {
   }
 
   const canSubmit = f.clientName.trim() && f.sizeIdx !== '';
-  // Any deployed hard-drive task still awaiting shipment → pulse the tab.
-  const drivesPending = (requests || []).some(r => isDeployedDrive(r) && r.drive_status !== 'Sent');
   // Any deployed subscription not yet marked live → pulse the tab.
   const subsPending = (requests || []).some(r => isDeployedSub(r) && r.sub_status !== 'Live Subscription');
+  // Any deployed hard-drive task not yet Completed → pulse the tab.
+  const drivesPending = (requests || []).some(r => isDeployedDrive(r) && driveBucket(r) === 'New Request');
 
   async function submit() {
     if (!canSubmit || saving) return;
@@ -780,17 +829,35 @@ export default function MediaStorage() {
             <>
               {!requests && <div className="empty">Loading…</div>}
               {requests && (() => {
-                const rows = requests.filter(isDeployedDrive);
-                if (!rows.length) return <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic', padding: '10px 4px' }}>No hard drive shipping requests yet. On an Email Request, select <b>+ Hard Drive</b> and move it to <b>Live</b> to deploy it here.</div>;
+                const deployed = requests.filter(isDeployedDrive);
+                if (!deployed.length) return <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic', padding: '10px 4px' }}>No hard drive shipping requests yet. On an Email Request, select <b>+ Hard Drive</b> and move it to <b>Live</b> to deploy it here.</div>;
+                const rows = deployed.filter(r => driveBucket(r) === driveGroup);
                 return (
-                  <div style={{ overflowX: 'auto' }}>
-                    <div style={{ minWidth: 940 }}>
-                      <DriveHeader />
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {rows.map(r => <DriveRow key={r.id} r={r} patchReq={patchReq} onDetail={setDetail} onShip={setShipEdit} />)}
-                      </div>
+                  <>
+                    <div className="seg-glass" style={{ marginBottom: 12, flexWrap: 'wrap' }}>
+                      {DRIVE_GROUPS.map(([key, label, color]) => {
+                        const n = deployed.filter(r => driveBucket(r) === key).length;
+                        return (
+                          <button key={key} className={driveGroup === key ? 'on' : ''} onClick={() => setDriveGroup(key)}
+                            style={driveGroup === key ? { color } : undefined}>
+                            {label} <span style={{ opacity: 0.6 }}>· {n}</span>
+                          </button>
+                        );
+                      })}
                     </div>
-                  </div>
+                    {rows.length === 0
+                      ? <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic', padding: '10px 4px' }}>None in {driveGroup === 'Completed' ? 'Completed' : 'New Request'}.</div>
+                      : (
+                        <div style={{ overflowX: 'auto' }}>
+                          <div style={{ minWidth: 940 }}>
+                            <DriveHeader />
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                              {rows.map(r => <DriveRow key={r.id} r={r} patchReq={patchReq} onDetail={setDetail} onShip={setShipEdit} onTrack={setTrackEdit} />)}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                  </>
                 );
               })()}
             </>
@@ -858,6 +925,8 @@ export default function MediaStorage() {
 
       {shipEdit && <ShippingModal r={shipEdit} onClose={() => setShipEdit(null)}
         onSave={async (id, s) => { await patchReq(id, s); }} />}
+      {trackEdit && <TrackingModal r={trackEdit} onClose={() => setTrackEdit(null)}
+        onConfirm={async (id, tracking) => { await patchReq(id, { shippingTracking: tracking, hardDriveSent: true }); }} />}
       {detail && <DetailModal r={detail} onClose={() => setDetail(null)}
         onShip={r => { setShipEdit(r); }} />}
     </div>
