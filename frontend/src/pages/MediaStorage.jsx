@@ -82,7 +82,7 @@ function ProjectCodeSelect({ code, onPick }) {
         onChange={e => { setQ(e.target.value); setOpen(true); onPick(e.target.value, undefined); }}
         onFocus={() => setOpen(true)} style={inp} />
       {open && matches.length > 0 && (
-        <div className="glass" style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 40, marginTop: 4, borderRadius: 10, maxHeight: 240, overflowY: 'auto' }}>
+        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 40, marginTop: 4, borderRadius: 10, maxHeight: 240, overflowY: 'auto', background: 'var(--bg2)', border: '1px solid rgba(255,255,255,0.16)', boxShadow: '0 12px 34px rgba(0,0,0,0.6)', backdropFilter: 'blur(20px) saturate(1.4)', WebkitBackdropFilter: 'blur(20px) saturate(1.4)' }}>
           {matches.map(p => (
             <div key={p.id} onClick={() => { onPick(p.code, p.title, p.client); setQ(p.code); setOpen(false); }}
               style={{ padding: '8px 12px', fontSize: 12, cursor: 'pointer' }}
@@ -117,7 +117,7 @@ function ContactSelect({ name, people, onPick }) {
         onChange={e => { setQ(e.target.value); setOpen(true); onPick(e.target.value, undefined); }}
         onFocus={() => setOpen(true)} style={inp} />
       {open && matches.length > 0 && (
-        <div className="glass" style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 40, marginTop: 4, borderRadius: 10, maxHeight: 240, overflowY: 'auto' }}>
+        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 40, marginTop: 4, borderRadius: 10, maxHeight: 240, overflowY: 'auto', background: 'var(--bg2)', border: '1px solid rgba(255,255,255,0.16)', boxShadow: '0 12px 34px rgba(0,0,0,0.6)', backdropFilter: 'blur(20px) saturate(1.4)', WebkitBackdropFilter: 'blur(20px) saturate(1.4)' }}>
           {matches.map((p, i) => (
             <div key={(p.email || '') + i} onClick={() => { onPick(p.name, p.email || ''); setQ(p.name); setOpen(false); }}
               style={{ padding: '8px 12px', fontSize: 12, cursor: 'pointer' }}
