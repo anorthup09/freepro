@@ -65,6 +65,9 @@ const DEFS = [
   { key: 'ms-sub-checkin', title: 'Media Storage — Subscription Ending (Annual Check-In)', identity: 'post', editable: true,
     defaultTo: 'mvitro@unbridledmedia.com, dsmith@unbridledmedia.com',
     desc: 'Fires 30 days before a cold-storage subscription lapses (a mirror Annual Check-In task is created). Also sent to the original submitter.' },
+  { key: 'ms-expired-delete', title: 'Media Storage — Media Ready to Delete', identity: 'gear', editable: true,
+    defaultTo: 'mvitro@unbridledmedia.com',
+    desc: 'When a task is set to Expired: tells Mason the media is ready to delete/offload. CCs the submitter.' },
 ];
 
 async function overrides() {

@@ -1,7 +1,7 @@
 const router = require('express').Router();
 const sql = require('../lib/db');
 const { requireAuth, requireRole } = require('../middleware/auth');
-const { onLive } = require('../lib/mediaStorageEmails');
+const { onLive, taskExpired } = require('../lib/mediaStorageEmails');
 
 const staff = [requireAuth, requireRole('ADMIN', 'PRODUCER', 'FINANCE')];
 
@@ -85,6 +85,7 @@ router.patch('/:id', ...staff, async (req, res, next) => {
     }
     // Stamp the deployment date the first time a task goes Live.
     const goingLive = status === 'Live' && cur.status !== 'Live';
+    const goingExpired = status === 'Expired' && cur.status !== 'Expired';
     const liveDate = status === 'Live' ? (cur.live_date || new Date().toISOString()) : cur.live_date;
 
     // Subscription start/end: on deployment to Live, auto-fill start = today and
@@ -132,6 +133,7 @@ router.patch('/:id', ...staff, async (req, res, next) => {
     // Deploying to Live fires the relevant Media Storage automations (drafts
     // until SMTP is connected). Never let a mail hiccup fail the update.
     if (goingLive && row) { onLive(row).catch(e => console.error('Media storage onLive email failed:', e.message)); }
+    if (goingExpired && row) { taskExpired(row).catch(e => console.error('Media storage taskExpired email failed:', e.message)); }
     res.json(row);
   } catch (e) { next(e); }
 });

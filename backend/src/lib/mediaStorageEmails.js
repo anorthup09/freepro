@@ -18,9 +18,11 @@ const ccList = r => {
 };
 const textFrom = (intro, rows) => intro + '\n\n' + rows.map(([l, v]) => `${l}: ${v}`).join('\n');
 
-async function fire(key, { to, cc, subject, intro, rows, note, title, subtitle, color }) {
+async function fire(key, { to, cc, subject, intro, rows, blocks = [], note, title, subtitle, color, button }) {
+  const btn = button || { label: 'Open Media Storage', url: MS_URL };
   try {
     const cfg = await automation(key).catch(() => null);
+    const blockText = blocks.filter(b => b && b[1]).map(([l, v]) => (l ? `${l}: ` : '') + v).join('\n\n');
     await sendMail({
       automationKey: key,
       identity: cfg?.identity,
@@ -28,10 +30,10 @@ async function fire(key, { to, cc, subject, intro, rows, note, title, subtitle, 
       to: to || cfg?.to,
       cc: cc || undefined,
       subject,
-      text: textFrom(intro, rows) + `\n\nOpen: ${MS_URL}`,
+      text: textFrom(intro, rows) + (blockText ? `\n\n${blockText}` : '') + `\n\n${btn.label}: ${btn.url}`,
       html: noticeHtml({
-        tag: 'Media Storage', note, title, subtitle, intro, rows, color,
-        button: { label: 'Open Media Storage', url: MS_URL }, postmark: new Date(),
+        tag: 'Media Storage', note, title, subtitle, intro, rows, blocks, color,
+        button: btn, postmark: new Date(),
       }),
     });
   } catch (e) {
@@ -133,6 +135,25 @@ async function subscriptionEnding(r) {
   });
 }
 
+// Task set to Expired → tell Mason the media is ready to delete.
+async function taskExpired(r) {
+  await fire('ms-expired-delete', {
+    cc: r.user_email || undefined,
+    subject: `NEW MEDIA READY TO DELETE - ${dash(r.client_name)} has declined Archive/Storage Services`,
+    note: 'Media Ready to Delete', title: codeName(r), subtitle: r.client_name, color: '#e05252',
+    intro: 'Mason,\n\nThe following media is ready for deletion/offloading from our server and company hard drives.',
+    rows: [
+      ['Client', dash(r.client_name)],
+      ['Code', dash(r.project_code)],
+      ['Project Name', dash(r.project_name)],
+      ['Total Media Size', dash(r.total_media_size)],
+      ['Export Reference', dash(r.reference_links)],
+    ],
+    blocks: [['', 'Please delete with impunity.\n\nIMPORTANT: Once deleted, please mark it Completed on the UM Platform (button below).']],
+    button: { label: 'UM Platform', url: MS_URL },
+  });
+}
+
 // Fire the right emails when a task deploys to Live.
 async function onLive(r) {
   if (r.hard_drive_added) await hardDriveLive(r);
@@ -176,4 +197,4 @@ function scheduleCheckinScan() {
   setInterval(run, 24 * 60 * 60 * 1000);
 }
 
-module.exports = { onLive, runCheckinScan, scheduleCheckinScan };
+module.exports = { onLive, taskExpired, runCheckinScan, scheduleCheckinScan };
