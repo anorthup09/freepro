@@ -47,6 +47,7 @@ const inp = {
   color: 'var(--text)', padding: '9px 11px', fontSize: 13, width: '100%',
   backdropFilter: 'blur(8px) saturate(1.2)', WebkitBackdropFilter: 'blur(8px) saturate(1.2)',
 };
+const inpSm = { ...inp, fontSize: 11, padding: '6px 8px', borderRadius: 8 };
 
 function Field({ label, note, children, required, full }) {
   return (
@@ -272,25 +273,26 @@ export default function MediaStorage() {
                     style={{ ...inp, resize: 'vertical', fontFamily: 'inherit' }} />
                 </Field>
 
-                <Field label="Total Media Size" required note="Auto-selects the subscription + hard-drive tiers.">
-                  <select value={f.sizeIdx} onChange={e => onSize(e.target.value)} style={inp}>
-                    <option value="">Select a size…</option>
-                    {SUB_TIERS.map((t, i) => <option key={i} value={i}>{t.label}</option>)}
-                  </select>
-                </Field>
-                <Field label="Annual Subscription Service Estimate" required>
-                  <select value={f.subIdx} onChange={e => set('subIdx', e.target.value === '' ? '' : Number(e.target.value))} style={inp}>
-                    <option value="">Select a tier…</option>
-                    {SUB_TIERS.map((t, i) => <option key={i} value={i}>{subOptionText(t)}</option>)}
-                  </select>
-                </Field>
-
-                <Field label="Hard Drive + Shipping Estimate">
-                  <select value={f.hdIdx} onChange={e => set('hdIdx', e.target.value === '' ? '' : Number(e.target.value))} style={inp}>
-                    <option value="">Select a tier…</option>
-                    {HD_TIERS.map((t, i) => <option key={i} value={i}>{hdOptionText(t)}</option>)}
-                  </select>
-                </Field>
+                <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, alignItems: 'end' }}>
+                  <Field label="Total Media Size" required>
+                    <select value={f.sizeIdx} onChange={e => onSize(e.target.value)} style={inpSm}>
+                      <option value="">Select…</option>
+                      {SUB_TIERS.map((t, i) => <option key={i} value={i}>{t.label}</option>)}
+                    </select>
+                  </Field>
+                  <Field label="Annual Subscription" required>
+                    <select value={f.subIdx} onChange={e => set('subIdx', e.target.value === '' ? '' : Number(e.target.value))} style={inpSm}>
+                      <option value="">Select…</option>
+                      {SUB_TIERS.map((t, i) => <option key={i} value={i}>{subOptionText(t)}</option>)}
+                    </select>
+                  </Field>
+                  <Field label="Hard Drive + Shipping">
+                    <select value={f.hdIdx} onChange={e => set('hdIdx', e.target.value === '' ? '' : Number(e.target.value))} style={inpSm}>
+                      <option value="">Select…</option>
+                      {HD_TIERS.map((t, i) => <option key={i} value={i}>{hdOptionText(t)}</option>)}
+                    </select>
+                  </Field>
+                </div>
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 12, marginTop: 18 }}>
