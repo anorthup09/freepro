@@ -65,6 +65,16 @@ router.patch('/:id', ...staff, async (req, res, next) => {
       emailSentDate = emailSent ? (cur.email_sent_date || new Date().toISOString()) : null;
     }
     const status = d.status !== undefined && STATUSES.includes(d.status) ? d.status : cur.status;
+    // A hard-drive task can't go Live until its shipping info is completed.
+    if (status === 'Live' && cur.status !== 'Live' && cur.hard_drive_added) {
+      const name = d.shippingName !== undefined ? d.shippingName : cur.shipping_name;
+      const addr = d.shippingAddress !== undefined ? d.shippingAddress : cur.shipping_address;
+      if (!String(name || '').trim() || !String(addr || '').trim()) {
+        return res.status(400).json({ error: 'Add shipping information (name and address) before moving this hard-drive request to Live.' });
+      }
+    }
+    // Stamp the deployment date the first time a task goes Live.
+    const liveDate = status === 'Live' ? (cur.live_date || new Date().toISOString()) : cur.live_date;
 
     // Client Response auto-stamps the date it was first logged.
     let clientResponse = cur.client_response, clientResponseDate = cur.client_response_date;
@@ -76,6 +86,7 @@ router.patch('/:id', ...staff, async (req, res, next) => {
     const [row] = await sql`
       UPDATE media_storage_requests SET
         status = ${status},
+        live_date = ${liveDate},
         email_sent = ${emailSent},
         email_sent_date = ${emailSentDate},
         client_response = ${clientResponse},

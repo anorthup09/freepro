@@ -144,14 +144,25 @@ const PIPE_VIEWS = [
   ['drives', 'Hard Drive Shipping Request'],
   ['expired', 'Expired / Delete'],
 ];
-const EMAIL_GROUPS = ['New Request', 'In-Progress', 'Expired'];
+// Top-of-view group tabs for Email Requests (Expired & Live live in their own views).
+const EMAIL_GROUPS = ['New Request', 'In-Progress'];
+// Selectable per-task statuses (Live is added conditionally in the row).
+const ROW_STATUSES = ['New Request', 'In-Progress', 'Expired'];
 const GROUP_COLOR = { 'New Request': '#4a9eff', 'In-Progress': '#e6c229', 'Expired': '#e05252', 'Live': '#5ABF80' };
-// Live rows have been deployed out of Email Requests, so they bucket to 'Live'
-// (which is not one of the group tabs) and drop off the email view.
-const bucketOf = r => (EMAIL_GROUPS.includes(r.status) ? r.status : r.status === 'Live' ? 'Live' : 'New Request');
+// Expired and Live rows are deployed out of the Email Requests tabs into their
+// own views; everything else (incl. legacy null/'New') falls back to New Request.
+const bucketOf = r => (EMAIL_GROUPS.includes(r.status) ? r.status : (r.status === 'Live' || r.status === 'Expired') ? r.status : 'New Request');
 const isDeployedDrive = r => r.hard_drive_added && r.status === 'Live';
 const isDeployedSub = r => r.subscription_added && r.status === 'Live';
+
+// Whole days since a date (for Days Since Outreach). Null if no date.
+const daysSince = d => {
+  if (!d) return null;
+  return Math.max(0, Math.floor((Date.now() - new Date(d).getTime()) / 86400000));
+};
 const hasShipping = r => !!(r.shipping_name || r.shipping_email || r.shipping_address || r.shipping_tracking);
+// Shipping is "complete" (required before a hard-drive task can go Live).
+const shippingReady = r => !!(String(r.shipping_name || '').trim() && String(r.shipping_address || '').trim());
 
 // Pill styling: dark when off, filled (accent) when on.
 const pill = color => ({
@@ -162,11 +173,27 @@ const pill = color => ({
   backdropFilter: 'blur(8px) saturate(1.2)', WebkitBackdropFilter: 'blur(8px) saturate(1.2)',
 });
 
-// Spreadsheet grid: Client | Project | Email Sent | Date | Client Response |
-// Shipping | + Subscription | + Hard Drive | Status
-const COLS = '1.4fr 1.9fr 92px 84px 2fr 100px 116px 108px 128px';
+// Spreadsheet grid: Client | Project | Email Sent | Date | Days Out |
+// Client Response | Shipping | + Subscription | + Hard Drive | Status
+const COLS = '1.4fr 1.8fr 88px 78px 74px 1.6fr 100px 116px 108px 128px';
 const shortDate = d => d ? new Date(d).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' }) : '';
 const colHead = { fontSize: 9, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--muted)' };
+const daysOutLabel = n => n == null ? '—' : `${n}d`;
+
+// Selectable statuses in a task's dropdown, with Live (deployment) above Expired.
+function statusOptions(r) {
+  const canLive = r.subscription_added || r.hard_drive_added || r.status === 'Live';
+  return ['New Request', 'In-Progress', ...(canLive ? ['Live'] : []), 'Expired'];
+}
+// Guard: a hard-drive task needs shipping info completed before going Live.
+function changeStatus(r, v, patchReq, onShip) {
+  if (v === 'Live' && r.hard_drive_added && !shippingReady(r)) {
+    alert('Add shipping information (name and address) before moving this hard-drive request to Live.');
+    onShip(r);
+    return;
+  }
+  patchReq(r.id, { status: v });
+}
 
 function PipelineHeader() {
   return (
@@ -175,6 +202,7 @@ function PipelineHeader() {
       <span style={colHead}>Project Code — Name</span>
       <span style={colHead}>Email Sent</span>
       <span style={colHead}>Date</span>
+      <span style={colHead} title="Days Since Outreach">Days Out</span>
       <span style={colHead}>Client Response</span>
       <span style={colHead}>Shipping</span>
       <span style={colHead}>Subscription</span>
@@ -187,6 +215,7 @@ function PipelineHeader() {
 function RequestRow({ r, patchReq, onDetail, onShip }) {
   const stop = e => e.stopPropagation();
   const shipped = hasShipping(r);
+  const days = r.email_sent ? daysSince(r.email_sent_date) : null;
   return (
     <div className="glass" style={{ display: 'grid', gridTemplateColumns: COLS, gap: 10, alignItems: 'center', padding: '10px 14px', borderRadius: 10 }}>
       <div onClick={() => onDetail(r)} style={{ cursor: 'pointer', minWidth: 0, fontSize: 12, fontWeight: 800 }} title="Open full request">{r.client_name}</div>
@@ -198,6 +227,7 @@ function RequestRow({ r, patchReq, onDetail, onShip }) {
           style={pill(r.email_sent ? '#5ABF80' : null)}>{r.email_sent ? 'Sent' : 'Unsent'}</button>
       </div>
       <div style={{ fontSize: 10, color: 'var(--muted)', whiteSpace: 'nowrap' }}>{r.email_sent ? shortDate(r.email_sent_date) : ''}</div>
+      <div style={{ fontSize: 11, fontWeight: 700, color: days != null && days >= 14 ? '#e05252' : 'var(--muted)' }} title="Days since outreach">{daysOutLabel(days)}</div>
       <div style={{ minWidth: 0 }}>
         <input type="date" value={(r.client_response || '').slice(0, 10)} onClick={stop}
           onChange={e => patchReq(r.id, { clientResponse: e.target.value })}
@@ -216,29 +246,22 @@ function RequestRow({ r, patchReq, onDetail, onShip }) {
           style={pill(r.hard_drive_added ? '#e6c229' : null)}>+ Hard Drive</button>
       </div>
       <div>
-        {(() => {
-          // Live is a deployment action: only offered once Subscription and/or
-          // Hard Drive is selected. Choosing it deploys the task to those pipelines.
-          const canLive = r.subscription_added || r.hard_drive_added || r.status === 'Live';
-          const opts = [...EMAIL_GROUPS, ...(canLive ? ['Live'] : [])];
-          return (
-            <select value={bucketOf(r)} onClick={stop} onChange={e => patchReq(r.id, { status: e.target.value })}
-              title={canLive ? 'Set status — Live deploys to the selected pipeline(s)' : 'Select Subscription and/or Hard Drive to enable Live'}
-              style={{ ...inpSm, width: '100%', fontWeight: 800, color: GROUP_COLOR[bucketOf(r)] }}>
-              {opts.map(g => <option key={g} value={g}>{g}</option>)}
-            </select>
-          );
-        })()}
+        <select value={bucketOf(r)} onClick={stop} onChange={e => changeStatus(r, e.target.value, patchReq, onShip)}
+          title="Set status — Live deploys to the selected pipeline(s)"
+          style={{ ...inpSm, width: '100%', fontWeight: 800, color: GROUP_COLOR[bucketOf(r)] }}>
+          {statusOptions(r).map(g => <option key={g} value={g}>{g}</option>)}
+        </select>
       </div>
     </div>
   );
 }
 
 // Hard Drive Shipping Request spreadsheet.
-const DRIVE_COLS = '132px 1.3fr 1.9fr 150px 108px 118px 104px';
+const DRIVE_COLS = '82px 132px 1.25fr 1.7fr 150px 104px 116px 104px';
 function DriveHeader() {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: DRIVE_COLS, gap: 10, alignItems: 'end', padding: '0 14px 8px' }}>
+      <span style={colHead} title="Date deployed to Live">Went Live</span>
       <span style={colHead}>Status</span>
       <span style={colHead}>Client / Company</span>
       <span style={colHead}>Project Code — Name</span>
@@ -256,6 +279,7 @@ function DriveRow({ r, patchReq, onDetail, onShip }) {
   const shipped = hasShipping(r);
   return (
     <div className="glass" style={{ display: 'grid', gridTemplateColumns: DRIVE_COLS, gap: 10, alignItems: 'center', padding: '10px 14px', borderRadius: 10 }}>
+      <div style={{ fontSize: 10, color: 'var(--muted)', whiteSpace: 'nowrap' }}>{shortDate(r.live_date)}</div>
       <div>
         <button type="button" onClick={e => { stop(e); patchReq(r.id, { driveStatus: sent ? 'New Request' : 'Sent' }); }}
           style={pill(sent ? '#5ABF80' : '#e05252')}>{sent ? 'Sent' : '(!) New Request'}</button>
@@ -282,10 +306,11 @@ function DriveRow({ r, patchReq, onDetail, onShip }) {
 }
 
 // Subscriptions spreadsheet.
-const SUB_COLS = '1.3fr 1.9fr 170px 118px 132px 132px 96px';
+const SUB_COLS = '82px 1.25fr 1.85fr 168px 116px 130px 130px 92px';
 function SubHeader() {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: SUB_COLS, gap: 10, alignItems: 'end', padding: '0 14px 8px' }}>
+      <span style={colHead} title="Date deployed to Live">Went Live</span>
       <span style={colHead}>Client / Company</span>
       <span style={colHead}>Project Code — Name</span>
       <span style={colHead}>Tier Cost</span>
@@ -302,6 +327,7 @@ function SubRow({ r, patchReq, onDetail }) {
   const live = r.sub_status === 'Live Subscription';
   return (
     <div className="glass" style={{ display: 'grid', gridTemplateColumns: SUB_COLS, gap: 10, alignItems: 'center', padding: '10px 14px', borderRadius: 10 }}>
+      <div style={{ fontSize: 10, color: 'var(--muted)', whiteSpace: 'nowrap' }}>{shortDate(r.live_date)}</div>
       <div onClick={() => onDetail(r)} style={{ cursor: 'pointer', minWidth: 0, fontSize: 12, fontWeight: 800 }} title="Open full request">{r.client_name}</div>
       <div onClick={() => onDetail(r)} style={{ cursor: 'pointer', minWidth: 0, fontSize: 11, color: 'var(--muted)' }} title="Open full request">
         {r.project_code}{r.project_name ? ` — ${r.project_name}` : ''}
@@ -324,6 +350,41 @@ function SubRow({ r, patchReq, onDetail }) {
           onClick={e => { stop(e); patchReq(r.id, { subStatus: live ? 'New Subscription' : 'Live Subscription' }); }}
           style={pill(live ? '#5ABF80' : null)}>Live</button>
       </div>
+    </div>
+  );
+}
+
+// Expired / Delete spreadsheet.
+const EXP_COLS = '1.4fr 2fr 130px 150px 150px';
+function ExpiredHeader() {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: EXP_COLS, gap: 10, alignItems: 'end', padding: '0 14px 8px' }}>
+      <span style={colHead}>Client / Company</span>
+      <span style={colHead}>Project Code — Name</span>
+      <span style={colHead}>Email Sent Date</span>
+      <span style={colHead}>Status</span>
+      <span style={colHead}>Days Since Outreach</span>
+    </div>
+  );
+}
+
+function ExpiredRow({ r, patchReq, onDetail, onShip }) {
+  const stop = e => e.stopPropagation();
+  const days = daysSince(r.email_sent_date);
+  return (
+    <div className="glass" style={{ display: 'grid', gridTemplateColumns: EXP_COLS, gap: 10, alignItems: 'center', padding: '10px 14px', borderRadius: 10 }}>
+      <div onClick={() => onDetail(r)} style={{ cursor: 'pointer', minWidth: 0, fontSize: 12, fontWeight: 800 }} title="Open full request">{r.client_name}</div>
+      <div onClick={() => onDetail(r)} style={{ cursor: 'pointer', minWidth: 0, fontSize: 11, color: 'var(--muted)' }} title="Open full request">
+        {r.project_code}{r.project_name ? ` — ${r.project_name}` : ''}
+      </div>
+      <div style={{ fontSize: 10, color: 'var(--muted)', whiteSpace: 'nowrap' }}>{r.email_sent ? shortDate(r.email_sent_date) : '—'}</div>
+      <div>
+        <select value={bucketOf(r)} onClick={stop} onChange={e => changeStatus(r, e.target.value, patchReq, onShip)}
+          style={{ ...inpSm, width: '100%', fontWeight: 800, color: GROUP_COLOR[bucketOf(r)] }}>
+          {statusOptions(r).map(g => <option key={g} value={g}>{g}</option>)}
+        </select>
+      </div>
+      <div style={{ fontSize: 11, fontWeight: 700, color: days != null && days >= 14 ? '#e05252' : 'var(--muted)' }}>{daysOutLabel(days)}</div>
     </div>
   );
 }
@@ -735,10 +796,23 @@ export default function MediaStorage() {
           )}
 
           {pipeView === 'expired' && (
-            <div className="glass" style={{ borderRadius: 14, padding: '40px 20px', textAlign: 'center' }}>
-              <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 4 }}>{PIPE_VIEWS.find(v => v[0] === pipeView)?.[1]}</div>
-              <div style={{ fontSize: 12, color: 'var(--muted)' }}>We'll build out this view soon.</div>
-            </div>
+            <>
+              {!requests && <div className="empty">Loading…</div>}
+              {requests && (() => {
+                const rows = requests.filter(r => r.status === 'Expired');
+                if (!rows.length) return <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic', padding: '10px 4px' }}>Nothing expired. Set a task's status to <b>Expired</b> to move it here.</div>;
+                return (
+                  <div style={{ overflowX: 'auto' }}>
+                    <div style={{ minWidth: 820 }}>
+                      <ExpiredHeader />
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {rows.map(r => <ExpiredRow key={r.id} r={r} patchReq={patchReq} onDetail={setDetail} onShip={setShipEdit} />)}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </>
           )}
         </div>
       </div>

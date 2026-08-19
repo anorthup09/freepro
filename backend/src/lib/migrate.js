@@ -449,6 +449,8 @@ async function migrate() {
   await sql`ALTER TABLE media_storage_requests ADD COLUMN IF NOT EXISTS subscription_start TEXT`;
   await sql`ALTER TABLE media_storage_requests ADD COLUMN IF NOT EXISTS subscription_end TEXT`;
   await sql`ALTER TABLE media_storage_requests ADD COLUMN IF NOT EXISTS sub_status TEXT DEFAULT 'New Subscription'`;
+  // Date a task was deployed to Live (Subscriptions / Hard Drive Shipping).
+  await sql`ALTER TABLE media_storage_requests ADD COLUMN IF NOT EXISTS live_date TIMESTAMPTZ`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS project_gear (
