@@ -1,7 +1,7 @@
 const router = require('express').Router();
 const sql = require('../lib/db');
 const { requireAuth, requireRole } = require('../middleware/auth');
-const { onLive, taskExpired } = require('../lib/mediaStorageEmails');
+const { onLive, taskExpired, newRequest } = require('../lib/mediaStorageEmails');
 
 const staff = [requireAuth, requireRole('ADMIN', 'PRODUCER', 'FINANCE')];
 
@@ -46,6 +46,9 @@ router.post('/', ...staff, async (req, res, next) => {
         ON CONFLICT (LOWER(email)) DO UPDATE SET name = COALESCE(EXCLUDED.name, invoice_contacts.name)
       `.catch(e2 => console.error('POC contact upsert failed:', e2.message));
     }
+
+    // Notify the team a new storage request came in (draft until SMTP live).
+    if (row) newRequest(row).catch(e2 => console.error('Media storage newRequest email failed:', e2.message));
 
     res.status(201).json(row);
   } catch (e) { next(e); }

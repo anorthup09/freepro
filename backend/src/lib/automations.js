@@ -68,6 +68,9 @@ const DEFS = [
   { key: 'ms-expired-delete', title: 'Media Storage — Media Ready to Delete', identity: 'gear', editable: true,
     defaultTo: 'mvitro@unbridledmedia.com',
     desc: 'When a task is set to Expired: tells Mason the media is ready to delete/offload. CCs the submitter.' },
+  { key: 'ms-new-request', title: 'Media Storage — New Request Submitted', identity: 'accounting', editable: true,
+    defaultTo: 'aporio@unbridledmedia.com, khueseman@unbridledmedia.com, billing@unbridledmedia.com',
+    desc: 'When a new Media Storage request is submitted: asks the team to inform the client of storage costs and the decision deadline. Also sent to the submitter.' },
 ];
 
 async function overrides() {

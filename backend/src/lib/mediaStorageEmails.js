@@ -135,6 +135,30 @@ async function subscriptionEnding(r) {
   });
 }
 
+// A new request was submitted → ask the team to inform the client of costs.
+async function newRequest(r) {
+  const creator = r.user_name || r.user_email || 'A team member';
+  const cfg = await automation('ms-new-request').catch(() => null);
+  const to = [cfg?.to, r.user_email].filter(Boolean).join(', ');
+  const ccNames = (Array.isArray(r.cc) ? r.cc : []).map(c => c && (c.name || c.email)).filter(Boolean).join(', ') || 'none listed';
+  await fire('ms-new-request', {
+    to,
+    subject: `NEW REQUEST: ${creator} submitted a storage/drive request for ${codeName(r)}`,
+    note: 'New Storage Request', title: codeName(r), subtitle: r.client_name, color: '#4a9eff',
+    intro: `Please inform ${dash(r.poc_name)} of storage costs and decision deadline.\n\n${creator} has submitted a storage email request for ${dash(r.poc_name)} at ${dash(r.client_name)}. Please include on CC: ${ccNames}`,
+    rows: [
+      ['Original Project Code', dash(r.project_code)],
+      ['Main POC Name', dash(r.poc_name)],
+      ['Main POC Email', dash(r.poc_email)],
+      ['Total Media Size', dash(r.total_media_size)],
+      ['Yearly Cost for Subscription Service', dash(fmt$(r.subscription_cost))],
+      ['One-Time Cost for Hard Drive', dash(fmt$(r.hard_drive_cost))],
+      ['Project Description', dash(r.footage)],
+      ['Video Link(s)', dash(r.reference_links)],
+    ],
+  });
+}
+
 // Task set to Expired → tell Mason the media is ready to delete.
 async function taskExpired(r) {
   await fire('ms-expired-delete', {
@@ -197,4 +221,4 @@ function scheduleCheckinScan() {
   setInterval(run, 24 * 60 * 60 * 1000);
 }
 
-module.exports = { onLive, taskExpired, runCheckinScan, scheduleCheckinScan };
+module.exports = { onLive, taskExpired, newRequest, runCheckinScan, scheduleCheckinScan };
