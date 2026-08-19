@@ -42,6 +42,11 @@ const REPORTS = [
     accent: '#4a9eff', to: '/reports/drives',
   },
   {
+    title: 'Media Storage Management',
+    desc: 'Request long-term storage for footage subject to expiration — subscription and hard-drive estimates in one form.',
+    accent: '#4a9eff', to: '/reports/media-storage',
+  },
+  {
     title: 'Music Resources',
     desc: "The team's shared music library — licensing platforms, go-to tracks, and playlists, grouped by category.",
     accent: '#e6c229', to: '/reports/music-resources',
@@ -113,7 +118,7 @@ const CATEGORIES = [
   { key: 'gear',     label: 'Gear',      icon: I.gear,     tos: ['/reports/gear'] },
   { key: 'postpro',  label: 'Post-Pro',  icon: I.postpro,  tos: ['/reports/music-resources', '/reports/video-references', '/reports/subscriptions'] },
   { key: 'projects', label: 'Projects',  icon: I.projects, tos: ['/reports/debrief'] },
-  { key: 'storage',  label: 'Storage',   icon: I.storage,  tos: ['/reports/drives'] },
+  { key: 'storage',  label: 'Storage',   icon: I.storage,  tos: ['/reports/drives', '/reports/media-storage'] },
   { key: 'people',   label: 'Team',      icon: I.people,   tos: ['/reports/days-off', '/reports/photos', '/reports/media-moments', '/reports/ways-of-being'] },
   { key: 'travel',   label: 'Travel',    icon: I.travel,   tos: ['/reports/foodie', '/reports/international-travel'] },
   { key: 'vendors',  label: 'Vendors',   icon: I.vendors,  tos: ['/reports/vendor-contracts', '/reports/invoices'] },

@@ -88,6 +88,10 @@ export const api = {
   resourceDoc: (key) => req('GET', `/resources/docs/${key}`),
   saveResourceDoc: (key, data) => req('PUT', `/resources/docs/${key}`, { data }),
 
+  // Media Storage Management requests (Reports & Resources → Storage)
+  mediaStorageRequests: () => req('GET', '/media-storage'),
+  createMediaStorageRequest: (data) => req('POST', '/media-storage', data),
+
   // Per-user favorited reports (Reports & Resources page)
   reportFavorites: () => req('GET', '/report-favorites'),
   addReportFavorite: (to) => req('POST', '/report-favorites', { to }),

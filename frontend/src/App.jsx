@@ -85,6 +85,7 @@ import SitePhotosReport from './pages/SitePhotosReport.jsx';
 import HoldingLoop from './pages/HoldingLoop.jsx';
 import VendorContractReport from './pages/VendorContractReport.jsx';
 import HardDrivesReport from './pages/HardDrivesReport.jsx';
+import MediaStorage from './pages/MediaStorage.jsx';
 import DaysOffReport from './pages/DaysOffReport.jsx';
 import SubscriptionsReport from './pages/SubscriptionsReport.jsx';
 import DebriefReport from './pages/DebriefReport.jsx';
@@ -347,6 +348,7 @@ export default function App() {
         <Route path="/holding" element={user ? <HoldingLoop /> : <Navigate to="/login" />} />
         <Route path="/reports/vendor-contracts" element={user ? <VendorContractReport /> : <Navigate to="/login" />} />
         <Route path="/reports/drives" element={user ? <HardDrivesReport /> : <Navigate to="/login" />} />
+        <Route path="/reports/media-storage" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/reports" /> : <MediaStorage />) : <Navigate to="/login" />} />
         <Route path="/reports/days-off" element={user ? (user.role === 'ADMIN' ? <DaysOffReport /> : <Navigate to="/reports" />) : <Navigate to="/login" />} />
         <Route path="/reports/subscriptions" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/reports" /> : <SubscriptionsReport />) : <Navigate to="/login" />} />
         <Route path="/reports/debrief" element={user ? (['CREW','AGENCY'].includes(user.role) ? <Navigate to="/reports" /> : <DebriefReport />) : <Navigate to="/login" />} />

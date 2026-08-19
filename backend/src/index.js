@@ -192,6 +192,7 @@ app.use('/api', require('./routes/overview'));
 app.use('/api/feedback', require('./routes/feedback'));
 app.use('/api/resources', require('./routes/resources'));
 app.use('/api/report-favorites', require('./routes/reportFavorites'));
+app.use('/api/media-storage', require('./routes/mediaStorage'));
 
 // Admin backup: download now, or trigger a cloud push
 const { buildBackup, uploadBackup, scheduleNightlyBackup } = require('./lib/backup');

@@ -404,6 +404,30 @@ async function migrate() {
   // and required before a budget can be moved to Closed.
   await sql`ALTER TABLE projects ADD COLUMN IF NOT EXISTS data_storage TEXT`;
 
+  // Media Storage Management requests (Reports & Resources → Storage).
+  await sql`
+    CREATE TABLE IF NOT EXISTS media_storage_requests (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      created_by TEXT,
+      user_name TEXT,
+      user_email TEXT,
+      client_name TEXT,
+      project_code TEXT,
+      project_name TEXT,
+      poc_name TEXT,
+      poc_email TEXT,
+      footage TEXT,
+      reference_links TEXT,
+      total_media_size TEXT,
+      subscription_tier TEXT,
+      subscription_cost NUMERIC,
+      hard_drive_tier TEXT,
+      hard_drive_cost NUMERIC,
+      status TEXT DEFAULT 'New',
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+
   await sql`
     CREATE TABLE IF NOT EXISTS project_gear (
       id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
