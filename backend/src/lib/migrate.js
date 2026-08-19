@@ -440,6 +440,15 @@ async function migrate() {
   await sql`ALTER TABLE media_storage_requests ADD COLUMN IF NOT EXISTS shipping_tracking TEXT`;
   await sql`ALTER TABLE media_storage_requests ADD COLUMN IF NOT EXISTS subscription_added BOOLEAN DEFAULT false`;
   await sql`ALTER TABLE media_storage_requests ADD COLUMN IF NOT EXISTS hard_drive_added BOOLEAN DEFAULT false`;
+  // Hard Drive Shipping Request pipeline workflow.
+  await sql`ALTER TABLE media_storage_requests ADD COLUMN IF NOT EXISTS hard_drive_sent BOOLEAN DEFAULT false`;
+  await sql`ALTER TABLE media_storage_requests ADD COLUMN IF NOT EXISTS hard_drive_invoice_sent BOOLEAN DEFAULT false`;
+  await sql`ALTER TABLE media_storage_requests ADD COLUMN IF NOT EXISTS drive_status TEXT DEFAULT 'New Request'`;
+  // Subscriptions pipeline workflow.
+  await sql`ALTER TABLE media_storage_requests ADD COLUMN IF NOT EXISTS subscription_invoice_sent BOOLEAN DEFAULT false`;
+  await sql`ALTER TABLE media_storage_requests ADD COLUMN IF NOT EXISTS subscription_start TEXT`;
+  await sql`ALTER TABLE media_storage_requests ADD COLUMN IF NOT EXISTS subscription_end TEXT`;
+  await sql`ALTER TABLE media_storage_requests ADD COLUMN IF NOT EXISTS sub_status TEXT DEFAULT 'New Subscription'`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS project_gear (

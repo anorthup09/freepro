@@ -1150,6 +1150,15 @@ body { padding-top: env(safe-area-inset-top, 0px); }
 /* Compact variant of .evt-glass for inline/dense rows (shoot header actions) */
 .evt-glass.evt-sm { height: 26px; padding: 0 11px; font-size: 10.5px; font-weight: 600; letter-spacing: .01em; gap: 4px; border-radius: 9px; }
 
+/* Internal pulsing red glow — flags a pending action (e.g. a hard-drive
+   shipping request awaiting shipment) on a tab/button. */
+@keyframes msPulseRed {
+  0%, 100% { box-shadow: inset 0 0 0 rgba(224,82,82,0); }
+  50% { box-shadow: inset 0 0 16px rgba(224,82,82,0.8); }
+}
+.ms-pulse { animation: msPulseRed 1.4s ease-in-out infinite; color: #e05252 !important; }
+@media (prefers-reduced-motion: reduce) { .ms-pulse { animation: none; box-shadow: inset 0 0 12px rgba(224,82,82,0.6); } }
+
 /* Gold-sheened variant of .evt-glass — makes a button stand out (Add Estimate) */
 .evt-glass.evt-gold {
   color: #f0d76b;

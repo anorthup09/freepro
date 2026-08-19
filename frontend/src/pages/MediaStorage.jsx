@@ -140,13 +140,17 @@ const BLANK = {
 // ── Media Management Pipeline ──
 const PIPE_VIEWS = [
   ['email', 'Email Requests'],
-  ['subscription', 'Current Live Subscription'],
-  ['expired', 'Expired / Delete'],
+  ['subscription', 'Subscriptions'],
   ['drives', 'Hard Drive Shipping Request'],
+  ['expired', 'Expired / Delete'],
 ];
 const EMAIL_GROUPS = ['New Request', 'In-Progress', 'Expired'];
-const GROUP_COLOR = { 'New Request': '#4a9eff', 'In-Progress': '#e6c229', 'Expired': '#e05252' };
-const bucketOf = r => (EMAIL_GROUPS.includes(r.status) ? r.status : 'New Request');
+const GROUP_COLOR = { 'New Request': '#4a9eff', 'In-Progress': '#e6c229', 'Expired': '#e05252', 'Live': '#5ABF80' };
+// Live rows have been deployed out of Email Requests, so they bucket to 'Live'
+// (which is not one of the group tabs) and drop off the email view.
+const bucketOf = r => (EMAIL_GROUPS.includes(r.status) ? r.status : r.status === 'Live' ? 'Live' : 'New Request');
+const isDeployedDrive = r => r.hard_drive_added && r.status === 'Live';
+const isDeployedSub = r => r.subscription_added && r.status === 'Live';
 const hasShipping = r => !!(r.shipping_name || r.shipping_email || r.shipping_address || r.shipping_tracking);
 
 // Pill styling: dark when off, filled (accent) when on.
@@ -212,10 +216,113 @@ function RequestRow({ r, patchReq, onDetail, onShip }) {
           style={pill(r.hard_drive_added ? '#e6c229' : null)}>+ Hard Drive</button>
       </div>
       <div>
-        <select value={bucketOf(r)} onClick={stop} onChange={e => patchReq(r.id, { status: e.target.value })}
-          style={{ ...inpSm, width: '100%', fontWeight: 800, color: GROUP_COLOR[bucketOf(r)] }}>
-          {EMAIL_GROUPS.map(g => <option key={g} value={g}>{g}</option>)}
-        </select>
+        {(() => {
+          // Live is a deployment action: only offered once Subscription and/or
+          // Hard Drive is selected. Choosing it deploys the task to those pipelines.
+          const canLive = r.subscription_added || r.hard_drive_added || r.status === 'Live';
+          const opts = [...EMAIL_GROUPS, ...(canLive ? ['Live'] : [])];
+          return (
+            <select value={bucketOf(r)} onClick={stop} onChange={e => patchReq(r.id, { status: e.target.value })}
+              title={canLive ? 'Set status — Live deploys to the selected pipeline(s)' : 'Select Subscription and/or Hard Drive to enable Live'}
+              style={{ ...inpSm, width: '100%', fontWeight: 800, color: GROUP_COLOR[bucketOf(r)] }}>
+              {opts.map(g => <option key={g} value={g}>{g}</option>)}
+            </select>
+          );
+        })()}
+      </div>
+    </div>
+  );
+}
+
+// Hard Drive Shipping Request spreadsheet.
+const DRIVE_COLS = '132px 1.3fr 1.9fr 150px 108px 118px 104px';
+function DriveHeader() {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: DRIVE_COLS, gap: 10, alignItems: 'end', padding: '0 14px 8px' }}>
+      <span style={colHead}>Status</span>
+      <span style={colHead}>Client / Company</span>
+      <span style={colHead}>Project Code — Name</span>
+      <span style={colHead}>Tier Cost</span>
+      <span style={colHead}>Hard Drive</span>
+      <span style={colHead}>Invoice</span>
+      <span style={colHead}>Shipping</span>
+    </div>
+  );
+}
+
+function DriveRow({ r, patchReq, onDetail, onShip }) {
+  const stop = e => e.stopPropagation();
+  const sent = r.drive_status === 'Sent';
+  const shipped = hasShipping(r);
+  return (
+    <div className="glass" style={{ display: 'grid', gridTemplateColumns: DRIVE_COLS, gap: 10, alignItems: 'center', padding: '10px 14px', borderRadius: 10 }}>
+      <div>
+        <button type="button" onClick={e => { stop(e); patchReq(r.id, { driveStatus: sent ? 'New Request' : 'Sent' }); }}
+          style={pill(sent ? '#5ABF80' : '#e05252')}>{sent ? 'Sent' : '(!) New Request'}</button>
+      </div>
+      <div onClick={() => onDetail(r)} style={{ cursor: 'pointer', minWidth: 0, fontSize: 12, fontWeight: 800 }} title="Open full request">{r.client_name}</div>
+      <div onClick={() => onDetail(r)} style={{ cursor: 'pointer', minWidth: 0, fontSize: 11, color: 'var(--muted)' }} title="Open full request">
+        {r.project_code}{r.project_name ? ` — ${r.project_name}` : ''}
+      </div>
+      <div style={{ fontSize: 11 }}>{r.hard_drive_tier ? `${r.hard_drive_tier} · ${fmt$(r.hard_drive_cost)}` : '—'}</div>
+      <div>
+        <button type="button" onClick={e => { stop(e); patchReq(r.id, { hardDriveSent: !r.hard_drive_sent }); }}
+          style={pill(r.hard_drive_sent ? '#5ABF80' : null)}>{r.hard_drive_sent ? 'Sent' : 'Unsent'}</button>
+      </div>
+      <div>
+        <button type="button" onClick={e => { stop(e); patchReq(r.id, { hardDriveInvoiceSent: !r.hard_drive_invoice_sent }); }}
+          style={pill(r.hard_drive_invoice_sent ? '#5ABF80' : null)}>{r.hard_drive_invoice_sent ? 'Sent' : 'Unsent'}</button>
+      </div>
+      <div>
+        <button type="button" onClick={e => { stop(e); onShip(r); }} title={shipped ? 'Review shipping info' : 'Add shipping info'}
+          style={pill(shipped ? '#4a9eff' : null)}>Shipping Info</button>
+      </div>
+    </div>
+  );
+}
+
+// Subscriptions spreadsheet.
+const SUB_COLS = '1.3fr 1.9fr 170px 118px 132px 132px 96px';
+function SubHeader() {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: SUB_COLS, gap: 10, alignItems: 'end', padding: '0 14px 8px' }}>
+      <span style={colHead}>Client / Company</span>
+      <span style={colHead}>Project Code — Name</span>
+      <span style={colHead}>Tier Cost</span>
+      <span style={colHead}>Invoice</span>
+      <span style={colHead}>Subscription Start</span>
+      <span style={colHead}>Subscription End</span>
+      <span style={colHead}>Live</span>
+    </div>
+  );
+}
+
+function SubRow({ r, patchReq, onDetail }) {
+  const stop = e => e.stopPropagation();
+  const live = r.sub_status === 'Live Subscription';
+  return (
+    <div className="glass" style={{ display: 'grid', gridTemplateColumns: SUB_COLS, gap: 10, alignItems: 'center', padding: '10px 14px', borderRadius: 10 }}>
+      <div onClick={() => onDetail(r)} style={{ cursor: 'pointer', minWidth: 0, fontSize: 12, fontWeight: 800 }} title="Open full request">{r.client_name}</div>
+      <div onClick={() => onDetail(r)} style={{ cursor: 'pointer', minWidth: 0, fontSize: 11, color: 'var(--muted)' }} title="Open full request">
+        {r.project_code}{r.project_name ? ` — ${r.project_name}` : ''}
+      </div>
+      <div style={{ fontSize: 11 }}>{r.subscription_tier ? `${r.subscription_tier} · ${fmt$(r.subscription_cost)}/yr` : '—'}</div>
+      <div>
+        <button type="button" onClick={e => { stop(e); patchReq(r.id, { subscriptionInvoiceSent: !r.subscription_invoice_sent }); }}
+          style={pill(r.subscription_invoice_sent ? '#5ABF80' : null)}>{r.subscription_invoice_sent ? 'Sent' : 'Unsent'}</button>
+      </div>
+      <div>
+        <input type="date" value={(r.subscription_start || '').slice(0, 10)} onClick={stop}
+          onChange={e => patchReq(r.id, { subscriptionStart: e.target.value })} style={{ ...inpSm, width: '100%' }} />
+      </div>
+      <div>
+        <input type="date" value={(r.subscription_end || '').slice(0, 10)} onClick={stop}
+          onChange={e => patchReq(r.id, { subscriptionEnd: e.target.value })} style={{ ...inpSm, width: '100%' }} />
+      </div>
+      <div>
+        <button type="button" title={live ? 'Live subscription' : 'Move to Live Subscription'}
+          onClick={e => { stop(e); patchReq(r.id, { subStatus: live ? 'New Subscription' : 'Live Subscription' }); }}
+          style={pill(live ? '#5ABF80' : null)}>Live</button>
       </div>
     </div>
   );
@@ -355,6 +462,10 @@ export default function MediaStorage() {
   }
 
   const canSubmit = f.clientName.trim() && f.sizeIdx !== '';
+  // Any deployed hard-drive task still awaiting shipment → pulse the tab.
+  const drivesPending = (requests || []).some(r => isDeployedDrive(r) && r.drive_status !== 'Sent');
+  // Any deployed subscription not yet marked live → pulse the tab.
+  const subsPending = (requests || []).some(r => isDeployedSub(r) && r.sub_status !== 'Live Subscription');
 
   async function submit() {
     if (!canSubmit || saving) return;
@@ -538,7 +649,9 @@ export default function MediaStorage() {
             <div />
             <div className="seg-glass" style={{ flexWrap: 'wrap' }}>
               {PIPE_VIEWS.map(([k, label]) => (
-                <button key={k} className={pipeView === k ? 'on' : ''} onClick={() => setPipeView(k)}>{label}</button>
+                <button key={k}
+                  className={`${pipeView === k ? 'on' : ''}${(k === 'drives' && drivesPending) || (k === 'subscription' && subsPending) ? ' ms-pulse' : ''}`}
+                  onClick={() => setPipeView(k)}>{label}</button>
               ))}
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
@@ -581,7 +694,47 @@ export default function MediaStorage() {
             </>
           )}
 
-          {pipeView !== 'email' && (
+          {pipeView === 'drives' && (
+            <>
+              {!requests && <div className="empty">Loading…</div>}
+              {requests && (() => {
+                const rows = requests.filter(isDeployedDrive);
+                if (!rows.length) return <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic', padding: '10px 4px' }}>No hard drive shipping requests yet. On an Email Request, select <b>+ Hard Drive</b> and move it to <b>Live</b> to deploy it here.</div>;
+                return (
+                  <div style={{ overflowX: 'auto' }}>
+                    <div style={{ minWidth: 940 }}>
+                      <DriveHeader />
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {rows.map(r => <DriveRow key={r.id} r={r} patchReq={patchReq} onDetail={setDetail} onShip={setShipEdit} />)}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </>
+          )}
+
+          {pipeView === 'subscription' && (
+            <>
+              {!requests && <div className="empty">Loading…</div>}
+              {requests && (() => {
+                const rows = requests.filter(isDeployedSub);
+                if (!rows.length) return <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic', padding: '10px 4px' }}>No subscriptions yet. On an Email Request, select <b>+ Subscription</b> and move it to <b>Live</b> to deploy it here.</div>;
+                return (
+                  <div style={{ overflowX: 'auto' }}>
+                    <div style={{ minWidth: 980 }}>
+                      <SubHeader />
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {rows.map(r => <SubRow key={r.id} r={r} patchReq={patchReq} onDetail={setDetail} />)}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </>
+          )}
+
+          {pipeView === 'expired' && (
             <div className="glass" style={{ borderRadius: 14, padding: '40px 20px', textAlign: 'center' }}>
               <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 4 }}>{PIPE_VIEWS.find(v => v[0] === pipeView)?.[1]}</div>
               <div style={{ fontSize: 12, color: 'var(--muted)' }}>We'll build out this view soon.</div>

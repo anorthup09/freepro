@@ -85,7 +85,14 @@ router.patch('/:id', ...staff, async (req, res, next) => {
         shipping_address = ${d.shippingAddress !== undefined ? (String(d.shippingAddress).trim() || null) : cur.shipping_address},
         shipping_tracking = ${d.shippingTracking !== undefined ? (String(d.shippingTracking).trim() || null) : cur.shipping_tracking},
         subscription_added = ${d.subscriptionAdded !== undefined ? !!d.subscriptionAdded : cur.subscription_added},
-        hard_drive_added = ${d.hardDriveAdded !== undefined ? !!d.hardDriveAdded : cur.hard_drive_added}
+        hard_drive_added = ${d.hardDriveAdded !== undefined ? !!d.hardDriveAdded : cur.hard_drive_added},
+        hard_drive_sent = ${d.hardDriveSent !== undefined ? !!d.hardDriveSent : cur.hard_drive_sent},
+        hard_drive_invoice_sent = ${d.hardDriveInvoiceSent !== undefined ? !!d.hardDriveInvoiceSent : cur.hard_drive_invoice_sent},
+        drive_status = ${d.driveStatus !== undefined && ['New Request', 'Sent'].includes(d.driveStatus) ? d.driveStatus : cur.drive_status},
+        subscription_invoice_sent = ${d.subscriptionInvoiceSent !== undefined ? !!d.subscriptionInvoiceSent : cur.subscription_invoice_sent},
+        subscription_start = ${d.subscriptionStart !== undefined ? (d.subscriptionStart || null) : cur.subscription_start},
+        subscription_end = ${d.subscriptionEnd !== undefined ? (d.subscriptionEnd || null) : cur.subscription_end},
+        sub_status = ${d.subStatus !== undefined && ['New Subscription', 'Live Subscription'].includes(d.subStatus) ? d.subStatus : cur.sub_status}
       WHERE id = ${req.params.id} RETURNING *`;
     res.json(row);
   } catch (e) { next(e); }
