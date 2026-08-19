@@ -175,7 +175,7 @@ const pill = color => ({
 
 // Spreadsheet grid: Client | Project | Email Sent | Date | Days Out |
 // Client Response | Shipping | + Subscription | + Hard Drive | Status
-const COLS = '1.4fr 1.8fr 88px 78px 74px 1.6fr 100px 116px 108px 128px';
+const COLS = '1.4fr 1.8fr 88px 78px 1.6fr 100px 116px 108px 128px 74px';
 const shortDate = d => d ? new Date(d).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' }) : '';
 const colHead = { fontSize: 9, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--muted)' };
 const daysOutLabel = n => n == null ? '—' : `${n}d`;
@@ -202,12 +202,12 @@ function PipelineHeader() {
       <span style={colHead}>Project Code — Name</span>
       <span style={colHead}>Email Sent</span>
       <span style={colHead}>Date</span>
-      <span style={colHead} title="Days Since Outreach">Days Out</span>
       <span style={colHead}>Client Response</span>
       <span style={colHead}>Shipping</span>
       <span style={colHead}>Subscription</span>
       <span style={colHead}>Hard Drive</span>
       <span style={colHead}>Status</span>
+      <span style={colHead} title="Days Since Outreach">Days Out</span>
     </div>
   );
 }
@@ -223,11 +223,15 @@ function RequestRow({ r, patchReq, onDetail, onShip }) {
         {r.project_code}{r.project_name ? ` — ${r.project_name}` : ''}
       </div>
       <div>
-        <button type="button" onClick={e => { stop(e); patchReq(r.id, { emailSent: !r.email_sent }); }}
+        <button type="button" onClick={e => {
+            stop(e);
+            const turningOn = !r.email_sent;
+            // Marking the outreach as Sent advances a New Request to In-Progress.
+            patchReq(r.id, { emailSent: turningOn, ...(turningOn && bucketOf(r) === 'New Request' ? { status: 'In-Progress' } : {}) });
+          }}
           style={pill(r.email_sent ? '#5ABF80' : null)}>{r.email_sent ? 'Sent' : 'Unsent'}</button>
       </div>
       <div style={{ fontSize: 10, color: 'var(--muted)', whiteSpace: 'nowrap' }}>{r.email_sent ? shortDate(r.email_sent_date) : ''}</div>
-      <div style={{ fontSize: 11, fontWeight: 700, color: days != null && days >= 14 ? '#e05252' : 'var(--muted)' }} title="Days since outreach">{daysOutLabel(days)}</div>
       <div style={{ minWidth: 0 }}>
         <input type="date" value={(r.client_response || '').slice(0, 10)} onClick={stop}
           onChange={e => patchReq(r.id, { clientResponse: e.target.value })}
@@ -252,6 +256,7 @@ function RequestRow({ r, patchReq, onDetail, onShip }) {
           {statusOptions(r).map(g => <option key={g} value={g}>{g}</option>)}
         </select>
       </div>
+      <div style={{ fontSize: 11, fontWeight: 700, textAlign: 'center', color: days != null && days >= 14 ? '#e05252' : 'var(--muted)' }} title="Days since outreach">{daysOutLabel(days)}</div>
     </div>
   );
 }
