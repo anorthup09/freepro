@@ -406,12 +406,9 @@ export default function MediaStorage() {
       </div>
 
       <div style={{ maxWidth: 1180, margin: '0 auto', padding: '10px 16px 80px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-          <div>
-            <div className="page-title" style={{ marginBottom: 2 }}>Media Storage Management</div>
-            <div className="page-sub" style={{ marginBottom: 0 }}>Request long-term storage for footage subject to expiration.</div>
-          </div>
-          <button type="button" className="evt-glass" onClick={() => setOpen(true)}>+ New Request</button>
+        <div>
+          <div className="page-title" style={{ marginBottom: 2 }}>Media Storage Management</div>
+          <div className="page-sub" style={{ marginBottom: 0 }}>Request long-term storage for footage subject to expiration.</div>
         </div>
 
         {/* ── New Request (modal, liquid glass) ── */}
@@ -537,14 +534,15 @@ export default function MediaStorage() {
 
         {/* ── Media Management Pipeline ── */}
         <div style={{ marginTop: 28 }}>
-          <div style={{ fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)', marginBottom: 10 }}>
-            Media Management Pipeline
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+            <div />
             <div className="seg-glass" style={{ flexWrap: 'wrap' }}>
               {PIPE_VIEWS.map(([k, label]) => (
                 <button key={k} className={pipeView === k ? 'on' : ''} onClick={() => setPipeView(k)}>{label}</button>
               ))}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button type="button" className="evt-glass" onClick={() => setOpen(true)}>+ New Request</button>
             </div>
           </div>
 
