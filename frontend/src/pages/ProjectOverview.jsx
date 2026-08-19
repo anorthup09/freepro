@@ -9,6 +9,35 @@ import { DELIV_STATUS, FOCUS_COLOR } from './Avo.jsx';
 // Layout only — the frosted fill + refractive edge come from the global .glass class.
 const card = { borderRadius:16, padding:'16px 18px' };
 const secHdr = { fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.07em', marginBottom:10 };
+
+// Total data storage for the project's footage — sits in the Post-Production
+// header and must be filled in before the budget can be Closed.
+function StorageField({ pid, value, canEdit }) {
+  const [v, setV] = useState(value || '');
+  const [saved, setSaved] = useState(false);
+  useEffect(() => { setV(value || ''); }, [value]);
+  async function save() {
+    const t = v.trim();
+    if (t === (value || '')) return;
+    try { await api.updateProject(pid, { dataStorage: t }); setSaved(true); setTimeout(() => setSaved(false), 1500); }
+    catch (e) { alert(e.message); }
+  }
+  if (!canEdit) {
+    return value
+      ? <span style={{ fontSize:10, color:'var(--muted)', whiteSpace:'nowrap' }}>Data Storage <b style={{ color:'var(--text)' }}>{value}</b></span>
+      : null;
+  }
+  return (
+    <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }} title="Total data storage for this project's footage">
+      <span style={{ fontSize:9, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Data Storage</span>
+      <input value={v} onChange={e => setV(e.target.value)} onBlur={save}
+        onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+        placeholder="e.g. 8 TB"
+        style={{ width:80, fontSize:11, textAlign:'center', background:'var(--bg)', border:'1px solid var(--border)', borderRadius:6, color:'var(--text)', padding:'4px 6px' }} />
+      {saved && <span style={{ fontSize:9, color:'#5ABF80' }}>Saved</span>}
+    </div>
+  );
+}
 const cellInput = { background:'transparent', border:'1px solid transparent', fontSize:12, width:'100%', padding:'5px 6px', borderRadius:5 };
 const fmtD = d => d ? new Date(String(d).slice(0, 10) + 'T12:00:00').toLocaleDateString('en-US', { month:'numeric', day:'numeric', year:'2-digit' }) : '';
 
@@ -544,7 +573,10 @@ export default function ProjectOverview({ pid, onOpenFinance, onOpenPre }) {
         </div>
 
         <div className="pv-post glass" style={card}>
-          <div style={secHdr}>Post-Production at a Glance</div>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, marginBottom:10 }}>
+            <div style={{ ...secHdr, marginBottom:0 }}>Post-Production at a Glance</div>
+            <StorageField pid={pid} value={project.data_storage} canEdit={!isSolutions} />
+          </div>
           {edits.length === 0 && <div style={{ fontSize:11, color:'var(--muted)', fontStyle:'italic' }}>No edits on this project code yet.</div>}
           {edits.map(e => {
             const st = DELIV_STATUS(e.workflow_status);   // lifecycle; null → Upcoming

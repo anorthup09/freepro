@@ -400,6 +400,10 @@ async function migrate() {
   await sql`ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS gear_storage TEXT`;
   await sql`ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS gs_audio TEXT`;
 
+  // Total data storage for a project's footage — captured on the overview page
+  // and required before a budget can be moved to Closed.
+  await sql`ALTER TABLE projects ADD COLUMN IF NOT EXISTS data_storage TEXT`;
+
   await sql`
     CREATE TABLE IF NOT EXISTS project_gear (
       id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,

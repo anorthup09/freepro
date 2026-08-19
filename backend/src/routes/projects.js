@@ -408,6 +408,7 @@ router.patch('/:id', requireAuth, requireRole('ADMIN','PRODUCER'), async (req, r
         status = COALESCE(${d.status??null}::project_status, status),
         notes = COALESCE(${d.notes??null}, notes),
         poc_crew_member_id = CASE WHEN ${d.pocCrewMemberId !== undefined} THEN ${d.pocCrewMemberId||null} ELSE poc_crew_member_id END,
+        data_storage = CASE WHEN ${d.dataStorage !== undefined} THEN ${d.dataStorage || null} ELSE data_storage END,
         share_password = CASE WHEN ${d.sharePassword !== undefined} THEN ${d.sharePassword||null} ELSE share_password END,
         show_shot_list = CASE WHEN ${d.showShotList !== undefined} THEN ${d.showShotList===true} ELSE show_shot_list END,
         show_scripts = CASE WHEN ${d.showScripts !== undefined} THEN ${d.showScripts===true} ELSE show_scripts END,

@@ -678,6 +678,8 @@ function LinkShootButton({ sec, onLinked }) {
 function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
   const { user } = useAuth();
   const [harbingerOpen, setHarbingerOpen] = useState(false);
+  const [closeStoragePrompt, setCloseStoragePrompt] = useState(false);   // data-storage gate before Closed
+  const [storageInput, setStorageInput] = useState('');
   useEffect(() => {
     const f = () => setHarbingerOpen(true);
     window.addEventListener('fp-open-harbinger', f);
@@ -746,9 +748,21 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
     };
   }
 
-  async function handleStatusChange(v) {
+  async function handleStatusChange(v, storageVal) {
     if (v === 'Live' && (budget.status || 'RFP') === 'RFP') {
       try { await api.getHarbinger(project.id); } catch { setHarbingerOpen(true); return; }
+    }
+    // Closing requires the project's total data storage. If it hasn't been set
+    // on the overview page, prompt for it before moving to Closed.
+    if (v === 'Closed') {
+      const storage = storageVal ?? project.data_storage;
+      if (!String(storage || '').trim()) { setStorageInput(''); setCloseStoragePrompt(true); return; }
+      if (storageVal != null) {
+        try {
+          await api.updateProject(project.id, { dataStorage: String(storageVal).trim() });
+          set(d => ({ project: { ...d.project, data_storage: String(storageVal).trim() } }));
+        } catch (e) { alert(e.message); return; }
+      }
     }
     const prev = budget.status || 'RFP';
     patchBudget({ status: v });
@@ -839,6 +853,29 @@ function BudgetTab({ budget, sections, lines, vcc, project, set, reload }) {
 
   return (
     <div>
+      {closeStoragePrompt && (
+        <div onClick={e => e.target === e.currentTarget && setCloseStoragePrompt(false)}
+          style={{ position:'fixed', inset:0, zIndex:200, background:'rgba(0,0,0,0.72)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+          <div style={{ width:'100%', maxWidth:420, background:'var(--bg2)', border:'1px solid var(--border)', borderTop:'3px solid #8a8f98', borderRadius:12, padding:'20px 22px' }}>
+            <div style={{ fontSize:15, fontWeight:800, marginBottom:6 }}>Total Data Storage Required</div>
+            <div style={{ fontSize:12, color:'var(--muted)', marginBottom:14, lineHeight:1.5 }}>
+              Before this project can be moved to Closed, record the total amount of data in storage for its footage. This saves to the project overview.
+            </div>
+            <input autoFocus value={storageInput} onChange={e => setStorageInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && storageInput.trim()) { setCloseStoragePrompt(false); handleStatusChange('Closed', storageInput.trim()); } }}
+              placeholder="e.g. 8 TB"
+              style={{ width:'100%', fontSize:14, background:'var(--bg)', border:'1px solid var(--border)', borderRadius:8, color:'var(--text)', padding:'10px 12px', marginBottom:16 }} />
+            <div style={{ display:'flex', justifyContent:'flex-end', gap:8 }}>
+              <button className="btn btn-ghost btn-sm" onClick={() => setCloseStoragePrompt(false)}>Cancel</button>
+              <button disabled={!storageInput.trim()}
+                onClick={() => { setCloseStoragePrompt(false); handleStatusChange('Closed', storageInput.trim()); }}
+                style={{ background:'#8a8f98', color:'#0b0b0b', border:'none', borderRadius:8, padding:'8px 18px', fontSize:12, fontWeight:800, cursor: storageInput.trim() ? 'pointer' : 'not-allowed', opacity: storageInput.trim() ? 1 : 0.5 }}>
+                Save &amp; Close Project
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* header fields */}
       <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding: mobile ? '10px 14px' : '12px 16px', marginBottom:16, display:'flex', flexDirection: mobile ? 'column' : 'row', gap: mobile ? 12 : 16, flexWrap:'wrap', alignItems: mobile ? 'stretch' : 'flex-end' }}>
         {mobile && (

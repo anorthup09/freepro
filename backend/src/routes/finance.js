@@ -315,7 +315,7 @@ router.get('/finance/weekly-report/:batchId', ...finance, async (req, res, next)
 
 router.get('/finance/:pid', ...finance, async (req, res, next) => {
   try {
-    const [project] = await sql`SELECT id, code, title, client, status, start_date, end_date FROM projects WHERE id = ${req.params.pid}`;
+    const [project] = await sql`SELECT id, code, title, client, status, start_date, end_date, data_storage FROM projects WHERE id = ${req.params.pid}`;
     if (!project) return res.status(404).json({ error: 'Project not found' });
     const [budget] = await sql`SELECT * FROM budgets WHERE project_id = ${req.params.pid} AND COALESCE(kind, 'main') = 'main'`;
     let sections = [], lines = [];
@@ -675,6 +675,11 @@ router.patch('/finance/budget/:bid', ...finance, async (req, res, next) => {
     if (d.status === 'Closed') {
       const [cur] = await sql`SELECT * FROM budgets WHERE id = ${req.params.bid}`;
       if (cur) {
+        // A project can't close until its total data storage is recorded.
+        const [proj] = await sql`SELECT data_storage FROM projects WHERE id = ${cur.project_id}`;
+        if (!proj || !String(proj.data_storage || '').trim()) {
+          return res.status(400).json({ error: 'DATA_STORAGE_REQUIRED' });
+        }
         const blines = await sql`SELECT qty, unit_cost, percent, is_travel, section_id FROM budget_lines WHERE budget_id = ${req.params.bid}`;
         const { total } = budgetTotal(blines, Number(cur.mgmt_fee_rate ?? 0.15));
         const extras = Array.isArray(cur.extra_deposits) ? cur.extra_deposits : JSON.parse(cur.extra_deposits || '[]');

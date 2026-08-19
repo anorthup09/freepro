@@ -62,7 +62,7 @@ function budgetTotal(allLines, mgmtRate) {
 // GET /project-overview/:pid — everything the cover page needs
 router.get('/project-overview/:pid', ...staff, async (req, res, next) => {
   try {
-    const [project] = await sql`SELECT id, code, title, client FROM projects WHERE id = ${req.params.pid}`;
+    const [project] = await sql`SELECT id, code, title, client, data_storage FROM projects WHERE id = ${req.params.pid}`;
     if (!project) return res.status(404).json({ error: 'Project not found' });
     const [budget] = await sql`SELECT id, status, close_month, mgmt_fee_rate FROM budgets WHERE project_id = ${project.id} AND COALESCE(kind, 'main') = 'main' LIMIT 1`;
     let budgetAmount = null, budgetFee = null;
