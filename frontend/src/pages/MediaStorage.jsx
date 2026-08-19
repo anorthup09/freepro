@@ -158,48 +158,66 @@ const pill = color => ({
   backdropFilter: 'blur(8px) saturate(1.2)', WebkitBackdropFilter: 'blur(8px) saturate(1.2)',
 });
 
-function RequestTile({ r, patchReq, onDetail, onShip }) {
+// Spreadsheet grid: Client | Project | Email Sent | Date | Client Response |
+// Shipping | + Subscription | + Hard Drive | Status
+const COLS = '1.4fr 1.9fr 92px 84px 2fr 100px 116px 108px 128px';
+const shortDate = d => d ? new Date(d).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' }) : '';
+const colHead = { fontSize: 9, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--muted)' };
+
+function PipelineHeader() {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: COLS, gap: 10, alignItems: 'end', padding: '0 14px 8px' }}>
+      <span style={colHead}>Client / Company</span>
+      <span style={colHead}>Project Code — Name</span>
+      <span style={colHead}>Email Sent</span>
+      <span style={colHead}>Date</span>
+      <span style={colHead}>Client Response</span>
+      <span style={colHead}>Shipping</span>
+      <span style={colHead}>Subscription</span>
+      <span style={colHead}>Hard Drive</span>
+      <span style={colHead}>Status</span>
+    </div>
+  );
+}
+
+function RequestRow({ r, patchReq, onDetail, onShip }) {
   const [resp, setResp] = useState(r.client_response || '');
   useEffect(() => { setResp(r.client_response || ''); }, [r.client_response]);
   const stop = e => e.stopPropagation();
   const shipped = hasShipping(r);
   return (
-    <div className="glass" style={{ borderRadius: 12, padding: '12px 14px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start' }}>
-        <div onClick={() => onDetail(r)} style={{ cursor: 'pointer', minWidth: 0 }} title="Open full request">
-          <div style={{ fontSize: 13, fontWeight: 800 }}>{r.client_name}</div>
-          {(r.project_code || r.project_name) &&
-            <div style={{ fontSize: 11, color: 'var(--muted)' }}>{r.project_code}{r.project_name ? ` — ${r.project_name}` : ''}</div>}
-        </div>
-        <select value={bucketOf(r)} onClick={stop} onChange={e => patchReq(r.id, { status: e.target.value })}
-          style={{ ...inpSm, width: 'auto', fontWeight: 800, color: GROUP_COLOR[bucketOf(r)] }}>
-          {EMAIL_GROUPS.map(g => <option key={g} value={g}>{g}</option>)}
-        </select>
+    <div className="glass" style={{ display: 'grid', gridTemplateColumns: COLS, gap: 10, alignItems: 'center', padding: '10px 14px', borderRadius: 10 }}>
+      <div onClick={() => onDetail(r)} style={{ cursor: 'pointer', minWidth: 0, fontSize: 12, fontWeight: 800 }} title="Open full request">{r.client_name}</div>
+      <div onClick={() => onDetail(r)} style={{ cursor: 'pointer', minWidth: 0, fontSize: 11, color: 'var(--muted)' }} title="Open full request">
+        {r.project_code}{r.project_name ? ` — ${r.project_name}` : ''}
       </div>
-
-      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center', marginTop: 10 }}>
-        <label onClick={stop} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-          <input type="checkbox" checked={!!r.email_sent} onChange={e => patchReq(r.id, { emailSent: e.target.checked })} />
-          Email Sent
-          {r.email_sent && r.email_sent_date && <span style={{ color: 'var(--muted)', fontWeight: 400 }}>· {new Date(r.email_sent_date).toLocaleDateString()}</span>}
-        </label>
+      <div style={{ display: 'flex', justifyContent: 'center' }}>
+        <input type="checkbox" onClick={stop} checked={!!r.email_sent} onChange={e => patchReq(r.id, { emailSent: e.target.checked })} />
+      </div>
+      <div style={{ fontSize: 10, color: 'var(--muted)', whiteSpace: 'nowrap' }}>{r.email_sent ? shortDate(r.email_sent_date) : ''}</div>
+      <div style={{ minWidth: 0 }}>
         <input value={resp} onClick={stop} onChange={e => setResp(e.target.value)}
           onBlur={() => { if (resp !== (r.client_response || '')) patchReq(r.id, { clientResponse: resp }); }}
-          placeholder="Client response…" style={{ ...inpSm, flex: 1, minWidth: 160 }} />
+          placeholder="Response…" style={{ ...inpSm, width: '100%' }} />
+        {r.client_response && r.client_response_date && <div style={{ fontSize: 9, color: 'var(--muted)', marginTop: 2 }}>{shortDate(r.client_response_date)}</div>}
       </div>
-
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 10, justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          <button type="button" onClick={e => { stop(e); onShip(r); }} title={shipped ? 'Review shipping info' : 'No shipping info yet'}
-            style={pill(shipped ? '#4a9eff' : null)}>Shipping Info</button>
-          <button type="button" onClick={e => { stop(e); onShip(r); }} className="evt-glass evt-sm">Add Shipping Information</button>
-        </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <button type="button" onClick={e => { stop(e); patchReq(r.id, { subscriptionAdded: !r.subscription_added }); }}
-            style={pill(r.subscription_added ? '#5ABF80' : null)}>+ Subscription</button>
-          <button type="button" onClick={e => { stop(e); patchReq(r.id, { hardDriveAdded: !r.hard_drive_added }); }}
-            style={pill(r.hard_drive_added ? '#e6c229' : null)}>+ Hard Drive</button>
-        </div>
+      <div>
+        <button type="button" onClick={e => { stop(e); onShip(r); }} title={shipped ? 'Review shipping info' : 'Add shipping info'}
+          style={pill(shipped ? '#4a9eff' : null)}>Shipping Info</button>
+      </div>
+      <div>
+        <button type="button" onClick={e => { stop(e); patchReq(r.id, { subscriptionAdded: !r.subscription_added }); }}
+          style={pill(r.subscription_added ? '#5ABF80' : null)}>+ Subscription</button>
+      </div>
+      <div>
+        <button type="button" onClick={e => { stop(e); patchReq(r.id, { hardDriveAdded: !r.hard_drive_added }); }}
+          style={pill(r.hard_drive_added ? '#e6c229' : null)}>+ Hard Drive</button>
+      </div>
+      <div>
+        <select value={bucketOf(r)} onClick={stop} onChange={e => patchReq(r.id, { status: e.target.value })}
+          style={{ ...inpSm, width: '100%', fontWeight: 800, color: GROUP_COLOR[bucketOf(r)] }}>
+          {EMAIL_GROUPS.map(g => <option key={g} value={g}>{g}</option>)}
+        </select>
       </div>
     </div>
   );
@@ -364,7 +382,7 @@ export default function MediaStorage() {
       });
       setRequests(rs => [row, ...(rs || [])]);
       setF(BLANK);
-      setCcIds([]); setCcOpen(false);
+      setCcIds([]); setCcOpen(false); setOpen(false);
       setOkMsg('Request submitted.');
       api.clientContactPeople().then(setPeople).catch(() => {});
       setTimeout(() => setOkMsg(''), 3500);
@@ -388,23 +406,28 @@ export default function MediaStorage() {
         </div>
       </div>
 
-      <div style={{ maxWidth: 760, margin: '0 auto', padding: '10px 16px 80px' }}>
-        <div className="page-title">Media Storage Management</div>
-        <div className="page-sub">Request long-term storage for footage subject to expiration.</div>
+      <div style={{ maxWidth: 1180, margin: '0 auto', padding: '10px 16px 80px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+          <button type="button" className="evt-glass" onClick={() => setOpen(true)}>+ New Request</button>
+          <div>
+            <div className="page-title" style={{ marginBottom: 2 }}>Media Storage Management</div>
+            <div className="page-sub" style={{ marginBottom: 0 }}>Request long-term storage for footage subject to expiration.</div>
+          </div>
+        </div>
 
-        {/* ── New Request (collapsible, liquid glass) ── */}
-        <div className="glass" style={{ borderRadius: 14, marginTop: 8, overflow: 'hidden' }}>
-          <button onClick={() => setOpen(o => !o)}
-            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, background: 'none', border: 'none', color: 'var(--text)', cursor: 'pointer', padding: '16px 20px', font: 'inherit' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: ACCENT, boxShadow: `0 0 10px ${ACCENT}` }} />
-              <span style={{ fontSize: 15, fontWeight: 800 }}>New Request</span>
-            </span>
-            <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 700, whiteSpace: 'nowrap' }}>{open ? 'Hide ▴' : 'New Request ▾'}</span>
-          </button>
-
-          {open && (
-            <div style={{ padding: '4px 20px 20px' }}>
+        {/* ── New Request (modal, liquid glass) ── */}
+        {open && (
+          <div onClick={e => e.target === e.currentTarget && setOpen(false)}
+            style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.72)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '40px 16px', overflowY: 'auto' }}>
+            <div className="glass" style={{ width: '100%', maxWidth: 720, borderRadius: 14, overflow: 'hidden' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: ACCENT, boxShadow: `0 0 10px ${ACCENT}` }} />
+                  <span style={{ fontSize: 15, fontWeight: 800 }}>New Request</span>
+                </span>
+                <button className="btn btn-ghost btn-sm" onClick={() => setOpen(false)}>✕</button>
+              </div>
+              <div style={{ padding: '16px 20px 20px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                 <Field label="Your Name">
                   <input value={preferredName} readOnly style={{ ...inp, opacity: 0.7, cursor: 'default' }} />
@@ -508,9 +531,10 @@ export default function MediaStorage() {
                   {saving ? 'Submitting…' : 'Submit Request'}
                 </button>
               </div>
+              </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* ── Media Management Pipeline ── */}
         <div style={{ marginTop: 28 }}>
@@ -527,23 +551,30 @@ export default function MediaStorage() {
             <>
               {!requests && <div className="empty">Loading…</div>}
               {requests && requests.length === 0 && <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>No requests yet.</div>}
-              {requests && requests.length > 0 && EMAIL_GROUPS.map(group => {
-                const rows = requests.filter(r => bucketOf(r) === group);
-                return (
-                  <div key={group} style={{ marginBottom: 18 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                      <span style={{ width: 9, height: 9, borderRadius: '50%', background: GROUP_COLOR[group] }} />
-                      <span style={{ fontSize: 12, fontWeight: 800, color: GROUP_COLOR[group] }}>{group}</span>
-                      <span style={{ fontSize: 11, color: 'var(--muted)' }}>· {rows.length}</span>
-                    </div>
-                    {rows.length === 0
-                      ? <div style={{ fontSize: 11, color: 'var(--muted)', fontStyle: 'italic', paddingLeft: 17 }}>None.</div>
-                      : <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                          {rows.map(r => <RequestTile key={r.id} r={r} patchReq={patchReq} onDetail={setDetail} onShip={setShipEdit} />)}
-                        </div>}
+              {requests && requests.length > 0 && (
+                <div style={{ overflowX: 'auto' }}>
+                  <div style={{ minWidth: 1040 }}>
+                    <PipelineHeader />
+                    {EMAIL_GROUPS.map(group => {
+                      const rows = requests.filter(r => bucketOf(r) === group);
+                      return (
+                        <div key={group} style={{ marginBottom: 14 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 14px 8px' }}>
+                            <span style={{ width: 9, height: 9, borderRadius: '50%', background: GROUP_COLOR[group] }} />
+                            <span style={{ fontSize: 12, fontWeight: 800, color: GROUP_COLOR[group] }}>{group}</span>
+                            <span style={{ fontSize: 11, color: 'var(--muted)' }}>· {rows.length}</span>
+                          </div>
+                          {rows.length === 0
+                            ? <div style={{ fontSize: 11, color: 'var(--muted)', fontStyle: 'italic', paddingLeft: 31 }}>None.</div>
+                            : <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                {rows.map(r => <RequestRow key={r.id} r={r} patchReq={patchReq} onDetail={setDetail} onShip={setShipEdit} />)}
+                              </div>}
+                        </div>
+                      );
+                    })}
                   </div>
-                );
-              })}
+                </div>
+              )}
             </>
           )}
 

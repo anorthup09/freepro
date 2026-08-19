@@ -433,6 +433,7 @@ async function migrate() {
   await sql`ALTER TABLE media_storage_requests ADD COLUMN IF NOT EXISTS email_sent BOOLEAN DEFAULT false`;
   await sql`ALTER TABLE media_storage_requests ADD COLUMN IF NOT EXISTS email_sent_date TIMESTAMPTZ`;
   await sql`ALTER TABLE media_storage_requests ADD COLUMN IF NOT EXISTS client_response TEXT`;
+  await sql`ALTER TABLE media_storage_requests ADD COLUMN IF NOT EXISTS client_response_date TIMESTAMPTZ`;
   await sql`ALTER TABLE media_storage_requests ADD COLUMN IF NOT EXISTS shipping_name TEXT`;
   await sql`ALTER TABLE media_storage_requests ADD COLUMN IF NOT EXISTS shipping_email TEXT`;
   await sql`ALTER TABLE media_storage_requests ADD COLUMN IF NOT EXISTS shipping_address TEXT`;

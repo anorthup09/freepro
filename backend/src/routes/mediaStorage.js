@@ -66,12 +66,20 @@ router.patch('/:id', ...staff, async (req, res, next) => {
     }
     const status = d.status !== undefined && STATUSES.includes(d.status) ? d.status : cur.status;
 
+    // Client Response auto-stamps the date it was first logged.
+    let clientResponse = cur.client_response, clientResponseDate = cur.client_response_date;
+    if (d.clientResponse !== undefined) {
+      clientResponse = String(d.clientResponse).trim() || null;
+      clientResponseDate = clientResponse ? (cur.client_response_date || new Date().toISOString()) : null;
+    }
+
     const [row] = await sql`
       UPDATE media_storage_requests SET
         status = ${status},
         email_sent = ${emailSent},
         email_sent_date = ${emailSentDate},
-        client_response = ${d.clientResponse !== undefined ? (String(d.clientResponse).trim() || null) : cur.client_response},
+        client_response = ${clientResponse},
+        client_response_date = ${clientResponseDate},
         shipping_name = ${d.shippingName !== undefined ? (String(d.shippingName).trim() || null) : cur.shipping_name},
         shipping_email = ${d.shippingEmail !== undefined ? (String(d.shippingEmail).trim() || null) : cur.shipping_email},
         shipping_address = ${d.shippingAddress !== undefined ? (String(d.shippingAddress).trim() || null) : cur.shipping_address},
