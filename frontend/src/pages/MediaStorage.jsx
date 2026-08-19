@@ -144,8 +144,8 @@ const PIPE_VIEWS = [
   ['expired', 'Expired / Delete'],
   ['drives', 'Hard Drive Shipping Request'],
 ];
-const EMAIL_GROUPS = ['New Request', 'In-Progress', 'Live', 'Expired'];
-const GROUP_COLOR = { 'New Request': '#4a9eff', 'In-Progress': '#e6c229', 'Live': '#5ABF80', 'Expired': '#e05252' };
+const EMAIL_GROUPS = ['New Request', 'In-Progress', 'Expired'];
+const GROUP_COLOR = { 'New Request': '#4a9eff', 'In-Progress': '#e6c229', 'Expired': '#e05252' };
 const bucketOf = r => (EMAIL_GROUPS.includes(r.status) ? r.status : 'New Request');
 const hasShipping = r => !!(r.shipping_name || r.shipping_email || r.shipping_address || r.shipping_tracking);
 
@@ -181,8 +181,6 @@ function PipelineHeader() {
 }
 
 function RequestRow({ r, patchReq, onDetail, onShip }) {
-  const [resp, setResp] = useState(r.client_response || '');
-  useEffect(() => { setResp(r.client_response || ''); }, [r.client_response]);
   const stop = e => e.stopPropagation();
   const shipped = hasShipping(r);
   return (
@@ -191,15 +189,15 @@ function RequestRow({ r, patchReq, onDetail, onShip }) {
       <div onClick={() => onDetail(r)} style={{ cursor: 'pointer', minWidth: 0, fontSize: 11, color: 'var(--muted)' }} title="Open full request">
         {r.project_code}{r.project_name ? ` — ${r.project_name}` : ''}
       </div>
-      <div style={{ display: 'flex', justifyContent: 'center' }}>
-        <input type="checkbox" onClick={stop} checked={!!r.email_sent} onChange={e => patchReq(r.id, { emailSent: e.target.checked })} />
+      <div>
+        <button type="button" onClick={e => { stop(e); patchReq(r.id, { emailSent: !r.email_sent }); }}
+          style={pill(r.email_sent ? '#5ABF80' : null)}>{r.email_sent ? 'Sent' : 'Unsent'}</button>
       </div>
       <div style={{ fontSize: 10, color: 'var(--muted)', whiteSpace: 'nowrap' }}>{r.email_sent ? shortDate(r.email_sent_date) : ''}</div>
       <div style={{ minWidth: 0 }}>
-        <input value={resp} onClick={stop} onChange={e => setResp(e.target.value)}
-          onBlur={() => { if (resp !== (r.client_response || '')) patchReq(r.id, { clientResponse: resp }); }}
-          placeholder="Response…" style={{ ...inpSm, width: '100%' }} />
-        {r.client_response && r.client_response_date && <div style={{ fontSize: 9, color: 'var(--muted)', marginTop: 2 }}>{shortDate(r.client_response_date)}</div>}
+        <input type="date" value={(r.client_response || '').slice(0, 10)} onClick={stop}
+          onChange={e => patchReq(r.id, { clientResponse: e.target.value })}
+          style={{ ...inpSm, width: '100%' }} />
       </div>
       <div>
         <button type="button" onClick={e => { stop(e); onShip(r); }} title={shipped ? 'Review shipping info' : 'Add shipping info'}
@@ -319,6 +317,7 @@ export default function MediaStorage() {
   const [ccOpen, setCcOpen] = useState(false);
   const [ccIds, setCcIds] = useState([]);
   const [pipeView, setPipeView] = useState('email');
+  const [emailGroup, setEmailGroup] = useState('New Request');
   const [detail, setDetail] = useState(null);   // request open in the detail modal
   const [shipEdit, setShipEdit] = useState(null);   // request whose shipping is being edited
   const set = (k, v) => setF(p => ({ ...p, [k]: v }));
@@ -407,12 +406,12 @@ export default function MediaStorage() {
       </div>
 
       <div style={{ maxWidth: 1180, margin: '0 auto', padding: '10px 16px 80px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-          <button type="button" className="evt-glass" onClick={() => setOpen(true)}>+ New Request</button>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
           <div>
             <div className="page-title" style={{ marginBottom: 2 }}>Media Storage Management</div>
             <div className="page-sub" style={{ marginBottom: 0 }}>Request long-term storage for footage subject to expiration.</div>
           </div>
+          <button type="button" className="evt-glass" onClick={() => setOpen(true)}>+ New Request</button>
         </div>
 
         {/* ── New Request (modal, liquid glass) ── */}
@@ -541,39 +540,45 @@ export default function MediaStorage() {
           <div style={{ fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)', marginBottom: 10 }}>
             Media Management Pipeline
           </div>
-          <div className="seg-glass" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
-            {PIPE_VIEWS.map(([k, label]) => (
-              <button key={k} className={pipeView === k ? 'on' : ''} onClick={() => setPipeView(k)}>{label}</button>
-            ))}
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+            <div className="seg-glass" style={{ flexWrap: 'wrap' }}>
+              {PIPE_VIEWS.map(([k, label]) => (
+                <button key={k} className={pipeView === k ? 'on' : ''} onClick={() => setPipeView(k)}>{label}</button>
+              ))}
+            </div>
           </div>
 
           {pipeView === 'email' && (
             <>
               {!requests && <div className="empty">Loading…</div>}
-              {requests && requests.length === 0 && <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>No requests yet.</div>}
-              {requests && requests.length > 0 && (
-                <div style={{ overflowX: 'auto' }}>
-                  <div style={{ minWidth: 1040 }}>
-                    <PipelineHeader />
+              {requests && (
+                <>
+                  <div className="seg-glass" style={{ marginBottom: 12, flexWrap: 'wrap' }}>
                     {EMAIL_GROUPS.map(group => {
-                      const rows = requests.filter(r => bucketOf(r) === group);
+                      const n = requests.filter(r => bucketOf(r) === group).length;
                       return (
-                        <div key={group} style={{ marginBottom: 14 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 14px 8px' }}>
-                            <span style={{ width: 9, height: 9, borderRadius: '50%', background: GROUP_COLOR[group] }} />
-                            <span style={{ fontSize: 12, fontWeight: 800, color: GROUP_COLOR[group] }}>{group}</span>
-                            <span style={{ fontSize: 11, color: 'var(--muted)' }}>· {rows.length}</span>
-                          </div>
-                          {rows.length === 0
-                            ? <div style={{ fontSize: 11, color: 'var(--muted)', fontStyle: 'italic', paddingLeft: 31 }}>None.</div>
-                            : <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                {rows.map(r => <RequestRow key={r.id} r={r} patchReq={patchReq} onDetail={setDetail} onShip={setShipEdit} />)}
-                              </div>}
-                        </div>
+                        <button key={group} className={emailGroup === group ? 'on' : ''} onClick={() => setEmailGroup(group)}
+                          style={emailGroup === group ? { color: GROUP_COLOR[group] } : undefined}>
+                          {group} <span style={{ opacity: 0.6 }}>· {n}</span>
+                        </button>
                       );
                     })}
                   </div>
-                </div>
+                  {(() => {
+                    const rows = requests.filter(r => bucketOf(r) === emailGroup);
+                    if (rows.length === 0) return <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic', padding: '10px 4px' }}>No requests in {emailGroup}.</div>;
+                    return (
+                      <div style={{ overflowX: 'auto' }}>
+                        <div style={{ minWidth: 1040 }}>
+                          <PipelineHeader />
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            {rows.map(r => <RequestRow key={r.id} r={r} patchReq={patchReq} onDetail={setDetail} onShip={setShipEdit} />)}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </>
               )}
             </>
           )}
