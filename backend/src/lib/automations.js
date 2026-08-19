@@ -50,6 +50,21 @@ const DEFS = [
   { key: 'site-photo', title: 'On-Site Photo Submitted', identity: 'production', editable: true, noCc: true,
     defaultTo: 'blamb@unbridledmedia.com',
     desc: 'The submitted photo (attached) with project code and name, client, shoot city/state, the full crew list, and the caption — sent whenever someone submits an on-site photo from the hub.' },
+  { key: 'ms-hd-invoice', title: 'Media Storage — Hard Drive Invoice Needed', identity: 'accounting', editable: true,
+    defaultTo: 'khueseman@unbridledmedia.com, aporio@unbridledmedia.com, billing@unbridledmedia.com',
+    desc: 'When a Hard Drive request goes Live: asks billing to invoice the hard drive, shipping & labor. CCs whoever was tagged on the request.' },
+  { key: 'ms-hd-ship', title: 'Media Storage — Hard Drive Ship Request', identity: 'gear', editable: true,
+    defaultTo: 'mvitro@unbridledmedia.com',
+    desc: 'When a Hard Drive request goes Live: asks for a drive to be shipped to the client ASAP. CCs the submitter.' },
+  { key: 'ms-sub-invoice', title: 'Media Storage — Subscription Invoice Needed', identity: 'accounting', editable: true,
+    defaultTo: 'aporio@unbridledmedia.com, khueseman@unbridledmedia.com, billing@unbridledmedia.com',
+    desc: 'When a Subscription goes Live: asks billing to invoice a year of cold storage. CCs the submitter.' },
+  { key: 'ms-sub-move', title: 'Media Storage — Move Media to Cold Storage', identity: 'post', editable: true,
+    defaultTo: 'mvitro@unbridledmedia.com, dsmith@unbridledmedia.com',
+    desc: 'When a Subscription goes Live: tells the team to move the media to cold storage. CCs the submitter.' },
+  { key: 'ms-sub-checkin', title: 'Media Storage — Subscription Ending (Annual Check-In)', identity: 'post', editable: true,
+    defaultTo: 'mvitro@unbridledmedia.com, dsmith@unbridledmedia.com',
+    desc: 'Fires 30 days before a cold-storage subscription lapses (a mirror Annual Check-In task is created). Also sent to the original submitter.' },
 ];
 
 async function overrides() {

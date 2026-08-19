@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const sql = require('../lib/db');
 const { requireAuth, requireRole } = require('../middleware/auth');
+const { onLive } = require('../lib/mediaStorageEmails');
 
 const staff = [requireAuth, requireRole('ADMIN', 'PRODUCER', 'FINANCE')];
 
@@ -51,7 +52,7 @@ router.post('/', ...staff, async (req, res, next) => {
 });
 
 // Update a request's pipeline/workflow fields.
-const STATUSES = ['New Request', 'In-Progress', 'Live', 'Expired'];
+const STATUSES = ['New Request', 'In-Progress', 'Annual Check-In', 'Live', 'Expired'];
 router.patch('/:id', ...staff, async (req, res, next) => {
   try {
     const d = req.body || {};
@@ -83,7 +84,20 @@ router.patch('/:id', ...staff, async (req, res, next) => {
       }
     }
     // Stamp the deployment date the first time a task goes Live.
+    const goingLive = status === 'Live' && cur.status !== 'Live';
     const liveDate = status === 'Live' ? (cur.live_date || new Date().toISOString()) : cur.live_date;
+
+    // Subscription start/end: on deployment to Live, auto-fill start = today and
+    // end = exactly one year later (unless already set / provided).
+    let subStart = d.subscriptionStart !== undefined ? (d.subscriptionStart || null) : cur.subscription_start;
+    let subEnd = d.subscriptionEnd !== undefined ? (d.subscriptionEnd || null) : cur.subscription_end;
+    if (goingLive && cur.subscription_added && !String(subStart || '').trim()) {
+      const iso = dt => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+      const now = new Date();
+      const end = new Date(now); end.setFullYear(end.getFullYear() + 1);
+      subStart = iso(now);
+      subEnd = iso(end);
+    }
 
     // Client Response auto-stamps the date it was first logged.
     let clientResponse = cur.client_response, clientResponseDate = cur.client_response_date;
@@ -109,11 +123,15 @@ router.patch('/:id', ...staff, async (req, res, next) => {
         hard_drive_sent = ${d.hardDriveSent !== undefined ? !!d.hardDriveSent : cur.hard_drive_sent},
         hard_drive_invoice_sent = ${d.hardDriveInvoiceSent !== undefined ? !!d.hardDriveInvoiceSent : cur.hard_drive_invoice_sent},
         drive_status = ${d.driveStatus !== undefined && ['New Request', 'Sent'].includes(d.driveStatus) ? d.driveStatus : cur.drive_status},
+        files_deleted = ${d.filesDeleted !== undefined ? !!d.filesDeleted : cur.files_deleted},
         subscription_invoice_sent = ${d.subscriptionInvoiceSent !== undefined ? !!d.subscriptionInvoiceSent : cur.subscription_invoice_sent},
-        subscription_start = ${d.subscriptionStart !== undefined ? (d.subscriptionStart || null) : cur.subscription_start},
-        subscription_end = ${d.subscriptionEnd !== undefined ? (d.subscriptionEnd || null) : cur.subscription_end},
+        subscription_start = ${subStart},
+        subscription_end = ${subEnd},
         sub_status = ${d.subStatus !== undefined && ['New Subscription', 'Live Subscription'].includes(d.subStatus) ? d.subStatus : cur.sub_status}
       WHERE id = ${req.params.id} RETURNING *`;
+    // Deploying to Live fires the relevant Media Storage automations (drafts
+    // until SMTP is connected). Never let a mail hiccup fail the update.
+    if (goingLive && row) { onLive(row).catch(e => console.error('Media storage onLive email failed:', e.message)); }
     res.json(row);
   } catch (e) { next(e); }
 });

@@ -209,6 +209,7 @@ app.post('/api/admin/backup/run', rqa, rqr('ADMIN'), async (req, res, next) => {
   try { res.json(await uploadBackup()); } catch (e) { next(e); }
 });
 scheduleNightlyBackup();
+require('./lib/mediaStorageEmails').scheduleCheckinScan();
 
 // Fallback: serve index.html for client-side routing (React Router)
 if (fs.existsSync(publicDir)) {

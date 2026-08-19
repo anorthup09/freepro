@@ -451,6 +451,10 @@ async function migrate() {
   await sql`ALTER TABLE media_storage_requests ADD COLUMN IF NOT EXISTS sub_status TEXT DEFAULT 'New Subscription'`;
   // Date a task was deployed to Live (Subscriptions / Hard Drive Shipping).
   await sql`ALTER TABLE media_storage_requests ADD COLUMN IF NOT EXISTS live_date TIMESTAMPTZ`;
+  // Annual Check-In: set once a mirror check-in task has been spawned for a sub.
+  await sql`ALTER TABLE media_storage_requests ADD COLUMN IF NOT EXISTS checkin_created BOOLEAN DEFAULT false`;
+  // Expired / Delete pipeline: files removed from storage yet?
+  await sql`ALTER TABLE media_storage_requests ADD COLUMN IF NOT EXISTS files_deleted BOOLEAN DEFAULT false`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS project_gear (

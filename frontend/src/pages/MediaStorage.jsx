@@ -145,10 +145,8 @@ const PIPE_VIEWS = [
   ['expired', 'Expired / Delete'],
 ];
 // Top-of-view group tabs for Email Requests (Expired & Live live in their own views).
-const EMAIL_GROUPS = ['New Request', 'In-Progress'];
-// Selectable per-task statuses (Live is added conditionally in the row).
-const ROW_STATUSES = ['New Request', 'In-Progress', 'Expired'];
-const GROUP_COLOR = { 'New Request': '#4a9eff', 'In-Progress': '#e6c229', 'Expired': '#e05252', 'Live': '#5ABF80' };
+const EMAIL_GROUPS = ['New Request', 'In-Progress', 'Annual Check-In'];
+const GROUP_COLOR = { 'New Request': '#4a9eff', 'In-Progress': '#e6c229', 'Annual Check-In': '#a78bfa', 'Expired': '#e05252', 'Live': '#5ABF80' };
 // Expired and Live rows are deployed out of the Email Requests tabs into their
 // own views; everything else (incl. legacy null/'New') falls back to New Request.
 const bucketOf = r => (EMAIL_GROUPS.includes(r.status) ? r.status : (r.status === 'Live' || r.status === 'Expired') ? r.status : 'New Request');
@@ -171,6 +169,10 @@ const driveState = r => {
 };
 const driveBucket = r => (r.hard_drive_sent && r.hard_drive_invoice_sent ? 'Completed' : 'New Request');
 const DRIVE_GROUPS = [['New Request', '(!) New Request', '#e05252'], ['Completed', 'Completed', '#5ABF80']];
+
+// Expired / Delete: grouped by whether the files have been deleted.
+const expBucket = r => (r.files_deleted ? 'Complete' : 'Incomplete');
+const EXP_GROUPS = [['Incomplete', 'Incomplete', '#e05252'], ['Complete', 'Complete', '#5ABF80']];
 
 // Whole days since a date (for Days Since Outreach). Null if no date.
 const daysSince = d => {
@@ -200,7 +202,7 @@ const daysOutLabel = n => n == null ? '—' : `${n}d`;
 // Selectable statuses in a task's dropdown, with Live (deployment) above Expired.
 function statusOptions(r) {
   const canLive = r.subscription_added || r.hard_drive_added || r.status === 'Live';
-  return ['New Request', 'In-Progress', ...(canLive ? ['Live'] : []), 'Expired'];
+  return ['New Request', 'In-Progress', 'Annual Check-In', ...(canLive ? ['Live'] : []), 'Expired'];
 }
 // Guard: a hard-drive task needs shipping info completed before going Live.
 function changeStatus(r, v, patchReq, onShip) {
@@ -396,14 +398,13 @@ function ExpiredHeader() {
       <span style={colHead}>Project Code — Name</span>
       <span style={colHead}>Email Sent Date</span>
       <span style={colHead}>Status</span>
-      <span style={colHead}>Days Since Outreach</span>
+      <span style={colHead}>Files Deleted</span>
     </div>
   );
 }
 
 function ExpiredRow({ r, patchReq, onDetail, onShip }) {
   const stop = e => e.stopPropagation();
-  const days = daysSince(r.email_sent_date);
   return (
     <div className="glass" style={{ display: 'grid', gridTemplateColumns: EXP_COLS, gap: 10, alignItems: 'center', padding: '10px 14px', borderRadius: 10 }}>
       <div onClick={() => onDetail(r)} style={{ cursor: 'pointer', minWidth: 0, fontSize: 12, fontWeight: 800 }} title="Open full request">{r.client_name}</div>
@@ -417,7 +418,11 @@ function ExpiredRow({ r, patchReq, onDetail, onShip }) {
           {statusOptions(r).map(g => <option key={g} value={g}>{g}</option>)}
         </select>
       </div>
-      <div style={{ fontSize: 11, fontWeight: 700, color: days != null && days >= 14 ? '#e05252' : 'var(--muted)' }}>{daysOutLabel(days)}</div>
+      <div>
+        <button type="button" title={r.files_deleted ? 'Files deleted' : 'Mark files deleted'}
+          onClick={e => { stop(e); patchReq(r.id, { filesDeleted: !r.files_deleted }); }}
+          style={pill(r.files_deleted ? '#5ABF80' : null)}>{r.files_deleted ? 'Completed' : 'Incomplete'}</button>
+      </div>
     </div>
   );
 }
@@ -555,6 +560,7 @@ export default function MediaStorage() {
   const [emailGroup, setEmailGroup] = useState('New Request');
   const [subGroup, setSubGroup] = useState('New Request');
   const [driveGroup, setDriveGroup] = useState('New Request');
+  const [expGroup, setExpGroup] = useState('Incomplete');
   const [trackEdit, setTrackEdit] = useState(null);   // request whose tracking is being confirmed
   const [detail, setDetail] = useState(null);   // request open in the detail modal
   const [shipEdit, setShipEdit] = useState(null);   // request whose shipping is being edited
@@ -597,6 +603,8 @@ export default function MediaStorage() {
   const subsPending = (requests || []).some(r => isDeployedSub(r) && r.sub_status !== 'Live Subscription');
   // Any deployed hard-drive task not yet Completed → pulse the tab.
   const drivesPending = (requests || []).some(r => isDeployedDrive(r) && driveBucket(r) === 'New Request');
+  // Any expired task whose files aren't deleted yet → pulse the tab.
+  const expiredPending = (requests || []).some(r => r.status === 'Expired' && !r.files_deleted);
 
   async function submit() {
     if (!canSubmit || saving) return;
@@ -781,7 +789,7 @@ export default function MediaStorage() {
             <div className="seg-glass" style={{ flexWrap: 'wrap' }}>
               {PIPE_VIEWS.map(([k, label]) => (
                 <button key={k}
-                  className={`${pipeView === k ? 'on' : ''}${(k === 'drives' && drivesPending) || (k === 'subscription' && subsPending) ? ' ms-pulse' : ''}`}
+                  className={`${pipeView === k ? 'on' : ''}${(k === 'drives' && drivesPending) || (k === 'subscription' && subsPending) || (k === 'expired' && expiredPending) ? ' ms-pulse' : ''}`}
                   onClick={() => setPipeView(k)}>{label}</button>
               ))}
             </div>
@@ -905,17 +913,35 @@ export default function MediaStorage() {
             <>
               {!requests && <div className="empty">Loading…</div>}
               {requests && (() => {
-                const rows = requests.filter(r => r.status === 'Expired');
-                if (!rows.length) return <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic', padding: '10px 4px' }}>Nothing expired. Set a task's status to <b>Expired</b> to move it here.</div>;
+                const expired = requests.filter(r => r.status === 'Expired');
+                if (!expired.length) return <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic', padding: '10px 4px' }}>Nothing expired. Set a task's status to <b>Expired</b> to move it here.</div>;
+                const rows = expired.filter(r => expBucket(r) === expGroup);
                 return (
-                  <div style={{ overflowX: 'auto' }}>
-                    <div style={{ minWidth: 820 }}>
-                      <ExpiredHeader />
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {rows.map(r => <ExpiredRow key={r.id} r={r} patchReq={patchReq} onDetail={setDetail} onShip={setShipEdit} />)}
-                      </div>
+                  <>
+                    <div className="seg-glass" style={{ marginBottom: 12, flexWrap: 'wrap' }}>
+                      {EXP_GROUPS.map(([key, label, color]) => {
+                        const n = expired.filter(r => expBucket(r) === key).length;
+                        return (
+                          <button key={key} className={expGroup === key ? 'on' : ''} onClick={() => setExpGroup(key)}
+                            style={expGroup === key ? { color } : undefined}>
+                            {label} <span style={{ opacity: 0.6 }}>· {n}</span>
+                          </button>
+                        );
+                      })}
                     </div>
-                  </div>
+                    {rows.length === 0
+                      ? <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic', padding: '10px 4px' }}>None in {expGroup}.</div>
+                      : (
+                        <div style={{ overflowX: 'auto' }}>
+                          <div style={{ minWidth: 820 }}>
+                            <ExpiredHeader />
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                              {rows.map(r => <ExpiredRow key={r.id} r={r} patchReq={patchReq} onDetail={setDetail} onShip={setShipEdit} />)}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                  </>
                 );
               })()}
             </>
