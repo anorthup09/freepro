@@ -427,6 +427,8 @@ async function migrate() {
       created_at TIMESTAMPTZ DEFAULT NOW()
     )
   `;
+  // Unbridled employees CC'd on a media storage request.
+  await sql`ALTER TABLE media_storage_requests ADD COLUMN IF NOT EXISTS cc JSONB DEFAULT '[]'::jsonb`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS project_gear (

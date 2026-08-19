@@ -19,11 +19,12 @@ router.post('/', ...staff, async (req, res, next) => {
     const clientName = String(b.clientName || '').trim();
     if (!clientName) return res.status(400).json({ error: 'Client name is required' });
 
+    const cc = Array.isArray(b.cc) ? b.cc : [];
     const [row] = await sql`
       INSERT INTO media_storage_requests
         (created_by, user_name, user_email, client_name, project_code, project_name,
          poc_name, poc_email, footage, reference_links, total_media_size,
-         subscription_tier, subscription_cost, hard_drive_tier, hard_drive_cost)
+         subscription_tier, subscription_cost, hard_drive_tier, hard_drive_cost, cc)
       VALUES
         (${req.user?.id || null}, ${req.user?.name || null}, ${req.user?.email || null},
          ${clientName}, ${String(b.projectCode || '').trim() || null}, ${String(b.projectName || '').trim() || null},
@@ -31,7 +32,7 @@ router.post('/', ...staff, async (req, res, next) => {
          ${String(b.footage || '').trim() || null}, ${String(b.referenceLinks || '').trim() || null},
          ${String(b.totalMediaSize || '').trim() || null},
          ${b.subscriptionTier || null}, ${num(b.subscriptionCost)},
-         ${b.hardDriveTier || null}, ${num(b.hardDriveCost)})
+         ${b.hardDriveTier || null}, ${num(b.hardDriveCost)}, ${sql.json(cc)})
       RETURNING *`;
 
     // Grow the ongoing name/email database so this POC autofills next time.

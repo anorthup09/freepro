@@ -146,7 +146,10 @@ export default function MediaStorage() {
   const [saving, setSaving] = useState(false);
   const [okMsg, setOkMsg] = useState('');
   const [open, setOpen] = useState(false);   // New Request starts collapsed
+  const [ccOpen, setCcOpen] = useState(false);
+  const [ccIds, setCcIds] = useState([]);
   const set = (k, v) => setF(p => ({ ...p, [k]: v }));
+  const toggleCc = id => setCcIds(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id]);
 
   useEffect(() => {
     api.clientContactPeople().then(setPeople).catch(() => setPeople([]));
@@ -157,6 +160,11 @@ export default function MediaStorage() {
   // Preferred first + last name for the signed-in user (from the crew roster).
   const me = crew.find(m => (m.email || '').toLowerCase() === (user?.email || '').toLowerCase());
   const preferredName = displayName(me) || user?.name || '';
+
+  // Unbridled Media employees available to CC on the request.
+  const employees = crew
+    .filter(m => (m.company || '').toLowerCase().includes('unbridled'))
+    .sort((a, b) => displayName(a).localeCompare(displayName(b)));
 
   // Selecting a media size auto-selects the subscription + hard-drive tiers.
   function onSize(v) {
@@ -187,9 +195,12 @@ export default function MediaStorage() {
         subscriptionCost: st?.price ?? null,
         hardDriveTier: hd?.label || null,
         hardDriveCost: hd?.price ?? null,
+        cc: ccIds.map(id => crew.find(m => m.id === id)).filter(Boolean)
+          .map(m => ({ name: displayName(m), email: m.email || '' })),
       });
       setRequests(rs => [row, ...(rs || [])]);
       setF(BLANK);
+      setCcIds([]); setCcOpen(false);
       setOkMsg('Request submitted.');
       api.clientContactPeople().then(setPeople).catch(() => {});
       setTimeout(() => setOkMsg(''), 3500);
@@ -295,8 +306,39 @@ export default function MediaStorage() {
                 </div>
               </div>
 
+              {ccOpen && (
+                <div className="glass" style={{ borderRadius: 12, padding: '12px 14px', marginTop: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, marginBottom: 8 }}>
+                    <span style={lbl}>CC — Unbridled Media Team</span>
+                    <span style={{ fontSize: 10, color: 'var(--muted)' }}>{ccIds.length} selected · tap to toggle</span>
+                  </div>
+                  {employees.length === 0 && <div style={{ fontSize: 11, color: 'var(--muted)', fontStyle: 'italic' }}>No team members found.</div>}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+                    {employees.map(m => {
+                      const on = ccIds.includes(m.id);
+                      return (
+                        <button key={m.id} type="button" onClick={() => toggleCc(m.id)} title={m.email || ''}
+                          style={{
+                            fontSize: 11, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap',
+                            padding: '5px 12px', borderRadius: 20,
+                            color: on ? '#06121f' : 'var(--text)',
+                            background: on ? ACCENT : 'rgba(255,255,255,0.05)',
+                            border: '1px solid ' + (on ? ACCENT : 'rgba(255,255,255,0.14)'),
+                            backdropFilter: 'blur(8px) saturate(1.2)', WebkitBackdropFilter: 'blur(8px) saturate(1.2)',
+                          }}>
+                          {displayName(m)}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 12, marginTop: 18 }}>
                 {okMsg && <span style={{ fontSize: 12, color: '#5ABF80', fontWeight: 700 }}>{okMsg}</span>}
+                <button type="button" onClick={() => setCcOpen(o => !o)} className="evt-glass evt-sm">
+                  {ccOpen ? 'Hide CC' : '‹ Request CC'}{ccIds.length ? ` (${ccIds.length})` : ''}
+                </button>
                 <button disabled={!canSubmit || saving} onClick={submit} className="evt-glass"
                   style={{ opacity: canSubmit && !saving ? 1 : 0.5, cursor: canSubmit && !saving ? 'pointer' : 'not-allowed' }}>
                   {saving ? 'Submitting…' : 'Submit Request'}
@@ -333,6 +375,7 @@ export default function MediaStorage() {
                   {r.poc_name && <span>POC <b style={{ color: 'var(--text)' }}>{r.poc_name}</b>{r.poc_email ? ` (${r.poc_email})` : ''}</span>}
                   {r.user_name && <span>By {r.user_name}</span>}
                 </div>
+                {Array.isArray(r.cc) && r.cc.length > 0 && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 6 }}><b style={{ color: 'var(--text)' }}>CC:</b> {r.cc.map(c => c.name || c.email).filter(Boolean).join(', ')}</div>}
                 {r.footage && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 6, whiteSpace: 'pre-wrap' }}><b style={{ color: 'var(--text)' }}>Footage:</b> {r.footage}</div>}
                 {r.reference_links && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}><b style={{ color: 'var(--text)' }}>References:</b> {r.reference_links}</div>}
               </div>
