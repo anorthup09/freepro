@@ -154,6 +154,10 @@ const GROUP_COLOR = { 'New Request': '#4a9eff', 'In-Progress': '#e6c229', 'Expir
 const bucketOf = r => (EMAIL_GROUPS.includes(r.status) ? r.status : (r.status === 'Live' || r.status === 'Expired') ? r.status : 'New Request');
 const isDeployedDrive = r => r.hard_drive_added && r.status === 'Live';
 const isDeployedSub = r => r.subscription_added && r.status === 'Live';
+// Subscription pipeline sub-status: everything starts as New Request until the
+// Live button is pressed on the row.
+const subBucket = r => (r.sub_status === 'Live Subscription' ? 'Live' : 'New Request');
+const SUB_GROUPS = [['New Request', '(!) New Request', '#e05252'], ['Live', 'Live', '#5ABF80']];
 
 // Whole days since a date (for Days Since Outreach). Null if no date.
 const daysSince = d => {
@@ -351,8 +355,19 @@ function SubRow({ r, patchReq, onDetail }) {
           onChange={e => patchReq(r.id, { subscriptionEnd: e.target.value })} style={{ ...inpSm, width: '100%' }} />
       </div>
       <div>
-        <button type="button" title={live ? 'Live subscription' : 'Move to Live Subscription'}
-          onClick={e => { stop(e); patchReq(r.id, { subStatus: live ? 'New Subscription' : 'Live Subscription' }); }}
+        <button type="button" title={live ? 'Live subscription' : 'Requires start/end dates + invoice sent'}
+          onClick={e => {
+            stop(e);
+            if (!live) {
+              if (!r.subscription_start || !r.subscription_end || !r.subscription_invoice_sent) {
+                alert('Enter the Subscription Start and End dates and mark the Invoice Sent before moving to Live.');
+                return;
+              }
+              patchReq(r.id, { subStatus: 'Live Subscription' });
+            } else {
+              patchReq(r.id, { subStatus: 'New Subscription' });
+            }
+          }}
           style={pill(live ? '#5ABF80' : null)}>Live</button>
       </div>
     </div>
@@ -491,6 +506,7 @@ export default function MediaStorage() {
   const [ccIds, setCcIds] = useState([]);
   const [pipeView, setPipeView] = useState('email');
   const [emailGroup, setEmailGroup] = useState('New Request');
+  const [subGroup, setSubGroup] = useState('New Request');
   const [detail, setDetail] = useState(null);   // request open in the detail modal
   const [shipEdit, setShipEdit] = useState(null);   // request whose shipping is being edited
   const set = (k, v) => setF(p => ({ ...p, [k]: v }));
@@ -784,17 +800,35 @@ export default function MediaStorage() {
             <>
               {!requests && <div className="empty">Loading…</div>}
               {requests && (() => {
-                const rows = requests.filter(isDeployedSub);
-                if (!rows.length) return <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic', padding: '10px 4px' }}>No subscriptions yet. On an Email Request, select <b>+ Subscription</b> and move it to <b>Live</b> to deploy it here.</div>;
+                const deployed = requests.filter(isDeployedSub);
+                if (!deployed.length) return <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic', padding: '10px 4px' }}>No subscriptions yet. On an Email Request, select <b>+ Subscription</b> and move it to <b>Live</b> to deploy it here.</div>;
+                const rows = deployed.filter(r => subBucket(r) === subGroup);
                 return (
-                  <div style={{ overflowX: 'auto' }}>
-                    <div style={{ minWidth: 980 }}>
-                      <SubHeader />
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {rows.map(r => <SubRow key={r.id} r={r} patchReq={patchReq} onDetail={setDetail} />)}
-                      </div>
+                  <>
+                    <div className="seg-glass" style={{ marginBottom: 12, flexWrap: 'wrap' }}>
+                      {SUB_GROUPS.map(([key, label, color]) => {
+                        const n = deployed.filter(r => subBucket(r) === key).length;
+                        return (
+                          <button key={key} className={subGroup === key ? 'on' : ''} onClick={() => setSubGroup(key)}
+                            style={subGroup === key ? { color } : undefined}>
+                            {label} <span style={{ opacity: 0.6 }}>· {n}</span>
+                          </button>
+                        );
+                      })}
                     </div>
-                  </div>
+                    {rows.length === 0
+                      ? <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic', padding: '10px 4px' }}>None in {subGroup === 'Live' ? 'Live' : 'New Request'}.</div>
+                      : (
+                        <div style={{ overflowX: 'auto' }}>
+                          <div style={{ minWidth: 980 }}>
+                            <SubHeader />
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                              {rows.map(r => <SubRow key={r.id} r={r} patchReq={patchReq} onDetail={setDetail} />)}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                  </>
                 );
               })()}
             </>

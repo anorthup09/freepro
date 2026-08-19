@@ -73,6 +73,15 @@ router.patch('/:id', ...staff, async (req, res, next) => {
         return res.status(400).json({ error: 'Add shipping information (name and address) before moving this hard-drive request to Live.' });
       }
     }
+    // A subscription can't go Live until start/end dates and a sent invoice exist.
+    if (d.subStatus === 'Live Subscription' && cur.sub_status !== 'Live Subscription') {
+      const start = d.subscriptionStart !== undefined ? d.subscriptionStart : cur.subscription_start;
+      const end = d.subscriptionEnd !== undefined ? d.subscriptionEnd : cur.subscription_end;
+      const inv = d.subscriptionInvoiceSent !== undefined ? d.subscriptionInvoiceSent : cur.subscription_invoice_sent;
+      if (!String(start || '').trim() || !String(end || '').trim() || !inv) {
+        return res.status(400).json({ error: 'Enter the Subscription Start and End dates and send the invoice before moving to Live.' });
+      }
+    }
     // Stamp the deployment date the first time a task goes Live.
     const liveDate = status === 'Live' ? (cur.live_date || new Date().toISOString()) : cur.live_date;
 
