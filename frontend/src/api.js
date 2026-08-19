@@ -88,6 +88,11 @@ export const api = {
   resourceDoc: (key) => req('GET', `/resources/docs/${key}`),
   saveResourceDoc: (key, data) => req('PUT', `/resources/docs/${key}`, { data }),
 
+  // Per-user favorited reports (Reports & Resources page)
+  reportFavorites: () => req('GET', '/report-favorites'),
+  addReportFavorite: (to) => req('POST', '/report-favorites', { to }),
+  removeReportFavorite: (to) => req('DELETE', '/report-favorites', { to }),
+
   // Subscriptions register (post-pro tools/logins) — no passwords stored
   subscriptions: () => req('GET', '/subscriptions'),
   createSubscription: (data) => req('POST', '/subscriptions', data),

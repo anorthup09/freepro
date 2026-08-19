@@ -191,6 +191,7 @@ app.use('/api/mail', require('./routes/mail'));
 app.use('/api', require('./routes/overview'));
 app.use('/api/feedback', require('./routes/feedback'));
 app.use('/api/resources', require('./routes/resources'));
+app.use('/api/report-favorites', require('./routes/reportFavorites'));
 
 // Admin backup: download now, or trigger a cloud push
 const { buildBackup, uploadBackup, scheduleNightlyBackup } = require('./lib/backup');

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../App.jsx';
+import { api } from '../api.js';
 import HomeButton from '../components/HomeButton.jsx';
 import { HubBottomNav } from './Hub.jsx';
 
@@ -102,15 +103,18 @@ const I = {
   travel: <svg viewBox="0 0 24 24"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg>,
   vendors: <svg viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="M8 13h8M8 17h5"/></svg>,
   projects: <svg viewBox="0 0 24 24"><path d="M3 5h18M3 12h18M3 19h12"/><circle cx="19" cy="19" r="2.2"/></svg>,
+  storage: <svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.66 3.58 3 8 3s8-1.34 8-3V5"/><path d="M4 11v6c0 1.66 3.58 3 8 3s8-1.34 8-3v-6"/></svg>,
+  star: <svg viewBox="0 0 24 24"><path d="M12 2.6l2.9 5.9 6.5.95-4.7 4.58 1.11 6.47L12 17.98 6.09 21.07 7.2 14.6 2.5 10.02l6.5-.95z"/></svg>,
 };
 
 // Ordered categories; each lists its reports (by route) in display order.
 const CATEGORIES = [
   { key: 'finance',  label: 'Finance',   icon: I.finance,  tos: ['/reports/vcc', '/reports/client-invoices', '/finance/overview', '/finance/report'] },
-  { key: 'gear',     label: 'Gear',      icon: I.gear,     tos: ['/reports/gear', '/reports/drives'] },
-  { key: 'people',   label: 'Team',      icon: I.people,   tos: ['/reports/days-off', '/reports/photos', '/reports/media-moments', '/reports/ways-of-being'] },
+  { key: 'gear',     label: 'Gear',      icon: I.gear,     tos: ['/reports/gear'] },
   { key: 'postpro',  label: 'Post-Pro',  icon: I.postpro,  tos: ['/reports/music-resources', '/reports/video-references', '/reports/subscriptions'] },
   { key: 'projects', label: 'Projects',  icon: I.projects, tos: ['/reports/debrief'] },
+  { key: 'storage',  label: 'Storage',   icon: I.storage,  tos: ['/reports/drives'] },
+  { key: 'people',   label: 'Team',      icon: I.people,   tos: ['/reports/days-off', '/reports/photos', '/reports/media-moments', '/reports/ways-of-being'] },
   { key: 'travel',   label: 'Travel',    icon: I.travel,   tos: ['/reports/foodie', '/reports/international-travel'] },
   { key: 'vendors',  label: 'Vendors',   icon: I.vendors,  tos: ['/reports/vendor-contracts', '/reports/invoices'] },
 ];
@@ -165,6 +169,17 @@ const CSS = `
 @keyframes rptIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
 .rpt-tile{animation:rptIn .6s cubic-bezier(.22,.61,.36,1) backwards}
 @media (prefers-reduced-motion: reduce){.rpt-tile{animation:none}}
+/* Light divider between the Favorites item and the rest of the category bar */
+.rpt-navsep{align-self:center;flex:0 0 auto;width:1px;height:28px;margin:0 6px;background:rgba(255,255,255,0.14)}
+:root[data-theme="light"] .rpt-navsep{background:rgba(0,0,0,0.12)}
+.rpt-tileleft{display:flex;align-items:center;gap:11px;min-width:0}
+/* Per-report favorite star: outline when unstarred, orange when favorited */
+.rpt-star{flex:0 0 auto;display:flex;align-items:center;justify-content:center;background:none;border:none;padding:2px;cursor:pointer;color:var(--muted);transition:color .15s ease,transform .15s ease}
+.rpt-star svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linejoin:round;stroke-linecap:round}
+.rpt-star:hover{color:var(--orange);transform:scale(1.15)}
+.rpt-star.on{color:var(--orange)}
+.rpt-star.on svg{fill:var(--orange);stroke:var(--orange)}
+.rpt-emptyfav{text-align:center;color:var(--muted);font-size:12px;line-height:1.6;padding:22px 14px}
 `;
 
 export default function Reports() {
@@ -181,10 +196,28 @@ export default function Reports() {
   const byTo = new Map(accessible.map(r => [r.to, r]));
   const reportsFor = cat => cat.tos.map(to => byTo.get(to)).filter(Boolean);
 
+  // Per-user favorites (persisted server-side). Guests just get an empty set.
+  const [favs, setFavs] = useState([]);
+  useEffect(() => {
+    if (!user || user.readOnly) return;
+    api.reportFavorites().then(setFavs).catch(() => {});
+  }, [user?.id]);
+  const favSet = new Set(favs);
+  const toggleFav = to => {
+    const isFav = favSet.has(to);
+    setFavs(prev => isFav ? prev.filter(x => x !== to) : [...prev, to]);   // optimistic
+    (isFav ? api.removeReportFavorite(to) : api.addReportFavorite(to))
+      .then(setFavs).catch(() => api.reportFavorites().then(setFavs).catch(() => {}));
+  };
+
+  const FAV = { key: 'favorites', label: 'Favorites', icon: I.star };
   const shownCats = CATEGORIES.filter(c => reportsFor(c).length > 0);
+  const navCats = [FAV, ...shownCats];
   const [active, setActive] = useState(shownCats[0]?.key || '');
-  const activeCat = shownCats.find(c => c.key === active) || shownCats[0];
-  const tiles = activeCat ? reportsFor(activeCat) : [];
+  const isFavView = active === 'favorites';
+  const activeCat = isFavView ? FAV : (shownCats.find(c => c.key === active) || shownCats[0]);
+  const favTiles = favs.map(to => byTo.get(to)).filter(Boolean);
+  const tiles = isFavView ? favTiles : (activeCat ? reportsFor(activeCat) : []);
 
   // Sliding selection bubble behind the active category (matches the app docks).
   const btnRefs = useRef({});
@@ -221,21 +254,39 @@ export default function Reports() {
         <div className="rpt-dockwrap">
           <div className="rpt-dock">
             {bubble && <div className="rpt-navbubble" style={{ left: bubble.left, top: bubble.top, width: bubble.width, height: bubble.height }} />}
-            {shownCats.map(c => (
-              <button key={c.key} ref={el => { btnRefs.current[c.key] = el; }}
-                className={`rpt-navitem${activeCat?.key === c.key ? ' on' : ''}`} onClick={() => setActive(c.key)}>
-                {c.icon}<span>{c.label}</span>
-              </button>
+            {navCats.map((c, idx) => (
+              <React.Fragment key={c.key}>
+                <button ref={el => { btnRefs.current[c.key] = el; }}
+                  className={`rpt-navitem${activeCat?.key === c.key ? ' on' : ''}`} onClick={() => setActive(c.key)}>
+                  {c.icon}<span>{c.label}</span>
+                </button>
+                {idx === 0 && <span className="rpt-navsep" aria-hidden="true" />}
+              </React.Fragment>
             ))}
           </div>
         </div>
 
         <div className="rpt-list" key={activeCat?.key}>
+          {isFavView && tiles.length === 0 && (
+            <div className="rpt-emptyfav">
+              No favorites yet.<br />Tap the star on any report to pin it here.
+            </div>
+          )}
           {tiles.map((r, i, arr) => {
             const accent = gradientAccent(i, arr.length);
+            const fav = favSet.has(r.to);
             return (
               <div key={r.to} className="rpt-tile" style={{ borderLeftColor:accent, animationDelay:`${i * 0.09}s` }} onClick={() => nav(r.to)}>
-                <div style={{ fontSize:13, fontWeight:800 }}>{r.title}</div>
+                <div className="rpt-tileleft">
+                  {!user?.readOnly && (
+                    <button className={`rpt-star${fav ? ' on' : ''}`} title={fav ? 'Remove from favorites' : 'Add to favorites'}
+                      aria-label={fav ? 'Remove from favorites' : 'Add to favorites'} aria-pressed={fav}
+                      onClick={e => { e.stopPropagation(); toggleFav(r.to); }}>
+                      {I.star}
+                    </button>
+                  )}
+                  <div style={{ fontSize:13, fontWeight:800 }}>{r.title}</div>
+                </div>
                 <div style={{ fontSize:10.5, color:accent, fontWeight:700, whiteSpace:'nowrap' }}>Open →</div>
               </div>
             );

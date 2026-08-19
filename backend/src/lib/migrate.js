@@ -34,6 +34,16 @@ async function migrate() {
     )
   `;
 
+  // Per-user favorited reports on the Reports & Resources page.
+  await sql`
+    CREATE TABLE IF NOT EXISTS report_favorites (
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      report_to TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      PRIMARY KEY (user_id, report_to)
+    )
+  `;
+
   await sql`
     CREATE TABLE IF NOT EXISTS positions (
       id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
