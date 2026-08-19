@@ -13,6 +13,16 @@ commit, push both branches.
 Do not add emojis anywhere in the UI (buttons, labels, tiles, PDFs, etc.).
 Use text or SVG icons instead.
 
+## Liquid glass (standing instruction)
+
+Apply the liquid-glass look to all new UI builds. Use the shared `.glass`
+class for cards/panels/popovers, `.evt-glass` (+`.evt-sm`/`.evt-gold`) for
+buttons, `.home-glass` for the round home button, and `.seg-glass` for
+segmented toggles. Inputs/selects use a translucent frosted fill
+(rgba white ~0.05 bg, ~0.14 border, backdrop-blur) rather than solid
+`var(--bg)`. Match the frosted, blurred, subtly-bordered aesthetic already
+used across the hub, docks, and Reports tiles.
+
 ## Feature walkthrough PDF (standing instruction)
 
 Every new user-facing function added from 2026-07-08 onward gets documented

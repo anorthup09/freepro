@@ -1,7 +1,8 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../App.jsx';
 import { api } from '../api.js';
+import { displayName } from '../utils/displayName.js';
 import HomeButton from '../components/HomeButton.jsx';
 import ClientSelect from '../components/ClientSelect.jsx';
 
@@ -9,7 +10,8 @@ const ACCENT = '#4a9eff';
 const fmt$ = n => '$' + Number(n || 0).toLocaleString('en-US');
 
 // Annual subscription tiers. `price` is the client-facing figure (after any
-// volume discount); list/disc are shown so the math is transparent.
+// volume discount); list/disc are shown so the math is transparent. The media
+// size dropdown is 1:1 with this list and auto-selects the matching tier.
 const SUB_TIERS = [
   { label: '< 1 TB',      price: 200 },
   { label: 'up to 2 TB',  price: 400 },
@@ -33,22 +35,31 @@ const HD_TIERS = [
 ];
 const hdOptionText = t => `${t.label} — ${fmt$(t.price)}`;
 
-const lbl = { fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700 };
-const sub = { fontSize: 10, color: 'var(--muted)', fontStyle: 'italic', marginTop: 2, marginBottom: 4, fontWeight: 400, textTransform: 'none', letterSpacing: 0 };
-const inp = { background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text)', padding: '8px 10px', fontSize: 13, width: '100%' };
+// Media size (subscription-tier index) → hard-drive tier index.
+// <1–2 TB → 2 TB drive · 3–5 TB → 5 TB drive · 6–10 TB → 10 TB drive.
+const HD_FOR_SIZE = i => (i <= 1 ? 0 : i <= 4 ? 1 : 2);
 
-function Field({ label, note, children, required }) {
+// ── Liquid-glass field styling ──
+const lbl = { fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700 };
+const noteS = { fontSize: 10, color: 'var(--muted)', fontStyle: 'italic', marginTop: 2, marginBottom: 4, fontWeight: 400, textTransform: 'none', letterSpacing: 0 };
+const inp = {
+  background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.14)', borderRadius: 9,
+  color: 'var(--text)', padding: '9px 11px', fontSize: 13, width: '100%',
+  backdropFilter: 'blur(8px) saturate(1.2)', WebkitBackdropFilter: 'blur(8px) saturate(1.2)',
+};
+
+function Field({ label, note, children, required, full }) {
   return (
-    <label style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+    <label style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0, ...(full ? { gridColumn: '1 / -1' } : {}) }}>
       <span style={lbl}>{label}{required && <span style={{ color: ACCENT }}> *</span>}</span>
-      {note && <span style={sub}>{note}</span>}
+      {note && <span style={noteS}>{note}</span>}
       {children}
     </label>
   );
 }
 
 // Searchable project-code combobox: pick an existing project (fills code + name)
-// or type a new code. Requires FINANCE/PRODUCER/ADMIN, matching this report.
+// or type a new code.
 function ProjectCodeSelect({ code, onPick }) {
   const [projects, setProjects] = useState([]);
   const [q, setQ] = useState(code || '');
@@ -70,11 +81,11 @@ function ProjectCodeSelect({ code, onPick }) {
         onChange={e => { setQ(e.target.value); setOpen(true); onPick(e.target.value, undefined); }}
         onFocus={() => setOpen(true)} style={inp} />
       {open && matches.length > 0 && (
-        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 40, marginTop: 4, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8, maxHeight: 240, overflowY: 'auto', boxShadow: '0 8px 24px rgba(0,0,0,0.5)' }}>
+        <div className="glass" style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 40, marginTop: 4, borderRadius: 10, maxHeight: 240, overflowY: 'auto' }}>
           {matches.map(p => (
             <div key={p.id} onClick={() => { onPick(p.code, p.title, p.client); setQ(p.code); setOpen(false); }}
               style={{ padding: '8px 12px', fontSize: 12, cursor: 'pointer' }}
-              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
               onMouseLeave={e => e.currentTarget.style.background = 'none'}>
               <b>{p.code}</b> <span style={{ color: 'var(--muted)' }}>— {p.title}</span>
             </div>
@@ -105,11 +116,11 @@ function ContactSelect({ name, people, onPick }) {
         onChange={e => { setQ(e.target.value); setOpen(true); onPick(e.target.value, undefined); }}
         onFocus={() => setOpen(true)} style={inp} />
       {open && matches.length > 0 && (
-        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 40, marginTop: 4, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8, maxHeight: 240, overflowY: 'auto', boxShadow: '0 8px 24px rgba(0,0,0,0.5)' }}>
+        <div className="glass" style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 40, marginTop: 4, borderRadius: 10, maxHeight: 240, overflowY: 'auto' }}>
           {matches.map((p, i) => (
             <div key={(p.email || '') + i} onClick={() => { onPick(p.name, p.email || ''); setQ(p.name); setOpen(false); }}
               style={{ padding: '8px 12px', fontSize: 12, cursor: 'pointer' }}
-              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
               onMouseLeave={e => e.currentTarget.style.background = 'none'}>
               <b>{p.name}</b>{p.email && <span style={{ color: 'var(--muted)' }}> — {p.email}</span>}
             </div>
@@ -122,28 +133,43 @@ function ContactSelect({ name, people, onPick }) {
 
 const BLANK = {
   clientName: '', projectCode: '', projectName: '', pocName: '', pocEmail: '',
-  footage: '', referenceLinks: '', totalMediaSize: '', subIdx: '', hdIdx: '',
+  footage: '', referenceLinks: '', sizeIdx: '', subIdx: '', hdIdx: '',
 };
 
 export default function MediaStorage() {
   const { user } = useAuth();
   const [f, setF] = useState(BLANK);
   const [people, setPeople] = useState([]);
+  const [crew, setCrew] = useState([]);
   const [requests, setRequests] = useState(null);
   const [saving, setSaving] = useState(false);
   const [okMsg, setOkMsg] = useState('');
+  const [open, setOpen] = useState(false);   // New Request starts collapsed
   const set = (k, v) => setF(p => ({ ...p, [k]: v }));
 
   useEffect(() => {
     api.clientContactPeople().then(setPeople).catch(() => setPeople([]));
     api.mediaStorageRequests().then(setRequests).catch(() => setRequests([]));
+    api.getCrew().then(setCrew).catch(() => setCrew([]));
   }, []);
 
-  const canSubmit = f.clientName.trim() && f.totalMediaSize.trim() && f.subIdx !== '';
+  // Preferred first + last name for the signed-in user (from the crew roster).
+  const me = crew.find(m => (m.email || '').toLowerCase() === (user?.email || '').toLowerCase());
+  const preferredName = displayName(me) || user?.name || '';
+
+  // Selecting a media size auto-selects the subscription + hard-drive tiers.
+  function onSize(v) {
+    if (v === '') { setF(p => ({ ...p, sizeIdx: '', subIdx: '', hdIdx: '' })); return; }
+    const i = Number(v);
+    setF(p => ({ ...p, sizeIdx: i, subIdx: i, hdIdx: HD_FOR_SIZE(i) }));
+  }
+
+  const canSubmit = f.clientName.trim() && f.sizeIdx !== '';
 
   async function submit() {
     if (!canSubmit || saving) return;
     setSaving(true); setOkMsg('');
+    const size = f.sizeIdx !== '' ? SUB_TIERS[f.sizeIdx] : null;
     const st = f.subIdx !== '' ? SUB_TIERS[f.subIdx] : null;
     const hd = f.hdIdx !== '' ? HD_TIERS[f.hdIdx] : null;
     try {
@@ -155,7 +181,7 @@ export default function MediaStorage() {
         pocEmail: f.pocEmail.trim(),
         footage: f.footage.trim(),
         referenceLinks: f.referenceLinks.trim(),
-        totalMediaSize: f.totalMediaSize.trim(),
+        totalMediaSize: size?.label || null,
         subscriptionTier: st?.label || null,
         subscriptionCost: st?.price ?? null,
         hardDriveTier: hd?.label || null,
@@ -164,7 +190,6 @@ export default function MediaStorage() {
       setRequests(rs => [row, ...(rs || [])]);
       setF(BLANK);
       setOkMsg('Request submitted.');
-      // refresh contact database so a new POC autofills next time
       api.clientContactPeople().then(setPeople).catch(() => {});
       setTimeout(() => setOkMsg(''), 3500);
     } catch (e) { alert(e.message); }
@@ -181,7 +206,7 @@ export default function MediaStorage() {
           <span style={{ fontSize: 12, color: ACCENT, fontWeight: 700, letterSpacing: '0.04em' }}>Reports & Resources</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ fontSize: 11, color: 'var(--muted)' }}>{user?.name}</span>
+          <span style={{ fontSize: 11, color: 'var(--muted)' }}>{preferredName}</span>
           <Link to="/reports" className="btn btn-ghost btn-sm" style={{ textDecoration: 'none' }}>‹ Reports</Link>
           <HomeButton />
         </div>
@@ -191,82 +216,92 @@ export default function MediaStorage() {
         <div className="page-title">Media Storage Management</div>
         <div className="page-sub">Request long-term storage for footage subject to expiration.</div>
 
-        {/* ── New Request form ── */}
-        <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderTop: `3px solid ${ACCENT}`, borderRadius: 12, padding: '20px 22px', marginTop: 8 }}>
-          <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 14 }}>New Request</div>
+        {/* ── New Request (collapsible, liquid glass) ── */}
+        <div className="glass" style={{ borderRadius: 14, marginTop: 8, overflow: 'hidden' }}>
+          <button onClick={() => setOpen(o => !o)}
+            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, background: 'none', border: 'none', color: 'var(--text)', cursor: 'pointer', padding: '16px 20px', font: 'inherit' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: ACCENT, boxShadow: `0 0 10px ${ACCENT}` }} />
+              <span style={{ fontSize: 15, fontWeight: 800 }}>New Request</span>
+            </span>
+            <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 700, whiteSpace: 'nowrap' }}>{open ? 'Hide ▴' : 'New Request ▾'}</span>
+          </button>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-            <Field label="Your Name">
-              <input value={user?.name || ''} readOnly style={{ ...inp, opacity: 0.7, cursor: 'default' }} />
-            </Field>
-            <Field label="Your Email">
-              <input value={user?.email || ''} readOnly style={{ ...inp, opacity: 0.7, cursor: 'default' }} />
-            </Field>
+          {open && (
+            <div style={{ padding: '4px 20px 20px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                <Field label="Your Name">
+                  <input value={preferredName} readOnly style={{ ...inp, opacity: 0.7, cursor: 'default' }} />
+                </Field>
+                <Field label="Your Email">
+                  <input value={user?.email || ''} readOnly style={{ ...inp, opacity: 0.7, cursor: 'default' }} />
+                </Field>
 
-            <Field label="Client Name" required>
-              <ClientSelect value={f.clientName} onChange={v => set('clientName', v)} inputStyle={inp} />
-            </Field>
-            <Field label="Main POC — Client Name">
-              <ContactSelect name={f.pocName} people={people}
-                onPick={(nm, em) => setF(p => ({ ...p, pocName: nm, ...(em !== undefined ? { pocEmail: em } : {}) }))} />
-            </Field>
+                <Field label="Client (Company) Name" required full>
+                  <ClientSelect value={f.clientName} onChange={v => set('clientName', v)} inputStyle={inp} />
+                </Field>
 
-            <Field label="Relevant Project Code">
-              <ProjectCodeSelect code={f.projectCode}
-                onPick={(code, title, client) => setF(p => ({
-                  ...p, projectCode: code,
-                  ...(title !== undefined ? { projectName: title } : {}),
-                  ...(client && !p.clientName ? { clientName: client } : {}),
-                }))} />
-            </Field>
-            <Field label="Main POC — Client Email">
-              <input type="email" value={f.pocEmail} onChange={e => set('pocEmail', e.target.value)}
-                placeholder="name@client.com" style={inp} />
-            </Field>
+                <Field label="Main POC — Client Name">
+                  <ContactSelect name={f.pocName} people={people}
+                    onPick={(nm, em) => setF(p => ({ ...p, pocName: nm, ...(em !== undefined ? { pocEmail: em } : {}) }))} />
+                </Field>
+                <Field label="Main POC — Client Email">
+                  <input type="email" value={f.pocEmail} onChange={e => set('pocEmail', e.target.value)}
+                    placeholder="name@client.com" style={inp} />
+                </Field>
 
-            <Field label="Project Name">
-              <input value={f.projectName} onChange={e => set('projectName', e.target.value)}
-                placeholder="Tied to the code, or type a new one" style={inp} />
-            </Field>
-            <Field label="Total Media Size (GB or TB)" required>
-              <input value={f.totalMediaSize} onChange={e => set('totalMediaSize', e.target.value)}
-                placeholder="e.g. 3.5 TB" style={inp} />
-            </Field>
-          </div>
+                <Field label="Relevant Project Code">
+                  <ProjectCodeSelect code={f.projectCode}
+                    onPick={(code, title, client) => setF(p => ({
+                      ...p, projectCode: code,
+                      ...(title !== undefined ? { projectName: title } : {}),
+                      ...(client && !p.clientName ? { clientName: client } : {}),
+                    }))} />
+                </Field>
+                <Field label="Project Name">
+                  <input value={f.projectName} onChange={e => set('projectName', e.target.value)}
+                    placeholder="Tied to the code, or type a new one" style={inp} />
+                </Field>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 14 }}>
-            <Field label="Footage" note="Name all projects, videos, series, or event footage subject to expiration.">
-              <textarea value={f.footage} onChange={e => set('footage', e.target.value)} rows={3}
-                style={{ ...inp, resize: 'vertical', fontFamily: 'inherit' }} />
-            </Field>
-            <Field label="Link to Final Video Reference(s)" note="If available or helpful to the client — paste any review links to the video/projects set to expire.">
-              <textarea value={f.referenceLinks} onChange={e => set('referenceLinks', e.target.value)} rows={2}
-                style={{ ...inp, resize: 'vertical', fontFamily: 'inherit' }} />
-            </Field>
-          </div>
+                <Field label="Footage" full note="Name all projects, videos, series, or event footage subject to expiration.">
+                  <textarea value={f.footage} onChange={e => set('footage', e.target.value)} rows={3}
+                    style={{ ...inp, resize: 'vertical', fontFamily: 'inherit' }} />
+                </Field>
+                <Field label="Link to Final Video Reference(s)" full note="If available or helpful to the client — paste any review links to the video/projects set to expire.">
+                  <textarea value={f.referenceLinks} onChange={e => set('referenceLinks', e.target.value)} rows={2}
+                    style={{ ...inp, resize: 'vertical', fontFamily: 'inherit' }} />
+                </Field>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginTop: 14 }}>
-            <Field label="Annual Subscription Service Estimate" required>
-              <select value={f.subIdx} onChange={e => set('subIdx', e.target.value)} style={inp}>
-                <option value="">Select a tier…</option>
-                {SUB_TIERS.map((t, i) => <option key={i} value={i}>{subOptionText(t)}</option>)}
-              </select>
-            </Field>
-            <Field label="Hard Drive + Shipping Estimate">
-              <select value={f.hdIdx} onChange={e => set('hdIdx', e.target.value)} style={inp}>
-                <option value="">Select a tier…</option>
-                {HD_TIERS.map((t, i) => <option key={i} value={i}>{hdOptionText(t)}</option>)}
-              </select>
-            </Field>
-          </div>
+                <Field label="Total Media Size" required note="Auto-selects the subscription + hard-drive tiers.">
+                  <select value={f.sizeIdx} onChange={e => onSize(e.target.value)} style={inp}>
+                    <option value="">Select a size…</option>
+                    {SUB_TIERS.map((t, i) => <option key={i} value={i}>{t.label}</option>)}
+                  </select>
+                </Field>
+                <Field label="Annual Subscription Service Estimate" required>
+                  <select value={f.subIdx} onChange={e => set('subIdx', e.target.value === '' ? '' : Number(e.target.value))} style={inp}>
+                    <option value="">Select a tier…</option>
+                    {SUB_TIERS.map((t, i) => <option key={i} value={i}>{subOptionText(t)}</option>)}
+                  </select>
+                </Field>
 
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 12, marginTop: 18 }}>
-            {okMsg && <span style={{ fontSize: 12, color: '#5ABF80', fontWeight: 700 }}>{okMsg}</span>}
-            <button disabled={!canSubmit || saving} onClick={submit}
-              style={{ background: ACCENT, color: '#06121f', border: 'none', borderRadius: 8, padding: '10px 22px', fontSize: 13, fontWeight: 800, cursor: canSubmit && !saving ? 'pointer' : 'not-allowed', opacity: canSubmit && !saving ? 1 : 0.5 }}>
-              {saving ? 'Submitting…' : 'Submit Request'}
-            </button>
-          </div>
+                <Field label="Hard Drive + Shipping Estimate">
+                  <select value={f.hdIdx} onChange={e => set('hdIdx', e.target.value === '' ? '' : Number(e.target.value))} style={inp}>
+                    <option value="">Select a tier…</option>
+                    {HD_TIERS.map((t, i) => <option key={i} value={i}>{hdOptionText(t)}</option>)}
+                  </select>
+                </Field>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 12, marginTop: 18 }}>
+                {okMsg && <span style={{ fontSize: 12, color: '#5ABF80', fontWeight: 700 }}>{okMsg}</span>}
+                <button disabled={!canSubmit || saving} onClick={submit} className="evt-glass"
+                  style={{ opacity: canSubmit && !saving ? 1 : 0.5, cursor: canSubmit && !saving ? 'pointer' : 'not-allowed' }}>
+                  {saving ? 'Submitting…' : 'Submit Request'}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ── Submitted requests ── */}
@@ -278,7 +313,7 @@ export default function MediaStorage() {
           {requests && requests.length === 0 && <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>No requests yet.</div>}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {(requests || []).map(r => (
-              <div key={r.id} style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 14px' }}>
+              <div key={r.id} className="glass" style={{ borderRadius: 12, padding: '12px 14px' }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
                   <div style={{ fontSize: 13, fontWeight: 800 }}>
                     {r.client_name}
