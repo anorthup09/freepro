@@ -429,6 +429,16 @@ async function migrate() {
   `;
   // Unbridled employees CC'd on a media storage request.
   await sql`ALTER TABLE media_storage_requests ADD COLUMN IF NOT EXISTS cc JSONB DEFAULT '[]'::jsonb`;
+  // Email Requests pipeline workflow fields.
+  await sql`ALTER TABLE media_storage_requests ADD COLUMN IF NOT EXISTS email_sent BOOLEAN DEFAULT false`;
+  await sql`ALTER TABLE media_storage_requests ADD COLUMN IF NOT EXISTS email_sent_date TIMESTAMPTZ`;
+  await sql`ALTER TABLE media_storage_requests ADD COLUMN IF NOT EXISTS client_response TEXT`;
+  await sql`ALTER TABLE media_storage_requests ADD COLUMN IF NOT EXISTS shipping_name TEXT`;
+  await sql`ALTER TABLE media_storage_requests ADD COLUMN IF NOT EXISTS shipping_email TEXT`;
+  await sql`ALTER TABLE media_storage_requests ADD COLUMN IF NOT EXISTS shipping_address TEXT`;
+  await sql`ALTER TABLE media_storage_requests ADD COLUMN IF NOT EXISTS shipping_tracking TEXT`;
+  await sql`ALTER TABLE media_storage_requests ADD COLUMN IF NOT EXISTS subscription_added BOOLEAN DEFAULT false`;
+  await sql`ALTER TABLE media_storage_requests ADD COLUMN IF NOT EXISTS hard_drive_added BOOLEAN DEFAULT false`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS project_gear (

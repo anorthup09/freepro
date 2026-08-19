@@ -91,6 +91,7 @@ export const api = {
   // Media Storage Management requests (Reports & Resources → Storage)
   mediaStorageRequests: () => req('GET', '/media-storage'),
   createMediaStorageRequest: (data) => req('POST', '/media-storage', data),
+  updateMediaStorageRequest: (id, data) => req('PATCH', `/media-storage/${id}`, data),
 
   // Per-user favorited reports (Reports & Resources page)
   reportFavorites: () => req('GET', '/report-favorites'),

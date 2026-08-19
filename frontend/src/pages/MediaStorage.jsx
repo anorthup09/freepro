@@ -137,6 +137,158 @@ const BLANK = {
   footage: '', referenceLinks: '', sizeIdx: '', subIdx: '', hdIdx: '',
 };
 
+// ── Media Management Pipeline ──
+const PIPE_VIEWS = [
+  ['email', 'Email Requests'],
+  ['subscription', 'Current Live Subscription'],
+  ['expired', 'Expired / Delete'],
+  ['drives', 'Hard Drive Shipping Request'],
+];
+const EMAIL_GROUPS = ['New Request', 'In-Progress', 'Live', 'Expired'];
+const GROUP_COLOR = { 'New Request': '#4a9eff', 'In-Progress': '#e6c229', 'Live': '#5ABF80', 'Expired': '#e05252' };
+const bucketOf = r => (EMAIL_GROUPS.includes(r.status) ? r.status : 'New Request');
+const hasShipping = r => !!(r.shipping_name || r.shipping_email || r.shipping_address || r.shipping_tracking);
+
+// Pill styling: dark when off, filled (accent) when on.
+const pill = color => ({
+  fontSize: 10, fontWeight: 800, padding: '5px 12px', borderRadius: 20, cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'inherit',
+  color: color ? '#06121f' : 'var(--muted)',
+  background: color || 'rgba(255,255,255,0.05)',
+  border: '1px solid ' + (color || 'rgba(255,255,255,0.14)'),
+  backdropFilter: 'blur(8px) saturate(1.2)', WebkitBackdropFilter: 'blur(8px) saturate(1.2)',
+});
+
+function RequestTile({ r, patchReq, onDetail, onShip }) {
+  const [resp, setResp] = useState(r.client_response || '');
+  useEffect(() => { setResp(r.client_response || ''); }, [r.client_response]);
+  const stop = e => e.stopPropagation();
+  const shipped = hasShipping(r);
+  return (
+    <div className="glass" style={{ borderRadius: 12, padding: '12px 14px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start' }}>
+        <div onClick={() => onDetail(r)} style={{ cursor: 'pointer', minWidth: 0 }} title="Open full request">
+          <div style={{ fontSize: 13, fontWeight: 800 }}>{r.client_name}</div>
+          {(r.project_code || r.project_name) &&
+            <div style={{ fontSize: 11, color: 'var(--muted)' }}>{r.project_code}{r.project_name ? ` — ${r.project_name}` : ''}</div>}
+        </div>
+        <select value={bucketOf(r)} onClick={stop} onChange={e => patchReq(r.id, { status: e.target.value })}
+          style={{ ...inpSm, width: 'auto', fontWeight: 800, color: GROUP_COLOR[bucketOf(r)] }}>
+          {EMAIL_GROUPS.map(g => <option key={g} value={g}>{g}</option>)}
+        </select>
+      </div>
+
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center', marginTop: 10 }}>
+        <label onClick={stop} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+          <input type="checkbox" checked={!!r.email_sent} onChange={e => patchReq(r.id, { emailSent: e.target.checked })} />
+          Email Sent
+          {r.email_sent && r.email_sent_date && <span style={{ color: 'var(--muted)', fontWeight: 400 }}>· {new Date(r.email_sent_date).toLocaleDateString()}</span>}
+        </label>
+        <input value={resp} onClick={stop} onChange={e => setResp(e.target.value)}
+          onBlur={() => { if (resp !== (r.client_response || '')) patchReq(r.id, { clientResponse: resp }); }}
+          placeholder="Client response…" style={{ ...inpSm, flex: 1, minWidth: 160 }} />
+      </div>
+
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 10, justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <button type="button" onClick={e => { stop(e); onShip(r); }} title={shipped ? 'Review shipping info' : 'No shipping info yet'}
+            style={pill(shipped ? '#4a9eff' : null)}>Shipping Info</button>
+          <button type="button" onClick={e => { stop(e); onShip(r); }} className="evt-glass evt-sm">Add Shipping Information</button>
+        </div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <button type="button" onClick={e => { stop(e); patchReq(r.id, { subscriptionAdded: !r.subscription_added }); }}
+            style={pill(r.subscription_added ? '#5ABF80' : null)}>+ Subscription</button>
+          <button type="button" onClick={e => { stop(e); patchReq(r.id, { hardDriveAdded: !r.hard_drive_added }); }}
+            style={pill(r.hard_drive_added ? '#e6c229' : null)}>+ Hard Drive</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ShippingModal({ r, onClose, onSave }) {
+  const [s, setS] = useState({
+    shippingName: r.shipping_name || '', shippingEmail: r.shipping_email || '',
+    shippingAddress: r.shipping_address || '', shippingTracking: r.shipping_tracking || '',
+  });
+  const [saving, setSaving] = useState(false);
+  const set = (k, v) => setS(p => ({ ...p, [k]: v }));
+  async function save() { setSaving(true); await onSave(r.id, s); setSaving(false); onClose(); }
+  return (
+    <div onClick={e => e.target === e.currentTarget && onClose()}
+      style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+      <div className="glass" style={{ width: '100%', maxWidth: 460, borderRadius: 14, padding: '20px 22px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+          <div style={{ fontSize: 15, fontWeight: 800 }}>Shipping Information</div>
+          <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
+        </div>
+        <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 14 }}>{r.client_name}{r.project_code ? ` · ${r.project_code}` : ''}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <Field label="Shipping Name"><input value={s.shippingName} onChange={e => set('shippingName', e.target.value)} style={inp} /></Field>
+          <Field label="Shipping Email"><input type="email" value={s.shippingEmail} onChange={e => set('shippingEmail', e.target.value)} style={inp} /></Field>
+          <Field label="Shipping Address"><textarea value={s.shippingAddress} onChange={e => set('shippingAddress', e.target.value)} rows={2} style={{ ...inp, resize: 'vertical', fontFamily: 'inherit' }} /></Field>
+          <Field label="Shipping Tracking Number"><input value={s.shippingTracking} onChange={e => set('shippingTracking', e.target.value)} style={inp} /></Field>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 18 }}>
+          <button className="btn btn-ghost btn-sm" onClick={onClose}>Cancel</button>
+          <button disabled={saving} onClick={save} className="evt-glass">{saving ? 'Saving…' : 'Save Shipping Info'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DetailRow({ label, children }) {
+  if (!children) return null;
+  return (
+    <div style={{ display: 'flex', gap: 10, fontSize: 12, padding: '5px 0', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+      <span style={{ color: 'var(--muted)', minWidth: 150, flexShrink: 0 }}>{label}</span>
+      <span style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{children}</span>
+    </div>
+  );
+}
+
+function DetailModal({ r, onClose, onShip }) {
+  return (
+    <div onClick={e => e.target === e.currentTarget && onClose()}
+      style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+      <div className="glass" style={{ width: '100%', maxWidth: 560, maxHeight: '86vh', overflowY: 'auto', borderRadius: 14, padding: '20px 22px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, marginBottom: 10 }}>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 800 }}>{r.client_name}</div>
+            <div style={{ fontSize: 11, color: 'var(--muted)' }}>{r.project_code}{r.project_name ? ` — ${r.project_name}` : ''}</div>
+          </div>
+          <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
+        </div>
+        <DetailRow label="Status">{bucketOf(r)}</DetailRow>
+        <DetailRow label="Total Media Size">{r.total_media_size}</DetailRow>
+        <DetailRow label="Annual Subscription">{r.subscription_tier ? `${r.subscription_tier} · ${fmt$(r.subscription_cost)}/yr` : ''}</DetailRow>
+        <DetailRow label="Hard Drive + Shipping">{r.hard_drive_tier ? `${r.hard_drive_tier} · ${fmt$(r.hard_drive_cost)}` : ''}</DetailRow>
+        <DetailRow label="Main POC">{r.poc_name ? `${r.poc_name}${r.poc_email ? ` (${r.poc_email})` : ''}` : (r.poc_email || '')}</DetailRow>
+        <DetailRow label="Footage">{r.footage}</DetailRow>
+        <DetailRow label="Reference Link(s)">{r.reference_links}</DetailRow>
+        <DetailRow label="Email Sent">{r.email_sent ? `Yes${r.email_sent_date ? ` · ${new Date(r.email_sent_date).toLocaleDateString()}` : ''}` : 'No'}</DetailRow>
+        <DetailRow label="Client Response">{r.client_response}</DetailRow>
+        <DetailRow label="CC">{Array.isArray(r.cc) && r.cc.length ? r.cc.map(c => c.name || c.email).filter(Boolean).join(', ') : ''}</DetailRow>
+        <DetailRow label="Requested By">{r.user_name}{r.user_email ? ` (${r.user_email})` : ''}</DetailRow>
+        <DetailRow label="Submitted">{r.created_at ? new Date(r.created_at).toLocaleString() : ''}</DetailRow>
+
+        <div style={{ marginTop: 14, marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+          <div style={{ fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)' }}>Shipping Info</div>
+          <button type="button" onClick={() => onShip(r)} className="evt-glass evt-sm">{hasShipping(r) ? 'Edit' : 'Add Shipping Information'}</button>
+        </div>
+        {hasShipping(r) ? (
+          <>
+            <DetailRow label="Shipping Name">{r.shipping_name}</DetailRow>
+            <DetailRow label="Shipping Email">{r.shipping_email}</DetailRow>
+            <DetailRow label="Shipping Address">{r.shipping_address}</DetailRow>
+            <DetailRow label="Tracking Number">{r.shipping_tracking}</DetailRow>
+          </>
+        ) : <div style={{ fontSize: 11, color: 'var(--muted)', fontStyle: 'italic' }}>No shipping info yet.</div>}
+      </div>
+    </div>
+  );
+}
+
 export default function MediaStorage() {
   const { user } = useAuth();
   const [f, setF] = useState(BLANK);
@@ -148,8 +300,20 @@ export default function MediaStorage() {
   const [open, setOpen] = useState(false);   // New Request starts collapsed
   const [ccOpen, setCcOpen] = useState(false);
   const [ccIds, setCcIds] = useState([]);
+  const [pipeView, setPipeView] = useState('email');
+  const [detail, setDetail] = useState(null);   // request open in the detail modal
+  const [shipEdit, setShipEdit] = useState(null);   // request whose shipping is being edited
   const set = (k, v) => setF(p => ({ ...p, [k]: v }));
   const toggleCc = id => setCcIds(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id]);
+
+  async function patchReq(id, data) {
+    try {
+      const row = await api.updateMediaStorageRequest(id, data);
+      setRequests(rs => (rs || []).map(x => x.id === id ? row : x));
+      setDetail(d => (d && d.id === id ? row : d));
+      return row;
+    } catch (e) { alert(e.message); }
+  }
 
   useEffect(() => {
     api.clientContactPeople().then(setPeople).catch(() => setPeople([]));
@@ -348,41 +512,54 @@ export default function MediaStorage() {
           )}
         </div>
 
-        {/* ── Submitted requests ── */}
-        <div style={{ marginTop: 26 }}>
+        {/* ── Media Management Pipeline ── */}
+        <div style={{ marginTop: 28 }}>
           <div style={{ fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)', marginBottom: 10 }}>
-            Submitted Requests {requests && `· ${requests.length}`}
+            Media Management Pipeline
           </div>
-          {!requests && <div className="empty">Loading…</div>}
-          {requests && requests.length === 0 && <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>No requests yet.</div>}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {(requests || []).map(r => (
-              <div key={r.id} className="glass" style={{ borderRadius: 12, padding: '12px 14px' }}>
-                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-                  <div style={{ fontSize: 13, fontWeight: 800 }}>
-                    {r.client_name}
-                    {r.project_code && <span style={{ color: 'var(--muted)', fontWeight: 600 }}> · {r.project_code}</span>}
-                    {r.project_name && <span style={{ color: 'var(--muted)', fontWeight: 400 }}> — {r.project_name}</span>}
-                  </div>
-                  <span style={{ fontSize: 10, color: 'var(--muted)', whiteSpace: 'nowrap' }}>
-                    {r.created_at ? new Date(r.created_at).toLocaleDateString() : ''}
-                  </span>
-                </div>
-                <div style={{ display: 'flex', gap: '4px 18px', flexWrap: 'wrap', marginTop: 6, fontSize: 11, color: 'var(--muted)' }}>
-                  {r.total_media_size && <span>Size <b style={{ color: 'var(--text)' }}>{r.total_media_size}</b></span>}
-                  {r.subscription_tier && <span>Subscription <b style={{ color: 'var(--text)' }}>{r.subscription_tier} · {fmt$(r.subscription_cost)}/yr</b></span>}
-                  {r.hard_drive_tier && <span>Hard Drive <b style={{ color: 'var(--text)' }}>{r.hard_drive_tier} · {fmt$(r.hard_drive_cost)}</b></span>}
-                  {r.poc_name && <span>POC <b style={{ color: 'var(--text)' }}>{r.poc_name}</b>{r.poc_email ? ` (${r.poc_email})` : ''}</span>}
-                  {r.user_name && <span>By {r.user_name}</span>}
-                </div>
-                {Array.isArray(r.cc) && r.cc.length > 0 && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 6 }}><b style={{ color: 'var(--text)' }}>CC:</b> {r.cc.map(c => c.name || c.email).filter(Boolean).join(', ')}</div>}
-                {r.footage && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 6, whiteSpace: 'pre-wrap' }}><b style={{ color: 'var(--text)' }}>Footage:</b> {r.footage}</div>}
-                {r.reference_links && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}><b style={{ color: 'var(--text)' }}>References:</b> {r.reference_links}</div>}
-              </div>
+          <div className="seg-glass" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
+            {PIPE_VIEWS.map(([k, label]) => (
+              <button key={k} className={pipeView === k ? 'on' : ''} onClick={() => setPipeView(k)}>{label}</button>
             ))}
           </div>
+
+          {pipeView === 'email' && (
+            <>
+              {!requests && <div className="empty">Loading…</div>}
+              {requests && requests.length === 0 && <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>No requests yet.</div>}
+              {requests && requests.length > 0 && EMAIL_GROUPS.map(group => {
+                const rows = requests.filter(r => bucketOf(r) === group);
+                return (
+                  <div key={group} style={{ marginBottom: 18 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                      <span style={{ width: 9, height: 9, borderRadius: '50%', background: GROUP_COLOR[group] }} />
+                      <span style={{ fontSize: 12, fontWeight: 800, color: GROUP_COLOR[group] }}>{group}</span>
+                      <span style={{ fontSize: 11, color: 'var(--muted)' }}>· {rows.length}</span>
+                    </div>
+                    {rows.length === 0
+                      ? <div style={{ fontSize: 11, color: 'var(--muted)', fontStyle: 'italic', paddingLeft: 17 }}>None.</div>
+                      : <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          {rows.map(r => <RequestTile key={r.id} r={r} patchReq={patchReq} onDetail={setDetail} onShip={setShipEdit} />)}
+                        </div>}
+                  </div>
+                );
+              })}
+            </>
+          )}
+
+          {pipeView !== 'email' && (
+            <div className="glass" style={{ borderRadius: 14, padding: '40px 20px', textAlign: 'center' }}>
+              <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 4 }}>{PIPE_VIEWS.find(v => v[0] === pipeView)?.[1]}</div>
+              <div style={{ fontSize: 12, color: 'var(--muted)' }}>We'll build out this view soon.</div>
+            </div>
+          )}
         </div>
       </div>
+
+      {shipEdit && <ShippingModal r={shipEdit} onClose={() => setShipEdit(null)}
+        onSave={async (id, s) => { await patchReq(id, s); }} />}
+      {detail && <DetailModal r={detail} onClose={() => setDetail(null)}
+        onShip={r => { setShipEdit(r); }} />}
     </div>
   );
 }
