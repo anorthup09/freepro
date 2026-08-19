@@ -213,7 +213,7 @@ export default function Reports() {
   const FAV = { key: 'favorites', label: 'Favorites', icon: I.star };
   const shownCats = CATEGORIES.filter(c => reportsFor(c).length > 0);
   const navCats = [FAV, ...shownCats];
-  const [active, setActive] = useState(shownCats[0]?.key || '');
+  const [active, setActive] = useState('favorites');
   const isFavView = active === 'favorites';
   const activeCat = isFavView ? FAV : (shownCats.find(c => c.key === active) || shownCats[0]);
   const favTiles = favs.map(to => byTo.get(to)).filter(Boolean);
