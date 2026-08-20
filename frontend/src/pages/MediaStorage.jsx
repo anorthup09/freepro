@@ -548,6 +548,48 @@ function ExpiredRow({ r, patchReq, onDetail, onShip, mobile }) {
   );
 }
 
+// Closed programs from the last 12 months (Annual Check-In → Last 12 Months).
+const MONTHS = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
+function parseCloseMonth(s) {
+  if (!s) return null;
+  const p = String(s).trim().toLowerCase().split(/\s+/);
+  if (p.length < 2) return null;
+  const mi = MONTHS.indexOf(p[0]);
+  const y = parseInt(p[1], 10);
+  if (mi < 0 || !y) return null;
+  return new Date(y, mi, 1);
+}
+const CLOSED_COLS = '110px 1.3fr 1.7fr 92px 128px 150px 156px 116px';
+function ClosedHeader() {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: CLOSED_COLS, gap: 10, alignItems: 'end', padding: '0 14px 8px' }}>
+      <span style={colHead}>Close Date</span>
+      <span style={colHead}>Client / Company</span>
+      <span style={colHead}>Project Code — Name</span>
+      <span style={colHead}>Email Sent</span>
+      <span style={colHead}>Total Media Size</span>
+      <span style={colHead}>Annual Subscription</span>
+      <span style={colHead}>Hard Drive + Shipping</span>
+      <span style={colHead}>Status</span>
+    </div>
+  );
+}
+function ClosedRow({ p, mobile }) {
+  const muted = { fontSize: 11, color: 'var(--muted)' };
+  return (
+    <div className="glass" style={rowShell(mobile, CLOSED_COLS)}>
+      <Cell mobile={mobile} label="Close Date" style={{ fontSize: 10, color: 'var(--muted)', whiteSpace: 'nowrap' }}>{p.close_month || '—'}</Cell>
+      <Cell mobile={mobile} label="Client / Company" style={{ fontSize: 12, fontWeight: 800, minWidth: 0 }}>{p.client}</Cell>
+      <Cell mobile={mobile} label="Project" style={{ fontSize: 11, color: 'var(--muted)', minWidth: 0 }}>{p.code}{p.title ? ` — ${p.title}` : ''}</Cell>
+      <Cell mobile={mobile} label="Email Sent" style={muted}>—</Cell>
+      <Cell mobile={mobile} label="Total Media Size" style={{ fontSize: 11 }}>{p.data_storage || '—'}</Cell>
+      <Cell mobile={mobile} label="Annual Subscription" style={muted}>—</Cell>
+      <Cell mobile={mobile} label="Hard Drive + Shipping" style={muted}>—</Cell>
+      <Cell mobile={mobile} label="Status"><span style={{ ...pill('#8a8f98'), cursor: 'default' }}>Closed</span></Cell>
+    </div>
+  );
+}
+
 function ShippingModal({ r, onClose, onSave }) {
   const [s, setS] = useState({
     shippingName: r.shipping_name || '', shippingEmail: r.shipping_email || '',
@@ -682,6 +724,8 @@ export default function MediaStorage() {
   const [subGroup, setSubGroup] = useState('New Request');
   const [driveGroup, setDriveGroup] = useState('New Request');
   const [expGroup, setExpGroup] = useState('Incomplete');
+  const [showClosed, setShowClosed] = useState(false);   // Annual Check-In → Last 12 Months
+  const [closedProgs, setClosedProgs] = useState(null);
   const [trackEdit, setTrackEdit] = useState(null);   // request whose tracking is being confirmed
   const [detail, setDetail] = useState(null);   // request open in the detail modal
   const [shipEdit, setShipEdit] = useState(null);   // request whose shipping is being edited
@@ -703,6 +747,20 @@ export default function MediaStorage() {
     api.mediaStorageRequests().then(setRequests).catch(() => setRequests([]));
     api.getCrew().then(setCrew).catch(() => setCrew([]));
   }, []);
+
+  // Lazy-load closed programs the first time "Last 12 Months" is turned on.
+  useEffect(() => {
+    if (showClosed && closedProgs === null) api.financeProjects(true).then(setClosedProgs).catch(() => setClosedProgs([]));
+  }, [showClosed]);
+  const closedLast12 = React.useMemo(() => {
+    if (!closedProgs) return [];
+    const cutoff = new Date(); cutoff.setFullYear(cutoff.getFullYear() - 1);
+    return closedProgs
+      .filter(p => p.budget_status === 'Closed')
+      .map(p => ({ ...p, _cd: parseCloseMonth(p.close_month) }))
+      .filter(p => p._cd && p._cd >= cutoff)
+      .sort((a, b) => a._cd - b._cd);
+  }, [closedProgs]);
 
   // Preferred first + last name for the signed-in user (from the crew roster).
   const me = crew.find(m => (m.email || '').toLowerCase() === (user?.email || '').toLowerCase());
@@ -951,6 +1009,27 @@ export default function MediaStorage() {
                     return mobile ? body
                       : <div style={{ overflowX: 'auto' }}><div style={{ minWidth: minW }}><Header />{body}</div></div>;
                   })()}
+
+                  {emailGroup === 'Annual Check-In' && (
+                    <div style={{ marginTop: 16 }}>
+                      <button type="button" onClick={() => setShowClosed(s => !s)}
+                        style={pill(showClosed ? '#4a9eff' : null)}>
+                        Last 12 Months{showClosed && closedProgs ? ` · ${closedLast12.length}` : ''}
+                      </button>
+                      {showClosed && (
+                        <div style={{ marginTop: 12 }}>
+                          <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--muted)', marginBottom: 8 }}>Closed Programs — Last 12 Months</div>
+                          {!closedProgs && <div className="empty">Loading…</div>}
+                          {closedProgs && closedLast12.length === 0 && <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic', padding: '10px 4px' }}>No programs closed in the last 12 months.</div>}
+                          {closedProgs && closedLast12.length > 0 && (mobile
+                            ? <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{closedLast12.map(p => <ClosedRow key={p.id} p={p} mobile={mobile} />)}</div>
+                            : <div style={{ overflowX: 'auto' }}><div style={{ minWidth: 1060 }}><ClosedHeader />
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{closedLast12.map(p => <ClosedRow key={p.id} p={p} mobile={mobile} />)}</div>
+                              </div></div>)}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </>
               )}
             </>
