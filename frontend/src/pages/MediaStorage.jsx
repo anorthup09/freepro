@@ -578,7 +578,7 @@ function ClosedRow({ p, mobile }) {
   const muted = { fontSize: 11, color: 'var(--muted)' };
   return (
     <div className="glass" style={rowShell(mobile, CLOSED_COLS)}>
-      <Cell mobile={mobile} label="Close Date" style={{ fontSize: 10, color: 'var(--muted)', whiteSpace: 'nowrap' }}>{p.close_month || '—'}</Cell>
+      <Cell mobile={mobile} label="Close Date" style={{ fontSize: 10, color: 'var(--muted)', whiteSpace: 'nowrap' }}>{p.close_month || (p.end_date ? shortDate(p.end_date) : '—')}</Cell>
       <Cell mobile={mobile} label="Client / Company" style={{ fontSize: 12, fontWeight: 800, minWidth: 0 }}>{p.client}</Cell>
       <Cell mobile={mobile} label="Project" style={{ fontSize: 11, color: 'var(--muted)', minWidth: 0 }}>{p.code}{p.title ? ` — ${p.title}` : ''}</Cell>
       <Cell mobile={mobile} label="Email Sent" style={muted}>—</Cell>
@@ -756,8 +756,10 @@ export default function MediaStorage() {
     if (!closedProgs) return [];
     const cutoff = new Date(); cutoff.setFullYear(cutoff.getFullYear() - 1);
     return closedProgs
-      .filter(p => p.budget_status === 'Closed')
-      .map(p => ({ ...p, _cd: parseCloseMonth(p.close_month) }))
+      // Closed by budget, or archived after a Close (exclude never-approved "Dead").
+      .filter(p => p.budget_status === 'Closed' || (p.status === 'ARCHIVED' && p.budget_status !== 'Dead' && p.budget_status !== 'RFP'))
+      // Prefer the chosen close month; fall back to the project end date.
+      .map(p => ({ ...p, _cd: parseCloseMonth(p.close_month) || (p.end_date ? new Date(p.end_date) : null) }))
       .filter(p => p._cd && p._cd >= cutoff)
       .sort((a, b) => a._cd - b._cd);
   }, [closedProgs]);
@@ -985,16 +987,24 @@ export default function MediaStorage() {
               {!requests && <div className="empty">Loading…</div>}
               {requests && (
                 <>
-                  <div className="seg-glass" style={{ marginBottom: 12, flexWrap: 'wrap' }}>
-                    {EMAIL_GROUPS.map(group => {
-                      const n = requests.filter(r => bucketOf(r) === group).length;
-                      return (
-                        <button key={group} className={emailGroup === group ? 'on' : ''} onClick={() => setEmailGroup(group)}
-                          style={emailGroup === group ? { color: GROUP_COLOR[group] } : undefined}>
-                          {group} <span style={{ opacity: 0.6 }}>· {n}</span>
-                        </button>
-                      );
-                    })}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
+                    <div className="seg-glass" style={{ flexWrap: 'wrap' }}>
+                      {EMAIL_GROUPS.map(group => {
+                        const n = requests.filter(r => bucketOf(r) === group).length;
+                        return (
+                          <button key={group} className={emailGroup === group ? 'on' : ''} onClick={() => setEmailGroup(group)}
+                            style={emailGroup === group ? { color: GROUP_COLOR[group] } : undefined}>
+                            {group} <span style={{ opacity: 0.6 }}>· {n}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {emailGroup === 'Annual Check-In' && (
+                      <button type="button" onClick={() => setShowClosed(s => !s)}
+                        style={pill(showClosed ? '#4a9eff' : null)}>
+                        Last 12 Months{showClosed && closedProgs ? ` · ${closedLast12.length}` : ''}
+                      </button>
+                    )}
                   </div>
                   {(() => {
                     const rows = requests.filter(r => bucketOf(r) === emailGroup);
@@ -1010,24 +1020,16 @@ export default function MediaStorage() {
                       : <div style={{ overflowX: 'auto' }}><div style={{ minWidth: minW }}><Header />{body}</div></div>;
                   })()}
 
-                  {emailGroup === 'Annual Check-In' && (
+                  {emailGroup === 'Annual Check-In' && showClosed && (
                     <div style={{ marginTop: 16 }}>
-                      <button type="button" onClick={() => setShowClosed(s => !s)}
-                        style={pill(showClosed ? '#4a9eff' : null)}>
-                        Last 12 Months{showClosed && closedProgs ? ` · ${closedLast12.length}` : ''}
-                      </button>
-                      {showClosed && (
-                        <div style={{ marginTop: 12 }}>
-                          <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--muted)', marginBottom: 8 }}>Closed Programs — Last 12 Months</div>
-                          {!closedProgs && <div className="empty">Loading…</div>}
-                          {closedProgs && closedLast12.length === 0 && <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic', padding: '10px 4px' }}>No programs closed in the last 12 months.</div>}
-                          {closedProgs && closedLast12.length > 0 && (mobile
-                            ? <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{closedLast12.map(p => <ClosedRow key={p.id} p={p} mobile={mobile} />)}</div>
-                            : <div style={{ overflowX: 'auto' }}><div style={{ minWidth: 1060 }}><ClosedHeader />
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{closedLast12.map(p => <ClosedRow key={p.id} p={p} mobile={mobile} />)}</div>
-                              </div></div>)}
-                        </div>
-                      )}
+                      <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--muted)', marginBottom: 8 }}>Closed Programs — Last 12 Months</div>
+                      {!closedProgs && <div className="empty">Loading…</div>}
+                      {closedProgs && closedLast12.length === 0 && <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic', padding: '10px 4px' }}>No programs closed in the last 12 months.</div>}
+                      {closedProgs && closedLast12.length > 0 && (mobile
+                        ? <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{closedLast12.map(p => <ClosedRow key={p.id} p={p} mobile={mobile} />)}</div>
+                        : <div style={{ overflowX: 'auto' }}><div style={{ minWidth: 1060 }}><ClosedHeader />
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{closedLast12.map(p => <ClosedRow key={p.id} p={p} mobile={mobile} />)}</div>
+                          </div></div>)}
                     </div>
                   )}
                 </>
