@@ -155,7 +155,7 @@ const isDeployedSub = r => r.subscription_added && r.status === 'Live';
 // Subscription pipeline sub-status: everything starts as New Request until the
 // Live button is pressed on the row.
 const subBucket = r => (r.sub_status === 'Live Subscription' ? 'Live' : 'New Request');
-const SUB_GROUPS = [['New Request', 'New Request', '#e05252'], ['Live', 'Live', '#5ABF80']];
+const SUB_GROUPS = [['New Request', 'New Subscription', '#e05252'], ['Live', 'Live', '#5ABF80']];
 
 // Hard Drive status is derived from the two Sent flags:
 //  both sent → Completed · hd sent only → Send Invoice · invoice sent only →
@@ -168,7 +168,7 @@ const driveState = r => {
   return { key: 'NewRequest', label: '(!) New Request', color: '#e05252' };
 };
 const driveBucket = r => (r.hard_drive_sent && r.hard_drive_invoice_sent ? 'Completed' : 'New Request');
-const DRIVE_GROUPS = [['New Request', 'New Request', '#e05252'], ['Completed', 'Completed', '#5ABF80']];
+const DRIVE_GROUPS = [['New Request', 'New Drive Shipping Request', '#e05252'], ['Completed', 'Completed', '#5ABF80']];
 
 // Expired / Delete: grouped by whether the files have been deleted.
 const expBucket = r => (r.files_deleted ? 'Complete' : 'Incomplete');
