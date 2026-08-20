@@ -217,7 +217,86 @@ async function findProject(code) {
   return rows[0] || null;
 }
 
+// Supplemental debrief imports added after the original batch. Each batch has
+// its own flag so it imports exactly once, independent of the main import (whose
+// flag is already set in production).
+const SUPPLEMENTAL_BATCHES = [
+  {
+    flag: 'debriefs_salt_cannes_2026',
+    docs: [
+      {
+        code: '02.SLT90026', program: 'SALT', client: 'Amazon',
+        title: 'SALT Cannes 2026', startDate: '2026-06-01', city: 'Cannes', state: '',
+        start: [
+          'Getting larger spaces for gear storage.',
+          'Size of content studio increases if possible.',
+          'Need a waiting area for talent/guests.',
+          'Need an "on air" sign. Lots of people walked into interview, disrupting production.',
+          'Reserve editors for 2-3 weeks minimum post event for the editing work.',
+          'Only 1 field producer was budgeted for, need to add a line item for another EP or field producer to accomplish this event.',
+          'Sell the client on daily recaps.',
+        ],
+        stop: [
+          'For SALT - TV screen resource was helpful but hard to see.',
+          'The space was being used by other people to eat lunch and have meetings. Need to make harder rules and boundaries regarding the use of the space reserved for our crew and shoot.',
+          'Evening event: B-roll alone is fine, but polished videos for Jenny for Unboxed specifically need to have more bodies to execute.',
+          "Don't be too open or transparent with SALT, especially with our own frustrations. Remember that they are the client and we are just a vendor.",
+          'Corey needs a communication layer, like an FP, and should not communicate directly with SALT when he is frustrated.',
+        ],
+        continue: [
+          'Carts for camera and gear usage was helpful.',
+          'Water station was a life saver.',
+          'Hard line was great.',
+        ],
+        note: [
+          'The point people will be on vacation after the event.',
+          'Post-event deliverables will extend a few weeks past Cannes and will need to be resourced.',
+        ],
+      },
+    ],
+  },
+];
+
+async function importDebriefDocs(docs) {
+  let added = 0, projects = 0, created = 0;
+  for (const d of docs) {
+    let proj = await findProject(d.code);
+    if (!proj) {
+      const [np] = await sql`
+        INSERT INTO projects (id, code, title, client, city, state, start_date, status, program)
+        VALUES (gen_random_uuid()::text, ${d.code}, ${d.title || d.code}, ${d.client || 'Unassigned'},
+                ${d.city || ''}, ${d.state || ''}, ${d.startDate || null}, 'ARCHIVED'::project_status, ${d.program || null})
+        RETURNING id, program`;
+      proj = np; created++;
+    }
+    projects++;
+    if (d.program && !proj.program) await sql`UPDATE projects SET program = ${d.program} WHERE id = ${proj.id}`.catch(() => {});
+    for (const kind of ['start', 'stop', 'continue', 'note']) {
+      for (const text of (d[kind] || [])) {
+        const [exists] = await sql`SELECT id FROM project_debriefs WHERE project_id = ${proj.id} AND kind = ${kind} AND text = ${text}`;
+        if (exists) continue;
+        await sql`INSERT INTO project_debriefs (project_id, kind, text, author_name) VALUES (${proj.id}, ${kind}, ${text}, ${AUTHOR})`;
+        added++;
+      }
+    }
+  }
+  return { added, projects, created };
+}
+
+async function runSupplementalDebriefs() {
+  for (const b of SUPPLEMENTAL_BATCHES) {
+    const [f] = await sql`SELECT key FROM seed_flags WHERE key = ${b.flag}`.catch(() => [null]);
+    if (f) continue;
+    const r = await importDebriefDocs(b.docs);
+    await sql`INSERT INTO seed_flags (key) VALUES (${b.flag}) ON CONFLICT (key) DO NOTHING`.catch(() => {});
+    if (r.added || r.created) console.log(`Debrief seed (${b.flag}): imported ${r.added} entries across ${r.projects} projects (${r.created} created).`);
+  }
+}
+
 async function seedDebriefs() {
+  // Supplemental batches import once each, regardless of the main flag.
+  await runSupplementalDebriefs().catch(e => console.error('Supplemental debrief seed failed:', e.message));
+
   // Import once ever. After this, editing a project's code won't cause the seed
   // to re-create the original (which previously produced duplicates).
   const [flag] = await sql`SELECT key FROM seed_flags WHERE key = 'debriefs_imported'`.catch(() => [null]);
