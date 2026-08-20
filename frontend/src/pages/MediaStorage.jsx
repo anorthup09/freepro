@@ -217,9 +217,9 @@ const pill = color => ({
   backdropFilter: 'blur(8px) saturate(1.2)', WebkitBackdropFilter: 'blur(8px) saturate(1.2)',
 });
 
-// Spreadsheet grid: Client | Project | Email Sent | Date | Days Out |
-// Client Response | Shipping | + Subscription | + Hard Drive | Status
-const COLS = '1.4fr 1.8fr 88px 78px 1.6fr 100px 116px 108px 128px 74px';
+// In-Progress grid: Client | Project | Email Sent | Date | Shipping |
+// + Subscription | + Hard Drive | Actions (Submit / Expire) | Days Out
+const COLS = '1.4fr 1.8fr 88px 78px 100px 116px 108px 168px 74px';
 const shortDate = d => d ? new Date(d).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' }) : '';
 const colHead = { fontSize: 9, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--muted)' };
 const daysOutLabel = n => n == null ? '—' : `${n}d`;
@@ -246,11 +246,10 @@ function PipelineHeader() {
       <span style={colHead}>Project Code — Name</span>
       <span style={colHead}>Email Sent</span>
       <span style={colHead}>Date</span>
-      <span style={colHead}>Client Response</span>
       <span style={colHead}>Shipping</span>
       <span style={colHead}>Subscription</span>
       <span style={colHead}>Hard Drive</span>
-      <span style={colHead}>Status</span>
+      <span style={colHead}>Actions</span>
       <span style={colHead} title="Days Since Outreach">Days Out</span>
     </div>
   );
@@ -281,11 +280,6 @@ function RequestRow({ r, patchReq, onDetail, onShip, mobile }) {
       <Cell mobile={mobile} label="Date" style={{ fontSize: 10, color: 'var(--muted)', whiteSpace: 'nowrap' }}>
         {r.email_sent ? shortDate(r.email_sent_date) : '—'}
       </Cell>
-      <Cell mobile={mobile} label="Client Response" style={{ minWidth: 0, width: mobile ? 150 : undefined }}>
-        <input type="date" value={(r.client_response || '').slice(0, 10)} onClick={stop}
-          onChange={e => patchReq(r.id, { clientResponse: e.target.value })}
-          style={{ ...inpSm, width: '100%' }} />
-      </Cell>
       <Cell mobile={mobile} label="Shipping">
         <button type="button" onClick={e => { stop(e); onShip(r); }} title={shipped ? 'Review shipping info' : 'Add shipping info'}
           style={pill(shipped ? '#4a9eff' : null)}>Shipping Info</button>
@@ -298,12 +292,16 @@ function RequestRow({ r, patchReq, onDetail, onShip, mobile }) {
         <button type="button" onClick={e => { stop(e); patchReq(r.id, { hardDriveAdded: !r.hard_drive_added }); }}
           style={pill(r.hard_drive_added ? '#e6c229' : null)}>+ Hard Drive</button>
       </Cell>
-      <Cell mobile={mobile} label="Status" style={{ width: mobile ? 150 : undefined }}>
-        <select value={bucketOf(r)} onClick={stop} onChange={e => changeStatus(r, e.target.value, patchReq, onShip)}
-          title="Set status — Live deploys to the selected pipeline(s)"
-          style={{ ...inpSm, width: '100%', fontWeight: 800, color: GROUP_COLOR[bucketOf(r)] }}>
-          {statusOptions(r).map(g => <option key={g} value={g}>{g}</option>)}
-        </select>
+      <Cell mobile={mobile} label="Actions">
+        <span style={{ display: 'flex', gap: 6, justifyContent: mobile ? 'flex-end' : 'flex-start', flexWrap: 'wrap' }}>
+          <button type="button" disabled={!(r.subscription_added || r.hard_drive_added)}
+            title={(r.subscription_added || r.hard_drive_added) ? 'Deploy the selected subscription / hard-drive tasks and send the emails' : 'Select Subscription and/or Hard Drive first'}
+            onClick={e => { stop(e); changeStatus(r, 'Live', patchReq, onShip); }}
+            style={{ ...pill((r.subscription_added || r.hard_drive_added) ? '#5ABF80' : null), opacity: (r.subscription_added || r.hard_drive_added) ? 1 : 0.5, cursor: (r.subscription_added || r.hard_drive_added) ? 'pointer' : 'not-allowed' }}>Submit</button>
+          <button type="button" title="Move this request to Expired / Delete"
+            onClick={e => { stop(e); changeStatus(r, 'Expired', patchReq, onShip); }}
+            style={pill('#e05252')}>Expire</button>
+        </span>
       </Cell>
       <Cell mobile={mobile} label="Days Out"
         style={{ fontSize: 11, fontWeight: 700, textAlign: mobile ? 'right' : 'center', color: days != null && days >= 14 ? '#e05252' : 'var(--muted)' }}>
@@ -313,8 +311,8 @@ function RequestRow({ r, patchReq, onDetail, onShip, mobile }) {
   );
 }
 
-// New Request tab: a leaner grid focused on the estimate + status.
-const NEW_COLS = '1.3fr 1.7fr 96px 132px 150px 156px 132px';
+// New Request tab: a leaner grid focused on the estimate.
+const NEW_COLS = '1.3fr 1.7fr 100px 140px 162px 170px';
 function NewReqHeader() {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: NEW_COLS, gap: 10, alignItems: 'end', padding: '0 14px 8px' }}>
@@ -324,7 +322,6 @@ function NewReqHeader() {
       <span style={colHead}>Total Media Size</span>
       <span style={colHead}>Annual Subscription</span>
       <span style={colHead}>Hard Drive + Shipping</span>
-      <span style={colHead}>Status</span>
     </div>
   );
 }
@@ -384,13 +381,6 @@ function NewRequestRow({ r, patchReq, onDetail, onShip, mobile }) {
           {HD_TIERS.map((t, i) => <option key={i} value={i}>{t.label} · {fmt$(t.price)}</option>)}
         </select>
       </Cell>
-      <Cell mobile={mobile} label="Status" style={{ width: mobile ? 150 : undefined }}>
-        <select value={bucketOf(r)} onClick={stop} onChange={e => changeStatus(r, e.target.value, patchReq, onShip)}
-          title="Set status — Live deploys to the selected pipeline(s)"
-          style={{ ...inpSm, width: '100%', fontWeight: 800, color: GROUP_COLOR[bucketOf(r)] }}>
-          {statusOptions(r).map(g => <option key={g} value={g}>{g}</option>)}
-        </select>
-      </Cell>
     </div>
   );
 }
@@ -447,28 +437,31 @@ function DriveRow({ r, patchReq, onDetail, onShip, onTrack, mobile }) {
 }
 
 // Subscriptions spreadsheet.
-const SUB_COLS = '82px 1.25fr 1.85fr 168px 116px 130px 130px 92px';
+const SUB_COLS = '92px 1.25fr 1.85fr 168px 120px 132px 132px';
 function SubHeader() {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: SUB_COLS, gap: 10, alignItems: 'end', padding: '0 14px 8px' }}>
-      <span style={colHead} title="Date deployed to Live">Went Live</span>
+      <span style={colHead} title="Date the request was submitted">Request Date</span>
       <span style={colHead}>Client / Company</span>
       <span style={colHead}>Project Code — Name</span>
       <span style={colHead}>Tier Cost</span>
       <span style={colHead}>Invoice</span>
       <span style={colHead}>Subscription Start</span>
       <span style={colHead}>Subscription End</span>
-      <span style={colHead}>Live</span>
     </div>
   );
 }
 
 function SubRow({ r, patchReq, onDetail, mobile }) {
   const stop = e => e.stopPropagation();
-  const live = r.sub_status === 'Live Subscription';
+  // Marking the invoice Sent moves the task to Live Subscription (un-sending reverts).
+  const toggleInvoice = () => {
+    const on = !r.subscription_invoice_sent;
+    patchReq(r.id, { subscriptionInvoiceSent: on, subStatus: on ? 'Live Subscription' : 'New Subscription' });
+  };
   return (
     <div className="glass" style={rowShell(mobile, SUB_COLS)}>
-      <Cell mobile={mobile} label="Went Live" style={{ fontSize: 10, color: 'var(--muted)', whiteSpace: 'nowrap' }}>{shortDate(r.live_date) || '—'}</Cell>
+      <Cell mobile={mobile} label="Request Date" style={{ fontSize: 10, color: 'var(--muted)', whiteSpace: 'nowrap' }}>{shortDate(r.created_at) || '—'}</Cell>
       <Cell mobile={mobile} label="Client / Company" style={{ cursor: 'pointer', minWidth: 0, fontSize: 12, fontWeight: 800 }}>
         <span onClick={() => onDetail(r)} title="Open full request">{r.client_name}</span>
       </Cell>
@@ -477,7 +470,8 @@ function SubRow({ r, patchReq, onDetail, mobile }) {
       </Cell>
       <Cell mobile={mobile} label="Tier Cost" style={{ fontSize: 11 }}>{r.subscription_tier ? `${r.subscription_tier} · ${fmt$(r.subscription_cost)}/yr` : '—'}</Cell>
       <Cell mobile={mobile} label="Invoice">
-        <button type="button" onClick={e => { stop(e); patchReq(r.id, { subscriptionInvoiceSent: !r.subscription_invoice_sent }); }}
+        <button type="button" title={r.subscription_invoice_sent ? 'Invoice sent — subscription is Live' : 'Mark invoice sent to move this to Live Subscription'}
+          onClick={e => { stop(e); toggleInvoice(); }}
           style={pill(r.subscription_invoice_sent ? '#5ABF80' : null)}>{r.subscription_invoice_sent ? 'Sent' : 'Unsent'}</button>
       </Cell>
       <Cell mobile={mobile} label="Subscription Start" style={{ width: mobile ? 150 : undefined }}>
@@ -487,22 +481,6 @@ function SubRow({ r, patchReq, onDetail, mobile }) {
       <Cell mobile={mobile} label="Subscription End" style={{ width: mobile ? 150 : undefined }}>
         <input type="date" value={(r.subscription_end || '').slice(0, 10)} onClick={stop}
           onChange={e => patchReq(r.id, { subscriptionEnd: e.target.value })} style={{ ...inpSm, width: '100%' }} />
-      </Cell>
-      <Cell mobile={mobile} label="Live">
-        <button type="button" title={live ? 'Live subscription' : 'Requires start/end dates + invoice sent'}
-          onClick={e => {
-            stop(e);
-            if (!live) {
-              if (!r.subscription_start || !r.subscription_end || !r.subscription_invoice_sent) {
-                alert('Enter the Subscription Start and End dates and mark the Invoice Sent before moving to Live.');
-                return;
-              }
-              patchReq(r.id, { subStatus: 'Live Subscription' });
-            } else {
-              patchReq(r.id, { subStatus: 'New Subscription' });
-            }
-          }}
-          style={pill(live ? '#5ABF80' : null)}>Live</button>
       </Cell>
     </div>
   );
@@ -606,8 +584,8 @@ function ShippingModal({ r, onClose, onSave }) {
         </div>
         <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 14 }}>{r.client_name}{r.project_code ? ` · ${r.project_code}` : ''}</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <Field label="Shipping Name"><input value={s.shippingName} onChange={e => set('shippingName', e.target.value)} style={inp} /></Field>
-          <Field label="Shipping Email"><input type="email" value={s.shippingEmail} onChange={e => set('shippingEmail', e.target.value)} style={inp} /></Field>
+          <Field label="Recipient Name"><input value={s.shippingName} onChange={e => set('shippingName', e.target.value)} style={inp} /></Field>
+          <Field label="Recipient Email"><input type="email" value={s.shippingEmail} onChange={e => set('shippingEmail', e.target.value)} style={inp} /></Field>
           <Field label="Shipping Address"><textarea value={s.shippingAddress} onChange={e => set('shippingAddress', e.target.value)} rows={2} style={{ ...inp, resize: 'vertical', fontFamily: 'inherit' }} /></Field>
         </div>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 18 }}>
@@ -785,6 +763,8 @@ export default function MediaStorage() {
   const drivesPending = (requests || []).some(r => isDeployedDrive(r) && driveBucket(r) === 'New Request');
   // Any expired task whose files aren't deleted yet → pulse the tab.
   const expiredPending = (requests || []).some(r => r.status === 'Expired' && !r.files_deleted);
+  // Any outstanding New Request → pulse the Email Requests tab.
+  const emailPending = (requests || []).some(r => bucketOf(r) === 'New Request');
 
   async function submit() {
     if (!canSubmit || saving) return;
@@ -971,7 +951,7 @@ export default function MediaStorage() {
             <div className="seg-glass" style={{ flexWrap: 'wrap', ...(mobile ? { justifyContent: 'center' } : {}) }}>
               {PIPE_VIEWS.map(([k, label]) => (
                 <button key={k}
-                  className={`${pipeView === k ? 'on' : ''}${(k === 'drives' && drivesPending) || (k === 'subscription' && subsPending) || (k === 'expired' && expiredPending) ? ' ms-pulse' : ''}`}
+                  className={`${pipeView === k ? 'on' : ''}${(k === 'email' && emailPending) || (k === 'drives' && drivesPending) || (k === 'subscription' && subsPending) || (k === 'expired' && expiredPending) ? ' ms-pulse' : ''}`}
                   onClick={() => setPipeView(k)}>{label}</button>
               ))}
             </div>
