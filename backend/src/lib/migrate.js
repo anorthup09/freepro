@@ -457,6 +457,11 @@ async function migrate() {
   await sql`ALTER TABLE media_storage_requests ADD COLUMN IF NOT EXISTS files_deleted BOOLEAN DEFAULT false`;
   // Marks Annual Check-In tasks auto-created from a project reaching 12 months post-close.
   await sql`ALTER TABLE media_storage_requests ADD COLUMN IF NOT EXISTS from_close BOOLEAN DEFAULT false`;
+  // Hard Drive Only requests: ship date, whether the drive returns, recipient phone.
+  await sql`ALTER TABLE media_storage_requests ADD COLUMN IF NOT EXISTS request_kind TEXT DEFAULT 'cold_storage'`;
+  await sql`ALTER TABLE media_storage_requests ADD COLUMN IF NOT EXISTS ship_date TEXT`;
+  await sql`ALTER TABLE media_storage_requests ADD COLUMN IF NOT EXISTS drive_return BOOLEAN`;
+  await sql`ALTER TABLE media_storage_requests ADD COLUMN IF NOT EXISTS shipping_phone TEXT`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS project_gear (

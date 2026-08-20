@@ -569,7 +569,7 @@ function ClosedRow({ p, mobile }) {
 function ShippingModal({ r, onClose, onSave }) {
   const [s, setS] = useState({
     shippingName: r.shipping_name || '', shippingEmail: r.shipping_email || '',
-    shippingAddress: r.shipping_address || '',
+    shippingAddress: r.shipping_address || '', shippingPhone: r.shipping_phone || '',
   });
   const [saving, setSaving] = useState(false);
   const set = (k, v) => setS(p => ({ ...p, [k]: v }));
@@ -587,6 +587,7 @@ function ShippingModal({ r, onClose, onSave }) {
           <Field label="Recipient Name"><input value={s.shippingName} onChange={e => set('shippingName', e.target.value)} style={inp} /></Field>
           <Field label="Recipient Email"><input type="email" value={s.shippingEmail} onChange={e => set('shippingEmail', e.target.value)} style={inp} /></Field>
           <Field label="Shipping Address"><textarea value={s.shippingAddress} onChange={e => set('shippingAddress', e.target.value)} rows={2} style={{ ...inp, resize: 'vertical', fontFamily: 'inherit' }} /></Field>
+          <Field label="Recipient Phone Number"><input value={s.shippingPhone} onChange={e => set('shippingPhone', e.target.value)} style={inp} /></Field>
         </div>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 18 }}>
           <button className="btn btn-ghost btn-sm" onClick={onClose}>Cancel</button>
@@ -658,6 +659,9 @@ function DetailModal({ r, onClose, onShip }) {
         <DetailRow label="Total Media Size">{r.total_media_size}</DetailRow>
         <DetailRow label="Annual Subscription">{r.subscription_tier ? `${r.subscription_tier} · ${fmt$(r.subscription_cost)}/yr` : ''}</DetailRow>
         <DetailRow label="Hard Drive + Shipping">{r.hard_drive_tier ? `${r.hard_drive_tier} · ${fmt$(r.hard_drive_cost)}` : ''}</DetailRow>
+        {r.request_kind === 'hard_drive_only' && <DetailRow label="Request Type">Hard Drive Only</DetailRow>}
+        <DetailRow label="Ship Date">{r.ship_date ? shortDate(r.ship_date) : ''}</DetailRow>
+        <DetailRow label="Drive Disposition">{r.drive_return == null ? '' : (r.drive_return ? 'Drive will return' : "We'll never see the drive again")}</DetailRow>
         <DetailRow label="Main POC">{r.poc_name ? `${r.poc_name}${r.poc_email ? ` (${r.poc_email})` : ''}` : (r.poc_email || '')}</DetailRow>
         <DetailRow label="Footage">{r.footage}</DetailRow>
         <DetailRow label="Reference Link(s)">{r.reference_links}</DetailRow>
@@ -673,14 +677,89 @@ function DetailModal({ r, onClose, onShip }) {
         </div>
         {hasShipping(r) ? (
           <>
-            <DetailRow label="Shipping Name">{r.shipping_name}</DetailRow>
-            <DetailRow label="Shipping Email">{r.shipping_email}</DetailRow>
+            <DetailRow label="Recipient Name">{r.shipping_name}</DetailRow>
+            <DetailRow label="Recipient Email">{r.shipping_email}</DetailRow>
             <DetailRow label="Shipping Address">{r.shipping_address}</DetailRow>
+            <DetailRow label="Recipient Phone">{r.shipping_phone}</DetailRow>
             <DetailRow label="Tracking Number">{r.shipping_tracking}</DetailRow>
           </>
         ) : <div style={{ fontSize: 11, color: 'var(--muted)', fontStyle: 'italic' }}>No shipping info yet.</div>}
       </div>
     </div>
+  );
+}
+
+// Hard Drive Only request form — ships a drive without the cold-storage flow.
+const HD_BLANK = { projectCode: '', projectName: '', clientName: '', sizeIdx: '', footage: '', shipDate: '', driveReturn: true, recName: '', recAddress: '', recEmail: '', recPhone: '' };
+function HardDriveForm({ mobile, onCreated }) {
+  const [h, setH] = useState(HD_BLANK);
+  const [saving, setSaving] = useState(false);
+  const set = (k, v) => setH(p => ({ ...p, [k]: v }));
+  const canSubmit = h.sizeIdx !== '' && h.recName.trim() && h.recAddress.trim();
+  async function submit() {
+    if (!canSubmit || saving) return;
+    setSaving(true);
+    const i = Number(h.sizeIdx), hd = HD_TIERS[HD_FOR_SIZE(i)];
+    try {
+      const row = await api.createMediaStorageRequest({
+        requestKind: 'hard_drive_only',
+        clientName: h.clientName.trim(),
+        projectCode: h.projectCode.trim(), projectName: h.projectName.trim(),
+        totalMediaSize: SUB_TIERS[i].label, hardDriveTier: hd.label, hardDriveCost: hd.price,
+        footage: h.footage.trim(), shipDate: h.shipDate, driveReturn: h.driveReturn,
+        shippingName: h.recName.trim(), shippingAddress: h.recAddress.trim(),
+        shippingEmail: h.recEmail.trim(), shippingPhone: h.recPhone.trim(),
+      });
+      setH(HD_BLANK);
+      onCreated(row);
+    } catch (e) { alert(e.message); }
+    setSaving(false);
+  }
+  return (
+    <>
+      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: 14 }}>
+        <Field label="Project Code">
+          <ProjectCodeSelect code={h.projectCode}
+            onPick={(code, title, client) => setH(p => ({ ...p, projectCode: code, ...(title !== undefined ? { projectName: title } : {}), ...(client && !p.clientName ? { clientName: client } : {}) }))} />
+        </Field>
+        <Field label="Project Name">
+          <input value={h.projectName} onChange={e => set('projectName', e.target.value)} placeholder="Tied to the code, or type a new one" style={inp} />
+        </Field>
+        <Field label="Data Size" required>
+          <select value={h.sizeIdx} onChange={e => set('sizeIdx', e.target.value === '' ? '' : Number(e.target.value))} style={inp}>
+            <option value="">Select a size…</option>
+            {SUB_TIERS.map((t, i) => <option key={i} value={i}>{t.label}</option>)}
+          </select>
+        </Field>
+        <Field label="Date to Be Shipped Out">
+          <input type="date" value={h.shipDate} onChange={e => set('shipDate', e.target.value)} style={inp} />
+        </Field>
+        <Field label="Specific Footage to Be Shipped" full>
+          <textarea value={h.footage} onChange={e => set('footage', e.target.value)} rows={3} style={{ ...inp, resize: 'vertical', fontFamily: 'inherit' }} />
+        </Field>
+        <Field label="Drive Disposition" full>
+          <div className="seg-glass" style={{ display: 'inline-flex', width: 'fit-content' }}>
+            <button type="button" className={h.driveReturn ? 'on' : ''} onClick={() => set('driveReturn', true)}>Drive Will Return</button>
+            <button type="button" className={!h.driveReturn ? 'on' : ''} onClick={() => set('driveReturn', false)}>We'll Never See the Drive Again</button>
+          </div>
+        </Field>
+      </div>
+
+      <div style={{ fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)', margin: '18px 0 10px' }}>Shipping Information</div>
+      <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: 14 }}>
+        <Field label="Recipient Name" required><input value={h.recName} onChange={e => set('recName', e.target.value)} style={inp} /></Field>
+        <Field label="Recipient Email"><input type="email" value={h.recEmail} onChange={e => set('recEmail', e.target.value)} style={inp} /></Field>
+        <Field label="Recipient Address" required full><textarea value={h.recAddress} onChange={e => set('recAddress', e.target.value)} rows={2} style={{ ...inp, resize: 'vertical', fontFamily: 'inherit' }} /></Field>
+        <Field label="Recipient Phone Number"><input value={h.recPhone} onChange={e => set('recPhone', e.target.value)} style={inp} /></Field>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 12, marginTop: 18 }}>
+        <button type="button" disabled={!canSubmit || saving} onClick={submit} className="evt-glass"
+          style={{ opacity: canSubmit && !saving ? 1 : 0.5, cursor: canSubmit && !saving ? 'pointer' : 'not-allowed' }}>
+          {saving ? 'Submitting…' : 'Submit Hard Drive Request'}
+        </button>
+      </div>
+    </>
   );
 }
 
@@ -693,6 +772,7 @@ export default function MediaStorage() {
   const [saving, setSaving] = useState(false);
   const [okMsg, setOkMsg] = useState('');
   const [open, setOpen] = useState(false);   // New Request starts collapsed
+  const [reqTab, setReqTab] = useState('cold');   // 'cold' | 'hd' in the New Request modal
   const [ccOpen, setCcOpen] = useState(false);
   const [ccIds, setCcIds] = useState([]);
   const [pipeView, setPipeView] = useState('email');
@@ -833,7 +913,15 @@ export default function MediaStorage() {
                 </span>
                 <button className="btn btn-ghost btn-sm" onClick={() => setOpen(false)}>✕</button>
               </div>
-              <div style={{ padding: '16px 20px 20px' }}>
+              <div style={{ padding: '14px 20px 0' }}>
+                <div className="seg-glass" style={{ display: 'inline-flex', flexWrap: 'wrap' }}>
+                  <button type="button" className={reqTab === 'cold' ? 'on' : ''} onClick={() => setReqTab('cold')}>Cold Storage</button>
+                  <button type="button" className={reqTab === 'hd' ? 'on' : ''} onClick={() => setReqTab('hd')}>Hard Drive Only</button>
+                </div>
+              </div>
+              <div style={{ padding: '14px 20px 20px' }}>
+              {reqTab === 'hd' && <HardDriveForm mobile={mobile} onCreated={row => { setRequests(rs => [row, ...(rs || [])]); setOpen(false); setReqTab('cold'); setPipeView('drives'); }} />}
+              {reqTab === 'cold' && (<>
               <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: 14 }}>
                 <Field label="Your Name">
                   <input value={preferredName} readOnly style={{ ...inp, opacity: 0.7, cursor: 'default' }} />
@@ -937,6 +1025,7 @@ export default function MediaStorage() {
                   {saving ? 'Submitting…' : 'Submit Request'}
                 </button>
               </div>
+              </>)}
               </div>
             </div>
           </div>

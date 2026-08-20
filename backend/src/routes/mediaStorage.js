@@ -17,15 +17,25 @@ router.post('/', ...staff, async (req, res, next) => {
   try {
     const b = req.body || {};
     const num = v => (v === '' || v === null || v === undefined ? null : Number(v));
-    const clientName = String(b.clientName || '').trim();
+    const hardDriveOnly = b.requestKind === 'hard_drive_only';
+    const clientName = String(b.clientName || '').trim() || (hardDriveOnly ? (String(b.projectName || b.projectCode || '').trim() || 'Hard Drive Request') : '');
     if (!clientName) return res.status(400).json({ error: 'Client name is required' });
+    if (hardDriveOnly && (!String(b.shippingName || '').trim() || !String(b.shippingAddress || '').trim())) {
+      return res.status(400).json({ error: 'Recipient name and address are required for a hard drive shipment.' });
+    }
 
+    // A Hard Drive Only request skips the cold-storage email flow and deploys
+    // straight into the Hard Drive Shipping pipeline (Live, hard drive added).
+    const status = hardDriveOnly ? 'Live' : 'New Request';
+    const liveDate = hardDriveOnly ? new Date().toISOString() : null;
     const cc = Array.isArray(b.cc) ? b.cc : [];
     const [row] = await sql`
       INSERT INTO media_storage_requests
         (created_by, user_name, user_email, client_name, project_code, project_name,
          poc_name, poc_email, footage, reference_links, total_media_size,
-         subscription_tier, subscription_cost, hard_drive_tier, hard_drive_cost, cc, status)
+         subscription_tier, subscription_cost, hard_drive_tier, hard_drive_cost, cc, status,
+         request_kind, ship_date, drive_return, shipping_name, shipping_email, shipping_address, shipping_phone,
+         hard_drive_added, live_date)
       VALUES
         (${req.user?.id || null}, ${req.user?.name || null}, ${req.user?.email || null},
          ${clientName}, ${String(b.projectCode || '').trim() || null}, ${String(b.projectName || '').trim() || null},
@@ -33,7 +43,12 @@ router.post('/', ...staff, async (req, res, next) => {
          ${String(b.footage || '').trim() || null}, ${String(b.referenceLinks || '').trim() || null},
          ${String(b.totalMediaSize || '').trim() || null},
          ${b.subscriptionTier || null}, ${num(b.subscriptionCost)},
-         ${b.hardDriveTier || null}, ${num(b.hardDriveCost)}, ${sql.json(cc)}, 'New Request')
+         ${b.hardDriveTier || null}, ${num(b.hardDriveCost)}, ${sql.json(cc)}, ${status},
+         ${hardDriveOnly ? 'hard_drive_only' : 'cold_storage'}, ${String(b.shipDate || '').trim() || null},
+         ${b.driveReturn === undefined ? null : !!b.driveReturn},
+         ${String(b.shippingName || '').trim() || null}, ${String(b.shippingEmail || '').trim() || null},
+         ${String(b.shippingAddress || '').trim() || null}, ${String(b.shippingPhone || '').trim() || null},
+         ${hardDriveOnly}, ${liveDate})
       RETURNING *`;
 
     // Grow the ongoing name/email database so this POC autofills next time.
@@ -47,8 +62,9 @@ router.post('/', ...staff, async (req, res, next) => {
       `.catch(e2 => console.error('POC contact upsert failed:', e2.message));
     }
 
-    // Notify the team a new storage request came in (draft until SMTP live).
-    if (row) newRequest(row).catch(e2 => console.error('Media storage newRequest email failed:', e2.message));
+    // Cold storage → team follow-up. Hard drive only → deploy the shipment emails.
+    if (row && hardDriveOnly) onLive(row).catch(e2 => console.error('Media storage onLive email failed:', e2.message));
+    else if (row) newRequest(row).catch(e2 => console.error('Media storage newRequest email failed:', e2.message));
 
     res.status(201).json(row);
   } catch (e) { next(e); }
@@ -121,7 +137,10 @@ router.patch('/:id', ...staff, async (req, res, next) => {
         shipping_name = ${d.shippingName !== undefined ? (String(d.shippingName).trim() || null) : cur.shipping_name},
         shipping_email = ${d.shippingEmail !== undefined ? (String(d.shippingEmail).trim() || null) : cur.shipping_email},
         shipping_address = ${d.shippingAddress !== undefined ? (String(d.shippingAddress).trim() || null) : cur.shipping_address},
+        shipping_phone = ${d.shippingPhone !== undefined ? (String(d.shippingPhone).trim() || null) : cur.shipping_phone},
         shipping_tracking = ${d.shippingTracking !== undefined ? (String(d.shippingTracking).trim() || null) : cur.shipping_tracking},
+        ship_date = ${d.shipDate !== undefined ? (String(d.shipDate).trim() || null) : cur.ship_date},
+        drive_return = ${d.driveReturn !== undefined ? !!d.driveReturn : cur.drive_return},
         total_media_size = ${d.totalMediaSize !== undefined ? (String(d.totalMediaSize).trim() || null) : cur.total_media_size},
         subscription_tier = ${d.subscriptionTier !== undefined ? (d.subscriptionTier || null) : cur.subscription_tier},
         subscription_cost = ${d.subscriptionCost !== undefined ? (d.subscriptionCost === '' || d.subscriptionCost == null ? null : Number(d.subscriptionCost)) : cur.subscription_cost},
