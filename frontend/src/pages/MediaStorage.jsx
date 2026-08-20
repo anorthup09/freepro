@@ -155,7 +155,7 @@ const isDeployedSub = r => r.subscription_added && r.status === 'Live';
 // Subscription pipeline sub-status: everything starts as New Request until the
 // Live button is pressed on the row.
 const subBucket = r => (r.sub_status === 'Live Subscription' ? 'Live' : 'New Request');
-const SUB_GROUPS = [['New Request', '(!) New Request', '#e05252'], ['Live', 'Live', '#5ABF80']];
+const SUB_GROUPS = [['New Request', 'New Request', '#e05252'], ['Live', 'Live', '#5ABF80']];
 
 // Hard Drive status is derived from the two Sent flags:
 //  both sent → Completed · hd sent only → Send Invoice · invoice sent only →
@@ -168,7 +168,7 @@ const driveState = r => {
   return { key: 'NewRequest', label: '(!) New Request', color: '#e05252' };
 };
 const driveBucket = r => (r.hard_drive_sent && r.hard_drive_invoice_sent ? 'Completed' : 'New Request');
-const DRIVE_GROUPS = [['New Request', '(!) New Request', '#e05252'], ['Completed', 'Completed', '#5ABF80']];
+const DRIVE_GROUPS = [['New Request', 'New Request', '#e05252'], ['Completed', 'Completed', '#5ABF80']];
 
 // Expired / Delete: grouped by whether the files have been deleted.
 const expBucket = r => (r.files_deleted ? 'Complete' : 'Incomplete');
@@ -308,6 +308,88 @@ function RequestRow({ r, patchReq, onDetail, onShip, mobile }) {
       <Cell mobile={mobile} label="Days Out"
         style={{ fontSize: 11, fontWeight: 700, textAlign: mobile ? 'right' : 'center', color: days != null && days >= 14 ? '#e05252' : 'var(--muted)' }}>
         {daysOutLabel(days)}
+      </Cell>
+    </div>
+  );
+}
+
+// New Request tab: a leaner grid focused on the estimate + status.
+const NEW_COLS = '1.3fr 1.7fr 96px 132px 150px 156px 132px';
+function NewReqHeader() {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: NEW_COLS, gap: 10, alignItems: 'end', padding: '0 14px 8px' }}>
+      <span style={colHead}>Client / Company</span>
+      <span style={colHead}>Project Code — Name</span>
+      <span style={colHead}>Email Sent</span>
+      <span style={colHead}>Total Media Size</span>
+      <span style={colHead}>Annual Subscription</span>
+      <span style={colHead}>Hard Drive + Shipping</span>
+      <span style={colHead}>Status</span>
+    </div>
+  );
+}
+
+function NewRequestRow({ r, patchReq, onDetail, onShip, mobile }) {
+  const stop = e => e.stopPropagation();
+  const sizeIdx = SUB_TIERS.findIndex(t => t.label === r.total_media_size);
+  const subIdx = r.subscription_added ? SUB_TIERS.findIndex(t => t.label === r.subscription_tier) : -1;
+  const hdIdx = r.hard_drive_added ? HD_TIERS.findIndex(t => t.label === r.hard_drive_tier) : -1;
+  // Picking a size fills both estimate tiers and marks them for deployment.
+  const onSize = v => {
+    if (v === '') { patchReq(r.id, { totalMediaSize: '' }); return; }
+    const i = Number(v), h = HD_FOR_SIZE(i);
+    patchReq(r.id, {
+      totalMediaSize: SUB_TIERS[i].label,
+      subscriptionTier: SUB_TIERS[i].label, subscriptionCost: SUB_TIERS[i].price, subscriptionAdded: true,
+      hardDriveTier: HD_TIERS[h].label, hardDriveCost: HD_TIERS[h].price, hardDriveAdded: true,
+    });
+  };
+  const onSub = v => v === ''
+    ? patchReq(r.id, { subscriptionAdded: false })
+    : patchReq(r.id, { subscriptionTier: SUB_TIERS[+v].label, subscriptionCost: SUB_TIERS[+v].price, subscriptionAdded: true });
+  const onHd = v => v === ''
+    ? patchReq(r.id, { hardDriveAdded: false })
+    : patchReq(r.id, { hardDriveTier: HD_TIERS[+v].label, hardDriveCost: HD_TIERS[+v].price, hardDriveAdded: true });
+  return (
+    <div className="glass" style={rowShell(mobile, NEW_COLS)}>
+      <Cell mobile={mobile} label="Client / Company" style={{ cursor: 'pointer', minWidth: 0, fontSize: 12, fontWeight: 800 }}>
+        <span onClick={() => onDetail(r)} title="Open full request">{r.client_name}</span>
+      </Cell>
+      <Cell mobile={mobile} label="Project" style={{ cursor: 'pointer', minWidth: 0, fontSize: 11, color: 'var(--muted)' }}>
+        <span onClick={() => onDetail(r)} title="Open full request">{r.project_code}{r.project_name ? ` — ${r.project_name}` : ''}</span>
+      </Cell>
+      <Cell mobile={mobile} label="Email Sent">
+        <button type="button" onClick={e => {
+            stop(e);
+            const turningOn = !r.email_sent;
+            patchReq(r.id, { emailSent: turningOn, ...(turningOn && bucketOf(r) === 'New Request' ? { status: 'In-Progress' } : {}) });
+          }}
+          style={pill(r.email_sent ? '#5ABF80' : null)}>{r.email_sent ? 'Sent' : 'Unsent'}</button>
+      </Cell>
+      <Cell mobile={mobile} label="Total Media Size" style={{ width: mobile ? 160 : undefined }}>
+        <select value={sizeIdx < 0 ? '' : sizeIdx} onClick={stop} onChange={e => onSize(e.target.value)} style={{ ...inpSm, width: '100%' }}>
+          <option value="">Select…</option>
+          {SUB_TIERS.map((t, i) => <option key={i} value={i}>{t.label}</option>)}
+        </select>
+      </Cell>
+      <Cell mobile={mobile} label="Annual Subscription" style={{ width: mobile ? 170 : undefined }}>
+        <select value={subIdx < 0 ? '' : subIdx} onClick={stop} onChange={e => onSub(e.target.value)} style={{ ...inpSm, width: '100%' }}>
+          <option value="">None</option>
+          {SUB_TIERS.map((t, i) => <option key={i} value={i}>{t.label} · {fmt$(t.price)}/yr</option>)}
+        </select>
+      </Cell>
+      <Cell mobile={mobile} label="Hard Drive + Shipping" style={{ width: mobile ? 170 : undefined }}>
+        <select value={hdIdx < 0 ? '' : hdIdx} onClick={stop} onChange={e => onHd(e.target.value)} style={{ ...inpSm, width: '100%' }}>
+          <option value="">None</option>
+          {HD_TIERS.map((t, i) => <option key={i} value={i}>{t.label} · {fmt$(t.price)}</option>)}
+        </select>
+      </Cell>
+      <Cell mobile={mobile} label="Status" style={{ width: mobile ? 150 : undefined }}>
+        <select value={bucketOf(r)} onClick={stop} onChange={e => changeStatus(r, e.target.value, patchReq, onShip)}
+          title="Set status — Live deploys to the selected pipeline(s)"
+          style={{ ...inpSm, width: '100%', fontWeight: 800, color: GROUP_COLOR[bucketOf(r)] }}>
+          {statusOptions(r).map(g => <option key={g} value={g}>{g}</option>)}
+        </select>
       </Cell>
     </div>
   );
@@ -859,11 +941,15 @@ export default function MediaStorage() {
                   {(() => {
                     const rows = requests.filter(r => bucketOf(r) === emailGroup);
                     if (rows.length === 0) return <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic', padding: '10px 4px' }}>No requests in {emailGroup}.</div>;
+                    const isNew = emailGroup === 'New Request';
+                    const Row = isNew ? NewRequestRow : RequestRow;
+                    const Header = isNew ? NewReqHeader : PipelineHeader;
+                    const minW = isNew ? 900 : 1040;
                     const body = <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {rows.map(r => <RequestRow key={r.id} r={r} patchReq={patchReq} onDetail={setDetail} onShip={setShipEdit} mobile={mobile} />)}
+                      {rows.map(r => <Row key={r.id} r={r} patchReq={patchReq} onDetail={setDetail} onShip={setShipEdit} mobile={mobile} />)}
                     </div>;
                     return mobile ? body
-                      : <div style={{ overflowX: 'auto' }}><div style={{ minWidth: 1040 }}><PipelineHeader />{body}</div></div>;
+                      : <div style={{ overflowX: 'auto' }}><div style={{ minWidth: minW }}><Header />{body}</div></div>;
                   })()}
                 </>
               )}
@@ -885,7 +971,7 @@ export default function MediaStorage() {
                         return (
                           <button key={key} className={driveGroup === key ? 'on' : ''} onClick={() => setDriveGroup(key)}
                             style={driveGroup === key ? { color } : undefined}>
-                            {label} <span style={{ opacity: 0.6 }}>· {n}</span>
+                            ({n}) {label}
                           </button>
                         );
                       })}
@@ -920,7 +1006,7 @@ export default function MediaStorage() {
                         return (
                           <button key={key} className={subGroup === key ? 'on' : ''} onClick={() => setSubGroup(key)}
                             style={subGroup === key ? { color } : undefined}>
-                            {label} <span style={{ opacity: 0.6 }}>· {n}</span>
+                            ({n}) {label}
                           </button>
                         );
                       })}
@@ -955,7 +1041,7 @@ export default function MediaStorage() {
                         return (
                           <button key={key} className={expGroup === key ? 'on' : ''} onClick={() => setExpGroup(key)}
                             style={expGroup === key ? { color } : undefined}>
-                            {label} <span style={{ opacity: 0.6 }}>· {n}</span>
+                            ({n}) {label}
                           </button>
                         );
                       })}
