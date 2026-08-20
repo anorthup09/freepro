@@ -71,6 +71,9 @@ const DEFS = [
   { key: 'ms-new-request', title: 'Media Storage — New Request Submitted', identity: 'accounting', editable: true,
     defaultTo: 'aporio@unbridledmedia.com, khueseman@unbridledmedia.com, billing@unbridledmedia.com',
     desc: 'When a new Media Storage request is submitted: asks the team to inform the client of storage costs and the decision deadline. Also sent to the submitter.' },
+  { key: 'ms-postclose-checkin', title: 'Media Storage — 12 Months Post-Close', identity: 'info', editable: true,
+    defaultTo: 'aporio@unbridledmedia.com, khueseman@unbridledmedia.com, billing@unbridledmedia.com',
+    desc: 'When a closed project reaches 12 months post-close, a mirror Annual Check-In task is created and this storage follow-up goes to the team.' },
 ];
 
 async function overrides() {

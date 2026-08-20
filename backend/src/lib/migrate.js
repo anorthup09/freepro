@@ -455,6 +455,8 @@ async function migrate() {
   await sql`ALTER TABLE media_storage_requests ADD COLUMN IF NOT EXISTS checkin_created BOOLEAN DEFAULT false`;
   // Expired / Delete pipeline: files removed from storage yet?
   await sql`ALTER TABLE media_storage_requests ADD COLUMN IF NOT EXISTS files_deleted BOOLEAN DEFAULT false`;
+  // Marks Annual Check-In tasks auto-created from a project reaching 12 months post-close.
+  await sql`ALTER TABLE media_storage_requests ADD COLUMN IF NOT EXISTS from_close BOOLEAN DEFAULT false`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS project_gear (

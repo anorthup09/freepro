@@ -135,6 +135,90 @@ async function subscriptionEnding(r) {
   });
 }
 
+// Map a free-text media size (e.g. "4.5 TB") to the subscription + hard-drive tiers.
+const SUB_PRICES = [200, 400, 600, 800, 950, 1140, 1260, 1440, 1530, 1700];
+const subLabel = i => (i === 0 ? '< 1 TB' : `up to ${i + 1} TB`);
+const HD = [['Up to 2 TB', 550], ['Up to 5 TB', 650], ['Up to 10 TB', 1100]];
+const hdForSize = i => (i <= 1 ? 0 : i <= 4 ? 1 : 2);
+function sizeToTiers(sizeStr) {
+  const m = String(sizeStr || '').match(/([\d.]+)\s*(tb|gb|mb)?/i);
+  let tb = 0;
+  if (m) { tb = parseFloat(m[1]) || 0; const u = (m[2] || 'tb').toLowerCase(); if (u === 'gb') tb /= 1000; else if (u === 'mb') tb /= 1e6; }
+  let si = tb <= 1 ? 0 : Math.min(10, Math.ceil(tb)) - 1;
+  if (si < 0) si = 0;
+  const hi = hdForSize(si);
+  return { subTier: subLabel(si), subCost: SUB_PRICES[si], hdTier: HD[hi][0], hdCost: HD[hi][1] };
+}
+
+const MONTHS = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
+function parseCloseMonth(s) {
+  if (!s) return null;
+  const p = String(s).trim().toLowerCase().split(/\s+/);
+  if (p.length < 2) return null;
+  const mi = MONTHS.indexOf(p[0]);
+  const y = parseInt(p[1], 10);
+  if (mi < 0 || !y) return null;
+  return new Date(y, mi, 1);
+}
+
+// A closed project reached 12 months post-close → storage follow-up.
+async function postCloseCheckin(r) {
+  await fire('ms-postclose-checkin', {
+    subject: `12 Months Post-Close: Storage Follow-Up (${codeName(r)})`,
+    note: '12 Months Post-Close', title: codeName(r), subtitle: r.client_name, color: '#a78bfa',
+    intro: `The following project has lapsed 12 months of storage - ${codeName(r)}. Please inform ${dash(r.poc_name)} of storage costs and decision deadline.`,
+    rows: [
+      ['Original Project Code', dash(r.project_code)],
+      ['Main POC Name', dash(r.poc_name)],
+      ['Main POC Email', dash(r.poc_email)],
+      ['Total Media Size', dash(r.total_media_size)],
+      ['Yearly Cost for Subscription Service', dash(fmt$(r.subscription_cost))],
+      ['One-Time Cost for Hard Drive', dash(fmt$(r.hard_drive_cost))],
+      ['Project Description', dash(r.footage || r.project_name)],
+      ['Video Link(s)', dash(r.reference_links)],
+    ],
+    button: { label: 'Annual Check-In', url: MS_URL },
+  });
+}
+
+// Daily scan: closed projects crossing the 12-month post-close mark spawn a
+// mirror Annual Check-In task (once) and send the storage follow-up.
+async function runPostCloseScan() {
+  let rows = [];
+  try {
+    rows = await sql`
+      SELECT p.id, p.code, p.title, p.client, p.data_storage, p.status AS project_status, p.end_date,
+             b.status AS budget_status, b.close_month
+      FROM projects p LEFT JOIN budgets b ON b.project_id = p.id AND COALESCE(b.kind, 'main') = 'main'
+      WHERE p.parent_project_id IS NULL`;
+  } catch (e) { console.error('Post-close scan query failed:', e.message); return 0; }
+  const now = Date.now(), YEAR = 365 * 24 * 3600 * 1000, MONTH = 31 * 24 * 3600 * 1000;
+  let made = 0;
+  for (const p of rows) {
+    const closed = p.budget_status === 'Closed' || (p.project_status === 'ARCHIVED' && !['Dead', 'RFP'].includes(p.budget_status || ''));
+    if (!closed) continue;
+    const cd = parseCloseMonth(p.close_month) || (p.end_date ? new Date(p.end_date) : null);
+    if (!cd) continue;
+    const age = now - cd.getTime();
+    if (age < YEAR || age >= YEAR + MONTH) continue;   // fire once as it crosses 12 months
+    try {
+      const [ex] = await sql`SELECT id FROM media_storage_requests WHERE from_close = true AND project_code = ${p.code} LIMIT 1`;
+      if (ex) continue;
+      const t = sizeToTiers(p.data_storage);
+      const [row] = await sql`
+        INSERT INTO media_storage_requests
+          (client_name, project_code, project_name, footage, total_media_size,
+           subscription_tier, subscription_cost, hard_drive_tier, hard_drive_cost, status, from_close)
+        VALUES (${p.client}, ${p.code}, ${p.title}, ${p.title}, ${p.data_storage || null},
+           ${t.subTier}, ${t.subCost}, ${t.hdTier}, ${t.hdCost}, 'Annual Check-In', true)
+        RETURNING *`;
+      await postCloseCheckin(row);
+      made++;
+    } catch (e) { console.error('Post-close check-in failed:', e.message); }
+  }
+  return made;
+}
+
 // A new request was submitted → ask the team to inform the client of costs.
 async function newRequest(r) {
   const creator = r.user_name || r.user_email || 'A team member';
@@ -216,9 +300,12 @@ async function runCheckinScan() {
 }
 
 function scheduleCheckinScan() {
-  const run = () => runCheckinScan().catch(e => console.error('Check-in scan failed:', e.message));
+  const run = () => {
+    runCheckinScan().catch(e => console.error('Check-in scan failed:', e.message));
+    runPostCloseScan().catch(e => console.error('Post-close scan failed:', e.message));
+  };
   setTimeout(run, 60_000);
   setInterval(run, 24 * 60 * 60 * 1000);
 }
 
-module.exports = { onLive, taskExpired, newRequest, runCheckinScan, scheduleCheckinScan };
+module.exports = { onLive, taskExpired, newRequest, runCheckinScan, runPostCloseScan, scheduleCheckinScan };

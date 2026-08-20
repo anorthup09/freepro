@@ -559,14 +559,13 @@ function parseCloseMonth(s) {
   if (mi < 0 || !y) return null;
   return new Date(y, mi, 1);
 }
-const CLOSED_COLS = '110px 1.3fr 1.7fr 92px 128px 150px 156px 116px';
+const CLOSED_COLS = '110px 1.3fr 1.7fr 128px 150px 156px 116px';
 function ClosedHeader() {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: CLOSED_COLS, gap: 10, alignItems: 'end', padding: '0 14px 8px' }}>
       <span style={colHead}>Close Date</span>
       <span style={colHead}>Client / Company</span>
       <span style={colHead}>Project Code — Name</span>
-      <span style={colHead}>Email Sent</span>
       <span style={colHead}>Total Media Size</span>
       <span style={colHead}>Annual Subscription</span>
       <span style={colHead}>Hard Drive + Shipping</span>
@@ -581,7 +580,6 @@ function ClosedRow({ p, mobile }) {
       <Cell mobile={mobile} label="Close Date" style={{ fontSize: 10, color: 'var(--muted)', whiteSpace: 'nowrap' }}>{p.close_month || (p.end_date ? shortDate(p.end_date) : '—')}</Cell>
       <Cell mobile={mobile} label="Client / Company" style={{ fontSize: 12, fontWeight: 800, minWidth: 0 }}>{p.client}</Cell>
       <Cell mobile={mobile} label="Project" style={{ fontSize: 11, color: 'var(--muted)', minWidth: 0 }}>{p.code}{p.title ? ` — ${p.title}` : ''}</Cell>
-      <Cell mobile={mobile} label="Email Sent" style={muted}>—</Cell>
       <Cell mobile={mobile} label="Total Media Size" style={{ fontSize: 11 }}>{p.data_storage || '—'}</Cell>
       <Cell mobile={mobile} label="Annual Subscription" style={muted}>—</Cell>
       <Cell mobile={mobile} label="Hard Drive + Shipping" style={muted}>—</Cell>
