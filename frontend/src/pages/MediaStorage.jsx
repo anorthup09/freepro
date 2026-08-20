@@ -491,23 +491,23 @@ function SubRow({ r, patchReq, onDetail, mobile }) {
 }
 
 // Expired / Delete spreadsheet.
-const EXP_COLS = '1.4fr 2fr 130px 150px 150px';
-function ExpiredHeader() {
+const expCols = hideStatus => hideStatus ? '1.4fr 2fr 130px 150px' : '1.4fr 2fr 130px 150px 150px';
+function ExpiredHeader({ hideStatus }) {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: EXP_COLS, gap: 10, alignItems: 'end', padding: '0 14px 8px' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: expCols(hideStatus), gap: 10, alignItems: 'end', padding: '0 14px 8px' }}>
       <span style={colHead}>Client / Company</span>
       <span style={colHead}>Project Code — Name</span>
       <span style={colHead}>Email Sent Date</span>
-      <span style={colHead}>Status</span>
+      {!hideStatus && <span style={colHead}>Status</span>}
       <span style={colHead}>Files Deleted</span>
     </div>
   );
 }
 
-function ExpiredRow({ r, patchReq, onDetail, onShip, mobile }) {
+function ExpiredRow({ r, patchReq, onDetail, onShip, mobile, hideStatus }) {
   const stop = e => e.stopPropagation();
   return (
-    <div className="glass" style={rowShell(mobile, EXP_COLS)}>
+    <div className="glass" style={rowShell(mobile, expCols(hideStatus))}>
       <Cell mobile={mobile} label="Client / Company" style={{ cursor: 'pointer', minWidth: 0, fontSize: 12, fontWeight: 800 }}>
         <span onClick={() => onDetail(r)} title="Open full request">{r.client_name}</span>
       </Cell>
@@ -515,12 +515,14 @@ function ExpiredRow({ r, patchReq, onDetail, onShip, mobile }) {
         <span onClick={() => onDetail(r)} title="Open full request">{r.project_code}{r.project_name ? ` — ${r.project_name}` : ''}</span>
       </Cell>
       <Cell mobile={mobile} label="Email Sent Date" style={{ fontSize: 10, color: 'var(--muted)', whiteSpace: 'nowrap' }}>{r.email_sent ? shortDate(r.email_sent_date) : '—'}</Cell>
-      <Cell mobile={mobile} label="Status" style={{ width: mobile ? 150 : undefined }}>
-        <select value={bucketOf(r)} onClick={stop} onChange={e => changeStatus(r, e.target.value, patchReq, onShip)}
-          style={{ ...inpSm, width: '100%', fontWeight: 800, color: GROUP_COLOR[bucketOf(r)] }}>
-          {statusOptions(r).map(g => <option key={g} value={g}>{g}</option>)}
-        </select>
-      </Cell>
+      {!hideStatus && (
+        <Cell mobile={mobile} label="Status" style={{ width: mobile ? 150 : undefined }}>
+          <select value={bucketOf(r)} onClick={stop} onChange={e => changeStatus(r, e.target.value, patchReq, onShip)}
+            style={{ ...inpSm, width: '100%', fontWeight: 800, color: GROUP_COLOR[bucketOf(r)] }}>
+            {statusOptions(r).map(g => <option key={g} value={g}>{g}</option>)}
+          </select>
+        </Cell>
+      )}
       <Cell mobile={mobile} label="Files Deleted">
         <button type="button" title={r.files_deleted ? 'Files deleted' : 'Mark files deleted'}
           onClick={e => { stop(e); patchReq(r.id, { filesDeleted: !r.files_deleted }); }}
@@ -1202,11 +1204,12 @@ export default function MediaStorage() {
                     {rows.length === 0
                       ? <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic', padding: '10px 4px' }}>None in {expGroup}.</div>
                       : (() => {
+                        const hideStatus = expGroup === 'Incomplete';
                         const body = <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                          {rows.map(r => <ExpiredRow key={r.id} r={r} patchReq={patchReq} onDetail={setDetail} onShip={setShipEdit} mobile={mobile} />)}
+                          {rows.map(r => <ExpiredRow key={r.id} r={r} patchReq={patchReq} onDetail={setDetail} onShip={setShipEdit} mobile={mobile} hideStatus={hideStatus} />)}
                         </div>;
                         return mobile ? body
-                          : <div style={{ overflowX: 'auto' }}><div style={{ minWidth: 820 }}><ExpiredHeader />{body}</div></div>;
+                          : <div style={{ overflowX: 'auto' }}><div style={{ minWidth: hideStatus ? 700 : 820 }}><ExpiredHeader hideStatus={hideStatus} />{body}</div></div>;
                       })()}
                   </>
                 );
