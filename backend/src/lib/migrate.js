@@ -1057,6 +1057,9 @@ async function migrate() {
       close_month TEXT,
       created_at TIMESTAMPTZ DEFAULT NOW()
     )`;
+  // Store project archive state so the weekly report doesn't re-flag already
+  // archived projects as newly Closed/Dead on every pull.
+  await sql`ALTER TABLE finance_snapshots ADD COLUMN IF NOT EXISTS project_status TEXT`;
 
   await sql`ALTER TABLE budgets ADD COLUMN IF NOT EXISTS share_mode TEXT DEFAULT 'lines'`;
   await sql`UPDATE budget_lines SET scope = 'Creative Direction - Pre-Production' WHERE scope = 'Creative Direction - Pre-/Production'`;

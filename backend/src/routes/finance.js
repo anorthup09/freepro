@@ -264,8 +264,8 @@ router.post('/finance/weekly-report', ...finance, async (req, res, next) => {
 
     const batchId = require('crypto').randomUUID();
     for (const c of current) {
-      await sql`INSERT INTO finance_snapshots (batch_id, project_id, code, title, media_rep, budget_status, budget_total, fee, close_month)
-        VALUES (${batchId}, ${c.project_id}, ${c.code}, ${c.title}, ${c.media_rep}, ${c.budget_status}, ${c.budget_total}, ${c.fee}, ${c.close_month})`;
+      await sql`INSERT INTO finance_snapshots (batch_id, project_id, code, title, media_rep, budget_status, budget_total, fee, close_month, project_status)
+        VALUES (${batchId}, ${c.project_id}, ${c.code}, ${c.title}, ${c.media_rep}, ${c.budget_status}, ${c.budget_total}, ${c.fee}, ${c.close_month}, ${c.project_status || null})`;
     }
     res.json({
       batchId,
@@ -299,7 +299,7 @@ router.get('/finance/weekly-report/:batchId', ...finance, async (req, res, next)
     const current = rows.map(r => ({
       project_id: r.project_id, code: r.code, title: r.title, media_rep: r.media_rep,
       budget_status: r.budget_status, budget_total: Number(r.budget_total || 0), fee: Number(r.fee || 0),
-      close_month: r.close_month,
+      close_month: r.close_month, project_status: r.project_status,
     }));
     const { added, changed, closed, removed } = diffReports(current, prev);
     res.json({
@@ -1495,7 +1495,7 @@ function diffReports(current, prev) {
     if ((p.budget_status || '') !== (c.budget_status || '')) diffs.push({ field: 'Status', from: p.budget_status || '—', to: c.budget_status || '—' });
     if ((p.close_month || '') !== (c.close_month || '')) diffs.push({ field: 'Close Month', from: p.close_month || '—', to: c.close_month || '—' });
     const nowClosed = REPORT_DEAD.includes(c.budget_status) || c.project_status === 'ARCHIVED';
-    const wasClosed = REPORT_DEAD.includes(p.budget_status || '');
+    const wasClosed = REPORT_DEAD.includes(p.budget_status || '') || p.project_status === 'ARCHIVED';
     if (nowClosed && !wasClosed) closed.push({ ...c, reason: c.budget_status === 'Dead' ? 'Budget marked Dead' : ['Reconcile', 'Reconciled'].includes(c.budget_status) ? 'Reconciled' : 'Project archived' });
     else if (diffs.length) changed.push({ ...c, diffs });
   }
