@@ -44,7 +44,7 @@ async function fire(key, { to, cc, subject, intro, rows, blocks = [], note, titl
 // Hard Drive request deployed to Live → invoice request + ship request.
 async function hardDriveLive(r) {
   const creator = r.user_name || r.user_email || 'A team member';
-  await fire('ms-hd-invoice', {
+  if (r.invoice_needed !== false) await fire('ms-hd-invoice', {
     cc: ccList(r) || undefined,
     subject: `Invoice Needed - ${creator} has requested an Invoice for ${dash(r.project_name || r.project_code)}`,
     note: 'Invoice Needed', title: codeName(r), subtitle: r.client_name, color: '#5ABF80',

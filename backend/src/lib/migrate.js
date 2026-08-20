@@ -462,6 +462,8 @@ async function migrate() {
   await sql`ALTER TABLE media_storage_requests ADD COLUMN IF NOT EXISTS ship_date TEXT`;
   await sql`ALTER TABLE media_storage_requests ADD COLUMN IF NOT EXISTS drive_return BOOLEAN`;
   await sql`ALTER TABLE media_storage_requests ADD COLUMN IF NOT EXISTS shipping_phone TEXT`;
+  // Whether a hard drive shipment needs an invoice (Hard Drive Only toggle).
+  await sql`ALTER TABLE media_storage_requests ADD COLUMN IF NOT EXISTS invoice_needed BOOLEAN DEFAULT true`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS project_gear (

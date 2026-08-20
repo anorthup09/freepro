@@ -35,7 +35,7 @@ router.post('/', ...staff, async (req, res, next) => {
          poc_name, poc_email, footage, reference_links, total_media_size,
          subscription_tier, subscription_cost, hard_drive_tier, hard_drive_cost, cc, status,
          request_kind, ship_date, drive_return, shipping_name, shipping_email, shipping_address, shipping_phone,
-         hard_drive_added, live_date)
+         hard_drive_added, live_date, invoice_needed)
       VALUES
         (${req.user?.id || null}, ${req.user?.name || null}, ${req.user?.email || null},
          ${clientName}, ${String(b.projectCode || '').trim() || null}, ${String(b.projectName || '').trim() || null},
@@ -48,7 +48,7 @@ router.post('/', ...staff, async (req, res, next) => {
          ${b.driveReturn === undefined ? null : !!b.driveReturn},
          ${String(b.shippingName || '').trim() || null}, ${String(b.shippingEmail || '').trim() || null},
          ${String(b.shippingAddress || '').trim() || null}, ${String(b.shippingPhone || '').trim() || null},
-         ${hardDriveOnly}, ${liveDate})
+         ${hardDriveOnly}, ${liveDate}, ${b.invoiceNeeded === undefined ? true : !!b.invoiceNeeded})
       RETURNING *`;
 
     // Grow the ongoing name/email database so this POC autofills next time.
@@ -160,6 +160,7 @@ router.patch('/:id', ...staff, async (req, res, next) => {
         hard_drive_invoice_sent = ${d.hardDriveInvoiceSent !== undefined ? !!d.hardDriveInvoiceSent : cur.hard_drive_invoice_sent},
         drive_status = ${d.driveStatus !== undefined && ['New Request', 'Sent'].includes(d.driveStatus) ? d.driveStatus : cur.drive_status},
         files_deleted = ${d.filesDeleted !== undefined ? !!d.filesDeleted : cur.files_deleted},
+        invoice_needed = ${d.invoiceNeeded !== undefined ? !!d.invoiceNeeded : cur.invoice_needed},
         subscription_invoice_sent = ${d.subscriptionInvoiceSent !== undefined ? !!d.subscriptionInvoiceSent : cur.subscription_invoice_sent},
         subscription_start = ${subStart},
         subscription_end = ${subEnd},

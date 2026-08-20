@@ -162,12 +162,20 @@ const SUB_GROUPS = [['New Request', 'New Subscription', '#e05252'], ['Live', 'Li
 //  Send Hard Drive · neither → New Request.
 const driveState = r => {
   const hd = r.hard_drive_sent, inv = r.hard_drive_invoice_sent;
+  // When no invoice is needed the task completes on the hard drive alone.
+  if (r.invoice_needed === false) {
+    if (hd) return { key: 'Completed', label: 'Completed', color: '#5ABF80' };
+    return { key: 'NewRequest', label: '(!) New Request', color: '#e05252' };
+  }
   if (hd && inv) return { key: 'Completed', label: 'Completed', color: '#5ABF80' };
   if (hd && !inv) return { key: 'SendInvoice', label: 'Send Invoice', color: '#e6c229' };
   if (!hd && inv) return { key: 'SendHardDrive', label: 'Send Hard Drive', color: '#e6c229' };
   return { key: 'NewRequest', label: '(!) New Request', color: '#e05252' };
 };
-const driveBucket = r => (r.hard_drive_sent && r.hard_drive_invoice_sent ? 'Completed' : 'New Request');
+const driveBucket = r => {
+  if (r.invoice_needed === false) return r.hard_drive_sent ? 'Completed' : 'New Request';
+  return r.hard_drive_sent && r.hard_drive_invoice_sent ? 'Completed' : 'New Request';
+};
 const DRIVE_GROUPS = [['New Request', 'New Drive Shipping Request', '#e05252'], ['Completed', 'Completed', '#5ABF80']];
 
 // Expired / Delete: grouped by whether the files have been deleted.
@@ -429,8 +437,10 @@ function DriveRow({ r, patchReq, onDetail, onShip, onTrack, mobile, hideStatus }
           style={pill(r.hard_drive_sent ? '#5ABF80' : null)}>{r.hard_drive_sent ? 'Sent' : 'Unsent'}</button>
       </Cell>
       <Cell mobile={mobile} label="Invoice">
-        <button type="button" onClick={e => { stop(e); patchReq(r.id, { hardDriveInvoiceSent: !r.hard_drive_invoice_sent }); }}
-          style={pill(r.hard_drive_invoice_sent ? '#5ABF80' : null)}>{r.hard_drive_invoice_sent ? 'Sent' : 'Unsent'}</button>
+        {r.invoice_needed === false
+          ? <span style={{ fontSize: 11, color: 'var(--muted)', fontStyle: 'italic' }}>No invoice</span>
+          : <button type="button" onClick={e => { stop(e); patchReq(r.id, { hardDriveInvoiceSent: !r.hard_drive_invoice_sent }); }}
+              style={pill(r.hard_drive_invoice_sent ? '#5ABF80' : null)}>{r.hard_drive_invoice_sent ? 'Sent' : 'Unsent'}</button>}
       </Cell>
       <Cell mobile={mobile} label="Shipping">
         <button type="button" onClick={e => { stop(e); onShip(r); }} title={shipped ? 'Review shipping info' : 'Add shipping info'}
@@ -799,7 +809,7 @@ function DetailModal({ r, onClose, onShip, patchReq, onDelete }) {
 
 // Hard Drive Only request form — ships a drive without the cold-storage flow.
 const HD_BLANK = { projectCode: '', projectName: '', clientName: '', sizeIdx: '', footage: '', shipDate: '', driveReturn: true, recName: '', recAddress: '', recEmail: '', recPhone: '' };
-function HardDriveForm({ mobile, onCreated }) {
+function HardDriveForm({ mobile, onCreated, invoiceNeeded = true }) {
   const [h, setH] = useState(HD_BLANK);
   const [saving, setSaving] = useState(false);
   const set = (k, v) => setH(p => ({ ...p, [k]: v }));
@@ -817,6 +827,7 @@ function HardDriveForm({ mobile, onCreated }) {
         footage: h.footage.trim(), shipDate: h.shipDate, driveReturn: h.driveReturn,
         shippingName: h.recName.trim(), shippingAddress: h.recAddress.trim(),
         shippingEmail: h.recEmail.trim(), shippingPhone: h.recPhone.trim(),
+        invoiceNeeded,
       });
       setH(HD_BLANK);
       onCreated(row);
@@ -881,6 +892,7 @@ export default function MediaStorage() {
   const [okMsg, setOkMsg] = useState('');
   const [open, setOpen] = useState(false);   // New Request starts collapsed
   const [reqTab, setReqTab] = useState('cold');   // 'cold' | 'hd' in the New Request modal
+  const [hdInvoiceNeeded, setHdInvoiceNeeded] = useState(true);   // Hard Drive Only: Invoice / Don't Invoice
   const [ccOpen, setCcOpen] = useState(false);
   const [ccIds, setCcIds] = useState([]);
   const [pipeView, setPipeView] = useState('email');
@@ -1030,14 +1042,20 @@ export default function MediaStorage() {
                 </span>
                 <button className="btn btn-ghost btn-sm" onClick={() => setOpen(false)}>✕</button>
               </div>
-              <div style={{ padding: '14px 20px 0' }}>
+              <div style={{ padding: '14px 20px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
                 <div className="seg-glass" style={{ display: 'inline-flex', flexWrap: 'wrap' }}>
                   <button type="button" className={reqTab === 'cold' ? 'on' : ''} onClick={() => setReqTab('cold')}>Cold Storage</button>
                   <button type="button" className={reqTab === 'hd' ? 'on' : ''} onClick={() => setReqTab('hd')}>Hard Drive Only</button>
                 </div>
+                {reqTab === 'hd' && (
+                  <div className="seg-glass" style={{ display: 'inline-flex', flexWrap: 'wrap' }}>
+                    <button type="button" className={hdInvoiceNeeded ? 'on' : ''} onClick={() => setHdInvoiceNeeded(true)}>Invoice</button>
+                    <button type="button" className={!hdInvoiceNeeded ? 'on' : ''} onClick={() => setHdInvoiceNeeded(false)}>Don't Invoice</button>
+                  </div>
+                )}
               </div>
               <div style={{ padding: '14px 20px 20px' }}>
-              {reqTab === 'hd' && <HardDriveForm mobile={mobile} onCreated={row => { setRequests(rs => [row, ...(rs || [])]); setOpen(false); setReqTab('cold'); setPipeView('drives'); }} />}
+              {reqTab === 'hd' && <HardDriveForm mobile={mobile} invoiceNeeded={hdInvoiceNeeded} onCreated={row => { setRequests(rs => [row, ...(rs || [])]); setOpen(false); setReqTab('cold'); setHdInvoiceNeeded(true); setPipeView('drives'); }} />}
               {reqTab === 'cold' && (<>
               <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: 14 }}>
                 <Field label="Your Name">
