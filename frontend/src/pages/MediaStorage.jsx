@@ -649,7 +649,7 @@ function DetailRow({ label, children }) {
   );
 }
 
-function DetailModal({ r, onClose, onShip, patchReq }) {
+function DetailModal({ r, onClose, onShip, patchReq, onDelete }) {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const initEdit = () => ({
@@ -728,6 +728,13 @@ function DetailModal({ r, onClose, onShip, patchReq }) {
                 <DetailRow label="Tracking Number">{r.shipping_tracking}</DetailRow>
               </>
             ) : <div style={{ fontSize: 11, color: 'var(--muted)', fontStyle: 'italic' }}>No shipping info yet.</div>}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 18, borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 14 }}>
+              <button type="button" onClick={() => onDelete(r.id)}
+                style={{ background: 'rgba(224,82,82,0.12)', border: '1px solid #e05252', color: '#e05252', borderRadius: 20, padding: '6px 16px', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}>
+                Delete Request
+              </button>
+            </div>
           </>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -896,6 +903,15 @@ export default function MediaStorage() {
       setRequests(rs => (rs || []).map(x => x.id === id ? row : x));
       setDetail(d => (d && d.id === id ? row : d));
       return row;
+    } catch (e) { alert(e.message); }
+  }
+
+  async function deleteReq(id) {
+    if (!confirm('Delete this request permanently? This cannot be undone.')) return;
+    try {
+      await api.deleteMediaStorageRequest(id);
+      setRequests(rs => (rs || []).filter(x => x.id !== id));
+      setDetail(null);
     } catch (e) { alert(e.message); }
   }
 
@@ -1319,7 +1335,7 @@ export default function MediaStorage() {
       {trackEdit && <TrackingModal r={trackEdit} onClose={() => setTrackEdit(null)}
         onConfirm={async (id, tracking) => { await patchReq(id, { shippingTracking: tracking, hardDriveSent: true }); }} />}
       {detail && <DetailModal r={detail} onClose={() => setDetail(null)}
-        onShip={r => { setShipEdit(r); }} patchReq={patchReq} />}
+        onShip={r => { setShipEdit(r); }} patchReq={patchReq} onDelete={deleteReq} />}
     </div>
   );
 }

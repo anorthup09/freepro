@@ -92,6 +92,7 @@ export const api = {
   mediaStorageRequests: () => req('GET', '/media-storage'),
   createMediaStorageRequest: (data) => req('POST', '/media-storage', data),
   updateMediaStorageRequest: (id, data) => req('PATCH', `/media-storage/${id}`, data),
+  deleteMediaStorageRequest: (id) => req('DELETE', `/media-storage/${id}`),
 
   // Per-user favorited reports (Reports & Resources page)
   reportFavorites: () => req('GET', '/report-favorites'),

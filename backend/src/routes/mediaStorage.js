@@ -173,4 +173,12 @@ router.patch('/:id', ...staff, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// Delete a request permanently.
+router.delete('/:id', ...staff, async (req, res, next) => {
+  try {
+    await sql`DELETE FROM media_storage_requests WHERE id = ${req.params.id}`;
+    res.json({ ok: true });
+  } catch (e) { next(e); }
+});
+
 module.exports = router;
