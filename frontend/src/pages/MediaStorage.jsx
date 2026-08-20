@@ -385,13 +385,15 @@ function NewRequestRow({ r, patchReq, onDetail, onShip, mobile }) {
   );
 }
 
-// Hard Drive Shipping Request spreadsheet.
-const DRIVE_COLS = '82px 132px 1.25fr 1.7fr 150px 104px 116px 104px';
-function DriveHeader() {
+// Hard Drive Shipping Request spreadsheet. Status column hidden in New Request.
+const driveCols = hideStatus => hideStatus
+  ? '82px 1.25fr 1.7fr 150px 104px 116px 104px'
+  : '82px 132px 1.25fr 1.7fr 150px 104px 116px 104px';
+function DriveHeader({ hideStatus }) {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: DRIVE_COLS, gap: 10, alignItems: 'end', padding: '0 14px 8px' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: driveCols(hideStatus), gap: 10, alignItems: 'end', padding: '0 14px 8px' }}>
       <span style={colHead} title="Date deployed to Live">Went Live</span>
-      <span style={colHead}>Status</span>
+      {!hideStatus && <span style={colHead}>Status</span>}
       <span style={colHead}>Client / Company</span>
       <span style={colHead}>Project Code — Name</span>
       <span style={colHead}>Tier Cost</span>
@@ -402,16 +404,18 @@ function DriveHeader() {
   );
 }
 
-function DriveRow({ r, patchReq, onDetail, onShip, onTrack, mobile }) {
+function DriveRow({ r, patchReq, onDetail, onShip, onTrack, mobile, hideStatus }) {
   const stop = e => e.stopPropagation();
   const st = driveState(r);
   const shipped = hasShipping(r);
   return (
-    <div className="glass" style={rowShell(mobile, DRIVE_COLS)}>
+    <div className="glass" style={rowShell(mobile, driveCols(hideStatus))}>
       <Cell mobile={mobile} label="Went Live" style={{ fontSize: 10, color: 'var(--muted)', whiteSpace: 'nowrap' }}>{shortDate(r.live_date) || '—'}</Cell>
-      <Cell mobile={mobile} label="Status">
-        <span style={{ ...pill(st.color), cursor: 'default' }}>{st.label}</span>
-      </Cell>
+      {!hideStatus && (
+        <Cell mobile={mobile} label="Status">
+          <span style={{ ...pill(st.color), cursor: 'default' }}>{st.label}</span>
+        </Cell>
+      )}
       <Cell mobile={mobile} label="Client / Company" style={{ cursor: 'pointer', minWidth: 0, fontSize: 12, fontWeight: 800 }}>
         <span onClick={() => onDetail(r)} title="Open full request">{r.client_name}</span>
       </Cell>
@@ -1127,11 +1131,12 @@ export default function MediaStorage() {
                     {rows.length === 0
                       ? <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic', padding: '10px 4px' }}>None in {driveGroup === 'Completed' ? 'Completed' : 'New Request'}.</div>
                       : (() => {
+                        const hideStatus = driveGroup === 'New Request';
                         const body = <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                          {rows.map(r => <DriveRow key={r.id} r={r} patchReq={patchReq} onDetail={setDetail} onShip={setShipEdit} onTrack={setTrackEdit} mobile={mobile} />)}
+                          {rows.map(r => <DriveRow key={r.id} r={r} patchReq={patchReq} onDetail={setDetail} onShip={setShipEdit} onTrack={setTrackEdit} mobile={mobile} hideStatus={hideStatus} />)}
                         </div>;
                         return mobile ? body
-                          : <div style={{ overflowX: 'auto' }}><div style={{ minWidth: 940 }}><DriveHeader />{body}</div></div>;
+                          : <div style={{ overflowX: 'auto' }}><div style={{ minWidth: hideStatus ? 820 : 940 }}><DriveHeader hideStatus={hideStatus} />{body}</div></div>;
                       })()}
                   </>
                 );
