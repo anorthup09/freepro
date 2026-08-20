@@ -649,9 +649,40 @@ function DetailRow({ label, children }) {
   );
 }
 
-function DetailModal({ r, onClose, onShip }) {
+function DetailModal({ r, onClose, onShip, patchReq }) {
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const initEdit = () => ({
+    clientName: r.client_name || '', projectCode: r.project_code || '', projectName: r.project_name || '',
+    pocName: r.poc_name || '', pocEmail: r.poc_email || '', footage: r.footage || '', referenceLinks: r.reference_links || '',
+    sizeIdx: SUB_TIERS.findIndex(t => t.label === r.total_media_size),
+    subIdx: r.subscription_added ? SUB_TIERS.findIndex(t => t.label === r.subscription_tier) : -1,
+    hdIdx: r.hard_drive_added ? HD_TIERS.findIndex(t => t.label === r.hard_drive_tier) : -1,
+    shipDate: (r.ship_date || '').slice(0, 10), driveReturn: r.drive_return == null ? true : r.drive_return,
+    recName: r.shipping_name || '', recEmail: r.shipping_email || '', recAddress: r.shipping_address || '', recPhone: r.shipping_phone || '',
+  });
+  const [e, setE] = useState(initEdit);
+  const set = (k, v) => setE(p => ({ ...p, [k]: v }));
+  function startEdit() { setE(initEdit()); setEditing(true); }
+  async function save() {
+    setSaving(true);
+    const patch = {
+      clientName: e.clientName, projectCode: e.projectCode, projectName: e.projectName,
+      pocName: e.pocName, pocEmail: e.pocEmail, footage: e.footage, referenceLinks: e.referenceLinks,
+      totalMediaSize: e.sizeIdx >= 0 ? SUB_TIERS[e.sizeIdx].label : '',
+      shippingName: e.recName, shippingEmail: e.recEmail, shippingAddress: e.recAddress, shippingPhone: e.recPhone,
+      shipDate: e.shipDate, driveReturn: e.driveReturn,
+    };
+    if (e.subIdx < 0) patch.subscriptionAdded = false;
+    else { patch.subscriptionTier = SUB_TIERS[e.subIdx].label; patch.subscriptionCost = SUB_TIERS[e.subIdx].price; patch.subscriptionAdded = true; }
+    if (e.hdIdx < 0) patch.hardDriveAdded = false;
+    else { patch.hardDriveTier = HD_TIERS[e.hdIdx].label; patch.hardDriveCost = HD_TIERS[e.hdIdx].price; patch.hardDriveAdded = true; }
+    await patchReq(r.id, patch);
+    setSaving(false); setEditing(false);
+  }
+  const isHd = r.request_kind === 'hard_drive_only';
   return (
-    <div onClick={e => e.target === e.currentTarget && onClose()}
+    <div onClick={ev => ev.target === ev.currentTarget && onClose()}
       style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
       <div className="glass" style={{ width: '100%', maxWidth: 560, maxHeight: '86vh', overflowY: 'auto', borderRadius: 14, padding: '20px 22px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, marginBottom: 10 }}>
@@ -659,37 +690,101 @@ function DetailModal({ r, onClose, onShip }) {
             <div style={{ fontSize: 16, fontWeight: 800 }}>{r.client_name}</div>
             <div style={{ fontSize: 11, color: 'var(--muted)' }}>{r.project_code}{r.project_name ? ` — ${r.project_name}` : ''}</div>
           </div>
-          <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {!editing && <button type="button" title="Edit this request" onClick={startEdit}
+              style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--muted)', borderRadius: 10, padding: '3px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>✎ Edit</button>}
+            <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
+          </div>
         </div>
-        <DetailRow label="Status">{bucketOf(r)}</DetailRow>
-        <DetailRow label="Total Media Size">{r.total_media_size}</DetailRow>
-        <DetailRow label="Annual Subscription">{r.subscription_tier ? `${r.subscription_tier} · ${fmt$(r.subscription_cost)}/yr` : ''}</DetailRow>
-        <DetailRow label="Hard Drive + Shipping">{r.hard_drive_tier ? `${r.hard_drive_tier} · ${fmt$(r.hard_drive_cost)}` : ''}</DetailRow>
-        {r.request_kind === 'hard_drive_only' && <DetailRow label="Request Type">Hard Drive Only</DetailRow>}
-        <DetailRow label="Ship Date">{r.ship_date ? shortDate(r.ship_date) : ''}</DetailRow>
-        <DetailRow label="Drive Disposition">{r.drive_return == null ? '' : (r.drive_return ? 'Drive will return' : "We'll never see the drive again")}</DetailRow>
-        <DetailRow label="Main POC">{r.poc_name ? `${r.poc_name}${r.poc_email ? ` (${r.poc_email})` : ''}` : (r.poc_email || '')}</DetailRow>
-        <DetailRow label="Footage">{r.footage}</DetailRow>
-        <DetailRow label="Reference Link(s)">{r.reference_links}</DetailRow>
-        <DetailRow label="Email Sent">{r.email_sent ? `Yes${r.email_sent_date ? ` · ${new Date(r.email_sent_date).toLocaleDateString()}` : ''}` : 'No'}</DetailRow>
-        <DetailRow label="Client Response">{r.client_response}</DetailRow>
-        <DetailRow label="CC">{Array.isArray(r.cc) && r.cc.length ? r.cc.map(c => c.name || c.email).filter(Boolean).join(', ') : ''}</DetailRow>
-        <DetailRow label="Requested By">{r.user_name}{r.user_email ? ` (${r.user_email})` : ''}</DetailRow>
-        <DetailRow label="Submitted">{r.created_at ? new Date(r.created_at).toLocaleString() : ''}</DetailRow>
 
-        <div style={{ marginTop: 14, marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-          <div style={{ fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)' }}>Shipping Info</div>
-          <button type="button" onClick={() => onShip(r)} className="evt-glass evt-sm">{hasShipping(r) ? 'Edit' : 'Add Shipping Information'}</button>
-        </div>
-        {hasShipping(r) ? (
+        {!editing ? (
           <>
-            <DetailRow label="Recipient Name">{r.shipping_name}</DetailRow>
-            <DetailRow label="Recipient Email">{r.shipping_email}</DetailRow>
-            <DetailRow label="Shipping Address">{r.shipping_address}</DetailRow>
-            <DetailRow label="Recipient Phone">{r.shipping_phone}</DetailRow>
-            <DetailRow label="Tracking Number">{r.shipping_tracking}</DetailRow>
+            <DetailRow label="Status">{bucketOf(r)}</DetailRow>
+            <DetailRow label="Total Media Size">{r.total_media_size}</DetailRow>
+            <DetailRow label="Annual Subscription">{r.subscription_tier ? `${r.subscription_tier} · ${fmt$(r.subscription_cost)}/yr` : ''}</DetailRow>
+            <DetailRow label="Hard Drive + Shipping">{r.hard_drive_tier ? `${r.hard_drive_tier} · ${fmt$(r.hard_drive_cost)}` : ''}</DetailRow>
+            {isHd && <DetailRow label="Request Type">Hard Drive Only</DetailRow>}
+            <DetailRow label="Ship Date">{r.ship_date ? shortDate(r.ship_date) : ''}</DetailRow>
+            <DetailRow label="Drive Disposition">{r.drive_return == null ? '' : (r.drive_return ? 'Drive will return' : "We'll never see the drive again")}</DetailRow>
+            <DetailRow label="Main POC">{r.poc_name ? `${r.poc_name}${r.poc_email ? ` (${r.poc_email})` : ''}` : (r.poc_email || '')}</DetailRow>
+            <DetailRow label="Footage">{r.footage}</DetailRow>
+            <DetailRow label="Reference Link(s)">{r.reference_links}</DetailRow>
+            <DetailRow label="Email Sent">{r.email_sent ? `Yes${r.email_sent_date ? ` · ${new Date(r.email_sent_date).toLocaleDateString()}` : ''}` : 'No'}</DetailRow>
+            <DetailRow label="Client Response">{r.client_response}</DetailRow>
+            <DetailRow label="CC">{Array.isArray(r.cc) && r.cc.length ? r.cc.map(c => c.name || c.email).filter(Boolean).join(', ') : ''}</DetailRow>
+            <DetailRow label="Requested By">{r.user_name}{r.user_email ? ` (${r.user_email})` : ''}</DetailRow>
+            <DetailRow label="Submitted">{r.created_at ? new Date(r.created_at).toLocaleString() : ''}</DetailRow>
+
+            <div style={{ marginTop: 14, marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+              <div style={{ fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)' }}>Shipping Info</div>
+              <button type="button" onClick={() => onShip(r)} className="evt-glass evt-sm">{hasShipping(r) ? 'Edit' : 'Add Shipping Information'}</button>
+            </div>
+            {hasShipping(r) ? (
+              <>
+                <DetailRow label="Recipient Name">{r.shipping_name}</DetailRow>
+                <DetailRow label="Recipient Email">{r.shipping_email}</DetailRow>
+                <DetailRow label="Shipping Address">{r.shipping_address}</DetailRow>
+                <DetailRow label="Recipient Phone">{r.shipping_phone}</DetailRow>
+                <DetailRow label="Tracking Number">{r.shipping_tracking}</DetailRow>
+              </>
+            ) : <div style={{ fontSize: 11, color: 'var(--muted)', fontStyle: 'italic' }}>No shipping info yet.</div>}
           </>
-        ) : <div style={{ fontSize: 11, color: 'var(--muted)', fontStyle: 'italic' }}>No shipping info yet.</div>}
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <Field label="Client (Company) Name"><input value={e.clientName} onChange={ev => set('clientName', ev.target.value)} style={inp} /></Field>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <Field label="Project Code"><input value={e.projectCode} onChange={ev => set('projectCode', ev.target.value)} style={inp} /></Field>
+              <Field label="Project Name"><input value={e.projectName} onChange={ev => set('projectName', ev.target.value)} style={inp} /></Field>
+              <Field label="Main POC Name"><input value={e.pocName} onChange={ev => set('pocName', ev.target.value)} style={inp} /></Field>
+              <Field label="Main POC Email"><input type="email" value={e.pocEmail} onChange={ev => set('pocEmail', ev.target.value)} style={inp} /></Field>
+            </div>
+            <Field label="Footage"><textarea value={e.footage} onChange={ev => set('footage', ev.target.value)} rows={2} style={{ ...inp, resize: 'vertical', fontFamily: 'inherit' }} /></Field>
+            <Field label="Reference Link(s)"><textarea value={e.referenceLinks} onChange={ev => set('referenceLinks', ev.target.value)} rows={2} style={{ ...inp, resize: 'vertical', fontFamily: 'inherit' }} /></Field>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+              <Field label="Total Media Size">
+                <select value={e.sizeIdx < 0 ? '' : e.sizeIdx} onChange={ev => set('sizeIdx', ev.target.value === '' ? -1 : Number(ev.target.value))} style={inpSm}>
+                  <option value="">Select…</option>
+                  {SUB_TIERS.map((t, i) => <option key={i} value={i}>{t.label}</option>)}
+                </select>
+              </Field>
+              <Field label="Annual Subscription">
+                <select value={e.subIdx < 0 ? '' : e.subIdx} onChange={ev => set('subIdx', ev.target.value === '' ? -1 : Number(ev.target.value))} style={inpSm}>
+                  <option value="">None</option>
+                  {SUB_TIERS.map((t, i) => <option key={i} value={i}>{t.label} · {fmt$(t.price)}/yr</option>)}
+                </select>
+              </Field>
+              <Field label="Hard Drive + Shipping">
+                <select value={e.hdIdx < 0 ? '' : e.hdIdx} onChange={ev => set('hdIdx', ev.target.value === '' ? -1 : Number(ev.target.value))} style={inpSm}>
+                  <option value="">None</option>
+                  {HD_TIERS.map((t, i) => <option key={i} value={i}>{t.label} · {fmt$(t.price)}</option>)}
+                </select>
+              </Field>
+            </div>
+            {(isHd || e.hdIdx >= 0) && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, alignItems: 'end' }}>
+                <Field label="Ship Date"><input type="date" value={e.shipDate} onChange={ev => set('shipDate', ev.target.value)} style={inp} /></Field>
+                <Field label="Drive Disposition">
+                  <div className="seg-glass" style={{ display: 'inline-flex' }}>
+                    <button type="button" className={e.driveReturn ? 'on' : ''} onClick={() => set('driveReturn', true)}>Returns</button>
+                    <button type="button" className={!e.driveReturn ? 'on' : ''} onClick={() => set('driveReturn', false)}>Never Returns</button>
+                  </div>
+                </Field>
+              </div>
+            )}
+            <div style={{ fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted)', marginTop: 4 }}>Shipping Information</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <Field label="Recipient Name"><input value={e.recName} onChange={ev => set('recName', ev.target.value)} style={inp} /></Field>
+              <Field label="Recipient Email"><input type="email" value={e.recEmail} onChange={ev => set('recEmail', ev.target.value)} style={inp} /></Field>
+            </div>
+            <Field label="Shipping Address"><textarea value={e.recAddress} onChange={ev => set('recAddress', ev.target.value)} rows={2} style={{ ...inp, resize: 'vertical', fontFamily: 'inherit' }} /></Field>
+            <Field label="Recipient Phone Number"><input value={e.recPhone} onChange={ev => set('recPhone', ev.target.value)} style={inp} /></Field>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 6 }}>
+              <button className="btn btn-ghost btn-sm" onClick={() => setEditing(false)}>Cancel</button>
+              <button disabled={saving} onClick={save} className="evt-glass">{saving ? 'Saving…' : 'Save Changes'}</button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1224,7 +1319,7 @@ export default function MediaStorage() {
       {trackEdit && <TrackingModal r={trackEdit} onClose={() => setTrackEdit(null)}
         onConfirm={async (id, tracking) => { await patchReq(id, { shippingTracking: tracking, hardDriveSent: true }); }} />}
       {detail && <DetailModal r={detail} onClose={() => setDetail(null)}
-        onShip={r => { setShipEdit(r); }} />}
+        onShip={r => { setShipEdit(r); }} patchReq={patchReq} />}
     </div>
   );
 }

@@ -126,8 +126,16 @@ router.patch('/:id', ...staff, async (req, res, next) => {
       clientResponseDate = clientResponse ? (cur.client_response_date || new Date().toISOString()) : null;
     }
 
+    const txt = (v, cur) => v !== undefined ? (String(v).trim() || null) : cur;
     const [row] = await sql`
       UPDATE media_storage_requests SET
+        client_name = ${d.clientName !== undefined ? (String(d.clientName).trim() || cur.client_name) : cur.client_name},
+        project_code = ${txt(d.projectCode, cur.project_code)},
+        project_name = ${txt(d.projectName, cur.project_name)},
+        poc_name = ${txt(d.pocName, cur.poc_name)},
+        poc_email = ${txt(d.pocEmail, cur.poc_email)},
+        footage = ${txt(d.footage, cur.footage)},
+        reference_links = ${txt(d.referenceLinks, cur.reference_links)},
         status = ${status},
         live_date = ${liveDate},
         email_sent = ${emailSent},
