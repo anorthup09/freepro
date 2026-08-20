@@ -2633,7 +2633,6 @@ function EstimateMode({ pid, estimates, onExit, reload }) {
   const [entered, setEntered] = useState(false);
   const [idx, setIdx] = useState(Math.max(estimates.length - 1, 0));
   const [busy, setBusy] = useState(false);
-  const feeRate = estimates.length ? Number(estimates[0].mgmt_fee_rate ?? 0.15) : 0.15;
   const [overview, setOverview] = useState(false);
   // Live sections/lines reported up from each pane so the overview reflects edits
   const paneData = useRef({});
@@ -2654,9 +2653,10 @@ function EstimateMode({ pid, estimates, onExit, reload }) {
     try { await api.createEstimate(pid); await reload(); setIdx(estimates.length); } catch (e) { alert(e.message); }
     setBusy(false);
   }
-  async function saveFeeAll(v) {
+  // Each estimate carries its own management fee.
+  async function saveFee(estId, v) {
     const rate = Number(v) / 100;
-    try { await Promise.all(estimates.map(e => api.updateBudget(e.id, { mgmtFeeRate: rate }))); await reload(); } catch (e) { alert(e.message); }
+    try { await api.updateBudget(estId, { mgmtFeeRate: rate }); await reload(); } catch (e) { alert(e.message); }
   }
 
   return (
@@ -2700,7 +2700,7 @@ function EstimateMode({ pid, estimates, onExit, reload }) {
         <div style={{ display:'flex', height:'100%', width:'100%', transform:`translateX(-${idx * 100}%)`, transition:'transform .32s ease' }}>
           {estimates.map(est => (
             <div key={est.id} style={{ minWidth:'100%', height:'100%', overflowY:'auto', padding:'18px 26px 60px' }}>
-              <EstimatePane est={est} feeRate={feeRate} saveFeeAll={saveFeeAll} reload={reload} onMerged={exit}
+              <EstimatePane est={est} saveFee={saveFee} reload={reload} onMerged={exit}
                 onData={(secs, lns) => { paneData.current[est.id] = { sections: secs, lines: lns }; }} />
             </div>
           ))}
@@ -2709,14 +2709,15 @@ function EstimateMode({ pid, estimates, onExit, reload }) {
       </div>
       {overview && estimates[idx] && (() => {
         const live = paneData.current[estimates[idx].id] || estimates[idx];
-        return <OverviewEstimateModal sections={live.sections} lines={live.lines} feeRate={feeRate}
+        return <OverviewEstimateModal sections={live.sections} lines={live.lines} feeRate={Number(estimates[idx].mgmt_fee_rate ?? 0.15)}
           heading={`Estimate Overview — ${estimates[idx].label || 'Estimate'}`} onClose={() => setOverview(false)} />;
       })()}
     </div>
   );
 }
 
-function EstimatePane({ est, feeRate, saveFeeAll, reload, onMerged, onData }) {
+function EstimatePane({ est, saveFee, reload, onMerged, onData }) {
+  const feeRate = Number(est.mgmt_fee_rate ?? 0.15);
   const [feeDraft, setFeeDraft] = useState(Math.round(feeRate * 1000) / 10);
   useEffect(() => { setFeeDraft(Math.round(feeRate * 1000) / 10); }, [feeRate]);
   const [sections, setSections] = useState(est.sections);
@@ -2959,9 +2960,9 @@ function EstimatePane({ est, feeRate, saveFeeAll, reload, onMerged, onData }) {
       </div>
 
       <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:10 }}>
-        <label style={{ fontSize:10, color:'var(--muted)', display:'flex', alignItems:'center', gap:6 }}>Mgmt Fee % (all estimates)
+        <label style={{ fontSize:10, color:'var(--muted)', display:'flex', alignItems:'center', gap:6 }}>Mgmt Fee % (this estimate)
           <input type="number" step="0.5" value={feeDraft} style={{ width:70, fontSize:12, textAlign:'right' }}
-            onChange={e => setFeeDraft(e.target.value)} onBlur={e => saveFeeAll(e.target.value)} />
+            onChange={e => setFeeDraft(e.target.value)} onBlur={e => saveFee(est.id, e.target.value)} />
         </label>
       </div>
       <div style={{ background:'var(--bg2)', border:'1px solid ' + YEL + '55', borderRadius:10, padding:'14px 18px', maxWidth:420, marginLeft:'auto' }}>
