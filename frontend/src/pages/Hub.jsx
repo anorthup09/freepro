@@ -1911,7 +1911,7 @@ export function HubBottomNav({ raised = false }) {
   const items = [
     { key: 'home', label: 'Home', icon: NAV_ICONS.home, to: '/', active: path === '/' },
     ...(!isFinance ? [{ key: 'calendar', label: 'Calendar', icon: NAV_ICONS.calendar, to: '/crew-calendar', active: path.startsWith('/crew-calendar') }] : []),
-    { key: 'reports', label: 'Reports', icon: NAV_ICONS.reports, to: '/reports', active: path.startsWith('/reports') },
+    { key: 'reports', label: 'Resources', icon: NAV_ICONS.reports, to: '/reports', active: path.startsWith('/reports') },
     { key: 'team', label: 'Team', icon: NAV_ICONS.team, to: '/team', active: path.startsWith('/team') },
   ];
   const activeKey = (items.find(i => i.active) || {}).key;
