@@ -183,6 +183,31 @@ const hasShipping = r => !!(r.shipping_name || r.shipping_email || r.shipping_ad
 // Shipping is "complete" (required before a hard-drive task can go Live).
 const shippingReady = r => !!(String(r.shipping_name || '').trim() && String(r.shipping_address || '').trim());
 
+// On phones the spreadsheet rows collapse to stacked label/value cards.
+function useIsMobile() {
+  const [m, setM] = useState(typeof window !== 'undefined' && window.innerWidth <= 720);
+  useEffect(() => {
+    const onR = () => setM(window.innerWidth <= 720);
+    window.addEventListener('resize', onR);
+    return () => window.removeEventListener('resize', onR);
+  }, []);
+  return m;
+}
+const rowShell = (mobile, cols) => mobile
+  ? { display: 'flex', flexDirection: 'column', gap: 9, padding: '12px 14px', borderRadius: 12 }
+  : { display: 'grid', gridTemplateColumns: cols, gap: 10, alignItems: 'center', padding: '10px 14px', borderRadius: 10 };
+const cellLbl = { fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--muted)', flexShrink: 0 };
+// One grid/stacked cell. On mobile it shows its label and right-aligns the value.
+function Cell({ mobile, label, children, style }) {
+  if (!mobile) return <div style={style}>{children}</div>;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+      <span style={cellLbl}>{label}</span>
+      <div style={{ minWidth: 0, textAlign: 'right', ...style }}>{children}</div>
+    </div>
+  );
+}
+
 // Pill styling: dark when off, filled (accent) when on.
 const pill = color => ({
   fontSize: 10, fontWeight: 800, padding: '5px 12px', borderRadius: 20, cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'inherit',
@@ -231,51 +256,59 @@ function PipelineHeader() {
   );
 }
 
-function RequestRow({ r, patchReq, onDetail, onShip }) {
+function RequestRow({ r, patchReq, onDetail, onShip, mobile }) {
   const stop = e => e.stopPropagation();
   const shipped = hasShipping(r);
   const days = r.email_sent ? daysSince(r.email_sent_date) : null;
   return (
-    <div className="glass" style={{ display: 'grid', gridTemplateColumns: COLS, gap: 10, alignItems: 'center', padding: '10px 14px', borderRadius: 10 }}>
-      <div onClick={() => onDetail(r)} style={{ cursor: 'pointer', minWidth: 0, fontSize: 12, fontWeight: 800 }} title="Open full request">{r.client_name}</div>
-      <div onClick={() => onDetail(r)} style={{ cursor: 'pointer', minWidth: 0, fontSize: 11, color: 'var(--muted)' }} title="Open full request">
-        {r.project_code}{r.project_name ? ` — ${r.project_name}` : ''}
-      </div>
-      <div>
+    <div className="glass" style={rowShell(mobile, COLS)}>
+      <Cell mobile={mobile} label="Client / Company"
+        style={{ cursor: 'pointer', minWidth: 0, fontSize: 12, fontWeight: 800 }}>
+        <span onClick={() => onDetail(r)} title="Open full request">{r.client_name}</span>
+      </Cell>
+      <Cell mobile={mobile} label="Project"
+        style={{ cursor: 'pointer', minWidth: 0, fontSize: 11, color: 'var(--muted)' }}>
+        <span onClick={() => onDetail(r)} title="Open full request">{r.project_code}{r.project_name ? ` — ${r.project_name}` : ''}</span>
+      </Cell>
+      <Cell mobile={mobile} label="Email Sent">
         <button type="button" onClick={e => {
             stop(e);
             const turningOn = !r.email_sent;
-            // Marking the outreach as Sent advances a New Request to In-Progress.
             patchReq(r.id, { emailSent: turningOn, ...(turningOn && bucketOf(r) === 'New Request' ? { status: 'In-Progress' } : {}) });
           }}
           style={pill(r.email_sent ? '#5ABF80' : null)}>{r.email_sent ? 'Sent' : 'Unsent'}</button>
-      </div>
-      <div style={{ fontSize: 10, color: 'var(--muted)', whiteSpace: 'nowrap' }}>{r.email_sent ? shortDate(r.email_sent_date) : ''}</div>
-      <div style={{ minWidth: 0 }}>
+      </Cell>
+      <Cell mobile={mobile} label="Date" style={{ fontSize: 10, color: 'var(--muted)', whiteSpace: 'nowrap' }}>
+        {r.email_sent ? shortDate(r.email_sent_date) : '—'}
+      </Cell>
+      <Cell mobile={mobile} label="Client Response" style={{ minWidth: 0, width: mobile ? 150 : undefined }}>
         <input type="date" value={(r.client_response || '').slice(0, 10)} onClick={stop}
           onChange={e => patchReq(r.id, { clientResponse: e.target.value })}
           style={{ ...inpSm, width: '100%' }} />
-      </div>
-      <div>
+      </Cell>
+      <Cell mobile={mobile} label="Shipping">
         <button type="button" onClick={e => { stop(e); onShip(r); }} title={shipped ? 'Review shipping info' : 'Add shipping info'}
           style={pill(shipped ? '#4a9eff' : null)}>Shipping Info</button>
-      </div>
-      <div>
+      </Cell>
+      <Cell mobile={mobile} label="Subscription">
         <button type="button" onClick={e => { stop(e); patchReq(r.id, { subscriptionAdded: !r.subscription_added }); }}
           style={pill(r.subscription_added ? '#5ABF80' : null)}>+ Subscription</button>
-      </div>
-      <div>
+      </Cell>
+      <Cell mobile={mobile} label="Hard Drive">
         <button type="button" onClick={e => { stop(e); patchReq(r.id, { hardDriveAdded: !r.hard_drive_added }); }}
           style={pill(r.hard_drive_added ? '#e6c229' : null)}>+ Hard Drive</button>
-      </div>
-      <div>
+      </Cell>
+      <Cell mobile={mobile} label="Status" style={{ width: mobile ? 150 : undefined }}>
         <select value={bucketOf(r)} onClick={stop} onChange={e => changeStatus(r, e.target.value, patchReq, onShip)}
           title="Set status — Live deploys to the selected pipeline(s)"
           style={{ ...inpSm, width: '100%', fontWeight: 800, color: GROUP_COLOR[bucketOf(r)] }}>
           {statusOptions(r).map(g => <option key={g} value={g}>{g}</option>)}
         </select>
-      </div>
-      <div style={{ fontSize: 11, fontWeight: 700, textAlign: 'center', color: days != null && days >= 14 ? '#e05252' : 'var(--muted)' }} title="Days since outreach">{daysOutLabel(days)}</div>
+      </Cell>
+      <Cell mobile={mobile} label="Days Out"
+        style={{ fontSize: 11, fontWeight: 700, textAlign: mobile ? 'right' : 'center', color: days != null && days >= 14 ? '#e05252' : 'var(--muted)' }}>
+        {daysOutLabel(days)}
+      </Cell>
     </div>
   );
 }
@@ -297,34 +330,36 @@ function DriveHeader() {
   );
 }
 
-function DriveRow({ r, patchReq, onDetail, onShip, onTrack }) {
+function DriveRow({ r, patchReq, onDetail, onShip, onTrack, mobile }) {
   const stop = e => e.stopPropagation();
   const st = driveState(r);
   const shipped = hasShipping(r);
   return (
-    <div className="glass" style={{ display: 'grid', gridTemplateColumns: DRIVE_COLS, gap: 10, alignItems: 'center', padding: '10px 14px', borderRadius: 10 }}>
-      <div style={{ fontSize: 10, color: 'var(--muted)', whiteSpace: 'nowrap' }}>{shortDate(r.live_date)}</div>
-      <div>
+    <div className="glass" style={rowShell(mobile, DRIVE_COLS)}>
+      <Cell mobile={mobile} label="Went Live" style={{ fontSize: 10, color: 'var(--muted)', whiteSpace: 'nowrap' }}>{shortDate(r.live_date) || '—'}</Cell>
+      <Cell mobile={mobile} label="Status">
         <span style={{ ...pill(st.color), cursor: 'default' }}>{st.label}</span>
-      </div>
-      <div onClick={() => onDetail(r)} style={{ cursor: 'pointer', minWidth: 0, fontSize: 12, fontWeight: 800 }} title="Open full request">{r.client_name}</div>
-      <div onClick={() => onDetail(r)} style={{ cursor: 'pointer', minWidth: 0, fontSize: 11, color: 'var(--muted)' }} title="Open full request">
-        {r.project_code}{r.project_name ? ` — ${r.project_name}` : ''}
-      </div>
-      <div style={{ fontSize: 11 }}>{r.hard_drive_tier ? `${r.hard_drive_tier} · ${fmt$(r.hard_drive_cost)}` : '—'}</div>
-      <div>
+      </Cell>
+      <Cell mobile={mobile} label="Client / Company" style={{ cursor: 'pointer', minWidth: 0, fontSize: 12, fontWeight: 800 }}>
+        <span onClick={() => onDetail(r)} title="Open full request">{r.client_name}</span>
+      </Cell>
+      <Cell mobile={mobile} label="Project" style={{ cursor: 'pointer', minWidth: 0, fontSize: 11, color: 'var(--muted)' }}>
+        <span onClick={() => onDetail(r)} title="Open full request">{r.project_code}{r.project_name ? ` — ${r.project_name}` : ''}</span>
+      </Cell>
+      <Cell mobile={mobile} label="Tier Cost" style={{ fontSize: 11 }}>{r.hard_drive_tier ? `${r.hard_drive_tier} · ${fmt$(r.hard_drive_cost)}` : '—'}</Cell>
+      <Cell mobile={mobile} label="Hard Drive">
         <button type="button" title={r.hard_drive_sent ? 'Mark hard drive unsent' : 'Confirm tracking number to mark sent'}
           onClick={e => { stop(e); if (r.hard_drive_sent) patchReq(r.id, { hardDriveSent: false }); else onTrack(r); }}
           style={pill(r.hard_drive_sent ? '#5ABF80' : null)}>{r.hard_drive_sent ? 'Sent' : 'Unsent'}</button>
-      </div>
-      <div>
+      </Cell>
+      <Cell mobile={mobile} label="Invoice">
         <button type="button" onClick={e => { stop(e); patchReq(r.id, { hardDriveInvoiceSent: !r.hard_drive_invoice_sent }); }}
           style={pill(r.hard_drive_invoice_sent ? '#5ABF80' : null)}>{r.hard_drive_invoice_sent ? 'Sent' : 'Unsent'}</button>
-      </div>
-      <div>
+      </Cell>
+      <Cell mobile={mobile} label="Shipping">
         <button type="button" onClick={e => { stop(e); onShip(r); }} title={shipped ? 'Review shipping info' : 'Add shipping info'}
           style={pill(shipped ? '#4a9eff' : null)}>Shipping Info</button>
-      </div>
+      </Cell>
     </div>
   );
 }
@@ -346,30 +381,32 @@ function SubHeader() {
   );
 }
 
-function SubRow({ r, patchReq, onDetail }) {
+function SubRow({ r, patchReq, onDetail, mobile }) {
   const stop = e => e.stopPropagation();
   const live = r.sub_status === 'Live Subscription';
   return (
-    <div className="glass" style={{ display: 'grid', gridTemplateColumns: SUB_COLS, gap: 10, alignItems: 'center', padding: '10px 14px', borderRadius: 10 }}>
-      <div style={{ fontSize: 10, color: 'var(--muted)', whiteSpace: 'nowrap' }}>{shortDate(r.live_date)}</div>
-      <div onClick={() => onDetail(r)} style={{ cursor: 'pointer', minWidth: 0, fontSize: 12, fontWeight: 800 }} title="Open full request">{r.client_name}</div>
-      <div onClick={() => onDetail(r)} style={{ cursor: 'pointer', minWidth: 0, fontSize: 11, color: 'var(--muted)' }} title="Open full request">
-        {r.project_code}{r.project_name ? ` — ${r.project_name}` : ''}
-      </div>
-      <div style={{ fontSize: 11 }}>{r.subscription_tier ? `${r.subscription_tier} · ${fmt$(r.subscription_cost)}/yr` : '—'}</div>
-      <div>
+    <div className="glass" style={rowShell(mobile, SUB_COLS)}>
+      <Cell mobile={mobile} label="Went Live" style={{ fontSize: 10, color: 'var(--muted)', whiteSpace: 'nowrap' }}>{shortDate(r.live_date) || '—'}</Cell>
+      <Cell mobile={mobile} label="Client / Company" style={{ cursor: 'pointer', minWidth: 0, fontSize: 12, fontWeight: 800 }}>
+        <span onClick={() => onDetail(r)} title="Open full request">{r.client_name}</span>
+      </Cell>
+      <Cell mobile={mobile} label="Project" style={{ cursor: 'pointer', minWidth: 0, fontSize: 11, color: 'var(--muted)' }}>
+        <span onClick={() => onDetail(r)} title="Open full request">{r.project_code}{r.project_name ? ` — ${r.project_name}` : ''}</span>
+      </Cell>
+      <Cell mobile={mobile} label="Tier Cost" style={{ fontSize: 11 }}>{r.subscription_tier ? `${r.subscription_tier} · ${fmt$(r.subscription_cost)}/yr` : '—'}</Cell>
+      <Cell mobile={mobile} label="Invoice">
         <button type="button" onClick={e => { stop(e); patchReq(r.id, { subscriptionInvoiceSent: !r.subscription_invoice_sent }); }}
           style={pill(r.subscription_invoice_sent ? '#5ABF80' : null)}>{r.subscription_invoice_sent ? 'Sent' : 'Unsent'}</button>
-      </div>
-      <div>
+      </Cell>
+      <Cell mobile={mobile} label="Subscription Start" style={{ width: mobile ? 150 : undefined }}>
         <input type="date" value={(r.subscription_start || '').slice(0, 10)} onClick={stop}
           onChange={e => patchReq(r.id, { subscriptionStart: e.target.value })} style={{ ...inpSm, width: '100%' }} />
-      </div>
-      <div>
+      </Cell>
+      <Cell mobile={mobile} label="Subscription End" style={{ width: mobile ? 150 : undefined }}>
         <input type="date" value={(r.subscription_end || '').slice(0, 10)} onClick={stop}
           onChange={e => patchReq(r.id, { subscriptionEnd: e.target.value })} style={{ ...inpSm, width: '100%' }} />
-      </div>
-      <div>
+      </Cell>
+      <Cell mobile={mobile} label="Live">
         <button type="button" title={live ? 'Live subscription' : 'Requires start/end dates + invoice sent'}
           onClick={e => {
             stop(e);
@@ -384,7 +421,7 @@ function SubRow({ r, patchReq, onDetail }) {
             }
           }}
           style={pill(live ? '#5ABF80' : null)}>Live</button>
-      </div>
+      </Cell>
     </div>
   );
 }
@@ -403,26 +440,28 @@ function ExpiredHeader() {
   );
 }
 
-function ExpiredRow({ r, patchReq, onDetail, onShip }) {
+function ExpiredRow({ r, patchReq, onDetail, onShip, mobile }) {
   const stop = e => e.stopPropagation();
   return (
-    <div className="glass" style={{ display: 'grid', gridTemplateColumns: EXP_COLS, gap: 10, alignItems: 'center', padding: '10px 14px', borderRadius: 10 }}>
-      <div onClick={() => onDetail(r)} style={{ cursor: 'pointer', minWidth: 0, fontSize: 12, fontWeight: 800 }} title="Open full request">{r.client_name}</div>
-      <div onClick={() => onDetail(r)} style={{ cursor: 'pointer', minWidth: 0, fontSize: 11, color: 'var(--muted)' }} title="Open full request">
-        {r.project_code}{r.project_name ? ` — ${r.project_name}` : ''}
-      </div>
-      <div style={{ fontSize: 10, color: 'var(--muted)', whiteSpace: 'nowrap' }}>{r.email_sent ? shortDate(r.email_sent_date) : '—'}</div>
-      <div>
+    <div className="glass" style={rowShell(mobile, EXP_COLS)}>
+      <Cell mobile={mobile} label="Client / Company" style={{ cursor: 'pointer', minWidth: 0, fontSize: 12, fontWeight: 800 }}>
+        <span onClick={() => onDetail(r)} title="Open full request">{r.client_name}</span>
+      </Cell>
+      <Cell mobile={mobile} label="Project" style={{ cursor: 'pointer', minWidth: 0, fontSize: 11, color: 'var(--muted)' }}>
+        <span onClick={() => onDetail(r)} title="Open full request">{r.project_code}{r.project_name ? ` — ${r.project_name}` : ''}</span>
+      </Cell>
+      <Cell mobile={mobile} label="Email Sent Date" style={{ fontSize: 10, color: 'var(--muted)', whiteSpace: 'nowrap' }}>{r.email_sent ? shortDate(r.email_sent_date) : '—'}</Cell>
+      <Cell mobile={mobile} label="Status" style={{ width: mobile ? 150 : undefined }}>
         <select value={bucketOf(r)} onClick={stop} onChange={e => changeStatus(r, e.target.value, patchReq, onShip)}
           style={{ ...inpSm, width: '100%', fontWeight: 800, color: GROUP_COLOR[bucketOf(r)] }}>
           {statusOptions(r).map(g => <option key={g} value={g}>{g}</option>)}
         </select>
-      </div>
-      <div>
+      </Cell>
+      <Cell mobile={mobile} label="Files Deleted">
         <button type="button" title={r.files_deleted ? 'Files deleted' : 'Mark files deleted'}
           onClick={e => { stop(e); patchReq(r.id, { filesDeleted: !r.files_deleted }); }}
           style={pill(r.files_deleted ? '#5ABF80' : null)}>{r.files_deleted ? 'Completed' : 'Incomplete'}</button>
-      </div>
+      </Cell>
     </div>
   );
 }
@@ -564,6 +603,7 @@ export default function MediaStorage() {
   const [trackEdit, setTrackEdit] = useState(null);   // request whose tracking is being confirmed
   const [detail, setDetail] = useState(null);   // request open in the detail modal
   const [shipEdit, setShipEdit] = useState(null);   // request whose shipping is being edited
+  const mobile = useIsMobile();
   const set = (k, v) => setF(p => ({ ...p, [k]: v }));
   const toggleCc = id => setCcIds(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id]);
 
@@ -674,7 +714,7 @@ export default function MediaStorage() {
                 <button className="btn btn-ghost btn-sm" onClick={() => setOpen(false)}>✕</button>
               </div>
               <div style={{ padding: '16px 20px 20px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: 14 }}>
                 <Field label="Your Name">
                   <input value={preferredName} readOnly style={{ ...inp, opacity: 0.7, cursor: 'default' }} />
                 </Field>
@@ -717,7 +757,7 @@ export default function MediaStorage() {
                     style={{ ...inp, resize: 'vertical', fontFamily: 'inherit' }} />
                 </Field>
 
-                <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, alignItems: 'end' }}>
+                <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr 1fr', gap: 10, alignItems: 'end' }}>
                   <Field label="Total Media Size" required>
                     <select value={f.sizeIdx} onChange={e => onSize(e.target.value)} style={inpSm}>
                       <option value="">Select…</option>
@@ -784,16 +824,18 @@ export default function MediaStorage() {
 
         {/* ── Media Management Pipeline ── */}
         <div style={{ marginTop: 28 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-            <div />
-            <div className="seg-glass" style={{ flexWrap: 'wrap' }}>
+          <div style={mobile
+            ? { display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }
+            : { display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+            {!mobile && <div />}
+            <div className="seg-glass" style={{ flexWrap: 'wrap', ...(mobile ? { justifyContent: 'center' } : {}) }}>
               {PIPE_VIEWS.map(([k, label]) => (
                 <button key={k}
                   className={`${pipeView === k ? 'on' : ''}${(k === 'drives' && drivesPending) || (k === 'subscription' && subsPending) || (k === 'expired' && expiredPending) ? ' ms-pulse' : ''}`}
                   onClick={() => setPipeView(k)}>{label}</button>
               ))}
             </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <div style={{ display: 'flex', justifyContent: mobile ? 'center' : 'flex-end' }}>
               <button type="button" className="evt-glass" onClick={() => setOpen(true)}>+ New Request</button>
             </div>
           </div>
@@ -817,16 +859,11 @@ export default function MediaStorage() {
                   {(() => {
                     const rows = requests.filter(r => bucketOf(r) === emailGroup);
                     if (rows.length === 0) return <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic', padding: '10px 4px' }}>No requests in {emailGroup}.</div>;
-                    return (
-                      <div style={{ overflowX: 'auto' }}>
-                        <div style={{ minWidth: 1040 }}>
-                          <PipelineHeader />
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                            {rows.map(r => <RequestRow key={r.id} r={r} patchReq={patchReq} onDetail={setDetail} onShip={setShipEdit} />)}
-                          </div>
-                        </div>
-                      </div>
-                    );
+                    const body = <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {rows.map(r => <RequestRow key={r.id} r={r} patchReq={patchReq} onDetail={setDetail} onShip={setShipEdit} mobile={mobile} />)}
+                    </div>;
+                    return mobile ? body
+                      : <div style={{ overflowX: 'auto' }}><div style={{ minWidth: 1040 }}><PipelineHeader />{body}</div></div>;
                   })()}
                 </>
               )}
@@ -855,16 +892,13 @@ export default function MediaStorage() {
                     </div>
                     {rows.length === 0
                       ? <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic', padding: '10px 4px' }}>None in {driveGroup === 'Completed' ? 'Completed' : 'New Request'}.</div>
-                      : (
-                        <div style={{ overflowX: 'auto' }}>
-                          <div style={{ minWidth: 940 }}>
-                            <DriveHeader />
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                              {rows.map(r => <DriveRow key={r.id} r={r} patchReq={patchReq} onDetail={setDetail} onShip={setShipEdit} onTrack={setTrackEdit} />)}
-                            </div>
-                          </div>
-                        </div>
-                      )}
+                      : (() => {
+                        const body = <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          {rows.map(r => <DriveRow key={r.id} r={r} patchReq={patchReq} onDetail={setDetail} onShip={setShipEdit} onTrack={setTrackEdit} mobile={mobile} />)}
+                        </div>;
+                        return mobile ? body
+                          : <div style={{ overflowX: 'auto' }}><div style={{ minWidth: 940 }}><DriveHeader />{body}</div></div>;
+                      })()}
                   </>
                 );
               })()}
@@ -893,16 +927,13 @@ export default function MediaStorage() {
                     </div>
                     {rows.length === 0
                       ? <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic', padding: '10px 4px' }}>None in {subGroup === 'Live' ? 'Live' : 'New Request'}.</div>
-                      : (
-                        <div style={{ overflowX: 'auto' }}>
-                          <div style={{ minWidth: 980 }}>
-                            <SubHeader />
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                              {rows.map(r => <SubRow key={r.id} r={r} patchReq={patchReq} onDetail={setDetail} />)}
-                            </div>
-                          </div>
-                        </div>
-                      )}
+                      : (() => {
+                        const body = <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          {rows.map(r => <SubRow key={r.id} r={r} patchReq={patchReq} onDetail={setDetail} mobile={mobile} />)}
+                        </div>;
+                        return mobile ? body
+                          : <div style={{ overflowX: 'auto' }}><div style={{ minWidth: 980 }}><SubHeader />{body}</div></div>;
+                      })()}
                   </>
                 );
               })()}
@@ -931,16 +962,13 @@ export default function MediaStorage() {
                     </div>
                     {rows.length === 0
                       ? <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic', padding: '10px 4px' }}>None in {expGroup}.</div>
-                      : (
-                        <div style={{ overflowX: 'auto' }}>
-                          <div style={{ minWidth: 820 }}>
-                            <ExpiredHeader />
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                              {rows.map(r => <ExpiredRow key={r.id} r={r} patchReq={patchReq} onDetail={setDetail} onShip={setShipEdit} />)}
-                            </div>
-                          </div>
-                        </div>
-                      )}
+                      : (() => {
+                        const body = <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          {rows.map(r => <ExpiredRow key={r.id} r={r} patchReq={patchReq} onDetail={setDetail} onShip={setShipEdit} mobile={mobile} />)}
+                        </div>;
+                        return mobile ? body
+                          : <div style={{ overflowX: 'auto' }}><div style={{ minWidth: 820 }}><ExpiredHeader />{body}</div></div>;
+                      })()}
                   </>
                 );
               })()}
